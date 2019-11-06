@@ -15,6 +15,26 @@ class Utils:
         topics_dt = pd.DataFrame(topics_lst,columns=['qid','query'])
         return topics_dt
 
+    # Convert dataframe with columns: [qid,docno,score] into a dict {qid1: {doc1:score,doc2:score } qid2:...}
+    @staticmethod
+    def run_to_pytrec_eval(df):
+        run_dict_pytrec_eval = {}
+        for index, row in df.iterrows():
+            if str(row['qid']) not in run_dict_pytrec_eval.keys():
+                run_dict_pytrec_eval[str(row['qid'])] = {}
+            run_dict_pytrec_eval[str(row['qid'])][str(row['docno'])] = int(float(row['score']))
+        return(run_dict_pytrec_eval)
+
+    # reads a file with the results of terrier batchretrieve a returns a dataframe with columns: [qid,docno,score]
+    @staticmethod
+    def parse_dph(file_path):
+        dph_results=[]
+        with (open(file_path, 'r')) as dph_file:
+            for line in dph_file:
+                split_line=line.split(" ")
+                dph_results.append([split_line[0], split_line[2],split_line[4]])
+        res_dt = pd.DataFrame(dph_results,columns=['qid','docno','score'])
+        return res_dt
 
 class BatchRetrieve:
     default_controls={
@@ -60,24 +80,6 @@ class BatchRetrieve:
     def setControl(control,value):
         self.controls[control]=value
 
-def run_to_pytrec_eval(df):
-    run_dict_pytrec_eval = {}
-    for index, row in df.iterrows():
-        if "q"+str(row['qid']) not in run_dict_pytrec_eval.keys():
-            run_dict_pytrec_eval["q"+str(row['qid'])] = {}
-        run_dict_pytrec_eval["q"+str(row['qid'])]["d"+str(row['docno'])] = int(float(row['score']))
-    return(run_dict_pytrec_eval)
-
-def parse_dph(file_path):
-    dph_results=[]
-    with (open(file_path, 'r')) as dph_file:
-        for line in dph_file:
-            split_line=line.split(" ")
-            dph_results.append([split_line[0], split_line[2],split_line[4]])
-    res_dt = pd.DataFrame(dph_results,columns=['qid','docno','score'])
-    return res_dt
-
-
 # set terrier home
 system = autoclass("java.lang.System")
 system.setProperty("terrier.home","/home/alex/Downloads/terrier-project-5.1");
@@ -90,18 +92,16 @@ indexref = JIR.of("./index/data.properties")
 retr = BatchRetrieve(indexref)
 
 batch_retrieve_results=retr.transform(topics)
-dph_res = parse_dph("/home/alex/Downloads/terrier-project-5.1/var/results/DPH_0.res")
-# batch_retrieve_results=retr.transform(pd.DataFrame([["1","light"]],columns=['qid','query']))
+dph_res = Utils.parse_dph("./DPH_0.res")
 
-batch_retrieve_results_dict = run_to_pytrec_eval(batch_retrieve_results)
-dph_res_dict = run_to_pytrec_eval(dph_res)
+batch_retrieve_results_dict = Utils.run_to_pytrec_eval(batch_retrieve_results)
+dph_res_dict = Utils.run_to_pytrec_eval(dph_res)
 
 evaluator = pytrec_eval.RelevanceEvaluator(dph_res_dict, {'map', 'ndcg'})
 print(json.dumps(evaluator.evaluate(batch_retrieve_results_dict), indent=1))
-# print(batch_retrieve_results)
 
+# batch_retrieve_results=retr.transform(pd.DataFrame([["1","light"]],columns=['qid','query']))
 
-#
 # appSetup = autoclass('org.terrier.utility.ApplicationSetup')
 # appSetup.setProperty("querying.processes","terrierql:TerrierQLParser,parsecontrols:TerrierQLToControls,parseql:TerrierQLToMatchingQueryTerms,matchopql:MatchingOpQLParser,applypipeline:ApplyTermPipeline,localmatching:LocalManager$ApplyLocalMatching,qe:QueryExpansion,labels:org.terrier.learning.LabelDecorator,filters:LocalManager$PostFilterProcess")
 # appSetup.setProperty("querying.postfilters","decorate:SimpleDecorate,site:SiteFilter,scope:Scope")

@@ -81,3 +81,8 @@
 
 ### 4 Nov 2019
 * *30 min* Created git repository (finally)
+
+### 6 Nov 2019
+* *15 min* Created git repository (finally)
+* *45 min* Installed pytrec_eval (had to reinstall build-essential - sudo apt-get update; sudo apt-get install --reinstall build-essential)
+* *2h* Implemented pytrec_eval
