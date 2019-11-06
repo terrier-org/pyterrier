@@ -1,4 +1,4 @@
-import jnius_config, os
+import jnius_config, os, pytrec_eval,json
 import pandas as pd
 
 jnius_config.set_classpath("terrier-project-5.1-jar-with-dependencies.jar")
@@ -37,7 +37,7 @@ class BatchRetrieve:
 
     def transform(self,query, qid=None):
         if type(query)==type(""):
-            srq = self.ManagerFactory.newSearchRequestFromQuery(query)
+            # srq = self.ManagerFactory.newSearchRequestFromQuery(query)
             srq = self.ManagerFactory.newSearchRequest(qid,query)
             for control,value in self.controls.items():
                 srq.setControl(control,value)
@@ -48,7 +48,8 @@ class BatchRetrieve:
             objForNewDF=pd.DataFrame()
             for index,row in query.iterrows():
                 for i, item in enumerate(retr.transform(row['query'], qid=row['qid'])):
-                    result = [query.iloc[index]['qid'],item.getDocid(),item.getScore()]
+                    # result = [query.iloc[index]['qid'],item.getDocid(),item.getScore()]
+                    result = [query.iloc[index]['qid'],int(item.getDocid())+1,item.getScore()]
                     results.append(result)
             res_dt = pd.DataFrame(results,columns=['qid','docno','score'])
             return res_dt
@@ -59,6 +60,22 @@ class BatchRetrieve:
     def setControl(control,value):
         self.controls[control]=value
 
+def run_to_pytrec_eval(df):
+    run_dict_pytrec_eval = {}
+    for index, row in df.iterrows():
+        if "q"+str(row['qid']) not in run_dict_pytrec_eval.keys():
+            run_dict_pytrec_eval["q"+str(row['qid'])] = {}
+        run_dict_pytrec_eval["q"+str(row['qid'])]["d"+str(row['docno'])] = int(float(row['score']))
+    return(run_dict_pytrec_eval)
+
+def parse_dph(file_path):
+    dph_results=[]
+    with (open(file_path, 'r')) as dph_file:
+        for line in dph_file:
+            split_line=line.split(" ")
+            dph_results.append([split_line[0], split_line[2],split_line[4]])
+    res_dt = pd.DataFrame(dph_results,columns=['qid','docno','score'])
+    return res_dt
 
 
 # set terrier home
@@ -71,9 +88,18 @@ JMF = autoclass('org.terrier.querying.ManagerFactory')
 topics = Utils.parse_trec_topics_file("./vaswani_npl/query-text.trec")
 indexref = JIR.of("./index/data.properties")
 retr = BatchRetrieve(indexref)
+
 batch_retrieve_results=retr.transform(topics)
+dph_res = parse_dph("/home/alex/Downloads/terrier-project-5.1/var/results/DPH_0.res")
 # batch_retrieve_results=retr.transform(pd.DataFrame([["1","light"]],columns=['qid','query']))
-print(batch_retrieve_results)
+
+batch_retrieve_results_dict = run_to_pytrec_eval(batch_retrieve_results)
+dph_res_dict = run_to_pytrec_eval(dph_res)
+
+evaluator = pytrec_eval.RelevanceEvaluator(dph_res_dict, {'map', 'ndcg'})
+print(json.dumps(evaluator.evaluate(batch_retrieve_results_dict), indent=1))
+# print(batch_retrieve_results)
+
 
 #
 # appSetup = autoclass('org.terrier.utility.ApplicationSetup')
