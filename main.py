@@ -35,9 +35,10 @@ class BatchRetrieve:
         if controls==None:
             self.controls=self.default_controls
 
-    def transform(self,query):
+    def transform(self,query, qid=None):
         if type(query)==type(""):
             srq = self.ManagerFactory.newSearchRequestFromQuery(query)
+            srq = self.ManagerFactory.newSearchRequest(qid,query)
             for control,value in self.controls.items():
                 srq.setControl(control,value)
             self.ManagerFactory.runSearchRequest(srq)
@@ -46,7 +47,7 @@ class BatchRetrieve:
             results=[]
             objForNewDF=pd.DataFrame()
             for index,row in query.iterrows():
-                for i, item in enumerate(retr.transform(row['query'])):
+                for i, item in enumerate(retr.transform(row['query'], qid=row['qid'])):
                     result = [query.iloc[index]['qid'],item.getDocid(),item.getScore()]
                     results.append(result)
             res_dt = pd.DataFrame(results,columns=['qid','docno','score'])
