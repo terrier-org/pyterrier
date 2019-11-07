@@ -48,12 +48,32 @@ class BatchRetrieve:
         "wmodel": "DPH",
     }
 
-    def __init__(self, IndexRef, controls=None):
+    default_properties={
+        "querying.processes":"terrierql:TerrierQLParser,parsecontrols:TerrierQLToControls,parseql:TerrierQLToMatchingQueryTerms,matchopql:MatchingOpQLParser,applypipeline:ApplyTermPipeline,localmatching:LocalManager$ApplyLocalMatching,qe:QueryExpansion,labels:org.terrier.learning.LabelDecorator,filters:LocalManager$PostFilterProcess",
+        "querying.postfilters": "decorate:SimpleDecorate,site:SiteFilter,scope:Scope",
+        # "querying.default.controls": "wmodel:DPH,parsecontrols:on,parseql:on,applypipeline:on,terrierql:on,localmatching:on,filters:on,decorate:on"),
+        "querying.allowed.controls": "scope,qe,qemodel,start,end,site,scope",
+        "termpipelines": "Stopwords,PorterStemmer"
+    }
+
+    def __init__(self, IndexRef, controls=None, properties=None):
         self.IndexRef=IndexRef
         MF = autoclass('org.terrier.querying.ManagerFactory')
         self.ManagerFactory = MF._from_(IndexRef)
+        self.appSetup = autoclass('org.terrier.utility.ApplicationSetup')
+
         if controls==None:
             self.controls=self.default_controls
+        else:
+            self.controls=controls
+
+        if properties==None:
+            self.properties=self.default_properties
+        else:
+            self.properties=properties
+
+        for control,value in self.properties.items():
+            self.appSetup.setProperty(control,value)
 
     def transform(self,query, qid=None):
         if type(query)==type(""):
@@ -101,9 +121,3 @@ evaluator = pytrec_eval.RelevanceEvaluator(dph_res_dict, {'map', 'ndcg'})
 print(json.dumps(evaluator.evaluate(batch_retrieve_results_dict), indent=1))
 
 # batch_retrieve_results=retr.transform(pd.DataFrame([["1","light"]],columns=['qid','query']))
-
-# appSetup = autoclass('org.terrier.utility.ApplicationSetup')
-# appSetup.setProperty("querying.processes","terrierql:TerrierQLParser,parsecontrols:TerrierQLToControls,parseql:TerrierQLToMatchingQueryTerms,matchopql:MatchingOpQLParser,applypipeline:ApplyTermPipeline,localmatching:LocalManager$ApplyLocalMatching,qe:QueryExpansion,labels:org.terrier.learning.LabelDecorator,filters:LocalManager$PostFilterProcess")
-# appSetup.setProperty("querying.postfilters","decorate:SimpleDecorate,site:SiteFilter,scope:Scope")
-# appSetup.setProperty("querying.default.controls","wmodel:DPH,parsecontrols:on,parseql:on,applypipeline:on,terrierql:on,localmatching:on,filters:on,decorate:on")
-#
