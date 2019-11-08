@@ -17,24 +17,44 @@ class Utils:
 
     # Convert dataframe with columns: [qid,docno,score] into a dict {qid1: {doc1:score,doc2:score } qid2:...}
     @staticmethod
+    def qrels_to_pytrec_eval(df):
+        run_dict_pytrec_eval = {}
+        for index, row in df.iterrows():
+            if row['qid'] not in run_dict_pytrec_eval.keys():
+                run_dict_pytrec_eval[row['qid']] = {}
+            run_dict_pytrec_eval[row['qid']][row['docno']] = int(row['score'])
+        return(run_dict_pytrec_eval)
+
+    # Convert dataframe with columns: [qid,docno,score] into a dict {qid1: {doc1:score,doc2:score } qid2:...}
+    @staticmethod
     def run_to_pytrec_eval(df):
         run_dict_pytrec_eval = {}
         for index, row in df.iterrows():
             if str(row['qid']) not in run_dict_pytrec_eval.keys():
                 run_dict_pytrec_eval[str(row['qid'])] = {}
-            run_dict_pytrec_eval[str(row['qid'])][str(row['docno'])] = int(float(row['score']))
+            run_dict_pytrec_eval[str(row['qid'])][str(row['docno'])] = float(row['score'])
         return(run_dict_pytrec_eval)
 
-    # reads a file with the results of terrier batchretrieve a returns a dataframe with columns: [qid,docno,score]
     @staticmethod
-    def parse_dph(file_path):
+    def parse_qrels(file_path):
         dph_results=[]
-        with (open(file_path, 'r')) as dph_file:
-            for line in dph_file:
-                split_line=line.split(" ")
-                dph_results.append([split_line[0], split_line[2],split_line[4]])
+        with (open(file_path, 'r')) as qrels_file:
+            for line in qrels_file:
+                split_line=line.strip("\n").split(" ")
+                dph_results.append([split_line[0], split_line[2],split_line[3]])
         res_dt = pd.DataFrame(dph_results,columns=['qid','docno','score'])
         return res_dt
+
+    # # reads a file with the results of terrier batchretrieve a returns a dataframe with columns: [qid,docno,score]
+    # @staticmethod
+    # def parse_dph(file_path):
+    #     dph_results=[]
+    #     with (open(file_path, 'r')) as dph_file:
+    #         for line in dph_file:
+    #             split_line=line.split(" ")
+    #             dph_results.append([split_line[0], split_line[2],split_line[4]])
+    #     res_dt = pd.DataFrame(dph_results,columns=['qid','docno','score'])
+    #     return res_dt
 
 class BatchRetrieve:
     default_controls={
@@ -89,7 +109,7 @@ class BatchRetrieve:
             for index,row in query.iterrows():
                 for i, item in enumerate(retr.transform(row['query'], qid=row['qid'])):
                     # result = [query.iloc[index]['qid'],item.getDocid(),item.getScore()]
-                    result = [query.iloc[index]['qid'],int(item.getDocid())+1,item.getScore()]
+                    result = [query.iloc[index]['qid'],int(item.getDocid()),item.getScore()]
                     results.append(result)
             res_dt = pd.DataFrame(results,columns=['qid','docno','score'])
             return res_dt
@@ -112,12 +132,15 @@ indexref = JIR.of("./index/data.properties")
 retr = BatchRetrieve(indexref)
 
 batch_retrieve_results=retr.transform(topics)
-dph_res = Utils.parse_dph("./DPH_0.res")
-
+print(batch_retrieve_results)
+qrels = Utils.parse_qrels("./vaswani_npl/qrels")
+print(qrels)
 batch_retrieve_results_dict = Utils.run_to_pytrec_eval(batch_retrieve_results)
-dph_res_dict = Utils.run_to_pytrec_eval(dph_res)
+qrels_dic=Utils.qrels_to_pytrec_eval(qrels)
 
-evaluator = pytrec_eval.RelevanceEvaluator(dph_res_dict, {'map', 'ndcg'})
+
+evaluator = pytrec_eval.RelevanceEvaluator(qrels_dic, {'map', 'ndcg'})
 print(json.dumps(evaluator.evaluate(batch_retrieve_results_dict), indent=1))
+
 
 # batch_retrieve_results=retr.transform(pd.DataFrame([["1","light"]],columns=['qid','query']))
