@@ -123,20 +123,21 @@ class BatchRetrieve:
 # system = autoclass("java.lang.System")
 # system.setProperty("terrier.home","/home/alex/Downloads/terrier-project-5.1");
 
-JIR = autoclass('org.terrier.querying.IndexRef')
-JMF = autoclass('org.terrier.querying.ManagerFactory')
+if __name__ == "__main":
+    JIR = autoclass('org.terrier.querying.IndexRef')
+    JMF = autoclass('org.terrier.querying.ManagerFactory')
 
-topics = Utils.parse_trec_topics_file("./vaswani_npl/query-text.trec")
-indexref = JIR.of("./index/data.properties")
-retr = BatchRetrieve(indexref)
+    topics = Utils.parse_trec_topics_file("./vaswani_npl/query-text.trec")
+    indexref = JIR.of("./index/data.properties")
+    retr = BatchRetrieve(indexref)
 
-batch_retrieve_results=retr.transform(topics)
-print(batch_retrieve_results)
-qrels = Utils.parse_qrels("./vaswani_npl/qrels")
-print(qrels)
-batch_retrieve_results_dict = Utils.run_to_pytrec_eval(batch_retrieve_results)
-qrels_dic=Utils.qrels_to_pytrec_eval(qrels)
+    batch_retrieve_results=retr.transform(topics)
+    print(batch_retrieve_results)
+    qrels = Utils.parse_qrels("./vaswani_npl/qrels")
+    print(qrels)
+    batch_retrieve_results_dict = Utils.run_to_pytrec_eval(batch_retrieve_results)
+    qrels_dic=Utils.qrels_to_pytrec_eval(qrels)
 
-evaluator = pytrec_eval.RelevanceEvaluator(qrels_dic, {'map', 'ndcg'})
-print(json.dumps(evaluator.evaluate(batch_retrieve_results_dict), indent=1))
-# print(retr.transform("light"))
+    evaluator = pytrec_eval.RelevanceEvaluator(qrels_dic, {'map', 'ndcg'})
+    print(json.dumps(evaluator.evaluate(batch_retrieve_results_dict), indent=1))
+    # print(retr.transform("light"))
