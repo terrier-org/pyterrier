@@ -71,7 +71,7 @@
 * *2h* Worked on the batchretrieve class
 
 ### 30 Oct 2019
-* *30 min* Meeting with suppervisor
+* *30 min* Meeting with supervisor
 
 ### 1 Nov 2019
 * *2h* Worked on the method for parsing queries from a trec file
@@ -86,3 +86,14 @@
 * *15 min* Created git repository (finally)
 * *45 min* Installed pytrec_eval (had to reinstall build-essential - sudo apt-get update; sudo apt-get install --reinstall build-essential)
 * *2h* Implemented pytrec_eval
+
+### 6 Nov 2019
+* *1h* Added default properties
+* *1h 30 min* Fixed pytrec_eval to use correct qrels file
+
+### 8 Nov 2019
+* *45 min* Meeting with supervisor
+
+### 12 Nov 2019
+* *30 min* Read tutorial for unittesting in python
+* *30 min* Refactored transform method

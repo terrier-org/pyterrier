@@ -7,6 +7,12 @@ from jnius import autoclass
 class Utils:
     @staticmethod
     def parse_trec_topics_file(file_path):
+        system = autoclass("java.lang.System")
+        system.setProperty("TrecQueryTags.doctag","TOP");
+        system.setProperty("TrecQueryTags.idtag","NUM");
+        system.setProperty("TrecQueryTags.process","TOP,NUM,TITLE");
+        system.setProperty("TrecQueryTags.skip","DESC,NARR");
+
         trec = autoclass('org.terrier.applications.batchquerying.TRECQuery')
         tr = trec(file_path)
         topics_lst=[]
@@ -30,9 +36,9 @@ class Utils:
     def run_to_pytrec_eval(df):
         run_dict_pytrec_eval = {}
         for index, row in df.iterrows():
-            if str(row['qid']) not in run_dict_pytrec_eval.keys():
-                run_dict_pytrec_eval[str(row['qid'])] = {}
-            run_dict_pytrec_eval[str(row['qid'])][str(row['docno'])] = float(row['score'])
+            if row['qid'] not in run_dict_pytrec_eval.keys():
+                run_dict_pytrec_eval[row['qid']] = {}
+            run_dict_pytrec_eval[row['qid']][row['docno']] = float(row['score'])
         return(run_dict_pytrec_eval)
 
     @staticmethod
@@ -45,17 +51,6 @@ class Utils:
         res_dt = pd.DataFrame(dph_results,columns=['qid','docno','score'])
         return res_dt
 
-    # # reads a file with the results of terrier batchretrieve a returns a dataframe with columns: [qid,docno,score]
-    # @staticmethod
-    # def parse_dph(file_path):
-    #     dph_results=[]
-    #     with (open(file_path, 'r')) as dph_file:
-    #         for line in dph_file:
-    #             split_line=line.split(" ")
-    #             dph_results.append([split_line[0], split_line[2],split_line[4]])
-    #     res_dt = pd.DataFrame(dph_results,columns=['qid','docno','score'])
-    #     return res_dt
-
 class BatchRetrieve:
     default_controls={
         "terrierql": "on",
@@ -64,55 +59,59 @@ class BatchRetrieve:
         "applypipeline": "on",
         "localmatching": "on",
         "filters": "on",
-        "decorate":"off",
+        "decorate":"on",
         "wmodel": "DPH",
     }
 
     default_properties={
         "querying.processes":"terrierql:TerrierQLParser,parsecontrols:TerrierQLToControls,parseql:TerrierQLToMatchingQueryTerms,matchopql:MatchingOpQLParser,applypipeline:ApplyTermPipeline,localmatching:LocalManager$ApplyLocalMatching,qe:QueryExpansion,labels:org.terrier.learning.LabelDecorator,filters:LocalManager$PostFilterProcess",
         "querying.postfilters": "decorate:SimpleDecorate,site:SiteFilter,scope:Scope",
-        # "querying.default.controls": "wmodel:DPH,parsecontrols:on,parseql:on,applypipeline:on,terrierql:on,localmatching:on,filters:on,decorate:on"),
+        "querying.default.controls": "wmodel:DPH,parsecontrols:on,parseql:on,applypipeline:on,terrierql:on,localmatching:on,filters:on,decorate:on",
         "querying.allowed.controls": "scope,qe,qemodel,start,end,site,scope",
         "termpipelines": "Stopwords,PorterStemmer"
     }
 
     def __init__(self, IndexRef, controls=None, properties=None):
         self.IndexRef=IndexRef
-        MF = autoclass('org.terrier.querying.ManagerFactory')
-        self.ManagerFactory = MF._from_(IndexRef)
         self.appSetup = autoclass('org.terrier.utility.ApplicationSetup')
-
-        if controls==None:
-            self.controls=self.default_controls
-        else:
-            self.controls=controls
 
         if properties==None:
             self.properties=self.default_properties
         else:
             self.properties=properties
 
+        props = autoclass('java.util.Properties')()
         for control,value in self.properties.items():
-            self.appSetup.setProperty(control,value)
+            props.put(control,value)
+        self.appSetup.bootstrapInitialisation(props)
 
-    def transform(self,query, qid=None):
-        if type(query)==type(""):
-            # srq = self.ManagerFactory.newSearchRequestFromQuery(query)
-            srq = self.ManagerFactory.newSearchRequest(qid,query)
+        # print(self.appSetup.getProperties().toString())
+
+        if controls==None:
+            self.controls=self.default_controls
+        else:
+            self.controls=controls
+
+        MF = autoclass('org.terrier.querying.ManagerFactory')
+        self.ManagerFactory = MF._from_(IndexRef)
+
+
+    def transform(self,queries):
+        results=[]
+        if type(queries)==type(""):
+            queries=pd.DataFrame([["1", queries]],columns=['qid','query'])
+        for index,row in queries.iterrows():
+            srq = self.ManagerFactory.newSearchRequest(row['qid'],row['query'])
             for control,value in self.controls.items():
                 srq.setControl(control,value)
             self.ManagerFactory.runSearchRequest(srq)
-            return srq.getResults()
-        else:
-            results=[]
-            objForNewDF=pd.DataFrame()
-            for index,row in query.iterrows():
-                for i, item in enumerate(retr.transform(row['query'], qid=row['qid'])):
-                    # result = [query.iloc[index]['qid'],item.getDocid(),item.getScore()]
-                    result = [query.iloc[index]['qid'],int(item.getDocid()),item.getScore()]
-                    results.append(result)
-            res_dt = pd.DataFrame(results,columns=['qid','docno','score'])
-            return res_dt
+            result=srq.getResults()
+            for item in result:
+                res = [queries.iloc[index]['qid'],item.getMetadata("docno"),item.getScore()]
+                results.append(res)
+        res_dt=pd.DataFrame(results,columns=['qid','docno','score'])
+        return res_dt
+        res_dt = pd.DataFrame(results,columns=['qid','docno','score'])
 
     def setControls(controls):
         self.controls=controls
@@ -121,8 +120,8 @@ class BatchRetrieve:
         self.controls[control]=value
 
 # set terrier home
-system = autoclass("java.lang.System")
-system.setProperty("terrier.home","/home/alex/Downloads/terrier-project-5.1");
+# system = autoclass("java.lang.System")
+# system.setProperty("terrier.home","/home/alex/Downloads/terrier-project-5.1");
 
 JIR = autoclass('org.terrier.querying.IndexRef')
 JMF = autoclass('org.terrier.querying.ManagerFactory')
@@ -138,9 +137,6 @@ print(qrels)
 batch_retrieve_results_dict = Utils.run_to_pytrec_eval(batch_retrieve_results)
 qrels_dic=Utils.qrels_to_pytrec_eval(qrels)
 
-
 evaluator = pytrec_eval.RelevanceEvaluator(qrels_dic, {'map', 'ndcg'})
 print(json.dumps(evaluator.evaluate(batch_retrieve_results_dict), indent=1))
-
-
-# batch_retrieve_results=retr.transform(pd.DataFrame([["1","light"]],columns=['qid','query']))
+# print(retr.transform("light"))
