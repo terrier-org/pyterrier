@@ -1,5 +1,6 @@
 import jnius_config, os, pytrec_eval,json
 import pandas as pd
+# from types import
 
 jnius_config.set_classpath("terrier-project-5.1-jar-with-dependencies.jar")
 from jnius import autoclass
@@ -98,10 +99,29 @@ class BatchRetrieve:
         self.ManagerFactory = MF._from_(IndexRef)
 
 
+    @staticmethod
+    def form_dataframe(query):
+        if type(query)==type(pd.DataFrame()):
+            return query
+        elif type(query)==type(""):
+            return pd.DataFrame([["1", query]],columns=['qid','query'])
+        # if queries is a list or tuple
+        elif type(query)==type([]) or type(query)==type(()):
+            #if the list or tuple is made of strings
+            if query!=[] and type(query[0])==type(""):
+                # all elements must be of same type
+                for elem in query:
+                    # assert(isinstance(elem,type("")))
+                    assert type(elem) is type(""), "%r is not a string" % elem
+                indexed_query = []
+                for i,item in enumerate(query):
+                    indexed_query.append([str(i+1),item])
+                return pd.DataFrame(indexed_query,columns=['qid','query'])
+
+
     def transform(self,queries):
         results=[]
-        if type(queries)==type(""):
-            queries=pd.DataFrame([["1", queries]],columns=['qid','query'])
+        queries=BatchRetrieve.form_dataframe(queries)
         for index,row in queries.iterrows():
             srq = self.ManagerFactory.newSearchRequest(row['qid'],row['query'])
             for control,value in self.controls.items():
@@ -134,12 +154,14 @@ if __name__ == "__main__":
 
     retr = BatchRetrieve(indexref)
 
-    batch_retrieve_results=retr.transform(topics)
-    qrels = Utils.parse_qrels("./vaswani_npl/qrels")
-    batch_retrieve_results_dict = Utils.run_to_pytrec_eval(batch_retrieve_results)
-    qrels_dic=Utils.qrels_to_pytrec_eval(qrels)
+    # batch_retrieve_results=retr.transform(topics)
+    batch_retrieve_results=retr.transform(["light","shadow"])
+    print(batch_retrieve_results)
 
-    evaluator = pytrec_eval.RelevanceEvaluator(qrels_dic, {'map', 'ndcg'})
-    print(json.dumps(evaluator.evaluate(batch_retrieve_results_dict), indent=1))
-    
+    # qrels = Utils.parse_qrels("./vaswani_npl/qrels")
+    # batch_retrieve_results_dict = Utils.run_to_pytrec_eval(batch_retrieve_results)
+    # qrels_dic=Utils.qrels_to_pytrec_eval(qrels)
+    # evaluator = pytrec_eval.RelevanceEvaluator(qrels_dic, {'map', 'ndcg'})
+    # print(json.dumps(evaluator.evaluate(batch_retrieve_results_dict), indent=1))
+
     # print(retr.transform("light"))
