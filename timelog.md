@@ -100,4 +100,7 @@
 * *2 h* Wrote tests
 
 ### 13 Nov 2019
-* *1 h* Fixed parse_trec_topics_file method which fixed the pytrec_eval results 
+* *1 h* Fixed parse_trec_topics_file method which fixed the pytrec_eval results
+
+### 14 Nov 2019
+* *3 h* Refactored code and wrote tests

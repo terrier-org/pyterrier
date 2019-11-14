@@ -1,5 +1,5 @@
 import unittest, jnius_config,math, os
-from main import BatchRetrieve
+from main import BatchRetrieve, Utils
 import pandas as pd
 # jnius_config.set_classpath("terrier-project-5.1-jar-with-dependencies.jar")
 from jnius import autoclass
@@ -20,6 +20,31 @@ def parse_res_file(filename):
             results.append([split_line[0],split_line[2],float(split_line[4])])
     return results
 
+class TestUtils(unittest.TestCase):
+    def test_parse_trec_topics_file(self):
+        input=os.path.dirname(os.path.realpath(__file__))+"/fixtures/topics.trec"
+        exp_result=pd.DataFrame([["1","light"],["2","radiowave"],["3","sound"]],columns=['qid','query'])
+        result=Utils.parse_trec_topics_file(input)
+        self.assertTrue(exp_result.equals(result))
+
+    def test_convert_df_to_pytrec_eval_float(self):
+        input=pd.DataFrame([["1","1",12.5],["1","7",4.3],["2","12",8.5]],columns=["qid","docno","score"])
+        exp_result={"1":{"1":12.5,"7":4.3},"2":{"12":8.5}}
+        result=Utils.convert_df_to_pytrec_eval(input, score_int=False)
+        self.assertEquals(exp_result,result)
+
+    def test_convert_df_to_pytrec_eval_int(self):
+        input=pd.DataFrame([["1","1",1],["1","7",0],["2","12",1]],columns=["qid","docno","score"])
+        exp_result={"1":{"1":1,"7":0},"2":{"12":1}}
+        result=Utils.convert_df_to_pytrec_eval(input, score_int=True)
+        self.assertEquals(exp_result,result)
+
+    def test_parse_qrels(self):
+        input=os.path.dirname(os.path.realpath(__file__))+"/fixtures/qrels"
+        exp_result=pd.DataFrame([["1","13","1"],["1","15","1"],["2","8","1"],["2","4","1"],["2","17","1"],["3","2","1"]],columns=['qid','docno','score'])
+        result=Utils.parse_qrels(input)
+        self.assertTrue(exp_result.equals(result))
+
 class TestBatchRetrieve(unittest.TestCase):
     def test_form_dataframe_with_string(self):
         input="light"
@@ -32,6 +57,13 @@ class TestBatchRetrieve(unittest.TestCase):
         exp_result = pd.DataFrame([["1", "light"],["2", "mathematical"],["3", "electronic"]],columns=['qid','query'])
         result=BatchRetrieve.form_dataframe(input)
         self.assertTrue(exp_result.equals(result))
+
+    def test_form_dataframe_throws_assertion_error(self):
+        input=("light","mathematical",25)
+        exp_result = pd.DataFrame([["1", "light"],["2", "mathematical"],["3", "electronic"]],columns=['qid','query'])
+        # result=BatchRetrieve.form_dataframe(input)
+        # self.assertTrue(exp_result.equals(result))
+        self.assertRaises(AssertionError,BatchRetrieve.form_dataframe,input)
 
     def test_form_dataframe_with_tuple(self):
         input=("light","mathematical","electronic")
