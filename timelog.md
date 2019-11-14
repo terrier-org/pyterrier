@@ -97,3 +97,4 @@
 ### 12 Nov 2019
 * *30 min* Read tutorial for unittesting in python
 * *30 min* Refactored transform method
+* *1 h* Wrote tests
