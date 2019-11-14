@@ -26,22 +26,15 @@ class Utils:
 
     # Convert dataframe with columns: [qid,docno,score] into a dict {qid1: {doc1:score,doc2:score } qid2:...}
     @staticmethod
-    def qrels_to_pytrec_eval(df):
+    def convert_df_to_pytrec_eval(df, score_int=False):
         run_dict_pytrec_eval = {}
         for index, row in df.iterrows():
             if row['qid'] not in run_dict_pytrec_eval.keys():
                 run_dict_pytrec_eval[row['qid']] = {}
-            run_dict_pytrec_eval[row['qid']][row['docno']] = int(row['score'])
-        return(run_dict_pytrec_eval)
-
-    # Convert dataframe with columns: [qid,docno,score] into a dict {qid1: {doc1:score,doc2:score } qid2:...}
-    @staticmethod
-    def run_to_pytrec_eval(df):
-        run_dict_pytrec_eval = {}
-        for index, row in df.iterrows():
-            if row['qid'] not in run_dict_pytrec_eval.keys():
-                run_dict_pytrec_eval[row['qid']] = {}
-            run_dict_pytrec_eval[row['qid']][row['docno']] = float(row['score'])
+            if score_int:
+                run_dict_pytrec_eval[row['qid']][row['docno']] = int(row['score'])
+            else:
+                run_dict_pytrec_eval[row['qid']][row['docno']] = float(row['score'])
         return(run_dict_pytrec_eval)
 
     @staticmethod
@@ -112,7 +105,7 @@ class BatchRetrieve:
                 indexed_query = []
                 for i,item in enumerate(query):
                     # all elements must be of same type
-                    assert type(item) is type(""), "%r is not a string" % elem
+                    assert type(item) is type(""), "%r is not a string" % item
                     indexed_query.append([str(i+1),item])
                 return pd.DataFrame(indexed_query,columns=['qid','query'])
 
@@ -150,14 +143,14 @@ if __name__ == "__main__":
 
     retr = BatchRetrieve(indexref)
 
-    # batch_retrieve_results=retr.transform(topics)
-    batch_retrieve_results=retr.transform(["light","radio"])
+    batch_retrieve_results=retr.transform(topics)
+    # batch_retrieve_results=retr.transform(["light","radio"])
     print(batch_retrieve_results)
 
-    # qrels = Utils.parse_qrels("./vaswani_npl/qrels")
-    # batch_retrieve_results_dict = Utils.run_to_pytrec_eval(batch_retrieve_results)
-    # qrels_dic=Utils.qrels_to_pytrec_eval(qrels)
-    # evaluator = pytrec_eval.RelevanceEvaluator(qrels_dic, {'map', 'ndcg'})
-    # print(json.dumps(evaluator.evaluate(batch_retrieve_results_dict), indent=1))
+    qrels = Utils.parse_qrels("./vaswani_npl/qrels")
+    batch_retrieve_results_dict = Utils.convert_df_to_pytrec_eval(batch_retrieve_results)
+    qrels_dic=Utils.convert_df_to_pytrec_eval(qrels, True)
+    evaluator = pytrec_eval.RelevanceEvaluator(qrels_dic, {'map', 'ndcg'})
+    print(json.dumps(evaluator.evaluate(batch_retrieve_results_dict), indent=1))
 
     # print(retr.transform("light"))
