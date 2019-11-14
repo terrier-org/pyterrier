@@ -109,12 +109,10 @@ class BatchRetrieve:
         elif type(query)==type([]) or type(query)==type(()):
             #if the list or tuple is made of strings
             if query!=[] and type(query[0])==type(""):
-                # all elements must be of same type
-                for elem in query:
-                    # assert(isinstance(elem,type("")))
-                    assert type(elem) is type(""), "%r is not a string" % elem
                 indexed_query = []
                 for i,item in enumerate(query):
+                    # all elements must be of same type
+                    assert type(item) is type(""), "%r is not a string" % elem
                     indexed_query.append([str(i+1),item])
                 return pd.DataFrame(indexed_query,columns=['qid','query'])
 
@@ -149,13 +147,11 @@ if __name__ == "__main__":
     JIR = autoclass('org.terrier.querying.IndexRef')
     indexref = JIR.of("./index/data.properties")
     topics = Utils.parse_trec_topics_file("./vaswani_npl/query-text.trec")
-    # print(topics)
-
 
     retr = BatchRetrieve(indexref)
 
     # batch_retrieve_results=retr.transform(topics)
-    batch_retrieve_results=retr.transform(["light","shadow"])
+    batch_retrieve_results=retr.transform(["light","radio"])
     print(batch_retrieve_results)
 
     # qrels = Utils.parse_qrels("./vaswani_npl/qrels")
