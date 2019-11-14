@@ -123,12 +123,11 @@ class BatchRetrieve:
 # system = autoclass("java.lang.System")
 # system.setProperty("terrier.home","/home/alex/Downloads/terrier-project-5.1");
 
-if __name__ == "__main":
+if __name__ == "__main__":
     JIR = autoclass('org.terrier.querying.IndexRef')
-    JMF = autoclass('org.terrier.querying.ManagerFactory')
-
-    topics = Utils.parse_trec_topics_file("./vaswani_npl/query-text.trec")
     indexref = JIR.of("./index/data.properties")
+    topics = Utils.parse_trec_topics_file("./vaswani_npl/query-text.trec")
+
     retr = BatchRetrieve(indexref)
 
     batch_retrieve_results=retr.transform(topics)
