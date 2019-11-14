@@ -97,4 +97,7 @@
 ### 12 Nov 2019
 * *30 min* Read tutorial for unittesting in python
 * *30 min* Refactored transform method
-* *1 h* Wrote tests
+* *2 h* Wrote tests
+
+### 13 Nov 2019
+* *1 h* Fixed parse_trec_topics_file method which fixed the pytrec_eval results 

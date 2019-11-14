@@ -17,7 +17,9 @@ class Utils:
         tr = trec(file_path)
         topics_lst=[]
         while(tr.hasNext()):
-            topics_lst.append([tr.getQueryId(),tr.next()])
+            topic = tr.next()
+            qid = tr.getQueryId()
+            topics_lst.append([qid,topic])
         topics_dt = pd.DataFrame(topics_lst,columns=['qid','query'])
         return topics_dt
 
@@ -127,16 +129,17 @@ if __name__ == "__main__":
     JIR = autoclass('org.terrier.querying.IndexRef')
     indexref = JIR.of("./index/data.properties")
     topics = Utils.parse_trec_topics_file("./vaswani_npl/query-text.trec")
+    # print(topics)
+
 
     retr = BatchRetrieve(indexref)
 
     batch_retrieve_results=retr.transform(topics)
-    print(batch_retrieve_results)
     qrels = Utils.parse_qrels("./vaswani_npl/qrels")
-    print(qrels)
     batch_retrieve_results_dict = Utils.run_to_pytrec_eval(batch_retrieve_results)
     qrels_dic=Utils.qrels_to_pytrec_eval(qrels)
 
     evaluator = pytrec_eval.RelevanceEvaluator(qrels_dic, {'map', 'ndcg'})
     print(json.dumps(evaluator.evaluate(batch_retrieve_results_dict), indent=1))
+    
     # print(retr.transform("light"))
