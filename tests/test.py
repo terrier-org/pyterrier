@@ -61,8 +61,6 @@ class TestBatchRetrieve(unittest.TestCase):
     def test_form_dataframe_throws_assertion_error(self):
         input=("light","mathematical",25)
         exp_result = pd.DataFrame([["1", "light"],["2", "mathematical"],["3", "electronic"]],columns=['qid','query'])
-        # result=BatchRetrieve.form_dataframe(input)
-        # self.assertTrue(exp_result.equals(result))
         self.assertRaises(AssertionError,BatchRetrieve.form_dataframe,input)
 
     def test_form_dataframe_with_tuple(self):

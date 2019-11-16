@@ -124,7 +124,12 @@ class BatchRetrieve:
                 results.append(res)
         res_dt=pd.DataFrame(results,columns=['qid','docno','score'])
         return res_dt
-        res_dt = pd.DataFrame(results,columns=['qid','docno','score'])
+
+    def evaluate(self,res,qrels):
+        batch_retrieve_results_dict = Utils.convert_df_to_pytrec_eval(res)
+        qrels_dic=Utils.convert_df_to_pytrec_eval(qrels, True)
+        evaluator = pytrec_eval.RelevanceEvaluator(qrels_dic, {'map', 'ndcg'})
+        return json.dumps(evaluator.evaluate(batch_retrieve_results_dict), indent=1)
 
     def setControls(controls):
         self.controls=controls
@@ -144,13 +149,6 @@ if __name__ == "__main__":
     retr = BatchRetrieve(indexref)
 
     batch_retrieve_results=retr.transform(topics)
-    # batch_retrieve_results=retr.transform(["light","radio"])
-    print(batch_retrieve_results)
-
     qrels = Utils.parse_qrels("./vaswani_npl/qrels")
-    batch_retrieve_results_dict = Utils.convert_df_to_pytrec_eval(batch_retrieve_results)
-    qrels_dic=Utils.convert_df_to_pytrec_eval(qrels, True)
-    evaluator = pytrec_eval.RelevanceEvaluator(qrels_dic, {'map', 'ndcg'})
-    print(json.dumps(evaluator.evaluate(batch_retrieve_results_dict), indent=1))
-
-    # print(retr.transform("light"))
+    eval = retr.evaluate(batch_retrieve_results,qrels)
+    print(eval)
