@@ -47,6 +47,13 @@ class Utils:
         res_dt = pd.DataFrame(dph_results,columns=['qid','docno','score'])
         return res_dt
 
+    @staticmethod
+    def evaluate(res,qrels):
+        batch_retrieve_results_dict = Utils.convert_df_to_pytrec_eval(res)
+        qrels_dic=Utils.convert_df_to_pytrec_eval(qrels, True)
+        evaluator = pytrec_eval.RelevanceEvaluator(qrels_dic, {'map', 'ndcg'})
+        return json.dumps(evaluator.evaluate(batch_retrieve_results_dict), indent=1)
+
 class BatchRetrieve:
     default_controls={
         "terrierql": "on",
@@ -125,11 +132,7 @@ class BatchRetrieve:
         res_dt=pd.DataFrame(results,columns=['qid','docno','score'])
         return res_dt
 
-    def evaluate(self,res,qrels):
-        batch_retrieve_results_dict = Utils.convert_df_to_pytrec_eval(res)
-        qrels_dic=Utils.convert_df_to_pytrec_eval(qrels, True)
-        evaluator = pytrec_eval.RelevanceEvaluator(qrels_dic, {'map', 'ndcg'})
-        return json.dumps(evaluator.evaluate(batch_retrieve_results_dict), indent=1)
+
 
     def setControls(controls):
         self.controls=controls
@@ -150,5 +153,5 @@ if __name__ == "__main__":
 
     batch_retrieve_results=retr.transform(topics)
     qrels = Utils.parse_qrels("./vaswani_npl/qrels")
-    eval = retr.evaluate(batch_retrieve_results,qrels)
+    eval = Utils.evaluate(batch_retrieve_results,qrels)
     print(eval)
