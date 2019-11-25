@@ -104,3 +104,17 @@
 
 ### 14 Nov 2019
 * *3 h* Refactored code and wrote tests
+
+### 20 Nov 2019
+* *1 h* Tried to run Pyterrier on windows
+* *1 h* Read whoosh API documentation
+
+### 21 Nov 2019
+* *2 h* Read Scala tutorials
+* *3 h* Tried to understand the Scala FeaturesBatchRetrieve
+
+### 22 Nov 2019
+* *40 min* Meeting with supervisor
+
+### 25 Nov 2019
+* *2 h* Worked on FeaturesBatchRetrieve
