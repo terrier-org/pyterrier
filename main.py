@@ -130,14 +130,22 @@ class BatchRetrieve:
                 res = [queries.iloc[index]['qid'],item.getMetadata("docno"),item.getScore()]
                 results.append(res)
         res_dt=pd.DataFrame(results,columns=['qid','docno','score'])
+        self.lastResult=res_dt
         return res_dt
 
+    def saveResult(self, result, path):
+        res_copy = result.copy()
+        res_copy.insert(1, "Q0", "Q0")
+        res_copy.insert(4, "wmodel", self.controls["wmodel"])
+        res_copy.to_csv(path, sep=" ", header=False, index=False)
 
+    def saveLastResult(self, path):
+        self.saveResult(self.lastResult,path)
 
-    def setControls(controls):
+    def setControls(self, controls):
         self.controls=controls
 
-    def setControl(control,value):
+    def setControl(self, control,value):
         self.controls[control]=value
 
 
@@ -215,10 +223,14 @@ if __name__ == "__main__":
 
     retr = BatchRetrieve(indexref)
     features=["BM25","PL2"]
-    feat_retrieve = FeaturesBatchRetrieve(indexref, ["WMODEL:BM25","WMODEL:PL2"])
-    feat_retrieve.transform(topics_light)
+    # feat_retrieve = FeaturesBatchRetrieve(indexref, ["WMODEL:BM25","WMODEL:PL2"])
+    # feat_retrieve.transform(topics_light)
 
-    # batch_retrieve_results=retr.transform(topics)
+
+    batch_retrieve_results=retr.transform(topics_light)
+    # retr.saveLastResult("result.res")
+    # retr.saveResult(batch_retrieve_results,"/home/alex/Documents/Pyterrier/result.res")
+
     # qrels = Utils.parse_qrels("./vaswani_npl/qrels")
     # eval = Utils.evaluate(batch_retrieve_results,qrels)
     # print(eval)
