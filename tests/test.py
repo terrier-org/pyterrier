@@ -63,23 +63,23 @@ class TestBatchRetrieve(unittest.TestCase):
     def test_form_dataframe_with_string(self):
         input="light"
         exp_result = pd.DataFrame([["1", "light"]],columns=['qid','query'])
-        result=BatchRetrieve.form_dataframe(input)
+        result=Utils.form_dataframe(input)
         self.assertTrue(exp_result.equals(result))
 
     def test_form_dataframe_with_list(self):
         input=["light","mathematical","electronic"]
         exp_result = pd.DataFrame([["1", "light"],["2", "mathematical"],["3", "electronic"]],columns=['qid','query'])
-        result=BatchRetrieve.form_dataframe(input)
+        result=Utils.form_dataframe(input)
         self.assertTrue(exp_result.equals(result))
 
     def test_form_dataframe_throws_assertion_error(self):
         input=("light","mathematical",25)
-        self.assertRaises(AssertionError,BatchRetrieve.form_dataframe,input)
+        self.assertRaises(AssertionError,Utils.form_dataframe,input)
 
     def test_form_dataframe_with_tuple(self):
         input=("light","mathematical","electronic")
         exp_result = pd.DataFrame([["1", "light"],["2", "mathematical"],["3", "electronic"]],columns=['qid','query'])
-        result=BatchRetrieve.form_dataframe(input)
+        result=Utils.form_dataframe(input)
         self.assertTrue(exp_result.equals(result))
 
     def test_one_term_query_correct_docid_and_score(self):

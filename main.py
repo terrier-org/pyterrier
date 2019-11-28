@@ -55,6 +55,24 @@ class Utils:
         return json.dumps(evaluator.evaluate(batch_retrieve_results_dict), indent=1)
 
 
+    @staticmethod
+    def form_dataframe(query):
+        if type(query)==type(pd.DataFrame()):
+            return query
+        elif type(query)==type(""):
+            return pd.DataFrame([["1", query]],columns=['qid','query'])
+        # if queries is a list or tuple
+        elif type(query)==type([]) or type(query)==type(()):
+            #if the list or tuple is made of strings
+            if query!=[] and type(query[0])==type(""):
+                indexed_query = []
+                for i,item in enumerate(query):
+                    # all elements must be of same type
+                    assert type(item) is type(""), "%r is not a string" % item
+                    indexed_query.append([str(i+1),item])
+                return pd.DataFrame(indexed_query,columns=['qid','query'])
+
+
 class BatchRetrieve:
     default_controls={
         "terrierql": "on",
@@ -99,28 +117,9 @@ class BatchRetrieve:
         MF = autoclass('org.terrier.querying.ManagerFactory')
         self.ManagerFactory = MF._from_(IndexRef)
 
-
-    @staticmethod
-    def form_dataframe(query):
-        if type(query)==type(pd.DataFrame()):
-            return query
-        elif type(query)==type(""):
-            return pd.DataFrame([["1", query]],columns=['qid','query'])
-        # if queries is a list or tuple
-        elif type(query)==type([]) or type(query)==type(()):
-            #if the list or tuple is made of strings
-            if query!=[] and type(query[0])==type(""):
-                indexed_query = []
-                for i,item in enumerate(query):
-                    # all elements must be of same type
-                    assert type(item) is type(""), "%r is not a string" % item
-                    indexed_query.append([str(i+1),item])
-                return pd.DataFrame(indexed_query,columns=['qid','query'])
-
-
     def transform(self,queries):
         results=[]
-        queries=BatchRetrieve.form_dataframe(queries)
+        queries=Utils.form_dataframe(queries)
         for index,row in queries.iterrows():
             srq = self.ManagerFactory.newSearchRequest(row['qid'],row['query'])
             for control,value in self.controls.items():
@@ -184,7 +183,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
 
     def transform(self,topics):
         results=[]
-        queries=BatchRetrieve.form_dataframe(topics)
+        queries=Utils.form_dataframe(topics)
         for index,row in queries.iterrows():
             srq = self.ManagerFactory.newSearchRequest(row['qid'],row['query'])
             for control,value in self.controls.items():
