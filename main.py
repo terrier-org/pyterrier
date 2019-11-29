@@ -210,6 +210,12 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         res_dt=pd.DataFrame(results, columns=["qid","docno"]+feats)
         print(res_dt)
 
+class Index():
+    def __init__(self, corpus, blocks=False, fields=[]):
+        print(corpus)
+
+    def addDocument(document): #??
+        print(document)
 
 # set terrier home
 # system = autoclass("java.lang.System")
@@ -234,3 +240,7 @@ if __name__ == "__main__":
     # qrels = Utils.parse_qrels("./vaswani_npl/qrels")
     # eval = Utils.evaluate(batch_retrieve_results,qrels)
     # print(eval)
+
+
+#Alternative to pytrec_eval
+#Split classes in seperate files
