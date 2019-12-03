@@ -1,4 +1,5 @@
 import jnius_config, os, pytrec_eval,json
+import numpy as np
 import pandas as pd
 # from types import
 
@@ -204,22 +205,24 @@ class FeaturesBatchRetrieve(BatchRetrieve):
                 elem=[]
                 elem.append(row['qid'])
                 elem.append(fres.getMetaItems("docno")[i])
+                elem.append(fres.getScores()[i])
+                feats_array = np.array([])
                 for feat in feats:
-                    elem.append(fres.getFeatureScores(feat)[i])
+                    feats_array = np.append(feats_array, fres.getFeatureScores(feat)[i])
+                elem.append(feats_array)
                 results.append(elem)
-        res_dt=pd.DataFrame(results, columns=["qid","docno"]+feats)
+        res_dt=pd.DataFrame(results, columns=["qid", "docno", "score", "features"])
         print(res_dt)
 
 class Index():
     def __init__(self, corpus, blocks=False, fields=[]):
         print(corpus)
-
     def addDocument(document): #??
         print(document)
-
-# set terrier home
-# system = autoclass("java.lang.System")
-# system.setProperty("terrier.home","/home/alex/Downloads/terrier-project-5.1")
+    def saveIndex(path):
+        print(path)
+    def loadIndex(path):
+        print(path)
 
 if __name__ == "__main__":
     JIR = autoclass('org.terrier.querying.IndexRef')
@@ -229,12 +232,14 @@ if __name__ == "__main__":
 
     retr = BatchRetrieve(indexref)
     features=["BM25","PL2"]
-    # feat_retrieve = FeaturesBatchRetrieve(indexref, ["WMODEL:BM25","WMODEL:PL2"])
-    # feat_retrieve.transform(topics_light)
+    feat_retrieve = FeaturesBatchRetrieve(indexref, ["WMODEL:BM25","WMODEL:PL2"])
+    feat_res = feat_retrieve.transform(topics_light)
+    print(feat_res)
 
 
-    batch_retrieve_results=retr.transform(topics_light)
-    # retr.saveLastResult("result.res")
+    # batch_retrieve_results=retr.transform(topics_light)
+    # print(batch_retrieve_results)
+    # retr.saveLastResult("dph.res")
     # retr.saveResult(batch_retrieve_results,"/home/alex/Documents/Pyterrier/result.res")
 
     # qrels = Utils.parse_qrels("./vaswani_npl/qrels")
@@ -243,4 +248,3 @@ if __name__ == "__main__":
 
 
 #Alternative to pytrec_eval
-#Split classes in seperate files

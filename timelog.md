@@ -118,3 +118,15 @@
 
 ### 25 Nov 2019
 * *2 h* Worked on FeaturesBatchRetrieve
+
+### 27 Nov 2019
+* *1 h* Worked on testing if FeaturesBatchRetrieve returns the correct result
+
+### 28 Nov 2019
+* *1 h* Worked on FeaturesBatchRetrieve
+* *30 min* Added a method to save the result of BatchRetrieve.transform to a file
+* *30 min* Worked on a design for indexing
+* *1 h* Worked on uploading project to PyPi
+
+### 3 Dec 2019
+* *30 min* The features in the result of FeaturesBatchRetrieve.Transform are now a single numpy array column
