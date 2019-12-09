@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="python-terrier",
-    version="0.0.2",
+    version="0.0.9",
     author="A-Tsolov",
     author_email="tsolov.aleksandar@gmail.com",
     description="Terrier IR Python API",
@@ -19,6 +19,12 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    # data_files=[('my_data', ['terrier-project-5.1-jar-with-dependencies.jar'])],
+    # data_files=[('my_data', ['../terrier-project-5.1-jar-with-dependencies.jar'])],
+    install_requires=[
+    "pyjnius",
+    "numpy",
+    "pandas",
+    "wget",
+    ],
     python_requires='>=3.6',
 )

@@ -1,6 +1,7 @@
 import pandas as pd
 from jnius import autoclass, cast
-import pytrec_eval, json
+# import pytrec_eval
+import json
 
 class Utils:
     @staticmethod
@@ -44,12 +45,12 @@ class Utils:
         res_dt = pd.DataFrame(dph_results,columns=['qid','docno','score'])
         return res_dt
 
-    @staticmethod
-    def evaluate(res,qrels):
-        batch_retrieve_results_dict = Utils.convert_df_to_pytrec_eval(res)
-        qrels_dic=Utils.convert_df_to_pytrec_eval(qrels, True)
-        evaluator = pytrec_eval.RelevanceEvaluator(qrels_dic, {'map', 'ndcg'})
-        return json.dumps(evaluator.evaluate(batch_retrieve_results_dict), indent=1)
+    # @staticmethod
+    # def evaluate(res,qrels):
+    #     batch_retrieve_results_dict = Utils.convert_df_to_pytrec_eval(res)
+    #     qrels_dic=Utils.convert_df_to_pytrec_eval(qrels, True)
+    #     evaluator = pytrec_eval.RelevanceEvaluator(qrels_dic, {'map', 'ndcg'})
+    #     return json.dumps(evaluator.evaluate(batch_retrieve_results_dict), indent=1)
 
 
     @staticmethod
