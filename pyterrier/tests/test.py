@@ -1,8 +1,15 @@
-import unittest, jnius_config,math, os, ast, statistics
-from main import BatchRetrieve, Utils
+import jnius_config
+jnius_config.add_classpath("../terrier-project-5.1-jar-with-dependencies.jar")
+from jnius import autoclass, cast
+
+import unittest, math, os, ast, statistics
+from utils import *
+from batchretrieve import *
+# from main import *
 import pandas as pd
+
 # jnius_config.set_classpath("terrier-project-5.1-jar-with-dependencies.jar")
-from jnius import autoclass
+# from jnius import autoclass
 
 def parse_query_result(filename):
     results=[]
@@ -84,7 +91,7 @@ class TestBatchRetrieve(unittest.TestCase):
 
     def test_one_term_query_correct_docid_and_score(self):
         JIR = autoclass('org.terrier.querying.IndexRef')
-        indexref = JIR.of("./index/data.properties")
+        indexref = JIR.of("../index/data.properties")
         retr = BatchRetrieve(indexref)
         result = retr.transform("light")
         exp_result = parse_query_result(os.path.dirname(os.path.realpath(__file__))+"/fixtures/light_results")
@@ -94,7 +101,7 @@ class TestBatchRetrieve(unittest.TestCase):
 
     def test_two_term_query_correct_qid_docid_score(self):
         JIR = autoclass('org.terrier.querying.IndexRef')
-        indexref = JIR.of("./index/data.properties")
+        indexref = JIR.of("../index/data.properties")
         retr = BatchRetrieve(indexref)
         input=pd.DataFrame([["1", "Stability"],["2", "Generator"]],columns=['qid','query'])
         result = retr.transform(input)
