@@ -53,6 +53,7 @@ class Utils:
     #     return json.dumps(evaluator.evaluate(batch_retrieve_results_dict), indent=1)
 
 
+    # create a dataframe of string of queries or a list or tuple of strings of queries
     @staticmethod
     def form_dataframe(query):
         if type(query)==type(pd.DataFrame()):

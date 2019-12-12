@@ -23,8 +23,11 @@ class BatchRetrieve:
         "termpipelines": "Stopwords,PorterStemmer"
     }
 
-    def __init__(self, IndexRef, controls=None, properties=None):
-        self.IndexRef=IndexRef
+    def __init__(self, indexPath, controls=None, properties=None):
+        JIR = autoclass('org.terrier.querying.IndexRef')
+        indexRef = JIR.of(indexPath)
+
+        self.IndexRef=indexRef
         self.appSetup = autoclass('org.terrier.utility.ApplicationSetup')
 
         if properties==None:
@@ -43,7 +46,7 @@ class BatchRetrieve:
             self.controls=controls
 
         MF = autoclass('org.terrier.querying.ManagerFactory')
-        self.ManagerFactory = MF._from_(IndexRef)
+        self.ManagerFactory = MF._from_(indexRef)
 
     def transform(self,queries):
         results=[]
@@ -96,9 +99,13 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         "querying.allowed.controls": "scope,qe,qemodel,start,end,site,scope",
         "termpipelines": "Stopwords,PorterStemmer"
     }
-    def __init__(self, IndexRef, features, controls=None, properties=None):
-        self.IndexRef=IndexRef
+    def __init__(self, indexPath, features, controls=None, properties=None):
+        JIR = autoclass('org.terrier.querying.IndexRef')
+        indexRef = JIR.of(indexPath)
+
+        self.IndexRef=indexRef
         self.appSetup = autoclass('org.terrier.utility.ApplicationSetup')
+
         if properties==None:
             self.properties=self.default_properties
         else:
@@ -113,7 +120,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         else:
             self.controls=controls
         MF = autoclass('org.terrier.querying.ManagerFactory')
-        self.ManagerFactory = MF._from_(IndexRef)
+        self.ManagerFactory = MF._from_(indexRef)
 
 
     def transform(self,topics):

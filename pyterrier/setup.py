@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="python-terrier",
-    version="0.0.9",
+    version="0.0.11",
     author="A-Tsolov",
     author_email="tsolov.aleksandar@gmail.com",
     description="Terrier IR Python API",
