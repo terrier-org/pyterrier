@@ -53,7 +53,7 @@ if __name__ == "__main__":
 
     path = "/home/alex/Documents/pyterrier/vaswani_npl/corpus/"
     path2 = "/home/alex/Downloads/books"
-    col = Collection(df)
+    # col = Collection(df)
     basicIndex = BasicIndex(df)
 
     # retr = BatchRetrieve("/home/alex/Documents/index_test/data.properties")

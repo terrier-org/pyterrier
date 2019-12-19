@@ -1,4 +1,4 @@
-from jnius import autoclass, PythonJavaClass, java_method
+from jnius import autoclass, cast, PythonJavaClass, java_method
 from utils import *
 import pandas as pd
 import numpy as np
@@ -21,6 +21,7 @@ class BasicIndex():
         basicIndexClass = autoclass("org.terrier.structures.indexing.classical.BasicIndexer")
         collectionClass = autoclass("org.terrier.indexing.Collection")
         array = autoclass("java.util.Arrays")
+        javaArray = autoclass('java.lang.reflect.Array')
 
         # if collection is string assume it is path to corpus
         if type(collection) == type(""):
@@ -30,15 +31,24 @@ class BasicIndex():
             index.index([simpleColl])
         # if collection is a dataframe create a new collection object
         elif type(collection)==type(pd.DataFrame([])):
-            col = Collection(collection)
+            col = PyCollection(collection)
+
+            if isinstance(col,collectionClass):
+                print("\nCol is instance of org.terrier.indexing.Collection\n")
+            # arr = javaArray.newInstance(javaArray,1)
+            # arr[0]=col
+            # col = cast(collectionClass, col)
+            # col = cast("org.terrier.indexing.Collection", col)
+
             index = basicIndexClass("/home/alex/Documents/index_test","data")
             index.index([col])
 
-class Collection(PythonJavaClass):
-    __javainterfaces__ = ['org/terrier/indexing/Collection']
+class PyCollection(PythonJavaClass):
+    __javainterfaces__ = ['org/terrier/indexing/Collection',]
 
     def __init__(self, dataframe):
-        super(Collection, self).__init__()
+        # super().__init__(dataframe)
+        self.dataframe=dataframe
         lst = []
         stringReaderClass = autoclass("java.io.StringReader")
         hashmapClass = autoclass("java.util.HashMap")
