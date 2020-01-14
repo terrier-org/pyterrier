@@ -48,13 +48,22 @@ if __name__ == "__main__":
     # print(eval)
     # lst = ["Doc1", "Doc2", "Doc3"]
 
-    dct = {"text": ["Doc1", "Doc2", "Doc3"]}
+    dct = {"text": [
+    "He ran out of money, so he had to stop playing poker.",
+    "The waves were crashing on the shore; it was a lovely sight.",
+    "The body may perhaps compensates for the loss of a true metaphysics."], "DOCNO": ["1", "2", "3"]}
     df = pd.DataFrame(dct)
+
+    index_path2 = "C:\\Users\\Alex\\Documents\\Index"
 
     path = "/home/alex/Documents/pyterrier/vaswani_npl/corpus/"
     path2 = "/home/alex/Downloads/books"
     # col = Collection(df)
-    basicIndex = BasicIndex(df)
+    basicIndex = BasicIndex(df, index_path2)
+
+    retr = BatchRetrieve(index_path2+"\\data.properties")
+    batch_retrieve_results=retr.transform("doc1")
+    print(batch_retrieve_results)
 
     # retr = BatchRetrieve("/home/alex/Documents/index_test/data.properties")
     # batch_retrieve_results=retr.transform("artifact")
