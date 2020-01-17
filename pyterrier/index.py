@@ -33,13 +33,15 @@ class BasicIndex():
         elif type(collection)==type(pd.DataFrame([])):
             col = PyCollection(collection)
 
-            if isinstance(col,collectionClass):
+            if isinstance(col,autoclass("org.terrier.indexing.Collection")):
                 print("\nCol is instance of org.terrier.indexing.Collection\n")
-            # arr = javaArray.newInstance(javaArray,1)
+            # arr = javaArray.newInstance(collectionClass,1)
             # arr[0]=col
-            # col = cast(collectionClass, col)
-            # col = cast("org.terrier.indexing.Collection", col)
-
+            # arr[0] = autoclass('o*rg.terrier.indexing.IndexTestUtils').makeCollection(["doc1"], ["the laxy brown hare jumped the fox"])
+            # col = cast([collectionClass], col)
+            # col = cast("java.lang.Object", col)
+            arr = [autoclass('org.terrier.indexing.IndexTestUtils').makeCollection(["doc1"], ["the laxy brown hare jumped the fox"])]
+            trecCol = trecColClass("/home/alex/Downloads/books/collection.spec")
             index = basicIndexClass("/home/alex/Documents/index_test","data")
             index.index([col])
 
@@ -48,6 +50,9 @@ class PyCollection(PythonJavaClass):
 
     def __init__(self, dataframe):
         # super().__init__(dataframe)
+        # super(PyCollection,self).__init__()
+        # super(PyCollection, self).__init__(dataframe)
+
         self.dataframe=dataframe
         lst = []
         stringReaderClass = autoclass("java.io.StringReader")
