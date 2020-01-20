@@ -3,58 +3,75 @@ from utils import *
 import pandas as pd
 import numpy as np
 
-JavaDocCollection = autoclass("org.terrier.indexing.CollectionDocumentList")
-stringReaderClass = autoclass("java.io.StringReader")
-hashmapClass = autoclass("java.util.HashMap")
-taggedDocClass = autoclass("org.terrier.indexing.TaggedDocument")
-tokeniserClass = autoclass("org.terrier.indexing.tokenisation.Tokeniser")
-trecColClass = autoclass("org.terrier.indexing.TRECCollection")
-simpleColClass = autoclass("org.terrier.indexing.SimpleFileCollection")
-basicIndexClass = autoclass("org.terrier.structures.indexing.classical.BasicIndexer")
-collectionClass = autoclass("org.terrier.indexing.Collection")
-array = autoclass("java.util.Arrays")
-javaArray = autoclass('java.lang.reflect.Array')
+CollectionDocumentList = autoclass("org.terrier.indexing.CollectionDocumentList")
+StringReader = autoclass("java.io.StringReader")
+HashMap = autoclass("java.util.HashMap")
+TaggedDocument = autoclass("org.terrier.indexing.TaggedDocument")
+Tokeniser = autoclass("org.terrier.indexing.tokenisation.Tokeniser")
+TRECCollection = autoclass("org.terrier.indexing.TRECCollection")
+SimpleFileCollection = autoclass("org.terrier.indexing.SimpleFileCollection")
+BasicIndexer = autoclass("org.terrier.structures.indexing.classical.BasicIndexer")
+Collection = autoclass("org.terrier.indexing.Collection")
+Arrays = autoclass("java.util.Arrays")
+Array = autoclass('java.lang.reflect.Array')
+
+ApplicationSetup = autoclass('org.terrier.utility.ApplicationSetup')
+Properties = autoclass('java.util.Properties')
 
 class BasicIndex():
     def __init__(self,collection, path):
         def createCollection(docDataframe):
             lst = []
             for index, row in collection.iterrows():
-                hashmap = hashmapClass()
+                hashmap = HashMap()
                 # all columns, except text are properties and add them to hashmap
                 for column, value in row.iteritems():
                     if column!="text":
                         hashmap.put(column,value)
-                tagDoc = taggedDocClass(stringReaderClass(row["text"]), hashmap, tokeniserClass.getTokeniser())
+                tagDoc = TaggedDocument(StringReader(row["text"]), hashmap, Tokeniser.getTokeniser())
                 lst.append(tagDoc)
-            javaDocCollection = JavaDocCollection(lst, "null")
+            javaDocCollection = CollectionDocumentList(lst, "null")
             return javaDocCollection
+
 
         # if collection is string assume it is path to corpus
         if type(collection) == type(""):
-            asList = array.asList(collection)
-            simpleColl = simpleColClass(asList,False)
-            index = basicIndexClass("/home/alex/Documents/index_test","data")
-            index.index([simpleColl])
+            trec_props={
+                "TrecDocTags.doctag":"DOC",
+                "TrecDocTags.idtag":"DOCNO",
+                "TrecDocTags.skip":"DOCHDR",
+                "TrecDocTags.casesensitive":"false",
+            }
+            props = Properties()
+            for control,value in trec_props.items():
+                props.put(control,value)
+            ApplicationSetup.bootstrapInitialisation(props)
+
+
+            asList = Arrays.asList(collection)
+            simpleColl = SimpleFileCollection(asList,False)
+            trecCol = TRECCollection(asList,"","","")
+            index = BasicIndexer(path,"data")
+            index.index([trecCol])
         # if collection is a dataframe create a new collection object
         elif type(collection)==type(pd.DataFrame([])):
             col = PyCollection(collection)
 
             # if isinstance(col,autoclass("org.terrier.indexing.Collection")):
             #     print("\nCol is instance of org.terrier.indexing.Collection\n")
-            # arr = javaArray.newInstance(collectionClass,1)
+            # arr = Array.newInstance(Collection,1)
             # arr[0]=col
             # arr[0] = autoclass('o*rg.terrier.indexing.IndexTestUtils').makeCollection(["doc1"], ["the laxy brown hare jumped the fox"])
-            # col = cast([collectionClass], col)
+            # col = cast([Collection], col)
             # col = cast("java.lang.Object", col)
             # arr = [autoclass('org.terrier.indexing.IndexTestUtils').makeCollection(["doc1"], ["the laxy brown hare jumped the fox"])]
-            # trecCol = trecColClass("/home/alex/Downloads/books/collection.spec")
-            # index = basicIndexClass("/home/alex/Documents/index_test","data")
+            # trecCol = TRECCollection("/home/alex/Downloads/books/collection.spec")
+            # index = BasicIndexer("/home/alex/Documents/index_test","data")
             # index.index([col])
             # col = PyCollection(collection)
             javaDocCollection = createCollection(collection)
 
-            index = basicIndexClass(path, "data")
+            index = BasicIndexer(path, "data")
             index.index([javaDocCollection])
 
 class PyCollection(PythonJavaClass):
@@ -70,12 +87,14 @@ class PyCollection(PythonJavaClass):
 
 
         for index, row in dataframe.iterrows():
-            hashmap = hashmapClass()
+            hashmap = HashMap()
             # all columns, except text are properties and add them to hashmap
             for column, value in dataframe.iteritems():
                 if column!="text":
+                    print("Column: " + column)
+                    print("Value: " + value)
                     hashmap.put(column,value)
-            tagDoc = taggedDocClass(stringReaderClass(row["text"]), hashmap, tokeniserClass.getTokeniser())
+            tagDoc = TaggedDocument(StringReader(row["text"]), hashmap, Tokeniser.getTokeniser())
             lst.append(tagDoc)
 
         self.collection = lst

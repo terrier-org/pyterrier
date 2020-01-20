@@ -51,18 +51,19 @@ if __name__ == "__main__":
     dct = {"text": [
     "He ran out of money, so he had to stop playing poker.",
     "The waves were crashing on the shore; it was a lovely sight.",
-    "The body may perhaps compensates for the loss of a true metaphysics."], "DOCNO": ["1", "2", "3"]}
+    "The body may perhaps compensates for the loss of a true metaphysics."],}
     df = pd.DataFrame(dct)
 
-    index_path2 = "C:\\Users\\Alex\\Documents\\Index"
+    index_path2 = "/home/alex/Documents/index"
 
     path = "/home/alex/Documents/pyterrier/vaswani_npl/corpus/"
     path2 = "/home/alex/Downloads/books"
+    path3 = "/home/alex/Downloads/books/doc-text.trec"
     # col = Collection(df)
-    basicIndex = BasicIndex(df, index_path2)
+    basicIndex = BasicIndex(path3, index_path2)
 
-    retr = BatchRetrieve(index_path2+"\\data.properties")
-    batch_retrieve_results=retr.transform("doc1")
+    retr = BatchRetrieve(index_path2+"/data.properties")
+    batch_retrieve_results=retr.transform("file")
     print(batch_retrieve_results)
 
     # retr = BatchRetrieve("/home/alex/Documents/index_test/data.properties")
