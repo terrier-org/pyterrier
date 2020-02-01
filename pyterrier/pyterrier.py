@@ -48,7 +48,7 @@ def init(version=None, mem="4096", packages=[]):
     from jnius import autoclass, cast
     from utils import Utils
     from batchretrieve import BatchRetrieve, FeaturesBatchRetrieve
-    from index import BasicIndex, createFilesIndex, createTRECIndex
+    from index import BasicIndex, createFilesIndex, createTRECIndex, createDFIndex
     # Make imports global
     globals()["Utils"]=Utils
     globals()["autoclass"] = autoclass
@@ -58,6 +58,8 @@ def init(version=None, mem="4096", packages=[]):
     globals()["BasicIndex"] = BasicIndex
     globals()["createFilesIndex"] = createFilesIndex
     globals()["createTRECIndex"] = createTRECIndex
+    globals()["createDFIndex"] = createDFIndex
+
 
     # Import other java packages
     if packages != []:
@@ -99,7 +101,8 @@ if __name__ == "__main__":
     "He ran out of money, so he had to stop playing poker.",
     "The waves were crashing on the shore; it was a lovely sight.",
     "The body may perhaps compensates for the loss of a true metaphysics."],
-    "docno": ["1","2","3"]}
+    "docno": ["1","2","3"],
+    "url": ["url1", "url2", "url3"]}
     df = pd.DataFrame(dct)
 
     index_path2 = "/home/alex/Documents/index"
@@ -109,24 +112,26 @@ if __name__ == "__main__":
     path3 = "/home/alex/Downloads/books/doc-text.trec"
 
 # TREC INDEX
-    # basicIndex = BasicIndex(path3, index_path2)
+    # basicIndex = BasicIndex(index_path2, path3)
     # retr = BatchRetrieve(index_path2+"/data.properties")
     # batch_retrieve_results=retr.transform("file")
     # print(batch_retrieve_results)
 
-    # index_path = createTRECIndex(path3, index_path2)
+    # index_path = createTRECIndex(index_path2, path3)
     # retr = BatchRetrieve(index_path)
     # batch_retrieve_results=retr.transform("file")
     # print(batch_retrieve_results)
 
 #  DATAFRAME INDEX
-    # basicIndex = BasicIndex(df, index_path2)
+    # basicIndex = BasicIndex(index_path2, df)
     # retr = BatchRetrieve(index_path2+"/data.properties")
     # batch_retrieve_results=retr.transform("sight")
     # print(batch_retrieve_results)
 
+    index = createDFIndex(index_path2, df["text"], df["docno"])
+
 # TXT INDEX
-    index = createFilesIndex(path2, index_path2)
-    retr = BatchRetrieve(index)
+    # index = createFilesIndex(index_path2, path2)
+    # retr = BatchRetrieve(index)
     # batch_retrieve_results=retr.transform("file")
     # print(batch_retrieve_results)

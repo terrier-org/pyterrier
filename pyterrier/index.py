@@ -44,7 +44,8 @@ class BasicIndex():
 
 
 
-def createTRECIndex(trec_path, index_path, doctag="DOC", idtag="DOCNO", skip="DOCHDR",casesensitive="false", trec_class="TRECCollection"):
+
+def createTRECIndex(index_path, trec_path, doctag="DOC", idtag="DOCNO", skip="DOCHDR",casesensitive="false", trec_class="TRECCollection"):
     trec_props={
         "TrecDocTags.doctag":doctag,
         "TrecDocTags.idtag":idtag,
@@ -63,7 +64,7 @@ def createTRECIndex(trec_path, index_path, doctag="DOC", idtag="DOCNO", skip="DO
     return (os.path.join(index_path, "data.properties"))
 
 
-def createFilesIndex(files_path, index_path):
+def createFilesIndex(index_path, files_path):
     asList = Arrays.asList(files_path)
     simpleColl = SimpleFileCollection(asList,False)
     index = BasicIndexer(index_path,"data")
