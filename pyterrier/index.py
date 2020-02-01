@@ -82,6 +82,7 @@ def createTRECIndex(trec_path, index_path, doctag="DOC", idtag="DOCNO", skip="DO
     trecCol = TRECCollection(asList,"TrecDocTags","","")
     index = BasicIndexer(index_path,"data")
     index.index([trecCol])
+    return (os.path.join(index_path, "data.properties"))
 
 
 def createFilesIndex(files_path, index_path):
@@ -89,3 +90,4 @@ def createFilesIndex(files_path, index_path):
     simpleColl = SimpleFileCollection(asList,False)
     index = BasicIndexer(path,"data")
     index.index([simpleColl])
+    return (os.path.join(index_path, "data.properties"))

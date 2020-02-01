@@ -114,8 +114,8 @@ if __name__ == "__main__":
     # batch_retrieve_results=retr.transform("file")
     # print(batch_retrieve_results)
 
-    basicIndex = createTRECIndex(path3, index_path2)
-    retr = BatchRetrieve(index_path2+"/data.properties")
+    index_path = createTRECIndex(path3, index_path2)
+    retr = BatchRetrieve(index_path)
     batch_retrieve_results=retr.transform("file")
     print(batch_retrieve_results)
 
