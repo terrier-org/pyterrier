@@ -35,35 +35,13 @@ class BasicIndex():
         return javaDocCollection
 
     def __init__(self,collection, path):
-        # if collection is string assume it is path to corpus
-        if type(collection) == type(""):
-            trec_props={
-                "TrecDocTags.doctag":"DOC",
-                "TrecDocTags.idtag":"DOCNO",
-                "TrecDocTags.skip":"DOCHDR",
-                "TrecDocTags.casesensitive":"false",
-                "trec.collection.class": "TRECCollection"
-            }
-            props = Properties()
-            for control,value in trec_props.items():
-                props.put(control,value)
-
-            ApplicationSetup.bootstrapInitialisation(props)
-            if (os.path.isfile(collection)):
-                asList = Arrays.asList(collection)
-                trecCol = TRECCollection(asList,"TrecDocTags","","")
-                index = BasicIndexer(path,"data")
-                index.index([trecCol])
-            else:
-                asList = Arrays.asList(collection)
-                simpleColl = SimpleFileCollection(asList,False)
-                index = BasicIndexer(path,"data")
-                index.index([simpleColl])
         # if collection is a dataframe create a new collection object
-        elif type(collection)==type(pd.DataFrame([])):
+        if type(collection)==type(pd.DataFrame([])):
             javaDocCollection = self.createCollection(collection)
             index = BasicIndexer(path, "data")
             index.index([javaDocCollection])
+
+
 
 
 def createTRECIndex(trec_path, index_path, doctag="DOC", idtag="DOCNO", skip="DOCHDR",casesensitive="false", trec_class="TRECCollection"):
