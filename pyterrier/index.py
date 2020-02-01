@@ -64,3 +64,21 @@ class BasicIndex():
             javaDocCollection = self.createCollection(collection))
             index = BasicIndexer(path, "data")
             index.index([javaDocCollection])
+
+
+def createTRECIndex(trec_path, index_path, doctag="DOC", idtag="DOCNO", skip="DOCHDR",casesensitive="false", trec_class="TRECCollection"):
+    trec_props={
+        "TrecDocTags.doctag":doctag,
+        "TrecDocTags.idtag":idtag,
+        "TrecDocTags.skip":skip,
+        "TrecDocTags.casesensitive":skip,
+        "trec.collection.class": trec_class
+    }
+    properties = Properties()
+    for control,value in trec_props.items():
+        prpropertiesops.put(control,value)
+    ApplicationSetup.bootstrapInitialisation(properties)
+    asList = Arrays.asList(trec_path))
+    trecCol = TRECCollection(asList,"TrecDocTags","","")
+    index = BasicIndexer(index_path,"data")
+    index.index([trecCol])
