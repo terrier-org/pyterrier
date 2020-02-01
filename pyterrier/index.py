@@ -35,9 +35,6 @@ class BasicIndex():
         return javaDocCollection
 
     def __init__(self,collection, path):
-
-
-
         # if collection is string assume it is path to corpus
         if type(collection) == type(""):
             trec_props={
@@ -52,13 +49,8 @@ class BasicIndex():
                 props.put(control,value)
 
             ApplicationSetup.bootstrapInitialisation(props)
-            print("trec.collection.class value: " + ApplicationSetup.getProperty("trec.collection.class","asd"))
-
-            print("Index dir: "+ path)
-            print("Collection: "+ collection )
             if (os.path.isfile(collection)):
-                asList = Arrays.asList(collection)
-                print(ApplicationSetup.getProperty("TrecDocTags.doctag",None))
+                asList = Arrays.asList(collection))
                 trecCol = TRECCollection(asList,"TrecDocTags","","")
                 index = BasicIndexer(path,"data")
                 index.index([trecCol])
@@ -69,78 +61,6 @@ class BasicIndex():
                 index.index([simpleColl])
         # if collection is a dataframe create a new collection object
         elif type(collection)==type(pd.DataFrame([])):
-            # col = PyCollection(collection)
-
-            # if isinstance(col,autoclass("org.terrier.indexing.Collection")):
-            #     print("\nCol is instance of org.terrier.indexing.Collection\n")
-            # arr = Array.newInstance(Collection,1)
-            # arr[0]=col
-            # arr[0] = autoclass('org.terrier.indexing.IndexTestUtils').makeCollection(["doc1"], ["the laxy brown hare jumped the fox"])
-            # col = cast([Collection], col)
-            # col = cast("java.lang.Object", col)
-            # arr = [autoclass('org.terrier.indexing.IndexTestUtils').makeCollection(["doc1"], ["the laxy brown hare jumped the fox"])]
-            # trecCol = TRECCollection("/home/alex/Downloads/books/collection.spec")
-            # index = BasicIndexer("/home/alex/Documents/index_test","data")
-            # index.index([col])
-            # col = PyCollection(collection)
-
-            print("Dataframe: ")
-            print(collection)
-            javaDocCollection = self.createCollection(collection)
-            # print(javaDocCollection.nextDocument())
-            # print("Collection: ")
-            # while(not javaDocCollection.endOfCollection()):
-            #     javaDocCollection.nextDocument()
-            #     while(not javaDocCollection.getDocument().endOfDocument()):
-            #         print(javaDocCollection.getDocument().getNextTerm(), end=' ')
-
-                # print(javaDocCollection.getDocid())
-
+            javaDocCollection = self.createCollection(collection))
             index = BasicIndexer(path, "data")
             index.index([javaDocCollection])
-
-class PyCollection(PythonJavaClass):
-    __javainterfaces__ = ['org/terrier/indexing/Collection',]
-
-    def __init__(self, dataframe):
-        # super().__init__(dataframe)
-        # super(PyCollection,self).__init__()
-        # super(PyCollection, self).__init__(dataframe)
-
-        self.dataframe=dataframe
-        lst = []
-
-
-        for index, row in dataframe.iterrows():
-            hashmap = HashMap()
-            # all columns, except text are properties and add them to hashmap
-            for column, value in dataframe.iteritems():
-                if column!="text":
-                    print("Column: " + column)
-                    print("Value: " + value)
-                    hashmap.put(column,value)
-            tagDoc = TaggedDocument(StringReader(row["text"]), hashmap, Tokeniser.getTokeniser())
-            lst.append(tagDoc)
-
-        self.collection = lst
-        self.index = 0
-
-    @java_method("()Z")
-    def endofCollection(self):
-        return self.index>=len(self.collection)-1
-
-    @java_method("()Lorg/terrier/indexing/Document")
-    def getDocument(self):
-        return self.collection[self.index]
-
-    @java_method("()Z")
-    def nextDocument(self):
-        if self.endofCollection():
-            return False
-        else:
-            self.index+=1
-            return True
-
-    @java_method("()V")
-    def reset(self):
-        index = 0

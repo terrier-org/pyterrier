@@ -63,14 +63,13 @@ def init(version=None, mem="4096", packages=[]):
         properties = autoclass('java.util.Properties')()
         pkgs_string = ",".join(packages)
         properties.put("terrier.mvn.coords",pkgs_string)
-        # ApplicationSetup.setProperty('terrier.mvn.coords', pkgs_string)
         ApplicationSetup.bootstrapInitialisation(properties)
+        # sqlClass = ApplicationSetup.getClass("com.harium.database.sqlite.module.SQLiteDatabaseModule"))
         print(ApplicationSetup.getProperty("terrier.mvn.coords",None))
 
 if __name__ == "__main__":
-    init(packages=["com.harium.database:sqlite:1.0.5"])
-    # init()
-    asd = autoclass("com.harium.database.sqlite.module.SQLiteDatabaseModule")
+    # init(packages=["com.harium.database:sqlite:1.0.5"])
+    init()
     # JIR = autoclass('org.terrier.querying.IndexRef')
     # indexref = JIR.of("../index/data.properties")
     index_path = "../index/data.properties"
