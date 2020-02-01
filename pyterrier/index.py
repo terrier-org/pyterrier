@@ -50,7 +50,7 @@ class BasicIndex():
 
             ApplicationSetup.bootstrapInitialisation(props)
             if (os.path.isfile(collection)):
-                asList = Arrays.asList(collection))
+                asList = Arrays.asList(collection)
                 trecCol = TRECCollection(asList,"TrecDocTags","","")
                 index = BasicIndexer(path,"data")
                 index.index([trecCol])
@@ -61,7 +61,7 @@ class BasicIndex():
                 index.index([simpleColl])
         # if collection is a dataframe create a new collection object
         elif type(collection)==type(pd.DataFrame([])):
-            javaDocCollection = self.createCollection(collection))
+            javaDocCollection = self.createCollection(collection)
             index = BasicIndexer(path, "data")
             index.index([javaDocCollection])
 
@@ -76,9 +76,9 @@ def createTRECIndex(trec_path, index_path, doctag="DOC", idtag="DOCNO", skip="DO
     }
     properties = Properties()
     for control,value in trec_props.items():
-        prpropertiesops.put(control,value)
+        properties.put(control,value)
     ApplicationSetup.bootstrapInitialisation(properties)
-    asList = Arrays.asList(trec_path))
+    asList = Arrays.asList(trec_path)
     trecCol = TRECCollection(asList,"TrecDocTags","","")
     index = BasicIndexer(index_path,"data")
     index.index([trecCol])

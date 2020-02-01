@@ -48,7 +48,7 @@ def init(version=None, mem="4096", packages=[]):
     from jnius import autoclass, cast
     from utils import Utils
     from batchretrieve import BatchRetrieve, FeaturesBatchRetrieve
-    from index import BasicIndex
+    from index import BasicIndex, createFilesIndex, createTRECIndex
     # Make imports global
     globals()["Utils"]=Utils
     globals()["autoclass"] = autoclass
@@ -56,6 +56,8 @@ def init(version=None, mem="4096", packages=[]):
     globals()["BatchRetrieve"] = BatchRetrieve
     globals()["FeaturesBatchRetrieve"] = FeaturesBatchRetrieve
     globals()["BasicIndex"] = BasicIndex
+    globals()["createFilesIndex"] = createFilesIndex
+    globals()["createTRECIndex"] = createTRECIndex
 
     # Import other java packages
     if packages != []:
@@ -111,6 +113,11 @@ if __name__ == "__main__":
     # retr = BatchRetrieve(index_path2+"/data.properties")
     # batch_retrieve_results=retr.transform("file")
     # print(batch_retrieve_results)
+
+    basicIndex = createTRECIndex(path3, index_path2)
+    retr = BatchRetrieve(index_path2+"/data.properties")
+    batch_retrieve_results=retr.transform("file")
+    print(batch_retrieve_results)
 
 #  DATAFRAME INDEX
     # basicIndex = BasicIndex(df, index_path2)
