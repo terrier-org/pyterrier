@@ -114,10 +114,10 @@ if __name__ == "__main__":
     # batch_retrieve_results=retr.transform("file")
     # print(batch_retrieve_results)
 
-    index_path = createTRECIndex(path3, index_path2)
-    retr = BatchRetrieve(index_path)
-    batch_retrieve_results=retr.transform("file")
-    print(batch_retrieve_results)
+    # index_path = createTRECIndex(path3, index_path2)
+    # retr = BatchRetrieve(index_path)
+    # batch_retrieve_results=retr.transform("file")
+    # print(batch_retrieve_results)
 
 #  DATAFRAME INDEX
     # basicIndex = BasicIndex(df, index_path2)
@@ -126,7 +126,7 @@ if __name__ == "__main__":
     # print(batch_retrieve_results)
 
 # TXT INDEX
-    # basicIndex = BasicIndex(path2, index_path2)
-    # retr = BatchRetrieve(index_path2+"/data.properties")
+    index = createFilesIndex(path2, index_path2)
+    retr = BatchRetrieve(index)
     # batch_retrieve_results=retr.transform("file")
     # print(batch_retrieve_results)
