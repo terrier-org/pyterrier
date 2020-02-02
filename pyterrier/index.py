@@ -19,29 +19,6 @@ ApplicationSetup = autoclass('org.terrier.utility.ApplicationSetup')
 Properties = autoclass('java.util.Properties')
 
 
-class BasicIndex():
-    def createCollection(self, docDataframe):
-        lst = []
-        for index, row in docDataframe.iterrows():
-            hashmap = HashMap()
-            # all columns, except text are properties and add them to hashmap
-            for column, value in row.iteritems():
-                if column!="text":
-                    hashmap.put(column,value)
-            tagDoc = TaggedDocument(StringReader(row["text"]), hashmap, Tokeniser.getTokeniser())
-            # print("DOCNO: " + str(hashmap.get("DOCNO")))
-            lst.append(tagDoc)
-        javaDocCollection = CollectionDocumentList(lst, "null")
-        return javaDocCollection
-
-    def __init__(self,collection, path):
-        # if collection is a dataframe create a new collection object
-        if type(collection)==type(pd.DataFrame([])):
-            javaDocCollection = self.createCollection(collection)
-            index = BasicIndexer(path, "data")
-            index.index([javaDocCollection])
-
-
 def createDFIndex(index_path, text, *args, **kwargs):
     # if len(text)!=len(metadataa):
     #     throw Exception

@@ -48,14 +48,13 @@ def init(version=None, mem="4096", packages=[]):
     from jnius import autoclass, cast
     from utils import Utils
     from batchretrieve import BatchRetrieve, FeaturesBatchRetrieve
-    from index import BasicIndex, createFilesIndex, createTRECIndex, createDFIndex
+    from index import createFilesIndex, createTRECIndex, createDFIndex
     # Make imports global
     globals()["Utils"]=Utils
     globals()["autoclass"] = autoclass
     globals()["cast"] = cast
     globals()["BatchRetrieve"] = BatchRetrieve
     globals()["FeaturesBatchRetrieve"] = FeaturesBatchRetrieve
-    globals()["BasicIndex"] = BasicIndex
     globals()["createFilesIndex"] = createFilesIndex
     globals()["createTRECIndex"] = createTRECIndex
     globals()["createDFIndex"] = createDFIndex
