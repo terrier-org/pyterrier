@@ -127,7 +127,7 @@ if __name__ == "__main__":
     # batch_retrieve_results=retr.transform("sight")
     # print(batch_retrieve_results)
 
-    index = createDFIndex(index_path2, df["text"], df["docno"], df["url"])
+    index = createDFIndex(index_path2, df["text"], df["docno"], df)
     retr = BatchRetrieve(index)
     batch_retrieve_results=retr.transform("sight")
     print(batch_retrieve_results)

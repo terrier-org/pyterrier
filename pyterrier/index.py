@@ -28,7 +28,7 @@ def createDFIndex(index_path, text, *args, **kwargs):
             all_metadata[arg.name]=arg
             assert len(arg)==len(text), "Length of metadata arguments needs to be equal to length of text argument"
         elif isinstance(arg, pd.DataFrame):
-            for name, column in arg.items:
+            for name, column in arg.items():
                 all_metadata[name]=column
                 assert len(column)==len(text), "Length of metadata arguments needs to be equal to length of text argument"
         else:
@@ -38,7 +38,7 @@ def createDFIndex(index_path, text, *args, **kwargs):
             all_metadata[key]=arg
             assert len(arg)==len(text), "Length of metadata arguments needs to be equal to length of text argument"
         elif isinstance(arg, pd.DataFrame):
-            for name, column in arg.items:
+            for name, column in arg.items():
                 all_metadata[name]=column
                 assert len(column)==len(text), "Length of metadata arguments needs to be equal to length of text argument"
         else:
