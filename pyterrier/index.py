@@ -42,8 +42,46 @@ class BasicIndex():
             index.index([javaDocCollection])
 
 
+def createDFIndex(index_path, text, *args, **kwargs):
+    # if len(text)!=len(metadataa):
+    #     throw Exception
+    all_metadata={}
+    for arg in args:
+        if isinstance(arg, pd.Series):
+            all_metadata[arg.name]=arg
+            assert len(arg)==len(text), "Length of metadata arguments needs to be equal to length of text argument"
+        elif isinstance(arg, pd.DataFrame):
+            for name, column in arg.items:
+                all_metadata[name]=column
+                assert len(column)==len(text), "Length of metadata arguments needs to be equal to length of text argument"
+        else:
+            raise ValueError("Non-keyword args need to be of type pandas.Series or pandas,DataFrame")
+    for key, value in kwargs.items():
+        if isinstance(value, (pd.Series, list, tuple)):
+            all_metadata[key]=arg
+            assert len(arg)==len(text), "Length of metadata arguments needs to be equal to length of text argument"
+        elif isinstance(arg, pd.DataFrame):
+            for name, column in arg.items:
+                all_metadata[name]=column
+                assert len(column)==len(text), "Length of metadata arguments needs to be equal to length of text argument"
+        else:
+            raise ValueError("Keyword kwargs need to be of type pandas.Series, list or tuple")
 
+    doc_list=[]
+    for text_row, meta_name, meta_column in zip(text, all_metadata.keys(), all_metadata.values()):
+        # print(meta_column)
+        meta_row=[]
+        hashmap = HashMap()
 
+        for column, value in meta_column.iteritems():
+            print(meta_name, value)
+            hashmap.put(meta_name,value)
+        tagDoc = TaggedDocument(StringReader(text_row), hashmap, Tokeniser.getTokeniser())
+        doc_list.append(tagDoc)
+    javaDocCollection = CollectionDocumentList(doc_list, "null")
+    index = BasicIndexer(index_path, "data")
+    index.index([javaDocCollection])
+    return (os.path.join(index_path, "data.properties"))
 
 def createTRECIndex(index_path, trec_path, doctag="DOC", idtag="DOCNO", skip="DOCHDR",casesensitive="false", trec_class="TRECCollection"):
     trec_props={
