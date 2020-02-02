@@ -68,16 +68,15 @@ def createDFIndex(index_path, text, *args, **kwargs):
             raise ValueError("Keyword kwargs need to be of type pandas.Series, list or tuple")
 
     doc_list=[]
-    for text_row, meta_name, meta_column in zip(text, all_metadata.keys(), all_metadata.values()):
-        # print(meta_column)
+    df=pd.DataFrame(all_metadata)
+    for text_row, meta_column in zip(text.values, df.iterrows()):
         meta_row=[]
         hashmap = HashMap()
-
-        for column, value in meta_column.iteritems():
-            print(meta_name, value)
-            hashmap.put(meta_name,value)
+        for column, value in meta_column[1].iteritems():
+            hashmap.put(column,value)
         tagDoc = TaggedDocument(StringReader(text_row), hashmap, Tokeniser.getTokeniser())
         doc_list.append(tagDoc)
+
     javaDocCollection = CollectionDocumentList(doc_list, "null")
     index = BasicIndexer(index_path, "data")
     index.index([javaDocCollection])
