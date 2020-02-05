@@ -119,11 +119,12 @@ if __name__ == "__main__":
 
 #  DATAFRAME INDEX
     meta_fields={"docno":["1","2","3"],"url":["url1", "url2", "url3"]}
-    # index = createDFIndex(index_path2, df["text"])
-    # index = createDFIndex(index_path2, df["text"], df["docno"])
-    # index = createDFIndex(index_path2, df["text"], df["docno"], df["url"])
-    # index = createDFIndex(index_path2, df["text"], df)
-    # index = createDFIndex(index_path2, df["text"], docno=["1","2","3"])
+
+    index = createDFIndex(index_path2, df["text"])
+    index = createDFIndex(index_path2, df["text"], df["docno"])
+    index = createDFIndex(index_path2, df["text"], df["docno"], df["url"])
+    index = createDFIndex(index_path2, df["text"], df)
+    index = createDFIndex(index_path2, df["text"], docno=["1","2","3"])
     index = createDFIndex(index_path2, df["text"], **meta_fields)
 
     # retr = BatchRetrieve(index)

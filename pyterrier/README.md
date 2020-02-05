@@ -1,3 +1,0 @@
-# Pyterrier
-
-## Terrier Python API
