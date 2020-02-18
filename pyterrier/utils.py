@@ -48,10 +48,10 @@ class Utils:
         return res_dt
 
     @staticmethod
-    def evaluate(res,qrels, perquery=False, string=False):
+    def evaluate(res,qrels, metrics = ['map', 'ndcg'], perquery=False, string=False):
         batch_retrieve_results_dict = Utils.convert_df_to_pytrec_eval(res)
         qrels_dic=Utils.convert_df_to_pytrec_eval(qrels, True)
-        evaluator = pytrec_eval.RelevanceEvaluator(qrels_dic, {'map', 'ndcg'})
+        evaluator = pytrec_eval.RelevanceEvaluator(qrels_dic, set(metrics))
         result = evaluator.evaluate(batch_retrieve_results_dict)
         if perquery:
             if string:
