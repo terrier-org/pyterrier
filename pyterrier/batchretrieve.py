@@ -2,6 +2,7 @@ from jnius import autoclass, cast
 from utils import *
 import pandas as pd
 import numpy as np
+from pyterrier import properties as props
 
 class BatchRetrieve:
     default_controls={
@@ -35,7 +36,7 @@ class BatchRetrieve:
         else:
             self.properties=properties
 
-        props = autoclass('java.util.Properties')()
+        # props = autoclass('java.util.Properties')()
         for control,value in self.properties.items():
             props.put(control,value)
         self.appSetup.bootstrapInitialisation(props)

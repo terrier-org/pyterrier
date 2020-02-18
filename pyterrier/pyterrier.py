@@ -19,6 +19,8 @@ def setup_terrier(file_path, version):
 
 file_path = os.path.dirname(os.path.abspath(__file__))
 firstInit = False
+ApplicationSetup = None
+properties = None
 # print(file_path)
 # setup_terrier(file_path)
 # import jnius_config
@@ -29,6 +31,8 @@ firstInit = False
 # from index import *
 
 def init(version=None, mem="4096", packages=[]):
+    global ApplicationSetup
+    global properties
     # If version is not specified, find newest and download it
     if version is None:
         url_str = "https://repo1.maven.org/maven2/org/terrier/terrier-assemblies/maven-metadata.xml"
@@ -44,11 +48,16 @@ def init(version=None, mem="4096", packages=[]):
     # Import pyjnius and other classes
     import jnius_config
     jnius_config.set_classpath(os.path.join(file_path,"terrier-assemblies-"+version+"-jar-with-dependencies.jar"))
-    jnius_config.add_options('-Xrs', '-Xmx'+str(mem)+'m')
+    jnius_config.add_options('-Xmx'+str(mem)+'m')
     from jnius import autoclass, cast
+    # Properties = autoclass('java.util.Properties')
+    properties = autoclass('java.util.Properties')()
+    ApplicationSetup = autoclass('org.terrier.utility.ApplicationSetup')
     from utils import Utils
     from batchretrieve import BatchRetrieve, FeaturesBatchRetrieve
     from index import FilesIndex, TRECIndex, DFIndex
+
+
     # Make imports global
     globals()["Utils"]=Utils
     globals()["autoclass"] = autoclass
@@ -58,20 +67,29 @@ def init(version=None, mem="4096", packages=[]):
     globals()["FilesIndex"] = FilesIndex
     globals()["TRECIndex"] = TRECIndex
     globals()["DFIndex"] = DFIndex
+    # globals()["Properties"] = Properties
+    globals()["ApplicationSetup"] = ApplicationSetup
 
     # Import other java packages
     if packages != []:
-        ApplicationSetup = autoclass('org.terrier.utility.ApplicationSetup')
-        properties = autoclass('java.util.Properties')()
+        # ApplicationSetup = autoclass('org.terrier.utility.ApplicationSetup')
+        # properties = autoclass('java.util.Properties')()
         pkgs_string = ",".join(packages)
         properties.put("terrier.mvn.coords",pkgs_string)
         ApplicationSetup.bootstrapInitialisation(properties)
-        # sqlClass = ApplicationSetup.getClass("com.harium.database.sqlite.module.SQLiteDatabaseModule"))
-        print(ApplicationSetup.getProperty("terrier.mvn.coords",None))
+
+def set_property(property):
+    # properties = Properties()
+    ApplicationSetup.bootstrapInitialisation(properties)
+def set_properties(properties):
+    # properties = Properties()
+    for control,value in kwargs.items():
+        self.properties.put(control,value)
+    ApplicationSetup.bootstrapInitialisation(self.properties)
 
 if __name__ == "__main__":
     # init(packages=["com.harium.database:sqlite:1.0.5"])
-    init()
+    init(mem="8192")
     # JIR = autoclass('org.terrier.querying.IndexRef')
     # indexref = JIR.of("../index/data.properties")
     index_path = "../index/data.properties"
@@ -109,27 +127,36 @@ if __name__ == "__main__":
     path2 = "/home/alex/Downloads/books"
     path3 = "/home/alex/Downloads/books/doc-text.trec"
 
+    path_dataset = "/home/alex/Documents/Еx/collections"
+
+    path_trec_0 = "/home/alex/Documents/ex_test/00"
+    path_trec_1 = "/home/alex/Documents/ex_test/01"
+    path_trec_2 = "/home/alex/Documents/ex_test/02"
+    trec_list = [path_trec_0, path_trec_1, path_trec_2]
+
 # TREC INDEX
-    # index = TRECIndex(index_path2, blocks=False)
-    # # index.setProperties(**index_props)
-    # index.index(path3)
-    # retr = BatchRetrieve(index.path)
-    # batch_retrieve_results=retr.transform("file")
-    # print(batch_retrieve_results)
+    all_files = Utils.get_files_in_dir(path_dataset)
+    print(all_files)
+    index = TRECIndex(index_path2, blocks=False)
+    # index.setProperties(**index_props)
+    index.index(all_files)
+    retr = BatchRetrieve(index.path)
+    batch_retrieve_results=retr.transform("file")
+    print(batch_retrieve_results)
 
 #  DATAFRAME INDEX
-    meta_fields={"docno":["1","2","3"],"url":["url1", "url2", "url3"]}
-    index = DFIndex(index_path2)
-    index.index(df["text"],df["docno"])
-    # index.index(df["text"])
-    # index.index(df["text"], df["docno"])
-    # index.index(df["text"], df["docno"], df["url"])
-    # index.index(df["text"], df)
-    # index.index(df["text"], docno=["1","2","3"])
-    # index.index(df["text"], **meta_fields)
-    retr = BatchRetrieve(index.path)
-    batch_retrieve_results=retr.transform("sight")
-    print(batch_retrieve_results)
+    # meta_fields={"docno":["1","2","3"],"url":["url1", "url2", "url3"]}
+    # index = DFIndex(index_path2)
+    # index.index(df["text"],df["docno"])
+    # # index.index(df["text"])
+    # # index.index(df["text"], df["docno"])
+    # # index.index(df["text"], df["docno"], df["url"])
+    # # index.index(df["text"], df)
+    # # index.index(df["text"], docno=["1","2","3"])
+    # # index.index(df["text"], **meta_fields)
+    # retr = BatchRetrieve(index.path)
+    # batch_retrieve_results=retr.transform("sight")
+    # print(batch_retrieve_results)
 
 # TXT INDEX
     # index = FilesIndex(index_path2, blocks=False)

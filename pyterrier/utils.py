@@ -3,6 +3,7 @@ from jnius import autoclass, cast
 import pytrec_eval
 import json
 import ast
+import os
 
 class Utils:
     @staticmethod
@@ -47,15 +48,29 @@ class Utils:
         return res_dt
 
     @staticmethod
-    def evaluate(res,qrels, string=False):
+    def evaluate(res,qrels, perquery=False, string=False):
         batch_retrieve_results_dict = Utils.convert_df_to_pytrec_eval(res)
         qrels_dic=Utils.convert_df_to_pytrec_eval(qrels, True)
         evaluator = pytrec_eval.RelevanceEvaluator(qrels_dic, {'map', 'ndcg'})
         result = evaluator.evaluate(batch_retrieve_results_dict)
-        if string:
-            return json.dumps(result, indent=1)
+        if perquery:
+            if string:
+                return json.dumps(result, indent=1)
+            else:
+                return result
         else:
-            return result
+            measures_sum = {}
+            mean_dict = {}
+            for val in result.values():
+                for measure, measure_val in val.items():
+                    measures_sum[measure]=measures_sum.get(measure, 0.0)+measure_val
+            for measure, value in measures_sum.items():
+                mean_dict[measure]=value/len(result.values())
+            if string:
+                return json.dumps(mean_dict, indent=1)
+            else:
+                return mean_dict
+
 
     # create a dataframe of string of queries or a list or tuple of strings of queries
     @staticmethod
@@ -74,3 +89,18 @@ class Utils:
                     assert type(item) is type(""), "%r is not a string" % item
                     indexed_query.append([str(i+1),item])
                 return pd.DataFrame(indexed_query,columns=['qid','query'])
+
+    @staticmethod
+    def get_files_in_dir(dir):
+        files_list = []
+        final_list = []
+        lst = []
+        zip_paths = []
+        for (dirpath, dirnames, filenames) in os.walk(dir):
+            lst.append([dirpath,filenames])
+        for sublist in lst:
+            for zip in sublist[1]:
+                zip_paths.append(os.path.join(sublist[0],zip))
+
+
+        return zip_paths

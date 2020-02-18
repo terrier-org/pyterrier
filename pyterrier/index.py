@@ -39,7 +39,7 @@ class Index:
             self.properties.put(control,value)
 
 class DFIndex(Index):
-    def index(self, text,*args, **kwargs):
+    def index(self, text, *args, **kwargs):
         all_metadata={}
         for arg in args:
             if isinstance(arg, pd.Series):
@@ -83,7 +83,12 @@ class TRECIndex(Index):
             index = BlockIndexer(self.index_dir,"data")
         else:
             index = BasicIndexer(self.index_dir,"data")
-        asList = Arrays.asList(files_path)
+
+        if type(files_path) == type(""):
+            asList = Arrays.asList(files_path)
+        if type(files_path) == type([]):
+            asList = Arrays.asList(*files_path)
+
         trecCol = TRECCollection(asList,"TrecDocTags","","")
         index.index([trecCol])
 
