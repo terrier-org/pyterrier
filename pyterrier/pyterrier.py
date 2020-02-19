@@ -69,6 +69,7 @@ def init(version=None, mem="4096", packages=[]):
     globals()["DFIndex"] = DFIndex
     # globals()["Properties"] = Properties
     globals()["ApplicationSetup"] = ApplicationSetup
+    # print(properties)
 
     # Import other java packages
     if packages != []:
@@ -76,7 +77,7 @@ def init(version=None, mem="4096", packages=[]):
         # properties = autoclass('java.util.Properties')()
         pkgs_string = ",".join(packages)
         properties.put("terrier.mvn.coords",pkgs_string)
-        ApplicationSetup.bootstrapInitialisation(properties)
+    ApplicationSetup.bootstrapInitialisation(properties)
 
 def set_property(property):
     # properties = Properties()
@@ -88,8 +89,10 @@ def set_properties(properties):
     ApplicationSetup.bootstrapInitialisation(self.properties)
 
 if __name__ == "__main__":
+    # global properties
     # init(packages=["com.harium.database:sqlite:1.0.5"])
-    init(mem="8192")
+    init()
+
     # JIR = autoclass('org.terrier.querying.IndexRef')
     # indexref = JIR.of("../index/data.properties")
     index_path = "../index/data.properties"
@@ -135,14 +138,14 @@ if __name__ == "__main__":
     trec_list = [path_trec_0, path_trec_1, path_trec_2]
 
 # TREC INDEX
-    all_files = Utils.get_files_in_dir(path_dataset)
-    print(all_files)
-    index = TRECIndex(index_path2, blocks=False)
-    # index.setProperties(**index_props)
-    index.index(all_files)
-    retr = BatchRetrieve(index.path)
-    batch_retrieve_results=retr.transform("file")
-    print(batch_retrieve_results)
+    # all_files = Utils.get_files_in_dir(path_dataset)
+    # print(all_files)
+    # index = TRECIndex(index_path2, blocks=False)
+    # # index.setProperties(**index_props)
+    # index.index(all_files)
+    # retr = BatchRetrieve(index.path)
+    # batch_retrieve_results=retr.transform("file")
+    # print(batch_retrieve_results)
 
 #  DATAFRAME INDEX
     # meta_fields={"docno":["1","2","3"],"url":["url1", "url2", "url3"]}
