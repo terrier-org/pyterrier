@@ -41,7 +41,7 @@ class BatchRetrieve:
         self.appSetup.bootstrapInitialisation(props)
 
         if controls==None:
-            self.controls=self.default_controls
+            self.controls=self.default_controls.copy()
         else:
             self.controls=controls
 

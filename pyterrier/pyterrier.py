@@ -48,7 +48,6 @@ def init(version=None, mem="4096", packages=[]):
     from batchretrieve import BatchRetrieve, FeaturesBatchRetrieve
     from index import FilesIndex, TRECIndex, DFIndex
 
-
     # Make imports global
     globals()["Utils"]=Utils
     globals()["autoclass"] = autoclass
@@ -74,3 +73,21 @@ def set_properties(properties):
     for control,value in kwargs.items():
         self.properties.put(control,value)
     ApplicationSetup.bootstrapInitialisation(self.properties)
+
+def Experiment(topics,retr_systems,eval_metrics,qrels):
+    if type(topics)==type(""):
+        if os.path.isfile(topics):
+            topics = Utils.parse_trec_topics_file(topics)
+    if type(qrels)==type(""):
+        if os.path.isfile(qrels):
+            qrels = Utils.parse_qrels(qrels)
+
+    results = []
+    weightings = []
+    for system in retr_systems:
+        results.append(system.transform(topics))
+        weightings.append(system.controls["wmodel"])
+    evals={}
+    for weight,res in zip(weightings,results):
+        evals[weight]=Utils.evaluate(res,qrels, metrics=eval_metrics)
+    return evals
