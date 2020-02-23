@@ -74,7 +74,7 @@ def set_properties(properties):
         self.properties.put(control,value)
     ApplicationSetup.bootstrapInitialisation(self.properties)
 
-def Experiment(topics,retr_systems,eval_metrics,qrels):
+def Experiment(topics,retr_systems,eval_metrics,qrels, perquery=False, dataframe=True):
     if type(topics)==type(""):
         if os.path.isfile(topics):
             topics = Utils.parse_trec_topics_file(topics)
@@ -88,6 +88,9 @@ def Experiment(topics,retr_systems,eval_metrics,qrels):
         results.append(system.transform(topics))
         weightings.append(system.controls["wmodel"])
     evals={}
+
     for weight,res in zip(weightings,results):
-        evals[weight]=Utils.evaluate(res,qrels, metrics=eval_metrics)
+        evals[weight]=Utils.evaluate(res,qrels, metrics=eval_metrics, perquery=perquery)
+    if dataframe:
+        evals = pd.DataFrame(evals)
     return evals
