@@ -100,6 +100,9 @@ class FilesIndex(Index):
             index = BlockIndexer(self.index_dir,"data")
         else:
             index = BasicIndexer(self.index_dir,"data")
-        asList = Arrays.asList(files_path)
+        if type(files_path) == type(""):
+            asList = Arrays.asList(files_path)
+        if type(files_path) == type([]):
+            asList = Arrays.asList(*files_path)
         simpleColl = SimpleFileCollection(asList,False)
         index.index([simpleColl])
