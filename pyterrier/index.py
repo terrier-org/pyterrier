@@ -42,6 +42,8 @@ class Indexer:
         if os.path.isfile(self.path):
             if not overwrite:
                 raise ValueError("Index already exists at " + index_path)
+        if not os.path.isdir(index_path):
+            os.makedirs(index_path)
 
     def setProperties(self, **kwargs):
         for control,value in kwargs.items():
