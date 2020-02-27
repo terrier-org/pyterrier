@@ -20,7 +20,7 @@ ApplicationSetup = autoclass('org.terrier.utility.ApplicationSetup')
 Properties = autoclass('java.util.Properties')
 CLITool = autoclass("org.terrier.applications.CLITool")
 
-class Index:
+class Indexer:
     default_properties={
             "TrecDocTags.doctag":"DOC",
             "TrecDocTags.idtag":"DOCNO",
@@ -28,7 +28,7 @@ class Index:
             "TrecDocTags.casesensitive":"false",
             "trec.collection.class": "TRECCollection",
     }
-    def __init__(self, index_path, blocks=False):
+    def __init__(self, index_path, blocks=False, overwrite=False):
         self.path = os.path.join(index_path, "data.properties")
         self.index_dir = index_path
         self.blocks = blocks
@@ -61,7 +61,7 @@ class Index:
             util = "-"+util
         CLITool.main(["indexutil", "-I" + self.path, util])
 
-class DFIndexer(Index):
+class DFIndexer(Indexer):
     def index(self, text, *args, **kwargs):
         if self.index_called:
             print("Index method can be called only once")
@@ -103,7 +103,7 @@ class DFIndexer(Index):
         index = BasicIndexer(self.index_dir, "data")
         index.index([javaDocCollection])
 
-class TRECCollectionIndexer(Index):
+class TRECCollectionIndexer(Indexer):
     def index(self, files_path):
         if self.index_called:
             print("Index method can be called only once")
@@ -124,7 +124,7 @@ class TRECCollectionIndexer(Index):
         index.index([trecCol])
 
 
-class FilesIndexer(Index):
+class FilesIndexer(Indexer):
     def index(self, files_path):
         if self.index_called:
             print("Index method can be called only once")
