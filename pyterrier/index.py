@@ -34,6 +34,7 @@ class Index:
         self.blocks = blocks
         self.properties = Properties()
         self.setProperties(**self.default_properties)
+        self.index_called = False
 
     def setProperties(self, **kwargs):
         for control,value in kwargs.items():
@@ -62,6 +63,10 @@ class Index:
 
 class DFIndexer(Index):
     def index(self, text, *args, **kwargs):
+        if self.index_called:
+            print("Index method can be called only once")
+            return
+        self.index_called=True
         all_metadata={}
         for arg in args:
             if isinstance(arg, pd.Series):
@@ -100,6 +105,10 @@ class DFIndexer(Index):
 
 class TRECCollectionIndexer(Index):
     def index(self, files_path):
+        if self.index_called:
+            print("Index method can be called only once")
+            return
+        self.index_called=True
         ApplicationSetup.bootstrapInitialisation(self.properties)
         if self.blocks:
             index = BlockIndexer(self.index_dir,"data")
@@ -117,12 +126,16 @@ class TRECCollectionIndexer(Index):
 
 class FilesIndexer(Index):
     def index(self, files_path):
+        if self.index_called:
+            print("Index method can be called only once")
+            return
+        self.index_called=True
         ApplicationSetup.bootstrapInitialisation(self.properties)
         if self.blocks:
             index = BlockIndexer(self.index_dir,"data")
         else:
             index = BasicIndexer(self.index_dir,"data")
-            
+
         if type(files_path) == type(""):
             asList = Arrays.asList(files_path)
         if type(files_path) == type([]):
