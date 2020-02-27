@@ -60,7 +60,7 @@ class Index:
             util = "-"+util
         CLITool.main(["indexutil", "-I" + self.path, util])
 
-class DFIndex(Index):
+class DFIndexer(Index):
     def index(self, text, *args, **kwargs):
         all_metadata={}
         for arg in args:
@@ -98,7 +98,7 @@ class DFIndex(Index):
         index = BasicIndexer(self.index_dir, "data")
         index.index([javaDocCollection])
 
-class TRECIndex(Index):
+class TRECCollectionIndexer(Index):
     def index(self, files_path):
         ApplicationSetup.bootstrapInitialisation(self.properties)
         if self.blocks:
@@ -115,13 +115,14 @@ class TRECIndex(Index):
         index.index([trecCol])
 
 
-class FilesIndex(Index):
+class FilesIndexer(Index):
     def index(self, files_path):
         ApplicationSetup.bootstrapInitialisation(self.properties)
         if self.blocks:
             index = BlockIndexer(self.index_dir,"data")
         else:
             index = BasicIndexer(self.index_dir,"data")
+            
         if type(files_path) == type(""):
             asList = Arrays.asList(files_path)
         if type(files_path) == type([]):
