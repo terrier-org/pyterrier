@@ -18,6 +18,7 @@ Arrays = autoclass("java.util.Arrays")
 Array = autoclass('java.lang.reflect.Array')
 ApplicationSetup = autoclass('org.terrier.utility.ApplicationSetup')
 Properties = autoclass('java.util.Properties')
+CLITool = autoclass("org.terrier.applications.CLITool")
 
 class Index:
     default_properties={
@@ -37,6 +38,27 @@ class Index:
     def setProperties(self, **kwargs):
         for control,value in kwargs.items():
             self.properties.put(control,value)
+
+    def getIndexStats(self):
+        CLITool.main(["indexstats", "-I" + self.path])
+
+    def getIndexUtil(self, util):
+        ''' Utilities for displaying the content of an index
+        Parameters:
+        util(string): possible values:
+        printbitentry
+        printlex
+        printlist
+        printlistentry
+        printmeta
+        printposting
+        printpostingfile
+        printterm
+        s
+        '''
+        if not util.startswith("-"):
+            util = "-"+util
+        CLITool.main(["indexutil", "-I" + self.path, util])
 
 class DFIndex(Index):
     def index(self, text, *args, **kwargs):
