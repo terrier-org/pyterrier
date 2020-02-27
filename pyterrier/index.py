@@ -21,6 +21,10 @@ Properties = autoclass('java.util.Properties')
 CLITool = autoclass("org.terrier.applications.CLITool")
 
 class Indexer:
+    '''
+    Parent class. Use one of its children classes
+    '''
+
     default_properties={
             "TrecDocTags.doctag":"DOC",
             "TrecDocTags.idtag":"DOCNO",
@@ -30,11 +34,14 @@ class Indexer:
     }
     def __init__(self, index_path, blocks=False, overwrite=False):
         self.path = os.path.join(index_path, "data.properties")
+        self.index_called = False
         self.index_dir = index_path
         self.blocks = blocks
         self.properties = Properties()
         self.setProperties(**self.default_properties)
-        self.index_called = False
+        if os.path.isfile(self.path):
+            if not overwrite:
+                raise ValueError("Index already exists at " + index_path)
 
     def setProperties(self, **kwargs):
         for control,value in kwargs.items():
@@ -62,6 +69,9 @@ class Indexer:
         CLITool.main(["indexutil", "-I" + self.path, util])
 
 class DFIndexer(Indexer):
+    '''
+    Use for Pandas dataframe
+    '''
     def index(self, text, *args, **kwargs):
         if self.index_called:
             print("Index method can be called only once")
@@ -104,6 +114,9 @@ class DFIndexer(Indexer):
         index.index([javaDocCollection])
 
 class TRECCollectionIndexer(Indexer):
+    '''
+    Use for TREC formatted collection
+    '''
     def index(self, files_path):
         if self.index_called:
             print("Index method can be called only once")
@@ -125,6 +138,9 @@ class TRECCollectionIndexer(Indexer):
 
 
 class FilesIndexer(Indexer):
+    '''
+    Use for pdf, docx, txt etc files
+    '''
     def index(self, files_path):
         if self.index_called:
             print("Index method can be called only once")

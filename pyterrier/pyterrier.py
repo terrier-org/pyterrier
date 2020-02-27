@@ -46,7 +46,7 @@ def init(version=None, mem="4096", packages=[]):
     ApplicationSetup = autoclass('org.terrier.utility.ApplicationSetup')
     from utils import Utils
     from batchretrieve import BatchRetrieve, FeaturesBatchRetrieve
-    from index import FilesIndex, TRECIndex, DFIndex
+    from index import FilesIndexer, TRECCollectionIndexer, DFIndexer
 
     # Make imports global
     globals()["Utils"]=Utils
@@ -54,9 +54,9 @@ def init(version=None, mem="4096", packages=[]):
     globals()["cast"] = cast
     globals()["BatchRetrieve"] = BatchRetrieve
     globals()["FeaturesBatchRetrieve"] = FeaturesBatchRetrieve
-    globals()["FilesIndex"] = FilesIndex
-    globals()["TRECIndex"] = TRECIndex
-    globals()["DFIndex"] = DFIndex
+    globals()["TRECCollectionIndexer"] = TRECCollectionIndexer
+    globals()["FilesIndexer"] = FilesIndexer
+    globals()["DFIndexer"] = DFIndexer
     globals()["ApplicationSetup"] = ApplicationSetup
 
     # Import other java packages
