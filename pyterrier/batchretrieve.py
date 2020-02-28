@@ -61,7 +61,6 @@ class BatchRetrieve:
                 res = [queries.iloc[index]['qid'],item.getMetadata("docno"),item.getScore()]
                 results.append(res)
         res_dt=pd.DataFrame(results,columns=['qid','docno','score'])
-        self.lastResult=res_dt
         return res_dt
 
     def saveResult(self, result, path):
@@ -69,9 +68,6 @@ class BatchRetrieve:
         res_copy.insert(1, "Q0", "Q0")
         res_copy.insert(4, "wmodel", self.controls["wmodel"])
         res_copy.to_csv(path, sep=" ", header=False, index=False)
-
-    def saveLastResult(self, path):
-        self.saveResult(self.lastResult,path)
 
     def setControls(self, controls):
         self.controls=controls
