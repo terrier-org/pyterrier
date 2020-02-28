@@ -31,19 +31,19 @@ class BatchRetrieve:
         self.IndexRef=indexRef
         self.appSetup = autoclass('org.terrier.utility.ApplicationSetup')
 
-        if properties==None:
-            self.properties=self.default_properties
-        else:
-            self.properties=properties
+        self.properties=self.default_properties.copy()
+        if type(properties)==type({}):
+            for key,value in properties.items():
+                self.properties[key]=value
 
-        for control,value in self.properties.items():
-            props.put(control,value)
+        for key,value in self.properties.items():
+            props.put(key,value)
         self.appSetup.bootstrapInitialisation(props)
 
-        if controls==None:
-            self.controls=self.default_controls.copy()
-        else:
-            self.controls=controls
+        self.controls=self.default_controls.copy()
+        if type(controls)==type({}):
+            for key,value in controls.items():
+                self.controls[key]=value
 
         MF = autoclass('org.terrier.querying.ManagerFactory')
         self.ManagerFactory = MF._from_(indexRef)
@@ -70,7 +70,8 @@ class BatchRetrieve:
         res_copy.to_csv(path, sep=" ", header=False, index=False)
 
     def setControls(self, controls):
-        self.controls=controls
+        for key, value in controls:
+            self.controls[key]=value
 
     def setControl(self, control,value):
         self.controls[control]=value
