@@ -49,8 +49,25 @@ class Indexer:
         for control,value in kwargs.items():
             self.properties.put(control,value)
 
+
+    def createIndexer(self):
+        ApplicationSetup.bootstrapInitialisation(self.properties)
+        if self.blocks:
+            index = BlockIndexer(self.index_dir,"data")
+        else:
+            index = BasicIndexer(self.index_dir,"data")
+        return index
+
+    def createAsList(self, files_path):
+        if type(files_path) == type(""):
+            asList = Arrays.asList(files_path)
+        if type(files_path) == type([]):
+            asList = Arrays.asList(*files_path)
+        return asList
+
     def getIndexStats(self):
         CLITool.main(["indexstats", "-I" + self.path])
+
 
     def getIndexUtil(self, util):
         ''' Utilities for displaying the content of an index
@@ -111,8 +128,8 @@ class DFIndexer(Indexer):
             tagDoc = TaggedDocument(StringReader(text_row), hashmap, Tokeniser.getTokeniser())
             doc_list.append(tagDoc)
 
+        index = self.createIndexer()
         javaDocCollection = CollectionDocumentList(doc_list, "null")
-        index = BasicIndexer(self.index_dir, "data")
         index.index([javaDocCollection])
 
 class TRECCollectionIndexer(Indexer):
@@ -124,17 +141,8 @@ class TRECCollectionIndexer(Indexer):
             print("Index method can be called only once")
             return
         self.index_called=True
-        ApplicationSetup.bootstrapInitialisation(self.properties)
-        if self.blocks:
-            index = BlockIndexer(self.index_dir,"data")
-        else:
-            index = BasicIndexer(self.index_dir,"data")
-
-        if type(files_path) == type(""):
-            asList = Arrays.asList(files_path)
-        if type(files_path) == type([]):
-            asList = Arrays.asList(*files_path)
-
+        index = self.createIndexer()
+        asList = self.createAsList(files_path)
         trecCol = TRECCollection(asList,"TrecDocTags","","")
         index.index([trecCol])
 
@@ -148,15 +156,7 @@ class FilesIndexer(Indexer):
             print("Index method can be called only once")
             return
         self.index_called=True
-        ApplicationSetup.bootstrapInitialisation(self.properties)
-        if self.blocks:
-            index = BlockIndexer(self.index_dir,"data")
-        else:
-            index = BasicIndexer(self.index_dir,"data")
-
-        if type(files_path) == type(""):
-            asList = Arrays.asList(files_path)
-        if type(files_path) == type([]):
-            asList = Arrays.asList(*files_path)
+        index = self.createIndexer()
+        asList = self.createAsList(files_path)
         simpleColl = SimpleFileCollection(asList,False)
         index.index([simpleColl])
