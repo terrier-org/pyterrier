@@ -52,22 +52,24 @@ class BatchRetrieve:
         results=[]
         queries=Utils.form_dataframe(queries)
         for index,row in queries.iterrows():
+            rank = 0
             srq = self.ManagerFactory.newSearchRequest(row['qid'],row['query'])
             for control,value in self.controls.items():
                 srq.setControl(control,value)
             self.ManagerFactory.runSearchRequest(srq)
             result=srq.getResults()
             for item in result:
-                res = [row['qid'],item.getMetadata("docno"),item.getScore()]
+                res = [row['qid'],item.getMetadata("docno"),rank,item.getScore()]
+                rank += 1
                 # res = [queries.iloc[index]['qid'],item.getMetadata("docno"),item.getScore()]
                 results.append(res)
-        res_dt=pd.DataFrame(results,columns=['qid','docno','score'])
+        res_dt=pd.DataFrame(results,columns=['qid','docno','rank','score'])
         return res_dt
 
     def saveResult(self, result, path):
         res_copy = result.copy()
         res_copy.insert(1, "Q0", "Q0")
-        res_copy.insert(4, "wmodel", self.controls["wmodel"])
+        res_copy.insert(5, "wmodel", self.controls["wmodel"])
         res_copy.to_csv(path, sep=" ", header=False, index=False)
 
     def setControls(self, controls):
