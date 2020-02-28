@@ -58,7 +58,8 @@ class BatchRetrieve:
             self.ManagerFactory.runSearchRequest(srq)
             result=srq.getResults()
             for item in result:
-                res = [queries.iloc[index]['qid'],item.getMetadata("docno"),item.getScore()]
+                res = [row['qid'],item.getMetadata("docno"),item.getScore()]
+                # res = [queries.iloc[index]['qid'],item.getMetadata("docno"),item.getScore()]
                 results.append(res)
         res_dt=pd.DataFrame(results,columns=['qid','docno','score'])
         return res_dt
