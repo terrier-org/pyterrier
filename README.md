@@ -9,7 +9,7 @@
 2. `pip install python-terrier`
 
 ### Windows
-Pyterrier is not available for Windows because pytrec_eval isn't available for windows.
+Pyterrier is not available for Windows because pytrec_eval isn't available for Windows.
 
 ### Colab notebooks
 ```
@@ -21,9 +21,9 @@ os.environ["JAVA_HOME"] = "/usr/lib/jvm/java-8-openjdk-amd64"
 
 ### Indexing TREC formatted collections
 
-You can create an index from TREC formatted collection using TRECIndex.    
-For TXT, PDF, Microsoft Word files, etc files you can use FilesIndex.    
-For pandas Dataframe you can use DFIndex.
+You can create an index from TREC formatted collection using TRECCollectionIndexer.    
+For TXT, PDF, Microsoft Word files, etc files you can use FilesIndexer.    
+For Pandas Dataframe you can use DFIndexer.
 
 See examples at:    
 https://colab.research.google.com/drive/17WpzhtlMj1U2UJku-RaO2axNsUFhPI6z
