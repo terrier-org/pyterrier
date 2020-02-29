@@ -73,7 +73,7 @@ class BatchRetrieve:
         res_copy.to_csv(path, sep=" ", header=False, index=False)
 
     def setControls(self, controls):
-        for key, value in controls:
+        for key, value in controls.items():
             self.controls[key]=value
 
     def setControl(self, control,value):
