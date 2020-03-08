@@ -39,9 +39,7 @@ class Indexer:
         self.blocks = blocks
         self.properties = Properties()
         self.setProperties(**self.default_properties)
-        if os.path.isfile(self.path):
-            if not overwrite:
-                raise ValueError("Index already exists at " + index_path)
+        self.overwrite = overwrite
         if not os.path.isdir(index_path):
             os.makedirs(index_path)
 
@@ -49,6 +47,12 @@ class Indexer:
         for control,value in kwargs.items():
             self.properties.put(control,value)
 
+    def checkIndexExists(self):
+        if os.path.isfile(self.path):
+            if not self.overwrite :
+                raise ValueError("Index already exists at " + self.path)
+        if self.index_called:
+            raise Exception("Index method can be called only once")
 
     def createIndexer(self):
         ApplicationSetup.bootstrapInitialisation(self.properties)
@@ -92,9 +96,7 @@ class DFIndexer(Indexer):
     Use for Pandas dataframe
     '''
     def index(self, text, *args, **kwargs):
-        if self.index_called:
-            print("Index method can be called only once")
-            return
+        self.checkIndexExists()
         self.index_called=True
         all_metadata={}
         for arg in args:
@@ -137,9 +139,7 @@ class TRECCollectionIndexer(Indexer):
     Use for TREC formatted collection
     '''
     def index(self, files_path):
-        if self.index_called:
-            print("Index method can be called only once")
-            return
+        self.checkIndexExists()
         self.index_called=True
         index = self.createIndexer()
         asList = self.createAsList(files_path)
@@ -152,9 +152,7 @@ class FilesIndexer(Indexer):
     Use for pdf, docx, txt etc files
     '''
     def index(self, files_path):
-        if self.index_called:
-            print("Index method can be called only once")
-            return
+        self.checkIndexExists()
         self.index_called=True
         index = self.createIndexer()
         asList = self.createAsList(files_path)
