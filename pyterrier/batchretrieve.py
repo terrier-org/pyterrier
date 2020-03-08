@@ -3,6 +3,7 @@ from utils import *
 import pandas as pd
 import numpy as np
 from pyterrier import properties as props
+from index import Indexer
 
 class BatchRetrieve:
     default_controls={
@@ -25,6 +26,11 @@ class BatchRetrieve:
     }
 
     def __init__(self, indexPath, controls=None, properties=None):
+        if isinstance(indexPath, str) or issubclass(type(indexPath), Indexer):
+            if issubclass(type(indexPath), Indexer):
+                indexPath=indexPath.path
+        else:
+            raise ValueError("First argument needs to be a string with the index location(e.g. path/to/index/data.properties) or an Indexer object")
         JIR = autoclass('org.terrier.querying.IndexRef')
         indexRef = JIR.of(indexPath)
 
