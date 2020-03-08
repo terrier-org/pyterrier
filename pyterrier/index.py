@@ -97,7 +97,6 @@ class DFIndexer(Indexer):
     '''
     def index(self, text, *args, **kwargs):
         self.checkIndexExists()
-        self.index_called=True
         all_metadata={}
         for arg in args:
             if isinstance(arg, pd.Series):
@@ -133,6 +132,7 @@ class DFIndexer(Indexer):
         index = self.createIndexer()
         javaDocCollection = CollectionDocumentList(doc_list, "null")
         index.index([javaDocCollection])
+        self.index_called=True
 
 class TRECCollectionIndexer(Indexer):
     '''
@@ -140,12 +140,11 @@ class TRECCollectionIndexer(Indexer):
     '''
     def index(self, files_path):
         self.checkIndexExists()
-        self.index_called=True
         index = self.createIndexer()
         asList = self.createAsList(files_path)
         trecCol = TRECCollection(asList,"TrecDocTags","","")
         index.index([trecCol])
-
+        self.index_called=True
 
 class FilesIndexer(Indexer):
     '''
@@ -153,8 +152,8 @@ class FilesIndexer(Indexer):
     '''
     def index(self, files_path):
         self.checkIndexExists()
-        self.index_called=True
         index = self.createIndexer()
         asList = self.createAsList(files_path)
         simpleColl = SimpleFileCollection(asList,False)
         index.index([simpleColl])
+        self.index_called=True
