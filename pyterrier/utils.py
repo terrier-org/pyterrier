@@ -24,19 +24,6 @@ class Utils:
         topics_dt = pd.DataFrame(topics_lst,columns=['qid','query'])
         return topics_dt
 
-    # Convert dataframe with columns: [qid,docno,score] into a dict {qid1: {doc1:score,doc2:score } qid2:...}
-    @staticmethod
-    def convert_df_to_pytrec_eval(df, score_int=False):
-        run_dict_pytrec_eval = {}
-        for index, row in df.iterrows():
-            if row['qid'] not in run_dict_pytrec_eval.keys():
-                run_dict_pytrec_eval[row['qid']] = {}
-            if score_int:
-                run_dict_pytrec_eval[row['qid']][row['docno']] = int(row['score'])
-            else:
-                run_dict_pytrec_eval[row['qid']][row['docno']] = float(row['score'])
-        return(run_dict_pytrec_eval)
-
     @staticmethod
     def parse_qrels(file_path):
         dph_results=[]
@@ -44,13 +31,31 @@ class Utils:
             for line in qrels_file:
                 split_line=line.strip("\n").split(" ")
                 dph_results.append([split_line[0], split_line[2],split_line[3]])
-        res_dt = pd.DataFrame(dph_results,columns=['qid','docno','score'])
+        res_dt = pd.DataFrame(dph_results,columns=['qid','docno','relevancy'])
         return res_dt
 
     @staticmethod
+    def convert_qrels_to_dict(df):
+        run_dict_pytrec_eval = {}
+        for index, row in df.iterrows():
+            if row['qid'] not in run_dict_pytrec_eval.keys():
+                run_dict_pytrec_eval[row['qid']] = {}
+            run_dict_pytrec_eval[row['qid']][row['docno']] = int(row['relevancy'])
+        return(run_dict_pytrec_eval)
+
+    @staticmethod
+    def convert_res_to_dict(df):
+        run_dict_pytrec_eval = {}
+        for index, row in df.iterrows():
+            if row['qid'] not in run_dict_pytrec_eval.keys():
+                run_dict_pytrec_eval[row['qid']] = {}
+            run_dict_pytrec_eval[row['qid']][row['docno']] = float(row['score'])
+        return(run_dict_pytrec_eval)
+
+    @staticmethod
     def evaluate(res,qrels, metrics = ['map', 'ndcg'], perquery=False):
-        batch_retrieve_results_dict = Utils.convert_df_to_pytrec_eval(res)
-        qrels_dic=Utils.convert_df_to_pytrec_eval(qrels, True)
+        batch_retrieve_results_dict = Utils.convert_res_to_dict(res)
+        qrels_dic=Utils.convert_qrels_to_dict(qrels)
         evaluator = pytrec_eval.RelevanceEvaluator(qrels_dic, set(metrics))
         result = evaluator.evaluate(batch_retrieve_results_dict)
         if perquery:
@@ -64,7 +69,6 @@ class Utils:
             for measure, value in measures_sum.items():
                 mean_dict[measure]=value/len(result.values())
             return mean_dict
-
 
     # create a dataframe of string of queries or a list or tuple of strings of queries
     @staticmethod
