@@ -102,8 +102,6 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         qid_index = queries.columns.get_loc("qid")
         query_index = queries.columns.get_loc("query")
         for row in queries.itertuples(index=False):
-            # whole_loop_time = time.time()
-            # start_time=time.time()
             srq = self.ManagerFactory.newSearchRequest(row[qid_index],row[query_index])
             for control,value in self.controls.items():
                 srq.setControl(control,value)
@@ -114,8 +112,6 @@ class FeaturesBatchRetrieve(BatchRetrieve):
             feats_values = []
             for feat in feat_names:
                 feats_values.append(fres.getFeatureScores(feat))
-            # print("--- %s seconds --- Before loop" % (time.time() - start_time))
-            # start_time=time.time()
             for i in range(fres.getResultSize()):
                 elem=[]
                 start_time = time.time()
@@ -129,10 +125,6 @@ class FeaturesBatchRetrieve(BatchRetrieve):
                 start_time = time.time()
                 elem.append(feats_array)
                 results.append(elem)
-            # print("--- %s seconds --- Loop" % (time.time() - start_time))
-            # print("--- %s seconds --- Whole query" % (time.time() - whole_loop_time))
-            # print()
-            # print()
 
         res_dt=pd.DataFrame(results, columns=["qid", "docno", "score", "features"])
         return res_dt

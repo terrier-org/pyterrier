@@ -100,13 +100,8 @@ class LTR_pipeline():
         feat_retrieve = FeaturesBatchRetrieve(index, features)
         feat_retrieve.setControl('wmodel', model)
         feat_res = feat_retrieve.transform(topics)
-        print("FEAT RES")
-        print(feat_res)
-        print(qrels)
         self.feat_res = feat_res.merge(qrels, on=['qid','docno'], how='left')
         self.feat_res = self.feat_res.fillna(0)
-        print("FEAT RES + QRELS")
-        print(feat_res)
         self.LTR = LTR
 
     def fit(self, topicsTrain):
