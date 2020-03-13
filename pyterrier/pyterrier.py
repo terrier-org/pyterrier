@@ -105,7 +105,7 @@ class LTR_pipeline():
     def fit(self, topicsTrain):
         if len(topicsTrain) == 0:
             raise ValueError("No topics to fit to")
-        train_DF = feat_retrieve.transform(topicsTrain)
+        train_DF = self.feat_retrieve.transform(topicsTrain)
         if not 'features' in train_DF.columns:
             raise ValueError("No features column retrieved")
         train_DF = train_DF.merge(qrels, on=['qid','docno'], how='left')
