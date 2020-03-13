@@ -74,7 +74,7 @@ def set_properties(properties):
         self.properties.put(control,value)
     ApplicationSetup.bootstrapInitialisation(self.properties)
 
-def Experiment(topics,retr_systems,eval_metrics,qrels, perquery=False, dataframe=True):
+def Experiment(topics,retr_systems,eval_metrics,qrels, names=None perquery=False, dataframe=True):
     if type(topics)==type(""):
         if os.path.isfile(topics):
             topics = Utils.parse_trec_topics_file(topics)
@@ -83,13 +83,16 @@ def Experiment(topics,retr_systems,eval_metrics,qrels, perquery=False, dataframe
             qrels = Utils.parse_qrels(qrels)
 
     results = []
-    weightings = []
+    neednames = names is not None
+    if neednames:
+        names = []
     for system in retr_systems:
         results.append(system.transform(topics))
-        weightings.append(system.controls["wmodel"])
+        if neednames:
+            names.append(system.controls["wmodel"])
     evals={}
 
-    for weight,res in zip(weightings,results):
+    for weight,res in zip(names,results):
         evals[weight]=Utils.evaluate(res,qrels, metrics=eval_metrics, perquery=perquery)
     if dataframe:
         evals = pd.DataFrame(evals)
@@ -101,6 +104,7 @@ class LTR_pipeline():
         self.feat_retrieve.setControl('wmodel', model)
         self.qrels = qrels
         self.LTR = LTR
+        self.controls = self.feat_retrieve.controls
 
     def fit(self, topicsTrain):
         if len(topicsTrain) == 0:
