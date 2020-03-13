@@ -5,6 +5,8 @@ import numpy as np
 from pyterrier import properties as props
 from index import Indexer
 
+import time
+
 class BatchRetrieve:
     default_controls={
         "terrierql": "on",
@@ -97,23 +99,40 @@ class FeaturesBatchRetrieve(BatchRetrieve):
     def transform(self,topics):
         results=[]
         queries=Utils.form_dataframe(topics)
-        for index,row in queries.iterrows():
-            srq = self.ManagerFactory.newSearchRequest(row['qid'],row['query'])
+        qid_index = queries.columns.get_loc("qid")
+        query_index = queries.columns.get_loc("query")
+        for row in queries.itertuples(index=False):
+            # whole_loop_time = time.time()
+            # start_time=time.time()
+            srq = self.ManagerFactory.newSearchRequest(row[qid_index],row[query_index])
             for control,value in self.controls.items():
                 srq.setControl(control,value)
             self.ManagerFactory.runSearchRequest(srq)
             srq=cast('org.terrier.querying.Request',srq)
             fres=cast('org.terrier.learning.FeaturedResultSet', srq.getResultSet())
-            feats = fres.getFeatureNames()
+            feat_names = fres.getFeatureNames()
+            feats_values = []
+            for feat in feat_names:
+                feats_values.append(fres.getFeatureScores(feat))
+            # print("--- %s seconds --- Before loop" % (time.time() - start_time))
+            # start_time=time.time()
             for i in range(fres.getResultSize()):
                 elem=[]
-                elem.append(row['qid'])
+                start_time = time.time()
+                elem.append(row[qid_index])
                 elem.append(fres.getMetaItems("docno")[i])
                 elem.append(fres.getScores()[i])
-                feats_array = np.array([])
-                for feat in feats:
-                    feats_array = np.append(feats_array, fres.getFeatureScores(feat)[i])
+                feats_array = []
+                for j in range(len(feats_values)):
+                    feats_array.append(feats_values[j][i])
+                feats_array = np.array(feats_array)
+                start_time = time.time()
                 elem.append(feats_array)
                 results.append(elem)
+            # print("--- %s seconds --- Loop" % (time.time() - start_time))
+            # print("--- %s seconds --- Whole query" % (time.time() - whole_loop_time))
+            # print()
+            # print()
+
         res_dt=pd.DataFrame(results, columns=["qid", "docno", "score", "features"])
         return res_dt
