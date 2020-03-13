@@ -97,28 +97,21 @@ def Experiment(topics,retr_systems,eval_metrics,qrels, perquery=False, dataframe
 
 class LTR_pipeline():
     def __init__(self, index, topics, model, features, qrels, LTR):
-        feat_retrieve = FeaturesBatchRetrieve(index, features)
-        feat_retrieve.setControl('wmodel', model)
-        feat_res = feat_retrieve.transform(topics)
-        print("FEAT RES")
-        print(feat_res)
-        print(qrels)
-        self.feat_res = feat_res.merge(qrels, on=['qid','docno'], how='left')
-        self.feat_res = self.feat_res.fillna(0)
-        print("FEAT RES + QRELS")
-        print(feat_res)
+        self.feat_retrieve = FeaturesBatchRetrieve(index, features)
+        self.feat_retrieve.setControl('wmodel', model)
+        self.qrels = qrels
         self.LTR = LTR
 
     def fit(self, topicsTrain):
-        train_DF = self.feat_res[self.feat_res['qid'].isin(topicsTrain)]
+        if len(topicsTrain) == 0:
+            raise ValueError("No topics to fit to")
+        train_DF = feat_retrieve.transform(topicsTrain)
+        if not 'features' in train_DF.columns:
+            raise ValueError("No features column retrieved")
+        train_DF = train_DF.merge(qrels, on=['qid','docno'], how='left')
         self.LTR.fit(list(train_DF["features"]),train_DF["relevancy"].values)
 
     def transform(self, topicsTest):
-        test_DF = self.feat_res[self.feat_res['qid'].isin(topicsTest)]
+        test_DF = feat_retrieve.transform(topicsTest)
         test_DF["predicted"] = self.LTR.predict(list(test_DF["features"]))
         return test_DF
-
-    def evaluate(self, topicsTest):
-        test_DF = self.feat_res[self.feat_res['qid'].isin(topicsTest)]
-        score = self.LTR.score(list(test_DF["features"]), test_DF["relevancy"].values)
-        return score
