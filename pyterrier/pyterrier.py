@@ -74,7 +74,7 @@ def set_properties(properties):
         self.properties.put(control,value)
     ApplicationSetup.bootstrapInitialisation(self.properties)
 
-def Experiment(topics,retr_systems,eval_metrics,qrels, names=None perquery=False, dataframe=True):
+def Experiment(topics,retr_systems,eval_metrics,qrels, names=None, perquery=False, dataframe=True):
     if type(topics)==type(""):
         if os.path.isfile(topics):
             topics = Utils.parse_trec_topics_file(topics)
