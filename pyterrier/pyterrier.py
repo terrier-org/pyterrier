@@ -96,7 +96,7 @@ def Experiment(topics,retr_systems,eval_metrics,qrels, perquery=False, dataframe
     return evals
 
 class LTR_pipeline():
-    def __init__(self, index, topics, model, features, qrels, LTR):
+    def __init__(self, index, model, features, qrels, LTR):
         self.feat_retrieve = FeaturesBatchRetrieve(index, features)
         self.feat_retrieve.setControl('wmodel', model)
         self.qrels = qrels
