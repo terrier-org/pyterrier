@@ -112,6 +112,6 @@ class LTR_pipeline():
         self.LTR.fit(list(train_DF["features"]),train_DF["relevancy"].values)
 
     def transform(self, topicsTest):
-        test_DF = feat_retrieve.transform(topicsTest)
-        test_DF["predicted"] = self.LTR.predict(list(test_DF["features"]))
+        test_DF = self.feat_retrieve.transform(topicsTest)
+        test_DF["score"] = self.LTR.predict(list(test_DF["features"]))
         return test_DF
