@@ -83,7 +83,7 @@ def Experiment(topics,retr_systems,eval_metrics,qrels, names=None, perquery=Fals
             qrels = Utils.parse_qrels(qrels)
 
     results = []
-    neednames = names is not None
+    neednames = names is None
     if neednames:
         names = []
     for system in retr_systems:
@@ -95,7 +95,7 @@ def Experiment(topics,retr_systems,eval_metrics,qrels, names=None, perquery=Fals
     for weight,res in zip(names,results):
         evals[weight]=Utils.evaluate(res,qrels, metrics=eval_metrics, perquery=perquery)
     if dataframe:
-        evals = pd.DataFrame(evals)
+        evals = pd.DataFrame.from_dict(evals, orient='index')
     return evals
 
 class LTR_pipeline():
