@@ -97,6 +97,7 @@ def Experiment(topics,retr_systems,eval_metrics,qrels, perquery=False, dataframe
 
 class LTR_pipeline():
     def __init__(self, index, topics, model, features, qrels, LTR):
+        self.qrels = qrels
         feat_retrieve = FeaturesBatchRetrieve(index, features)
         feat_retrieve.setControl('wmodel', model)
         feat_res = feat_retrieve.transform(topics)
@@ -109,11 +110,17 @@ class LTR_pipeline():
         self.LTR.fit(list(train_DF["features"]),train_DF["relevancy"].values)
 
     def transform(self, topicsTest):
+        self.topicsTest = topicsTest
         test_DF = self.feat_res[self.feat_res['qid'].isin(topicsTest)]
         test_DF["predicted"] = self.LTR.predict(list(test_DF["features"]))
         return test_DF
 
-    def evaluate(self, topicsTest):
-        test_DF = self.feat_res[self.feat_res['qid'].isin(topicsTest)]
-        score = self.LTR.score(list(test_DF["features"]), test_DF["relevancy"].values)
-        return score
+    def evaluate(self, res):
+        pred = res[['qid','docno','predicted']]
+        Utils.evaluate(pred[pred['predicted']!=0.0],self.qrels[self.qrels['qid'].isin(self.topicsTest)], metrics = ['iprec_at_recall'], perquery=True)
+
+                # Utils.evaluate(res[['qid','docno','predicted']],res[['qid','docno','relevancy']], metrics = ['map'], perquery=True)
+
+        # test_DF = self.feat_res[self.feat_res['qid'].isin(topicsTest)]
+        # score = self.LTR.score(list(test_DF["features"]), test_DF["relevancy"].values)
+        # return score

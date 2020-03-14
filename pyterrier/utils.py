@@ -49,14 +49,22 @@ class Utils:
         for index, row in df.iterrows():
             if row['qid'] not in run_dict_pytrec_eval.keys():
                 run_dict_pytrec_eval[row['qid']] = {}
-            run_dict_pytrec_eval[row['qid']][row['docno']] = float(row['score'])
+            if "predicted" in df.columns:
+                run_dict_pytrec_eval[row['qid']][row['docno']] = float(row['predicted'])
+            else:
+                run_dict_pytrec_eval[row['qid']][row['docno']] = float(row['score'])
         return(run_dict_pytrec_eval)
 
     @staticmethod
     def evaluate(res,qrels, metrics = ['map', 'ndcg'], perquery=False):
+        print(res)
+        print(qrels)
         batch_retrieve_results_dict = Utils.convert_res_to_dict(res)
         qrels_dic=Utils.convert_qrels_to_dict(qrels)
+        print(batch_retrieve_results_dict)
+        print(qrels_dic)
         evaluator = pytrec_eval.RelevanceEvaluator(qrels_dic, set(metrics))
+        print(evaluator)
         result = evaluator.evaluate(batch_retrieve_results_dict)
         if perquery:
             return result
