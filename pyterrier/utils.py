@@ -57,14 +57,9 @@ class Utils:
 
     @staticmethod
     def evaluate(res,qrels, metrics = ['map', 'ndcg'], perquery=False):
-        print(res)
-        print(qrels)
         batch_retrieve_results_dict = Utils.convert_res_to_dict(res)
         qrels_dic=Utils.convert_qrels_to_dict(qrels)
-        print(batch_retrieve_results_dict)
-        print(qrels_dic)
         evaluator = pytrec_eval.RelevanceEvaluator(qrels_dic, set(metrics))
-        print(evaluator)
         result = evaluator.evaluate(batch_retrieve_results_dict)
         if perquery:
             return result

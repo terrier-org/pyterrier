@@ -74,7 +74,7 @@ def set_properties(properties):
         self.properties.put(control,value)
     ApplicationSetup.bootstrapInitialisation(self.properties)
 
-def Experiment(topics,retr_systems,eval_metrics,qrels, perquery=False, dataframe=True):
+def Experiment(topics,retr_systems,eval_metrics,qrels, names=None, perquery=False, dataframe=True):
     if type(topics)==type(""):
         if os.path.isfile(topics):
             topics = Utils.parse_trec_topics_file(topics)
@@ -83,44 +83,39 @@ def Experiment(topics,retr_systems,eval_metrics,qrels, perquery=False, dataframe
             qrels = Utils.parse_qrels(qrels)
 
     results = []
-    weightings = []
+    neednames = names is None
+    if neednames:
+        names = []
     for system in retr_systems:
         results.append(system.transform(topics))
-        weightings.append(system.controls["wmodel"])
+        if neednames:
+            names.append(system.controls["wmodel"])
     evals={}
 
-    for weight,res in zip(weightings,results):
+    for weight,res in zip(names,results):
         evals[weight]=Utils.evaluate(res,qrels, metrics=eval_metrics, perquery=perquery)
     if dataframe:
-        evals = pd.DataFrame(evals)
+        evals = pd.DataFrame.from_dict(evals, orient='index')
     return evals
 
 class LTR_pipeline():
-    def __init__(self, index, topics, model, features, qrels, LTR):
+    def __init__(self, index, model, features, qrels, LTR):
+        self.feat_retrieve = FeaturesBatchRetrieve(index, features)
+        self.feat_retrieve.setControl('wmodel', model)
         self.qrels = qrels
-        feat_retrieve = FeaturesBatchRetrieve(index, features)
-        feat_retrieve.setControl('wmodel', model)
-        feat_res = feat_retrieve.transform(topics)
-        self.feat_res = feat_res.merge(qrels, on=['qid','docno'], how='left')
-        self.feat_res = self.feat_res.fillna(0)
         self.LTR = LTR
+        self.controls = self.feat_retrieve.controls
 
     def fit(self, topicsTrain):
-        train_DF = self.feat_res[self.feat_res['qid'].isin(topicsTrain)]
+        if len(topicsTrain) == 0:
+            raise ValueError("No topics to fit to")
+        train_DF = self.feat_retrieve.transform(topicsTrain)
+        if not 'features' in train_DF.columns:
+            raise ValueError("No features column retrieved")
+        train_DF = train_DF.merge(self.qrels, on=['qid','docno'], how='left').fillna(0)
         self.LTR.fit(list(train_DF["features"]),train_DF["relevancy"].values)
 
     def transform(self, topicsTest):
-        self.topicsTest = topicsTest
-        test_DF = self.feat_res[self.feat_res['qid'].isin(topicsTest)]
-        test_DF["predicted"] = self.LTR.predict(list(test_DF["features"]))
+        test_DF = self.feat_retrieve.transform(topicsTest)
+        test_DF["score"] = self.LTR.predict(list(test_DF["features"]))
         return test_DF
-
-    def evaluate(self, res):
-        pred = res[['qid','docno','predicted']]
-        Utils.evaluate(pred[pred['predicted']!=0.0],self.qrels[self.qrels['qid'].isin(self.topicsTest)], metrics = ['iprec_at_recall'], perquery=True)
-
-                # Utils.evaluate(res[['qid','docno','predicted']],res[['qid','docno','relevancy']], metrics = ['map'], perquery=True)
-
-        # test_DF = self.feat_res[self.feat_res['qid'].isin(topicsTest)]
-        # score = self.LTR.score(list(test_DF["features"]), test_DF["relevancy"].values)
-        # return score
