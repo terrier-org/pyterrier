@@ -6,6 +6,8 @@ from pyterrier import properties as props
 from index import Indexer
 from tqdm import tqdm
 
+import time
+
 class BatchRetrieve:
     default_controls={
         "terrierql": "on",
@@ -106,16 +108,23 @@ class FeaturesBatchRetrieve(BatchRetrieve):
             self.ManagerFactory.runSearchRequest(srq)
             srq=cast('org.terrier.querying.Request',srq)
             fres=cast('org.terrier.learning.FeaturedResultSet', srq.getResultSet())
-            feats = fres.getFeatureNames()
+            feat_names = fres.getFeatureNames()
+            feats_values = []
+            for feat in feat_names:
+                feats_values.append(fres.getFeatureScores(feat))
             for i in range(fres.getResultSize()):
                 elem=[]
-                elem.append(row['qid'])
+                start_time = time.time()
+                elem.append(row["qid"])
                 elem.append(fres.getMetaItems("docno")[i])
                 elem.append(fres.getScores()[i])
-                feats_array = np.array([])
-                for feat in feats:
-                    feats_array = np.append(feats_array, fres.getFeatureScores(feat)[i])
+                feats_array = []
+                for j in range(len(feats_values)):
+                    feats_array.append(feats_values[j][i])
+                feats_array = np.array(feats_array)
+                start_time = time.time()
                 elem.append(feats_array)
                 results.append(elem)
+
         res_dt=pd.DataFrame(results, columns=["qid", "docno", "score", "features"])
         return res_dt

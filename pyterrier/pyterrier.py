@@ -157,3 +157,4 @@ class XGBoostLTR_pipeline(LTR_pipeline):
             va_res["relevancy"].values)], 
             eval_group=[va_res.groupby(["qid"]).count()["docno"].values] 
         )
+

@@ -49,7 +49,10 @@ class Utils:
         for index, row in df.iterrows():
             if row['qid'] not in run_dict_pytrec_eval.keys():
                 run_dict_pytrec_eval[row['qid']] = {}
-            run_dict_pytrec_eval[row['qid']][row['docno']] = float(row['score'])
+            if "predicted" in df.columns:
+                run_dict_pytrec_eval[row['qid']][row['docno']] = float(row['predicted'])
+            else:
+                run_dict_pytrec_eval[row['qid']][row['docno']] = float(row['score'])
         return(run_dict_pytrec_eval)
 
     @staticmethod
