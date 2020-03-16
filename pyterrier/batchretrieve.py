@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from pyterrier import properties as props
 from index import Indexer
+from tqdm import tqdm
 
 class BatchRetrieve:
     default_controls={
@@ -25,7 +26,7 @@ class BatchRetrieve:
         "termpipelines": "Stopwords,PorterStemmer"
     }
 
-    def __init__(self, indexPath, controls=None, properties=None):
+    def __init__(self, indexPath, controls=None, properties=None, verbose=0):
         if isinstance(indexPath, str) or issubclass(type(indexPath), Indexer):
             if issubclass(type(indexPath), Indexer):
                 indexPath=indexPath.path
@@ -36,6 +37,7 @@ class BatchRetrieve:
 
         self.IndexRef=indexRef
         self.appSetup = autoclass('org.terrier.utility.ApplicationSetup')
+        self.verbose=verbose
 
         self.properties=self.default_properties.copy()
         if type(properties)==type({}):
@@ -57,7 +59,7 @@ class BatchRetrieve:
     def transform(self,queries):
         results=[]
         queries=Utils.form_dataframe(queries)
-        for index,row in queries.iterrows():
+        for index,row in tqdm(queries.iterrows()) if self.verbose else queries.iterrows():
             rank = 0
             srq = self.ManagerFactory.newSearchRequest(row['qid'],row['query'])
             for control,value in self.controls.items():
@@ -90,14 +92,14 @@ class FeaturesBatchRetrieve(BatchRetrieve):
     default_controls = BatchRetrieve.default_controls
     default_controls["matching"] = "FatFeaturedScoringMatching,org.terrier.matching.daat.FatFull"
     default_properties = BatchRetrieve.default_properties
-    def __init__(self, indexPath, features, controls=None, properties=None):
+    def __init__(self, indexPath, features, controls=None, properties=None, verbose=0):
         props.put("fat.featured.scoring.matching.features",";".join(features))
         super().__init__(indexPath,controls=controls,properties=properties)
 
     def transform(self,topics):
         results=[]
         queries=Utils.form_dataframe(topics)
-        for index,row in queries.iterrows():
+        for index,row in tqdm(queries.iterrows()) if self.verbose else queries.iterrows():
             srq = self.ManagerFactory.newSearchRequest(row['qid'],row['query'])
             for control,value in self.controls.items():
                 srq.setControl(control,value)
