@@ -120,42 +120,41 @@ class LTR_pipeline():
 
     def transform(self, topicsTest):
         test_DF = self.feat_retrieve.transform(topicsTest)
-        test_DF["score"] = self.LTR.predict(test_DF["features"].values)
+        test_DF["score"] = self.LTR.predict(list(test_DF["features"]))
         return test_DF
 
 class XGBoostLTR_pipeline(LTR_pipeline):
-    
+
     def __init__(self, index, model, features, qrels, LTR, validqrels):
         super().__init__(index,model,features, qrels, LTR)
         self.validqrels = validqrels
-        
+
     def transform(self, topicsTest):
         test_DF = self.feat_retrieve.transform(topicsTest)
         #xgb is more sensitive about the type of the values.
         test_DF["score"] = self.LTR.predict(np.stack(test_DF["features"].values))
         return test_DF
-    
+
     def fit(self, topicsTrain, topicsValid):
         if len(topicsTrain) == 0:
             raise ValueError("No training topics to fit to")
         if len(topicsValid) == 0:
             raise ValueError("No training topics to fit to")
-            
+
         tr_res = self.feat_retrieve.transform(topicsTrain)
         va_res = self.feat_retrieve.transform(topicsValid)
         if not 'features' in tr_res.columns:
             raise ValueError("No features column retrieved")
         if not 'features' in va_res.columns:
             raise ValueError("No features column retrieved")
-        
+
         tr_res = tr_res.merge(self.qrels, on=['qid','docno'], how='left').fillna(0)
         va_res = va_res.merge(self.validqrels, on=['qid','docno'], how='left').fillna(0)
-        
-        self.LTR.fit(
-            np.stack(tr_res["features"].values), 
-            tr_res["relevancy"].values, tr_res.groupby(["qid"]).count()["docno"].values, 
-            eval_set=[(np.stack(va_res["features"].values), 
-            va_res["relevancy"].values)], 
-            eval_group=[va_res.groupby(["qid"]).count()["docno"].values] 
-        )
 
+        self.LTR.fit(
+            np.stack(tr_res["features"].values),
+            tr_res["relevancy"].values, tr_res.groupby(["qid"]).count()["docno"].values,
+            eval_set=[(np.stack(va_res["features"].values),
+            va_res["relevancy"].values)],
+            eval_group=[va_res.groupby(["qid"]).count()["docno"].values]
+        )
