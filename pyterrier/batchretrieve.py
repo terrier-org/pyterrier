@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from pyterrier import properties as props
 from index import Indexer
+from tqdm import tqdm
 
 import time
 
@@ -27,7 +28,7 @@ class BatchRetrieve:
         "termpipelines": "Stopwords,PorterStemmer"
     }
 
-    def __init__(self, indexPath, controls=None, properties=None):
+    def __init__(self, indexPath, controls=None, properties=None, verbose=0):
         if isinstance(indexPath, str) or issubclass(type(indexPath), Indexer):
             if issubclass(type(indexPath), Indexer):
                 indexPath=indexPath.path
@@ -38,6 +39,7 @@ class BatchRetrieve:
 
         self.IndexRef=indexRef
         self.appSetup = autoclass('org.terrier.utility.ApplicationSetup')
+        self.verbose=verbose
 
         self.properties=self.default_properties.copy()
         if type(properties)==type({}):
@@ -59,7 +61,7 @@ class BatchRetrieve:
     def transform(self,queries):
         results=[]
         queries=Utils.form_dataframe(queries)
-        for index,row in queries.iterrows():
+        for index,row in tqdm(queries.iterrows()) if self.verbose else queries.iterrows():
             rank = 0
             srq = self.ManagerFactory.newSearchRequest(row['qid'],row['query'])
             for control,value in self.controls.items():
@@ -92,17 +94,15 @@ class FeaturesBatchRetrieve(BatchRetrieve):
     default_controls = BatchRetrieve.default_controls
     default_controls["matching"] = "FatFeaturedScoringMatching,org.terrier.matching.daat.FatFull"
     default_properties = BatchRetrieve.default_properties
-    def __init__(self, indexPath, features, controls=None, properties=None):
+    def __init__(self, indexPath, features, controls=None, properties=None, verbose=0):
         props.put("fat.featured.scoring.matching.features",";".join(features))
         super().__init__(indexPath,controls=controls,properties=properties)
 
     def transform(self,topics):
         results=[]
         queries=Utils.form_dataframe(topics)
-        qid_index = queries.columns.get_loc("qid")
-        query_index = queries.columns.get_loc("query")
-        for row in queries.itertuples(index=False):
-            srq = self.ManagerFactory.newSearchRequest(row[qid_index],row[query_index])
+        for index,row in tqdm(queries.iterrows()) if self.verbose else queries.iterrows():
+            srq = self.ManagerFactory.newSearchRequest(row['qid'],row['query'])
             for control,value in self.controls.items():
                 srq.setControl(control,value)
             self.ManagerFactory.runSearchRequest(srq)
@@ -115,7 +115,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
             for i in range(fres.getResultSize()):
                 elem=[]
                 start_time = time.time()
-                elem.append(row[qid_index])
+                elem.append(row["qid"])
                 elem.append(fres.getMetaItems("docno")[i])
                 elem.append(fres.getScores()[i])
                 feats_array = []

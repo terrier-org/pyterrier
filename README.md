@@ -43,4 +43,32 @@ pt.Experiment(topics, retr_systems, eval_metrics, qrels, perquery=False, datafra
 More examples are provided at:
 https://colab.research.google.com/drive/15oG7HwyYCBFuborjmfYglea0VLkUjyK-
 
+# Learning to  Rank
+First create a FeaturesBatchRetrieve(index, features) object with the desired features and controls.
+
+Call the transform(topics_set) function with the train, validation and test topic sets to get dataframes with the feature scores and use them to train your chosen model.
+
+Use your trained model to predict the score of the test_topics and evaluate the result with Utils.evaluate()
+
+## LTR_pipeline
+
+Create a LTR_pipeline object with arguments:
+
+1. Index reference or path to index on disc
+2. Weighting model name
+3. Features list
+4. Qrels
+5. LTR model
+
+Call the fit() method on the created object with the training topics.
+
+Evaluate the results with the Experiment function by using the test topics
+
+```
+pt.LTR_pipeline(index, model, features, qrels, LTR)
+```
+
+More learning to rank examples are provided at:
+https://colab.research.google.com/drive/1KwHoahx_i0vax9fnCZpLP-JmI9jvSoey
+
 
