@@ -93,6 +93,8 @@ class Indexer:
     def createIndexer(self):
         """
         Check `blocks` and create a BlockIndexer if true, else create BasicIndexer
+        Returns:
+            Created index object
         """
         ApplicationSetup.bootstrapInitialisation(self.properties)
         if self.blocks:
@@ -104,6 +106,8 @@ class Indexer:
     def createAsList(self, files_path):
         """
         Helper method to be used by child indexers to add files to Java List
+        Returns:
+            Created Java List
         """
         if type(files_path) == type(""):
             asList = Arrays.asList(files_path)
@@ -113,7 +117,7 @@ class Indexer:
 
     def getIndexStats(self):
         """
-        Returns the index statistics
+        Prints the index statistics
 
         Note:
             Does not work with notebooks at the moment
