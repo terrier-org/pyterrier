@@ -8,21 +8,55 @@ import pandas as pd
 import numpy as np
 import os
 
-CollectionDocumentList = autoclass("org.terrier.indexing.CollectionDocumentList")
-StringReader = autoclass("java.io.StringReader")
-HashMap = autoclass("java.util.HashMap")
-TaggedDocument = autoclass("org.terrier.indexing.TaggedDocument")
-Tokeniser = autoclass("org.terrier.indexing.tokenisation.Tokeniser")
-TRECCollection = autoclass("org.terrier.indexing.TRECCollection")
-SimpleFileCollection = autoclass("org.terrier.indexing.SimpleFileCollection")
-BasicIndexer = autoclass("org.terrier.structures.indexing.classical.BasicIndexer")
-BlockIndexer = autoclass("org.terrier.structures.indexing.classical.BlockIndexer")
-Collection = autoclass("org.terrier.indexing.Collection")
-Arrays = autoclass("java.util.Arrays")
-Array = autoclass('java.lang.reflect.Array')
-ApplicationSetup = autoclass('org.terrier.utility.ApplicationSetup')
-Properties = autoclass('java.util.Properties')
-CLITool = autoclass("org.terrier.applications.CLITool")
+CollectionDocumentList = None
+StringReader = None
+HashMap = None
+TaggedDocument = None
+Tokeniser = None
+TRECCollection = None
+SimpleFileCollection = None
+BasicIndexer = None
+BlockIndexer = None
+Collection = None
+Arrays = None
+Array = None
+ApplicationSetup = None
+Properties = None
+CLITool = None
+
+def run_autoclass():
+    global CollectionDocumentList
+    global StringReader
+    global HashMap
+    global TaggedDocument
+    global Tokeniser
+    global TRECCollection
+    global SimpleFileCollection
+    global BasicIndexer
+    global BlockIndexer
+    global Collection
+    global Arrays
+    global Array
+    global ApplicationSetup
+    global Properties
+    global CLITool
+
+    CollectionDocumentList = autoclass("org.terrier.indexing.CollectionDocumentList")
+    StringReader = autoclass("java.io.StringReader")
+    HashMap = autoclass("java.util.HashMap")
+    TaggedDocument = autoclass("org.terrier.indexing.TaggedDocument")
+    Tokeniser = autoclass("org.terrier.indexing.tokenisation.Tokeniser")
+    TRECCollection = autoclass("org.terrier.indexing.TRECCollection")
+    SimpleFileCollection = autoclass("org.terrier.indexing.SimpleFileCollection")
+    BasicIndexer = autoclass("org.terrier.structures.indexing.classical.BasicIndexer")
+    BlockIndexer = autoclass("org.terrier.structures.indexing.classical.BlockIndexer")
+    Collection = autoclass("org.terrier.indexing.Collection")
+    Arrays = autoclass("java.util.Arrays")
+    Array = autoclass('java.lang.reflect.Array')
+    ApplicationSetup = autoclass('org.terrier.utility.ApplicationSetup')
+    Properties = autoclass('java.util.Properties')
+    CLITool = autoclass("org.terrier.applications.CLITool")
+
 
 class Indexer:
     """
@@ -38,6 +72,8 @@ class Indexer:
         properties: A Terrier Properties object, which is a hashtable with properties and their values
         overwrite(bool): If True the index() method of child Indexer will overwrite any existing index
     """
+
+
 
     default_properties={
             "TrecDocTags.doctag":"DOC",
@@ -55,6 +91,8 @@ class Indexer:
             blocks (bool): Create indexer with blocks if true, else without blocks
             overwrite (bool): If index already present at `index_path`, True would overwrite it, False throws an Exception
         """
+        if CollectionDocumentList==None:
+            run_autoclass()
         self.path = os.path.join(index_path, "data.properties")
         self.index_called = False
         self.index_dir = index_path
@@ -67,15 +105,15 @@ class Indexer:
 
     def setProperties(self, **kwargs):
         """
-        Set the properties to the given ones
+        Set the properties to the given ones.
+
+        Args:
+            **kwargs: Properties to set to.
 
         Usage:
             setProperties("property1=value1, property2=value2")
             or
             setProperties("**{property1:value1, property2:value2}")
-
-        Args:
-            **kwargs: Properties to set to
         """
         for control,value in kwargs.items():
             self.properties.put(control,value)
@@ -111,7 +149,7 @@ class Indexer:
         """
         if type(files_path) == type(""):
             asList = Arrays.asList(files_path)
-        else if type(files_path) == type([]):
+        elif type(files_path) == type([]):
             asList = Arrays.asList(*files_path)
         return asList
 

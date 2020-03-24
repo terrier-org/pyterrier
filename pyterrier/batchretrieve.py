@@ -2,11 +2,17 @@ from jnius import autoclass, cast
 from utils import *
 import pandas as pd
 import numpy as np
-from pyterrier import properties as props
+
 from index import Indexer
 from tqdm import tqdm
 
 import time
+
+def importProps():
+    from pyterrier import properties as props
+    # Make import global
+    globals()["props"]=props
+props=None
 
 class BatchRetrieve:
     """
@@ -67,6 +73,8 @@ class BatchRetrieve:
             for key,value in properties.items():
                 self.properties[key]=value
 
+        if props==None:
+            importProps()
         for key,value in self.properties.items():
             props.put(key,value)
         self.appSetup.bootstrapInitialisation(props)
@@ -148,7 +156,8 @@ class FeaturesBatchRetrieve(BatchRetrieve):
                 properties(dict): A dictionary with with the control names and values
                 verbose(bool): If True transform method will display progress
         """
-
+        if props==None:
+            importProps()
         props.put("fat.featured.scoring.matching.features",";".join(features))
         super().__init__(indexPath,controls=controls,properties=properties)
 

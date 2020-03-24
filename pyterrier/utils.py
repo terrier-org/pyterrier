@@ -54,16 +54,15 @@ class Utils:
 
     @staticmethod
     def convert_qrels_to_dict(df):
-            """
-            Convert a qrels dataframe to dictionary for use in pytrec_eval
+        """
+        Convert a qrels dataframe to dictionary for use in pytrec_eval
 
-            Args:
-                df(pandas.Dataframe): The dataframe to convert
+        Args:
+            df(pandas.Dataframe): The dataframe to convert
 
-            Returns:
-                dict: {qid:{docno:relevancy,},}
-            """
-
+        Returns:
+            dict: {qid:{docno:relevancy,},}
+        """
         run_dict_pytrec_eval = {}
         for index, row in df.iterrows():
             if row['qid'] not in run_dict_pytrec_eval.keys():
@@ -130,16 +129,16 @@ class Utils:
 
     # create a dataframe of string of queries or a list or tuple of strings of queries
     @staticmethod
-    """
-    Convert either a string or a list of strings to a dataframe for use as topics in retrieval.
-
-    Args:
-        query: Either a string or a list of strings
-
-    Returns:
-        dataframe with columns=['qid','query']
-    """
     def form_dataframe(query):
+        """
+        Convert either a string or a list of strings to a dataframe for use as topics in retrieval.
+
+        Args:
+            query: Either a string or a list of strings
+
+        Returns:
+            dataframe with columns=['qid','query']
+        """
         if type(query)==type(pd.DataFrame()):
             return query
         elif type(query)==type(""):
