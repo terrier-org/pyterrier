@@ -11,6 +11,14 @@ import urllib.request
 
 
 def setup_terrier(file_path, version):
+    """
+    Download the Terrier.jar file for the given version at the given file_path
+    Called inside init()
+
+    Args:
+        file_path(str): Where to download
+        version(str): Which version
+    """
     file_path = os.path.dirname(os.path.abspath(__file__))
     if not os.path.isfile(os.path.join(file_path,"terrier-assemblies-"+version+"-jar-with-dependencies.jar")):
         print("Terrier "+ version +" not found, downloading...")
@@ -24,6 +32,16 @@ ApplicationSetup = None
 properties = None
 
 def init(version=None, mem="4096", packages=[]):
+    """
+    Function necessary to be called before Terrier classes and methods can be used.
+    Loads the Terrier.jar file and imports classes. Also finds the correct version of Terrier to download if no version is specified.
+
+    Args:
+        version(str): Which version of Terrier to download. Default=None.
+            If None, find the newest Terrier version in maven and download it.
+        mem: Maximum memory allocated for java heap in MB. Default=4096.
+        packages: Extra .jar files to load.
+    """
     global ApplicationSetup
     global properties
     # If version is not specified, find newest and download it
@@ -69,15 +87,30 @@ def init(version=None, mem="4096", packages=[]):
     ApplicationSetup.bootstrapInitialisation(properties)
 
 def set_property(property):
-    # properties = Properties()
     ApplicationSetup.bootstrapInitialisation(properties)
 def set_properties(properties):
-    # properties = Properties()
     for control,value in kwargs.items():
         self.properties.put(control,value)
     ApplicationSetup.bootstrapInitialisation(self.properties)
 
 def Experiment(topics,retr_systems,eval_metrics,qrels, names=None, perquery=False, dataframe=True):
+    """
+    Cornac style experiment. Combines retrieval and evaluation.
+    Allows easy comparison of multiple retrieval systems with different properties and controls.
+
+    Args:
+        topics: Either a path to a topics file or a pandas.Dataframe with columns=['qid', 'query']
+        retr_systems(list): A list of BatchRetrieve objects to compare
+        eval_metrics(list): Which evaluation metrics to use. E.g. ['map']
+        qrels: Either a path to a qrels file or a pandas.Dataframe with columns=['qid','docno', 'relevancy']
+        names(list)=List of names for each retrieval system when presenting the results.
+            Defaul=None. If None: Use names of weighting models for each retrieval system.
+        perquery(bool): If true return each metric for each query, else return mean metrics. Default=False.
+        dataframe(bool): If True return results as a dataframe. Else as a dictionary of dictionaries. Default=True.
+
+    Returns:
+        A Dataframe with each retrieval system with each metric evaluated.
+    """
     if type(topics)==type(""):
         if os.path.isfile(topics):
             topics = Utils.parse_trec_topics_file(topics)
@@ -102,7 +135,22 @@ def Experiment(topics,retr_systems,eval_metrics,qrels, names=None, perquery=Fals
     return evals
 
 class LTR_pipeline():
+    """
+    This class simplifies the use of Scikit-learn's techniques for learning-to-rank.
+    """
     def __init__(self, index, model, features, qrels, LTR):
+        """
+        Init method
+
+        Args:
+            index: The index which to query.
+                Can be an Indexer object(Can be parent Indexer or any of its child classes)
+                or a string with the path to the index_dir/data.properties
+            model(str): The weighting model to use. E.g. "PL2"
+            features(list): A list of the feature names to use
+            qrels(DataFrame): Dataframe with columns=['qid','docno', 'relevancy']
+            LTR: The model which to use for learning-to-rank. Must have a fit() and predict() methods.
+        """
         self.feat_retrieve = FeaturesBatchRetrieve(index, features)
         self.feat_retrieve.setControl('wmodel', model)
         self.qrels = qrels
@@ -110,6 +158,12 @@ class LTR_pipeline():
         self.controls = self.feat_retrieve.controls
 
     def fit(self, topicsTrain):
+        """
+        Trains the model with the given topics.
+
+        Args:
+            topicsTrain(DataFrame): A dataframe with the topics to train the model
+        """
         if len(topicsTrain) == 0:
             raise ValueError("No topics to fit to")
         train_DF = self.feat_retrieve.transform(topicsTrain)
@@ -119,23 +173,58 @@ class LTR_pipeline():
         self.LTR.fit(list(train_DF["features"]), train_DF["relevancy"].values)
 
     def transform(self, topicsTest):
+        """
+        Predicts the scores for the given topics.
+
+        Args:
+            topicsTest(DataFrame): A dataframe with the test topics.
+        """
         test_DF = self.feat_retrieve.transform(topicsTest)
         test_DF["score"] = self.LTR.predict(list(test_DF["features"]))
         return test_DF
 
 class XGBoostLTR_pipeline(LTR_pipeline):
+    """
+    This class simplifies the use of XGBoost's techniques for learning-to-rank.
+    """
 
     def __init__(self, index, model, features, qrels, LTR, validqrels):
+        """
+        Init method
+
+        Args:
+            index: The index which to query.
+                Can be an Indexer object(Can be parent Indexer or any of its child classes)
+                or a string with the path to the index_dir/data.properties
+            model(str): The weighting model to use. E.g. "PL2"
+            features(list): A list of the feature names to use
+            qrels(DataFrame): Dataframe with columns=['qid','docno', 'relevancy']
+            LTR: The model which to use for learning-to-rank. Must have a fit() and predict() methods.
+            validqrels(DataFrame): The qrels which to use for the validation.
+        """
         super().__init__(index,model,features, qrels, LTR)
         self.validqrels = validqrels
 
     def transform(self, topicsTest):
+        """
+        Predicts the scores for the given topics.
+
+        Args:
+            topicsTest(DataFrame): A dataframe with the test topics.
+        """
         test_DF = self.feat_retrieve.transform(topicsTest)
         #xgb is more sensitive about the type of the values.
         test_DF["score"] = self.LTR.predict(np.stack(test_DF["features"].values))
         return test_DF
 
     def fit(self, topicsTrain, topicsValid):
+        """
+        Trains the model with the given training and validation topics.
+
+        Args:
+            topicsTrain(DataFrame): A dataframe with the topics to train the model
+            topicsValid(DataFrame): A dataframe with the topics for validation
+        """
         if len(topicsTrain) == 0:
             raise ValueError("No training topics to fit to")
         if len(topicsValid) == 0:
