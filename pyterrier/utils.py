@@ -8,6 +8,15 @@ import os
 class Utils:
     @staticmethod
     def parse_trec_topics_file(file_path):
+        """
+        Parse a file containing topics
+
+        Args:
+            file_path(str): The path to the topics file
+
+        Returns:
+            pandas.Dataframe with columns=['qid','query']
+        """
         system = autoclass("java.lang.System")
         system.setProperty("TrecQueryTags.doctag","TOP");
         system.setProperty("TrecQueryTags.idtag","NUM");
@@ -26,6 +35,15 @@ class Utils:
 
     @staticmethod
     def parse_qrels(file_path):
+        """
+        Parse a file containing qrels
+
+        Args:
+            file_path(str): The path to the qrels file
+
+        Returns:
+            pandas.Dataframe with columns=['qid','docno', 'relevancy']
+        """
         dph_results=[]
         with (open(file_path, 'r')) as qrels_file:
             for line in qrels_file:
@@ -36,6 +54,16 @@ class Utils:
 
     @staticmethod
     def convert_qrels_to_dict(df):
+            """
+            Convert a qrels dataframe to dictionary for use in pytrec_eval
+
+            Args:
+                df(pandas.Dataframe): The dataframe to convert
+
+            Returns:
+                dict: {qid:{docno:relevancy,},}
+            """
+
         run_dict_pytrec_eval = {}
         for index, row in df.iterrows():
             if row['qid'] not in run_dict_pytrec_eval.keys():
@@ -45,6 +73,15 @@ class Utils:
 
     @staticmethod
     def convert_res_to_dict(df):
+        """
+        Convert a result dataframe to dictionary for use in pytrec_eval
+
+        Args:
+            df(pandas.Dataframe): The dataframe to convert
+
+        Returns:
+            dict: {qid:{docno:score,},}
+        """
         run_dict_pytrec_eval = {}
         for index, row in df.iterrows():
             if row['qid'] not in run_dict_pytrec_eval.keys():
@@ -57,8 +94,26 @@ class Utils:
 
     @staticmethod
     def evaluate(res,qrels, metrics = ['map', 'ndcg'], perquery=False):
-        batch_retrieve_results_dict = Utils.convert_res_to_dict(res)
-        qrels_dic=Utils.convert_qrels_to_dict(qrels)
+        """
+        Evaluate the result dataframe with the given qrels
+
+        Args:
+            res: Either a dataframe with columns=['qid', 'docno', 'score'] or a dict {qid:{docno:score,},}
+            qrels: Either a dataframe with columns=['qid','docno', 'relevancy'] or a dict {qid:{docno:relevancy,},}
+            metrics(list): A list of strings specifying which evaluation metrics to use. Default=['map', 'ndcg']
+            perquery(bool): If true return each metric for each query, else return mean metrics. Default=False
+        """
+
+        if (type(res)==type(pd.DataFrame())):
+            batch_retrieve_results_dict = Utils.convert_res_to_dict(res)
+        else:
+            batch_retrieve_results_dict=res
+
+        if (type(qrels)==type(pd.DataFrame())):
+            qrels_dic=Utils.convert_qrels_to_dict(qrels)
+        else:
+            qrels_dic=qrels
+
         evaluator = pytrec_eval.RelevanceEvaluator(qrels_dic, set(metrics))
         result = evaluator.evaluate(batch_retrieve_results_dict)
         if perquery:
@@ -75,6 +130,15 @@ class Utils:
 
     # create a dataframe of string of queries or a list or tuple of strings of queries
     @staticmethod
+    """
+    Convert either a string or a list of strings to a dataframe for use as topics in retrieval.
+
+    Args:
+        query: Either a string or a list of strings
+
+    Returns:
+        dataframe with columns=['qid','query']
+    """
     def form_dataframe(query):
         if type(query)==type(pd.DataFrame()):
             return query
@@ -93,8 +157,15 @@ class Utils:
 
     @staticmethod
     def get_files_in_dir(dir):
-        files_list = []
-        final_list = []
+        """
+        Returns all the files present in a directory and its subdirectories
+
+        Args:
+            dir(str): The directory containing the files
+
+        Returns:
+            paths(list): A list of the paths to the files
+        """
         lst = []
         zip_paths = []
         for (dirpath, dirnames, filenames) in os.walk(dir):
@@ -102,6 +173,4 @@ class Utils:
         for sublist in lst:
             for zip in sublist[1]:
                 zip_paths.append(os.path.join(sublist[0],zip))
-
-
         return zip_paths
