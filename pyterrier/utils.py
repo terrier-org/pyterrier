@@ -5,7 +5,67 @@ import json
 import ast
 import os
 
+from jnius import PythonJavaClass, java_method
+
+def is_binary(f):
+        import io
+        return isinstance(f, (io.RawIOBase, io.BufferedIOBase))
+
+class MyOut(PythonJavaClass):
+    __javainterfaces__ = ['org.terrier.python.OutputStreamable']
+    
+    def __init__(self, pystream):
+      super(MyOut, self).__init__()
+      self.pystream = pystream
+      self.binary = is_binary(pystream)
+
+    @java_method('()V')
+    def close(self):
+      self.pystream.close()
+    
+    @java_method('()V')
+    def flush(self):
+      self.pystream.flush()
+
+    @java_method('([B)V', name='write')
+    def writeByteArray(self, byteArray):
+      #TODO probably this could be faster.
+      for c in byteArray:
+        self.writeChar(c)
+    
+    @java_method('([BII)V', name='write')
+    def writeByteArrayIntInt(self, byteArray, offset, length):
+      #TODO probably this could be faster.
+      for i in range(offset, offset+length):
+        self.writeChar(byteArray[i])
+    
+    @java_method('(I)V', name='write')
+    def writeChar(self, chara):
+        if self.binary:
+            return self.pystream.write(bytes([chara]))
+        return self.pystream.write(chr(chara))
+
+
 class Utils:
+
+    @staticmethod
+    def parse_query_result(filename):
+        results=[]
+        with open(filename, 'r') as file:
+            for line in file:
+                split_line=line.strip("\n").split(" ")
+                results.append([split_line[1],float(split_line[2])])
+        return results
+
+    @staticmethod
+    def parse_res_file(filename):
+        results=[]
+        with open(filename, 'r') as file:
+            for line in file:
+                split_line=line.strip("\n").split(" ")
+                results.append([split_line[0],split_line[2],float(split_line[4])])
+        return results
+
     @staticmethod
     def parse_trec_topics_file(file_path):
         system = autoclass("java.lang.System")
@@ -31,7 +91,7 @@ class Utils:
             for line in qrels_file:
                 split_line=line.strip("\n").split(" ")
                 dph_results.append([split_line[0], split_line[2],split_line[3]])
-        res_dt = pd.DataFrame(dph_results,columns=['qid','docno','relevancy'])
+        res_dt = pd.DataFrame(dph_results,columns=['qid','docno','label'])
         return res_dt
 
     @staticmethod
@@ -40,7 +100,7 @@ class Utils:
         for index, row in df.iterrows():
             if row['qid'] not in run_dict_pytrec_eval.keys():
                 run_dict_pytrec_eval[row['qid']] = {}
-            run_dict_pytrec_eval[row['qid']][row['docno']] = int(row['relevancy'])
+            run_dict_pytrec_eval[row['qid']][row['docno']] = int(row['label'])
         return(run_dict_pytrec_eval)
 
     @staticmethod

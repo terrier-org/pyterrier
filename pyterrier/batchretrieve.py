@@ -29,13 +29,16 @@ class BatchRetrieve:
     }
 
     def __init__(self, indexPath, controls=None, properties=None, verbose=0):
-        if isinstance(indexPath, str) or issubclass(type(indexPath), Indexer):
-            if issubclass(type(indexPath), Indexer):
-                indexPath=indexPath.path
-        else:
-            raise ValueError("First argument needs to be a string with the index location(e.g. path/to/index/data.properties) or an Indexer object")
         JIR = autoclass('org.terrier.querying.IndexRef')
-        indexRef = JIR.of(indexPath)
+        if isinstance(indexPath, JIR):
+            indexRef = indexPath
+        else: 
+            if isinstance(indexPath, str) or issubclass(type(indexPath), Indexer):
+                if issubclass(type(indexPath), Indexer):
+                    indexPath=indexPath.path
+            else:
+                raise ValueError("First argument needs to be a string with the index location(e.g. path/to/index/data.properties) or an Indexer object")
+            indexRef = JIR.of(indexPath)
 
         self.IndexRef=indexRef
         self.appSetup = autoclass('org.terrier.utility.ApplicationSetup')
@@ -47,8 +50,9 @@ class BatchRetrieve:
                 self.properties[key]=value
 
         for key,value in self.properties.items():
-            props.put(key,value)
-        self.appSetup.bootstrapInitialisation(props)
+            self.appSetup.setProperty(key, value)
+            #props.put(key,value)
+        #self.appSetup.bootstrapInitialisation(props)
 
         self.controls=self.default_controls.copy()
         if type(controls)==type({}):
@@ -68,6 +72,7 @@ class BatchRetrieve:
                 srq.setControl(control,value)
             self.ManagerFactory.runSearchRequest(srq)
             result=srq.getResults()
+            print(dir(result))
             for item in result:
                 res = [row['qid'],item.getMetadata("docno"),rank,item.getScore()]
                 rank += 1

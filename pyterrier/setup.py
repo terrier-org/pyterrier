@@ -13,7 +13,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/A-Tsolov/Pyterrier",
     packages=setuptools.find_packages(),
-    py_modules=["pyterrier","batchretrieve", "utils", "index"],
+    py_modules=["pyterrier","batchretrieve", "utils", "index", "mavenresolver"],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
@@ -21,7 +21,7 @@ setuptools.setup(
     ],
     # data_files=[('my_data', ['../terrier-project-5.1-jar-with-dependencies.jar'])],
     install_requires=[
-    "pyjnius==1.2.0",
+    "pyjnius",
     "numpy",
     "pandas",
     "wget",

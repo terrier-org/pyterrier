@@ -1,54 +1,59 @@
-# import jnius_config
-# jnius_config.add_classpath("../terrier-project-5.1-jar-with-dependencies.jar")
-# from jnius import autoclass, cast
-
-# import pytrec_eval
 import os, json, wget
 import numpy as np
 import pandas as pd
-from xml.dom import minidom
-import urllib.request
 
+TERRIER_PKG = "org.terrier"
 
-def setup_terrier(file_path, version):
+import mavenresolver
+
+def setup_terrier(file_path, terrier_version=None, helper_version=None):
     file_path = os.path.dirname(os.path.abspath(__file__))
-    if not os.path.isfile(os.path.join(file_path,"terrier-assemblies-"+version+"-jar-with-dependencies.jar")):
-        print("Terrier "+ version +" not found, downloading...")
-        url = "https://repo.maven.apache.org/maven2/org/terrier/terrier-assemblies/"+version+"/terrier-assemblies-"+version+"-jar-with-dependencies.jar"
-        wget.download(url, file_path)
-        print("Done")
+    # If version is not specified, find newest and download it
+    if terrier_version is None:
+        terrier_version = mavenresolver.latest_version_num(TERRIER_PKG, "terrier-assemblies")
+    else: 
+        terrier_version = str(terrier_version) #just in case its a float
+    #obtain the fat jar from Maven
+    trJar = mavenresolver.downloadfile(TERRIER_PKG, "terrier-assemblies", terrier_version, file_path, "jar-with-dependencies")
+    
+    #now the helper classes
+    if helper_version is None:
+        helper_version = mavenresolver.latest_version_num(TERRIER_PKG, "terrier-python-helper")
+    else: 
+        helper_version = str(helper_version) #just in case its a float
+    helperJar = mavenresolver.downloadfile(TERRIER_PKG, "terrier-python-helper", helper_version, file_path, "jar")
+    return [trJar, helperJar]
+
+   
 
 file_path = os.path.dirname(os.path.abspath(__file__))
 firstInit = False
 ApplicationSetup = None
 properties = None
 
-def init(version=None, mem="4096", packages=[]):
+
+def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=False, logging='WARN'):
     global ApplicationSetup
     global properties
-    # If version is not specified, find newest and download it
-    if version is None:
-        url_str = "https://repo1.maven.org/maven2/org/terrier/terrier-assemblies/maven-metadata.xml"
-        with urllib.request.urlopen(url_str) as url:
-            xml_str = url.read()
-        xmldoc = minidom.parseString(xml_str)
-        obs_values = xmldoc.getElementsByTagName("latest")
-        version = obs_values[0].firstChild.nodeValue
-    else: version = str(version)
-    url = "https://repo.maven.apache.org/maven2/org/terrier/terrier-assemblies/"+version+"/terrier-assemblies-"+version+"-jar-with-dependencies.jar"
-    setup_terrier(file_path, version)
+    global firstInit
+    
+    classpathTrJars = setup_terrier(file_path, version)
 
     # Import pyjnius and other classes
     import jnius_config
-    jnius_config.set_classpath(os.path.join(file_path,"terrier-assemblies-"+version+"-jar-with-dependencies.jar"))
-    jnius_config.add_options('-Xmx'+str(mem)+'m')
+    for jar in classpathTrJars:
+        jnius_config.add_classpath(jar)
+    if jvm_opts is not None :
+        for opt in jvm_opts:
+            jnius_config.add_options(opt)
+    if mem is not None:
+        jnius_config.add_options('-Xmx'+str(mem)+'m')
     from jnius import autoclass, cast
-    # Properties = autoclass('java.util.Properties')
     properties = autoclass('java.util.Properties')()
     ApplicationSetup = autoclass('org.terrier.utility.ApplicationSetup')
     from utils import Utils
     from batchretrieve import BatchRetrieve, FeaturesBatchRetrieve
-    from index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer
+    from index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils
 
     # Make imports global
     globals()["Utils"]=Utils
@@ -60,22 +65,63 @@ def init(version=None, mem="4096", packages=[]):
     globals()["TRECCollectionIndexer"] = TRECCollectionIndexer
     globals()["FilesIndexer"] = FilesIndexer
     globals()["DFIndexer"] = DFIndexer
+    globals()["DFIndexUtils"] = DFIndexUtils
     globals()["ApplicationSetup"] = ApplicationSetup
+
+    #append the python helpers
+    if packages is None:
+        packages = []
 
     # Import other java packages
     if packages != []:
         pkgs_string = ",".join(packages)
-        properties.put("terrier.mvn.coords",pkgs_string)
+        properties.put("terrier.mvn.coords", pkgs_string)
     ApplicationSetup.bootstrapInitialisation(properties)
 
-def set_property(property):
+    if redirect_io:
+        raise ValueError("Sorry, this doesnt work here. Call pt.redirect_stdouterr() yourself later")
+    #if redirect_io:
+        #this ensures that the python stdout/stderr and the Java are matched
+    #    redirect_stdouterr()
+    setup_logging(logging)
+    firstInit = True
+
+def started():
+    return(firstInit)
+
+def redirect_stdouterr():
+    from jnius import autoclass
+    from utils import MyOut
+    import sys
+    jls = autoclass("java.lang.System")
+    jls.setOut(
+        autoclass('java.io.PrintStream')(
+            autoclass('org.terrier.python.ProxyableOutputStream')( MyOut(sys.stdout)), 
+            signature="(Ljava/io/OutputStream;)V"))
+    jls.setErr(
+        autoclass('java.io.PrintStream')(
+            autoclass('org.terrier.python.ProxyableOutputStream')( MyOut(sys.stderr)), 
+            signature="(Ljava/io/OutputStream;)V"))
+
+def setup_logging(level):
+    from jnius import autoclass
+    autoclass("org.terrier.python.PTUtils").setLogLevel(level, None)
+
+
+def set_property(k,v):
     # properties = Properties()
+    properties[k] = v
     ApplicationSetup.bootstrapInitialisation(properties)
-def set_properties(properties):
+
+def set_properties(kwargs):
     # properties = Properties()
     for control,value in kwargs.items():
-        self.properties.put(control,value)
-    ApplicationSetup.bootstrapInitialisation(self.properties)
+        properties.put(control,value)
+    ApplicationSetup.bootstrapInitialisation(properties)
+
+def run(cmd, args=[]):
+    from jnius import autoclass
+    autoclass("org.terrier.applications.CLITool").main([cmd] + args)
 
 def Experiment(topics,retr_systems,eval_metrics,qrels, names=None, perquery=False, dataframe=True):
     if type(topics)==type(""):
@@ -100,6 +146,8 @@ def Experiment(topics,retr_systems,eval_metrics,qrels, names=None, perquery=Fals
     if dataframe:
         evals = pd.DataFrame.from_dict(evals, orient='index')
     return evals
+
+
 
 class LTR_pipeline():
     def __init__(self, index, model, features, qrels, LTR):
