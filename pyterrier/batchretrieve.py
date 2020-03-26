@@ -72,7 +72,6 @@ class BatchRetrieve:
                 srq.setControl(control,value)
             self.ManagerFactory.runSearchRequest(srq)
             result=srq.getResults()
-            print(dir(result))
             for item in result:
                 res = [row['qid'],item.getMetadata("docno"),rank,item.getScore()]
                 rank += 1
