@@ -27,7 +27,7 @@ setuptools.setup(
     ],
     # data_files=[('my_data', ['../terrier-project-5.1-jar-with-dependencies.jar'])],
     install_requires=[
-    "pyjnius==1.2.0",
+    "pyjnius",
     "numpy",
     "pandas",
     "wget",
