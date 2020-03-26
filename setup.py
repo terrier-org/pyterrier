@@ -32,6 +32,7 @@ setuptools.setup(
     "pandas",
     "wget",
     "pytrec_eval",
+    "tqdm"
     ],
     python_requires='>=3.6',
 )
