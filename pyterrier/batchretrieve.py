@@ -87,7 +87,7 @@ class BatchRetrieve:
         MF = autoclass('org.terrier.querying.ManagerFactory')
         self.ManagerFactory = MF._from_(indexRef)
 
-    def transform(self,queries):
+    def transform(self,queries,metadata=["docno"]):
         """
         Performs the retrieval
 
@@ -107,11 +107,15 @@ class BatchRetrieve:
             self.ManagerFactory.runSearchRequest(srq)
             result=srq.getResults()
             for item in result:
-                res = [row['qid'],item.getMetadata("docno"),rank,item.getScore()]
+                metadata_list = []
+                for meta_column in metadata:
+                    metadata_list.append(item.getMetadata(meta_column))
+                # res = [row['qid'],item.getMetadata("docno"),rank,item.getScore()]
+                res = [row['qid']] + metadata_list + [rank,item.getScore()]
                 rank += 1
                 # res = [queries.iloc[index]['qid'],item.getMetadata("docno"),item.getScore()]
                 results.append(res)
-        res_dt=pd.DataFrame(results,columns=['qid','docno','rank','score'])
+        res_dt=pd.DataFrame(results,columns=['qid',] + metadata + ['rank','score'])
         return res_dt
 
     def saveResult(self, result, path):
