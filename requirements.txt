@@ -1,0 +1,5 @@
+numpy
+pandas
+wget
+pytrec_eval
+tqdm
