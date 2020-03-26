@@ -191,6 +191,9 @@ class DFIndexUtils:
 
     @staticmethod
     def create_javaDocIterator(text, *args, **kwargs):
+        if HashMap is None:
+            run_autoclass()
+
         all_metadata={}
         for i, arg in enumerate(args):
             if isinstance(arg, pd.Series):
