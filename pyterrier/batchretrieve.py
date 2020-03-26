@@ -2,13 +2,31 @@ from jnius import autoclass, cast
 from utils import *
 import pandas as pd
 import numpy as np
-from pyterrier import properties as props
+
 from index import Indexer
 from tqdm import tqdm
 
 import time
 
+def importProps():
+    from pyterrier import properties as props
+    # Make import global
+    globals()["props"]=props
+props=None
+
 class BatchRetrieve:
+    """
+    Use this class for retrieval
+
+    Attributes:
+        default_controls(dict): stores the default controls
+        default_properties(dict): stores the default properties
+        IndexRef: stores the index reference object
+        appSetup: stores the Terrier ApplicationSetup object
+        verbose(bool): If True transform method will display progress
+        properties(dict): Current properties
+        controls(dict): Current controls
+    """
     default_controls={
         "terrierql": "on",
         "parsecontrols": "on",
@@ -28,6 +46,15 @@ class BatchRetrieve:
         "termpipelines": "Stopwords,PorterStemmer"
     }
 
+    """
+        Init method
+
+        Args:
+            indexPath: Either a Indexer object(Can be parent indexer or any of its child classes) or a string with the path to the index_dir/data.properties
+            controls(dict): A dictionary with with the control names and values
+            properties(dict): A dictionary with with the control names and values
+            verbose(bool): If True transform method will display progress
+    """
     def __init__(self, indexPath, controls=None, properties=None, verbose=0):
         JIR = autoclass('org.terrier.querying.IndexRef')
         if isinstance(indexPath, JIR):
@@ -49,6 +76,8 @@ class BatchRetrieve:
             for key,value in properties.items():
                 self.properties[key]=value
 
+        if props==None:
+            importProps()
         for key,value in self.properties.items():
             self.appSetup.setProperty(key, value)
             #props.put(key,value)
@@ -63,6 +92,15 @@ class BatchRetrieve:
         self.ManagerFactory = MF._from_(indexRef)
 
     def transform(self,queries):
+        """
+        Performs the retrieval
+
+        Args:
+            queries: String for a single query, list of queries, or a pandas.Dataframe with columns=['qid', 'query']
+
+        Returns:
+            pandas.Dataframe with columns=['qid', 'docno', 'rank', 'score']
+        """
         results=[]
         queries=Utils.form_dataframe(queries)
         for index,row in tqdm(queries.iterrows()) if self.verbose else queries.iterrows():
@@ -95,14 +133,48 @@ class BatchRetrieve:
 
 
 class FeaturesBatchRetrieve(BatchRetrieve):
+    """
+    Use this class for retrieval with multiple features
+
+    Attributes:
+        default_controls(dict): stores the default controls
+        default_properties(dict): stores the default properties
+        IndexRef: stores the index reference object
+        appSetup: stores the Terrier ApplicationSetup object
+        verbose(bool): If True transform method will display progress
+        properties(dict): Current properties
+        controls(dict): Current controls
+    """
     default_controls = BatchRetrieve.default_controls
     default_controls["matching"] = "FatFeaturedScoringMatching,org.terrier.matching.daat.FatFull"
     default_properties = BatchRetrieve.default_properties
+
     def __init__(self, indexPath, features, controls=None, properties=None, verbose=0):
+        """
+            Init method
+
+            Args:
+                indexPath: Either a Indexer object(Can be parent indexer or any of its child classes) or a string with the path to the index_dir/data.properties
+                features(list): List of features to use
+                controls(dict): A dictionary with with the control names and values
+                properties(dict): A dictionary with with the control names and values
+                verbose(bool): If True transform method will display progress
+        """
+        if props==None:
+            importProps()
         props.put("fat.featured.scoring.matching.features",";".join(features))
         super().__init__(indexPath,controls=controls,properties=properties)
 
     def transform(self,topics):
+        """
+        Performs the retrieval with multiple features
+
+        Args:
+            topics: String for a single query, list of queries, or a pandas.Dataframe with columns=['qid', 'query']
+
+        Returns:
+            pandas.Dataframe with columns=['qid', 'docno', 'score', 'features']
+        """
         results=[]
         queries=Utils.form_dataframe(topics)
         for index,row in tqdm(queries.iterrows()) if self.verbose else queries.iterrows():
