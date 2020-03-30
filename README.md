@@ -1,3 +1,5 @@
+![Python package](https://github.com/cmacdonald/pyterrier/workflows/Python%20package/badge.svg)
+
 # Pyterrier
 
 ## Terrier Python API
