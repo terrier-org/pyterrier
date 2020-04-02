@@ -105,7 +105,7 @@ class BatchRetrieve:
         queries=Utils.form_dataframe(queries)
         for index,row in tqdm(queries.iterrows()) if self.verbose else queries.iterrows():
             rank = 0
-            srq = self.ManagerFactory.newSearchRequest(row['qid'],row['query'])
+            srq = self.ManagerFactory.newSearchRequest(str(row['qid']),row['query'])
             for control,value in self.controls.items():
                 srq.setControl(control,value)
             self.ManagerFactory.runSearchRequest(srq)

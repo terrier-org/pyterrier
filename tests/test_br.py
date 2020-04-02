@@ -68,6 +68,16 @@ class TestBatchRetrieve(unittest.TestCase):
             self.assertEqual(row['docno'], exp_result[index][1])
             self.assertAlmostEqual(row['score'], exp_result[index][2])
 
+        input=pd.DataFrame([[1, "Stability"],[2, "Generator"]],columns=['qid','query'])
+        result = retr.transform(input)
+        from utils import Utils
+        exp_result = Utils.parse_res_file(os.path.dirname(os.path.realpath(__file__))+"/fixtures/two_queries_result")
+        for index,row in result.iterrows():
+            self.assertEqual(str(row['qid']), exp_result[index][0])
+            self.assertEqual(row['docno'], exp_result[index][1])
+            self.assertAlmostEqual(row['score'], exp_result[index][2])
+
+
 
 if __name__ == "__main__":
     unittest.main()
