@@ -2,16 +2,16 @@
 
 # Pyterrier
 
-## Terrier Python API
+A Python API for Terrier
 
 # Installation
 
 ### Linux
-1. Make sure that JAVA_HOME environment variable is set to your java directory
+1. Make sure that `JAVA_HOME` environment variable is set to the location of your Java installation
 2. `pip install python-terrier`
 
 ### Windows
-Pyterrier is not available for Windows because pytrec_eval isn't available for Windows.
+Pyterrier is not available for Windows because [pytrec_eval](https://github.com/cvangysel/pytrec_eval) [isn't available for Windows](https://github.com/cvangysel/pytrec_eval/issues/19). If you can compile & install pytrec_eval youself, all will be fine.
 
 ### Colab notebooks
 ```
@@ -46,11 +46,11 @@ More examples are provided at:
 https://colab.research.google.com/drive/15oG7HwyYCBFuborjmfYglea0VLkUjyK-
 
 # Learning to  Rank
-First create a FeaturesBatchRetrieve(index, features) object with the desired features and controls.
+First create a `FeaturesBatchRetrieve(index, features)` object with the desired features and controls.
 
-Call the transform(topics_set) function with the train, validation and test topic sets to get dataframes with the feature scores and use them to train your chosen model.
+Call the `transform(topics_set)` function with the train, validation and test topic sets to get dataframes with the feature scores and use them to train your chosen model.
 
-Use your trained model to predict the score of the test_topics and evaluate the result with Utils.evaluate()
+Use your trained model to predict the score of the test_topics and evaluate the result with `Utils.evaluate()`.
 
 ## LTR_pipeline
 
@@ -62,7 +62,7 @@ Create a LTR_pipeline object with arguments:
 4. Qrels
 5. LTR model
 
-Call the fit() method on the created object with the training topics.
+Call the `fit()` method on the created object with the training topics.
 
 Evaluate the results with the Experiment function by using the test topics
 
@@ -74,3 +74,7 @@ More learning to rank examples are provided at:
 https://colab.research.google.com/drive/1KwHoahx_i0vax9fnCZpLP-JmI9jvSoey
 
 
+## Credits
+
+ - Alex Tsolov, University of Glasgow
+ - Craig Macdonald, University of Glasgow
