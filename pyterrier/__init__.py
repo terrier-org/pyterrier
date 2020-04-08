@@ -45,9 +45,10 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=False, lo
     from .batchretrieve import BatchRetrieve, FeaturesBatchRetrieve
     from .utils import Utils
     from .index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils
+    from .pipelines import LTR_pipeline, XGBoostLTR_pipeline
 
     # Make imports global
-    #globals()["Utils"]=Utils
+    
     globals()["autoclass"] = autoclass
     globals()["cast"] = cast
     globals()["BatchRetrieve"] = BatchRetrieve
@@ -59,6 +60,8 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=False, lo
     globals()["DFIndexUtils"] = DFIndexUtils
     globals()["ApplicationSetup"] = ApplicationSetup
     globals()["Utils"] = Utils
+    globals()["LTR_pipeline"] = LTR_pipeline
+    globals()["XGBoostLTR_pipeline"] = XGBoostLTR_pipeline
 
     #append the python helpers
     if packages is None:

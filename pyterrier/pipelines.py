@@ -14,7 +14,7 @@ def Experiment(topics,retr_systems,eval_metrics,qrels, names=None, perquery=Fals
         topics: Either a path to a topics file or a pandas.Dataframe with columns=['qid', 'query']
         retr_systems(list): A list of BatchRetrieve objects to compare
         eval_metrics(list): Which evaluation metrics to use. E.g. ['map']
-        qrels: Either a path to a qrels file or a pandas.Dataframe with columns=['qid','docno', 'relevancy']
+        qrels: Either a path to a qrels file or a pandas.Dataframe with columns=['qid','docno', 'label']
         names(list)=List of names for each retrieval system when presenting the results.
             Defaul=None. If None: Use names of weighting models for each retrieval system.
         perquery(bool): If true return each metric for each query, else return mean metrics. Default=False.
@@ -62,10 +62,10 @@ class LTR_pipeline():
                 or a string with the path to the index_dir/data.properties
             model(str): The weighting model to use. E.g. "PL2"
             features(list): A list of the feature names to use
-            qrels(DataFrame): Dataframe with columns=['qid','docno', 'relevancy']
+            qrels(DataFrame): Dataframe with columns=['qid','docno', 'label']
             LTR: The model which to use for learning-to-rank. Must have a fit() and predict() methods.
         """
-        from batchretrieve import FeaturesBatchRetrieve
+        from .batchretrieve import FeaturesBatchRetrieve
         self.feat_retrieve = FeaturesBatchRetrieve(index, features)
         self.feat_retrieve.setControl('wmodel', model)
         self.qrels = qrels
@@ -85,7 +85,7 @@ class LTR_pipeline():
         if not 'features' in train_DF.columns:
             raise ValueError("No features column retrieved")
         train_DF = train_DF.merge(self.qrels, on=['qid','docno'], how='left').fillna(0)
-        self.LTR.fit(list(train_DF["features"]), train_DF["relevancy"].values)
+        self.LTR.fit(np.stack(train_DF["features"].values), train_DF["label"].values)
 
     def transform(self, topicsTest):
         """
@@ -95,7 +95,7 @@ class LTR_pipeline():
             topicsTest(DataFrame): A dataframe with the test topics.
         """
         test_DF = self.feat_retrieve.transform(topicsTest)
-        test_DF["score"] = self.LTR.predict(list(test_DF["features"]))
+        test_DF["score"] = self.LTR.predict(np.stack(test_DF["features"].values))
         return test_DF
 
 class XGBoostLTR_pipeline(LTR_pipeline):
@@ -113,7 +113,7 @@ class XGBoostLTR_pipeline(LTR_pipeline):
                 or a string with the path to the index_dir/data.properties
             model(str): The weighting model to use. E.g. "PL2"
             features(list): A list of the feature names to use
-            qrels(DataFrame): Dataframe with columns=['qid','docno', 'relevancy']
+            qrels(DataFrame): Dataframe with columns=['qid','docno', 'label']
             LTR: The model which to use for learning-to-rank. Must have a fit() and predict() methods.
             validqrels(DataFrame): The qrels which to use for the validation.
         """
@@ -157,8 +157,8 @@ class XGBoostLTR_pipeline(LTR_pipeline):
 
         self.LTR.fit(
             np.stack(tr_res["features"].values),
-            tr_res["relevancy"].values, tr_res.groupby(["qid"]).count()["docno"].values,
+            tr_res["label"].values, tr_res.groupby(["qid"]).count()["docno"].values,
             eval_set=[(np.stack(va_res["features"].values),
-            va_res["relevancy"].values)],
+            va_res["label"].values)],
             eval_group=[va_res.groupby(["qid"]).count()["docno"].values]
         )

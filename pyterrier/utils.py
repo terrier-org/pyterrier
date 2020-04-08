@@ -61,13 +61,13 @@ class Utils:
             file_path(str): The path to the qrels file
 
         Returns:
-            pandas.Dataframe with columns=['qid','docno', 'relevancy']
+            pandas.Dataframe with columns=['qid','docno', 'label']
         """
         dph_results=[]
         with (open(file_path, 'r')) as qrels_file:
             for line in qrels_file:
                 split_line=line.strip("\n").split(" ")
-                dph_results.append([split_line[0], split_line[2],split_line[3]])
+                dph_results.append([split_line[0], split_line[2],int(split_line[3])])
         res_dt = pd.DataFrame(dph_results,columns=['qid','docno','label'])
         return res_dt
 
@@ -80,7 +80,7 @@ class Utils:
             df(pandas.Dataframe): The dataframe to convert
 
         Returns:
-            dict: {qid:{docno:relevancy,},}
+            dict: {qid:{docno:label,},}
         """
         run_dict_pytrec_eval = {}
         for index, row in df.iterrows():
@@ -117,7 +117,7 @@ class Utils:
 
         Args:
             res: Either a dataframe with columns=['qid', 'docno', 'score'] or a dict {qid:{docno:score,},}
-            qrels: Either a dataframe with columns=['qid','docno', 'relevancy'] or a dict {qid:{docno:relevancy,},}
+            qrels: Either a dataframe with columns=['qid','docno', 'label'] or a dict {qid:{docno:label,},}
             metrics(list): A list of strings specifying which evaluation metrics to use. Default=['map', 'ndcg']
             perquery(bool): If true return each metric for each query, else return mean metrics. Default=False
         """

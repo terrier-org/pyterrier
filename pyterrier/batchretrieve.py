@@ -167,9 +167,11 @@ class FeaturesBatchRetrieve(BatchRetrieve):
                 properties(dict): A dictionary with with the control names and values
                 verbose(bool): If True transform method will display progress
         """
-        if props==None:
-            importProps()
-        props.put("fat.featured.scoring.matching.features",";".join(features))
+        #if props==None:
+        #    importProps()
+        if properties is None:
+            properties = {}
+        properties["fat.featured.scoring.matching.features"]=";".join(features)
         super().__init__(index_location,controls=controls,properties=properties)
 
     def transform(self,topics):
