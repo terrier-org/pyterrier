@@ -44,15 +44,21 @@ class TestBatchRetrieve(unittest.TestCase):
 
     def test_one_term_query_correct_docid_and_score(self):
         JIR = pt.autoclass('org.terrier.querying.IndexRef')
-        indexref = JIR.of(self.here+"/fixtures/index/data.properties")
+        JIF = pt.autoclass('org.terrier.structures.IndexFactory')
+
+        indexloc = self.here+"/fixtures/index/data.properties"
+        jindexref = JIR.of(indexloc)
+        jindex = JIF.of(jindexref)
         from batchretrieve import BatchRetrieve
-        retr = BatchRetrieve(indexref)
-        result = retr.transform("light")
-        from utils import Utils
-        exp_result = Utils.parse_query_result(os.path.dirname(os.path.realpath(__file__))+"/fixtures/light_results")
-        for index,row in result.iterrows():
-            self.assertEqual(row['docno'], exp_result[index][0])
-            self.assertAlmostEqual(row['score'], exp_result[index][1])
+        for indexSrc in (indexloc, jindexref, jindex):
+            retr = BatchRetrieve(indexSrc)
+            result = retr.transform("light")
+            from utils import Utils
+            exp_result = Utils.parse_query_result(os.path.dirname(os.path.realpath(__file__))+"/fixtures/light_results")
+            for index,row in result.iterrows():
+                self.assertEqual(row['docno'], exp_result[index][0])
+                self.assertAlmostEqual(row['score'], exp_result[index][1])
+        jindex.close()
 
     def test_two_term_query_correct_qid_docid_score(self):
         from batchretrieve import BatchRetrieve

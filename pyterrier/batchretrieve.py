@@ -14,6 +14,22 @@ def importProps():
     globals()["props"]=props
 props=None
 
+
+def parse_index_like(indexLocation):
+    JIR = autoclass('org.terrier.querying.IndexRef')
+    JI = autoclass('org.terrier.structures.Index')
+
+    if isinstance(indexLocation, JIR):
+        return indexLocation
+    if isinstance(indexLocation, JI):
+        return cast('org.terrier.structures.Index', indexLocation).getIndexRef()
+    if isinstance(indexLocation, str) or issubclass(type(indexLocation), Indexer):
+        if issubclass(type(indexLocation), Indexer):
+            return JIR.of(indexLocation.path)
+        return JIR.of(indexLocation)
+
+    raise ValueError("indexLocation needs to be an Index, an IndexRef, a string that can be resolved to an index location (e.g. path/to/index/data.properties), or an pyterrier.Indexer object")
+
 class BatchRetrieve:
     """
     Use this class for retrieval
@@ -50,24 +66,15 @@ class BatchRetrieve:
         Init method
 
         Args:
-            indexPath: Either a Indexer object(Can be parent indexer or any of its child classes) or a string with the path to the index_dir/data.properties
+            index_location: An index-like object - An Index, an IndexRef, or a String that can be resolved to an IndexRef
             controls(dict): A dictionary with with the control names and values
-            properties(dict): A dictionary with with the control names and values
+            properties(dict): A dictionary with with the property keys and values
             verbose(bool): If True transform method will display progress
     """
-    def __init__(self, indexPath, controls=None, properties=None, verbose=0):
-        JIR = autoclass('org.terrier.querying.IndexRef')
-        if isinstance(indexPath, JIR):
-            indexRef = indexPath
-        else: 
-            if isinstance(indexPath, str) or issubclass(type(indexPath), Indexer):
-                if issubclass(type(indexPath), Indexer):
-                    indexPath=indexPath.path
-            else:
-                raise ValueError("First argument needs to be a string with the index location(e.g. path/to/index/data.properties) or an Indexer object")
-            indexRef = JIR.of(indexPath)
-
-        self.IndexRef=indexRef
+    def __init__(self, index_location, controls=None, properties=None, verbose=0):
+        
+        
+        self.indexref = parse_index_like(index_location)
         self.appSetup = autoclass('org.terrier.utility.ApplicationSetup')
         self.verbose=verbose
 
@@ -80,8 +87,6 @@ class BatchRetrieve:
             importProps()
         for key,value in self.properties.items():
             self.appSetup.setProperty(key, value)
-            #props.put(key,value)
-        #self.appSetup.bootstrapInitialisation(props)
 
         self.controls=self.default_controls.copy()
         if type(controls)==type({}):
@@ -89,7 +94,7 @@ class BatchRetrieve:
                 self.controls[key]=value
 
         MF = autoclass('org.terrier.querying.ManagerFactory')
-        self.ManagerFactory = MF._from_(indexRef)
+        self.manager = MF._from_(self.indexref)
 
     def transform(self,queries,metadata=["docno"]):
         """
@@ -105,19 +110,17 @@ class BatchRetrieve:
         queries=Utils.form_dataframe(queries)
         for index,row in tqdm(queries.iterrows()) if self.verbose else queries.iterrows():
             rank = 0
-            srq = self.ManagerFactory.newSearchRequest(str(row['qid']),row['query'])
+            srq = self.manager.newSearchRequest(str(row['qid']),row['query'])
             for control,value in self.controls.items():
                 srq.setControl(control,value)
-            self.ManagerFactory.runSearchRequest(srq)
+            self.manager.runSearchRequest(srq)
             result=srq.getResults()
             for item in result:
                 metadata_list = []
                 for meta_column in metadata:
                     metadata_list.append(item.getMetadata(meta_column))
-                # res = [row['qid'],item.getMetadata("docno"),rank,item.getScore()]
                 res = [row['qid']] + metadata_list + [rank,item.getScore()]
                 rank += 1
-                # res = [queries.iloc[index]['qid'],item.getMetadata("docno"),item.getScore()]
                 results.append(res)
         res_dt=pd.DataFrame(results,columns=['qid',] + metadata + ['rank','score'])
         return res_dt
@@ -153,12 +156,12 @@ class FeaturesBatchRetrieve(BatchRetrieve):
     default_controls["matching"] = "FatFeaturedScoringMatching,org.terrier.matching.daat.FatFull"
     default_properties = BatchRetrieve.default_properties
 
-    def __init__(self, indexPath, features, controls=None, properties=None, verbose=0):
+    def __init__(self, index_location, features, controls=None, properties=None, verbose=0):
         """
             Init method
 
             Args:
-                indexPath: Either a Indexer object(Can be parent indexer or any of its child classes) or a string with the path to the index_dir/data.properties
+                index_location: An index-like object - An Index, an IndexRef, or a String that can be resolved to an IndexRef
                 features(list): List of features to use
                 controls(dict): A dictionary with with the control names and values
                 properties(dict): A dictionary with with the control names and values
@@ -167,7 +170,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         if props==None:
             importProps()
         props.put("fat.featured.scoring.matching.features",";".join(features))
-        super().__init__(indexPath,controls=controls,properties=properties)
+        super().__init__(index_location,controls=controls,properties=properties)
 
     def transform(self,topics):
         """
@@ -182,10 +185,10 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         results=[]
         queries=Utils.form_dataframe(topics)
         for index,row in tqdm(queries.iterrows()) if self.verbose else queries.iterrows():
-            srq = self.ManagerFactory.newSearchRequest(row['qid'],row['query'])
+            srq = self.manager.newSearchRequest(row['qid'],row['query'])
             for control,value in self.controls.items():
                 srq.setControl(control,value)
-            self.ManagerFactory.runSearchRequest(srq)
+            self.manager.runSearchRequest(srq)
             srq=cast('org.terrier.querying.Request',srq)
             fres=cast('org.terrier.learning.FeaturedResultSet', srq.getResultSet())
             feat_names = fres.getFeatureNames()
