@@ -1,34 +1,34 @@
 from jnius import autoclass, cast
-from utils import *
+from .utils import *
 import pandas as pd
 import numpy as np
 
-from index import Indexer
+from .index import Indexer
 from tqdm import tqdm
 
 import time
 
 def importProps():
-    from pyterrier import properties as props
+    from . import properties as props
     # Make import global
     globals()["props"]=props
 props=None
 
 
-def parse_index_like(indexLocation):
+def parse_index_like(index_location):
     JIR = autoclass('org.terrier.querying.IndexRef')
     JI = autoclass('org.terrier.structures.Index')
 
-    if isinstance(indexLocation, JIR):
-        return indexLocation
-    if isinstance(indexLocation, JI):
-        return cast('org.terrier.structures.Index', indexLocation).getIndexRef()
-    if isinstance(indexLocation, str) or issubclass(type(indexLocation), Indexer):
-        if issubclass(type(indexLocation), Indexer):
-            return JIR.of(indexLocation.path)
-        return JIR.of(indexLocation)
+    if isinstance(index_location, JIR):
+        return index_location
+    if isinstance(index_location, JI):
+        return cast('org.terrier.structures.Index', index_location).getIndexRef()
+    if isinstance(index_location, str) or issubclass(type(index_location), Indexer):
+        if issubclass(type(index_location), Indexer):
+            return JIR.of(index_location.path)
+        return JIR.of(index_location)
 
-    raise ValueError("indexLocation needs to be an Index, an IndexRef, a string that can be resolved to an index location (e.g. path/to/index/data.properties), or an pyterrier.Indexer object")
+    raise ValueError("index_location needs to be an Index, an IndexRef, a string that can be resolved to an index location (e.g. path/to/index/data.properties), or an pyterrier.Indexer object")
 
 class BatchRetrieve:
     """

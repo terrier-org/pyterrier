@@ -1,50 +1,8 @@
 import pandas as pd
-from jnius import autoclass, cast
 import pytrec_eval
 import json
 import ast
 import os
-
-from jnius import PythonJavaClass, java_method
-
-def is_binary(f):
-        import io
-        return isinstance(f, (io.RawIOBase, io.BufferedIOBase))
-
-class MyOut(PythonJavaClass):
-    __javainterfaces__ = ['org.terrier.python.OutputStreamable']
-    
-    def __init__(self, pystream):
-      super(MyOut, self).__init__()
-      self.pystream = pystream
-      self.binary = is_binary(pystream)
-
-    @java_method('()V')
-    def close(self):
-      self.pystream.close()
-    
-    @java_method('()V')
-    def flush(self):
-      self.pystream.flush()
-
-    @java_method('([B)V', name='write')
-    def writeByteArray(self, byteArray):
-      #TODO probably this could be faster.
-      for c in byteArray:
-        self.writeChar(c)
-    
-    @java_method('([BII)V', name='write')
-    def writeByteArrayIntInt(self, byteArray, offset, length):
-      #TODO probably this could be faster.
-      for i in range(offset, offset+length):
-        self.writeChar(byteArray[i])
-    
-    @java_method('(I)V', name='write')
-    def writeChar(self, chara):
-        if self.binary:
-            return self.pystream.write(bytes([chara]))
-        return self.pystream.write(chr(chara))
-
 
 class Utils:
 
@@ -77,6 +35,7 @@ class Utils:
         Returns:
             pandas.Dataframe with columns=['qid','query']
         """
+        from jnius import autoclass
         system = autoclass("java.lang.System")
         system.setProperty("TrecQueryTags.doctag","TOP");
         system.setProperty("TrecQueryTags.idtag","NUM");

@@ -3,7 +3,7 @@ This file contains all the indexers.
 """
 
 from jnius import autoclass, cast, PythonJavaClass, java_method
-from utils import *
+from .utils import *
 import pandas as pd
 import numpy as np
 import os
