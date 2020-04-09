@@ -73,11 +73,11 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=False, lo
         properties.put("terrier.mvn.coords", pkgs_string)
     ApplicationSetup.bootstrapInitialisation(properties)
 
-    if redirect_io:
-        raise ValueError("Sorry, this doesnt work here. Call pt.redirect_stdouterr() yourself later")
     #if redirect_io:
-        #this ensures that the python stdout/stderr and the Java are matched
-    #    redirect_stdouterr()
+    #    raise ValueError("Sorry, this doesnt work here. Call pt.redirect_stdouterr() yourself later")
+    if redirect_io:
+       # this ensures that the python stdout/stderr and the Java are matched
+       redirect_stdouterr()
     setup_logging(logging)
     firstInit = True
 
@@ -85,18 +85,8 @@ def started():
     return(firstInit)
 
 def redirect_stdouterr():
-    from jnius import autoclass
-    from utils import MyOut
-    import sys
-    jls = autoclass("java.lang.System")
-    jls.setOut(
-        autoclass('java.io.PrintStream')(
-            autoclass('org.terrier.python.ProxyableOutputStream')( MyOut(sys.stdout)), 
-            signature="(Ljava/io/OutputStream;)V"))
-    jls.setErr(
-        autoclass('java.io.PrintStream')(
-            autoclass('org.terrier.python.ProxyableOutputStream')( MyOut(sys.stderr)), 
-            signature="(Ljava/io/OutputStream;)V"))
+    from . import bootstrap
+    bootstrap.redirect_stdouterr()
 
 def set_property(k,v):
     # properties = Properties()

@@ -7,7 +7,6 @@ from . import mavenresolver
 TERRIER_PKG = "org.terrier"
 
 def setup_logging(level):
-
     from jnius import autoclass
     autoclass("org.terrier.python.PTUtils").setLogLevel(level, None)
 
@@ -80,7 +79,7 @@ def redirect_stdouterr():
                 return self.pystream.write(bytes([chara]))
             return self.pystream.write(chr(chara))
 
-    from utils import MyOut
+    #from utils import MyOut
     import sys
     jls = autoclass("java.lang.System")
     jls.setOut(
