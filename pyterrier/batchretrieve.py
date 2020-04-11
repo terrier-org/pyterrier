@@ -108,7 +108,7 @@ class BatchRetrieve:
         """
         results=[]
         queries=Utils.form_dataframe(queries)
-        for index,row in tqdm(queries.iterrows()) if self.verbose else queries.iterrows():
+        for index,row in tqdm(queries.iterrows(), total=queries.shape[0], unit="q") if self.verbose else queries.iterrows():
             rank = 0
             srq = self.manager.newSearchRequest(str(row['qid']),row['query'])
             for control,value in self.controls.items():
@@ -186,7 +186,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         """
         results=[]
         queries=Utils.form_dataframe(topics)
-        for index,row in tqdm(queries.iterrows()) if self.verbose else queries.iterrows():
+        for index,row in tqdm(queries.iterrows(), total=queries.shape[0], unit="q") if self.verbose else queries.iterrows():
             srq = self.manager.newSearchRequest(row['qid'],row['query'])
             for control,value in self.controls.items():
                 srq.setControl(control,value)
