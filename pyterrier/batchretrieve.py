@@ -125,6 +125,9 @@ class BatchRetrieve:
         res_dt=pd.DataFrame(results,columns=['qid',] + metadata + ['rank','score'])
         return res_dt
 
+    def __str__(self):
+        return "BR(" + self.controls["wmodel"] + ")"
+
     def saveResult(self, result, path):
         res_copy = result.copy()
         res_copy.insert(1, "Q0", "Q0")
@@ -171,6 +174,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         #    importProps()
         if properties is None:
             properties = {}
+        self.features=features
         properties["fat.featured.scoring.matching.features"]=";".join(features)
         super().__init__(index_location,controls=controls,properties=properties)
 
@@ -213,3 +217,6 @@ class FeaturesBatchRetrieve(BatchRetrieve):
 
         res_dt=pd.DataFrame(results, columns=["qid", "docno", "score", "features"])
         return res_dt
+
+    def __str__(self):
+        return "FBR(" + self.controls["wmodel"] + " and "+str(len(features))+" features)"

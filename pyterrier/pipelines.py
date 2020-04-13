@@ -35,7 +35,7 @@ def Experiment(topics,retr_systems,eval_metrics,qrels, names=None, perquery=Fals
     for system in retr_systems:
         results.append(system.transform(topics))
         if neednames:
-            names.append(system.controls["wmodel"])
+            names.append(str(system))
     evals={}
 
     for weight,res in zip(names,results):
@@ -69,7 +69,6 @@ class LTR_pipeline():
             self.feat_retrieve = model
         self.qrels = qrels
         self.LTR = LTR
-        self.controls = self.feat_retrieve.controls
 
     def fit(self, topicsTrain):
         """
