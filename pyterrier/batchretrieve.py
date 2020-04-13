@@ -119,7 +119,7 @@ class BatchRetrieve:
                 metadata_list = []
                 for meta_column in metadata:
                     metadata_list.append(item.getMetadata(meta_column))
-                res = [row['qid']] + metadata_list + [rank,item.getScore()]
+                res = [str(row['qid'])] + metadata_list + [rank,item.getScore()]
                 rank += 1
                 results.append(res)
         res_dt=pd.DataFrame(results,columns=['qid',] + metadata + ['rank','score'])
