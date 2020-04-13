@@ -1,9 +1,7 @@
-
 import os
 import pandas as pd
 import numpy as np
 from .utils import Utils
-
 
 def Experiment(topics,retr_systems,eval_metrics,qrels, names=None, perquery=False, dataframe=True):
     """
@@ -46,8 +44,6 @@ def Experiment(topics,retr_systems,eval_metrics,qrels, names=None, perquery=Fals
         evals = pd.DataFrame.from_dict(evals, orient='index')
     return evals
 
-
-
 class LTR_pipeline():
     """
     This class simplifies the use of Scikit-learn's techniques for learning-to-rank.
@@ -60,14 +56,17 @@ class LTR_pipeline():
             index: The index which to query.
                 Can be an Indexer object(Can be parent Indexer or any of its child classes)
                 or a string with the path to the index_dir/data.properties
-            model(str): The weighting model to use. E.g. "PL2"
+            model(str): The weighting model to use. E.g. "PL2", OR another pipeline
             features(list): A list of the feature names to use
             qrels(DataFrame): Dataframe with columns=['qid','docno', 'label']
             LTR: The model which to use for learning-to-rank. Must have a fit() and predict() methods.
         """
-        from .batchretrieve import FeaturesBatchRetrieve
-        self.feat_retrieve = FeaturesBatchRetrieve(index, features)
-        self.feat_retrieve.setControl('wmodel', model)
+        if isinstance(model, str):
+            from .batchretrieve import FeaturesBatchRetrieve
+            self.feat_retrieve = FeaturesBatchRetrieve(index, features)
+            self.feat_retrieve.setControl('wmodel', model)
+        else:
+            self.feat_retrieve = model
         self.qrels = qrels
         self.LTR = LTR
         self.controls = self.feat_retrieve.controls
@@ -148,9 +147,9 @@ class XGBoostLTR_pipeline(LTR_pipeline):
         tr_res = self.feat_retrieve.transform(topicsTrain)
         va_res = self.feat_retrieve.transform(topicsValid)
         if not 'features' in tr_res.columns:
-            raise ValueError("No features column retrieved")
+            raise ValueError("No features column retrieved in training")
         if not 'features' in va_res.columns:
-            raise ValueError("No features column retrieved")
+            raise ValueError("No features column retrieved in validation")
 
         tr_res = tr_res.merge(self.qrels, on=['qid','docno'], how='left').fillna(0)
         va_res = va_res.merge(self.validqrels, on=['qid','docno'], how='left').fillna(0)
