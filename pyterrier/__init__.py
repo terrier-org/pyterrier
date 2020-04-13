@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from .bootstrap import setup_logging, setup_terrier
+from .bootstrap import setup_logging, setup_terrier, setup_jnius
 from . import mavenresolver
 from . utils import Utils
 
@@ -48,20 +48,9 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=False, lo
     from .pipelines import LTR_pipeline, XGBoostLTR_pipeline
 
     # Make imports global
-    
     globals()["autoclass"] = autoclass
     globals()["cast"] = cast
-    globals()["BatchRetrieve"] = BatchRetrieve
-    globals()["Indexer"] = Indexer
-    globals()["FeaturesBatchRetrieve"] = FeaturesBatchRetrieve
-    globals()["TRECCollectionIndexer"] = TRECCollectionIndexer
-    globals()["FilesIndexer"] = FilesIndexer
-    globals()["DFIndexer"] = DFIndexer
-    globals()["DFIndexUtils"] = DFIndexUtils
     globals()["ApplicationSetup"] = ApplicationSetup
-    globals()["Utils"] = Utils
-    globals()["LTR_pipeline"] = LTR_pipeline
-    globals()["XGBoostLTR_pipeline"] = XGBoostLTR_pipeline
 
     #append the python helpers
     if packages is None:
@@ -79,6 +68,19 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=False, lo
        # this ensures that the python stdout/stderr and the Java are matched
        redirect_stdouterr()
     setup_logging(logging)
+    setup_jnius()
+
+    globals()["BatchRetrieve"] = BatchRetrieve
+    globals()["Indexer"] = Indexer
+    globals()["FeaturesBatchRetrieve"] = FeaturesBatchRetrieve
+    globals()["TRECCollectionIndexer"] = TRECCollectionIndexer
+    globals()["FilesIndexer"] = FilesIndexer
+    globals()["DFIndexer"] = DFIndexer
+    globals()["DFIndexUtils"] = DFIndexUtils
+    globals()["Utils"] = Utils
+    globals()["LTR_pipeline"] = LTR_pipeline
+    globals()["XGBoostLTR_pipeline"] = XGBoostLTR_pipeline
+
     firstInit = True
 
 def started():

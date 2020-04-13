@@ -10,6 +10,35 @@ def setup_logging(level):
     from jnius import autoclass
     autoclass("org.terrier.python.PTUtils").setLogLevel(level, None)
 
+def setup_jnius():
+    from jnius import protocol_map, autoclass
+    
+    def _iterableposting_next(self):
+        ''' dunder method for iterating IterablePosting '''
+        nextid = self.next()
+        #2147483647 is IP.EOL. fix this once static fields can be read from instances.
+        if 2147483647 == nextid:
+            raise StopIteration()
+        return self
+
+    protocol_map["org.terrier.structures.postings.IterablePosting"] = {
+        '__iter__' : lambda self : self,
+        '__next__' : lambda self : _iterableposting_next(self)
+    }
+
+    def _lexicon_getitem(self, term):
+        ''' dunder method for accessing Lexicon '''
+        rtr = self.getLexiconEntry(term)
+        if rtr is None:
+            raise KeyError()
+        return rtr
+
+    protocol_map["org.terrier.structures.Lexicon"] = {
+        '__getitem__' : _lexicon_getitem,
+        '__contains__' : lambda self, term : self.getLexiconEntry(term) is not None,
+        '__len__' : lambda self : self.numberOfEntries()
+    }
+
 def setup_terrier(file_path, terrier_version=None, helper_version=None):
     """
     Download Terrier's jar file for the given version at the given file_path
