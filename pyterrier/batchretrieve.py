@@ -219,4 +219,4 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         return res_dt
 
     def __str__(self):
-        return "FBR(" + self.controls["wmodel"] + " and "+str(len(features))+" features)"
+        return "FBR(" + self.controls["wmodel"] + " and "+str(len(self.features))+" features)"
