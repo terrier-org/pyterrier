@@ -176,7 +176,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         properties = _mergeDicts(FeaturesBatchRetrieve.FBR_default_properties, properties)
         self.features=features
         properties["fat.featured.scoring.matching.features"]=";".join(features)
-        super().__init__(index_location,controls=controls,properties=properties)
+        super().__init__(index_location,controls=controls,properties=properties, verbose=verbose)
 
     def transform(self,topics):
         """
