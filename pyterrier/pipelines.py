@@ -14,7 +14,7 @@ def Experiment(topics,retr_systems,eval_metrics,qrels, names=None, perquery=Fals
         eval_metrics(list): Which evaluation metrics to use. E.g. ['map']
         qrels: Either a path to a qrels file or a pandas.Dataframe with columns=['qid','docno', 'label']
         names(list)=List of names for each retrieval system when presenting the results.
-            Defaul=None. If None: Use names of weighting models for each retrieval system.
+            Default=None. If None: Use names of weighting models for each retrieval system.
         perquery(bool): If true return each metric for each query, else return mean metrics. Default=False.
         dataframe(bool): If True return results as a dataframe. Else as a dictionary of dictionaries. Default=True.
 
