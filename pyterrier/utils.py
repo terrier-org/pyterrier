@@ -41,7 +41,7 @@ class Utils:
         from jnius import autoclass
         system = autoclass("java.lang.System")
         system.setProperty("SingleLineTRECQuery.tokenise", "true" if tokenise else "false")
-        slqIter = pt.autoclass("org.terrier.applications.batchquerying.SingleLineTRECQuery")(topicsFile)
+        slqIter = autoclass("org.terrier.applications.batchquerying.SingleLineTRECQuery")(filepath)
         for q in slqIter:
             rows.append([slqIter.getQueryId(), q])
         return pd.DataFrame(rows, columns=["qid", "query"])
