@@ -142,6 +142,12 @@ class BatchRetrieve:
         self.controls[control]=value
 
 
+def _mergeDicts(defaults, settings):
+    KV = defaults.copy()
+    if settings is not None and len(settings) > 0:
+        KV.update(settings)
+    return KV
+
 class FeaturesBatchRetrieve(BatchRetrieve):
     """
     Use this class for retrieval with multiple features
@@ -159,7 +165,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
     default_controls["matching"] = "FatFeaturedScoringMatching,org.terrier.matching.daat.FatFull"
     default_properties = BatchRetrieve.default_properties.copy()
 
-    def __init__(self, index_location, features, controls=None, properties=None, verbose=0):
+    def __init__(self, index_location, features, controls={}, properties={}, verbose=0):
         """
             Init method
 
@@ -172,11 +178,8 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         """
         #if props==None:
         #    importProps()
-        if properties is None:
-            properties = {}
-        properties += default_properties.copy()
-        if controls is None:
-            controls = default_controls.copy()
+        controls = _mergeDicts(FeaturesBatchRetrieve.default_controls, controls)
+        properties = _mergeDicts(FeaturesBatchRetrieve.default_properties, properties)
         self.features=features
         properties["fat.featured.scoring.matching.features"]=";".join(features)
         super().__init__(index_location,controls=controls,properties=properties)
