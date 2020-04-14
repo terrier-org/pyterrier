@@ -7,7 +7,7 @@ import os
 MAVEN_BASE_URL="https://repo1.maven.org/maven2/"
 
 #obtain a file from maven
-def downloadfile(orgName, packageName, version, file_path, artifact="jar"):
+def downloadfile(orgName, packageName, version, file_path, artifact="jar", checklocal=False):
     orgName = orgName.replace(".", "/")
     suffix=""
     ext="jar"
@@ -17,16 +17,29 @@ def downloadfile(orgName, packageName, version, file_path, artifact="jar"):
     if artifact == "pom":
         ext="pom"
     filename = packageName+"-"+version+suffix+"."+ext
-    if not os.path.isfile(os.path.join(file_path,filename)):
-        print(packageName + " " + version +" not found, downloading to " + file_path + "...")
-        url = "https://repo.maven.apache.org/maven2/" + \
-            orgName+"/"+packageName+"/"+version+"/" + \
-            filename
-        try:
-            wget.download(url, file_path)
-        except urllib.error.HTTPError as he:
-            raise ValueError("Could not fetch " + url) from he
-        print("Done")
+    
+    filelocation = orgName+"/"+packageName+"/"+version+"/" + filename
+
+    
+    if os.path.isfile(os.path.join(file_path,filename)):
+        return os.path.join(file_path,filename)
+
+    #check local Maven repo, and use that if it exists
+    from os.path import expanduser
+    userhome = expanduser("~")
+    mavenRepoHome= os.path.join(userhome, ".m2", "repository")
+    mvnLocalLocation = os.path.join(mavenRepoHome, filelocation)
+    if os.path.isfile(mvnLocalLocation):
+        return mvnLocalLocation
+
+    print(packageName + " " + version +" not found, downloading to " + file_path + "...")
+    mvnUrl = MAVEN_BASE_URL + filelocation
+        
+    try:
+        wget.download(mvnUrl, file_path)
+    except urllib.error.HTTPError as he:
+        raise ValueError("Could not fetch " + mvnUrl) from he
+    print("Done")
     
     return (os.path.join(file_path,filename))
 
