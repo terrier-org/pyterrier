@@ -78,20 +78,14 @@ class BatchRetrieve:
         self.appSetup = autoclass('org.terrier.utility.ApplicationSetup')
         self.verbose=verbose
 
-        self.properties=self.default_properties.copy()
-        if type(properties)==type({}):
-            for key,value in properties.items():
-                self.properties[key]=value
+        self.properties = _mergeDicts(BatchRetrieve.default_properties, properties)
 
         if props==None:
             importProps()
         for key,value in self.properties.items():
             self.appSetup.setProperty(key, value)
 
-        self.controls=self.default_controls.copy()
-        if type(controls)==type({}):
-            for key,value in controls.items():
-                self.controls[key]=value
+        self.controls = _mergeDicts(BatchRetrieve.default_controls, controls)
 
         MF = autoclass('org.terrier.querying.ManagerFactory')
         self.manager = MF._from_(self.indexref)
