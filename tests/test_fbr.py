@@ -24,7 +24,7 @@ class TestFeaturesBatchRetrieve(unittest.TestCase):
         from sklearn.ensemble import RandomForestClassifier
         import numpy as np
         print(res.dtypes)
-        RandomForestClassifier().fit(np.stack(res["features"]), res["label"])
+        RandomForestClassifier(n_estimators=10).fit(np.stack(res["features"]), res["label"])
 
 
     def test_fbr(self):
@@ -40,6 +40,8 @@ class TestFeaturesBatchRetrieve(unittest.TestCase):
         self.assertTrue(len(result) > 0)
         self.assertEqual(result.iloc[0]["features"].size, 1)
 
-        from sklearn.ensemble import RandomForestClassifier
+        retrBasic = pt.BatchRetrieve(indexref)
+        if "matching" in retrBasic.controls:
+            self.assertNotEqual(retrBasic.controls["matching"], "FatFeaturedScoringMatching,org.terrier.matching.daat.FatFull")
 
 
