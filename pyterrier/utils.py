@@ -25,9 +25,31 @@ class Utils:
         return results
 
     @staticmethod
+    def parse_singleline_topics_file(filepath, tokenise=True):
+        """
+        Parse a file containing topics, one per line
+
+        Args:
+            file_path(str): The path to the topics file
+            tokenise(bool): whether the query should be tokenised, using Terrier's standard Tokeniser. 
+                If you are using matchop formatted topics, this should be set to False.
+
+        Returns:
+            pandas.Dataframe with columns=['qid','query']
+        """
+        rows=[]
+        from jnius import autoclass
+        system = autoclass("java.lang.System")
+        system.setProperty("SingleLineTRECQuery.tokenise", "true" if tokenise else "false")
+        slqIter = pt.autoclass("org.terrier.applications.batchquerying.SingleLineTRECQuery")(topicsFile)
+        for q in slqIter:
+            rows.append([slqIter.getQueryId(), q])
+        return pd.DataFrame(rows, columns=["qid", "query"])
+
+    @staticmethod
     def parse_trec_topics_file(file_path):
         """
-        Parse a file containing topics
+        Parse a file containing topics in standard TREC format
 
         Args:
             file_path(str): The path to the topics file
