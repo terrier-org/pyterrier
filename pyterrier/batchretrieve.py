@@ -161,9 +161,9 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         properties(dict): Current properties
         controls(dict): Current controls
     """
-    default_controls = BatchRetrieve.default_controls.copy()
-    default_controls["matching"] = "FatFeaturedScoringMatching,org.terrier.matching.daat.FatFull"
-    default_properties = BatchRetrieve.default_properties.copy()
+    FBR_default_controls = BatchRetrieve.default_controls.copy()
+    FBR_default_controls["matching"] = "FatFeaturedScoringMatching,org.terrier.matching.daat.FatFull"
+    FBR_default_properties = BatchRetrieve.default_properties.copy()
 
     def __init__(self, index_location, features, controls={}, properties={}, verbose=0):
         """
@@ -178,8 +178,8 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         """
         #if props==None:
         #    importProps()
-        controls = _mergeDicts(FeaturesBatchRetrieve.default_controls, controls)
-        properties = _mergeDicts(FeaturesBatchRetrieve.default_properties, properties)
+        controls = _mergeDicts(FeaturesBatchRetrieve.FBR_default_controls, controls)
+        properties = _mergeDicts(FeaturesBatchRetrieve.FBR_default_properties, properties)
         self.features=features
         properties["fat.featured.scoring.matching.features"]=";".join(features)
         super().__init__(index_location,controls=controls,properties=properties)
