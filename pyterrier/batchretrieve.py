@@ -155,9 +155,9 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         properties(dict): Current properties
         controls(dict): Current controls
     """
-    default_controls = BatchRetrieve.default_controls
+    default_controls = BatchRetrieve.default_controls.copy()
     default_controls["matching"] = "FatFeaturedScoringMatching,org.terrier.matching.daat.FatFull"
-    default_properties = BatchRetrieve.default_properties
+    default_properties = BatchRetrieve.default_properties.copy()
 
     def __init__(self, index_location, features, controls=None, properties=None, verbose=0):
         """
@@ -174,6 +174,9 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         #    importProps()
         if properties is None:
             properties = {}
+        properties += default_properties.copy()
+        if controls is None:
+            controls = default_controls.copy()
         self.features=features
         properties["fat.featured.scoring.matching.features"]=";".join(features)
         super().__init__(index_location,controls=controls,properties=properties)
