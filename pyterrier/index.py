@@ -22,6 +22,7 @@ Array = None
 ApplicationSetup = None
 Properties = None
 CLITool = None
+IndexRef = None
 
 def run_autoclass():
     global StringReader
@@ -38,6 +39,7 @@ def run_autoclass():
     global ApplicationSetup
     global Properties
     global CLITool
+    global IndexRef
 
     StringReader = autoclass("java.io.StringReader")
     HashMap = autoclass("java.util.HashMap")
