@@ -37,7 +37,7 @@ https://colab.research.google.com/drive/17WpzhtlMj1U2UJku-RaO2axNsUFhPI6z
 
 # Retrieval and Evaluation
 
-```
+```python
 topics = pt.Utils.parse_trec_topics_file(topicsFile)
 qrels = pt.Utils.parse_qrels(qrelsFile)
 BM25_br = pt.BatchRetrieve(index, "BM25")
@@ -51,7 +51,7 @@ https://colab.research.google.com/drive/1yime_0D21Q-KzFD4IbsRzTvjRbo9vz4I
 # Experiment - Perform Retrieval and Evaluation with a single function
 We provide an experiment object, which allows to compare multiple retrieval approaches on the same queries & relevance assessments:
 
-```
+```python
 pt.Experiment(topics, [BM25_br, PL2_br], eval_metrics, qrels)
 ```
 
@@ -65,7 +65,7 @@ Call the `transform(topics_set)` function with the train, validation and test to
 
 Use your trained model to predict the score of the test_topics and evaluate the result with `pt.Utils.evaluate()`.
 
-```
+```python
 BM25_with_features_br = pt.BatchRetrieve(index, ["WMODEL:BM25F", "WMODEL:PL2F"], controls={"wmodel" : "BM25"})
 ```
 
@@ -83,7 +83,7 @@ Call the `fit()` method on the created object with the training topics.
 
 Evaluate the results with the Experiment function by using the test topics
 
-```
+```python
 pt.LTR_pipeline(index, model, features, qrels, LTR)
 ```
 
