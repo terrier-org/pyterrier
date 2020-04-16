@@ -3,6 +3,7 @@ import pandas as pd
 from .bootstrap import setup_logging, setup_terrier, setup_jnius
 from . import mavenresolver
 from . utils import Utils
+from . import datasets
 
 file_path = os.path.dirname(os.path.abspath(__file__))
 firstInit = False
