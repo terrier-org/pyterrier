@@ -10,6 +10,11 @@ A Python API for Terrier
 1. Make sure that `JAVA_HOME` environment variable is set to the location of your Java installation
 2. `pip install python-terrier`
 
+### macOS
+
+1. You need to hava Java installed. Pyjnius/PyTerrier will pick up the location automatically.
+2. `pip install python-terrier`
+
 ### Windows
 Pyterrier is not available for Windows because [pytrec_eval](https://github.com/cvangysel/pytrec_eval) [isn't available for Windows](https://github.com/cvangysel/pytrec_eval/issues/19). If you can compile & install pytrec_eval youself, it should work fine.
 
@@ -32,6 +37,14 @@ https://colab.research.google.com/drive/17WpzhtlMj1U2UJku-RaO2axNsUFhPI6z
 
 # Retrieval and Evaluation
 
+```
+topics = pt.Utils.parse_trec_topics_file(topicsFile)
+qrels = pt.Utils.parse_qrels(qrelsFile)
+BM25_br = pt.BatchRetrieve(index, "BM25")
+res = BM25_br.transform(topics)
+pt.Utils.evaluate(res, qrels, metrics = ['map'])
+```
+
 See examples at:
 https://colab.research.google.com/drive/1yime_0D21Q-KzFD4IbsRzTvjRbo9vz4I
 
@@ -39,18 +52,22 @@ https://colab.research.google.com/drive/1yime_0D21Q-KzFD4IbsRzTvjRbo9vz4I
 We provide an experiment object, which allows to compare multiple retrieval approaches on the same queries & relevance assessments:
 
 ```
-pt.Experiment(topics, retr_systems, eval_metrics, qrels, perquery=False, dataframe=True)
+pt.Experiment(topics, [BM25_br, PL2_br], eval_metrics, qrels)
 ```
 
 More examples are provided at:
 https://colab.research.google.com/drive/15oG7HwyYCBFuborjmfYglea0VLkUjyK-
 
 # Learning to  Rank
-First create a `FeaturesBatchRetrieve(index, features)` object with the desired features and controls.
+First create a `FeaturesBatchRetrieve(index, features)` object with the desired features.
 
 Call the `transform(topics_set)` function with the train, validation and test topic sets to get dataframes with the feature scores and use them to train your chosen model.
 
-Use your trained model to predict the score of the test_topics and evaluate the result with `Utils.evaluate()`.
+Use your trained model to predict the score of the test_topics and evaluate the result with `pt.Utils.evaluate()`.
+
+```
+BM25_with_features_br = pt.BatchRetrieve(index, ["WMODEL:BM25F", "WMODEL:PL2F"], controls={"wmodel" : "BM25"})
+```
 
 ## LTR_pipeline
 
