@@ -44,6 +44,44 @@ def Experiment(topics,retr_systems,eval_metrics,qrels, names=None, perquery=Fals
         evals = pd.DataFrame.from_dict(evals, orient='index')
     return evals
 
+class LambdaPipeline():
+    """
+    This class allows pipelines components to be written as functions or lambdas
+
+    :Example:
+    >>> #this pipeline would remove all but the first two documents from a result set
+    >>> lp = LambdaPipeline(lambda res : res[res["rank"] < 2])
+
+    """
+
+    def __init__(self, lambdaFn):
+        self.fn = lambdaFn
+
+    def transform(self, inputRes):
+        fn = self.fn
+        return fn(inputRes)
+
+class ComposedPipeline():
+    """ 
+    This class allows pipeline components to be chained together.
+
+    :Example:
+
+    >>> comp = ComposedPipeline([ DPH_br, LambdaPipeline(lambda res : res[res["rank"] < 2])])
+    >>> OR
+    >>>  # we can even use lambdas as transformers
+    >>> comp = ComposedPipeline([DPH_br, lambda res : res[res["rank"] < 2]])
+    
+    """
+    def __init__(self, models=[]):
+        import types
+        self.models = list( map(lambda x : LambdaPipeline(x) if callable(x) else x, models) )
+    
+    def transform(self, topics):
+        for m in self.models:
+            topics = m.transform(topics)
+        return topics
+
 class LTR_pipeline():
     """
     This class simplifies the use of Scikit-learn's techniques for learning-to-rank.
