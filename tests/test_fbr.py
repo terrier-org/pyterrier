@@ -18,7 +18,7 @@ class TestFeaturesBatchRetrieve(unittest.TestCase):
         indexref = JIR.of(self.here+"/fixtures/index/data.properties")
         retr = pt.FeaturesBatchRetrieve(indexref, ["WMODEL:PL2"])
         topics = pt.Utils.parse_trec_topics_file(self.here+"/fixtures/vaswani_npl/query-text.trec").head(3)
-        qrels = pt.Utils.parse_qrels(self.here+"/../vaswani_npl/qrels")
+        qrels = pt.Utils.parse_qrels(self.here+"/fixtures/vaswani_npl/qrels")
         res = retr.transform(topics)
         res = res.merge(qrels, on=['qid','docno'], how='left').fillna(0)
         from sklearn.ensemble import RandomForestClassifier
