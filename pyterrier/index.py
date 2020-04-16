@@ -53,6 +53,7 @@ def run_autoclass():
     ApplicationSetup = autoclass('org.terrier.utility.ApplicationSetup')
     Properties = autoclass('java.util.Properties')
     CLITool = autoclass("org.terrier.applications.CLITool")
+    IndexRef = autoclass('org.terrier.querying.IndexRef')
 
 
 class Indexer:
@@ -266,8 +267,7 @@ class DFIndexer(Indexer):
         index = self.createIndexer()
         index.index([javaDocCollection])
         self.index_called=True
-        JIR = autoclass('org.terrier.querying.IndexRef')
-        return JIR.of(self.index_dir+ "/data.properties")
+        return IndexRef.of(self.index_dir+ "/data.properties")
 
 from jnius import PythonJavaClass, java_method
 
@@ -330,6 +330,7 @@ class TRECCollectionIndexer(Indexer):
         trecCol = TRECCollection(asList,"TrecDocTags","","")
         index.index([trecCol])
         self.index_called=True
+        return IndexRef.of(self.index_dir+ "/data.properties")
 
 class FilesIndexer(Indexer):
     '''
@@ -357,3 +358,4 @@ class FilesIndexer(Indexer):
         simpleColl = SimpleFileCollection(asList,False)
         index.index([simpleColl])
         self.index_called=True
+        return IndexRef.of(self.index_dir+ "/data.properties")
