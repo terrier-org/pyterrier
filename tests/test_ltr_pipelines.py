@@ -21,8 +21,8 @@ class TestLTRPipeline(unittest.TestCase):
           'verbose': 2,
           'random_state': 42 
         }
-        topics=pt.Utils.parse_trec_topics_file(self.here + "/../vaswani_npl/query_light.trec").head(5)
-        qrels=pt.Utils.parse_qrels(self.here + "/../vaswani_npl/qrels")
+        topics=pt.Utils.parse_trec_topics_file(self.here + "/fixtures/vaswani_npl/query_light.trec").head(5)
+        qrels=pt.Utils.parse_qrels(self.here + "/fixtures/vaswani_npl/qrels")
         pipeline = pt.XGBoostLTR_pipeline(
             self.here + "/fixtures/index/data.properties",
             "DPH",
@@ -41,8 +41,8 @@ class TestLTRPipeline(unittest.TestCase):
     def test_ltr_pipeline(self):
         from sklearn.ensemble import RandomForestClassifier
 
-        topics=pt.Utils.parse_trec_topics_file(self.here + "/../vaswani_npl/query_light.trec").head(5)
-        qrels=pt.Utils.parse_qrels(self.here + "/../vaswani_npl/qrels")
+        topics=pt.Utils.parse_trec_topics_file(self.here + "/fixtures/vaswani_npl/query_light.trec").head(5)
+        qrels=pt.Utils.parse_qrels(self.here + "/fixtures/vaswani_npl/qrels")
         pipeline = pt.LTR_pipeline(
             self.here + "/fixtures/index/data.properties",
             "DPH",
