@@ -3,10 +3,14 @@
 import os
 from . import mavenresolver
 
-
+stdout_ref=None
+stderr_ref=None
 TERRIER_PKG = "org.terrier"
 
-def setup_logging(level):
+def setup_logging(level): # deprecated
+    logging(level)
+
+def logging(level):
     from jnius import autoclass
     autoclass("org.terrier.python.PTUtils").setLogLevel(level, None)
 
@@ -74,6 +78,7 @@ def is_binary(f):
 def redirect_stdouterr():
     from jnius import autoclass, PythonJavaClass, java_method
 
+    # TODO : encodings may be a probem here
     class MyOut(PythonJavaClass):
         __javainterfaces__ = ['org.terrier.python.OutputStreamable']
         
@@ -108,14 +113,22 @@ def redirect_stdouterr():
                 return self.pystream.write(bytes([chara]))
             return self.pystream.write(chr(chara))
 
-    #from utils import MyOut
+    
+    
+    # we need to hold lifetime references to stdout_ref/stderr_ref, to ensure 
+    # they arent GCd. This prevents a crash when Java callsback to  GCd py obj
+
+    global stdout_ref
+    global stderr_ref
     import sys
+    stdout_ref = MyOut(sys.stdout)
+    stderr_ref = MyOut(sys.stderr)
     jls = autoclass("java.lang.System")
     jls.setOut(
         autoclass('java.io.PrintStream')(
-            autoclass('org.terrier.python.ProxyableOutputStream')( MyOut(sys.stdout)), 
+            autoclass('org.terrier.python.ProxyableOutputStream')( stdout_ref ), 
             signature="(Ljava/io/OutputStream;)V"))
     jls.setErr(
         autoclass('java.io.PrintStream')(
-            autoclass('org.terrier.python.ProxyableOutputStream')( MyOut(sys.stderr)), 
+            autoclass('org.terrier.python.ProxyableOutputStream')( stderr_ref ), 
             signature="(Ljava/io/OutputStream;)V"))

@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from .bootstrap import setup_logging, setup_terrier, setup_jnius
+from .bootstrap import logging, setup_logging, setup_terrier, setup_jnius
 from . import mavenresolver
 from . utils import Utils
 
@@ -11,7 +11,7 @@ properties = None
 
 
 
-def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=False, logging='WARN'):
+def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, logging='WARN'):
     """
     Function necessary to be called before Terrier classes and methods can be used.
     Loads the Terrier.jar file and imports classes. Also finds the correct version of Terrier to download if no version is specified.
@@ -62,12 +62,10 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=False, lo
         properties.put("terrier.mvn.coords", pkgs_string)
     ApplicationSetup.bootstrapInitialisation(properties)
 
-    #if redirect_io:
-    #    raise ValueError("Sorry, this doesnt work here. Call pt.redirect_stdouterr() yourself later")
     if redirect_io:
        # this ensures that the python stdout/stderr and the Java are matched
        redirect_stdouterr()
-    setup_logging(logging)
+    logging(logging)
     setup_jnius()
 
     globals()["BatchRetrieve"] = BatchRetrieve
