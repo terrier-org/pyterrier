@@ -10,9 +10,10 @@ firstInit = False
 ApplicationSetup = None
 properties = None
 
+HOME_DIR = None
 
 
-def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, logging='WARN'):
+def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, logging='WARN', home_dir=None):
     """
     Function necessary to be called before Terrier classes and methods can be used.
     Loads the Terrier.jar file and imports classes. Also finds the correct version of Terrier to download if no version is specified.
@@ -27,14 +28,28 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     global properties
     global firstInit
     global file_path
+    global HOME_DIR
     
-    classpathTrJars = setup_terrier(file_path, version)
+    # we keep a local directory   
+    if home_dir is not None:
+        HOME_DIR = home_dir
+    if "PYTERRIER_HOME" in os.environ:
+        HOME_DIR = os.environ["PYTERRIER_HOME"]
+    else:
+        from os.path import expanduser
+        userhome = expanduser("~")        
+        HOME_DIR = os.path.join(userhome, ".pyterrier")
+        if not os.path.exists(HOME_DIR):
+            os.mkdir(HOME_DIR)
+
+    # get the initial classpath for the JVM
+    classpathTrJars = setup_terrier(HOME_DIR, version)
 
     # Import pyjnius and other classes
     import jnius_config
     for jar in classpathTrJars:
         jnius_config.add_classpath(jar)
-    if jvm_opts is not None :
+    if jvm_opts is not None:
         for opt in jvm_opts:
             jnius_config.add_options(opt)
     if mem is not None:
@@ -66,7 +81,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     if redirect_io:
        # this ensures that the python stdout/stderr and the Java are matched
        redirect_stdouterr()
-    logging(logging)
+    setup_logging(logging)
     setup_jnius()
 
     globals()["BatchRetrieve"] = BatchRetrieve
