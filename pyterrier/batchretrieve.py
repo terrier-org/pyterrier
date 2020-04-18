@@ -28,7 +28,10 @@ def parse_index_like(index_location):
             return JIR.of(index_location.path)
         return JIR.of(index_location)
 
-    raise ValueError("index_location needs to be an Index, an IndexRef, a string that can be resolved to an index location (e.g. path/to/index/data.properties), or an pyterrier.Indexer object")
+    raise ValueError("index_location is current a "
+        +str(type(index_location))+", while it needs to be an Index, an IndexRef, "
+        +"a string that can be resolved to an index location (e.g. path/to/index/data.properties),"
+        +" or an pyterrier.Indexer object")
 
 class BatchRetrieve:
     """
