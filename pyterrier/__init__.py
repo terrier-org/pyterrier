@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from .bootstrap import setup_logging, setup_terrier, setup_jnius
+from .bootstrap import logging, setup_logging, setup_terrier, setup_jnius
 from . import mavenresolver
 from . utils import Utils
 from . import datasets
@@ -12,9 +12,10 @@ IndexFactory = None
 IndexRef = None
 properties = None
 
+HOME_DIR = None
 
 
-def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=False, logging='WARN'):
+def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, logging='WARN', home_dir=None):
     """
     Function necessary to be called before Terrier classes and methods can be used.
     Loads the Terrier.jar file and imports classes. Also finds the correct version of Terrier to download if no version is specified.
@@ -29,14 +30,28 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=False, lo
     global properties
     global firstInit
     global file_path
+    global HOME_DIR
     
-    classpathTrJars = setup_terrier(file_path, version)
+    # we keep a local directory   
+    if home_dir is not None:
+        HOME_DIR = home_dir
+    if "PYTERRIER_HOME" in os.environ:
+        HOME_DIR = os.environ["PYTERRIER_HOME"]
+    else:
+        from os.path import expanduser
+        userhome = expanduser("~")        
+        HOME_DIR = os.path.join(userhome, ".pyterrier")
+        if not os.path.exists(HOME_DIR):
+            os.mkdir(HOME_DIR)
+
+    # get the initial classpath for the JVM
+    classpathTrJars = setup_terrier(HOME_DIR, version)
 
     # Import pyjnius and other classes
     import jnius_config
     for jar in classpathTrJars:
         jnius_config.add_classpath(jar)
-    if jvm_opts is not None :
+    if jvm_opts is not None:
         for opt in jvm_opts:
             jnius_config.add_options(opt)
     if mem is not None:
@@ -65,8 +80,6 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=False, lo
         properties.put("terrier.mvn.coords", pkgs_string)
     ApplicationSetup.bootstrapInitialisation(properties)
 
-    #if redirect_io:
-    #    raise ValueError("Sorry, this doesnt work here. Call pt.redirect_stdouterr() yourself later")
     if redirect_io:
        # this ensures that the python stdout/stderr and the Java are matched
        redirect_stdouterr()
