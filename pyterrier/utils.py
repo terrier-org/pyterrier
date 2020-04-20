@@ -39,6 +39,7 @@ class Utils:
         """
         rows=[]
         from jnius import autoclass
+        #TODO this can be updated when 5.3 is released
         system = autoclass("java.lang.System")
         system.setProperty("SingleLineTRECQuery.tokenise", "true" if tokenise else "false")
         slqIter = autoclass("org.terrier.applications.batchquerying.SingleLineTRECQuery")(filepath)
