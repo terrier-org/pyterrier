@@ -265,13 +265,13 @@ class DFIndexer(Indexer):
                 The name of the keyword argument will be the name of the metadata field and the keyword argument contents will be the metadata content
         """
         self.checkIndexExists()
-        
-        javaDocCollection = autoclass("org.terrier.python.CollectionFromDocumentIterator")(
-            DFIndexUtils.create_javaDocIterator(text, *args, **kwargs)
-        )
+        #we need to prevent collectionIterator from being GCd
+        collectionIterator = DFIndexUtils.create_javaDocIterator(text, *args, **kwargs)
+        javaDocCollection = autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
         index = self.createIndexer()
         index.index([javaDocCollection])
         self.index_called=True
+        collectionIterator = None
         return IndexRef.of(self.index_dir+ "/data.properties")
 
 from jnius import PythonJavaClass, java_method
