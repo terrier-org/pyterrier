@@ -8,6 +8,8 @@ from . import datasets
 file_path = os.path.dirname(os.path.abspath(__file__))
 firstInit = False
 ApplicationSetup = None
+IndexFactory = None
+IndexRef = None
 properties = None
 
 
@@ -47,7 +49,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=False, lo
     from .utils import Utils
     from .index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils
     from .pipelines import LTR_pipeline, XGBoostLTR_pipeline
-
+    
     # Make imports global
     globals()["autoclass"] = autoclass
     globals()["cast"] = cast
@@ -81,6 +83,9 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=False, lo
     globals()["Utils"] = Utils
     globals()["LTR_pipeline"] = LTR_pipeline
     globals()["XGBoostLTR_pipeline"] = XGBoostLTR_pipeline
+    globals()["IndexFactory"] = autoclass("org.terrier.structures.IndexFactory")
+    globals()["IndexRef"] = autoclass("org.terrier.querying.IndexRef")
+    
 
     firstInit = True
 

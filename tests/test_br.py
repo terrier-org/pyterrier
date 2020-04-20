@@ -40,12 +40,10 @@ class TestBatchRetrieve(unittest.TestCase):
     # this also tests different index-like inputs, namely:
     # a String index location, an IndexRef, and an Index
     def test_one_term_query_correct_docid_and_score(self):
-        JIR = pt.autoclass('org.terrier.querying.IndexRef')
-        JIF = pt.autoclass('org.terrier.structures.IndexFactory')
-
+        
         indexloc = self.here+"/fixtures/index/data.properties"
-        jindexref = JIR.of(indexloc)
-        jindex = JIF.of(jindexref)
+        jindexref = pt.IndexRef.of(indexloc)
+        jindex = pt.IndexFactory.of(jindexref)
         for indexSrc in (indexloc, jindexref, jindex):
             retr = pt.BatchRetrieve(indexSrc)
             result = retr.transform("light")

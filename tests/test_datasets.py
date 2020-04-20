@@ -27,7 +27,7 @@ class TestDatasets(unittest.TestCase):
 
         indexref = dataset.get_index()
         self.assertIsNotNone(indexref)
-        with pt.autoclass("org.terrier.structures.IndexFactory").of(indexref) as index:
+        with pt.IndexFactory.of(indexref) as index:
             self.assertIsNotNone(index)
             self.assertEqual(index.getCollectionStatistics().getNumberOfDocuments(), 11429)
         

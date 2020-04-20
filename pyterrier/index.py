@@ -23,6 +23,7 @@ ApplicationSetup = None
 Properties = None
 CLITool = None
 IndexRef = None
+IndexFactory = None
 
 def run_autoclass():
     global StringReader
@@ -40,6 +41,7 @@ def run_autoclass():
     global Properties
     global CLITool
     global IndexRef
+    global IndexFactory
 
     StringReader = autoclass("java.io.StringReader")
     HashMap = autoclass("java.util.HashMap")
@@ -56,6 +58,7 @@ def run_autoclass():
     Properties = autoclass('java.util.Properties')
     CLITool = autoclass("org.terrier.applications.CLITool")
     IndexRef = autoclass('org.terrier.querying.IndexRef')
+    IndexFactory = autoclass('org.terrier.structures.IndexFactory')
 
 
 class Indexer:

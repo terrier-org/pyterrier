@@ -26,5 +26,5 @@ class TestTRECIndexer(unittest.TestCase):
         indexer = pt.TRECCollectionIndexer(self.test_dir)
         indexRef = indexer.index(pt.Utils.get_files_in_dir(self.here + "/fixtures/vaswani_npl/corpus/"))
         self.assertIsNotNone(indexRef)
-        index = pt.autoclass("org.terrier.structures.IndexFactory").of(indexRef)
+        index = pt.IndexFactory.of(indexRef)
         self.assertEqual(11429, index.getCollectionStatistics().getNumberOfDocuments())

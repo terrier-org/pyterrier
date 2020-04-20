@@ -33,7 +33,7 @@ class TestDunder(unittest.TestCase):
         pd_indexer = pt.DFIndexer(self.test_dir)
         pd_indexer.properties["termpipelines"]=""
         indexref=pd_indexer.index(df["text"], df["docno"])
-        index = pt.autoclass("org.terrier.structures.IndexFactory").of(indexref)
+        index = pt.IndexFactory.of(indexref)
         self.assertIsNotNone(index)
         self.assertIsNotNone(index.getLexicon())
         self.assertTrue("__getitem__" in dir(index.getLexicon()))

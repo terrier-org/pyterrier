@@ -42,9 +42,12 @@ class TestDFIndexer(unittest.TestCase):
         })
         df = df.head(n)
         indexref = self._create_index(df)
-        index = pt.autoclass("org.terrier.structures.IndexFactory").of(indexref)
+        index = pt.IndexFactory.of(indexref)
         self.assertIsNotNone(index)
         self.assertEqual(n, index.getCollectionStatistics().getNumberOfDocuments())
+        self.assertTrue("docno" in index.getMetaIndex().getKeys())
+        #self.assertTrue("url" in index.getMetaIndex().getKeys())
+        
 
     def test_checkjavaDocIteratr(self):
         import pandas as pd
