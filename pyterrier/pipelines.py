@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 from .utils import Utils
+from .transformer import TransformerBase
 
 def Experiment(topics,retr_systems,eval_metrics,qrels, names=None, perquery=False, dataframe=True):
     """
@@ -36,51 +37,16 @@ def Experiment(topics,retr_systems,eval_metrics,qrels, names=None, perquery=Fals
         results.append(system.transform(topics))
         if neednames:
             names.append(str(system))
-    evals={}
 
-    for weight,res in zip(names,results):
-        evals[weight]=Utils.evaluate(res,qrels, metrics=eval_metrics, perquery=perquery)
+    evalsRows=[]
+    evalDict={}
+    for name,res in zip(names,results):
+        evalMeasures = Utils.evaluate(res,qrels, metrics=eval_metrics, perquery=perquery)
+        evalsRows.append([name,evalMeasures])
+        evalDict[name] = evalMeasures
     if dataframe:
-        evals = pd.DataFrame.from_dict(evals, orient='index')
-    return evals
-
-class LambdaPipeline():
-    """
-    This class allows pipelines components to be written as functions or lambdas
-
-    :Example:
-    >>> #this pipeline would remove all but the first two documents from a result set
-    >>> lp = LambdaPipeline(lambda res : res[res["rank"] < 2])
-
-    """
-
-    def __init__(self, lambdaFn):
-        self.fn = lambdaFn
-
-    def transform(self, inputRes):
-        fn = self.fn
-        return fn(inputRes)
-
-class ComposedPipeline():
-    """ 
-    This class allows pipeline components to be chained together.
-
-    :Example:
-
-    >>> comp = ComposedPipeline([ DPH_br, LambdaPipeline(lambda res : res[res["rank"] < 2])])
-    >>> OR
-    >>>  # we can even use lambdas as transformers
-    >>> comp = ComposedPipeline([DPH_br, lambda res : res[res["rank"] < 2]])
-    
-    """
-    def __init__(self, models=[]):
-        import types
-        self.models = list( map(lambda x : LambdaPipeline(x) if callable(x) else x, models) )
-    
-    def transform(self, topics):
-        for m in self.models:
-            topics = m.transform(topics)
-        return topics
+        return pd.DataFrame(evalsRows, columns=["name"] + eval_metrics)
+    return evalDict
 
 class LTR_pipeline():
     """
@@ -99,6 +65,7 @@ class LTR_pipeline():
             qrels(DataFrame): Dataframe with columns=['qid','docno', 'label']
             LTR: The model which to use for learning-to-rank. Must have a fit() and predict() methods.
         """
+        super(LTR_pipeline, self).__init__()
         if isinstance(model, str):
             from .batchretrieve import FeaturesBatchRetrieve
             self.feat_retrieve = FeaturesBatchRetrieve(index, features)
@@ -153,7 +120,7 @@ class XGBoostLTR_pipeline(LTR_pipeline):
             LTR: The model which to use for learning-to-rank. Must have a fit() and predict() methods.
             validqrels(DataFrame): The qrels which to use for the validation.
         """
-        super().__init__(index,model,features, qrels, LTR)
+        super(XGBoostLTR_pipeline, self).__init__(index,model,features, qrels, LTR)
         self.validqrels = validqrels
 
     def transform(self, topicsTest):

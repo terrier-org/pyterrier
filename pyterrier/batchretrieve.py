@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 
 from .index import Indexer
+from .transformer import TransformerBase
 from tqdm import tqdm
 
 import time
@@ -75,7 +76,7 @@ class BatchRetrieve:
             verbose(bool): If True transform method will display progress
     """
     def __init__(self, index_location, controls=None, properties=None, verbose=0):
-        
+        super(BatchRetrieve, self).__init__()
         
         self.indexref = parse_index_like(index_location)
         self.appSetup = autoclass('org.terrier.utility.ApplicationSetup')
