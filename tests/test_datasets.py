@@ -1,9 +1,5 @@
-import pandas as pd
-import unittest, math, os, ast, statistics
+import unittest
 import pyterrier as pt
-
-
-
 
 class TestDatasets(unittest.TestCase):
 
@@ -30,8 +26,8 @@ class TestDatasets(unittest.TestCase):
         with pt.IndexFactory.of(indexref) as index:
             self.assertIsNotNone(index)
             self.assertEqual(index.getCollectionStatistics().getNumberOfDocuments(), 11429)
-        
-        #do it once again, to ensure it works locally
+
+        # do it once again, to ensure it works locally
         dataset = pt.datasets.get_dataset("vaswani")
         topics = dataset.get_topics()
         self.assertIsNotNone(topics)
