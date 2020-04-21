@@ -145,12 +145,12 @@ class Utils:
             perquery(bool): If true return each metric for each query, else return mean metrics. Default=False
         """
 
-        if isinstance(res, pd.DataFrame()):
+        if isinstance(res, pd.DataFrame):
             batch_retrieve_results_dict = Utils.convert_res_to_dict(res)
         else:
             batch_retrieve_results_dict = res
 
-        if isinstance(qrels, pd.DataFrame()):
+        if isinstance(qrels, pd.DataFrame):
             qrels_dic = Utils.convert_qrels_to_dict(qrels)
         else:
             qrels_dic = qrels
@@ -181,7 +181,7 @@ class Utils:
         Returns:
             dataframe with columns=['qid','query']
         """
-        if isinstance(query, pd.DataFrame()):
+        if isinstance(query, pd.DataFrame):
             return query
         elif isinstance(query, str):
             return pd.DataFrame([["1", query]], columns=['qid', 'query'])

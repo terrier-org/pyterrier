@@ -2,10 +2,11 @@
 This file contains all the indexers.
 """
 
-from jnius import autoclass, cast, PythonJavaClass, java_method
-from .utils import *
+# from jnius import autoclass, cast, PythonJavaClass, java_method
+from jnius import autoclass, PythonJavaClass, java_method
+# from .utils import *
 import pandas as pd
-import numpy as np
+# import numpy as np
 import os
 
 StringReader = None
@@ -68,7 +69,7 @@ class Indexer:
 
     Attributes:
         default_properties(dict): Contains the default properties
-        path(str): The index directory + \data.properties
+        path(str): The index directory + /data.properties
         index_called(bool): True if index() method of child Indexer has been called, false otherwise
         index_dir(str): The index directory
         blocks(bool): If true the index has blocks enabled
@@ -76,15 +77,14 @@ class Indexer:
         overwrite(bool): If True the index() method of child Indexer will overwrite any existing index
     """
 
-
-
-    default_properties={
-            "TrecDocTags.doctag":"DOC",
-            "TrecDocTags.idtag":"DOCNO",
-            "TrecDocTags.skip":"DOCHDR",
-            "TrecDocTags.casesensitive":"false",
+    default_properties = {
+            "TrecDocTags.doctag": "DOC",
+            "TrecDocTags.idtag": "DOCNO",
+            "TrecDocTags.skip": "DOCHDR",
+            "TrecDocTags.casesensitive": "false",
             "trec.collection.class": "TRECCollection",
     }
+
     def __init__(self, index_path, blocks=False, overwrite=False):
         """
         Init method
@@ -118,15 +118,15 @@ class Indexer:
             or
             setProperties("**{property1:value1, property2:value2}")
         """
-        for control,value in kwargs.items():
-            self.properties.put(control,value)
+        for control, value in kwargs.items():
+            self.properties.put(control, value)
 
     def checkIndexExists(self):
         """
         Check if index exists at the `path` given when object was created
         """
         if os.path.isfile(self.path):
-            if not self.overwrite :
+            if not self.overwrite:
                 raise ValueError("Index already exists at " + self.path)
         if self.index_called:
             raise Exception("Index method can be called only once")
@@ -138,11 +138,11 @@ class Indexer:
             Created index object
         """
         ApplicationSetup.getProperties().putAll(self.properties)
-        #ApplicationSetup.bootstrapInitialisation(self.properties)
+        # ApplicationSetup.bootstrapInitialisation(self.properties)
         if self.blocks:
-            index = BlockIndexer(self.index_dir,"data")
+            index = BlockIndexer(self.index_dir, "data")
         else:
-            index = BasicIndexer(self.index_dir,"data")
+            index = BasicIndexer(self.index_dir, "data")
         return index
 
     def createAsList(self, files_path):
@@ -151,9 +151,9 @@ class Indexer:
         Returns:
             Created Java List
         """
-        if type(files_path) == type(""):
+        if isinstance(files_path, str):
             asList = Arrays.asList(files_path)
-        elif type(files_path) == type([]):
+        elif isinstance(files_path, list):
             asList = Arrays.asList(*files_path)
         return asList
 
@@ -165,7 +165,6 @@ class Indexer:
             Does not work with notebooks at the moment
         """
         CLITool.main(["indexstats", "-I" + self.path])
-
 
     def getIndexUtil(self, util):
         """
@@ -190,7 +189,7 @@ class Indexer:
             s
         """
         if not util.startswith("-"):
-            util = "-"+util
+            util = "-" + util
         CLITool.main(["indexutil", "-I" + self.path, util])
 
 class DFIndexUtils:
@@ -200,44 +199,43 @@ class DFIndexUtils:
         if HashMap is None:
             run_autoclass()
 
-        all_metadata={}
+        all_metadata = {}
         for i, arg in enumerate(args):
             if isinstance(arg, pd.Series):
-                all_metadata[arg.name]=arg
-                assert len(arg)==len(text), "Length of metadata arguments needs to be equal to length of text argument"
+                all_metadata[arg.name] = arg
+                assert len(arg) == len(text), "Length of metadata arguments needs to be equal to length of text argument"
             elif isinstance(arg, pd.DataFrame):
                 for name, column in arg.items():
-                    all_metadata[name]=column
-                    assert len(column)==len(text), "Length of metadata arguments needs to be equal to length of text argument"
+                    all_metadata[name] = column
+                    assert len(column) == len(text), "Length of metadata arguments needs to be equal to length of text argument"
             else:
-                raise ValueError("Non-keyword args need to be of type pandas.Series or pandas.DataFrame, argument %d was %s "% (i, type(arg)))
+                raise ValueError(f"Non-keyword args need to be of type pandas.Series or pandas.DataFrame, argument {i} was {type(arg)}")
         for key, value in kwargs.items():
             if isinstance(value, (pd.Series, list, tuple)):
-                all_metadata[key]=value
-                assert len(value)==len(value), "Length of metadata arguments needs to be equal to length of text argument"
+                all_metadata[key] = value
+                assert len(value) == len(value), "Length of metadata arguments needs to be equal to length of text argument"
             elif isinstance(value, pd.DataFrame):
                 for name, column in arg.items():
-                    all_metadata[name]=column
-                    assert len(column)==len(text), "Length of metadata arguments needs to be equal to length of text argument"
+                    all_metadata[name] = column
+                    assert len(column) == len(text), "Length of metadata arguments needs to be equal to length of text argument"
             else:
                 raise ValueError("Keyword kwargs need to be of type pandas.Series, list or tuple")
 
-        #this method creates the documents as and when needed.
+        # this method creates the documents as and when needed.
         def convertDoc(text_row, meta_column):
-            meta_row=[]
+            # meta_row = []
             hashmap = HashMap()
             for column, value in meta_column[1].iteritems():
-                hashmap.put(column,value)
+                hashmap.put(column, value)
             return(TaggedDocument(StringReader(text_row), hashmap, Tokeniser.getTokeniser()))
 
-        df=pd.DataFrame(all_metadata)
+        df = pd.DataFrame(all_metadata)
         return PythonListIterator(
-                text.values, 
+                text.values,
                 df.iterrows(),
                 convertDoc,
                 len(text.values)
-            )
-
+        )
 
 class DFIndexer(Indexer):
     """
@@ -245,7 +243,7 @@ class DFIndexer(Indexer):
 
     Attributes:
         default_properties(dict): Contains the default properties
-        path(str): The index directory + \data.properties
+        path(str): The index directory + /data.properties
         index_called(bool): True if index() method of child Indexer has been called, false otherwise
         index_dir(str): The index directory
         blocks(bool): If true the index has blocks enabled
@@ -265,16 +263,15 @@ class DFIndexer(Indexer):
                 The name of the keyword argument will be the name of the metadata field and the keyword argument contents will be the metadata content
         """
         self.checkIndexExists()
-        #we need to prevent collectionIterator from being GCd
+        # we need to prevent collectionIterator from being GCd
         collectionIterator = DFIndexUtils.create_javaDocIterator(text, *args, **kwargs)
         javaDocCollection = autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
         index = self.createIndexer()
         index.index([javaDocCollection])
-        self.index_called=True
+        self.index_called = True
         collectionIterator = None
-        return IndexRef.of(self.index_dir+ "/data.properties")
+        return IndexRef.of(self.index_dir + "/data.properties")
 
-from jnius import PythonJavaClass, java_method
 
 class PythonListIterator(PythonJavaClass):
     __javainterfaces__ = ['java/util/Iterator']
@@ -289,12 +286,16 @@ class PythonListIterator(PythonJavaClass):
             self.len = len(self.text)
         else:
             self.len = len
- 
+
     @java_method('()V')
-    def remove(): 1
+    def remove():
+        # 1
+        pass
 
     @java_method('(Ljava/util/function/Consumer;)V')
-    def forEachRemaining(action): 1
+    def forEachRemaining(action):
+        # 1
+        pass
 
     @java_method('()Z')
     def hasNext(self):
@@ -315,7 +316,7 @@ class TRECCollectionIndexer(Indexer):
 
     Attributes:
         default_properties(dict): Contains the default properties
-        path(str): The index directory + \data.properties
+        path(str): The index directory + /data.properties
         index_called(bool): True if index() method of child Indexer has been called, false otherwise
         index_dir(str): The index directory
         blocks(bool): If true the index has blocks enabled
@@ -332,10 +333,10 @@ class TRECCollectionIndexer(Indexer):
         self.checkIndexExists()
         index = self.createIndexer()
         asList = self.createAsList(files_path)
-        trecCol = TRECCollection(asList,"TrecDocTags","","")
+        trecCol = TRECCollection(asList, "TrecDocTags", "", "")
         index.index([trecCol])
-        self.index_called=True
-        return IndexRef.of(self.index_dir+ "/data.properties")
+        self.index_called = True
+        return IndexRef.of(self.index_dir + "/data.properties")
 
 class FilesIndexer(Indexer):
     '''
@@ -343,7 +344,7 @@ class FilesIndexer(Indexer):
 
     Attributes:
         default_properties(dict): Contains the default properties
-        path(str): The index directory + \data.properties
+        path(str): The index directory + /data.properties
         index_called(bool): True if index() method of child Indexer has been called, false otherwise
         index_dir(str): The index directory
         blocks(bool): If true the index has blocks enabled
@@ -360,7 +361,7 @@ class FilesIndexer(Indexer):
         self.checkIndexExists()
         index = self.createIndexer()
         asList = self.createAsList(files_path)
-        simpleColl = SimpleFileCollection(asList,False)
+        simpleColl = SimpleFileCollection(asList, False)
         index.index([simpleColl])
-        self.index_called=True
-        return IndexRef.of(self.index_dir+ "/data.properties")
+        self.index_called = True
+        return IndexRef.of(self.index_dir + "/data.properties")
