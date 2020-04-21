@@ -111,3 +111,7 @@ venv.bak/
 #java
 terrier-python-helper/target/
 .vscode
+.classpath
+.project
+terrier-python-helper/.settings
+*jar
