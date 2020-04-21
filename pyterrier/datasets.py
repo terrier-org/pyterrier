@@ -2,7 +2,7 @@ import urllib.request
 import wget
 import os
 
-STANDARD_TERRIER_INDEX_FILES=[
+STANDARD_TERRIER_INDEX_FILES = [
     "data.direct.bf",
     "data.document.fsarrayfile",
     "data.inverted.bf",
@@ -13,7 +13,6 @@ STANDARD_TERRIER_INDEX_FILES=[
     "data.meta.zdata",
     "data.properties"
 ]
-
 
 class Dataset():
 
@@ -35,7 +34,7 @@ class RemoteDataset(Dataset):
         from os.path import expanduser
         userhome = expanduser("~")
         pt_home = os.path.join(userhome, ".pyterrier")
-        self.corpus_home = os.path.join(pt_home, "corpora", name) 
+        self.corpus_home = os.path.join(pt_home, "corpora", name)
         self.locations = locations
         self.name = name
 
@@ -67,36 +66,35 @@ class RemoteDataset(Dataset):
         return localDir
 
     def get_qrels(self):
-        import pyterrier as pt    
+        import pyterrier as pt
         return pt.Utils.parse_qrels(self._get_one_file("qrels"))
 
     def get_topics(self):
-        import pyterrier as pt    
+        import pyterrier as pt
         return pt.Utils.parse_trec_topics_file(self._get_one_file("topics"))
 
     def get_index(self):
-        import pyterrier as pt  
+        import pyterrier as pt
         thedir = self._get_all_files("index")
         return pt.autoclass("org.terrier.querying.IndexRef").of(os.path.join(thedir, "data.properties"))
 
 
 VASWANI_CORPUS_BASE = "https://raw.githubusercontent.com/terrier-org/pyterrier/master/tests/fixtures/vaswani_npl/"
 VASWANI_INDEX_BASE = "https://raw.githubusercontent.com/terrier-org/pyterrier/master/tests/fixtures/index/"
-VASWANI_FILES= {
-    "corpus": 
-        [  ("doc-text.trec" , VASWANI_CORPUS_BASE + "corpus/doc-text.trec" ) ],
-    "topics" : 
-        [ ( "query-text.trec" , VASWANI_CORPUS_BASE + "query-text.trec") ],
-    "qrels" : 
-        [  ( "qrels" , VASWANI_CORPUS_BASE + "qrels") ],
-    "index" :
-        [  (filename, VASWANI_INDEX_BASE + filename) for filename in STANDARD_TERRIER_INDEX_FILES]
+VASWANI_FILES = {
+    "corpus":
+        [("doc-text.trec", VASWANI_CORPUS_BASE + "corpus/doc-text.trec")],
+    "topics":
+        [("query-text.trec", VASWANI_CORPUS_BASE + "query-text.trec")],
+    "qrels":
+        [("qrels", VASWANI_CORPUS_BASE + "qrels")],
+    "index":
+        [(filename, VASWANI_INDEX_BASE + filename) for filename in STANDARD_TERRIER_INDEX_FILES]
 }
 
 DATASET_MAP = {
-    "vaswani" : RemoteDataset("vaswani", VASWANI_FILES)
+    "vaswani": RemoteDataset("vaswani", VASWANI_FILES)
 }
 
 def get_dataset(name):
     return DATASET_MAP[name]
-

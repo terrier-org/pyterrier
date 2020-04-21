@@ -1,18 +1,18 @@
 from jnius import autoclass, cast
-from .utils import *
 import pandas as pd
 import numpy as np
-
-from .index import Indexer
 from tqdm import tqdm
 
-import time
+from .utils import Utils
+from .index import Indexer
+
+# import time
 
 def importProps():
     from . import properties as props
     # Make import global
-    globals()["props"]=props
-props=None
+    globals()["props"] = props
+props = None
 
 
 def parse_index_like(index_location):
@@ -28,10 +28,12 @@ def parse_index_like(index_location):
             return JIR.of(index_location.path)
         return JIR.of(index_location)
 
-    raise ValueError("index_location is current a "
-        +str(type(index_location))+", while it needs to be an Index, an IndexRef, "
-        +"a string that can be resolved to an index location (e.g. path/to/index/data.properties),"
-        +" or an pyterrier.Indexer object")
+    raise ValueError(
+        f'''index_location is current a {type(index_location)},
+        while it needs to be an Index, an IndexRef, a string that can be
+        resolved to an index location (e.g. path/to/index/data.properties),
+        or an pyterrier.Indexer object'''
+    )
 
 class BatchRetrieve:
     """
@@ -46,19 +48,19 @@ class BatchRetrieve:
         properties(dict): Current properties
         controls(dict): Current controls
     """
-    default_controls={
+    default_controls = {
         "terrierql": "on",
         "parsecontrols": "on",
         "parseql": "on",
         "applypipeline": "on",
         "localmatching": "on",
         "filters": "on",
-        "decorate":"on",
+        "decorate": "on",
         "wmodel": "DPH",
     }
 
-    default_properties={
-        "querying.processes":"terrierql:TerrierQLParser,parsecontrols:TerrierQLToControls,parseql:TerrierQLToMatchingQueryTerms,matchopql:MatchingOpQLParser,applypipeline:ApplyTermPipeline,localmatching:LocalManager$ApplyLocalMatching,qe:QueryExpansion,labels:org.terrier.learning.LabelDecorator,filters:LocalManager$PostFilterProcess",
+    default_properties = {
+        "querying.processes": "terrierql:TerrierQLParser,parsecontrols:TerrierQLToControls,parseql:TerrierQLToMatchingQueryTerms,matchopql:MatchingOpQLParser,applypipeline:ApplyTermPipeline,localmatching:LocalManager$ApplyLocalMatching,qe:QueryExpansion,labels:org.terrier.learning.LabelDecorator,filters:LocalManager$PostFilterProcess",
         "querying.postfilters": "decorate:SimpleDecorate,site:SiteFilter,scope:Scope",
         "querying.default.controls": "wmodel:DPH,parsecontrols:on,parseql:on,applypipeline:on,terrierql:on,localmatching:on,filters:on,decorate:on",
         "querying.allowed.controls": "scope,qe,qemodel,start,end,site,scope",
@@ -75,17 +77,16 @@ class BatchRetrieve:
             verbose(bool): If True transform method will display progress
     """
     def __init__(self, index_location, controls=None, properties=None, verbose=0):
-        
-        
+
         self.indexref = parse_index_like(index_location)
         self.appSetup = autoclass('org.terrier.utility.ApplicationSetup')
-        self.verbose=verbose
+        self.verbose = verbose
 
         self.properties = _mergeDicts(BatchRetrieve.default_properties, properties)
 
-        if props==None:
+        if props is None:
             importProps()
-        for key,value in self.properties.items():
+        for key, value in self.properties.items():
             self.appSetup.setProperty(key, value)
 
         self.controls = _mergeDicts(BatchRetrieve.default_controls, controls)
@@ -93,7 +94,7 @@ class BatchRetrieve:
         MF = autoclass('org.terrier.querying.ManagerFactory')
         self.manager = MF._from_(self.indexref)
 
-    def transform(self,queries,metadata=["docno"]):
+    def transform(self, queries, metadata=["docno"]):
         """
         Performs the retrieval
 
@@ -103,23 +104,23 @@ class BatchRetrieve:
         Returns:
             pandas.Dataframe with columns=['qid', 'docno', 'rank', 'score']
         """
-        results=[]
-        queries=Utils.form_dataframe(queries)
-        for index,row in tqdm(queries.iterrows(), total=queries.shape[0], unit="q") if self.verbose else queries.iterrows():
+        results = []
+        queries = Utils.form_dataframe(queries)
+        for index, row in tqdm(queries.iterrows(), total=queries.shape[0], unit="q") if self.verbose else queries.iterrows():
             rank = 0
-            srq = self.manager.newSearchRequest(str(row['qid']),row['query'])
-            for control,value in self.controls.items():
-                srq.setControl(control,value)
+            srq = self.manager.newSearchRequest(str(row['qid']), row['query'])
+            for control, value in self.controls.items():
+                srq.setControl(control, value)
             self.manager.runSearchRequest(srq)
-            result=srq.getResults()
+            result = srq.getResults()
             for item in result:
                 metadata_list = []
                 for meta_column in metadata:
                     metadata_list.append(item.getMetadata(meta_column))
-                res = [str(row['qid'])] + metadata_list + [rank,item.getScore()]
+                res = [str(row['qid'])] + metadata_list + [rank, item.getScore()]
                 rank += 1
                 results.append(res)
-        res_dt=pd.DataFrame(results,columns=['qid',] + metadata + ['rank','score'])
+        res_dt = pd.DataFrame(results, columns=['qid', ] + metadata + ['rank', 'score'])
         return res_dt
 
     def __str__(self):
@@ -133,11 +134,10 @@ class BatchRetrieve:
 
     def setControls(self, controls):
         for key, value in controls.items():
-            self.controls[key]=value
+            self.controls[key] = value
 
-    def setControl(self, control,value):
-        self.controls[control]=value
-
+    def setControl(self, control, value):
+        self.controls[control] = value
 
 def _mergeDicts(defaults, settings):
     KV = defaults.copy()
@@ -173,15 +173,15 @@ class FeaturesBatchRetrieve(BatchRetrieve):
                 properties(dict): A dictionary with with the control names and values
                 verbose(bool): If True transform method will display progress
         """
-        #if props==None:
-        #    importProps()
+        # if props==None:
+        #     importProps()
         controls = _mergeDicts(FeaturesBatchRetrieve.FBR_default_controls, controls)
         properties = _mergeDicts(FeaturesBatchRetrieve.FBR_default_properties, properties)
-        self.features=features
-        properties["fat.featured.scoring.matching.features"]=";".join(features)
-        super().__init__(index_location,controls=controls,properties=properties, verbose=verbose)
+        self.features = features
+        properties["fat.featured.scoring.matching.features"] = ";".join(features)
+        super().__init__(index_location, controls=controls, properties=properties, verbose=verbose)
 
-    def transform(self,topics):
+    def transform(self, topics):
         """
         Performs the retrieval with multiple features
 
@@ -191,22 +191,22 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         Returns:
             pandas.Dataframe with columns=['qid', 'docno', 'score', 'features']
         """
-        results=[]
-        queries=Utils.form_dataframe(topics)
-        for index,row in tqdm(queries.iterrows(), total=queries.shape[0], unit="q") if self.verbose else queries.iterrows():
-            srq = self.manager.newSearchRequest(row['qid'],row['query'])
-            for control,value in self.controls.items():
-                srq.setControl(control,value)
+        results = []
+        queries = Utils.form_dataframe(topics)
+        for index, row in tqdm(queries.iterrows(), total=queries.shape[0], unit="q") if self.verbose else queries.iterrows():
+            srq = self.manager.newSearchRequest(row['qid'], row['query'])
+            for control, value in self.controls.items():
+                srq.setControl(control, value)
             self.manager.runSearchRequest(srq)
-            srq=cast('org.terrier.querying.Request',srq)
-            fres=cast('org.terrier.learning.FeaturedResultSet', srq.getResultSet())
+            srq = cast('org.terrier.querying.Request', srq)
+            fres = cast('org.terrier.learning.FeaturedResultSet', srq.getResultSet())
             feat_names = fres.getFeatureNames()
             feats_values = []
             for feat in feat_names:
                 feats_values.append(fres.getFeatureScores(feat))
             for i in range(fres.getResultSize()):
-                elem=[]
-                start_time = time.time()
+                elem = []
+                # start_time = time.time()
                 elem.append(row["qid"])
                 elem.append(fres.getMetaItems("docno")[i])
                 elem.append(fres.getScores()[i])
@@ -214,12 +214,12 @@ class FeaturesBatchRetrieve(BatchRetrieve):
                 for j in range(len(feats_values)):
                     feats_array.append(feats_values[j][i])
                 feats_array = np.array(feats_array)
-                start_time = time.time()
+                # start_time = time.time()
                 elem.append(feats_array)
                 results.append(elem)
 
-        res_dt=pd.DataFrame(results, columns=["qid", "docno", "score", "features"])
+        res_dt = pd.DataFrame(results, columns=["qid", "docno", "score", "features"])
         return res_dt
 
     def __str__(self):
-        return "FBR(" + self.controls["wmodel"] + " and "+str(len(self.features))+" features)"
+        return "FBR(" + self.controls["wmodel"] + " and " + str(len(self.features)) + " features)"
