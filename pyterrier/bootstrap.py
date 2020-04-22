@@ -56,7 +56,6 @@ def setup_terrier(file_path, terrier_version=None, helper_version=None):
         terrier_version(str): Which version of Terrier - None is latest
         helper_version(str): Which version of the helper - None is latest
     """
-    file_path = os.path.dirname(os.path.abspath(__file__))
     # If version is not specified, find newest and download it
     if terrier_version is None:
         terrier_version = mavenresolver.latest_version_num(TERRIER_PKG, "terrier-assemblies")
