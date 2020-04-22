@@ -3,13 +3,9 @@ import pandas as pd
 import pyterrier as pt
 import unittest
 import os
+from .base import BaseTestCase
 
-
-class TestUtils(unittest.TestCase):
-    def __init__(self, *args, **kwargs):
-        super(TestUtils, self).__init__(*args, **kwargs)
-        if not pt.started():
-            pt.init()
+class TestUtils(BaseTestCase):
 
     def test_parse_trec_topics_file(self):
         input = os.path.dirname(os.path.realpath(__file__)) + "/fixtures/topics.trec"

@@ -1,12 +1,9 @@
 import pyterrier as pt
 import unittest
+from .base import BaseTestCase
 
 
-class TestTopicsParsing(unittest.TestCase):
-    def __init__(self, *args, **kwargs):
-        super(TestTopicsParsing, self).__init__(*args, **kwargs)
-        if not pt.started():
-            pt.init()
+class TestTopicsParsing(BaseTestCase):
 
     def testSingleLine(self):
         import os

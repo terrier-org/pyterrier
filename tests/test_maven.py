@@ -5,8 +5,8 @@ import shutil
 import tempfile
 from os import path
 
-
 class TestMaven(unittest.TestCase):
+    ''' This doesn't rely on Terrier, so doesn't inherit from BaseTestCase '''
 
     def __init__(self, *args, **kwargs):
         super(TestMaven, self).__init__(*args, **kwargs)

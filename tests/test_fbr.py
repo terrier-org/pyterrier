@@ -2,14 +2,9 @@ import pandas as pd
 import unittest
 import os
 import pyterrier as pt
+from .base import BaseTestCase
 
-class TestFeaturesBatchRetrieve(unittest.TestCase):
-
-    def __init__(self, *args, **kwargs):
-        super(TestFeaturesBatchRetrieve, self).__init__(*args, **kwargs)
-        if not pt.started():
-            pt.init()
-        self.here = os.path.dirname(os.path.realpath(__file__))
+class TestFeaturesBatchRetrieve(BaseTestCase):
 
     def test_fbr_ltr(self):
         JIR = pt.autoclass('org.terrier.querying.IndexRef')
@@ -40,3 +35,6 @@ class TestFeaturesBatchRetrieve(unittest.TestCase):
         retrBasic = pt.BatchRetrieve(indexref)
         if "matching" in retrBasic.controls:
             self.assertNotEqual(retrBasic.controls["matching"], "FatFeaturedScoringMatching,org.terrier.matching.daat.FatFull")
+
+if __name__ == "__main__":
+    unittest.main()

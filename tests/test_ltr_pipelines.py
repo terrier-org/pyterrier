@@ -1,15 +1,9 @@
 import pyterrier as pt
 import os
 import unittest
+from .base import BaseTestCase
 
-
-class TestLTRPipeline(unittest.TestCase):
-
-    def __init__(self, *args, **kwargs):
-        super(TestLTRPipeline, self).__init__(*args, **kwargs)
-        if not pt.started():
-            pt.init()
-        self.here = os.path.dirname(os.path.realpath(__file__))
+class TestLTRPipeline(BaseTestCase):
 
     def test_xgltr_pipeline(self):
         import xgboost as xgb
@@ -58,3 +52,6 @@ class TestLTRPipeline(unittest.TestCase):
             pipeline.transform(topics),
             qrels,
         )
+
+if __name__ == "__main__":
+    unittest.main()

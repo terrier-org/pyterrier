@@ -1,13 +1,9 @@
 import unittest
 import pyterrier as pt
 import tempfile
+from .base import BaseTestCase
 
-class TestDunder(unittest.TestCase):
-
-    def __init__(self, *args, **kwargs):
-        super(TestDunder, self).__init__(*args, **kwargs)
-        if not pt.started():
-            pt.init()
+class TestDunder(BaseTestCase):
 
     def setUp(self):
         # Create a temporary directory

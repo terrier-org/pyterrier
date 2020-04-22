@@ -1,16 +1,10 @@
 import pandas as pd
-import unittest
-import os
 import pyterrier as pt
+import os
+import unittest
+from .base import BaseTestCase
 
-
-class TestBatchRetrieve(unittest.TestCase):
-
-    def __init__(self, *args, **kwargs):
-        super(TestBatchRetrieve, self).__init__(*args, **kwargs)
-        if not pt.started():
-            pt.init()
-        self.here = os.path.dirname(os.path.realpath(__file__))
+class TestBatchRetrieve(BaseTestCase):
 
     def test_form_dataframe_with_string(self):
         input = "light"
@@ -72,7 +66,6 @@ class TestBatchRetrieve(unittest.TestCase):
             self.assertEqual(str(row['qid']), exp_result[index][0])
             self.assertEqual(row['docno'], exp_result[index][1])
             self.assertAlmostEqual(row['score'], exp_result[index][2])
-
 
 if __name__ == "__main__":
     unittest.main()

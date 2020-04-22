@@ -3,13 +3,9 @@ import pyterrier as pt
 import unittest
 import tempfile
 import shutil
+from .base import BaseTestCase
 
-class TestDFIndexer(unittest.TestCase):
-
-    def __init__(self, *args, **kwargs):
-        super(TestDFIndexer, self).__init__(*args, **kwargs)
-        if not pt.started():
-            pt.init(logging="DEBUG")
+class TestDFIndexer(BaseTestCase):
 
     def setUp(self):
         # Create a temporary directory

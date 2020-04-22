@@ -1,12 +1,8 @@
 import unittest
 import pyterrier as pt
+from .base import BaseTestCase
 
-class TestDatasets(unittest.TestCase):
-
-    def __init__(self, *args, **kwargs):
-        super(TestDatasets, self).__init__(*args, **kwargs)
-        if not pt.started():
-            pt.init()
+class TestDatasets(BaseTestCase):
 
     def test_vaswani(self):
         import pyterrier as pt
@@ -32,3 +28,6 @@ class TestDatasets(unittest.TestCase):
         topics = dataset.get_topics()
         self.assertIsNotNone(topics)
         self.assertEqual(len(topics), 93)
+
+if __name__ == "__main__":
+    unittest.main()
