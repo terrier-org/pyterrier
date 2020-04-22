@@ -131,7 +131,7 @@ class BatchRetrieve:
             run_name = self.controls["wmodel"]
         res_copy = result.copy()[["qid", "docno", "rank", "score"]]
         res_copy.insert(1, "Q0", "Q0")
-        res_copy.insert(5, "run_name", name)
+        res_copy.insert(5, "run_name", run_name)
         res_copy.to_csv(path, sep=" ", header=False, index=False)
 
     def setControls(self, controls):
