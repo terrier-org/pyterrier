@@ -26,6 +26,7 @@ class TestTRECIndexer(unittest.TestCase):
 
     def test_TREC_indexing(self):
         indexer = pt.TRECCollectionIndexer(self.test_dir)
+        pt.redirect_stdouterr()
         indexRef = indexer.index(pt.Utils.get_files_in_dir(self.here + "/fixtures/vaswani_npl/corpus/"))
         self.assertIsNotNone(indexRef)
         index = pt.IndexFactory.of(indexRef)

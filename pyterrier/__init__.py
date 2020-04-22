@@ -1,9 +1,5 @@
 import os
-# import pandas as pd
-#from .bootstrap import logging, setup_logging, setup_terrier, setup_jnius
 from .bootstrap import setup_logging, setup_terrier, setup_jnius
-#from . import mavenresolver
-#from . utils import Utils
 from . import datasets
 
 file_path = os.path.dirname(os.path.abspath(__file__))
@@ -14,7 +10,6 @@ IndexRef = None
 properties = None
 
 HOME_DIR = None
-
 
 def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, logging='WARN', home_dir=None):
     """
