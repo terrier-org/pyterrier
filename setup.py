@@ -34,7 +34,8 @@ setup(
         "pandas",
         "wget",
         "pytrec_eval",
-        "tqdm"
+        "tqdm",
+        "deprecation"
     ],
     python_requires='>=3.6',
 )
