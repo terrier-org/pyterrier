@@ -11,7 +11,7 @@ properties = None
 
 HOME_DIR = None
 
-def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, logging='WARN', home_dir=None):
+def init(version=None, mem=4096, packages=[], jvm_opts=[], redirect_io=True, logging='WARN', home_dir=None):
     """
     Function necessary to be called before Terrier classes and methods can be used.
     Loads the Terrier.jar file and imports classes. Also finds the correct version of Terrier to download if no version is specified.
@@ -19,8 +19,14 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     Args:
         version(str): Which version of Terrier to download. Default=None.
             If None, find the newest Terrier version in maven and download it.
-        mem: Maximum memory allocated for java heap in MB. Default=4096.
-        packages: Extra .jar files to load.
+        mem(str): Maximum memory allocated for java heap in MB. Default=4096.
+        packages(list(str)): Extra .jar files to load. Default=[].
+        jvm_opts(list(str)): Extra options to pass to the JVM. Default=[].
+        redirect_io(boolean): If True, the Java System.out and System.err will be redirected to Pythons sys.out and sys.err. Default=True.
+        logging(str): the logging level to use.
+                      Can be one of 'INFO', 'DEBUG', 'TRACE', 'WARN', 'ERROR'. The latter is the quietest.
+                      Default='WARN'.
+        home_dir(str): the home directory to use. Default to PYTERRIER_HOME environment variable.
     """
     global ApplicationSetup
     global properties
