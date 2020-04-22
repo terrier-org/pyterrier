@@ -1,14 +1,16 @@
 
 from pyterrier import mavenresolver
 import unittest
-import shutil, tempfile
+import shutil
+import tempfile
 from os import path
+
 
 class TestMaven(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(TestMaven, self).__init__(*args, **kwargs)
-    
+
     def setUp(self):
         # Create a temporary directory
         self.test_dir = tempfile.mkdtemp()
