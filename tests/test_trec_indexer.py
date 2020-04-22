@@ -1,8 +1,10 @@
 import pyterrier as pt
 
-import unittest, math, os
-import shutil, tempfile
-from os import path
+import unittest
+import os
+import shutil
+import tempfile
+
 
 class TestTRECIndexer(unittest.TestCase):
 
@@ -12,7 +14,7 @@ class TestTRECIndexer(unittest.TestCase):
             pt.init(logging="DEBUG")
         # else:
         #     pt.setup_logging("DEBUG")
-        self.here=os.path.dirname(os.path.realpath(__file__))
+        self.here = os.path.dirname(os.path.realpath(__file__))
 
     def setUp(self):
         # Create a temporary directory

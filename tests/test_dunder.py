@@ -1,6 +1,5 @@
 import unittest
 import pyterrier as pt
-import os
 import tempfile
 
 class TestDunder(unittest.TestCase):
@@ -9,12 +8,12 @@ class TestDunder(unittest.TestCase):
         super(TestDunder, self).__init__(*args, **kwargs)
         if not pt.started():
             pt.init()
-        
+
     def setUp(self):
         # Create a temporary directory
         self.test_dir = tempfile.mkdtemp()
         print(str(self.test_dir))
-		
+
     def tearDown(self):
         import shutil
         shutil.rmtree(self.test_dir)
@@ -26,25 +25,25 @@ class TestDunder(unittest.TestCase):
                 ['1', '2', '3'],
             'text':
                 ['He ran out of money, so he had to stop playing',
-                'The waves were crashing on the shore; it was a',
-                'The body may perhaps compensates for the loss']
+                 'The waves were crashing on the shore; it was a',
+                 'The body may perhaps compensates for the loss']
         })
         import pyterrier as pt
         pd_indexer = pt.DFIndexer(self.test_dir)
-        pd_indexer.properties["termpipelines"]=""
-        indexref=pd_indexer.index(df["text"], df["docno"])
+        pd_indexer.properties["termpipelines"] = ""
+        indexref = pd_indexer.index(df["text"], df["docno"])
         index = pt.IndexFactory.of(indexref)
         self.assertIsNotNone(index)
         self.assertIsNotNone(index.getLexicon())
         self.assertTrue("__getitem__" in dir(index.getLexicon()))
-        crashingSeen=False
+        crashingSeen = False
 
         # test out __len__ mapping
-        self.assertEqual(len(index.getLexicon()), index.getLexicon().numberOfEntries() )
+        self.assertEqual(len(index.getLexicon()), index.getLexicon().numberOfEntries())
         # lexicon is Iterable, test the Iterable mapping of jnius
         for t in index.getLexicon():
             if t.getKey() == "crashing":
-                crashingSeen  = True
+                crashingSeen = True
                 break
         self.assertTrue(crashingSeen)
         # test our own __getitem__ mapping
@@ -52,9 +51,9 @@ class TestDunder(unittest.TestCase):
         self.assertEqual(1, index.getLexicon()["crashing"].getFrequency())
         self.assertFalse("dentish" in index.getLexicon())
 
-        #now test that IterablePosting has had its dunder methods added
+        # now test that IterablePosting has had its dunder methods added
         postings = index.getInvertedIndex().getPostings(index.getLexicon()["crashing"])
-        count=0
+        count = 0
         for p in postings:
             count += 1
             self.assertEqual(1, p.getId())

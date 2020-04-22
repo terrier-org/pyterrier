@@ -1,9 +1,8 @@
-
 import pyterrier as pt
 
-import unittest, math, os
-import shutil, tempfile
-from os import path
+import unittest
+import tempfile
+import shutil
 
 class TestDFIndexer(unittest.TestCase):
 
@@ -11,8 +10,6 @@ class TestDFIndexer(unittest.TestCase):
         super(TestDFIndexer, self).__init__(*args, **kwargs)
         if not pt.started():
             pt.init(logging="DEBUG")
-        # else:
-        #     pt.setup_logging("DEBUG")
 
     def setUp(self):
         # Create a temporary directory
@@ -24,21 +21,20 @@ class TestDFIndexer(unittest.TestCase):
 
     def _create_index(self, df):
         pd_indexer = pt.DFIndexer(self.test_dir)
-        indexref=pd_indexer.index(df["text"], df["docno"])
+        indexref = pd_indexer.index(df["text"], df["docno"])
         self.assertIsNotNone(indexref)
         return indexref
 
     def _make_check_index(self, n):
         import pandas as pd
         df = pd.DataFrame({
-            'docno':
-                ['1', '2', '3'],
+            'docno': ['1', '2', '3'],
             'url':
                 ['url1', 'url2', 'url3'],
             'text':
                 ['He ran out of money, so he had to stop playing',
-                'The waves were crashing on the shore; it was a',
-                'The body may perhaps compensates for the loss']
+                 'The waves were crashing on the shore; it was a',
+                 'The body may perhaps compensates for the loss']
         })
         df = df.head(n)
         indexref = self._create_index(df)
@@ -46,8 +42,7 @@ class TestDFIndexer(unittest.TestCase):
         self.assertIsNotNone(index)
         self.assertEqual(n, index.getCollectionStatistics().getNumberOfDocuments())
         self.assertTrue("docno" in index.getMetaIndex().getKeys())
-        #self.assertTrue("url" in index.getMetaIndex().getKeys())
-        
+        # self.assertTrue("url" in index.getMetaIndex().getKeys())
 
     def test_checkjavaDocIteratr(self):
         import pandas as pd
@@ -58,12 +53,13 @@ class TestDFIndexer(unittest.TestCase):
                 ['url1', 'url2', 'url3'],
             'text':
                 ['He ran out of money, so he had to stop playing',
-                'The waves were crashing on the shore; it was a',
-                'The body may perhaps compensates for the loss']
+                 'The waves were crashing on the shore; it was a',
+                 'The body may perhaps compensates for the loss']
         })
-        d1 = df.head(1)
-        import pyterrier as pt
+
         from pyterrier import DFIndexUtils
+
+        d1 = df.head(1)
         jIter1 = DFIndexUtils.create_javaDocIterator(d1["text"], d1["docno"])
         self.assertTrue(jIter1.hasNext())
         self.assertIsNotNone(jIter1.next())
@@ -77,7 +73,6 @@ class TestDFIndexer(unittest.TestCase):
         self.assertIsNotNone(jIter1.next())
         self.assertFalse(jIter1.hasNext())
 
-
     def test_createindex1(self):
         self._make_check_index(1)
 
@@ -86,8 +81,6 @@ class TestDFIndexer(unittest.TestCase):
 
     def test_createindex3(self):
         self._make_check_index(3)
-        
-
 
 if __name__ == "__main__":
     unittest.main()
