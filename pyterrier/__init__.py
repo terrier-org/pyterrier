@@ -20,7 +20,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
         version(str): Which version of Terrier to download. Default=None.
             If None, find the newest Terrier version in maven and download it.
         mem(str): Maximum memory allocated for java heap in MB. Default is 1/4 of physical memory.
-        packages(list(str)): Extra maven package coordinates files to load. Default=[]. More information at http://terrier.org/docs/v5.0/terrier_develop.html
+        packages(list(str)): Extra maven package coordinates files to load. Default=[]. More information at https://github.com/terrier-org/terrier-core/blob/5.x/doc/terrier_develop.md
         jvm_opts(list(str)): Extra options to pass to the JVM. Default=[].
         redirect_io(boolean): If True, the Java System.out and System.err will be redirected to Pythons sys.out and sys.err. Default=True.
         logging(str): the logging level to use.
