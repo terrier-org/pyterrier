@@ -8,6 +8,7 @@ stderr_ref = None
 TERRIER_PKG = "org.terrier"
 
 @deprecation.deprecated(deprecated_in="0.1.3",
+                        # remove_id="",
                         details="Use the logging(level) function instead")
 def setup_logging(level):
     logging(level)
