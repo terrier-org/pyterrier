@@ -2,7 +2,8 @@ package org.terrier.python;
 
 import java.io.OutputStream;
 
-/** This class allows an OutputStream to be redirected
+/**
+  * This class allows an OutputStream to be redirected
   * to an interface, namely OutputStreamable.
   */
 public class ProxyableOutputStream extends OutputStream

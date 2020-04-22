@@ -61,7 +61,6 @@ def run_autoclass():
     IndexRef = autoclass('org.terrier.querying.IndexRef')
     IndexFactory = autoclass('org.terrier.structures.IndexFactory')
 
-
 class Indexer:
     """
     Parent class. It can be used to load an existing index.
@@ -271,7 +270,6 @@ class DFIndexer(Indexer):
         self.index_called = True
         collectionIterator = None
         return IndexRef.of(self.index_dir + "/data.properties")
-
 
 class PythonListIterator(PythonJavaClass):
     __javainterfaces__ = ['java/util/Iterator']

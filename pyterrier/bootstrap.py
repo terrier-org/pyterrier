@@ -1,11 +1,16 @@
 import os
+import deprecation
+
 from . import mavenresolver
 
 stdout_ref = None
 stderr_ref = None
 TERRIER_PKG = "org.terrier"
 
-def setup_logging(level): # deprecated
+@deprecation.deprecated(deprecated_in="0.1.3",
+                        # remove_id="",
+                        details="Use the logging(level) function instead")
+def setup_logging(level):
     logging(level)
 
 def logging(level):
@@ -67,7 +72,6 @@ def setup_terrier(file_path, terrier_version=None, helper_version=None):
         helper_version = str(helper_version) # just in case its a float
     helperJar = mavenresolver.downloadfile(TERRIER_PKG, "terrier-python-helper", helper_version, file_path, "jar")
     return [trJar, helperJar]
-
 
 def is_binary(f):
     import io

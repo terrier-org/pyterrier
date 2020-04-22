@@ -1,9 +1,5 @@
 import os
-# import pandas as pd
-#from .bootstrap import logging, setup_logging, setup_terrier, setup_jnius
 from .bootstrap import setup_logging, setup_terrier, setup_jnius
-#from . import mavenresolver
-#from . utils import Utils
 from . import datasets
 
 file_path = os.path.dirname(os.path.abspath(__file__))
@@ -15,7 +11,6 @@ properties = None
 
 HOME_DIR = None
 
-
 def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, logging='WARN', home_dir=None):
     """
     Function necessary to be called before Terrier classes and methods can be used.
@@ -24,8 +19,14 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     Args:
         version(str): Which version of Terrier to download. Default=None.
             If None, find the newest Terrier version in maven and download it.
-        mem: Maximum memory allocated for java heap in MB. Default=4096.
-        packages: Extra .jar files to load.
+        mem(str): Maximum memory allocated for java heap in MB. Default is 1/4 of physical memory.
+        packages(list(str)): Extra maven package coordinates files to load. Default=[]. More information at https://github.com/terrier-org/terrier-core/blob/5.x/doc/terrier_develop.md
+        jvm_opts(list(str)): Extra options to pass to the JVM. Default=[].
+        redirect_io(boolean): If True, the Java System.out and System.err will be redirected to Pythons sys.out and sys.err. Default=True.
+        logging(str): the logging level to use.
+                      Can be one of 'INFO', 'DEBUG', 'TRACE', 'WARN', 'ERROR'. The latter is the quietest.
+                      Default='WARN'.
+        home_dir(str): the home directory to use. Default to PYTERRIER_HOME environment variable.
     """
     global ApplicationSetup
     global properties
