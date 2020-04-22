@@ -18,7 +18,7 @@ jobs:
         java: [8, 13]
         os: ['ubuntu-latest', 'macOs-latest']
         architecture: ['x64']
-        terrier: ['5.2'. '5.3-SNAPSHOT']
+        terrier: ['5.2', '5.3-SNAPSHOT']
 
     runs-on: ${{ matrix.os }}
     steps:
