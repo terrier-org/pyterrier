@@ -105,6 +105,13 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
 def started():
     return(firstInit)
 
+def check_version(min):
+    from jnius import autoclass
+    from packaging import version
+    min = version(min)
+    currentVer = version(autoclass("org.terrier.Version").VERSION)
+    return currentVer >= min
+
 def redirect_stdouterr():
     from . import bootstrap
     bootstrap.redirect_stdouterr()

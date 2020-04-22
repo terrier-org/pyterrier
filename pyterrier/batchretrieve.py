@@ -104,12 +104,45 @@ class BatchRetrieve:
             pandas.Dataframe with columns=['qid', 'docno', 'rank', 'score']
         """
         results=[]
-        queries=Utils.form_dataframe(queries)
+        if not isinstance(queries, pd.DataFrame):
+            queries=Utils.form_dataframe(queries)
+        docno_provided = "docno" in queries.columns
+        docid_provided = "docid" in queries.columns
+        scores_provided = "scores" in queries.columns
+        if docno_provided or docid_provided:
+            from . import check_version
+            assert check_version(5.2)
+            input_results = queries
+
+            # query is optional, and functionally dependent on qid.
+            # Hence as long as one row has the query for each qid, 
+            # the rest can be None
+            queries = input_results[["qid", "query"]].dropna(axis=0, subset=["query"]).drop_duplicates()
+            RequestContextMatching = autoclass("org.terrier.python.RequestContextMatching")
+
         for index,row in tqdm(queries.iterrows(), total=queries.shape[0], unit="q") if self.verbose else queries.iterrows():
             rank = 0
-            srq = self.manager.newSearchRequest(str(row['qid']),row['query'])
+            qid = str(row['qid'])
+            srq = self.manager.newSearchRequest(qid,row['query'])
             for control,value in self.controls.items():
                 srq.setControl(control,value)
+
+            # this handles the case that a candidate set of documents has been set. 
+            if docno_provided or docid_provided:
+                # we use RequestContextMatching to make a ResultSet from the 
+                # documents in the candidate set. 
+                matching_config_factory = RequestContextMatching.of(srq)
+                input_query_results = input_results[input_results["qid"] == qid]
+                if docno_provided:
+                    matching_config_factory.fromDocnos(input_query_results["docno"].values.tolist())
+                elif docid_provided:
+                    matching_config_factory.fromDocids(input_query_results["docid"].values.tolist())
+                if scores_provided:
+                    matching_config_factory.withScores(input_query_results["scores"].values.tolist())
+                matching_config_factory.build()
+                srq.setControl("matching", "org.terrier.matching.ScoringMatching" + "," + srq.getControl("matching"))
+            
+            # now ask Terrier to run the request
             self.manager.runSearchRequest(srq)
             result=srq.getResults()
             for item in result:
