@@ -40,7 +40,7 @@ jobs:
       run: |
         git clone https://github.com/terrier-org/terrier-core.git
         cd terrier-core
-        mvn -DskipTests install
+        mvn -B -DskipTests install
 
     - name: Install Python dependencies
       run: |
@@ -64,4 +64,4 @@ jobs:
         #install this software
         pip install --timeout=120 .
         pip install pytest
-        pytest -s
+        pytest
