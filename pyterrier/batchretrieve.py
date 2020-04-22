@@ -126,10 +126,12 @@ class BatchRetrieve:
     def __str__(self):
         return "BR(" + self.controls["wmodel"] + ")"
 
-    def saveResult(self, result, path):
-        res_copy = result.copy()
+    def saveResult(self, result, path, run_name=None):
+        if run_name is None:
+            run_name = self.controls["wmodel"]
+        res_copy = result.copy()[["qid", "docno", "rank", "score"]]
         res_copy.insert(1, "Q0", "Q0")
-        res_copy.insert(5, "wmodel", self.controls["wmodel"])
+        res_copy.insert(5, "run_name", name)
         res_copy.to_csv(path, sep=" ", header=False, index=False)
 
     def setControls(self, controls):
