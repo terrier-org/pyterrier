@@ -9,10 +9,25 @@ class TransformerBase:
         pass
 
     def __rshift__(self, right):
+        # if isinstance(self, ComposedPipeline):
+        #      self.models.append(right)
+        #      return self
+        # if isinstance(right, ComposedPipeline):
+        #     right.models.append(self)
+        #     return right
         return ComposedPipeline(models=[self, right])
 
     def __add__(self, right):
         return CombSumTransformer(self, right)
+
+    def __pow__(self, right):
+        # if isinstance(self, FeatureUnionPipeline):
+        #      self.models.append(right)
+        #      return self
+        # if isinstance(right, FeatureUnionPipeline):
+        #     right.models.append(self)
+        #     return right
+        return FeatureUnionPipeline([self, right])
 
     def __mul__(self, rhs):
         assert isinstance(rhs, int) or isinstance(rhs, float)
@@ -53,6 +68,12 @@ class BinaryTransformerBase(TransformerBase):
         super(BinaryTransformerBase, self).__init__()
         self.left = left
         self.right = right
+
+class NAryTransformerBase(TransformerBase):
+
+    def __init__(self, models):
+        super(NAryTransformerBase, self).__init__()
+        self.models = list( map(lambda x : LambdaPipeline(x) if callable(x) else x, models) )
 
 class SetUnionTransformer(BinaryTransformerBase):
 
@@ -116,9 +137,32 @@ class LambdaPipeline(TransformerBase):
         fn = self.fn
         return fn(inputRes)
 
-class ComposedPipeline(TransformerBase):
+class FeatureUnionPipeline(NAryTransformerBase):
+
+    def transform(self, inputRes):
+        assert "docno" in inputRes.columns or "docid" in inputRes.columns
+        
+        all_results = []
+        for m in self.models:
+            results = m.transform(inputRes).rename(columns={"score" : "features"})
+            all_results.append( results )
+        
+        def _reduce_fn(left, right):
+            import pandas as pd
+            import numpy as np
+            rtr = pd.merge(left, right, on=["qid", "docno"])
+            rtr["features"] = rtr.apply(lambda row : np.stack([row["features_x"], row["features_y"]]), axis=1)
+            rtr.drop(columns=["features_x", "features_y"], inplace=True)
+            return rtr
+        
+        from functools import reduce
+        final_DF = reduce(_reduce_fn, all_results)
+        final_DF = inputRes.merge(final_DF, on=["qid", "docno"])
+        return final_DF
+
+class ComposedPipeline(NAryTransformerBase):
     """ 
-    This class allows pipeline components to be chained together.
+    This class allows pipeline components to be chained together using the "then" operator.
 
     :Example:
 
@@ -128,10 +172,6 @@ class ComposedPipeline(TransformerBase):
     >>> comp = ComposedPipeline([DPH_br, lambda res : res[res["rank"] < 2]])
     
     """
-    def __init__(self, models=[]):
-        super(ComposedPipeline, self).__init__()
-        import types
-        self.models = list( map(lambda x : LambdaPipeline(x) if callable(x) else x, models) )
     
     def transform(self, topics):
         for m in self.models:
