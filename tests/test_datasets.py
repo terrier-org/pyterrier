@@ -1,16 +1,8 @@
-import pandas as pd
-import unittest, math, os, ast, statistics
+import unittest
 import pyterrier as pt
+from .base import BaseTestCase
 
-
-
-
-class TestDatasets(unittest.TestCase):
-
-    def __init__(self, *args, **kwargs):
-        super(TestDatasets, self).__init__(*args, **kwargs)
-        if not pt.started():
-            pt.init()
+class TestDatasets(BaseTestCase):
 
     def test_vaswani(self):
         import pyterrier as pt
@@ -30,9 +22,12 @@ class TestDatasets(unittest.TestCase):
         with pt.IndexFactory.of(indexref) as index:
             self.assertIsNotNone(index)
             self.assertEqual(index.getCollectionStatistics().getNumberOfDocuments(), 11429)
-        
-        #do it once again, to ensure it works locally
+
+        # do it once again, to ensure it works locally
         dataset = pt.datasets.get_dataset("vaswani")
         topics = dataset.get_topics()
         self.assertIsNotNone(topics)
         self.assertEqual(len(topics), 93)
+
+if __name__ == "__main__":
+    unittest.main()

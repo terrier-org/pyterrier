@@ -14,10 +14,11 @@ jobs:
     
     strategy:
       matrix:
-        python-version: [3.6, 3.7, 3.8]
-        java: [8, 11, 13]
+        python-version: [3.6, 3.8]
+        java: [8, 13]
         os: ['ubuntu-latest', 'macOs-latest']
         architecture: ['x64']
+        terrier: ['5.2', '5.3-SNAPSHOT']
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -34,7 +35,14 @@ jobs:
         java-version: ${{ matrix.java }}
         architecture: ${{ matrix.architecture }}
     
-    - name: Install dependencies
+    - name: Install Terrier snapshot
+      if: matrix.terrier == '5.3-SNAPSHOT'
+      run: |
+        git clone https://github.com/terrier-org/terrier-core.git
+        cd terrier-core
+        mvn -B -DskipTests install
+
+    - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
         pip install --upgrade git+https://github.com/kivy/pyjnius.git#egg=pyjnius
@@ -50,6 +58,8 @@ jobs:
         #flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
         
     - name: Test with pytest
+      env:
+        TERRIER_VERSION: ${{ matrix.terrier }}
       run: |
         #install this software
         pip install --timeout=120 .
