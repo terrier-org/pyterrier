@@ -109,7 +109,7 @@ def started():
 def check_version(min):
     from jnius import autoclass
     from packaging.version import Version
-    min = Version(min)
+    min = Version(str(min))
     currentVer = Version(autoclass("org.terrier.Version").VERSION.replace("-SNAPSHOT", ""))
     return currentVer >= min
 
