@@ -8,6 +8,7 @@ from jnius import autoclass, PythonJavaClass, java_method
 import pandas as pd
 # import numpy as np
 import os
+import enum
 
 StringReader = None
 HashMap = None
@@ -67,6 +68,13 @@ def run_autoclass():
     IndexRef = autoclass('org.terrier.querying.IndexRef')
     IndexFactory = autoclass('org.terrier.structures.IndexFactory')
 
+
+# Using enum class create enumerations
+class IndexingType(enum.Enum):
+    CLASSIC = 1
+    SINGLEPASS = 2
+    MEMORY = 3
+
 class Indexer:
     """
     Parent class. It can be used to load an existing index.
@@ -90,7 +98,7 @@ class Indexer:
             "trec.collection.class": "TRECCollection",
     }
 
-    def __init__(self, index_path, blocks=False, overwrite=False, single_pass=True):
+    def __init__(self, index_path, blocks=False, overwrite=False, type=IndexingType.CLASSIC):
         """
         Init method
 
@@ -98,7 +106,7 @@ class Indexer:
             index_path (str): Directory to store index
             blocks (bool): Create indexer with blocks if true, else without blocks
             overwrite (bool): If index already present at `index_path`, True would overwrite it, False throws an Exception
-            single_pass (bool): If true, the direct index creation is skipped.
+            type (IndexingType): the specific indexing procedure to use. Default is IndexingType.CLASSIC.
         """
         if StringReader is None:
             run_autoclass()
@@ -106,7 +114,7 @@ class Indexer:
         self.index_called = False
         self.index_dir = index_path
         self.blocks = blocks
-        self.single_pass = single_pass
+        self.type = type
         self.properties = Properties()
         self.setProperties(**self.default_properties)
         self.overwrite = overwrite
@@ -148,16 +156,19 @@ class Indexer:
         """
         ApplicationSetup.getProperties().putAll(self.properties)
         # ApplicationSetup.bootstrapInitialisation(self.properties)
-        if self.single_pass:
+        if self.type is IndexingType.SINGLEPASS:
             if self.blocks:
                 index = BlockSinglePassIndexer(self.index_dir, "data")
             else:
                 index = BasicSinglePassIndexer(self.index_dir, "data")
-        else:
+        elif self.type is IndexingType.CLASSIC:
             if self.blocks:
                 index = BlockIndexer(self.index_dir, "data")
             else:
                 index = BasicIndexer(self.index_dir, "data")
+        else:
+            raise Exception("Memory indexing not yet implemented")
+
         return index
 
     def createAsList(self, files_path):

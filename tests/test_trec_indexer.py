@@ -25,7 +25,7 @@ class TestTRECIndexer(unittest.TestCase):
         shutil.rmtree(self.test_dir)
 
     def test_TREC_indexing(self):
-        indexer = pt.TRECCollectionIndexer(self.test_dir, single_pass=False)
+        indexer = pt.TRECCollectionIndexer(self.test_dir)
         indexRef = indexer.index(pt.Utils.get_files_in_dir(self.here + "/fixtures/vaswani_npl/corpus/"))
         self.assertIsNotNone(indexRef)
         index = pt.IndexFactory.of(indexRef)
@@ -33,7 +33,7 @@ class TestTRECIndexer(unittest.TestCase):
         self.assertTrue(os.path.isfile(self.test_dir + '/data.direct.bf'))
 
     def test_TREC_indexing_singlepass(self):
-        indexer = pt.TRECCollectionIndexer(self.test_dir, single_pass=True)
+        indexer = pt.TRECCollectionIndexer(self.test_dir, type=pt.IndexingType.SINGLEPASS)
         indexRef = indexer.index(pt.Utils.get_files_in_dir(self.here + "/fixtures/vaswani_npl/corpus/"))
         self.assertIsNotNone(indexRef)
         index = pt.IndexFactory.of(indexRef)

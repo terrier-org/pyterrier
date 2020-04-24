@@ -17,8 +17,8 @@ class TestDFIndexer(BaseTestCase):
         # Remove the directory after the test
         shutil.rmtree(self.test_dir)
 
-    def _create_index(self, df, single_pass):
-        pd_indexer = pt.DFIndexer(self.test_dir, single_pass=single_pass)
+    def _create_index(self, df, type):
+        pd_indexer = pt.DFIndexer(self.test_dir, type=type)
         indexref = pd_indexer.index(df["text"], df["docno"])
         self.assertIsNotNone(indexref)
         return indexref
@@ -35,7 +35,10 @@ class TestDFIndexer(BaseTestCase):
                  'The body may perhaps compensates for the loss']
         })
         df = df.head(n)
-        indexref = self._create_index(df, single_pass)
+        if single_pass:
+            indexref = self._create_index(df, pt.IndexingType.SINGLEPASS)
+        else:
+            indexref = self._create_index(df, pt.IndexingType.CLASSIC)
         index = pt.IndexFactory.of(indexref)
         self.assertIsNotNone(index)
         self.assertEqual(n, index.getCollectionStatistics().getNumberOfDocuments())
