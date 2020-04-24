@@ -1,4 +1,9 @@
 
+from matchpy import *
+
+class Scalar(Symbol):
+    pass
+
 
 class TransformerBase:
     '''
@@ -15,10 +20,10 @@ class TransformerBase:
         # if isinstance(right, ComposedPipeline):
         #     right.models.append(self)
         #     return right
-        return ComposedPipeline(models=[self, right])
+        return ComposedPipeline([self, right])
 
     def __add__(self, right):
-        return CombSumTransformer(self, right)
+        return CombSumTransformer([self, right])
 
     def __pow__(self, right):
         # if isinstance(self, FeatureUnionPipeline):
@@ -38,12 +43,13 @@ class TransformerBase:
         return ScalarProductTransformer(self, lhs)
 
     def __or__(self, right):
-        return SetUnionTransformer(self, right)
+        return SetUnionTransformer([self, right])
 
     def __and__(self, right):
-        return SetIntersectionTransformer(self, right)
+        return SetIntersectionTransformer([self, right])
 
-class IdentityTransformer(TransformerBase):
+class IdentityTransformer(TransformerBase, Operation):
+    arity = Arity.nullary
 
     def __init__(self):
         super(IdentityTransformer, self).__init__()
@@ -53,7 +59,8 @@ class IdentityTransformer(TransformerBase):
 
 # this class is useful for testing. it returns a copy of the same
 # dataframe each time transform is called
-class UniformTransformer(TransformerBase):
+class UniformTransformer(TransformerBase, Operation):
+    arity = Arity.nullary
 
     def __init__(self, rtr):
         super(UniformTransformer, self).__init__()
@@ -62,20 +69,24 @@ class UniformTransformer(TransformerBase):
     def transform(self, topics):
         return self.rtr.copy()
 
-class BinaryTransformerBase(TransformerBase):
+class BinaryTransformerBase(TransformerBase,Operation):
+    arity = Arity.binary
 
-    def __init__(self, left, right):
-        super(BinaryTransformerBase, self).__init__()
+    def __init__(self, operands):
+        super(BinaryTransformerBase, self).__init__(operands=operands)
         self.left = left
         self.right = right
 
-class NAryTransformerBase(TransformerBase):
+class NAryTransformerBase(TransformerBase,Operation):
+    arity = Arity.polyadic
 
-    def __init__(self, models):
-        super(NAryTransformerBase, self).__init__()
+    def __init__(self, operands):
+        super(NAryTransformerBase, self).__init__(operands=operands)
+        models = operands
         self.models = list( map(lambda x : LambdaPipeline(x) if callable(x) else x, models) )
 
 class SetUnionTransformer(BinaryTransformerBase):
+    name = "Union"
 
     def transform(self, topics):
         res1 = self.left.transform(topics)
@@ -88,6 +99,7 @@ class SetUnionTransformer(BinaryTransformerBase):
         return rtr
 
 class SetIntersectionTransformer(BinaryTransformerBase):
+    name = "Intersect"
     
     def transform(self, topics):
         res1 = self.left.transform(topics)
@@ -97,6 +109,7 @@ class SetIntersectionTransformer(BinaryTransformerBase):
         return rtr
 
 class CombSumTransformer(BinaryTransformerBase):
+    name = "Sum"
 
     def transform(self, topics_and_res):
         res1 = self.left.transform(topics_and_res)
@@ -108,9 +121,11 @@ class CombSumTransformer(BinaryTransformerBase):
 
 # multiplies the retrieval score by a scalar
 class ScalarProductTransformer(TransformerBase):
+    arity = Arity.binary
+    name = "ScalarProd"
 
     def __init__(self, transformer, scalar):
-        super(ScalarProductTransformer, self).__init__()
+        super(ScalarProductTransformer, self).__init__(operands=[Scalar(scalar), transformer])
         self.transformer = transformer
         self.scalar = scalar
 
@@ -138,6 +153,7 @@ class LambdaPipeline(TransformerBase):
         return fn(inputRes)
 
 class FeatureUnionPipeline(NAryTransformerBase):
+    name = "FUnion"
 
     def transform(self, inputRes):
         assert "docno" in inputRes.columns or "docid" in inputRes.columns
@@ -161,6 +177,7 @@ class FeatureUnionPipeline(NAryTransformerBase):
         return final_DF
 
 class ComposedPipeline(NAryTransformerBase):
+    name = "Compose"
     """ 
     This class allows pipeline components to be chained together using the "then" operator.
 

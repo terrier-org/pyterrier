@@ -101,6 +101,7 @@ class TestOperators(unittest.TestCase):
         mock12a = mock1 ** mock2
         mock123a = mock1 ** mock2 ** mock3
         mock123b = mock12a ** mock3
+        print(mock123b)
         
         
         self.assertEqual(2, len(mock12a.models))
