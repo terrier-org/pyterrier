@@ -64,7 +64,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
 
     from .batchretrieve import BatchRetrieve, FeaturesBatchRetrieve
     from .utils import Utils
-    from .index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils
+    from .index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IndexingType
     from .pipelines import LTR_pipeline, XGBoostLTR_pipeline
 
     # Make imports global
@@ -100,6 +100,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     globals()["XGBoostLTR_pipeline"] = XGBoostLTR_pipeline
     globals()["IndexFactory"] = autoclass("org.terrier.structures.IndexFactory")
     globals()["IndexRef"] = autoclass("org.terrier.querying.IndexRef")
+    globals()["IndexingType"] = IndexingType
 
     firstInit = True
 

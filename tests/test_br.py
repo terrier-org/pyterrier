@@ -31,39 +31,39 @@ class TestBatchRetrieve(BaseTestCase):
     def test_candidate_set_one_doc(self):
         if not pt.check_version("5.3"):
             self.skipTest("Requires Terrier 5.3")
-        indexloc = self.here+"/fixtures/index/data.properties"
+        indexloc = self.here + "/fixtures/index/data.properties"
         # docid 50 == docno 51
         input_set = pd.DataFrame([["q1", "light", 50]], columns=["qid", "query", "docid"])
         retr = pt.BatchRetrieve(indexloc)
-        from jnius import JavaException
+        # from jnius import JavaException
         result = retr.transform(input_set)
-        self.assertTrue("qid" in result.columns )
-        self.assertTrue("docno" in result.columns )
-        self.assertTrue("score" in result.columns )
+        self.assertTrue("qid" in result.columns)
+        self.assertTrue("docno" in result.columns)
+        self.assertTrue("score" in result.columns)
         self.assertEqual(1, len(result))
         row = result.iloc[0]
         self.assertEqual("q1", row["qid"])
         self.assertEqual("51", row["docno"])
         self.assertTrue(row["score"] > 0)
-    
+
     def test_candidate_set_two_doc(self):
         if not pt.check_version("5.3"):
             self.skipTest("Requires Terrier 5.3")
-        
-        indexloc = self.here+"/fixtures/index/data.properties"
+
+        indexloc = self.here + "/fixtures/index/data.properties"
         # docid 50 == docno 51
         # docid 66 == docno 67
-        
+
         input_set = pd.DataFrame([
-                ["q1", "light", 50],
-                ["q1", None, 66]
-            ], 
+                    ["q1", "light", 50],
+                    ["q1", None, 66]
+                ],
             columns=["qid", "query", "docid"])
         retr = pt.BatchRetrieve(indexloc)
         result = retr.transform(input_set)
-        self.assertTrue("qid" in result.columns )
-        self.assertTrue("docno" in result.columns )
-        self.assertTrue("score" in result.columns )
+        self.assertTrue("qid" in result.columns)
+        self.assertTrue("docno" in result.columns)
+        self.assertTrue("score" in result.columns)
         self.assertEqual(2, len(result))
 
     # this also tests different index-like inputs, namely:

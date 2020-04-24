@@ -1,4 +1,3 @@
-import os
 import deprecation
 
 from . import mavenresolver

@@ -8,6 +8,7 @@ from jnius import autoclass, PythonJavaClass, java_method
 import pandas as pd
 # import numpy as np
 import os
+import enum
 
 StringReader = None
 HashMap = None
@@ -18,6 +19,8 @@ SimpleFileCollection = None
 BasicIndexer = None
 BlockIndexer = None
 Collection = None
+BasicSinglePassIndexer = None
+BlockSinglePassIndexer = None
 Arrays = None
 Array = None
 ApplicationSetup = None
@@ -35,6 +38,8 @@ def run_autoclass():
     global SimpleFileCollection
     global BasicIndexer
     global BlockIndexer
+    global BasicSinglePassIndexer
+    global BlockSinglePassIndexer
     global Collection
     global Arrays
     global Array
@@ -52,6 +57,8 @@ def run_autoclass():
     SimpleFileCollection = autoclass("org.terrier.indexing.SimpleFileCollection")
     BasicIndexer = autoclass("org.terrier.structures.indexing.classical.BasicIndexer")
     BlockIndexer = autoclass("org.terrier.structures.indexing.classical.BlockIndexer")
+    BasicSinglePassIndexer = autoclass("org.terrier.structures.indexing.singlepass.BasicSinglePassIndexer")
+    BlockSinglePassIndexer = autoclass("org.terrier.structures.indexing.singlepass.BlockSinglePassIndexer")
     Collection = autoclass("org.terrier.indexing.Collection")
     Arrays = autoclass("java.util.Arrays")
     Array = autoclass('java.lang.reflect.Array')
@@ -60,6 +67,13 @@ def run_autoclass():
     CLITool = autoclass("org.terrier.applications.CLITool")
     IndexRef = autoclass('org.terrier.querying.IndexRef')
     IndexFactory = autoclass('org.terrier.structures.IndexFactory')
+
+
+# Using enum class create enumerations
+class IndexingType(enum.Enum):
+    CLASSIC = 1
+    SINGLEPASS = 2
+    MEMORY = 3
 
 class Indexer:
     """
@@ -84,7 +98,7 @@ class Indexer:
             "trec.collection.class": "TRECCollection",
     }
 
-    def __init__(self, index_path, blocks=False, overwrite=False):
+    def __init__(self, index_path, blocks=False, overwrite=False, type=IndexingType.CLASSIC):
         """
         Init method
 
@@ -92,6 +106,7 @@ class Indexer:
             index_path (str): Directory to store index
             blocks (bool): Create indexer with blocks if true, else without blocks
             overwrite (bool): If index already present at `index_path`, True would overwrite it, False throws an Exception
+            type (IndexingType): the specific indexing procedure to use. Default is IndexingType.CLASSIC.
         """
         if StringReader is None:
             run_autoclass()
@@ -99,6 +114,7 @@ class Indexer:
         self.index_called = False
         self.index_dir = index_path
         self.blocks = blocks
+        self.type = type
         self.properties = Properties()
         self.setProperties(**self.default_properties)
         self.overwrite = overwrite
@@ -132,16 +148,27 @@ class Indexer:
 
     def createIndexer(self):
         """
-        Check `blocks` and create a BlockIndexer if true, else create BasicIndexer
+        Check `single_pass` and
+        - if false, check `blocks` and create a BlockIndexer if true, else create BasicIndexer
+        - if true, check `blocks` and create a BlockSinglePassIndexer if true, else create BasicSinglePassIndexer
         Returns:
             Created index object
         """
         ApplicationSetup.getProperties().putAll(self.properties)
         # ApplicationSetup.bootstrapInitialisation(self.properties)
-        if self.blocks:
-            index = BlockIndexer(self.index_dir, "data")
+        if self.type is IndexingType.SINGLEPASS:
+            if self.blocks:
+                index = BlockSinglePassIndexer(self.index_dir, "data")
+            else:
+                index = BasicSinglePassIndexer(self.index_dir, "data")
+        elif self.type is IndexingType.CLASSIC:
+            if self.blocks:
+                index = BlockIndexer(self.index_dir, "data")
+            else:
+                index = BasicIndexer(self.index_dir, "data")
         else:
-            index = BasicIndexer(self.index_dir, "data")
+            raise Exception("Memory indexing not yet implemented")
+
         return index
 
     def createAsList(self, files_path):
