@@ -3,6 +3,8 @@ from matchpy import *
 
 class Scalar(Symbol):
     pass
+# def __init__(self, *args, **kwargs):
+#         super().__init__( *args, **kwargs)
 
 
 class TransformerBase:
@@ -20,10 +22,10 @@ class TransformerBase:
         # if isinstance(right, ComposedPipeline):
         #     right.models.append(self)
         #     return right
-        return ComposedPipeline([self, right])
+        return ComposedPipeline(self, right)
 
     def __add__(self, right):
-        return CombSumTransformer([self, right])
+        return CombSumTransformer(self, right)
 
     def __pow__(self, right):
         # if isinstance(self, FeatureUnionPipeline):
@@ -32,7 +34,7 @@ class TransformerBase:
         # if isinstance(right, FeatureUnionPipeline):
         #     right.models.append(self)
         #     return right
-        return FeatureUnionPipeline([self, right])
+        return FeatureUnionPipeline(self, right)
 
     def __mul__(self, rhs):
         assert isinstance(rhs, int) or isinstance(rhs, float)
@@ -43,16 +45,16 @@ class TransformerBase:
         return ScalarProductTransformer(self, lhs)
 
     def __or__(self, right):
-        return SetUnionTransformer([self, right])
+        return SetUnionTransformer(self, right)
 
     def __and__(self, right):
-        return SetIntersectionTransformer([self, right])
+        return SetIntersectionTransformer(self, right)
 
 class IdentityTransformer(TransformerBase, Operation):
     arity = Arity.nullary
 
-    def __init__(self):
-        super(IdentityTransformer, self).__init__()
+    def __init__(self, *args, **kwargs):
+        super(IdentityTransformer, self).__init__(*args, **kwargs)
     
     def transform(self, topics):
         return topics
@@ -62,26 +64,33 @@ class IdentityTransformer(TransformerBase, Operation):
 class UniformTransformer(TransformerBase, Operation):
     arity = Arity.nullary
 
-    def __init__(self, rtr):
-        super(UniformTransformer, self).__init__()
-        self.rtr = rtr
+    def __init__(self, rtr, **kwargs):
+        super().__init__(operands=[], **kwargs)
+        self.operands=[]
+        self.rtr = rtr[0]
+        #print(type(self.rtr))
     
     def transform(self, topics):
-        return self.rtr.copy()
+        rtr = self.rtr.copy()
+        import pandas as pd
+        #print(type(self.rtr))
+        #assert isinstance(self.rtr, pd.DataFrame)
+        return rtr
 
 class BinaryTransformerBase(TransformerBase,Operation):
     arity = Arity.binary
 
-    def __init__(self, operands):
-        super(BinaryTransformerBase, self).__init__(operands=operands)
-        self.left = left
-        self.right = right
+    def __init__(self, operands, **kwargs):
+        assert 2 == len(operands)
+        super().__init__(operands=operands,  **kwargs)
+        self.left = operands[0]
+        self.right = operands[1]
 
 class NAryTransformerBase(TransformerBase,Operation):
     arity = Arity.polyadic
 
-    def __init__(self, operands):
-        super(NAryTransformerBase, self).__init__(operands=operands)
+    def __init__(self, operands, **kwargs):
+        super().__init__(operands=operands, **kwargs)
         models = operands
         self.models = list( map(lambda x : LambdaPipeline(x) if callable(x) else x, models) )
 
@@ -92,6 +101,9 @@ class SetUnionTransformer(BinaryTransformerBase):
         res1 = self.left.transform(topics)
         res2 = self.right.transform(topics)
         import pandas as pd
+        print(res1)
+        assert isinstance(res1, pd.DataFrame)
+        assert isinstance(res2, pd.DataFrame)
         rtr = pd.concat([res1, res2])
         rtr = rtr.drop_duplicates(subset=["qid", "docno"])
         rtr = rtr.sort_values(by=['qid', 'docno'])
@@ -120,14 +132,15 @@ class CombSumTransformer(BinaryTransformerBase):
         return merged
 
 # multiplies the retrieval score by a scalar
-class ScalarProductTransformer(TransformerBase):
+class ScalarProductTransformer(BinaryTransformerBase):
     arity = Arity.binary
     name = "ScalarProd"
 
-    def __init__(self, transformer, scalar):
-        super(ScalarProductTransformer, self).__init__(operands=[Scalar(scalar), transformer])
-        self.transformer = transformer
-        self.scalar = scalar
+    def __init__(self, operands, **kwargs):
+        #mpy_ops = [transformer, Scalar(scalar)] if isinstance(scalar, Scalar) else [transformer, scalar]
+        super().__init__(operands, **kwargs)
+        self.transformer = operands[0]
+        self.scalar = operands[1]
 
     def transform(self, topics_and_res):
         res = self.transformer.transform(topics_and_res)
@@ -144,8 +157,8 @@ class LambdaPipeline(TransformerBase):
 
     """
 
-    def __init__(self, lambdaFn):
-        super(LambdaPipeline, self).__init__()
+    def __init__(self, lambdaFn,  *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.fn = lambdaFn
 
     def transform(self, inputRes):

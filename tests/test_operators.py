@@ -3,6 +3,7 @@ import unittest
 import pyterrier as pt
 
 import pyterrier.transformer as ptt;
+from matchpy import *
 
 class TestOperators(unittest.TestCase):
 
@@ -94,6 +95,8 @@ class TestOperators(unittest.TestCase):
         self.assertFalse("doc2" in rtr["docno"].values)
 
     def test_feature_union_multi(self):
+        mock0 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 0]], columns=["qid", "docno", "score"]))
+
         mock1 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))
         mock2 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]))
         mock3 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 15]], columns=["qid", "docno", "score"]))
@@ -101,13 +104,39 @@ class TestOperators(unittest.TestCase):
         mock12a = mock1 ** mock2
         mock123a = mock1 ** mock2 ** mock3
         mock123b = mock12a ** mock3
-        print(mock123b)
-        
+
         
         self.assertEqual(2, len(mock12a.models))
-        #self.assertEqual(3, len(mock123a.models))
-        #self.assertEqual(3, len(mock123b.models))
         self.assertEqual(2, len(mock12a.models))
+        
+        x = Wildcard.dot('x')
+        y = Wildcard.dot('y')
+        z = Wildcard.dot('z')
+        reduce_left_assoc_FU = [
+            ReplacementRule(
+                Pattern(ptt.FeatureUnionPipeline(x, ptt.FeatureUnionPipeline(y,z)) ),
+                lambda x, y, z: ptt.FeatureUnionPipeline(x,y,z)
+            )]
+        mock123_simple = replace_all(mock123a, reduce_left_assoc_FU)
+        print(mock123_simple.__repr__())
+        #
+        #mock123a, mock123b
+        self.assertEqual(3, len(mock123_simple.models))
+        for expression in [mock123_simple ]:
+             # we dont need an input, as both Identity transformers will return anyway
+            rtr = (mock0 >> expression).transform(None)
+            self.assertIsNotNone(rtr)
+            self.assertEqual(1, len(rtr))
+            self.assertTrue("qid" in rtr.columns)
+            self.assertTrue("docno" in rtr.columns)
+            self.assertTrue("score" in rtr.columns)
+            self.assertTrue("features" in rtr.columns)
+            self.assertTrue("q1" in rtr["qid"].values)
+            self.assertTrue("doc1" in rtr["docno"].values)
+            import numpy as np
+            print(rtr.iloc[0]["features"])
+            self.assertTrue( np.array_equal(np.array([5,10,15]), rtr.iloc[0]["features"]))
+
 
     def test_feature_union(self): 
         mock_input = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))
@@ -116,7 +145,7 @@ class TestOperators(unittest.TestCase):
         mock_f2 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 50]], columns=["qid", "docno", "score"]))
 
         # test using direct instantiation, as well as using the ** operator
-        for pipeline in [mock_input >> ptt.FeatureUnionPipeline([mock_f1, mock_f2]), mock_input >> mock_f1 ** mock_f2]:
+        for pipeline in [mock_input >> ptt.FeatureUnionPipeline(mock_f1, mock_f2), mock_input >> mock_f1 ** mock_f2]:
 
             # we dont need an input, as both Identity transformers will return anyway
             rtr = pipeline.transform(None)
