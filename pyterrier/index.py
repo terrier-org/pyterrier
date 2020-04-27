@@ -336,6 +336,11 @@ class PythonListIterator(PythonJavaClass):
         return [text, meta]
 
 class TRECCollectionIndexer(Indexer):
+    type_to_class = {
+        'trec' : 'org.terrier.indexing.TRECCollection',
+        'trecweb' : 'org.terrier.indexing.TRECWebCollection',
+        'warc' : 'org.terrier.indexing.WARC10Collection'
+    }
     """
     Use this Indexer if you wish to index a TREC formatted collection
 
@@ -348,6 +353,25 @@ class TRECCollectionIndexer(Indexer):
         properties: A Terrier Properties object, which is a hashtable with properties and their values
         overwrite(bool): If True the index() method of child Indexer will overwrite any existing index
     """
+
+    def __init__(self, index_path, blocks=False, overwrite=False, type=IndexingType.CLASSIC, collection="trec"):
+        """
+        Init method
+
+        Args:
+            index_path (str): Directory to store index
+            blocks (bool): Create indexer with blocks if true, else without blocks
+            overwrite (bool): If index already present at `index_path`, True would overwrite it, False throws an Exception
+            type (IndexingType): the specific indexing procedure to use. Default is IndexingType.CLASSIC.
+            collection (Class name, or Class instance, or one of "trec", "trecweb", "warc")
+        """
+        super(TRECCollectionIndexer, self).__init__(index_path, blocks, overwrite, type)
+        if isinstance(collection, str):
+            if collection in TRECCollectionIndexer.type_to_class:
+                collection = TRECCollectionIndexer.type_to_class[collection]
+        self.collection = collection.split(",")
+    
+
     def index(self, files_path):
         """
         Index the specified TREC formatted files
@@ -358,8 +382,13 @@ class TRECCollectionIndexer(Indexer):
         self.checkIndexExists()
         index = self.createIndexer()
         asList = self.createAsList(files_path)
-        trecCol = TRECCollection(asList, "TrecDocTags", "", "")
-        index.index([trecCol])
+        cls_string = autoclass("java.lang.String")._class
+        cls_list = autoclass("java.util.List")._class
+        colObj = autoclass("org.terrier.indexing.CollectionFactory").loadCollections(
+            self.collection,
+            [cls_list, cls_string, cls_string, cls_string],
+            [asList, autoclass("org.terrier.utility.TagSet").TREC_DOC_TAGS, "", ""])
+        index.index([colObj])
         self.index_called = True
         return IndexRef.of(self.index_dir + "/data.properties")
 
