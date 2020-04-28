@@ -32,19 +32,36 @@ class TestOperators(unittest.TestCase):
         mock1 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))
         mock2 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]))
         mock3 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]))
+        mock4 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]))
+        
         combined12 = mock1 >> mock2
         combined23 = mock2 >> mock3 
         combined123_a = combined12 >> mock3
         combined123_b = mock1 >> mock2 >> mock3
         combined123_c = mock2 >> combined23
 
+        combined123_a_C = combined123_a.compile()
+        combined123_b_C = combined123_b.compile()
+        combined123_c_C = combined123_c.compile()
+
+
         self.assertEqual(2, len(combined12.models))
         self.assertEqual(2, len(combined23.models))
-        #self.assertEqual(3, len(combined123_a.models))
-        #self.assertEqual(3, len(combined123_b.models))
-        #self.assertEqual(3, len(combined123_c.models))
         self.assertEqual(2, len(combined12.models))
         self.assertEqual(2, len(combined23.models))
+
+        for C in [combined123_a_C, combined123_b_C, combined123_c_C]:
+            self.assertEqual(3, len(C.models))
+            self.assertEqual("ComposedPipeline(UniformTransformer(), UniformTransformer(), UniformTransformer())",
+                C.__repr__())
+        
+        # finally check recursive application
+        C4 = (mock1 >> mock2 >> mock3 >> mock4).compile()
+        self.assertEqual(
+            "ComposedPipeline(UniformTransformer(), UniformTransformer(), UniformTransformer(), UniformTransformer())", 
+            C4.__repr__())
+        self.assertEqual(4, len(C4.models))
+
 
     def test_mul(self):
         mock = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))
@@ -67,6 +84,23 @@ class TestOperators(unittest.TestCase):
         self.assertEqual("q1", rtr.iloc[0]["qid"])
         self.assertEqual("doc1", rtr.iloc[0]["docno"])
         self.assertEqual(15, rtr.iloc[0]["score"])
+
+    def test_plus_multi_rewrite(self):
+        mock1 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))
+        mock2 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]))
+        mock3 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 15]], columns=["qid", "docno", "score"]))
+
+        combined = mock1 + mock2 + mock3
+        for pipe in [combined, combined.compile()]:
+
+            # we dont need an input, as both Identity transformers will return anyway
+            rtr = pipe.transform(None)
+
+            self.assertEqual(1, len(rtr))
+            self.assertEqual("q1", rtr.iloc[0]["qid"])
+            self.assertEqual("doc1", rtr.iloc[0]["docno"])
+            self.assertEqual(30, rtr.iloc[0]["score"])
+
 
     def test_union(self):
         mock1 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))
@@ -108,17 +142,13 @@ class TestOperators(unittest.TestCase):
         
         self.assertEqual(2, len(mock12a.models))
         self.assertEqual(2, len(mock12a.models))
-        
-        x = Wildcard.dot('x')
-        y = Wildcard.dot('y')
-        z = Wildcard.dot('z')
-        reduce_left_assoc_FU = [
-            ReplacementRule(
-                Pattern(ptt.FeatureUnionPipeline(x, ptt.FeatureUnionPipeline(y,z)) ),
-                lambda x, y, z: ptt.FeatureUnionPipeline(x,y,z)
-            )]
-        mock123_simple = replace_all(mock123a, reduce_left_assoc_FU)
-        print(mock123_simple.__repr__())
+        ptt.setup_rewrites()
+
+        mock123_simple = mock123a.compile()
+        self.assertIsNotNone(mock123_simple)
+        self.assertEqual(
+            "FeatureUnionPipeline(UniformTransformer(), UniformTransformer(), UniformTransformer())", 
+            mock123_simple.__repr__())
         #
         #mock123a, mock123b
         self.assertEqual(3, len(mock123_simple.models))
@@ -134,7 +164,6 @@ class TestOperators(unittest.TestCase):
             self.assertTrue("q1" in rtr["qid"].values)
             self.assertTrue("doc1" in rtr["docno"].values)
             import numpy as np
-            print(rtr.iloc[0]["features"])
             self.assertTrue( np.array_equal(np.array([5,10,15]), rtr.iloc[0]["features"]))
 
 
@@ -157,7 +186,6 @@ class TestOperators(unittest.TestCase):
             self.assertTrue("q1" in rtr["qid"].values)
             self.assertTrue("doc1" in rtr["docno"].values)
             import numpy as np
-            print(rtr.iloc[0]["features"])
             self.assertTrue( np.array_equal(np.array([10,50]), rtr.iloc[0]["features"]))
 
 if __name__ == "__main__":

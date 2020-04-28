@@ -1,39 +1,87 @@
 
 from matchpy import *
 
+
+       
+rewrite_rules = []
+
+def setup_rewrites():
+    from .batchretrieve import BatchRetrieve, FeaturesBatchRetrieve
+    #three arbitrary "things".
+    x = Wildcard.dot('x')
+    xs = Wildcard.plus('xs')
+    y = Wildcard.dot('y')
+    z = Wildcard.dot('z')
+    # two different match retrives
+    _br1 = Wildcard.symbol('_br1', BatchRetrieve)
+    _br2 = Wildcard.symbol('_br2', BatchRetrieve)
+    # batch retrieves for the same index
+    BR_index_matches = CustomConstraint(lambda br1, br2: br1.indexref == br1.indexref)
+
+    # rewrite nested binary feature unions into one single polyadic feature union
+    rewrite_rules.append(ReplacementRule(
+        Pattern(FeatureUnionPipeline(x, FeatureUnionPipeline(y,z)) ),
+        lambda x, y, z: FeatureUnionPipeline(x,y,z)
+    ))
+    rewrite_rules.append(ReplacementRule(
+        Pattern(FeatureUnionPipeline(FeatureUnionPipeline(x,y), z) ),
+        lambda x, y, z: FeatureUnionPipeline(x,y,z)
+    ))
+    rewrite_rules.append(ReplacementRule(
+        Pattern(FeatureUnionPipeline(FeatureUnionPipeline(x,y), xs) ),
+        lambda x, y, xs: FeatureUnionPipeline(*[x,y]+list(xs))
+    ))
+
+    # rewrite nested binary compose into one single polyadic compose
+    rewrite_rules.append(ReplacementRule(
+        Pattern(ComposedPipeline(x, ComposedPipeline(y,z)) ),
+        lambda x, y, z: ComposedPipeline(x,y,z)
+    ))
+    rewrite_rules.append(ReplacementRule(
+        Pattern(ComposedPipeline(ComposedPipeline(x,y), z) ),
+        lambda x, y, z: ComposedPipeline(x,y,z)
+    ))
+    rewrite_rules.append(ReplacementRule(
+        Pattern(ComposedPipeline(ComposedPipeline(x,y), xs) ),
+        lambda x, y, xs: ComposedPipeline(*[x,y]+list(xs))
+    ))
+
+    # rewrite batch a feature union of BRs into an FBR
+    rewrite_rules.append(ReplacementRule(
+        Pattern(FeatureUnionPipeline(_br1, _br2), BR_index_matches),
+        lambda x, y, z: FeaturesBatchRetrieve(_br1.indexref, ["WMODEL" + _br1.controls["wmodel"], "WMODEL" + _br2.controls["wmodel"]])
+    ))
+
+
 class Scalar(Symbol):
     pass
-# def __init__(self, *args, **kwargs):
-#         super().__init__( *args, **kwargs)
-
 
 class TransformerBase:
     '''
         Base class for all transformers. Implements the various operators >> + * | & 
+        as well as the compile() for rewriting complex pipelines into more simples ones.
     '''
 
     def transform(self, topics_or_res):
+        '''
+            Abstract method for all transformations. Typically takes as input a Pandas
+            DataFrame, and also returns one also.
+        '''
         pass
 
+    def compile(self):
+        '''
+            Rewrites this pipeline by applying of the Matchpy rules in rewrite_rules.
+        '''
+        return replace_all(self, rewrite_rules)
+
     def __rshift__(self, right):
-        # if isinstance(self, ComposedPipeline):
-        #      self.models.append(right)
-        #      return self
-        # if isinstance(right, ComposedPipeline):
-        #     right.models.append(self)
-        #     return right
         return ComposedPipeline(self, right)
 
     def __add__(self, right):
         return CombSumTransformer(self, right)
 
     def __pow__(self, right):
-        # if isinstance(self, FeatureUnionPipeline):
-        #      self.models.append(right)
-        #      return self
-        # if isinstance(right, FeatureUnionPipeline):
-        #     right.models.append(self)
-        #     return right
         return FeatureUnionPipeline(self, right)
 
     def __mul__(self, rhs):
@@ -68,13 +116,9 @@ class UniformTransformer(TransformerBase, Operation):
         super().__init__(operands=[], **kwargs)
         self.operands=[]
         self.rtr = rtr[0]
-        #print(type(self.rtr))
     
     def transform(self, topics):
         rtr = self.rtr.copy()
-        import pandas as pd
-        #print(type(self.rtr))
-        #assert isinstance(self.rtr, pd.DataFrame)
         return rtr
 
 class BinaryTransformerBase(TransformerBase,Operation):
@@ -101,7 +145,6 @@ class SetUnionTransformer(BinaryTransformerBase):
         res1 = self.left.transform(topics)
         res2 = self.right.transform(topics)
         import pandas as pd
-        print(res1)
         assert isinstance(res1, pd.DataFrame)
         assert isinstance(res2, pd.DataFrame)
         rtr = pd.concat([res1, res2])
@@ -116,7 +159,7 @@ class SetIntersectionTransformer(BinaryTransformerBase):
     def transform(self, topics):
         res1 = self.left.transform(topics)
         res2 = self.right.transform(topics)
-        # NB: there may be othe other duplicate columns
+        # NB: there may be other duplicate columns
         rtr = res1.merge(res2, on=["qid", "docno"]).drop(columns=["score_x", "score_y"])
         return rtr
 
@@ -175,12 +218,18 @@ class FeatureUnionPipeline(NAryTransformerBase):
         for m in self.models:
             results = m.transform(inputRes).rename(columns={"score" : "features"})
             all_results.append( results )
+
+        def _concat_features(row):
+            import numpy as np
+            left_features = row["features_x"] if isinstance(row["features_x"], np.ndarray) else [row["features_x"]]
+            right_features = row["features_y"] if isinstance(row["features_y"], np.ndarray) else [row["features_y"]]
+            return np.concatenate((left_features, right_features))
         
         def _reduce_fn(left, right):
             import pandas as pd
             import numpy as np
             rtr = pd.merge(left, right, on=["qid", "docno"])
-            rtr["features"] = rtr.apply(lambda row : np.stack([row["features_x"], row["features_y"]]), axis=1)
+            rtr["features"] = rtr.apply(_concat_features, axis=1)
             rtr.drop(columns=["features_x", "features_y"], inplace=True)
             return rtr
         
@@ -197,10 +246,11 @@ class ComposedPipeline(NAryTransformerBase):
     :Example:
 
     >>> comp = ComposedPipeline([ DPH_br, LambdaPipeline(lambda res : res[res["rank"] < 2])])
-    >>> OR
-    >>>  # we can even use lambdas as transformers
+    >>> # OR
+    >>> # we can even use lambdas as transformers
     >>> comp = ComposedPipeline([DPH_br, lambda res : res[res["rank"] < 2]])
-    
+    >>> # this is equivelent
+    >>> # comp = DPH_br >> lambda res : res[res["rank"] < 2]]
     """
     
     def transform(self, topics):

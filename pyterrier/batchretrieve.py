@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 from .utils import Utils
 from .index import Indexer
-from .transformer import TransformerBase
+from .transformer import TransformerBase, Symbol
 from tqdm import tqdm
 
 # import time
@@ -37,7 +37,7 @@ def parse_index_like(index_location):
         or an pyterrier.Indexer object'''
     )
 
-class BatchRetrieve:
+class BatchRetrieve(TransformerBase, Symbol):
     """
     Use this class for retrieval
 
