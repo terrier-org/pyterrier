@@ -10,7 +10,7 @@ def downloadfile(orgName, packageName, version, file_path, artifact="jar", check
     orgName = orgName.replace(".", "/")
     suffix = ""
     ext = "jar"
-    if artifact == "jar-with-dependencies":
+    if artifact == "jar-with-dependencies" or artifact == "fatjar":
         suffix = "-" + artifact
         ext = "jar"
     if artifact == "pom":
@@ -30,7 +30,7 @@ def downloadfile(orgName, packageName, version, file_path, artifact="jar", check
     if os.path.isfile(mvnLocalLocation):
         return mvnLocalLocation
 
-    print(packageName + " " + version + " not found, downloading to " + file_path + "...")
+    print(packageName + " " + version + "  " + artifact  + " not found, downloading to " + file_path + "...")
     mvnUrl = MAVEN_BASE_URL + filelocation
 
     try:

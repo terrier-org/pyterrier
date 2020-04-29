@@ -11,7 +11,7 @@ properties = None
 
 HOME_DIR = None
 
-def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, logging='WARN', home_dir=None):
+def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, logging='WARN', home_dir=None, boot_packages=[]):
     """
     Function necessary to be called before Terrier classes and methods can be used.
     Loads the Terrier.jar file and imports classes. Also finds the correct version of Terrier to download if no version is specified.
@@ -47,7 +47,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
             os.mkdir(HOME_DIR)
 
     # get the initial classpath for the JVM
-    classpathTrJars = setup_terrier(HOME_DIR, version)
+    classpathTrJars = setup_terrier(HOME_DIR, version, boot_packages=boot_packages)
 
     # Import pyjnius and other classes
     import jnius_config
@@ -131,3 +131,7 @@ def set_properties(kwargs):
 def run(cmd, args=[]):
     from jnius import autoclass
     autoclass("org.terrier.applications.CLITool").main([cmd] + args)
+
+def extend_classpath(mvnpackages):
+    assert check_version(5.3), "Terrier 5.3 required for this functionality"
+    ApplicationSetup.getPlugin("MavenResolver").addDependencies(mvnpackages)

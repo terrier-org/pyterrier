@@ -46,7 +46,7 @@ def setup_jnius():
         '__len__': lambda self: self.numberOfEntries()
     }
 
-def setup_terrier(file_path, terrier_version=None, helper_version=None):
+def setup_terrier(file_path, terrier_version=None, helper_version=None, boot_packages=[]):
     """
     Download Terrier's jar file for the given version at the given file_path
     Called by pt.init()
@@ -70,7 +70,18 @@ def setup_terrier(file_path, terrier_version=None, helper_version=None):
     else:
         helper_version = str(helper_version) # just in case its a float
     helperJar = mavenresolver.downloadfile(TERRIER_PKG, "terrier-python-helper", helper_version, file_path, "jar")
-    return [trJar, helperJar]
+
+    classpath=[trJar, helperJar]
+    for b in boot_packages:
+        group, pkg, filetype, version = b.split(":")
+        if version is None:
+            version = filetype
+            filetype = "jar"
+        print((group, pkg, filetype, version))
+        filename = mavenresolver.downloadfile(group, pkg, version, file_path, filetype)
+        classpath.append(filename)
+
+    return classpath
 
 def is_binary(f):
     import io
