@@ -37,9 +37,20 @@ def parse_index_like(index_location):
         or an pyterrier.Indexer object'''
     )
 
-class BatchRetrieve(TransformerBase, Symbol):
+class BatchRetrieveBase(TransformerBase, Symbol):
     """
-    Use this class for retrieval
+    A base class for retrieval
+
+    Attributes:
+        verbose(bool): If True transform method will display progress
+    """
+    def __init__(self, verbose=0, **kwargs):
+        super().__init__(kwargs)
+        self.verbose = verbose
+
+class BatchRetrieve(BatchRetrieveBase):
+    """
+    Use this class for retrieval by Terrier
 
     Attributes:
         default_controls(dict): stores the default controls
@@ -78,14 +89,11 @@ class BatchRetrieve(TransformerBase, Symbol):
             properties(dict): A dictionary with with the property keys and values
             verbose(bool): If True transform method will display progress
     """
-    def __init__(self, index_location, controls=None, properties=None, verbose=0):
-        super(BatchRetrieve, self).__init__()
+    def __init__(self, index_location, controls=None, properties=None, **kwargs):
+        super().__init__(kwargs)
         
-
         self.indexref = parse_index_like(index_location)
         self.appSetup = autoclass('org.terrier.utility.ApplicationSetup')
-        self.verbose = verbose
-
         self.properties = _mergeDicts(BatchRetrieve.default_properties, properties)
 
         if props is None:
