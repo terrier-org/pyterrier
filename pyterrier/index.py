@@ -3,7 +3,7 @@ This file contains all the indexers.
 """
 
 # from jnius import autoclass, cast, PythonJavaClass, java_method
-from jnius import autoclass, PythonJavaClass, java_method
+from jnius import autoclass, PythonJavaClass, java_method, find_javaclass
 # from .utils import *
 import pandas as pd
 # import numpy as np
@@ -382,8 +382,10 @@ class TRECCollectionIndexer(Indexer):
         self.checkIndexExists()
         index = self.createIndexer()
         asList = self.createAsList(files_path)
-        cls_string = autoclass("java.lang.String")._class
-        cls_list = autoclass("java.util.List")._class
+        # cls_string = autoclass("java.lang.String")._class
+        # cls_list = autoclass("java.util.List")._class
+        cls_string = find_javaclass("java.lang.String")
+        cls_list = find_javaclass("java.util.List")
         colObj = autoclass("org.terrier.indexing.CollectionFactory").loadCollections(
             self.collection,
             [cls_list, cls_string, cls_string, cls_string],
