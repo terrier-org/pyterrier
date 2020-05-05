@@ -65,6 +65,10 @@ class RemoteDataset(Dataset):
                     raise ValueError("Could not fetch " + URL) from he
         return localDir
 
+    def get_corpus(self):
+        import pyterrier as pt
+        return pt.Utils.get_files_in_dir(self._get_all_files("corpus"))
+
     def get_qrels(self):
         import pyterrier as pt
         return pt.Utils.parse_qrels(self._get_one_file("qrels"))
