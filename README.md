@@ -20,7 +20,6 @@ Pyterrier is not available for Windows because [pytrec_eval](https://github.com/
 
 ### Colab notebooks
 ```
-os.environ["JAVA_HOME"] = "/usr/lib/jvm/java-8-openjdk-amd64"    
 !pip install python-terrier
 ```
 
