@@ -29,8 +29,8 @@ class TestUtils(BaseTestCase):
         input = os.path.dirname(os.path.realpath(__file__)) + "/fixtures/qrels"
         exp_result = pd.DataFrame([["1", "13", 1], ["1", "15", 1], ["2", "8", 1], ["2", "4", 1], ["2", "17", 1], ["3", "2", 1]], columns=['qid', 'docno', 'label'])
         result = pt.Utils.parse_qrels(input)
-        print(exp_result)
-        print(result)
+        #print(exp_result)
+        #print(result)
         pd.testing.assert_frame_equal(exp_result, result)
 
     def test_evaluate(self):
