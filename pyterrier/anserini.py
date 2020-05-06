@@ -29,6 +29,9 @@ class AnseriniBatchRetrieve(BatchRetrieveBase):
         init_anserini()
         from pyserini.search import pysearch
         self.searcher = pysearch.SimpleSearcher(index_location)
+
+    def __str__(self):
+        return "AnseriniBatchRetrieve()"
     
     def transform(self, queries):
         """
