@@ -4,7 +4,12 @@ from . import datasets
 
 import importlib
 
+#sub modules
 rewrite = None
+index = None
+pipelines = None
+anserini = None
+
 file_path = os.path.dirname(os.path.abspath(__file__))
 firstInit = False
 ApplicationSetup = None
@@ -75,8 +80,15 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     globals()["cast"] = cast
     globals()["ApplicationSetup"] = ApplicationSetup
 
-    global rewrite 
+    global rewrite
+    global anserini
+    global pipelines
+    global index
+
     rewrite = importlib.import_module('.rewrite', package='pyterrier') 
+    anserini = importlib.import_module('.anserini', package='pyterrier') 
+    pipelines = importlib.import_module('.pipelines', package='pyterrier') 
+    index = importlib.import_module('.index', package='pyterrier') 
 
 
     # append the python helpers
