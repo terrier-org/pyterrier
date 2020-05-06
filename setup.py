@@ -34,6 +34,7 @@ setup(
         "wget",
         "pytrec_eval",
         "tqdm",
+        "matchpy",
         "deprecation"
     ],
     python_requires='>=3.6',
