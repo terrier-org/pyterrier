@@ -139,6 +139,10 @@ class BatchRetrieve(BatchRetrieveBase):
             queries = input_results[["qid", "query"]].dropna(axis=0, subset=["query"]).drop_duplicates()
             RequestContextMatching = autoclass("org.terrier.python.RequestContextMatching")
 
+        if queries["qid"].dtype == np.int64:
+            queries['qid'] = queries['qid'].astype(str)
+
+
         for index,row in tqdm(queries.iterrows(), total=queries.shape[0], unit="q") if self.verbose else queries.iterrows():
             rank = 0
             qid = str(row['qid'])
