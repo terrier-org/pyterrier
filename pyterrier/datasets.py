@@ -82,7 +82,7 @@ class RemoteDataset(Dataset):
     def get_topics(self, variant=None):
         import pyterrier as pt
         file, filetype = self._get_one_file("topics", variant)
-        if filetype is None and filetype == "trec":
+        if filetype is None or filetype == "trec":
             return pt.Utils.parse_trec_topics_file(file)
         elif filetype == "singleline":
             return pt.Utils.parse_singleline_topics_file(file)
@@ -141,3 +141,6 @@ DATASET_MAP = {
 
 def get_dataset(name):
     return DATASET_MAP[name]
+
+def list_datasets():
+    return DATASET_MAP.keys()
