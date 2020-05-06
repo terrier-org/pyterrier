@@ -6,7 +6,7 @@ import os
 MAVEN_BASE_URL = "https://repo1.maven.org/maven2/"
 
 # obtain a file from maven
-def downloadfile(orgName, packageName, version, file_path, artifact="jar", checklocal=False):
+def downloadfile(orgName, packageName, version, file_path, artifact="jar"):
     orgName = orgName.replace(".", "/")
     suffix = ""
     ext = "jar"
