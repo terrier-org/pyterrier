@@ -16,6 +16,12 @@ def importProps():
     globals()["props"] = props
 props = None
 
+_matchops = ["#combine", "#uw", "#1", "#tag", "#prefix", "#band", "#base64", "#syn"]
+def _matchop(query):
+    for m in _matchops:
+        if m in query:
+            return True
+    return False
 
 def parse_index_like(index_location):
     JIR = autoclass('org.terrier.querying.IndexRef')
@@ -76,7 +82,7 @@ class BatchRetrieve(BatchRetrieveBase):
         "querying.processes": "terrierql:TerrierQLParser,parsecontrols:TerrierQLToControls,parseql:TerrierQLToMatchingQueryTerms,matchopql:MatchingOpQLParser,applypipeline:ApplyTermPipeline,localmatching:LocalManager$ApplyLocalMatching,qe:QueryExpansion,labels:org.terrier.learning.LabelDecorator,filters:LocalManager$PostFilterProcess",
         "querying.postfilters": "decorate:SimpleDecorate,site:SiteFilter,scope:Scope",
         "querying.default.controls": "wmodel:DPH,parsecontrols:on,parseql:on,applypipeline:on,terrierql:on,localmatching:on,filters:on,decorate:on",
-        "querying.allowed.controls": "scope,qe,qemodel,start,end,site,scope",
+        "querying.allowed.controls": "scope,qe,qemodel,start,end,site,scope,applypipeline",
         "termpipelines": "Stopwords,PorterStemmer"
     }
 
@@ -136,9 +142,23 @@ class BatchRetrieve(BatchRetrieveBase):
         for index,row in tqdm(queries.iterrows(), total=queries.shape[0], unit="q") if self.verbose else queries.iterrows():
             rank = 0
             qid = str(row['qid'])
-            srq = self.manager.newSearchRequest(qid, row['query'])
+            query = row['query']
+            srq = self.manager.newSearchRequest(qid, query)
+            
             for control, value in self.controls.items():
                 srq.setControl(control, value)
+
+            # this is needed until terrier-core issue #106 lands
+            if "applypipeline:off" in query:
+                srq.setControl("applypipeline", "off")
+                srq.setOriginalQuery(query.replace("applypipeline:off", ""))
+
+            # transparently detect matchop queries
+            if _matchop(query):
+                srq.setControl("terrierql", "off")
+                srq.setControl("parsecontrols", "off")
+                srq.setControl("parseql", "off")
+                srq.setControl("matchopql", "on")
 
             # this handles the case that a candidate set of documents has been set. 
             if docno_provided or docid_provided:
@@ -154,10 +174,12 @@ class BatchRetrieve(BatchRetrieveBase):
                     matching_config_factory.withScores(input_query_results["scores"].values.tolist())
                 matching_config_factory.build()
                 srq.setControl("matching", "org.terrier.matching.ScoringMatching" + "," + srq.getControl("matching"))
-            
+
             # now ask Terrier to run the request
             self.manager.runSearchRequest(srq)
             result = srq.getResults()
+
+            # prepare the dataframe for the results of the query
             for item in result:
                 metadata_list = []
                 for meta_column in metadata:
@@ -166,6 +188,8 @@ class BatchRetrieve(BatchRetrieveBase):
                 rank += 1
                 results.append(res)
         res_dt = pd.DataFrame(results, columns=['qid', ] + metadata + ['rank', 'score'])
+        # ensure to return the query
+        res_dt = res_dt.merge(queries[["qid", "query"]], on=["qid"])
         return res_dt
 
     def __str__(self):
