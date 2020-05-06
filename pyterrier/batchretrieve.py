@@ -188,10 +188,10 @@ class BatchRetrieve(BatchRetrieveBase):
                 metadata_list = []
                 for meta_column in metadata:
                     metadata_list.append(item.getMetadata(meta_column))
-                res = [str(row['qid'])] + metadata_list + [rank, item.getScore()]
+                res = [str(row['qid']), item.getDocid()] + metadata_list + [rank, item.getScore()]
                 rank += 1
                 results.append(res)
-        res_dt = pd.DataFrame(results, columns=['qid', ] + metadata + ['rank', 'score'])
+        res_dt = pd.DataFrame(results, columns=['qid', 'docid' ] + metadata + ['rank', 'score'])
         # ensure to return the query
         res_dt = res_dt.merge(queries[["qid", "query"]], on=["qid"])
         return res_dt
@@ -283,6 +283,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
                 elem = []
                 # start_time = time.time()
                 elem.append(row["qid"])
+                elem.append(fres.getDocids()[i])
                 elem.append(fres.getMetaItems("docno")[i])
                 elem.append(fres.getScores()[i])
                 feats_array = []
@@ -293,7 +294,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
                 elem.append(feats_array)
                 results.append(elem)
 
-        res_dt = pd.DataFrame(results, columns=["qid", "docno", "score", "features"])
+        res_dt = pd.DataFrame(results, columns=["qid", "docid", "docno", "score", "features"])
         return res_dt
 
     def __str__(self):
