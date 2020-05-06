@@ -65,7 +65,7 @@ Call the `transform(topics_set)` function with the train, validation and test to
 Use your trained model to predict the score of the test_topics and evaluate the result with `pt.Utils.evaluate()`.
 
 ```python
-BM25_with_features_br = pt.BatchRetrieve(index, ["WMODEL:BM25F", "WMODEL:PL2F"], controls={"wmodel" : "BM25"})
+BM25_with_features_br = pt.FeaturesBatchRetrieve(index, ["WMODEL:BM25F", "WMODEL:PL2F"], controls={"wmodel" : "BM25"})
 ```
 
 ## LTR_pipeline
