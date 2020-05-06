@@ -8,6 +8,7 @@ from jnius import autoclass, PythonJavaClass, java_method
 import pandas as pd
 # import numpy as np
 import os
+import enum
 
 StringReader = None
 HashMap = None
@@ -18,6 +19,8 @@ SimpleFileCollection = None
 BasicIndexer = None
 BlockIndexer = None
 Collection = None
+BasicSinglePassIndexer = None
+BlockSinglePassIndexer = None
 Arrays = None
 Array = None
 ApplicationSetup = None
@@ -35,6 +38,8 @@ def run_autoclass():
     global SimpleFileCollection
     global BasicIndexer
     global BlockIndexer
+    global BasicSinglePassIndexer
+    global BlockSinglePassIndexer
     global Collection
     global Arrays
     global Array
@@ -52,6 +57,8 @@ def run_autoclass():
     SimpleFileCollection = autoclass("org.terrier.indexing.SimpleFileCollection")
     BasicIndexer = autoclass("org.terrier.structures.indexing.classical.BasicIndexer")
     BlockIndexer = autoclass("org.terrier.structures.indexing.classical.BlockIndexer")
+    BasicSinglePassIndexer = autoclass("org.terrier.structures.indexing.singlepass.BasicSinglePassIndexer")
+    BlockSinglePassIndexer = autoclass("org.terrier.structures.indexing.singlepass.BlockSinglePassIndexer")
     Collection = autoclass("org.terrier.indexing.Collection")
     Arrays = autoclass("java.util.Arrays")
     Array = autoclass('java.lang.reflect.Array')
@@ -60,6 +67,13 @@ def run_autoclass():
     CLITool = autoclass("org.terrier.applications.CLITool")
     IndexRef = autoclass('org.terrier.querying.IndexRef')
     IndexFactory = autoclass('org.terrier.structures.IndexFactory')
+
+
+# Using enum class create enumerations
+class IndexingType(enum.Enum):
+    CLASSIC = 1
+    SINGLEPASS = 2
+    MEMORY = 3
 
 class Indexer:
     """
@@ -84,7 +98,7 @@ class Indexer:
             "trec.collection.class": "TRECCollection",
     }
 
-    def __init__(self, index_path, *args, blocks=False, overwrite=False, **kwargs):
+    def __init__(self, index_path, *args, blocks=False, overwrite=False, type=IndexingType.CLASSIC, **kwargs):
         """
         Init method
 
@@ -92,6 +106,7 @@ class Indexer:
             index_path (str): Directory to store index
             blocks (bool): Create indexer with blocks if true, else without blocks
             overwrite (bool): If index already present at `index_path`, True would overwrite it, False throws an Exception
+            type (IndexingType): the specific indexing procedure to use. Default is IndexingType.CLASSIC.
         """
         if StringReader is None:
             run_autoclass()
@@ -99,6 +114,7 @@ class Indexer:
         self.index_called = False
         self.index_dir = index_path
         self.blocks = blocks
+        self.type = type
         self.properties = Properties()
         self.setProperties(**self.default_properties)
         self.overwrite = overwrite
@@ -132,16 +148,27 @@ class Indexer:
 
     def createIndexer(self):
         """
-        Check `blocks` and create a BlockIndexer if true, else create BasicIndexer
+        Check `single_pass` and
+        - if false, check `blocks` and create a BlockIndexer if true, else create BasicIndexer
+        - if true, check `blocks` and create a BlockSinglePassIndexer if true, else create BasicSinglePassIndexer
         Returns:
             Created index object
         """
         ApplicationSetup.getProperties().putAll(self.properties)
         # ApplicationSetup.bootstrapInitialisation(self.properties)
-        if self.blocks:
-            index = BlockIndexer(self.index_dir, "data")
+        if self.type is IndexingType.SINGLEPASS:
+            if self.blocks:
+                index = BlockSinglePassIndexer(self.index_dir, "data")
+            else:
+                index = BasicSinglePassIndexer(self.index_dir, "data")
+        elif self.type is IndexingType.CLASSIC:
+            if self.blocks:
+                index = BlockIndexer(self.index_dir, "data")
+            else:
+                index = BasicIndexer(self.index_dir, "data")
         else:
-            index = BasicIndexer(self.index_dir, "data")
+            raise Exception("Memory indexing not yet implemented")
+
         return index
 
     def createAsList(self, files_path):
@@ -309,6 +336,11 @@ class PythonListIterator(PythonJavaClass):
         return [text, meta]
 
 class TRECCollectionIndexer(Indexer):
+    type_to_class = {
+        'trec' : 'org.terrier.indexing.TRECCollection',
+        'trecweb' : 'org.terrier.indexing.TRECWebCollection',
+        'warc' : 'org.terrier.indexing.WARC10Collection'
+    }
     """
     Use this Indexer if you wish to index a TREC formatted collection
 
@@ -321,6 +353,25 @@ class TRECCollectionIndexer(Indexer):
         properties: A Terrier Properties object, which is a hashtable with properties and their values
         overwrite(bool): If True the index() method of child Indexer will overwrite any existing index
     """
+
+    def __init__(self, index_path, blocks=False, overwrite=False, type=IndexingType.CLASSIC, collection="trec"):
+        """
+        Init method
+
+        Args:
+            index_path (str): Directory to store index
+            blocks (bool): Create indexer with blocks if true, else without blocks
+            overwrite (bool): If index already present at `index_path`, True would overwrite it, False throws an Exception
+            type (IndexingType): the specific indexing procedure to use. Default is IndexingType.CLASSIC.
+            collection (Class name, or Class instance, or one of "trec", "trecweb", "warc")
+        """
+        super(TRECCollectionIndexer, self).__init__(index_path, blocks, overwrite, type)
+        if isinstance(collection, str):
+            if collection in TRECCollectionIndexer.type_to_class:
+                collection = TRECCollectionIndexer.type_to_class[collection]
+        self.collection = collection.split(",")
+    
+
     def index(self, files_path):
         """
         Index the specified TREC formatted files
@@ -331,8 +382,13 @@ class TRECCollectionIndexer(Indexer):
         self.checkIndexExists()
         index = self.createIndexer()
         asList = self.createAsList(files_path)
-        trecCol = TRECCollection(asList, "TrecDocTags", "", "")
-        index.index([trecCol])
+        cls_string = autoclass("java.lang.String")._class
+        cls_list = autoclass("java.util.List")._class
+        colObj = autoclass("org.terrier.indexing.CollectionFactory").loadCollections(
+            self.collection,
+            [cls_list, cls_string, cls_string, cls_string],
+            [asList, autoclass("org.terrier.utility.TagSet").TREC_DOC_TAGS, "", ""])
+        index.index([colObj])
         self.index_called = True
         return IndexRef.of(self.index_dir + "/data.properties")
 
