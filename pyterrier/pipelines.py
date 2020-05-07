@@ -41,9 +41,11 @@ def Experiment(topics, retr_systems, eval_metrics, qrels, names=None, perquery=F
     evalsRows=[]
     evalDict={}
     for name,res in zip(names,results):
-        evalMeasures = Utils.evaluate(res,qrels, metrics=eval_metrics, perquery=perquery)
-        evalsRows.append([name,evalMeasures])
+        evalMeasuresDict = Utils.evaluate(res,qrels, metrics=eval_metrics, perquery=perquery)
+        evalMeasures = [evalMeasuresDict[m] for m in eval_metrics]
+        evalsRows.append([name]+evalMeasures)
         evalDict[name] = evalMeasures
+    print
     if dataframe:
         return pd.DataFrame(evalsRows, columns=["name"] + eval_metrics)
     return evalDict
