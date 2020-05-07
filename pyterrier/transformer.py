@@ -97,6 +97,13 @@ class TransformerBase:
 
     def __and__(self, right):
         return SetIntersectionTransformer(self, right)
+    
+class EstimatorBase(TransformerBase):
+    '''
+        This is a base class for things that can be fitted.
+    '''
+    def fit(self, topics_or_res_tr, qrels_tr, topics_or_res_va, qrels_va):
+        pass
 
 class IdentityTransformer(TransformerBase, Operation):
     arity = Arity.nullary
@@ -257,3 +264,18 @@ class ComposedPipeline(NAryTransformerBase):
         for m in self.models:
             topics = m.transform(topics)
         return topics
+
+    def fit(self, topics_or_res_tr, qrels_tr, topics_or_res_va=None, qrels_va=None):
+        """
+        This is a default implementation for fitting a pipeline. The assumption is that
+        all EstimatorBase be composed with a TransformerBase. It will execute any pre-requisite
+        transformers BEFORE executing the fitting the stage.
+        """
+        for m in self.models:
+            if isinstance(m, EstimatorBase):
+                m.fit(topics_or_res_tr, qrels_tr, topics_or_res_va, qrels_va)
+            else:
+                topics_or_res_tr = m.transform(topics_or_res_tr)
+                # validation is optional for some learners
+                if topics_or_res_va is not None:
+                    topics_or_res_va = m.transform(topics_or_res_va)
