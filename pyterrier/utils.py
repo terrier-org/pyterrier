@@ -85,13 +85,11 @@ class Utils:
         Returns:
             pandas.Dataframe with columns=['qid','docno', 'label']
         """
-        dph_results = []
-        with (open(file_path, 'r')) as qrels_file:
-            for line in qrels_file:
-                split_line = line.strip("\n").split(" ")
-                dph_results.append([split_line[0], split_line[2], int(split_line[3])])
-        res_dt = pd.DataFrame(dph_results, columns=['qid', 'docno', 'label'])
-        return res_dt
+        df = pd.read_csv(file_path, sep=None, names=["qid", "iter", "docno", "label"])
+        df = df.drop(columns="iter")
+        df["qid"] = df["qid"].astype(str)
+        df["docno"] = df["docno"].astype(str)
+        return df
 
     @staticmethod
     def convert_qrels_to_dict(df):
