@@ -85,7 +85,7 @@ class Utils:
         Returns:
             pandas.Dataframe with columns=['qid','docno', 'label']
         """
-        df = pd.read_csv(file_path, sep=None, names=["qid", "iter", "docno", "label"])
+        df = pd.read_csv(file_path, delim_whitespacebool=True, names=["qid", "iter", "docno", "label"])
         df = df.drop(columns="iter")
         df["qid"] = df["qid"].astype(str)
         df["docno"] = df["docno"].astype(str)
