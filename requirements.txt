@@ -3,3 +3,5 @@ pandas
 wget
 pytrec_eval
 tqdm
+pyjnius~=1.3.0
+matchpy

@@ -72,11 +72,18 @@ def setup_terrier(file_path, terrier_version=None, helper_version=None, boot_pac
 
     classpath=[trJar, helperJar]
     for b in boot_packages:
-        group, pkg, filetype, version = b.split(":")
-        if version is None:
-            version = filetype
-            filetype = "jar"
-        print((group, pkg, filetype, version))
+        parts = b.split(":")
+        if len(parts)  < 2 or len(parts) > 4:
+            raise ValueError("Invalid format for package %s" % b)
+        group = parts[0]
+        pkg = parts[1]
+        filetype = "jar"
+        version = None
+        if len(parts) > 2:
+            version = parts[2]
+            if len(parts) > 3:
+                filetype = parts[3]
+        #print((group, pkg, filetype, version))
         filename = mavenresolver.downloadfile(group, pkg, version, file_path, filetype)
         classpath.append(filename)
 

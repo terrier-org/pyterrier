@@ -98,7 +98,7 @@ class Indexer:
             "trec.collection.class": "TRECCollection",
     }
 
-    def __init__(self, index_path, blocks=False, overwrite=False, type=IndexingType.CLASSIC):
+    def __init__(self, index_path, *args, blocks=False, overwrite=False, type=IndexingType.CLASSIC, **kwargs):
         """
         Init method
 
@@ -114,6 +114,7 @@ class Indexer:
         self.index_called = False
         self.index_dir = index_path
         self.blocks = blocks
+        print(type)
         self.type = type
         self.properties = Properties()
         self.setProperties(**self.default_properties)
@@ -365,7 +366,8 @@ class TRECCollectionIndexer(Indexer):
             type (IndexingType): the specific indexing procedure to use. Default is IndexingType.CLASSIC.
             collection (Class name, or Class instance, or one of "trec", "trecweb", "warc")
         """
-        super(TRECCollectionIndexer, self).__init__(index_path, blocks, overwrite, type)
+        print(type)
+        super().__init__(index_path, blocks=blocks, overwrite=overwrite, type=type)
         if isinstance(collection, str):
             if collection in TRECCollectionIndexer.type_to_class:
                 collection = TRECCollectionIndexer.type_to_class[collection]
@@ -405,6 +407,12 @@ class FilesIndexer(Indexer):
         properties: A Terrier Properties object, which is a hashtable with properties and their values
         overwrite(bool): If True the index() method of child Indexer will overwrite any existing index
     '''
+
+    def __init__(self, index_path, *args, **kwargs):
+        super().__init__(index_path, args, kwargs)
+        self.properties["indexer.meta.forward.keys"]="docno,filename"
+        self.properties["indexer.meta.forward.keylens"]="20,512"
+
     def index(self, files_path):
         """
         Index the specified TREC formatted files

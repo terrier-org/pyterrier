@@ -27,14 +27,14 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    # data_files=[('my_data', ['../terrier-project-5.1-jar-with-dependencies.jar'])],
     install_requires=[
-        "pyjnius",
+        "pyjnius~=1.3.0",
         "numpy",
         "pandas",
         "wget",
         "pytrec_eval",
         "tqdm",
+        "matchpy",
         "deprecation"
     ],
     python_requires='>=3.6',

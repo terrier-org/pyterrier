@@ -5,6 +5,8 @@ from tqdm import tqdm
 
 from .utils import Utils
 from .index import Indexer
+from .transformer import TransformerBase, Symbol
+from tqdm import tqdm
 
 # import time
 
@@ -14,6 +16,12 @@ def importProps():
     globals()["props"] = props
 props = None
 
+_matchops = ["#combine", "#uw", "#1", "#tag", "#prefix", "#band", "#base64", "#syn"]
+def _matchop(query):
+    for m in _matchops:
+        if m in query:
+            return True
+    return False
 
 def parse_index_like(index_location):
     JIR = autoclass('org.terrier.querying.IndexRef')
@@ -35,9 +43,20 @@ def parse_index_like(index_location):
         or an pyterrier.Indexer object'''
     )
 
-class BatchRetrieve:
+class BatchRetrieveBase(TransformerBase, Symbol):
     """
-    Use this class for retrieval
+    A base class for retrieval
+
+    Attributes:
+        verbose(bool): If True transform method will display progress
+    """
+    def __init__(self, verbose=0, **kwargs):
+        super().__init__(kwargs)
+        self.verbose = verbose
+
+class BatchRetrieve(BatchRetrieveBase):
+    """
+    Use this class for retrieval by Terrier
 
     Attributes:
         default_controls(dict): stores the default controls
@@ -63,7 +82,7 @@ class BatchRetrieve:
         "querying.processes": "terrierql:TerrierQLParser,parsecontrols:TerrierQLToControls,parseql:TerrierQLToMatchingQueryTerms,matchopql:MatchingOpQLParser,applypipeline:ApplyTermPipeline,localmatching:LocalManager$ApplyLocalMatching,qe:QueryExpansion,labels:org.terrier.learning.LabelDecorator,filters:LocalManager$PostFilterProcess",
         "querying.postfilters": "decorate:SimpleDecorate,site:SiteFilter,scope:Scope",
         "querying.default.controls": "wmodel:DPH,parsecontrols:on,parseql:on,applypipeline:on,terrierql:on,localmatching:on,filters:on,decorate:on",
-        "querying.allowed.controls": "scope,qe,qemodel,start,end,site,scope",
+        "querying.allowed.controls": "scope,qe,qemodel,start,end,site,scope,applypipeline",
         "termpipelines": "Stopwords,PorterStemmer"
     }
 
@@ -76,13 +95,13 @@ class BatchRetrieve:
             properties(dict): A dictionary with with the property keys and values
             verbose(bool): If True transform method will display progress
     """
-    def __init__(self, index_location, controls=None, properties=None, verbose=0):
-
+    def __init__(self, index_location, controls=None, properties=None, metadata=["docno"], **kwargs):
+        super().__init__(kwargs)
+        
         self.indexref = parse_index_like(index_location)
         self.appSetup = autoclass('org.terrier.utility.ApplicationSetup')
-        self.verbose = verbose
-
         self.properties = _mergeDicts(BatchRetrieve.default_properties, properties)
+        self.metadata = metadata
 
         if props is None:
             importProps()
@@ -94,7 +113,7 @@ class BatchRetrieve:
         MF = autoclass('org.terrier.querying.ManagerFactory')
         self.manager = MF._from_(self.indexref)
 
-    def transform(self, queries, metadata=["docno"]):
+    def transform(self, queries):
         """
         Performs the retrieval
 
@@ -121,12 +140,30 @@ class BatchRetrieve:
             queries = input_results[["qid", "query"]].dropna(axis=0, subset=["query"]).drop_duplicates()
             RequestContextMatching = autoclass("org.terrier.python.RequestContextMatching")
 
+        if queries["qid"].dtype == np.int64:
+            queries['qid'] = queries['qid'].astype(str)
+
+
         for index,row in tqdm(queries.iterrows(), total=queries.shape[0], unit="q") if self.verbose else queries.iterrows():
             rank = 0
             qid = str(row['qid'])
-            srq = self.manager.newSearchRequest(qid, row['query'])
+            query = row['query']
+            srq = self.manager.newSearchRequest(qid, query)
+            
             for control, value in self.controls.items():
                 srq.setControl(control, value)
+
+            # this is needed until terrier-core issue #106 lands
+            if "applypipeline:off" in query:
+                srq.setControl("applypipeline", "off")
+                srq.setOriginalQuery(query.replace("applypipeline:off", ""))
+
+            # transparently detect matchop queries
+            if _matchop(query):
+                srq.setControl("terrierql", "off")
+                srq.setControl("parsecontrols", "off")
+                srq.setControl("parseql", "off")
+                srq.setControl("matchopql", "on")
 
             # this handles the case that a candidate set of documents has been set. 
             if docno_provided or docid_provided:
@@ -142,18 +179,22 @@ class BatchRetrieve:
                     matching_config_factory.withScores(input_query_results["scores"].values.tolist())
                 matching_config_factory.build()
                 srq.setControl("matching", "org.terrier.matching.ScoringMatching" + "," + srq.getControl("matching"))
-            
+
             # now ask Terrier to run the request
             self.manager.runSearchRequest(srq)
             result = srq.getResults()
+
+            # prepare the dataframe for the results of the query
             for item in result:
                 metadata_list = []
-                for meta_column in metadata:
+                for meta_column in self.metadata:
                     metadata_list.append(item.getMetadata(meta_column))
-                res = [str(row['qid'])] + metadata_list + [rank, item.getScore()]
+                res = [str(row['qid']), item.getDocid()] + metadata_list + [rank, item.getScore()]
                 rank += 1
                 results.append(res)
-        res_dt = pd.DataFrame(results, columns=['qid', ] + metadata + ['rank', 'score'])
+        res_dt = pd.DataFrame(results, columns=['qid', 'docid' ] + self.metadata + ['rank', 'score'])
+        # ensure to return the query
+        res_dt = res_dt.merge(queries[["qid", "query"]], on=["qid"])
         return res_dt
 
     def __str__(self):
@@ -243,6 +284,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
                 elem = []
                 # start_time = time.time()
                 elem.append(row["qid"])
+                elem.append(fres.getDocids()[i])
                 elem.append(fres.getMetaItems("docno")[i])
                 elem.append(fres.getScores()[i])
                 feats_array = []
@@ -253,7 +295,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
                 elem.append(feats_array)
                 results.append(elem)
 
-        res_dt = pd.DataFrame(results, columns=["qid", "docno", "score", "features"])
+        res_dt = pd.DataFrame(results, columns=["qid", "docid", "docno", "score", "features"])
         return res_dt
 
     def __str__(self):

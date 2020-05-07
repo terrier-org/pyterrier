@@ -2,6 +2,14 @@ import os
 from .bootstrap import setup_logging, setup_terrier, setup_jnius
 from . import datasets
 
+import importlib
+
+#sub modules
+rewrite = None
+index = None
+pipelines = None
+anserini = None
+
 file_path = os.path.dirname(os.path.abspath(__file__))
 firstInit = False
 ApplicationSetup = None
@@ -72,6 +80,17 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     globals()["cast"] = cast
     globals()["ApplicationSetup"] = ApplicationSetup
 
+    global rewrite
+    global anserini
+    global pipelines
+    global index
+
+    rewrite = importlib.import_module('.rewrite', package='pyterrier') 
+    anserini = importlib.import_module('.anserini', package='pyterrier') 
+    pipelines = importlib.import_module('.pipelines', package='pyterrier') 
+    index = importlib.import_module('.index', package='pyterrier') 
+
+
     # append the python helpers
     if packages is None:
         packages = []
@@ -135,4 +154,13 @@ def run(cmd, args=[]):
 
 def extend_classpath(mvnpackages):
     assert check_version(5.3), "Terrier 5.3 required for this functionality"
-    ApplicationSetup.getPlugin("MavenResolver").addDependencies(mvnpackages)
+    if isinstance(mvnpackages, str):
+        mvnpackages = [mvnpackages]
+    from jnius import autoclass, cast
+    thelist = autoclass("java.util.ArrayList")()
+    for pkg in mvnpackages:
+        thelist.add(pkg)
+    mvnr = ApplicationSetup.getPlugin("MavenResolver")
+    assert mvnr is not None
+    mvnr = cast("org.terrier.utility.MavenResolver", mvnr)
+    mvnr.addDependencies(thelist)
