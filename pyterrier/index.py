@@ -114,6 +114,7 @@ class Indexer:
         self.index_called = False
         self.index_dir = index_path
         self.blocks = blocks
+        print(type)
         self.type = type
         self.properties = Properties()
         self.setProperties(**self.default_properties)
@@ -365,7 +366,8 @@ class TRECCollectionIndexer(Indexer):
             type (IndexingType): the specific indexing procedure to use. Default is IndexingType.CLASSIC.
             collection (Class name, or Class instance, or one of "trec", "trecweb", "warc")
         """
-        super(TRECCollectionIndexer, self).__init__(index_path, blocks, overwrite, type)
+        print(type)
+        super().__init__(index_path, blocks=blocks, overwrite=overwrite, type=type)
         if isinstance(collection, str):
             if collection in TRECCollectionIndexer.type_to_class:
                 collection = TRECCollectionIndexer.type_to_class[collection]
