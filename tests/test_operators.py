@@ -85,6 +85,21 @@ class TestOperators(unittest.TestCase):
         self.assertEqual("doc1", rtr.iloc[0]["docno"])
         self.assertEqual(15, rtr.iloc[0]["score"])
 
+    def test_rank_cutoff(self):
+        mock1 = ptt.UniformTransformer( pd.DataFrame([["q1", "d2", 1, 5.1], ["q1", "d3", 2, 5.1]], columns=["qid", "docno", "rank", "score"]))
+        cutpipe = mock1 % 1
+        rtr = cutpipe.transform(None)
+        self.assertEqual(1, len(rtr))
+        
+    def test_concatenate(self):
+        mock1 = ptt.UniformTransformer( pd.DataFrame([["q1", "d2", 1, 4.9], ["q1", "d3", 2, 5.1]], columns=["qid", "docno", "rank", "score"]))
+        mock2 = ptt.UniformTransformer( pd.DataFrame([["q1", "d1", 1, 4.9], ["q1", "d3", 2, 5.1]], columns=["qid", "docno", "rank", "score"]))
+
+        cutpipe = mock1 ^ mock2
+        rtr = cutpipe.transform(None)
+        self.assertEqual(3, len(rtr))
+
+
     def test_plus_multi_rewrite(self):
         mock1 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))
         mock2 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]))

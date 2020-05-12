@@ -97,6 +97,13 @@ class TransformerBase:
 
     def __and__(self, right):
         return SetIntersectionTransformer(self, right)
+
+    def __mod__(self, right):
+        assert isinstance(right, int)
+        return RankCutoffTransformer(self, right)
+
+    def __xor__(self, right):
+        return ConcatenateTransformer(self, right)
     
 class EstimatorBase(TransformerBase):
     '''
@@ -181,13 +188,45 @@ class CombSumTransformer(BinaryTransformerBase):
         merged = merged.drop(columns=['score_x', 'score_y'])
         return merged
 
-# multiplies the retrieval score by a scalar
+class ConcatenateTransformer(BinaryTransformerBase):
+    name = "Concat"
+
+    def transform(self, topics_and_res):
+        import pandas as pd
+        # take the first set as the top of the ranking
+        res1 = self.left.transform(topics_and_res)
+        # identify the lowest score for each query
+        last_scores = res1.groupby('qid').min()[['score']].rename(columns={"score" : "_subtractscore"})
+
+        # the right hand side will provide the rest of the ranking        
+        res2 = self.right.transform(topics_and_res)
+        
+        intersection = pd.merge(res1[["qid", "docno"]], res2[["qid", "docno"]].reset_index())
+        remainder = res2.drop(intersection["index"])
+        # we will use append documents from remainder to res1
+        # but we need to deduct the last score from each remaining documents
+        remainder = remainder.merge(last_scores, on=["qid"])
+        remainder["score"] = remainder["score"] - remainder["_subtractscore"]
+        remainder = remainder.drop(columns=["_subtractscore"])
+
+        # now bring together and re-sort
+        # this sort should match trec_eval
+        rtr = pd.concat([res1, remainder]).sort_values(["qid", "score", "docno"], ascending=[True, False, True]) 
+
+        # recompute the ranks
+        rtr = rtr.drop(columns=["rank"])
+        rtr["rank"] = rtr.groupby("qid").rank(ascending=False)["score"].astype(int)
+
+        return rtr
+
 class ScalarProductTransformer(BinaryTransformerBase):
+    '''
+    multiplies the retrieval score by a scalar
+    '''
     arity = Arity.binary
     name = "ScalarProd"
 
     def __init__(self, operands, **kwargs):
-        #mpy_ops = [transformer, Scalar(scalar)] if isinstance(scalar, Scalar) else [transformer, scalar]
         super().__init__(operands, **kwargs)
         self.transformer = operands[0]
         self.scalar = operands[1]
@@ -195,6 +234,26 @@ class ScalarProductTransformer(BinaryTransformerBase):
     def transform(self, topics_and_res):
         res = self.transformer.transform(topics_and_res)
         res["score"] = self.scalar * res["score"]
+        return res
+
+class RankCutoffTransformer(BinaryTransformerBase):
+    '''
+    applies a rank cutoff for each query
+    '''
+    arity = Arity.binary
+    name = "RankCutoff"
+
+    def __init__(self, operands, **kwargs):
+        super().__init__(operands, **kwargs)
+        self.transformer = operands[0]
+        self.cutoff = operands[1]
+
+    def transform(self, topics_and_res):
+        res = self.transformer.transform(topics_and_res)
+        if not "rank" in res.columns:
+            assert False, "require rank to be present in the result set"
+
+        res = res[res["rank"] <= self.cutoff]
         return res
 
 class LambdaPipeline(TransformerBase):
