@@ -54,7 +54,9 @@ def setup_rewrites():
 
 
 class Scalar(Symbol):
-    pass
+    def __init__(self, name, value):
+        super().__init__(name)
+        self.value = value
 
 class TransformerBase:
     '''
@@ -244,6 +246,7 @@ class RankCutoffTransformer(BinaryTransformerBase):
     name = "RankCutoff"
 
     def __init__(self, operands, **kwargs):
+        operands = [operands[0], Scalar(str(operands[1]), operands[1])] if isinstance(operands[1], int) else operands
         super().__init__(operands, **kwargs)
         self.transformer = operands[0]
         self.cutoff = operands[1]
@@ -253,7 +256,7 @@ class RankCutoffTransformer(BinaryTransformerBase):
         if not "rank" in res.columns:
             assert False, "require rank to be present in the result set"
 
-        res = res[res["rank"] <= self.cutoff]
+        res = res[res["rank"] <= self.cutoff.value]
         return res
 
 class LambdaPipeline(TransformerBase):
