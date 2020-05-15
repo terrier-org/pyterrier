@@ -77,6 +77,9 @@ class TransformerBase:
         '''
         return replace_all(self, rewrite_rules)
 
+    def __call__(self, *args, **kwargs):
+        return self.transform(*args, **kwargs)
+
     def __rshift__(self, right):
         return ComposedPipeline(self, right)
 
