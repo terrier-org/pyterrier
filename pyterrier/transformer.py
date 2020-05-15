@@ -1,7 +1,9 @@
 
 from matchpy import *
 
-
+LAMBDA = lambda:0
+def is_lambda(v):
+    return isinstance(v, type(LAMBDA)) and v.__name__ == LAMBDA.__name__
        
 rewrite_rules = []
 
@@ -155,7 +157,7 @@ class NAryTransformerBase(TransformerBase,Operation):
     def __init__(self, operands, **kwargs):
         super().__init__(operands=operands, **kwargs)
         models = operands
-        self.models = list( map(lambda x : LambdaPipeline(x) if callable(x) else x, models) )
+        self.models = list( map(lambda x : LambdaPipeline(x) if is_lambda(x) else x, models) )
 
 class SetUnionTransformer(BinaryTransformerBase):
     name = "Union"
