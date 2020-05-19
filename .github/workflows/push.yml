@@ -26,6 +26,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
 
+    - name: Setup dependencies for xgBoost on macOs-latest
+      if: matrix.os == 'macOs-latest'
+      run: |
+        brew install libomp
+
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v1
