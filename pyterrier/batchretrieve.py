@@ -171,10 +171,10 @@ class BatchRetrieve(BatchRetrieveBase):
                 # documents in the candidate set. 
                 matching_config_factory = RequestContextMatching.of(srq)
                 input_query_results = input_results[input_results["qid"] == qid]
-                if docno_provided:
-                    matching_config_factory.fromDocnos(input_query_results["docno"].values.tolist())
-                elif docid_provided:
+                if docid_provided:
                     matching_config_factory.fromDocids(input_query_results["docid"].values.tolist())
+                elif docno_provided:
+                    matching_config_factory.fromDocnos(input_query_results["docno"].values.tolist())
                 if scores_provided:
                     matching_config_factory.withScores(input_query_results["scores"].values.tolist())
                 matching_config_factory.build()
@@ -189,7 +189,7 @@ class BatchRetrieve(BatchRetrieveBase):
                 metadata_list = []
                 for meta_column in self.metadata:
                     metadata_list.append(item.getMetadata(meta_column))
-                res = [str(row['qid']), item.getDocid()] + metadata_list + [rank, item.getScore()]
+                res = [qid, item.getDocid()] + metadata_list + [rank, item.getScore()]
                 rank += 1
                 results.append(res)
         res_dt = pd.DataFrame(results, columns=['qid', 'docid' ] + self.metadata + ['rank', 'score'])
@@ -269,33 +269,89 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         """
         results = []
         queries = Utils.form_dataframe(topics)
+
+        docno_provided = "docno" in queries.columns
+        docid_provided = "docid" in queries.columns
+        scores_provided = "scores" in queries.columns
+        if docno_provided or docid_provided:
+            assert False, "re-ranking not yet supported by FBR"
+            from . import check_version
+            assert check_version(5.3)
+            input_results = queries
+
+            # query is optional, and functionally dependent on qid.
+            # Hence as long as one row has the query for each qid, 
+            # the rest can be None
+            queries = input_results[["qid", "query"]].dropna(axis=0, subset=["query"]).drop_duplicates()
+            RequestContextMatching = autoclass("org.terrier.python.RequestContextMatching")
+
+        if queries["qid"].dtype == np.int64:
+            queries['qid'] = queries['qid'].astype(str)
+
         for index, row in tqdm(queries.iterrows(), total=queries.shape[0], unit="q") if self.verbose else queries.iterrows():
-            srq = self.manager.newSearchRequest(row['qid'], row['query'])
+            qid = str(row['qid'])
+            query = row['query']
+
+            srq = self.manager.newSearchRequest(qid, query)
+            # this is needed until terrier-core issue #106 lands
+            if "applypipeline:off" in query:
+                srq.setControl("applypipeline", "off")
+                srq.setOriginalQuery(query.replace("applypipeline:off", ""))
+
+            # transparently detect matchop queries
+            if _matchop(query):
+                srq.setControl("terrierql", "off")
+                srq.setControl("parsecontrols", "off")
+                srq.setControl("parseql", "off")
+                srq.setControl("matchopql", "on")
+
+            # this handles the case that a candidate set of documents has been set. 
+            if docno_provided or docid_provided:
+                # we use RequestContextMatching to make a ResultSet from the 
+                # documents in the candidate set. 
+                matching_config_factory = RequestContextMatching.of(srq)
+                input_query_results = input_results[input_results["qid"] == qid]
+                if docid_provided:
+                    matching_config_factory.fromDocids(input_query_results["docid"].values.tolist())
+                elif docno_provided:
+                    matching_config_factory.fromDocnos(input_query_results["docno"].values.tolist())
+                if scores_provided:
+                    matching_config_factory.withScores(input_query_results["scores"].values.tolist())
+                matching_config_factory.build()
+                srq.setControl("matching", "org.terrier.matching.ScoringMatching" + "," + srq.getControl("matching"))
+
+            
+            
             for control, value in self.controls.items():
                 srq.setControl(control, value)
             self.manager.runSearchRequest(srq)
             srq = cast('org.terrier.querying.Request', srq)
             fres = cast('org.terrier.learning.FeaturedResultSet', srq.getResultSet())
             feat_names = fres.getFeatureNames()
-            feats_values = []
+
+            docids=fres.getDocids()
+            scores= fres.getScores()
+            metadata_list = []
+            for meta_column in self.metadata:
+                metadata_list.append(fres.getMetaItems("docno"))
+            feats_values = []            
             for feat in feat_names:
                 feats_values.append(fres.getFeatureScores(feat))
+            rank = 0
             for i in range(fres.getResultSize()):
-                elem = []
-                # start_time = time.time()
-                elem.append(row["qid"])
-                elem.append(fres.getDocids()[i])
-                elem.append(fres.getMetaItems("docno")[i])
-                elem.append(fres.getScores()[i])
+                
                 feats_array = []
                 for j in range(len(feats_values)):
                     feats_array.append(feats_values[j][i])
                 feats_array = np.array(feats_array)
-                # start_time = time.time()
-                elem.append(feats_array)
-                results.append(elem)
+                meta=[]
+                for meta_idx, meta_column in enumerate(self.metadata):
+                    meta.append( metadata_list[meta_idx][i] )
 
-        res_dt = pd.DataFrame(results, columns=["qid", "docid", "docno", "score", "features"])
+                results.append( [qid, docids[i], rank ] + meta + [ scores[i], feats_array] )
+                rank += 1
+
+        res_dt = pd.DataFrame(results, columns=["qid", "docid", "rank", "docno", "score", "features"])
         return res_dt
 
     def __str__(self):
