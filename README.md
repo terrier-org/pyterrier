@@ -39,7 +39,7 @@ https://colab.research.google.com/drive/17WpzhtlMj1U2UJku-RaO2axNsUFhPI6z
 ```python
 topics = pt.Utils.parse_trec_topics_file(topicsFile)
 qrels = pt.Utils.parse_qrels(qrelsFile)
-BM25_br = pt.BatchRetrieve(index, "BM25")
+BM25_br = pt.BatchRetrieve(index, controls={"wmodel": "BM25"})
 res = BM25_br.transform(topics)
 pt.Utils.evaluate(res, qrels, metrics = ['map'])
 ```
