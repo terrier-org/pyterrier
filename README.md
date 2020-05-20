@@ -94,3 +94,5 @@ https://colab.research.google.com/drive/1KwHoahx_i0vax9fnCZpLP-JmI9jvSoey
 
  - Alex Tsolov, University of Glasgow
  - Craig Macdonald, University of Glasgow
+ - Nicola Tonellotto, University of Pisa
+ - Arthur Câmara, Delft University
