@@ -91,6 +91,9 @@ class QueryExpansion(TransformerBase, Symbol):
 
         elif "docno" in topics_and_res.columns:
             docnos = topics_and_res[topics_and_res["qid"] == qid]["docno"].values
+            docids = []
+            scores = []
+            occurrences = []
             metaindex = index.getMetaIndex()
             for docno in docnos:
                 docid = metaindex.getDocument("docno", docno)
