@@ -15,6 +15,8 @@ def setup_logging(level):
 def logging(level):
     from jnius import autoclass
     autoclass("org.terrier.python.PTUtils").setLogLevel(level, None)
+# make an alias
+_logging = logging
 
 def setup_jnius():
     from jnius import protocol_map # , autoclass

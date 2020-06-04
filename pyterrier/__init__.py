@@ -1,5 +1,5 @@
 import os
-from .bootstrap import setup_logging, setup_terrier, setup_jnius
+from .bootstrap import _logging, setup_terrier, setup_jnius
 from . import datasets
 
 import importlib
@@ -107,7 +107,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     if redirect_io:
         # this ensures that the python stdout/stderr and the Java are matched
         redirect_stdouterr()
-    setup_logging(logging)
+    _logging(logging)
     setup_jnius()
 
     globals()["BatchRetrieve"] = BatchRetrieve
@@ -139,6 +139,10 @@ def check_version(min):
 def redirect_stdouterr():
     from . import bootstrap
     bootstrap.redirect_stdouterr()
+
+def logging(level):
+    from . import bootstrap
+    bootstrap.logging(level)
 
 def set_property(k, v):
     # properties = Properties()
