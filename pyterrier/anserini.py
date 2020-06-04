@@ -42,13 +42,40 @@ def init_anserini():
 
 
 class AnseriniBatchRetrieve(BatchRetrieveBase):
-    def __init__(self, index_location, k=1000, **kwargs):
+    def __init__(self, index_location, k=1000, wmodel="BM25", **kwargs):
         super().__init__(kwargs)
         self.index_location = index_location
         self.k = k
         init_anserini()
         from pyserini.search import pysearch
         self.searcher = pysearch.SimpleSearcher(index_location)
+        self.wmodel = wmodel
+        self._setsimilarty(wmodel)
+
+    def _setsimilarty(self, wmodel):
+        #commented lines are for anserini > 0.9.2
+        if wmodel == "BM25":
+            self.searcher.object.setBM25Similarity(0.9, 0.4)
+            #self.searcher.object.setBM25(self.searcher.object.bm25_k1, self.searcher.object.bm25_b)
+        elif wmodel == "QLD":
+            self.searcher.object.setLMDirichletSimilarity(1000.0)
+            #self.searcher.object.setQLD(self.searcher.object.ql_mu)
+        elif wmodel == "TFIDF":
+            from jnius import autoclass
+            self.searcher.object.similarty = autoclass("org.apache.lucene.search.similarities.ClassicSimilarity")()
+        else:
+            raise ValueError("wmodel %s not support in AnseriniBatchRetrieve" % wmodel) 
+
+    def _getsimilarty(self, wmodel):
+        from jnius import autoclass
+        if wmodel == "BM25":
+            return autoclass("org.apache.lucene.search.similarities.BM25Similarity")(0.9, 0.4)#(self.searcher.object.bm25_k1, self.searcher.object.bm25_b)
+        elif wmodel == "QLD":
+            return autoclass("org.apache.lucene.search.similarities.LMDirichletSimilarity")(1000.0)# (self.searcher.object.ql_mu)
+        elif wmodel == "TFIDF":
+            return autoclass("org.apache.lucene.search.similarities.ClassicSimilarity")()
+        else:
+            raise ValueError("wmodel %s not support in AnseriniBatchRetrieve" % wmodel) 
 
     def __str__(self):
         return "AnseriniBatchRetrieve()"
@@ -77,6 +104,7 @@ class AnseriniBatchRetrieve(BatchRetrieveBase):
             indexreader = self.searcher.object.reader
             rank = 0
             last_qid = None
+            sim = self._getsimilarty(self.wmodel)
             for index,row in tqdm(queries.iterrows(), total=queries.shape[0], unit="d") if self.verbose else queries.iterrows():
                 qid = row["qid"]
                 query = row["query"]
@@ -84,7 +112,7 @@ class AnseriniBatchRetrieve(BatchRetrieveBase):
                 if last_qid is None or last_qid != qid:
                     rank = 0
                 rank += 1
-                score = indexreaderutils.computeQueryDocumentScore(indexreader, docno, query)
+                score = indexreaderutils.computeQueryDocumentScore(indexreader, docno, query, sim)
                 results.append([qid, query, docno, rank, score])
 
         else: #we are searching, no candidate set provided
