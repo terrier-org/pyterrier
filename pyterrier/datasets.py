@@ -17,15 +17,19 @@ STANDARD_TERRIER_INDEX_FILES = [
 class Dataset():
 
     def get_corpus_location(self):
+        ''' Returns the location of the files to allow indexing the corpus '''
         pass
 
     def get_index(self):
+        ''' Returns the IndexRef of the index to allow retrieval '''
         pass
 
     def get_topics(self):
+        ''' Returns the topics, as a dataframe, ready for retrieval '''
         pass
 
     def get_qrels(self):
+        ''' Returns the qrels, as a dataframe, ready for evaluation '''
         pass
 
 class RemoteDataset(Dataset):
@@ -79,19 +83,32 @@ class RemoteDataset(Dataset):
         import pyterrier as pt
         return pt.Utils.parse_qrels(self._get_one_file("qrels", variant)[0])
 
-    def get_topics(self, variant=None):
+    def get_topics(self, variant=None, **kwargs):
         import pyterrier as pt
         file, filetype = self._get_one_file("topics", variant)
         if filetype is None or filetype == "trec":
-            return pt.Utils.parse_trec_topics_file(file)
+            return pt.Utils.parse_trec_topics_file(file, **kwargs)
         elif filetype == "singleline":
-            return pt.Utils.parse_singleline_topics_file(file)
+            return pt.Utils.parse_singleline_topics_file(file, **kwargs)
+        elif filetype == "trecxml":
+            return pt.Utils.parse_trecxml_topics_file(file, **kwargs)
 
     def get_index(self):
         import pyterrier as pt
         thedir = self._get_all_files("index")
         return pt.autoclass("org.terrier.querying.IndexRef").of(os.path.join(thedir, "data.properties"))
 
+TREC_COVID_FILES = {
+    "topics" : {
+        "round1" : ("topics-rnd1.xml", "https://ir.nist.gov/covidSubmit/data/topics-rnd3.xml", "trecxml"),
+        "round2" : ("topics-rnd2.xml", "https://ir.nist.gov/covidSubmit/data/topics-rnd3.xml", "trecxml"),
+        "round3" : ("topics-rnd3.xml", "https://ir.nist.gov/covidSubmit/data/topics-rnd3.xml", "trecxml"),
+    },
+    "qrels" : {
+        "round1" : ("qrels-rnd1.txt", "https://ir.nist.gov/covidSubmit/data/qrels-rnd1.txt"),
+        "round2" : ("qrels-rnd1.txt", "https://ir.nist.gov/covidSubmit/data/qrels-rnd2.txt")
+    }
+}
 
 TREC_DEEPLEARNING_MSMARCO_FILES = {
     "corpus" : 
@@ -137,6 +154,7 @@ DATASET_MAP = {
     "trec-deep-learning-docs" : RemoteDataset("trec-deep-learning-docs", TREC_DEEPLEARNING_MSMARCO_FILES),
     "trec-robust-2004" : RemoteDataset("trec-robust-2004", TREC_ROBUST_04_FILES),
     "trec-robust-2005" : RemoteDataset("trec-robust-2005", TREC_ROBUST_05_FILES),
+    "trec-covid" : RemoteDataset("trec-covid", TREC_COVID_FILES),
 }
 
 def get_dataset(name):

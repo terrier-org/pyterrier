@@ -75,6 +75,37 @@ class Utils:
         return topics_dt
 
     @staticmethod
+    def parse_trecxml_topics_file(filename, tags=["query", "question", "narrative"], tokenise=True):
+        """
+        Parse a file containing topics in TREC-like XML format
+
+        Args:
+            filename(str): The path to the topics file
+
+        Returns:
+            pandas.Dataframe with columns=['qid','query']
+        """
+        import xml.etree.ElementTree as ET
+        import pandas as pd
+        tags=set(tags)
+        topics=[]
+        tree = ET.parse(filename)
+        root = tree.getroot()
+        from jnius import autoclass
+        tokeniser = autoclass("org.terrier.indexing.tokenisation.Tokeniser").getTokeniser()
+        for child in root.iter('topic'):
+            qid = child.attrib["number"]
+            query = ""
+            for tag in child:
+                if tag.tag in tags:
+                    query_text = tag.text
+                    if tokenise:
+                        query_text = " ".join(tokeniser.getTokens(query_text))
+                    query += " " + query_text
+            topics.append((str(qid), query)) 
+        return pd.DataFrame(topics, columns=["qid", "query"])
+
+    @staticmethod
     def parse_qrels(file_path):
         """
         Parse a file containing qrels
