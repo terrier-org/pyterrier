@@ -147,3 +147,14 @@ class XGBoostLTR_pipeline(LTR_pipeline):
             eval_set=[(np.stack(va_res["features"].values), va_res["label"].values)],
             eval_group=[va_res.groupby(["qid"]).count()["docno"].values]
         )
+
+class PerQueryMaxMinScoreTransformer(TransformerBase):
+    '''
+    applies per-query maxmin scaling on the input scores
+    '''
+    
+    def transform(self, topics_and_res):
+        from sklearn.preprocessing import minmax_scale
+        #topics_and_res = topics_and_res.copy()
+        topics_and_res["score"] = topics_and_res.groupby('qid')["score"].transform(lambda x: minmax_scale(x))
+        return topics_and_res
