@@ -112,6 +112,7 @@ class BatchRetrieve(BatchRetrieveBase):
 
         MF = autoclass('org.terrier.querying.ManagerFactory')
         self.manager = MF._from_(self.indexref)
+        
 
     def transform(self, queries):
         """
@@ -140,6 +141,7 @@ class BatchRetrieve(BatchRetrieveBase):
             queries = input_results[["qid", "query"]].dropna(axis=0, subset=["query"]).drop_duplicates()
             RequestContextMatching = autoclass("org.terrier.python.RequestContextMatching")
 
+        # make sure queries are a String
         if queries["qid"].dtype == np.int64:
             queries['qid'] = queries['qid'].astype(str)
 
@@ -183,6 +185,10 @@ class BatchRetrieve(BatchRetrieveBase):
             # now ask Terrier to run the request
             self.manager.runSearchRequest(srq)
             result = srq.getResults()
+
+            # check we got all of the expected metadata
+            if len(set(self.metadata) & set(result.getMetaKeys())) != len(self.metadata):
+                raise KeyError("Requested metadata: %s, obtained metdata %s" % (str(self.metadata), str(result.getMetaKeys()))) 
 
             # prepare the dataframe for the results of the query
             for item in result:
