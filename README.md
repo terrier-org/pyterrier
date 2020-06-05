@@ -38,6 +38,8 @@ res = BM25_br.transform(topics)
 pt.Utils.evaluate(res, qrels, metrics = ['map'])
 ```
 
+There is a worked example in the [retrieval and evaluation notebook](examples/notebooks/retrieval_and_evaluation.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/retrieval_and_evaluation.ipynb)
+
 See examples at:
 https://colab.research.google.com/drive/1yime_0D21Q-KzFD4IbsRzTvjRbo9vz4I
 
@@ -48,10 +50,9 @@ We provide an experiment object, which allows to compare multiple retrieval appr
 pt.Experiment(topics, [BM25_br, PL2_br], eval_metrics, qrels)
 ```
 
-More examples are provided at:
-https://colab.research.google.com/drive/15oG7HwyYCBFuborjmfYglea0VLkUjyK-
+There is a worked example in the [experiment notebook](examples/notebooks/experiment.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](examples/notebooks/experiment.ipynb)
 
-# Learning to  Rank
+# Learning to Rank
 First create a `FeaturesBatchRetrieve(index, features)` object with the desired features.
 
 Call the `transform(topics_set)` function with the train, validation and test topic sets to get dataframes with the feature scores and use them to train your chosen model.
