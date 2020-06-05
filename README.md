@@ -31,8 +31,7 @@ You can create an index from TREC formatted collection using TRECCollectionIndex
 For TXT, PDF, Microsoft Word files, etc files you can use FilesIndexer.    
 For Pandas Dataframe you can use DFIndexer.
 
-See examples at:    
-https://colab.research.google.com/drive/17WpzhtlMj1U2UJku-RaO2axNsUFhPI6z
+See examples in the [indexing notebook](examples/notebooks/indexing.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/indexing.ipynb)
 
 # Retrieval and Evaluation
 
