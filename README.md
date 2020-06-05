@@ -81,6 +81,16 @@ pt.LTR_pipeline(index, model, features, qrels, LTR)
 More learning to rank examples are provided at:
 https://colab.research.google.com/drive/1KwHoahx_i0vax9fnCZpLP-JmI9jvSoey
 
+# Index API
+
+All of the standard Terrier Index API can be access easily from Pyterrier. 
+
+For instance, accessing term statistics is a single call on an index:
+```python
+index.getLexicon()["circuit"].getDocumentFrequency()
+```
+
+There are lots of examples in the [index API notebook](examples/notebooks/index_api.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/index_api.ipynb)
 
 ## Credits
 
