@@ -106,7 +106,7 @@ class BatchRetrieve(BatchRetrieveBase):
         if props is None:
             importProps()
         for key, value in self.properties.items():
-            self.appSetup.setProperty(key, value)
+            self.appSetup.setProperty(key, str(value))
 
         self.controls = _mergeDicts(BatchRetrieve.default_controls, controls)
 
