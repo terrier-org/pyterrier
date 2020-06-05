@@ -212,7 +212,6 @@ class Indexer:
             printposting
             printpostingfile
             printterm
-            s
         """
         if not util.startswith("-"):
             util = "-" + util
@@ -352,6 +351,7 @@ class TRECCollectionIndexer(Indexer):
         blocks(bool): If true the index has blocks enabled
         properties: A Terrier Properties object, which is a hashtable with properties and their values
         overwrite(bool): If True the index() method of child Indexer will overwrite any existing index
+        verbose(bool): If True, will display a progress bar based on files indexed
     """
 
     def __init__(self, index_path, blocks=False, overwrite=False, type=IndexingType.CLASSIC, collection="trec", verbose=False):
