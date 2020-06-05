@@ -52,36 +52,8 @@ pt.Experiment(topics, [BM25_br, PL2_br], eval_metrics, qrels)
 There is a worked example in the [experiment notebook](examples/notebooks/experiment.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](examples/notebooks/experiment.ipynb)
 
 # Learning to Rank
-First create a `FeaturesBatchRetrieve(index, features)` object with the desired features.
 
-Call the `transform(topics_set)` function with the train, validation and test topic sets to get dataframes with the feature scores and use them to train your chosen model.
-
-Use your trained model to predict the score of the test_topics and evaluate the result with `pt.Utils.evaluate()`.
-
-```python
-BM25_with_features_br = pt.FeaturesBatchRetrieve(index, ["WMODEL:BM25F", "WMODEL:PL2F"], controls={"wmodel" : "BM25"})
-```
-
-## LTR_pipeline
-
-Create a LTR_pipeline object with arguments:
-
-1. Index reference or path to index on disc
-2. Weighting model name
-3. Features list
-4. Qrels
-5. LTR model
-
-Call the `fit()` method on the created object with the training topics.
-
-Evaluate the results with the Experiment function by using the test topics
-
-```python
-pt.LTR_pipeline(index, model, features, qrels, LTR)
-```
-
-More learning to rank examples are provided at:
-https://colab.research.google.com/drive/1KwHoahx_i0vax9fnCZpLP-JmI9jvSoey
+Complex learning to rank pipelines, including for learning-to-rank, can be constructed using Pyterrier's operator language. There are several worked examples in the [learning-to-rank notebook](examples/notebooks/ltr.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/ltr.ipynb)
 
 # Index API
 
