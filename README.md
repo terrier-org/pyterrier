@@ -6,9 +6,9 @@ A Python API for Terrier
 
 # Installation
 
-### Linux
-1. Make sure that `JAVA_HOME` environment variable is set to the location of your Java installation
-2. `pip install python-terrier`
+### Linux or Google Colab
+1. `pip install python-terrier`
+2. You may need to set JAVA_HOME environment variable if we cannot find your Java installation.
 
 ### macOS
 
@@ -17,11 +17,6 @@ A Python API for Terrier
 
 ### Windows
 Pyterrier is not available for Windows because [pytrec_eval](https://github.com/cvangysel/pytrec_eval) [isn't available for Windows](https://github.com/cvangysel/pytrec_eval/issues/19). If you can compile & install pytrec_eval youself, it should work fine.
-
-### Colab notebooks
-```
-!pip install python-terrier
-```
 
 # Indexing
 
