@@ -1,6 +1,6 @@
 package org.terrier.python;
 
-
+import org.terrier.indexing.Collection;
 import org.slf4j.ILoggerFactory;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
@@ -30,6 +30,10 @@ public class PTUtils
         ch.qos.logback.classic.Logger logger = loggerContext.getLogger(packageName);
         logger.setLevel(Level.toLevel(logLevel));
         return true;
+    }
+
+    public static Collection[] makeCollection(Collection c) {
+        return new Collection[]{c};
     }
 
 }

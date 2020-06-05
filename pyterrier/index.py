@@ -3,7 +3,7 @@ This file contains all the indexers.
 """
 
 # from jnius import autoclass, cast, PythonJavaClass, java_method
-from jnius import autoclass, PythonJavaClass, java_method
+from jnius import autoclass, PythonJavaClass, java_method, cast
 # from .utils import *
 import pandas as pd
 # import numpy as np
@@ -114,7 +114,6 @@ class Indexer:
         self.index_called = False
         self.index_dir = index_path
         self.blocks = blocks
-        print(type)
         self.type = type
         self.properties = Properties()
         self.setProperties(**self.default_properties)
@@ -355,7 +354,7 @@ class TRECCollectionIndexer(Indexer):
         overwrite(bool): If True the index() method of child Indexer will overwrite any existing index
     """
 
-    def __init__(self, index_path, blocks=False, overwrite=False, type=IndexingType.CLASSIC, collection="trec"):
+    def __init__(self, index_path, blocks=False, overwrite=False, type=IndexingType.CLASSIC, collection="trec", verbose=False):
         """
         Init method
 
@@ -366,12 +365,12 @@ class TRECCollectionIndexer(Indexer):
             type (IndexingType): the specific indexing procedure to use. Default is IndexingType.CLASSIC.
             collection (Class name, or Class instance, or one of "trec", "trecweb", "warc")
         """
-        print(type)
         super().__init__(index_path, blocks=blocks, overwrite=overwrite, type=type)
         if isinstance(collection, str):
             if collection in TRECCollectionIndexer.type_to_class:
                 collection = TRECCollectionIndexer.type_to_class[collection]
         self.collection = collection.split(",")
+        self.verbose = verbose
     
 
     def index(self, files_path):
@@ -390,7 +389,13 @@ class TRECCollectionIndexer(Indexer):
             self.collection,
             [cls_list, cls_string, cls_string, cls_string],
             [asList, autoclass("org.terrier.utility.TagSet").TREC_DOC_TAGS, "", ""])
-        index.index([colObj])
+        collsArray = [colObj]
+        if self.verbose and isinstance(colObj, autoclass("org.terrier.indexing.MultiDocumentFileCollection")):
+            colObj = cast("org.terrier.indexing.MultiDocumentFileCollection", colObj)
+            colObj = TQDMCollection(colObj)
+            collsArray = autoclass("org.terrier.python.PTUtils").makeCollection(colObj)
+        index.index(collsArray)
+        colObj.close()
         self.index_called = True
         return IndexRef.of(self.index_dir + "/data.properties")
 
@@ -427,3 +432,43 @@ class FilesIndexer(Indexer):
         index.index([simpleColl])
         self.index_called = True
         return IndexRef.of(self.index_dir + "/data.properties")
+
+class TQDMCollection(PythonJavaClass):
+    __javainterfaces__ = ['org/terrier/indexing/Collection']
+
+    def __init__(self, collection):
+        super(TQDMCollection, self).__init__()
+        assert isinstance(collection, autoclass("org.terrier.indexing.MultiDocumentFileCollection"))
+        self.collection = collection
+        size = self.collection.FilesToProcess.size()
+        from tqdm import tqdm
+        self.pbar = tqdm(total=size, unit="files")
+        self.last = -1
+    
+    @java_method('()Z')
+    def nextDocument(self):
+        rtr = self.collection.nextDocument()
+        filenum = self.collection.FileNumber
+        if filenum > self.last:
+            self.pbar.update(filenum)
+            self.last = filenum
+        return rtr
+
+    @java_method('()V')
+    def reset(self):
+        self.pbar.reset()
+        self.collection.reset()
+
+    @java_method('()V')
+    def close(self):
+        self.pbar.close()
+        self.collection.close()
+
+    @java_method('()Z')
+    def endOfCollection(self):
+        return self.collection.endOfCollection()
+
+    @java_method('()Lorg/terrier/indexing/Document;')
+    def getDocument(self):
+        return self.collection.getDocument()
+        
