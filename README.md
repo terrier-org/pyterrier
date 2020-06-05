@@ -40,9 +40,6 @@ pt.Utils.evaluate(res, qrels, metrics = ['map'])
 
 There is a worked example in the [retrieval and evaluation notebook](examples/notebooks/retrieval_and_evaluation.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/retrieval_and_evaluation.ipynb)
 
-See examples at:
-https://colab.research.google.com/drive/1yime_0D21Q-KzFD4IbsRzTvjRbo9vz4I
-
 # Experiment - Perform Retrieval and Evaluation with a single function
 We provide an experiment object, which allows to compare multiple retrieval approaches on the same queries & relevance assessments:
 
