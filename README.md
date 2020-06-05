@@ -49,7 +49,7 @@ We provide an experiment object, which allows to compare multiple retrieval appr
 pt.Experiment(topics, [BM25_br, PL2_br], eval_metrics, qrels)
 ```
 
-There is a worked example in the [experiment notebook](examples/notebooks/experiment.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](examples/notebooks/experiment.ipynb)
+There is a worked example in the [experiment notebook](examples/notebooks/experiment.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/experiment.ipynb)
 
 # Learning to Rank
 
