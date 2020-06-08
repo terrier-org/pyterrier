@@ -100,13 +100,13 @@ class RemoteDataset(Dataset):
 
 TREC_COVID_FILES = {
     "topics" : {
-        "round1" : ("topics-rnd1.xml", "https://ir.nist.gov/covidSubmit/data/topics-rnd3.xml", "trecxml"),
-        "round2" : ("topics-rnd2.xml", "https://ir.nist.gov/covidSubmit/data/topics-rnd3.xml", "trecxml"),
+        "round1" : ("topics-rnd1.xml", "https://ir.nist.gov/covidSubmit/data/topics-rnd1.xml", "trecxml"),
+        "round2" : ("topics-rnd2.xml", "https://ir.nist.gov/covidSubmit/data/topics-rnd2.xml", "trecxml"),
         "round3" : ("topics-rnd3.xml", "https://ir.nist.gov/covidSubmit/data/topics-rnd3.xml", "trecxml"),
     },
     "qrels" : {
         "round1" : ("qrels-rnd1.txt", "https://ir.nist.gov/covidSubmit/data/qrels-rnd1.txt"),
-        "round2" : ("qrels-rnd1.txt", "https://ir.nist.gov/covidSubmit/data/qrels-rnd2.txt")
+        "round2" : ("qrels-rnd2.txt", "https://ir.nist.gov/covidSubmit/data/qrels-rnd2.txt")
     }
 }
 
