@@ -106,7 +106,7 @@ TREC_COVID_FILES = {
     },
     "qrels" : {
         "round1" : ("qrels-rnd1.txt", "https://ir.nist.gov/covidSubmit/data/qrels-rnd1.txt"),
-        "round2" : ("qrels-rnd1.txt", "https://ir.nist.gov/covidSubmit/data/qrels-rnd2.txt")
+        "round2" : ("qrels-rnd2.txt", "https://ir.nist.gov/covidSubmit/data/qrels-rnd2.txt")
     }
 }
 
