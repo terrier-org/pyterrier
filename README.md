@@ -41,13 +41,17 @@ pt.Utils.evaluate(res, qrels, metrics = ['map'])
 There is a worked example in the [retrieval and evaluation notebook](examples/notebooks/retrieval_and_evaluation.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/retrieval_and_evaluation.ipynb)
 
 # Experiment - Perform Retrieval and Evaluation with a single function
-We provide an experiment object, which allows to compare multiple retrieval approaches on the same queries & relevance assessments:
+Pyterrier provides an experiment object, which allows to compare multiple retrieval approaches on the same queries & relevance assessments:
 
 ```python
 pt.Experiment(topics, [BM25_br, PL2_br], eval_metrics, qrels)
 ```
 
 There is a worked example in the [experiment notebook](examples/notebooks/experiment.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/experiment.ipynb)
+
+# Pipelines
+
+Pyterrier makes it easy to develop complex [retrieval pipelines](pipelines.md) using Python operators to combine different retrieval approaches. Our [example pipelines](pipeline_examples.md) show how to conduct various common use cases.  
 
 # Learning to Rank
 
