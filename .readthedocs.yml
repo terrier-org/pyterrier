@@ -1,2 +1,2 @@
 conda:
-  environment: ./.readthedocs-conda-environment.yml
+  file: ./.readthedocs-conda-environment.yml
