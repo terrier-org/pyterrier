@@ -7,4 +7,4 @@ dependencies:
   - pip
   - pip:
     # In Read the Docs, seems installing 'requirements-dev.txt' seems ignored when Conda is used.
-    - -r ../requirements.txt
+    - -r requirements.txt
