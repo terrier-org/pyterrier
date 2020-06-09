@@ -155,7 +155,7 @@ class RM3(QueryExpansion):
                 prf_found = True
                 break
         assert prf_found, 'terrier-prf jar not found: you should start Pyterrier with '\
-            + 'pt.init(boot_packages=["org.terrierorg:terrier-prf:0.0.1-SNAPSHOT"])'
+            + 'pt.init(boot_packages=["org.terrier:terrier-prf:0.0.1-SNAPSHOT"])'
         rm = pt.autoclass("org.terrier.querying.RM3")()
         rm.fbTerms = fb_terms
         rm.fbDocs = fb_docs
