@@ -12,6 +12,17 @@ except ImportError:
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+requirements = []
+with open('requirements.txt', 'rt') as f:
+    for req in f.read().splitlines():
+        if req.startswith('git+'):
+            pkg_name = req.split('/')[-1].replace('.git', '')
+            if "#egg=" in pkg_name:
+                pkg_name = pkg_name.split("#egg=")[1]
+            requirements.append(f'{pkg_name} @ {req}')
+        else:
+            requirements.append(req)
+
 setup(
     name="python-terrier",
     version="0.1.3",
@@ -27,15 +38,6 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    install_requires=[
-        "pyjnius~=1.3.0",
-        "numpy",
-        "pandas",
-        "wget",
-        "pytrec_eval",
-        "tqdm",
-        "matchpy",
-        "deprecation"
-    ],
+    install_requires=requirements,
     python_requires='>=3.6',
 )
