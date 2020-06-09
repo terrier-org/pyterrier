@@ -22,10 +22,8 @@ Pyterrier is not available for Windows because [pytrec_eval](https://github.com/
 
 # Indexing
 
-### Indexing TREC formatted collections
-
 You can create an index from TREC formatted collection using TRECCollectionIndexer.    
-For TXT, PDF, Microsoft Word files, etc files you can use FilesIndexer.    
+For TXT, PDF, Microsoft Word files, etc files you can use FilesIndexer.
 For Pandas Dataframe you can use DFIndexer.
 
 See examples in the [indexing notebook](examples/notebooks/indexing.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/indexing.ipynb)
