@@ -59,7 +59,7 @@ Complex learning to rank pipelines, including for learning-to-rank, can be const
 
 # Dataset API
 
-Pyterrier allows simple access to standard test collections through its dataset API, which can download the topics, qrels, corpus or, for some test collections, a ready-made Terrier index.
+Pyterrier allows simple access to standard information retrieval test collections through its dataset API, which can download the topics, qrels, corpus or, for some test collections, a ready-made Terrier index.
 
 ```python
 topics = pt.datasets.get_dataset("trec-robust-2004").get_topics()
