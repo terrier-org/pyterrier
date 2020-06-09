@@ -75,6 +75,13 @@ class RemoteDataset(Dataset):
                     raise ValueError("Could not fetch " + URL) from he
         return localDir
 
+    def _describe_component(self, component):
+        if component not in self.locations:
+            return None
+        if type(self.locations[component]) == type([]):
+            return True
+        return self.locations[component].keys()
+
     def get_corpus(self):
         import pyterrier as pt
         return pt.Utils.get_files_in_dir(self._get_all_files("corpus"))
@@ -158,7 +165,29 @@ DATASET_MAP = {
 }
 
 def get_dataset(name):
+    '''
+        Get a dataset by name
+    '''
     return DATASET_MAP[name]
 
-def list_datasets():
+def datasets():
+    '''
+        Lists all the names of the datasets
+    '''
     return DATASET_MAP.keys()
+
+def list_datasets():
+    '''
+        Returns a dataframe of all datasets, listing which topics, qrels, corpus files or indices are available
+    '''
+    import pandas as pd
+    rows=[]
+    for k in datasets():
+        dataset = get_dataset(k)
+        rows.append([
+            k, 
+            dataset._describe_component("topics"), 
+            dataset._describe_component(dataset, "qrels"), 
+            dataset._describe_component(dataset, "corpus"), 
+            dataset._describe_component(dataset, "index") ])
+    return pd.DataFrame(rows, columns=["dataset", "topics", "qrels", "corpus", "index"])
