@@ -3,16 +3,96 @@ import pytrec_eval
 from collections import defaultdict
 import os
 
+def autoopen(filename, mode='rb'):
+    if filename.endswith(".gz"):
+        import gzip
+        return gzip.open(filename, mode)
+    elif filename.endswith(".bz2"):
+        import bz2
+        return bz2.open(filename, mode)
+    return open(filename, mode)
+
 class Utils:
+
+    @staticmethod
+    def write_results_letor(res, filename, qrels=None, default_label=0):
+        if qrels is not None:
+            res = res.merge(qrels, on=['qid', 'docno'], how='left').fillna(default_label)
+        with autoopen(filename, "wt") as f:
+            for i, row in res.iterrows():
+                values = res["features"].values[0]
+                label = row["label"] if qrels is not None else default_label
+                feat_str = ' '.join( [ '%i:%f' % (i+1,values[i]) for i in range(len(values)) ] )
+                f.write("%d qid:%s %s # docno=%s\n" % (label, row["qid"], feat_str, row["docno"]))
+    
+    @staticmethod
+    def write_results_trec(res, filename, run_name="pyterrier"):
+        res_copy = res.copy()[["qid", "docno", "rank", "score"]]
+        res_copy.insert(1, "Q0", "Q0")
+        res_copy.insert(5, "run_name", run_name)
+        res_copy.to_csv(filename, sep=" ", header=False, index=False)
 
     @staticmethod
     def parse_query_result(filename):
         results = []
-        with open(filename, 'r') as file:
+        with open(filename, 'rt') as file:
             for line in file:
                 split_line = line.strip("\n").split(" ")
                 results.append([split_line[1], float(split_line[2])])
         return results
+
+    @staticmethod
+    def parse_letor_results_file(filename, labels=False):
+
+        def _parse_line(l):
+                # $line =~ s/(#.*)$//;
+                # my $comment = $1;
+                # my @parts = split /\s+/, $line;
+                # my $label = shift @parts;
+                # my %hash = map {split /:/, $_} @parts;
+                # return ($label, $comment, %hash);
+            import re
+            import numpy as np
+            line, comment = l.split("#")
+            line = line.strip()
+            parts = re.split(r'\s+|:', line)
+            label = parts.pop(0)
+            m = re.search(r'docno\s?=\s?(\S+)', comment)
+            docno = m.group(1)
+            kv = {}
+            qid = None
+            print(parts)
+            for i, k in enumerate(parts):
+                if i % 2 == 0:
+                    if k == "qid":
+                        qid = parts[i+1]
+                    else:
+                        kv[int(k)] = float(parts[i+1])
+            features = np.array([kv[i] for i in sorted(kv.keys())])
+            return (label, qid, docno, features)       
+
+        with autoopen(filename, 'rt') as f:
+            rows = []
+            for line in f:
+                if line.startswith("#"):
+                    continue
+                (label, qid, docno, features) = _parse_line(line)
+                if labels:
+                    rows.append([qid, docno, features, label])
+                else:
+                    rows.append([qid, docno, features])
+            return pd.DataFrame(rows, columns=["qid", "docno", "features", "label"] if labels else ["qid", "docno", "features"])
+
+    @staticmethod
+    def parse_results_file(filename):
+        results = []
+        df = pd.read_csv(filename, sep=r'\s+', names=["qid", "iter", "docno", "rank", "score", "name"])
+        df = df.drop(columns="iter")
+        df["qid"] = df["qid"].astype(str)
+        df["docno"] = df["docno"].astype(str)
+        df["rank"] = df["rank"].astype(int)
+        df["score"] = df["score"].astype(float)
+        return df
 
     @staticmethod
     def parse_res_file(filename):
@@ -116,7 +196,7 @@ class Utils:
         Returns:
             pandas.Dataframe with columns=['qid','docno', 'label']
         """
-        df = pd.read_csv(file_path, sep='\s+', names=["qid", "iter", "docno", "label"])
+        df = pd.read_csv(file_path, sep=r'\s+', names=["qid", "iter", "docno", "label"])
         df = df.drop(columns="iter")
         df["qid"] = df["qid"].astype(str)
         df["docno"] = df["docno"].astype(str)

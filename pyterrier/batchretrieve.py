@@ -7,6 +7,7 @@ from .utils import Utils
 from .index import Indexer
 from .transformer import TransformerBase, Symbol
 from tqdm import tqdm
+import deprecation
 
 # import time
 
@@ -206,6 +207,8 @@ class BatchRetrieve(BatchRetrieveBase):
     def __str__(self):
         return "BR(" + self.controls["wmodel"] + ")"
 
+    @deprecation.deprecated(deprecated_in="0.2.0",
+                        details="Please use pt.Utils.write_results_trec()")
     def saveResult(self, result, path, run_name=None):
         if run_name is None:
             run_name = self.controls["wmodel"]

@@ -4,8 +4,47 @@ import pyterrier as pt
 import unittest
 import os
 from .base import BaseTestCase
+import shutil
+import tempfile
 
 class TestUtils(BaseTestCase):
+
+    def setUp(self):
+        # Create a temporary directory
+        self.test_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        # Remove the directory after the test
+        shutil.rmtree(self.test_dir)
+
+    def test_save_trec(self):
+        res = pd.DataFrame([["1", "d1", 5.3, 1]], columns=['qid', 'docno', 'score', 'rank'])
+        res_dict = res.set_index(['qid', 'docno']).to_dict()
+        for filename in ["rtr.res", "rtr.res.gz", "rtr.res.bz2"]:
+            filepath = os.path.join(self.test_dir, filename)
+            pt.Utils.write_results_trec(res, filepath)
+            res2 = pt.Utils.parse_results_file(filepath)
+            res2_dict = res2.set_index(['qid', 'docno']).to_dict()
+            del res2_dict["name"]
+            self.assertEqual(res_dict, res2_dict)
+
+    def test_save_letor(self):
+        import numpy as np
+        res = pd.DataFrame([["1", "d1", 5.3, 1, np.array([1, 2])]], columns=['qid', 'docno', 'score', 'rank', 'features'])
+        res_dict = res.set_index(['qid', 'docno']).to_dict()
+        del res_dict["score"]
+        del res_dict["rank"]
+        for filename in ["rtr.letor", "rtr.letor.gz", "rtr.letor.bz2"]:
+            filepath = os.path.join(self.test_dir, filename)
+            pt.Utils.write_results_letor(res, filepath)
+            res2 = pt.Utils.parse_letor_results_file(filepath)
+
+            for ((i1, row1), (i2, row2)) in zip(res.iterrows(), res2.iterrows()):
+                self.assertEqual(row1["qid"], row2["qid"])
+                self.assertEqual(row1["docno"], row2["docno"])
+                self.assertEqual(row1["docno"], row2["docno"])
+                self.assertEqual(row1["qid"], row2["qid"])
+                self.assertTrue(np.array_equal(row1["features"], row2["features"]))        
 
     def test_parse_trec_topics_file(self):
         input = os.path.dirname(os.path.realpath(__file__)) + "/fixtures/topics.trec"
