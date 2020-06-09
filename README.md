@@ -57,6 +57,18 @@ Pyterrier makes it easy to develop complex [retrieval pipelines](pipelines.md) u
 
 Complex learning to rank pipelines, including for learning-to-rank, can be constructed using Pyterrier's operator language. There are several worked examples in the [learning-to-rank notebook](examples/notebooks/ltr.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/ltr.ipynb)
 
+# Dataset API
+
+Pyterrier allows simple access to standard test collections through its dataset API, which can download the topics, qrels, corpus or, for some test collections, a ready-made Terrier index.
+
+```python
+topics = pt.datasets.get_dataset("trec-robust-2004").get_topics()
+qrels = pt.datasets.get_dataset("trec-robust-2004").get_qrels()
+pt.Experiment(topics, [BM25_br, PL2_br], eval_metrics, qrels)
+```
+
+You can use `pt.datasets.list_datasets()` to see available test collections - if your favourite test collection is missing, [you can submit a Pull Request](https://github.com/terrier-org/pyterrier/pulls).
+
 # Index API
 
 All of the standard Terrier Index API can be access easily from Pyterrier. 
