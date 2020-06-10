@@ -1,4 +1,4 @@
-![Python package](https://github.com/terrier-org/pyterrier/workflows/Python%20package/badge.svg)
+![Python package](https://github.com/terrier-org/pyterrier/workflows/Python%20package/badge.svg) [![PyPI version](https://badge.fury.io/py/python-terrier.svg)](https://badge.fury.io/py/python-terrier)
 
 # Pyterrier
 
