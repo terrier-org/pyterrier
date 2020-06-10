@@ -10,7 +10,7 @@ Easiest way to get started with Pyterrier is to use one of our Colab notebooks -
 
 ### Linux or Google Colab
 1. `pip install python-terrier`
-2. You may need to set JAVA_HOME environment variable if we cannot find your Java installation.
+2. You may need to set JAVA_HOME environment variable if Pyjnius cannot find your Java installation.
 
 ### macOS
 
@@ -51,7 +51,7 @@ There is a worked example in the [experiment notebook](examples/notebooks/experi
 
 # Pipelines
 
-Pyterrier makes it easy to develop complex [retrieval pipelines](pipelines.md) using Python operators to combine different retrieval approaches. Our [example pipelines](pipeline_examples.md) show how to conduct various common use cases.  
+Pyterrier makes it easy to develop complex [retrieval pipelines](pipelines.md) using Python operators to combine different retrieval approaches. Our [example pipelines](pipeline_examples.md) show how to conduct various common use cases. Each retrieval approach is a transformer, having one key method, `transform()`, which takes a single Pandas dataframe as input, and returns another dataframe. For more information, see the [Pyterrier data model](datamodel.md).
 
 # Learning to Rank
 
@@ -86,3 +86,4 @@ There are lots of examples in the [index API notebook](examples/notebooks/index_
  - Craig Macdonald, University of Glasgow
  - Nicola Tonellotto, University of Pisa
  - Arthur Câmara, Delft University
+ - Alberto Ueda, Federal University of Minas Gerais
