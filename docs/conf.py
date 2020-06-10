@@ -20,13 +20,13 @@ sys.path.insert(0, os.path.abspath('..'))
 # -- Project information -----------------------------------------------------
 
 project = 'Pyterrier'
-copyright = '2020, A-Tsolov'
-author = 'A-Tsolov'
+copyright = '2020, the University of Glasgow'
+author = 'Contributors to Pyterrier'
 
 # The short X.Y version
 version = ''
 # The full version, including alpha/beta/rc tags
-release = '0.2.4'
+release = '0.2.0'
 
 
 # -- General configuration ---------------------------------------------------
