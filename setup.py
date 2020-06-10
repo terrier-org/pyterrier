@@ -45,7 +45,7 @@ setup(
     name="python-terrier",
     version=get_version("pyterrier/__init__.py"),
     author="Craig Macdonald",
-    author_email='craigm{at}.dcs.gla.ac.uk',
+    author_email='craigm@dcs.gla.ac.uk',
     description="Terrier IR platform Python API",
     long_description=long_description,
     long_description_content_type="text/markdown",
