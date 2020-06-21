@@ -75,7 +75,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
 
     from .batchretrieve import BatchRetrieve, FeaturesBatchRetrieve
     from .utils import Utils
-    from .index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IndexingType
+    from .index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, FlatJSONDocumentIterator, IndexingType
     from .pipelines import LTR_pipeline, XGBoostLTR_pipeline
 
     # Make imports global
@@ -119,6 +119,8 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     globals()["FilesIndexer"] = FilesIndexer
     globals()["DFIndexer"] = DFIndexer
     globals()["DFIndexUtils"] = DFIndexUtils
+    globals()["IterDictIndexer"] = IterDictIndexer
+    globals()["FlatJSONDocumentIterator"] = FlatJSONDocumentIterator
     globals()["Utils"] = Utils
     globals()["LTR_pipeline"] = LTR_pipeline
     globals()["XGBoostLTR_pipeline"] = XGBoostLTR_pipeline
