@@ -19,14 +19,21 @@ class TestOperators(unittest.TestCase):
             return topics
         fn1 = lambda topics : rewrite(topics)
         fn2 = lambda topics : rewrite(topics)
-        sequence = ptt.LambdaPipeline(fn1) >> ptt.LambdaPipeline(fn2)
+        sequence1 = ptt.LambdaPipeline(fn1) >> ptt.LambdaPipeline(fn2)
+        sequence2 = ptt.LambdaPipeline(fn1) >> fn2
+        sequence3 = ptt.LambdaPipeline(fn1) >> rewrite
+        sequence4 = fn1 >> ptt.LambdaPipeline(fn2)
+        sequence5 = rewrite >> ptt.LambdaPipeline(fn2)
+        
+        for sequence in [sequence1, sequence2, sequence3, sequence4, sequence5]:
+            self.assertTrue(isinstance(sequence, ptt.TransformerBase))
+            input = pd.DataFrame([["q1", "hello"]], columns=["qid", "query"])
+            output = sequence.transform(input)
+            self.assertEqual(1, len(output))
+            self.assertEqual("q1", output.iloc[0]["qid"])
+            self.assertEqual("hello test test", output.iloc[0]["query"])
 
-        self.assertTrue(isinstance(sequence, ptt.TransformerBase))
-        input = pd.DataFrame([["q1", "hello"]], columns=["qid", "query"])
-        output = sequence.transform(input)
-        self.assertEqual(1, len(output))
-        self.assertEqual("q1", output.iloc[0]["qid"])
-        self.assertEqual("hello test test", output.iloc[0]["query"])
+
 
     def test_then_multi(self):
         mock1 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))
