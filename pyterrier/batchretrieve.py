@@ -187,9 +187,9 @@ class BatchRetrieve(BatchRetrieveBase):
             self.manager.runSearchRequest(srq)
             result = srq.getResults()
 
-            # check we got all of the expected metadata
-            if len(set(self.metadata) & set(result.getMetaKeys())) != len(self.metadata):
-                raise KeyError("Requested metadata: %s, obtained metdata %s" % (str(self.metadata), str(result.getMetaKeys()))) 
+            # check we got all of the expected metadata (if the resultset has a size at all)
+            if len(result) > 0 and len(set(self.metadata) & set(result.getMetaKeys())) != len(self.metadata):
+                raise KeyError("Requested metadata: %s, obtained metadata %s" % (str(self.metadata), str(result.getMetaKeys()))) 
 
             # prepare the dataframe for the results of the query
             for item in result:
