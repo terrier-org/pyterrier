@@ -300,19 +300,42 @@ class DFIndexer(Indexer):
         collectionIterator, meta_lengths = DFIndexUtils.create_javaDocIterator(text, *args, **kwargs)
         
         # generate the metadata properties, set their lengths automatically
-        prop1=""
-        prop2=""
-        for k in meta_lengths:
-            prop1 += k+ ","
-            prop2 += str(meta_lengths[k]) + ","
-        ApplicationSetup.setProperty("indexer.meta.forward.keys", prop1[:-1])
-        ApplicationSetup.setProperty("indexer.meta.forward.keylens", prop2[:-1])
+        mprop1=""
+        mprop2=""
+        mprop1_def=None
+        mprop2_def=None
 
+        # keep track of the previous settings of these indexing properties
+        default_props = ApplicationSetup.getProperties()
+        if default_props.containsKey("indexer.meta.forward.keys"):
+            mprop1_def = default_props.get("indexer.meta.forward.keys")
+        if default_props.containsKey("indexer.meta.forward.keylens"):
+            mprop2_def = default_props.get("indexer.meta.forward.keylens")
+
+        # update the indexing properties
+        for k in meta_lengths:
+            mprop1 += k+ ","
+            mprop2 += str(meta_lengths[k]) + ","
+        ApplicationSetup.setProperty("indexer.meta.forward.keys", mprop1[:-1])
+        ApplicationSetup.setProperty("indexer.meta.forward.keylens", mprop2[:-1])
+
+        # make a Collection class for Terrier
         javaDocCollection = autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
         index = self.createIndexer()
         index.index([javaDocCollection])
         self.index_called = True
         collectionIterator = None
+
+        # this block is for restoring the indexing config
+        if mprop1_def is not None:
+            ApplicationSetup.setProperty("indexer.meta.forward.keys", mprop1_def)
+        else:
+            default_props.remove("indexer.meta.forward.keys")
+        if mprop2_def is not None:
+            ApplicationSetup.setProperty("indexer.meta.forward.keylens", mprop2_def)
+        else:
+            default_props.remove("indexer.meta.forward.keylens")
+
         return IndexRef.of(self.index_dir + "/data.properties")
 
 class PythonListIterator(PythonJavaClass):
