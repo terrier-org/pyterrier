@@ -262,7 +262,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
     FBR_default_controls["matching"] = "FatFeaturedScoringMatching,org.terrier.matching.daat.FatFull"
     FBR_default_properties = BatchRetrieve.default_properties.copy()
 
-    def __init__(self, index_location, features, **kwargs):
+    def __init__(self, index_location, features, controls=None, properties=None, **kwargs):
         """
             Init method
 
@@ -280,7 +280,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         properties = _mergeDicts(FeaturesBatchRetrieve.FBR_default_properties, properties)
         self.features = features
         properties["fat.featured.scoring.matching.features"] = ";".join(features)
-        super().__init__(index_location, **kwargs)
+        super().__init__(index_location, controls, properties, **kwargs)
 
     def transform(self, topics):
         """
