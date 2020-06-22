@@ -450,7 +450,7 @@ class TQDMCollection(PythonJavaClass):
         rtr = self.collection.nextDocument()
         filenum = self.collection.FileNumber
         if filenum > self.last:
-            self.pbar.update(filenum)
+            self.pbar.update(filenum - last)
             self.last = filenum
         return rtr
 
