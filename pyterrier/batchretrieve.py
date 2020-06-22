@@ -96,7 +96,7 @@ class BatchRetrieve(BatchRetrieveBase):
             properties(dict): A dictionary with with the property keys and values
             verbose(bool): If True transform method will display progress
     """
-    def __init__(self, index_location, controls=None, properties=None, metadata=["docno"], **kwargs):
+    def __init__(self, index_location, controls=None, properties=None, metadata=["docno"], wmodel=None, **kwargs):
         super().__init__(kwargs)
         
         self.indexref = parse_index_like(index_location)
@@ -108,8 +108,10 @@ class BatchRetrieve(BatchRetrieveBase):
             importProps()
         for key, value in self.properties.items():
             self.appSetup.setProperty(key, str(value))
-
+        
         self.controls = _mergeDicts(BatchRetrieve.default_controls, controls)
+        if wmodel is not None:
+            self.controls["wmodel"] = wmodel
 
         MF = autoclass('org.terrier.querying.ManagerFactory')
         self.manager = MF._from_(self.indexref)
