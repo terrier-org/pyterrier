@@ -134,6 +134,11 @@ TREC_DEEPLEARNING_MSMARCO_FILES = {
         }
 }
 
+TREC_WT2G_FILES = {
+    "qrels" : [ ("qrels.robust2004.txt", "https://trec.nist.gov/data/qrels_eng/qrels.trec8.small_web.gz") ],
+    "topics" : [ (  "topics.401-450.gz", "https://trec.nist.gov/data/topics_eng/topics.401-450.gz" ) ]
+}
+
 TREC_ROBUST_04_FILES = {
     "qrels" : [ ("qrels.robust2004.txt", "https://trec.nist.gov/data/robust/qrels.robust2004.txt") ],
     "topics" : [ (  "04.testset.gz", "https://trec.nist.gov/data/robust/04.testset.gz" ) ]
@@ -161,6 +166,7 @@ DATASET_MAP = {
     "trec-deep-learning-docs" : RemoteDataset("trec-deep-learning-docs", TREC_DEEPLEARNING_MSMARCO_FILES),
     "trec-robust-2004" : RemoteDataset("trec-robust-2004", TREC_ROBUST_04_FILES),
     "trec-robust-2005" : RemoteDataset("trec-robust-2005", TREC_ROBUST_05_FILES),
+    "trec-wt2g" : RemoteDataset("trec-wt2g", TREC_WT2G_FILES),
     "trec-covid" : RemoteDataset("trec-covid", TREC_COVID_FILES),
 }
 
@@ -187,7 +193,7 @@ def list_datasets():
         rows.append([
             k, 
             dataset._describe_component("topics"), 
-            dataset._describe_component(dataset, "qrels"), 
-            dataset._describe_component(dataset, "corpus"), 
-            dataset._describe_component(dataset, "index") ])
+            dataset._describe_component("qrels"), 
+            dataset._describe_component("corpus"), 
+            dataset._describe_component("index") ])
     return pd.DataFrame(rows, columns=["dataset", "topics", "qrels", "corpus", "index"])
