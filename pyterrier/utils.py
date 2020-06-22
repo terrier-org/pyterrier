@@ -309,10 +309,10 @@ class Utils:
             paths(list): A list of the paths to the files
         """
         lst = []
-        zip_paths = []
+        filenames = []
         for (dirpath, dirnames, filenames) in os.walk(dir):
             lst.append([dirpath, filenames])
         for sublist in lst:
-            for zip in sublist[1]:
-                zip_paths.append(os.path.join(sublist[0], zip))
-        return zip_paths
+            for f in sublist[1]:
+                filenames.append(os.path.join(sublist[0], f))
+        return sorted(filenames)
