@@ -220,6 +220,10 @@ class Indexer:
 class DFIndexUtils:
 
     @staticmethod
+    def get_column_lengths(df):
+        return dict([(v, df[v].apply(lambda r: len(str(r)) if r!=None else 0).max())for v in df.columns.values])
+
+    @staticmethod
     def create_javaDocIterator(text, *args, **kwargs):
         if HashMap is None:
             run_autoclass()
@@ -253,14 +257,18 @@ class DFIndexUtils:
             for column, value in meta_column[1].iteritems():
                 hashmap.put(column, value)
             return(TaggedDocument(StringReader(text_row), hashmap, Tokeniser.getTokeniser()))
-
-        df = pd.DataFrame(all_metadata)
-        return PythonListIterator(
+        
+        df = pd.DataFrame.from_dict(all_metadata, orient="columns")
+        lengths = DFIndexUtils.get_column_lengths(df)
+        
+        return (
+            PythonListIterator(
                 text.values,
                 df.iterrows(),
                 convertDoc,
-                len(text.values)
-        )
+                len(text.values),
+                ),
+            lengths)
 
 class DFIndexer(Indexer):
     """
@@ -288,8 +296,18 @@ class DFIndexer(Indexer):
                 The name of the keyword argument will be the name of the metadata field and the keyword argument contents will be the metadata content
         """
         self.checkIndexExists()
-        # we need to prevent collectionIterator from being GCd
-        collectionIterator = DFIndexUtils.create_javaDocIterator(text, *args, **kwargs)
+        # we need to prevent collectionIterator from being GCd, so assign to a variable that outlives the indexer
+        collectionIterator, meta_lengths = DFIndexUtils.create_javaDocIterator(text, *args, **kwargs)
+        
+        # generate the metadata properties, set their lengths automatically
+        prop1=""
+        prop2=""
+        for k in meta_lengths:
+            prop1 += k+ ","
+            prop2 += str(meta_lengths[k]) + ","
+        ApplicationSetup.setProperty("indexer.meta.forward.keys", prop1[:-1])
+        ApplicationSetup.setProperty("indexer.meta.forward.keylens", prop2[:-1])
+
         javaDocCollection = autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
         index = self.createIndexer()
         index.index([javaDocCollection])
