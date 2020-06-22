@@ -107,5 +107,13 @@ class TestBatchRetrieve(BaseTestCase):
             self.assertEqual(row['docno'], exp_result[index][1])
             self.assertAlmostEqual(row['score'], exp_result[index][2])
 
+    def test_num_results(self):
+        JIR = pt.autoclass('org.terrier.querying.IndexRef')
+        indexref = JIR.of(self.here+"/fixtures/index/data.properties")
+        retr = pt.BatchRetrieve(indexref, num_results=10)
+        input=pd.DataFrame([["1", "Stability"]],columns=['qid','query'])
+        result = retr.transform(input)
+        self.assertEqual(len(result), 10)
+
 if __name__ == "__main__":
     unittest.main()

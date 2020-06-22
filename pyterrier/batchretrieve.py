@@ -67,6 +67,7 @@ class BatchRetrieve(BatchRetrieveBase):
         verbose(bool): If True transform method will display progress
         properties(dict): Current properties
         controls(dict): Current controls
+        num_results(int): Number of results to retrieve. 
     """
     default_controls = {
         "terrierql": "on",
@@ -95,8 +96,10 @@ class BatchRetrieve(BatchRetrieveBase):
             controls(dict): A dictionary with with the control names and values
             properties(dict): A dictionary with with the property keys and values
             verbose(bool): If True transform method will display progress
+            num_results(int): Number of results to retrieve. 
+            metadata(list): What metadata to retrieve
     """
-    def __init__(self, index_location, controls=None, properties=None, metadata=["docno"], wmodel=None, **kwargs):
+    def __init__(self, index_location, controls=None, properties=None, metadata=["docno"],  num_results=None, wmodel=None, **kwargs):
         super().__init__(kwargs)
         
         self.indexref = parse_index_like(index_location)
@@ -112,6 +115,16 @@ class BatchRetrieve(BatchRetrieveBase):
         self.controls = _mergeDicts(BatchRetrieve.default_controls, controls)
         if wmodel is not None:
             self.controls["wmodel"] = wmodel
+
+        if num_results is not None:
+            if num_results > 0:
+                self.controls["end"] = str(num_results -1)
+                #self.appSetup.setProperty("matching.retrieved_set_size", str(num_results))
+            elif num_results == 0:
+                del self.controls["end"]
+            else: 
+                raise ValueError("num_results must be None, 0 or positive")
+
 
         MF = autoclass('org.terrier.querying.ManagerFactory')
         self.manager = MF._from_(self.indexref)
@@ -249,7 +262,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
     FBR_default_controls["matching"] = "FatFeaturedScoringMatching,org.terrier.matching.daat.FatFull"
     FBR_default_properties = BatchRetrieve.default_properties.copy()
 
-    def __init__(self, index_location, features, controls={}, properties={}, verbose=0):
+    def __init__(self, index_location, features, **kwargs):
         """
             Init method
 
@@ -259,6 +272,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
                 controls(dict): A dictionary with with the control names and values
                 properties(dict): A dictionary with with the control names and values
                 verbose(bool): If True transform method will display progress
+                num_results(int): Number of results to retrieve. 
         """
         # if props==None:
         #     importProps()
@@ -266,7 +280,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         properties = _mergeDicts(FeaturesBatchRetrieve.FBR_default_properties, properties)
         self.features = features
         properties["fat.featured.scoring.matching.features"] = ";".join(features)
-        super().__init__(index_location, controls=controls, properties=properties, verbose=verbose)
+        super().__init__(index_location, **kwargs)
 
     def transform(self, topics):
         """
