@@ -135,7 +135,7 @@ TREC_DEEPLEARNING_MSMARCO_FILES = {
 }
 
 TREC_WT2G_FILES = {
-    "qrels" : [ ("qrels.robust2004.txt", "https://trec.nist.gov/data/qrels_eng/qrels.trec8.small_web.gz") ],
+    "qrels" : [ ("qrels.trec8.small_web.gz", "https://trec.nist.gov/data/qrels_eng/qrels.trec8.small_web.gz") ],
     "topics" : [ (  "topics.401-450.gz", "https://trec.nist.gov/data/topics_eng/topics.401-450.gz" ) ]
 }
 
