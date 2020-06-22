@@ -77,7 +77,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     from .utils import Utils
     from .datasets import get_dataset, list_datasets
     from .index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IndexingType
-    from .pipelines import LTR_pipeline, XGBoostLTR_pipeline
+    from .pipelines import LTR_pipeline, XGBoostLTR_pipeline, Experiment
 
     # Make imports global
     globals()["autoclass"] = autoclass
@@ -115,7 +115,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
 
     globals()["get_dataset"] = get_dataset
     globals()["list_datasets"] = list_datasets
-    
+    globals()["Experiment"] = Experiment
     globals()["BatchRetrieve"] = BatchRetrieve
     globals()["Indexer"] = Indexer
     globals()["FeaturesBatchRetrieve"] = FeaturesBatchRetrieve
