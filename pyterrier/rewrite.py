@@ -62,9 +62,10 @@ class SDM(TransformerBase, Symbol):
             results.append([qid, new_query])
         return pd.DataFrame(results, columns=["qid", "query"])
     
-
-
 class QueryExpansion(TransformerBase, Symbol):
+    '''
+        A base class for applying different types of query expansion using Terrier's classes
+    '''
 
     def __init__(self, index_like, fb_terms=10, fb_docs=3, qeclass="org.terrier.querying.QueryExpansion", verbose=0, **kwargs):
         super().__init__(kwargs)
@@ -103,6 +104,10 @@ class QueryExpansion(TransformerBase, Symbol):
                 occurrences.append(0)
         return QueryResultSet(docids,scores, occurrences)
 
+    def _configure_request(self, rq):
+        rq.setControl("qe_fb_docs", str(self.fb_docs))
+        rq.setControl("qe_fb_terms", str(self.fb_terms))
+
     def transform(self, topics_and_res):
 
         results = []
@@ -115,12 +120,11 @@ class QueryExpansion(TransformerBase, Symbol):
             srq = self.manager.newSearchRequest(qid, query)
             rq = cast("org.terrier.querying.Request", srq)
             self.qe.configureIndex(rq.getIndex())
+            self._configure_request(rq)
 
             # generate the result set from the input
             rq.setResultSet(self._populate_resultset(topics_and_res, qid, rq.getIndex()))
 
-            rq.setControl("qe_fb_docs", str(self.fb_docs))
-            rq.setControl("qe_fb_terms", str(self.fb_terms))
             
             TerrierQLParser.process(None, rq)
             TerrierQLToMatchingQueryTerms.process(None, rq)
@@ -139,9 +143,32 @@ class QueryExpansion(TransformerBase, Symbol):
             results.append([qid, new_query])
         return pd.DataFrame(results, columns=["qid", "query"])
 
+class DFRQueryExpansion(QueryExpansion):
+
+    def __init__(self, *args, qemodel="Bo1", **kwargs):
+        super().__init__(*args, **kwargs)
+        self.qemodel = qemodel
+
+    def _configure_request(self, rq):
+        super()._configure_request(rq)
+        rq.setControl("qemodel", self.qemodel)
+
+class Bo1QueryExpansion(DFRQueryExpansion):
+    def __init__(self, *args, **kwargs):
+        kwargs["qemodel"] = "Bo1"
+        super().__init__(*args, **kwargs)
+
+class KLQueryExpansion(DFRQueryExpansion):
+    def __init__(self, *args, **kwargs):
+        kwargs["qemodel"] = "KL"
+        super().__init__(*args, **kwargs)
+
 terrier_prf_package_loaded = False
 class RM3(QueryExpansion):
-     def __init__(self, *args, fb_terms=10, fb_docs=3, **kwargs):
+    '''
+        Performs query expansion using RM3 relevance models
+    '''
+    def __init__(self, *args, fb_terms=10, fb_docs=3, **kwargs):
         global terrier_prf_package_loaded
 
         #if not terrier_prf_package_loaded:
@@ -157,6 +184,31 @@ class RM3(QueryExpansion):
         assert prf_found, 'terrier-prf jar not found: you should start Pyterrier with '\
             + 'pt.init(boot_packages=["org.terrier:terrier-prf:0.0.1-SNAPSHOT"])'
         rm = pt.autoclass("org.terrier.querying.RM3")()
+        rm.fbTerms = fb_terms
+        rm.fbDocs = fb_docs
+        kwargs["qeclass"] = rm
+        super().__init__(*args, **kwargs)
+
+class AxiomaticQE(QueryExpansion):
+    '''
+        Performs query expansion using axiomatic query expansion
+    '''
+    def __init__(self, *args, fb_terms=10, fb_docs=3, **kwargs):
+        global terrier_prf_package_loaded
+
+        #if not terrier_prf_package_loaded:
+        #    pt.extend_classpath("org.terrier:terrier-prf")
+        #    terrier_prf_package_loaded = True
+        #rm = pt.ApplicationSetup.getClass("org.terrier.querying.RM3").newInstance()
+        import jnius_config
+        prf_found = False
+        for j in jnius_config.get_classpath():
+            if "terrier-prf" in j:
+                prf_found = True
+                break
+        assert prf_found, 'terrier-prf jar not found: you should start Pyterrier with '\
+            + 'pt.init(boot_packages=["org.terrier:terrier-prf:0.0.1-SNAPSHOT"])'
+        rm = pt.autoclass("org.terrier.querying.AxiomaticQE")()
         rm.fbTerms = fb_terms
         rm.fbDocs = fb_docs
         kwargs["qeclass"] = rm

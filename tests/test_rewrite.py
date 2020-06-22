@@ -33,7 +33,6 @@ class TestRewrite(BaseTestCase):
         dataset = pt.datasets.get_dataset("vaswani")
         indexer = pt.TRECCollectionIndexer(self.test_dir, blocks=True)
         indexref = indexer.index(dataset.get_corpus())
-
         if freq:
             sdm = pt.rewrite.SDM(prox_model="org.terrier.matching.models.Tf")
         else:
@@ -126,36 +125,43 @@ class TestRewrite(BaseTestCase):
     #     self.assertAlmostEqual(map_qe, map_pipe, places=4)
 
 
-    def test_qe(self):
+    def _nottest_qe(self):
         if not pt.check_version("5.3"):
             self.skipTest("Requires Terrier 5.3")
         dataset = pt.datasets.get_dataset("vaswani")
         indexref = dataset.get_index()
-
-        qe = pt.rewrite.QueryExpansion(indexref)
-        br = pt.BatchRetrieve(indexref)
-
-        queriesIn = pd.DataFrame([["1", "compact"]], columns=["qid", "query"])
-        res = br.transform(queriesIn)
-
-        queriesOut = qe.transform(res)
-        self.assertEqual(len(queriesOut), 1)
-        query = queriesOut.iloc[0]["query"]
-        self.assertTrue("compact^1.82230972" in query)
-        self.assertTrue("applypipeline:off " in query)
-        
-        pipe = br >> qe >> br
+        index = pt.IndexFactory.of(indexref)
+        # given their defaults, there three expressions are identical, all use Bo1
+        qe1 = pt.rewrite.QueryExpansion(index)
+        qe2 = pt.rewrite.DFRQueryExpansion(index)
+        qe3 = pt.rewrite.Bo1QueryExpansion(index)
 
         # lets go faster, we only need 18 topics. qid 16 had a tricky case
         t = dataset.get_topics().head(18)
 
-        all_qe_res = pipe.transform(t)
-        map_pipe = pt.Utils.evaluate(all_qe_res, dataset.get_qrels(), metrics=["map"])["map"]
+        qrels = dataset.get_qrels()
 
-        br_qe = pt.BatchRetrieve(indexref, controls={"qe":"on"})
-        map_qe = pt.Utils.evaluate(br_qe.transform(t), dataset.get_qrels(), metrics=["map"])["map"]
+        for qe in [qe1, qe2, qe3]:
+            br = pt.BatchRetrieve(index)
 
-        self.assertAlmostEqual(map_qe, map_pipe, places=4)
+            queriesIn = pd.DataFrame([["1", "compact"]], columns=["qid", "query"])
+            res = br.transform(queriesIn)
+
+            queriesOut = qe.transform(res)
+            self.assertEqual(len(queriesOut), 1)
+            query = queriesOut.iloc[0]["query"]
+            self.assertTrue("compact^1.82230972" in query)
+            self.assertTrue("applypipeline:off " in query)
+            
+            pipe = br >> qe >> br
+
+            all_qe_res = pipe.transform(t)
+            map_pipe = pt.Utils.evaluate(all_qe_res, qrels, metrics=["map"])["map"]
+
+            br_qe = pt.BatchRetrieve(indexref, controls={"qe":"on"})
+            map_qe = pt.Utils.evaluate(br_qe.transform(t), qrels, metrics=["map"])["map"]
+
+            self.assertAlmostEqual(map_qe, map_pipe, places=4)
 
 
 if __name__ == "__main__":
