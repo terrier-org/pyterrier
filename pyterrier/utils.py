@@ -309,10 +309,8 @@ class Utils:
             paths(list): A list of the paths to the files
         """
         lst = []
-        filenames = []
+        files = []
         for (dirpath, dirnames, filenames) in os.walk(dir):
-            lst.append([dirpath, filenames])
-        for sublist in lst:
-            for f in sublist[1]:
-                filenames.append(os.path.join(sublist[0], f))
-        return sorted(filenames)
+            for name in filenames:
+                files.append(os.path.join(dirpath, name))
+        return sorted(files)
