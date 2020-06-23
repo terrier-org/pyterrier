@@ -207,6 +207,18 @@ class NAryTransformerBase(TransformerBase,Operation):
         models = operands
         self.models = list( map(lambda x : get_transformer(x), models) )
 
+    def __getitem__(self, number):
+        '''
+            Allows access to the ith transformer.
+        '''
+        return self.models[number]
+
+    def __len__(self):
+        '''
+            Returns the number of transformers in the operator.
+        '''
+        return len(self.models)
+
 class SetUnionTransformer(BinaryTransformerBase):
     name = "Union"
 
