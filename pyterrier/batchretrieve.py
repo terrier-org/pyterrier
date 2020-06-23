@@ -299,7 +299,6 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         docid_provided = "docid" in queries.columns
         scores_provided = "scores" in queries.columns
         if docno_provided or docid_provided:
-            assert False, "re-ranking not yet supported by FBR"
             from . import check_version
             assert check_version(5.3)
             input_results = queries
@@ -318,6 +317,10 @@ class FeaturesBatchRetrieve(BatchRetrieve):
             query = row['query']
 
             srq = self.manager.newSearchRequest(qid, query)
+
+            for control, value in self.controls.items():
+                srq.setControl(control, value)
+
             # this is needed until terrier-core issue #106 lands
             if "applypipeline:off" in query:
                 srq.setControl("applypipeline", "off")
@@ -343,12 +346,8 @@ class FeaturesBatchRetrieve(BatchRetrieve):
                 if scores_provided:
                     matching_config_factory.withScores(input_query_results["scores"].values.tolist())
                 matching_config_factory.build()
-                srq.setControl("matching", "org.terrier.matching.ScoringMatching" + "," + srq.getControl("matching"))
-
+                srq.setControl("matching", ",".join(["FatFeaturedScoringMatching","ScoringMatchingWithFat", srq.getControl("matching")]))
             
-            
-            for control, value in self.controls.items():
-                srq.setControl(control, value)
             self.manager.runSearchRequest(srq)
             srq = cast('org.terrier.querying.Request', srq)
             fres = cast('org.terrier.learning.FeaturedResultSet', srq.getResultSet())
