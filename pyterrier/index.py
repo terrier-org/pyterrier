@@ -442,7 +442,7 @@ class IterDictIndexer(Indexer):
             'indexer.meta.forward.keylens': ','.join(['512'] * len(meta))
         })
         # we need to prevent collectionIterator from being GCd
-        collectionIterator = FlatJSONDocumentIterator(it)
+        collectionIterator = FlatJSONDocumentIterator(iter(it)) # force it to be iter
         javaDocCollection = autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
         index = self.createIndexer()
         index.index([javaDocCollection])
