@@ -44,7 +44,7 @@ There is a worked example in the [retrieval and evaluation notebook](examples/no
 Pyterrier provides an experiment object, which allows to compare multiple retrieval approaches on the same queries & relevance assessments:
 
 ```python
-pt.Experiment(topics, [BM25_br, PL2_br], eval_metrics, qrels)
+pt.Experiment([BM25_br, PL2_br], topics, qrels, ["map", "ndcg"])
 ```
 
 There is a worked example in the [experiment notebook](examples/notebooks/experiment.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/experiment.ipynb)
