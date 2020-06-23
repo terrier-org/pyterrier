@@ -1,10 +1,12 @@
+from warnings import warn
 import os
 import pandas as pd
 import numpy as np
 from .utils import Utils
 from .transformer import TransformerBase, EstimatorBase
 
-def Experiment(topics, retr_systems, eval_metrics, qrels, names=None, perquery=False, dataframe=True):
+#def Experiment(topics, retr_systems, eval_metrics, qrels, names=None, perquery=False, dataframe=True):
+def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=False, dataframe=True):
     """
     Cornac style experiment. Combines retrieval and evaluation.
     Allows easy comparison of multiple retrieval systems with different properties and controls.
@@ -22,6 +24,24 @@ def Experiment(topics, retr_systems, eval_metrics, qrels, names=None, perquery=F
     Returns:
         A Dataframe with each retrieval system with each metric evaluated.
     """
+    
+    
+    # map to the old signature of Experiment
+    warn_old_sig=False
+    if isinstance(retr_systems, pd.DataFrame) and isinstance(topics, list):
+        tmp = topics
+        topics = retr_systems
+        retr_systems = tmp
+        warn_old_sig = True
+    if isinstance(eval_metrics, pd.DataFrame) and isinstance(qrels, list):
+        tmp = eval_metrics
+        eval_metrics = qrels
+        qrels = tmp
+        warn_old_sig = True
+    if warn_old_sig:
+        warn("Signature of Experiment() is now (retr_systems, topics, qrels, eval_metrics), please update your code", DeprecationWarning, 2)
+    
+
     if isinstance(topics, str):
         if os.path.isfile(topics):
             topics = Utils.parse_trec_topics_file(topics)

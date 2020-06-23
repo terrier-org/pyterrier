@@ -1,10 +1,34 @@
 
+import types
 from matchpy import ReplacementRule, Wildcard, Symbol, Operation, Arity, replace_all, Pattern, CustomConstraint
 
 LAMBDA = lambda:0
 def is_lambda(v):
     return isinstance(v, type(LAMBDA)) and v.__name__ == LAMBDA.__name__
        
+def is_transformer(v):
+    if isinstance(v, TransformerBase):
+        return True
+    if 'transform' in dir(v):
+        return True
+    return False
+
+def get_transformer(v):
+    ''' 
+        Used to coerce functions, lambdas etc into transformers 
+    '''
+
+    if isinstance(v, Wildcard):
+        # get out of jail for matchpy
+        return v
+    if is_transformer(v):
+        return v
+    if is_lambda(v):
+        return LambdaPipeline(v)
+    if isinstance(v, types.FunctionType):
+        return LambdaPipeline(v)
+    raise ValueError("Passed parameter %s cannot be coerced into a transformer", str(v))
+
 rewrites_setup = False
 rewrite_rules = []
 
@@ -106,6 +130,9 @@ class TransformerBase:
     def __rshift__(self, right):
         return ComposedPipeline(self, right)
 
+    def __rrshift__(self, left):
+        return ComposedPipeline(left, self)
+
     def __add__(self, right):
         return CombSumTransformer(self, right)
 
@@ -178,7 +205,7 @@ class NAryTransformerBase(TransformerBase,Operation):
     def __init__(self, operands, **kwargs):
         super().__init__(operands=operands, **kwargs)
         models = operands
-        self.models = list( map(lambda x : LambdaPipeline(x) if is_lambda(x) else x, models) )
+        self.models = list( map(lambda x : get_transformer(x), models) )
 
 class SetUnionTransformer(BinaryTransformerBase):
     name = "Union"

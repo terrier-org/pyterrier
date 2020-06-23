@@ -1,7 +1,9 @@
 #follows https://packaging.python.org/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
 name: Publish Python 🐍 distributions 📦 to PyPI and TestPyPI
 
-on: push
+on:
+  release:
+    types: prerelease
 
 jobs:
   build-n-publish:

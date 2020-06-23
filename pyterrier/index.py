@@ -224,6 +224,10 @@ class Indexer:
 class DFIndexUtils:
 
     @staticmethod
+    def get_column_lengths(df):
+        return dict([(v, df[v].apply(lambda r: len(str(r)) if r!=None else 0).max())for v in df.columns.values])
+
+    @staticmethod
     def create_javaDocIterator(text, *args, **kwargs):
         if HashMap is None:
             run_autoclass()
@@ -257,14 +261,18 @@ class DFIndexUtils:
             for column, value in meta_column[1].iteritems():
                 hashmap.put(column, value)
             return(TaggedDocument(StringReader(text_row), hashmap, Tokeniser.getTokeniser()))
-
-        df = pd.DataFrame(all_metadata)
-        return PythonListIterator(
+        
+        df = pd.DataFrame.from_dict(all_metadata, orient="columns")
+        lengths = DFIndexUtils.get_column_lengths(df)
+        
+        return (
+            PythonListIterator(
                 text.values,
                 df.iterrows(),
                 convertDoc,
-                len(text.values)
-        )
+                len(text.values),
+                ),
+            lengths)
 
 class DFIndexer(Indexer):
     """
@@ -292,13 +300,46 @@ class DFIndexer(Indexer):
                 The name of the keyword argument will be the name of the metadata field and the keyword argument contents will be the metadata content
         """
         self.checkIndexExists()
-        # we need to prevent collectionIterator from being GCd
-        collectionIterator = DFIndexUtils.create_javaDocIterator(text, *args, **kwargs)
+        # we need to prevent collectionIterator from being GCd, so assign to a variable that outlives the indexer
+        collectionIterator, meta_lengths = DFIndexUtils.create_javaDocIterator(text, *args, **kwargs)
+        
+        # generate the metadata properties, set their lengths automatically
+        mprop1=""
+        mprop2=""
+        mprop1_def=None
+        mprop2_def=None
+
+        # keep track of the previous settings of these indexing properties
+        default_props = ApplicationSetup.getProperties()
+        if default_props.containsKey("indexer.meta.forward.keys"):
+            mprop1_def = default_props.get("indexer.meta.forward.keys")
+        if default_props.containsKey("indexer.meta.forward.keylens"):
+            mprop2_def = default_props.get("indexer.meta.forward.keylens")
+
+        # update the indexing properties
+        for k in meta_lengths:
+            mprop1 += k+ ","
+            mprop2 += str(meta_lengths[k]) + ","
+        ApplicationSetup.setProperty("indexer.meta.forward.keys", mprop1[:-1])
+        ApplicationSetup.setProperty("indexer.meta.forward.keylens", mprop2[:-1])
+
+        # make a Collection class for Terrier
         javaDocCollection = autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
         index = self.createIndexer()
         index.index([javaDocCollection])
         self.index_called = True
         collectionIterator = None
+
+        # this block is for restoring the indexing config
+        if mprop1_def is not None:
+            ApplicationSetup.setProperty("indexer.meta.forward.keys", mprop1_def)
+        else:
+            default_props.remove("indexer.meta.forward.keys")
+        if mprop2_def is not None:
+            ApplicationSetup.setProperty("indexer.meta.forward.keylens", mprop2_def)
+        else:
+            default_props.remove("indexer.meta.forward.keylens")
+
         return IndexRef.of(self.index_dir + "/data.properties")
 
 class PythonListIterator(PythonJavaClass):
@@ -525,7 +566,7 @@ class TQDMCollection(PythonJavaClass):
         rtr = self.collection.nextDocument()
         filenum = self.collection.FileNumber
         if filenum > self.last:
-            self.pbar.update(filenum)
+            self.pbar.update(filenum - self.last)
             self.last = filenum
         return rtr
 

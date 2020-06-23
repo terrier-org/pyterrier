@@ -17,13 +17,13 @@ class TestDFIndexer(BaseTestCase):
         # Remove the directory after the test
         shutil.rmtree(self.test_dir)
 
-    def _create_index(self, df, type):
+    def _create_index(self, type, dfText, dfMeta):
         pd_indexer = pt.DFIndexer(self.test_dir, type=type)
-        indexref = pd_indexer.index(df["text"], df["docno"])
+        indexref = pd_indexer.index(dfText, dfMeta)
         self.assertIsNotNone(indexref)
         return indexref
 
-    def _make_check_index(self, n, single_pass):
+    def _make_check_index(self, n, single_pass, include_urls=False):
         import pandas as pd
         df = pd.DataFrame({
             'docno': ['1', '2', '3'],
@@ -35,15 +35,17 @@ class TestDFIndexer(BaseTestCase):
                  'The body may perhaps compensates for the loss']
         })
         df = df.head(n)
+        metadata = df[["docno", "url"]] if include_urls else df["docno"]
         if single_pass:
-            indexref = self._create_index(df, pt.IndexingType.SINGLEPASS)
+            indexref = self._create_index(pt.IndexingType.SINGLEPASS, df["text"], metadata)
         else:
-            indexref = self._create_index(df, pt.IndexingType.CLASSIC)
+            indexref = self._create_index(pt.IndexingType.CLASSIC, df["text"], metadata)
         index = pt.IndexFactory.of(indexref)
         self.assertIsNotNone(index)
         self.assertEqual(n, index.getCollectionStatistics().getNumberOfDocuments())
         self.assertTrue("docno" in index.getMetaIndex().getKeys())
-        # self.assertTrue("url" in index.getMetaIndex().getKeys())
+        if include_urls:
+            self.assertTrue("url" in index.getMetaIndex().getKeys())
         if single_pass:
             self.assertFalse(os.path.isfile(self.test_dir + '/data.direct.bf'))
         else:
@@ -65,18 +67,26 @@ class TestDFIndexer(BaseTestCase):
         from pyterrier import DFIndexUtils
 
         d1 = df.head(1)
-        jIter1 = DFIndexUtils.create_javaDocIterator(d1["text"], d1["docno"])
+        jIter1, metalens = DFIndexUtils.create_javaDocIterator(d1["text"], d1["docno"])
+        self.assertEqual(1, len(metalens))
+        self.assertEqual(1, metalens["docno"])
         self.assertTrue(jIter1.hasNext())
         self.assertIsNotNone(jIter1.next())
         self.assertFalse(jIter1.hasNext())
 
         d2 = df.head(2)
-        jIter1 = DFIndexUtils.create_javaDocIterator(d2["text"], d2["docno"])
+        jIter1, metalens = DFIndexUtils.create_javaDocIterator(d2["text"], d2[["docno", "url"]])
+        self.assertEqual(2, len(metalens))
+        self.assertEqual(1, metalens["docno"])
+        self.assertEqual(4, metalens["url"])
         self.assertTrue(jIter1.hasNext())
         self.assertIsNotNone(jIter1.next())
         self.assertTrue(jIter1.hasNext())
         self.assertIsNotNone(jIter1.next())
         self.assertFalse(jIter1.hasNext())
+
+    def test_createindex1_two_metadata(self):
+        self._make_check_index(1, single_pass=False, include_urls=True)
 
     def test_createindex1(self):
         self._make_check_index(1, single_pass=False)

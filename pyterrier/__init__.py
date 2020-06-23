@@ -76,7 +76,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     from .batchretrieve import BatchRetrieve, FeaturesBatchRetrieve
     from .utils import Utils
     from .index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, FlatJSONDocumentIterator, IndexingType
-    from .pipelines import LTR_pipeline, XGBoostLTR_pipeline
+    from .pipelines import LTR_pipeline, XGBoostLTR_pipeline, Experiment
 
     # Make imports global
     globals()["autoclass"] = autoclass
@@ -112,6 +112,9 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     _logging(logging)
     setup_jnius()
 
+    globals()["get_dataset"] = get_dataset
+    globals()["list_datasets"] = list_datasets
+    globals()["Experiment"] = Experiment
     globals()["BatchRetrieve"] = BatchRetrieve
     globals()["Indexer"] = Indexer
     globals()["FeaturesBatchRetrieve"] = FeaturesBatchRetrieve
