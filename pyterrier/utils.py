@@ -118,10 +118,9 @@ class Utils:
         """
         rows = []
         from jnius import autoclass
-        # TODO: this can be updated when 5.3 is released
-        system = autoclass("java.lang.System")
-        system.setProperty("SingleLineTRECQuery.tokenise", "true" if tokenise else "false")
-        slqIter = autoclass("org.terrier.applications.batchquerying.SingleLineTRECQuery")(filepath)
+        from . import check_version
+        assert check_version("5.3")
+        slqIter = autoclass("org.terrier.applications.batchquerying.SingleLineTRECQuery")(filepath, tokenise)
         for q in slqIter:
             rows.append([slqIter.getQueryId(), q])
         return pd.DataFrame(rows, columns=["qid", "query"])
@@ -139,6 +138,8 @@ class Utils:
             both columns have type string
         """
         from jnius import autoclass
+        from . import check_version
+        assert check_version("5.3")
         trecquerysource = autoclass('org.terrier.applications.batchquerying.TRECQuery')
         tqs = trecquerysource([file_path], doc_tag, id_tag, whitelist, blacklist)
         topics_lst=[]
