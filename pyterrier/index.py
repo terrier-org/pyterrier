@@ -9,10 +9,12 @@ import pandas as pd
 # import numpy as np
 import os
 import enum
+import json
 
 StringReader = None
 HashMap = None
 TaggedDocument = None
+FlatJSONDocument = None
 Tokeniser = None
 TRECCollection = None
 SimpleFileCollection = None
@@ -33,6 +35,7 @@ def run_autoclass():
     global StringReader
     global HashMap
     global TaggedDocument
+    global FlatJSONDocument
     global Tokeniser
     global TRECCollection
     global SimpleFileCollection
@@ -52,6 +55,7 @@ def run_autoclass():
     StringReader = autoclass("java.io.StringReader")
     HashMap = autoclass("java.util.HashMap")
     TaggedDocument = autoclass("org.terrier.indexing.TaggedDocument")
+    FlatJSONDocument = autoclass("org.terrier.indexing.FlatJSONDocument")
     Tokeniser = autoclass("org.terrier.indexing.tokenisation.Tokeniser")
     TRECCollection = autoclass("org.terrier.indexing.TRECCollection")
     SimpleFileCollection = autoclass("org.terrier.indexing.SimpleFileCollection")
@@ -374,6 +378,77 @@ class PythonListIterator(PythonJavaClass):
         if self.convertFn is not None:
             return self.convertFn(text, meta)
         return [text, meta]
+
+class FlatJSONDocumentIterator(PythonJavaClass):
+    __javainterfaces__ = ['java/util/Iterator']
+
+    def __init__(self, it):
+        super(FlatJSONDocumentIterator, self).__init__()
+        if FlatJSONDocument is None:
+            run_autoclass()
+        self._it = it
+        # easiest way to support hasNext is just to start consuming right away, I think
+        self._next = next(self._it, StopIteration)
+
+    @java_method('()V')
+    def remove():
+        # 1
+        pass
+
+    @java_method('(Ljava/util/function/Consumer;)V')
+    def forEachRemaining(action):
+        # 1
+        pass
+
+    @java_method('()Z')
+    def hasNext(self):
+        return self._next is not StopIteration
+
+    @java_method('()Ljava/lang/Object;')
+    def next(self):
+        result = self._next
+        self._next = next(self._it, StopIteration)
+        if result is not StopIteration:
+            return FlatJSONDocument(json.dumps(result))
+        return None
+
+class IterDictIndexer(Indexer):
+    """
+    Use this Indexer if you wish to index an iter of dicts (possibly with multiple fields)
+
+    Attributes:
+        default_properties(dict): Contains the default properties
+        path(str): The index directory + /data.properties
+        index_called(bool): True if index() method of child Indexer has been called, false otherwise
+        index_dir(str): The index directory
+        blocks(bool): If true the index has blocks enabled
+        properties: A Terrier Properties object, which is a hashtable with properties and their values
+        overwrite(bool): If True the index() method of child Indexer will overwrite any existing index
+    """
+    def index(self, it, fields=('text',), meta=('docno',)):
+        """
+        Index the specified iter of dicts with the (optional) specified fields
+
+        Args:
+            it(iter[dict]): an iter of document dict to be indexed
+            fields(list[str]): fieleds to be indexed (all will be considered metadata)
+        """
+        self.checkIndexExists()
+        self.setProperties(**{
+            'FieldTags.process': ','.join(fields),
+            'FieldTags.casesensitive': 'true',
+            'indexer.meta.forward.keys': ','.join(meta),
+            # What are the ramifications of setting all lengths to a large value like this? (storage cost?)
+            'indexer.meta.forward.keylens': ','.join(['512'] * len(meta))
+        })
+        # we need to prevent collectionIterator from being GCd
+        collectionIterator = FlatJSONDocumentIterator(iter(it)) # force it to be iter
+        javaDocCollection = autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
+        index = self.createIndexer()
+        index.index([javaDocCollection])
+        self.index_called = True
+        collectionIterator = None
+        return IndexRef.of(self.index_dir + "/data.properties")
 
 class TRECCollectionIndexer(Indexer):
     type_to_class = {
