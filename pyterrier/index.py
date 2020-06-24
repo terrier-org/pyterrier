@@ -425,21 +425,25 @@ class IterDictIndexer(Indexer):
         properties: A Terrier Properties object, which is a hashtable with properties and their values
         overwrite(bool): If True the index() method of child Indexer will overwrite any existing index
     """
-    def index(self, it, fields=('text',), meta=('docno',)):
+    def index(self, it, fields=('text',), meta=('docno',), meta_lengths=None):
         """
         Index the specified iter of dicts with the (optional) specified fields
 
         Args:
             it(iter[dict]): an iter of document dict to be indexed
-            fields(list[str]): fieleds to be indexed (all will be considered metadata)
+            fields(list[str]): keys to be indexed as fields
+            meta(list[str]): keys to be considered as metdata
+            meta_lengths(list[int]): length of metadata, defaults to 512 characters
         """
         self.checkIndexExists()
+        if meta_lengths is None:
+            meta_lengths = ','.join(['512'] * len(meta))
         self.setProperties(**{
             'FieldTags.process': ','.join(fields),
             'FieldTags.casesensitive': 'true',
             'indexer.meta.forward.keys': ','.join(meta),
             # What are the ramifications of setting all lengths to a large value like this? (storage cost?)
-            'indexer.meta.forward.keylens': ','.join(['512'] * len(meta))
+            'indexer.meta.forward.keylens': meta_lengths
         })
         # we need to prevent collectionIterator from being GCd
         collectionIterator = FlatJSONDocumentIterator(iter(it)) # force it to be iter
