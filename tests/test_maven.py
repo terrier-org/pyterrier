@@ -21,7 +21,7 @@ class TestMaven(unittest.TestCase):
 
     def testVersion(self):
         ver = mavenresolver.latest_version_num("org.terrier", "terrier-core")
-        self.assertGreaterEqual(5.2, float(ver))
+        self.assertGreaterEqual(float(ver), 5.3)
 
     def testDownload(self):
         ver = mavenresolver.latest_version_num("org.terrier", "terrier-python-helper")
