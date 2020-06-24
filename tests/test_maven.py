@@ -28,5 +28,9 @@ class TestMaven(unittest.TestCase):
         jar = mavenresolver.downloadfile("org.terrier", "terrier-python-helper", ver, self.test_dir)
         self.assertTrue(path.exists(jar))
 
+    def testJitpack(self):
+        jar = mavenresolver.downloadfile("com.github.terrierteam", "terrier-ciff", "-SNAPSHOT", self.test_dir)
+        self.assertTrue(path.exists(jar))
+
 if __name__ == "__main__":
     unittest.main()

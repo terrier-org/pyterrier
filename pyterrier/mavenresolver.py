@@ -4,6 +4,7 @@ import wget
 import os
 
 MAVEN_BASE_URL = "https://repo1.maven.org/maven2/"
+JITPACK_BASE_URL = "https://jitpack.io/"
 
 # obtain a file from maven
 def downloadfile(orgName, packageName, version, file_path, artifact="jar"):
@@ -31,7 +32,10 @@ def downloadfile(orgName, packageName, version, file_path, artifact="jar"):
         return mvnLocalLocation
 
     print(packageName + " " + version + "  " + artifact  + " not found, downloading to " + file_path + "...")
-    mvnUrl = MAVEN_BASE_URL + filelocation
+    if "com/github" in orgName:
+        mvnUrl = JITPACK_BASE_URL + filelocation
+    else:
+        mvnUrl = MAVEN_BASE_URL + filelocation
 
     try:
         wget.download(mvnUrl, file_path)
@@ -44,6 +48,9 @@ def downloadfile(orgName, packageName, version, file_path, artifact="jar"):
 # returns the latest version
 def latest_version_num(orgName, packageName):
     orgName = orgName.replace(".", "/")
+    if "com/github" in orgName:
+        # its jitpack
+        return("-SNAPSHOT")
 
     url_str = MAVEN_BASE_URL + orgName + "/" + packageName + "/maven-metadata.xml"
     with urllib.request.urlopen(url_str) as url:
