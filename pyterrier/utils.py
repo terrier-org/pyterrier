@@ -127,7 +127,7 @@ class Utils:
         return pd.DataFrame(rows, columns=["qid", "query"])
 
     @staticmethod
-    def parse_trec_topics_file(file_path):
+    def parse_trec_topics_file(file_path, doc_tag="TOP", id_tag="NUM", whitelist=["TITLE"], blacklist=["DESC","NARR"]):
         """
         Parse a file containing topics in standard TREC format
 
@@ -136,22 +136,17 @@ class Utils:
 
         Returns:
             pandas.Dataframe with columns=['qid','query']
+            both columns have type string
         """
         from jnius import autoclass
-        system = autoclass("java.lang.System")
-        system.setProperty("TrecQueryTags.doctag", "TOP")
-        system.setProperty("TrecQueryTags.idtag", "NUM")
-        system.setProperty("TrecQueryTags.process", "TOP,NUM,TITLE")
-        system.setProperty("TrecQueryTags.skip", "DESC,NARR")
-
-        trec = autoclass('org.terrier.applications.batchquerying.TRECQuery')
-        tr = trec(file_path)
-        topics_lst = []
-        while(tr.hasNext()):
-            topic = tr.next()
-            qid = tr.getQueryId()
-            topics_lst.append([qid, topic])
-        topics_dt = pd.DataFrame(topics_lst, columns=['qid', 'query'])
+        trecquerysource = autoclass('org.terrier.applications.batchquerying.TRECQuery')
+        tqs = trecquerysource([file_path], doc_tag, id_tag, whitelist, blacklist)
+        topics_lst=[]
+        while(tqs.hasNext()):
+            topic = tqs.next()
+            qid = tqs.getQueryId()
+            topics_lst.append([qid,topic])
+        topics_dt = pd.DataFrame(topics_lst,columns=['qid','query'])
         return topics_dt
 
     @staticmethod
@@ -195,6 +190,7 @@ class Utils:
 
         Returns:
             pandas.Dataframe with columns=['qid','docno', 'label']
+            with column types string, string, and int
         """
         df = pd.read_csv(file_path, sep=r'\s+', names=["qid", "iter", "docno", "label"])
         df = df.drop(columns="iter")
