@@ -6,6 +6,31 @@ from .base import BaseTestCase
 
 class TestFeaturesBatchRetrieve(BaseTestCase):
 
+    def test_fbr_reranking(self):
+        if not pt.check_version("5.3"):
+            self.skipTest("Requires Terrier 5.3")
+        # this test examines the use of ScoringMatchingWithFat 
+        JIR = pt.autoclass('org.terrier.querying.IndexRef')
+        indexref = JIR.of(self.here + "/fixtures/index/data.properties")
+        # we only want a candidate set of 2 documents
+        firstpass = pt.BatchRetrieve(indexref, wmodel="BM25") % 2
+        pipe = firstpass >> pt.FeaturesBatchRetrieve(indexref, features=["WMODEL:DPH", "WMODEL:PL2"])
+        input = pd.DataFrame([["1", "Stability"]], columns=['qid', 'query'])
+        result = pipe.transform(input)
+        self.assertTrue("qid" in result.columns)
+        self.assertTrue("docno" in result.columns)
+        self.assertTrue("score" in result.columns)
+        self.assertTrue("features" in result.columns)
+        self.assertEqual(3, len(result))
+        self.assertEqual(result.iloc[0]["features"].size, 2)
+
+        pipe_simple = firstpass >> (pt.BatchRetrieve(indexref, wmodel="DPH") ** pt.BatchRetrieve(indexref, wmodel="PL2"))
+        result2 = pipe.transform(input)
+        import numpy as np
+        f1 = np.stack(result["features"].values)
+        f2 = np.stack(result2["features"].values)
+        self.assertTrue( np.array_equal(f1, f2))
+
     def test_fbr_ltr(self):
         JIR = pt.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of(self.here + "/fixtures/index/data.properties")
@@ -16,7 +41,7 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
         res = res.merge(qrels, on=['qid', 'docno'], how='left').fillna(0)
         from sklearn.ensemble import RandomForestClassifier
         import numpy as np
-        print(res.dtypes)
+        #print(res.dtypes)
         RandomForestClassifier(n_estimators=10).fit(np.stack(res["features"]), res["label"])
 
     def test_fbr(self):

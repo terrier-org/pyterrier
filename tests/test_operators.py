@@ -27,6 +27,10 @@ class TestOperators(unittest.TestCase):
         
         for sequence in [sequence1, sequence2, sequence3, sequence4, sequence5]:
             self.assertTrue(isinstance(sequence, ptt.TransformerBase))
+            #check we can access items
+            self.assertEqual(2, len(sequence))
+            self.assertTrue(sequence[0], ptt.TransformerBase)
+            self.assertTrue(sequence[1], ptt.TransformerBase)            
             input = pd.DataFrame([["q1", "hello"]], columns=["qid", "query"])
             output = sequence.transform(input)
             self.assertEqual(1, len(output))
@@ -198,6 +202,10 @@ class TestOperators(unittest.TestCase):
         # test using direct instantiation, as well as using the ** operator
         for pipeline in [mock_input >> ptt.FeatureUnionPipeline(mock_f1, mock_f2), mock_input >> mock_f1 ** mock_f2]:
 
+            # check access to the objects
+            self.assertEqual(2, len(pipeline))
+            self.assertEqual(2, len(pipeline[1]))
+            
             # we dont need an input, as both Identity transformers will return anyway
             rtr = pipeline.transform(None)
             self.assertEqual(1, len(rtr))
