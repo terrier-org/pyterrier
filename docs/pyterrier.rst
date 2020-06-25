@@ -1,6 +1,11 @@
 pyterrier package
 =================
 
+.. automodule:: pyterrier
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Submodules
 ----------
 
@@ -12,7 +17,6 @@ pyterrier.index module
     :undoc-members:
     :show-inheritance:
 
-
 pyterrier.batchretrieve module
 ------------------------------
 
@@ -22,14 +26,38 @@ pyterrier.batchretrieve module
     :show-inheritance:
 
 
-pyterrier.pyterrier module
+pyterrier.anserini module
 --------------------------
 
-.. automodule:: pyterrier.pyterrier
+.. automodule:: pyterrier.anserini
     :members:
     :undoc-members:
     :show-inheritance:
 
+pyterrier.datasets module
+--------------------------
+
+.. automodule:: pyterrier.datasets
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+pyterrier.rewrite module
+--------------------------
+
+.. automodule:: pyterrier.rewrite
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pyterrier.transformer module
+----------------------------
+
+.. automodule:: pyterrier.transformer
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 pyterrier.utils module
 ----------------------

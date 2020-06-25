@@ -133,9 +133,7 @@ class Indexer:
             **kwargs: Properties to set to.
 
         Usage:
-            setProperties("property1=value1, property2=value2")
-            or
-            setProperties("**{property1:value1, property2:value2}")
+            >>> setProperties(**{property1:value1, property2:value2})
         """
         for control, value in kwargs.items():
             self.properties.put(control, value)
