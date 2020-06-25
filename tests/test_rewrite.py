@@ -49,6 +49,10 @@ class TestRewrite(BaseTestCase):
         
         br_normal = pt.BatchRetrieve(indexref)
         pipe = sdm >> br_normal
+
+        #check that we can get a str()
+        str(pipe)
+
         if freq:
             br_normal.controls["wmodel"] = "Tf"
         resTest_pipe = pipe.transform(queriesIn)
@@ -125,7 +129,7 @@ class TestRewrite(BaseTestCase):
     #     self.assertAlmostEqual(map_qe, map_pipe, places=4)
 
 
-    def _nottest_qe(self):
+    def test_qe(self):
         if not pt.check_version("5.3"):
             self.skipTest("Requires Terrier 5.3")
         dataset = pt.datasets.get_dataset("vaswani")
@@ -154,6 +158,9 @@ class TestRewrite(BaseTestCase):
             self.assertTrue("applypipeline:off " in query)
             
             pipe = br >> qe >> br
+
+            # check the pipe doesnt cause an error
+            str(pipe)
 
             all_qe_res = pipe.transform(t)
             map_pipe = pt.Utils.evaluate(all_qe_res, qrels, metrics=["map"])["map"]

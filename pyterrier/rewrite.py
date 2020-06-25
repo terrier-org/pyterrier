@@ -11,10 +11,10 @@ ApplyTermPipeline_default = pt.autoclass("org.terrier.querying.ApplyTermPipeline
 QueryResultSet = pt.autoclass("org.terrier.matching.QueryResultSet")
 DependenceModelPreProcess = pt.autoclass("org.terrier.querying.DependenceModelPreProcess")
 
-class SDM(TransformerBase, Symbol):
+class SDM(TransformerBase):
 
     def __init__(self, verbose = 0, remove_stopwords = True, prox_model = None, **kwargs):
-        super().__init__(kwargs)
+        super().__init__(**kwargs)
         self.verbose = 0
         self.prox_model = prox_model
         self.remove_stopwords = remove_stopwords
@@ -62,13 +62,13 @@ class SDM(TransformerBase, Symbol):
             results.append([qid, new_query])
         return pd.DataFrame(results, columns=["qid", "query"])
     
-class QueryExpansion(TransformerBase, Symbol):
+class QueryExpansion(TransformerBase):
     '''
         A base class for applying different types of query expansion using Terrier's classes
     '''
 
     def __init__(self, index_like, fb_terms=10, fb_docs=3, qeclass="org.terrier.querying.QueryExpansion", verbose=0, **kwargs):
-        super().__init__(kwargs)
+        super().__init__(**kwargs)
         self.verbose = verbose
         if isinstance(qeclass, str):
             self.qe = pt.autoclass(qeclass)()
