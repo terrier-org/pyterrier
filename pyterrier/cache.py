@@ -47,13 +47,17 @@ class ChestCacheTransformer(TransformerBase):
             self.requests += 1
             df = self.chest.get(qid, None)
             if df is None:
-                todo.append(row)
+                todo.append(row.to_frame().T)
             else:
                 self.hits += 1
                 rtr.append(df)
-        for row in todo:
-            df = self.inner.transform(row.to_frame().T)
-            self.chest[qid] = df
-            rtr.append(df)
+        if len(todo) > 0:
+            tood_df = pd.concat(todo)
+            todo_res = self.inner.transform(tood_df)
+            for indx, row in tood_df.iterrows():
+                qid = row["qid"]
+                this_query_res = todo_res[todo_res["qid"] == qid]
+                self.chest[qid] = this_query_res
+                rtr.append(this_query_res)
         self.chest.flush()
         return pd.concat(rtr)
