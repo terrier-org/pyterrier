@@ -242,19 +242,24 @@ class Utils:
             metrics(list): A list of strings specifying which evaluation metrics to use. Default=['map', 'ndcg']
             perquery(bool): If true return each metric for each query, else return mean metrics. Default=False
         """
-
+        def now():
+            from datetime import datetime
+            return datetime.now().strftime("%H:%M:%S.%f")
+        #print(now() + " evaluate started")    
         if isinstance(res, pd.DataFrame):
             batch_retrieve_results_dict = Utils.convert_res_to_dict(res)
         else:
             batch_retrieve_results_dict = res
-
+        #print(now() + " res ready")
         if isinstance(qrels, pd.DataFrame):
             qrels_dic = Utils.convert_qrels_to_dict(qrels)
         else:
             qrels_dic = qrels
-
+        #print(now() + " qrels ready")
         evaluator = pytrec_eval.RelevanceEvaluator(qrels_dic, set(metrics))
+        #print(now() + " evaluating")
         result = evaluator.evaluate(batch_retrieve_results_dict)
+        #print(now() + " evaluation done")
         if perquery:
             return result
         return Utils.mean_of_measures(result)
