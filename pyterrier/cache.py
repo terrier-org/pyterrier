@@ -14,6 +14,13 @@ def init():
     global CACHE_DIR
     CACHE_DIR = path.join(HOME_DIR,"transformer_cache") 
 
+
+def clear_cache():
+    if CACHE_DIR is None:
+        init()
+    import shutil
+    shutil.rmtree(CACHE_DIR)
+
 class ChestCacheTransformer(TransformerBase):
 
     def __init__(self, inner, **kwargs):
@@ -22,6 +29,10 @@ class ChestCacheTransformer(TransformerBase):
         self.inner = inner
         if CACHE_DIR is None:
             init()
+
+        # we take the md5 of the __repr__ of the pipeline to make a unique identifier for the pipeline
+        # all different pipelines should return unique __repr_() values, as these are intended to be
+        # unambiguous.  
         uid = hashlib.md5( bytes(str(self.inner.__repr__()), "utf-8") ).hexdigest()
         destdir = path.join(CACHE_DIR, uid)
         os.makedirs(destdir, exist_ok=True)
@@ -35,7 +46,7 @@ class ChestCacheTransformer(TransformerBase):
     def stats(self):
         return self.hits / self.requests if self.requests > 0 else 0
 
-    # dont double cache
+    # dont double cache - we cannot cache ourselves
     def __invert__(self):
         return self
 
@@ -50,6 +61,8 @@ class ChestCacheTransformer(TransformerBase):
         return self.inner
 
     def transform(self, input_res):
+        if "docid" in input_res.columns or "docno" in input_res.columns:
+            raise ValueError("Caching currently only supports input dataframes with queries as inputs and cannot be used for re-rankers")
         return self._transform_qid(input_res)
 
     def _transform_qid(self, input_res):
