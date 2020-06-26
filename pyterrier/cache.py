@@ -35,6 +35,17 @@ class ChestCacheTransformer(TransformerBase):
     def stats(self):
         return self.hits / self.requests if self.requests > 0 else 0
 
+    # dont double cache
+    def __invert__(self):
+        return self
+
+    def __str__(self):
+        return "Cache("+str(self.inner)+")"
+
+    @property
+    def NOCACHE(self):
+        return self.inner
+
     def transform(self, input_res):
         return self._transform_qid(input_res)
 
