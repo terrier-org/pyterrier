@@ -50,7 +50,7 @@ class ChestCacheTransformer(TransformerBase):
                 todo.append(row)
             else:
                 self.hits += 1
-            rtr.append(df)
+                rtr.append(df)
         for row in todo:
             df = self.inner.transform(row.to_frame().T)
             self.chest[qid] = df
