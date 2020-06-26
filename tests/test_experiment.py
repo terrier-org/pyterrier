@@ -31,3 +31,15 @@ class TestExperiment(BaseTestCase):
 
         rtr = pt.pipelines.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"], perquery=True, dataframe=False)
         print(rtr)
+
+    def test_baseline(self):
+        dataset = pt.get_dataset("vaswani")
+        df = pt.Experiment(
+            [pt.BatchRetrieve(dataset.get_index(), wmodel="BM25"), pt.BatchRetrieve(dataset.get_index(), wmodel="DPH")], 
+            dataset.get_topics().head(10), 
+            dataset.get_qrels(),
+            eval_metrics=["map", "ndcg"], 
+            baseline=0)
+        self.assertTrue("map +" in df.columns)
+        self.assertTrue("map -" in df.columns)
+        self.assertTrue("map p-value" in df.columns)

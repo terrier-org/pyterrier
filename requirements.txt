@@ -8,3 +8,4 @@ matchpy
 sklearn
 deprecation
 chest
+scipy

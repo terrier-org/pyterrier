@@ -6,20 +6,22 @@ from .utils import Utils
 from .transformer import TransformerBase, EstimatorBase
 
 #def Experiment(topics, retr_systems, eval_metrics, qrels, names=None, perquery=False, dataframe=True):
-def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=False, dataframe=True):
+def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=False, dataframe=True, baseline=None):
     """
     Cornac style experiment. Combines retrieval and evaluation.
     Allows easy comparison of multiple retrieval systems with different properties and controls.
 
     Args:
-        topics: Either a path to a topics file or a pandas.Dataframe with columns=['qid', 'query']
         retr_systems(list): A list of BatchRetrieve objects to compare
+        topics: Either a path to a topics file or a pandas.Dataframe with columns=['qid', 'query']
+        qrels: Either a path to a qrels file or a pandas.Dataframe with columns=['qid','docno', 'label']   
         eval_metrics(list): Which evaluation metrics to use. E.g. ['map']
-        qrels: Either a path to a qrels file or a pandas.Dataframe with columns=['qid','docno', 'label']
         names(list)=List of names for each retrieval system when presenting the results.
             Default=None. If None: Use names of weighting models for each retrieval system.
         perquery(bool): If true return each metric for each query, else return mean metrics. Default=False.
         dataframe(bool): If True return results as a dataframe. Else as a dictionary of dictionaries. Default=True.
+        baseline(int): If set to the index of an item of the retr_system list, will calculate the number of queries improved, degraded and the statistical significance (paired t-test p value) for each measure.
+            Default=None: If None, no additional columns added for each measure
 
     Returns:
         A Dataframe with each retrieval system with each metric evaluated.
@@ -41,6 +43,9 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
     if warn_old_sig:
         warn("Signature of Experiment() is now (retr_systems, topics, qrels, eval_metrics), please update your code", DeprecationWarning, 2)
     
+    if baseline is not None:
+        assert int(baseline) >= 0 and int(baseline) < len(retr_systems)
+        assert not perquery
 
     if isinstance(topics, str):
         if os.path.isfile(topics):
@@ -62,9 +67,15 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
 
     evalsRows=[]
     evalDict={}
+    evalDictsPerQ=[]
     actual_metric_names=[]
     for name,res in zip(names,results):
-        evalMeasuresDict = Utils.evaluate(res, qrels_dict, metrics=eval_metrics, perquery=perquery)
+        evalMeasuresDict = Utils.evaluate(res, qrels_dict, metrics=eval_metrics, perquery=perquery or baseline is not None)
+    
+        if baseline is not None:
+            evalDictsPerQ.append(evalMeasuresDict)
+            evalMeasuresDict = Utils.mean_of_measures(evalMeasuresDict)
+
         if perquery:
             for qid in evalMeasuresDict:
                 for measurename in evalMeasuresDict[qid]:
@@ -78,6 +89,33 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
     if dataframe:
         if perquery:
             return pd.DataFrame(evalsRows, columns=["name", "qid", "measure", "value"])
+
+        if baseline is not None:
+            import numpy as np
+            from scipy import stats
+            baselinePerQuery={}
+            for m in actual_metric_names:
+                baselinePerQuery[m] = np.array([ evalDictsPerQ[baseline][q][m] for q in evalDictsPerQ[baseline] ])
+
+            for i in range(0, len(retr_systems)):
+                additionals=[]
+                if i == baseline:
+                    additionals = [None] * (3*len(actual_metric_names))
+                else:
+                    for m in actual_metric_names:
+                        perQuery = np.array( [ evalDictsPerQ[i][q][m] for q in evalDictsPerQ[i] ])
+                        delta_plus = (perQuery > baselinePerQuery[m]).sum()
+                        delta_minus = (perQuery < baselinePerQuery[m]).sum()
+                        p = stats.ttest_rel(perQuery, baselinePerQuery[m])[1]
+                        additionals.extend([delta_plus, delta_minus, p])
+                evalsRows[i].extend(additionals)
+            delta_names=[]
+            for m in actual_metric_names:
+                delta_names.append("%s +" % m)
+                delta_names.append("%s -" % m)
+                delta_names.append("%s p-value" % m)
+            actual_metric_names.extend(delta_names)
+            
         return pd.DataFrame(evalsRows, columns=["name"] + actual_metric_names)
     return evalDict
     # evals = {}

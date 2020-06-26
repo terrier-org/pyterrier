@@ -257,15 +257,18 @@ class Utils:
         result = evaluator.evaluate(batch_retrieve_results_dict)
         if perquery:
             return result
-        else:
-            measures_sum = {}
-            mean_dict = {}
-            for val in result.values():
-                for measure, measure_val in val.items():
-                    measures_sum[measure] = measures_sum.get(measure, 0.0) + measure_val
-            for measure, value in measures_sum.items():
-                mean_dict[measure] = value / len(result.values())
-            return mean_dict
+        return Utils.mean_of_measures(result)
+
+    @staticmethod
+    def mean_of_measures(result):
+        measures_sum = {}
+        mean_dict = {}
+        for val in result.values():
+            for measure, measure_val in val.items():
+                measures_sum[measure] = measures_sum.get(measure, 0.0) + measure_val
+        for measure, value in measures_sum.items():
+            mean_dict[measure] = value / len(result.values())
+        return mean_dict
 
     # create a dataframe of string of queries or a list or tuple of strings of queries
     @staticmethod
