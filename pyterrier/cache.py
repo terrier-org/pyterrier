@@ -39,6 +39,9 @@ class ChestCacheTransformer(TransformerBase):
     def __invert__(self):
         return self
 
+    def __repr__(self):
+        return "Cache("+self.inner.__repr__()+")"
+
     def __str__(self):
         return "Cache("+str(self.inner)+")"
 
