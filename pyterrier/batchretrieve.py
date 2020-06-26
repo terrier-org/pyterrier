@@ -162,7 +162,7 @@ class BatchRetrieve(BatchRetrieveBase):
             queries['qid'] = queries['qid'].astype(str)
 
 
-        for index,row in tqdm(queries.iterrows(), total=queries.shape[0], unit="q") if self.verbose else queries.iterrows():
+        for index,row in tqdm(queries.iterrows(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.iterrows():
             rank = 0
             qid = str(row['qid'])
             query = row['query']
@@ -218,6 +218,13 @@ class BatchRetrieve(BatchRetrieveBase):
         # ensure to return the query
         res_dt = res_dt.merge(queries[["qid", "query"]], on=["qid"])
         return res_dt
+
+    def __repr__(self):
+        return "BR(" + ",".join(
+            self.indexref.toString(),
+            str(self.controls),
+            str(self.properties)
+        )
 
     def __str__(self):
         return "BR(" + self.controls["wmodel"] + ")"
@@ -312,7 +319,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         if queries["qid"].dtype == np.int64:
             queries['qid'] = queries['qid'].astype(str)
 
-        for index, row in tqdm(queries.iterrows(), total=queries.shape[0], unit="q") if self.verbose else queries.iterrows():
+        for index, row in tqdm(queries.iterrows(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.iterrows():
             qid = str(row['qid'])
             query = row['query']
 
@@ -377,6 +384,14 @@ class FeaturesBatchRetrieve(BatchRetrieve):
 
         res_dt = pd.DataFrame(results, columns=["qid", "docid", "rank", "docno", "score", "features"])
         return res_dt
+
+    def __repr__(self):
+        return "FBR(" + ",".join(
+            self.indexref.toString(),
+            str(self.features),
+            str(self.controls),
+            str(self.properties)
+        )
 
     def __str__(self):
         return "FBR(" + self.controls["wmodel"] + " and " + str(len(self.features)) + " features)"

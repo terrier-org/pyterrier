@@ -79,6 +79,9 @@ class AnseriniBatchRetrieve(BatchRetrieveBase):
 
     def __str__(self):
         return "AnseriniBatchRetrieve()"
+
+    def __repr__(self):
+        return "AnseriniBatchRetrieve("+self.wmodel + ","+self.k+")"
     
     def transform(self, queries):
         """
@@ -105,7 +108,7 @@ class AnseriniBatchRetrieve(BatchRetrieveBase):
             rank = 0
             last_qid = None
             sim = self._getsimilarty(self.wmodel)
-            for index,row in tqdm(queries.iterrows(), total=queries.shape[0], unit="d") if self.verbose else queries.iterrows():
+            for index,row in tqdm(queries.iterrows(), desc=self.name, total=queries.shape[0], unit="d") if self.verbose else queries.iterrows():
                 qid = row["qid"]
                 query = row["query"]
                 docno = row["docno"]
@@ -116,7 +119,7 @@ class AnseriniBatchRetrieve(BatchRetrieveBase):
                 results.append([qid, query, docno, rank, score])
 
         else: #we are searching, no candidate set provided
-            for index,row in tqdm(queries.iterrows(), total=queries.shape[0], unit="q") if self.verbose else queries.iterrows():
+            for index,row in tqdm(queries.iterrows(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.iterrows():
                 rank = 0
                 qid = str(row['qid'])
                 query = row['query']

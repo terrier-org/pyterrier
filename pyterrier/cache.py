@@ -22,7 +22,7 @@ class ChestCacheTransformer(TransformerBase):
         self.inner = inner
         if CACHE_DIR is None:
             init()
-        uid = hashlib.md5( bytes(str(self.inner), "utf-8") ).hexdigest()
+        uid = hashlib.md5( bytes(str(self.inner.__repr__()), "utf-8") ).hexdigest()
         destdir = path.join(CACHE_DIR, uid)
         os.makedirs(destdir, exist_ok=True)
         self.chest = Chest(path=destdir, 
