@@ -26,4 +26,10 @@ class TestCache(BaseTestCase):
         cache(queries)
         cache(queries)
         self.assertEqual(0.5, cache.stats())
+
+        #lets see if another cache of the same object would see the same cache entries.
+        cache2 = ~br
+        cache2(queries)
+        self.assertEqual(1, cache2.stats())
+
         pt.cache.CACHE_DIR = None
