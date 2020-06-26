@@ -159,6 +159,10 @@ class TransformerBase:
 
     def __xor__(self, right):
         return ConcatenateTransformer(self, right)
+
+    def __invert__(self):
+        from .cache import ChestCacheTransformer
+        return ChestCacheTransformer(self)
     
 class EstimatorBase(TransformerBase):
     '''
