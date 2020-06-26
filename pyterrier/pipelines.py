@@ -58,11 +58,13 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
         if neednames:
             names.append(str(system))
 
+    qrels_dict = Utils.convert_qrels_to_dict(qrels)
+
     evalsRows=[]
     evalDict={}
     actual_metric_names=[]
     for name,res in zip(names,results):
-        evalMeasuresDict = Utils.evaluate(res,qrels, metrics=eval_metrics, perquery=perquery)
+        evalMeasuresDict = Utils.evaluate(res, qrels_dict, metrics=eval_metrics, perquery=perquery)
         if perquery:
             for qid in evalMeasuresDict:
                 for measurename in evalMeasuresDict[qid]:
