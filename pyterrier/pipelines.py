@@ -58,6 +58,8 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
     neednames = names is None
     if neednames:
         names = []
+    elif len(names) != len(retr_systems):
+        raise ValueError("names should be the same length as retr_systems")
     for system in retr_systems:
         results.append(system.transform(topics))
         if neednames:
@@ -91,7 +93,7 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
             return pd.DataFrame(evalsRows, columns=["name", "qid", "measure", "value"])
 
         if baseline is not None:
-            import numpy as np
+            assert len(evalDictsPerQ) == len(retr_systems)
             from scipy import stats
             baselinePerQuery={}
             for m in actual_metric_names:
