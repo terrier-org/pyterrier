@@ -220,11 +220,11 @@ class BatchRetrieve(BatchRetrieveBase):
         return res_dt
 
     def __repr__(self):
-        return "BR(" + ",".join(
+        return "BR(" + ",".join([
             self.indexref.toString(),
             str(self.controls),
             str(self.properties)
-        )
+            ])
 
     def __str__(self):
         return "BR(" + self.controls["wmodel"] + ")"
@@ -386,12 +386,12 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         return res_dt
 
     def __repr__(self):
-        return "FBR(" + ",".join(
+        return "FBR(" + ",".join([
             self.indexref.toString(),
             str(self.features),
             str(self.controls),
             str(self.properties)
-        )
+        ])
 
     def __str__(self):
         return "FBR(" + self.controls["wmodel"] + " and " + str(len(self.features)) + " features)"
