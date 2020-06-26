@@ -60,6 +60,7 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
 
     evalsRows=[]
     evalDict={}
+    actual_metric_names=[]
     for name,res in zip(names,results):
         evalMeasuresDict = Utils.evaluate(res,qrels, metrics=eval_metrics, perquery=perquery)
         if perquery:
@@ -68,13 +69,14 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
                     evalsRows.append([name, qid, measurename,  evalMeasuresDict[qid][measurename]])
             evalDict[name] = evalMeasuresDict
         else:
-            evalMeasures = [evalMeasuresDict[m] for m in eval_metrics]
+            actual_metric_names = list(evalMeasuresDict.keys())
+            evalMeasures = [evalMeasuresDict[m] for m in actual_metric_names]
             evalsRows.append([name]+evalMeasures)
             evalDict[name] = evalMeasures
     if dataframe:
         if perquery:
             return pd.DataFrame(evalsRows, columns=["name", "qid", "measure", "value"])
-        return pd.DataFrame(evalsRows, columns=["name"] + eval_metrics)
+        return pd.DataFrame(evalsRows, columns=["name"] + actual_metric_names)
     return evalDict
     # evals = {}
 
