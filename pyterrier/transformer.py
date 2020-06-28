@@ -268,20 +268,26 @@ class ConcatenateTransformer(BinaryTransformerBase):
         # take the first set as the top of the ranking
         res1 = self.left.transform(topics_and_res)
         # identify the lowest score for each query
-        last_scores = res1.groupby('qid').min()[['score']].rename(columns={"score" : "_subtractscore"})
+        last_scores = res1.groupby('qid').min()[['score']].rename(columns={"score" : "_lastscore"})
 
         # the right hand side will provide the rest of the ranking        
         res2 = self.right.transform(topics_and_res)
 
-        first_scores = res2.groupby('qid').min()[['score']].rename(columns={"score" : "_firstscore"})
         
         intersection = pd.merge(res1[["qid", "docno"]], res2[["qid", "docno"]].reset_index())
         remainder = res2.drop(intersection["index"])
-        # we will use append documents from remainder to res1
-        # but we need to deduct the last score from each remaining documents
+
+        # we will append documents from remainder to res1
+        # but we need to offset the score from each remaining document based on the last score in res1
+        # explanation: remainder["score"] - remainder["_firstscore"] - self.epsilon ensures that the
+        # first document in remainder has a score of -epsilon; we then add the score of the last document
+        # from res1
+        first_scores = remainder.groupby('qid').max()[['score']].rename(columns={"score" : "_firstscore"})
+
         remainder = remainder.merge(last_scores, on=["qid"]).merge(first_scores, on=["qid"])
-        remainder["score"] = remainder["score"] - remainder["_subtractscore"] + remainder["_firstscore"] - self.epsilon
-        remainder = remainder.drop(columns=["_subtractscore",  "_firstscore"])
+        remainder["score"] = remainder["score"] - remainder["_firstscore"] + remainder["_lastscore"] - self.epsilon
+        remainder["score"] - remainder["_subtractscore"] + remainder["_firstscore"] - self.epsilon
+        remainder = remainder.drop(columns=["_lastscore",  "_firstscore"])
 
         # now bring together and re-sort
         # this sort should match trec_eval
