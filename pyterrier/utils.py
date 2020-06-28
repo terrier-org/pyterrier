@@ -296,7 +296,7 @@ class Utils:
         measures_sum = {}
         mean_dict = {}
         if measures is None:
-            measures = list(result.keys())[0].keys()
+            measures = next(iter(result.values()))
         measure_no_mean = set(["num_q", "num_rel", "num_ret", "num_rel_ret"])
         for val in result.values():
             for measure in measures:
