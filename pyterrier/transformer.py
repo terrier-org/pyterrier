@@ -261,6 +261,7 @@ class CombSumTransformer(BinaryTransformerBase):
 
 class ConcatenateTransformer(BinaryTransformerBase):
     name = "Concat"
+    epsilon = 0.0001
 
     def transform(self, topics_and_res):
         import pandas as pd
@@ -271,14 +272,16 @@ class ConcatenateTransformer(BinaryTransformerBase):
 
         # the right hand side will provide the rest of the ranking        
         res2 = self.right.transform(topics_and_res)
+
+        first_scores = res2.groupby('qid').min()[['score']].rename(columns={"score" : "_firstscore"})
         
         intersection = pd.merge(res1[["qid", "docno"]], res2[["qid", "docno"]].reset_index())
         remainder = res2.drop(intersection["index"])
         # we will use append documents from remainder to res1
         # but we need to deduct the last score from each remaining documents
-        remainder = remainder.merge(last_scores, on=["qid"])
-        remainder["score"] = remainder["score"] - remainder["_subtractscore"]
-        remainder = remainder.drop(columns=["_subtractscore"])
+        remainder = remainder.merge(last_scores, on=["qid"]).merge(first_scores, on=["qid"])
+        remainder["score"] = remainder["score"] - remainder["_subtractscore"] + remainder["_firstscore"] - self.epsilon
+        remainder = remainder.drop(columns=["_subtractscore",  "_firstscore"])
 
         # now bring together and re-sort
         # this sort should match trec_eval
