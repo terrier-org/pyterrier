@@ -286,7 +286,6 @@ class ConcatenateTransformer(BinaryTransformerBase):
 
         remainder = remainder.merge(last_scores, on=["qid"]).merge(first_scores, on=["qid"])
         remainder["score"] = remainder["score"] - remainder["_firstscore"] + remainder["_lastscore"] - self.epsilon
-        remainder["score"] - remainder["_subtractscore"] + remainder["_firstscore"] - self.epsilon
         remainder = remainder.drop(columns=["_lastscore",  "_firstscore"])
 
         # now bring together and re-sort
