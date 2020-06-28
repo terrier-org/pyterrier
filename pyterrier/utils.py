@@ -61,7 +61,7 @@ class Utils:
             docno = m.group(1)
             kv = {}
             qid = None
-            print(parts)
+            #print(parts)
             for i, k in enumerate(parts):
                 if i % 2 == 0:
                     if k == "qid":
@@ -256,23 +256,55 @@ class Utils:
         else:
             qrels_dic = qrels
         #print(now() + " qrels ready")
-        evaluator = pytrec_eval.RelevanceEvaluator(qrels_dic, set(metrics))
+        req_metrics = set()
+        cutdown = False
+        for m in metrics:
+            if m.startswith("ndcg_cut_"):
+                req_metrics.add("ndcg_cut")
+                cutdown = True
+            # elif m.startswith("P_"):
+            #     req_metrics.add("P")
+            else:
+                req_metrics.add(m)
+
+        evaluator = pytrec_eval.RelevanceEvaluator(qrels_dic, req_metrics)
+
         #print(now() + " evaluating")
         result = evaluator.evaluate(batch_retrieve_results_dict)
         #print(now() + " evaluation done")
         if perquery:
+            if not cutdown:
+                return result
+            # user wanted metrics like ndcg_cut_5, but we had to request ndcg_cut
+            # lets cutout the metrics they didnt want
+
+            # get any arbitrary query
+            q = next(iter(result.keys()))
+            todel=[]
+            for m in result[q]:
+                if not m in metrics:
+                    todel.append(m)
+            for q in result:
+                for m in todel:
+                    del result[q][m]
             return result
-        return Utils.mean_of_measures(result)
+
+        return Utils.mean_of_measures(result, metrics)
 
     @staticmethod
-    def mean_of_measures(result):
+    def mean_of_measures(result, measures=None):
         measures_sum = {}
         mean_dict = {}
+        if measures is None:
+            measures = list(result.keys())[0].keys()
+        measure_no_mean = set(["num_q", "num_rel", "num_ret", "num_rel_ret"])
         for val in result.values():
-            for measure, measure_val in val.items():
+            for measure in measures:
+                measure_val = val[measure]
                 measures_sum[measure] = measures_sum.get(measure, 0.0) + measure_val
         for measure, value in measures_sum.items():
-            mean_dict[measure] = value / len(result.values())
+            if not measure in measure_no_mean:
+                mean_dict[measure] = value / len(result.values())
         return mean_dict
 
     # create a dataframe of string of queries or a list or tuple of strings of queries
