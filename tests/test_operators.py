@@ -103,12 +103,21 @@ class TestOperators(unittest.TestCase):
         self.assertEqual(1, len(rtr))
         
     def test_concatenate(self):
-        mock1 = ptt.UniformTransformer( pd.DataFrame([["q1", "d2", 1, 4.9], ["q1", "d3", 2, 5.1]], columns=["qid", "docno", "rank", "score"]))
+        mock1 = ptt.UniformTransformer( pd.DataFrame([["q1", "d2", 2, 4.9], ["q1", "d3", 1, 5.1]], columns=["qid", "docno", "rank", "score"]))
         mock2 = ptt.UniformTransformer( pd.DataFrame([["q1", "d1", 1, 4.9], ["q1", "d3", 2, 5.1]], columns=["qid", "docno", "rank", "score"]))
 
         cutpipe = mock1 ^ mock2
         rtr = cutpipe.transform(None)
         self.assertEqual(3, len(rtr))
+        row0 = rtr.iloc[0] 
+        self.assertEqual("d3", row0["docno"])
+        self.assertEqual(5.1, row0["score"])
+        row1 = rtr.iloc[1] 
+        self.assertEqual("d2", row1["docno"])
+        self.assertEqual(4.9, row1["score"])
+        row2 = rtr.iloc[2] 
+        self.assertEqual("d1", row2["docno"])
+        self.assertEqual(4.9-0.0001, row2["score"])
 
 
     def test_plus_multi_rewrite(self):

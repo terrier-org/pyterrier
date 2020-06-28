@@ -69,6 +69,15 @@ class TestCache(BaseTestCase):
         cache2 = ~(~br1 >> br2)
         cache2(queries)
         self.assertEqual(1, cache2.stats())
-
+        
+        # check that the cache report works
+        all_report = pt.cache.list_cache()
+        self.assertTrue(len(all_report) > 0)
+        report = list(all_report.values())[0]
+        self.assertEqual(1, report["queries"])
+        self.assertTrue("transformer" in report)
+        self.assertTrue("size" in report)
+        self.assertTrue("lastmodified" in report)
+        
         pt.cache.CACHE_DIR = None
 

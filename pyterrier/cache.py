@@ -8,11 +8,50 @@ CACHE_DIR = None
 import pandas as pd
 import pickle
 from functools import partial
+import datetime
 
+DEFINITION_FILE = ".transformer"
+
+#https://stackoverflow.com/a/10171475
+from math import log
+unit_list = list( zip(['bytes', 'kB', 'MB', 'GB', 'TB', 'PB'], [0, 0, 1, 2, 2, 2]) )
+def sizeof_fmt(num):
+    """Human friendly file size"""
+    if num > 1:
+        exponent = min(int(log(num, 1024)), len(unit_list) - 1)
+        quotient = float(num) / 1024**exponent
+        unit, num_decimals = unit_list[exponent]
+        format_string = '{:.%sf} {}' % (num_decimals)
+        return format_string.format(quotient, unit)
+    if num == 0:
+        return '0 bytes'
+    if num == 1:
+        return '1 byte'
 
 def init():
     global CACHE_DIR
     CACHE_DIR = path.join(HOME_DIR,"transformer_cache") 
+
+def list_cache():
+    if CACHE_DIR is None:
+        init()
+    rtr={}
+    for dirname in os.listdir(CACHE_DIR):
+        elem={}
+        dir = path.join(CACHE_DIR, dirname)
+        if not path.isdir(dir):
+            continue
+        def_file = path.join(dir, DEFINITION_FILE)
+        if path.exists(def_file):
+            with open(def_file, "r") as f:
+                elem["transformer"] = f.readline()
+        elem["size"] = sum(d.stat().st_size for d in os.scandir(dir) if d.is_file())
+        elem["size_str"] = sizeof_fmt(elem["size"])
+        elem["queries"] = len(os.listdir(dir)) -2 #subtract .keys and DEFINITION_FILE
+        elem["lastmodified"] = path.getmtime(dir)
+        elem["lastmodified_str"] = datetime.datetime.fromtimestamp(elem["lastmodified"]).strftime('%Y-%m-%dT%H:%M:%S')
+        rtr[dirname] = elem
+    return rtr
 
 
 def clear_cache():
@@ -32,10 +71,15 @@ class ChestCacheTransformer(TransformerBase):
 
         # we take the md5 of the __repr__ of the pipeline to make a unique identifier for the pipeline
         # all different pipelines should return unique __repr_() values, as these are intended to be
-        # unambiguous.  
-        uid = hashlib.md5( bytes(str(self.inner.__repr__()), "utf-8") ).hexdigest()
+        # unambiguous
+        trepr = str(self.inner.__repr__())
+        uid = hashlib.md5( bytes(trepr, "utf-8") ).hexdigest()
         destdir = path.join(CACHE_DIR, uid)
         os.makedirs(destdir, exist_ok=True)
+        definition_file=path.join(destdir, DEFINITION_FILE)
+        if not path.exists(definition_file):
+            with open(definition_file, "w") as f:
+                f.write(trepr)
         self.chest = Chest(path=destdir, 
             dump=lambda data, filename: pd.DataFrame.to_pickle(data, filename) if isinstance(data, pd.DataFrame) else pickle.dump(data, filename, protocol=1),
             load=lambda filehandle: pickle.load(filehandle) if ".keys" in filehandle.name else pd.read_pickle(filehandle)
