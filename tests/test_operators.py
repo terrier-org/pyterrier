@@ -185,22 +185,26 @@ class TestOperators(unittest.TestCase):
             "FeatureUnionPipeline(UniformTransformer(), UniformTransformer(), UniformTransformer())", 
             mock123_simple.__repr__())
         #
-        #mock123a, mock123b
+        #
         self.assertEqual(3, len(mock123_simple.models))
-        for expression in [mock123_simple ]:
-             # we dont need an input, as both Identity transformers will return anyway
+
+        def _test_expression(expression):
+            # we dont need an input, as both Identity transformers will return anyway
             rtr = (mock0 >> expression).transform(None)
             self.assertIsNotNone(rtr)
             self.assertEqual(1, len(rtr))
             self.assertTrue("qid" in rtr.columns)
             self.assertTrue("docno" in rtr.columns)
-            self.assertTrue("score" in rtr.columns)
+            #self.assertTrue("score" in rtr.columns)
             self.assertTrue("features" in rtr.columns)
             self.assertTrue("q1" in rtr["qid"].values)
             self.assertTrue("doc1" in rtr["docno"].values)
             import numpy as np
             self.assertTrue( np.array_equal(np.array([5,10,15]), rtr.iloc[0]["features"]))
 
+        _test_expression(mock123_simple)
+        _test_expression(mock123a)
+        _test_expression(mock123b)
 
     def test_feature_union(self): 
         mock_input = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))
@@ -215,12 +219,12 @@ class TestOperators(unittest.TestCase):
             self.assertEqual(2, len(pipeline))
             self.assertEqual(2, len(pipeline[1]))
             
-            # we dont need an input, as both Identity transformers will return anyway
+            # we dont need an input, as both Uniform transformers will return anyway
             rtr = pipeline.transform(None)
             self.assertEqual(1, len(rtr))
             self.assertTrue("qid" in rtr.columns)
             self.assertTrue("docno" in rtr.columns)
-            self.assertTrue("score" in rtr.columns)
+            #self.assertTrue("score" in rtr.columns)
             self.assertTrue("features" in rtr.columns)
             self.assertTrue("q1" in rtr["qid"].values)
             self.assertTrue("doc1" in rtr["docno"].values)

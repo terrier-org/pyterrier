@@ -359,21 +359,28 @@ class FeatureUnionPipeline(NAryTransformerBase):
 
     def transform(self, inputRes):
         assert "docno" in inputRes.columns or "docid" in inputRes.columns
+        import numpy as np
         
         all_results = []
         for m in self.models:
-            results = m.transform(inputRes).rename(columns={"score" : "features"})
+            results = m.transform(inputRes)
+            if not "features" in results.columns:
+                results["features"] = results.apply(lambda row : np.array([row["score"]]), axis=1)
+                results = results.drop(columns=["score"])
             all_results.append( results )
 
         def _concat_features(row):
-            import numpy as np
-            left_features = row["features_x"] if isinstance(row["features_x"], np.ndarray) else [row["features_x"]]
-            right_features = row["features_y"] if isinstance(row["features_y"], np.ndarray) else [row["features_y"]]
+            assert isinstance(row["features_x"], np.ndarray)
+            assert isinstance(row["features_y"], np.ndarray)
+            
+            #left_features = row["features_x"] if isinstance(row["features_x"], np.ndarray) else np.array(row["features_x"])
+            left_features = row["features_x"]
+            #right_features = row["features_y"] if isinstance(row["features_y"], np.ndarray) else np.array(row["features_y"])
+            right_features = row["features_y"]
             return np.concatenate((left_features, right_features))
         
         def _reduce_fn(left, right):
             import pandas as pd
-            import numpy as np
             rtr = pd.merge(left, right, on=["qid", "docno"])
             rtr["features"] = rtr.apply(_concat_features, axis=1)
             rtr.drop(columns=["features_x", "features_y"], inplace=True)
