@@ -163,6 +163,30 @@ class TestOperators(unittest.TestCase):
         self.assertTrue("doc1" in rtr["docno"].values)
         self.assertFalse("doc2" in rtr["docno"].values)
 
+    def test_feature_union_multi_actual(self):
+        dataset = pt.get_dataset("vaswani")
+        index = dataset.get_index()
+        BM25 = pt.BatchRetrieve(index, wmodel="BM25")
+        TF_IDF = pt.BatchRetrieve(index, wmodel="TF_IDF")
+        PL2 = pt.BatchRetrieve(index, wmodel="PL2")
+        pipe = BM25 >> (pt.transformer.IdentityTransformer() ** TF_IDF ** PL2)
+
+        def _check(expression):
+            self.assertEqual(2, len(expression))
+            self.assertEqual(2, len(expression[1]))
+            print("funion outer %d" % id(expression[1]))
+            print("funion inner %d" % id(expression[1][1]))
+            
+            #print(repr(pipe))
+            res = expression.transform(dataset.get_topics().head(2))
+            self.assertTrue("features" in res.columns)
+            self.assertFalse("features_x" in res.columns)
+            self.assertFalse("features_y" in res.columns)
+            print(res.iloc[0]["features"])
+            self.assertEqual(3, len(res.iloc[0]["features"]))
+        _check(pipe)
+
+
     def test_feature_union_multi(self):
         mock0 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 0]], columns=["qid", "docno", "score"]))
 
@@ -173,7 +197,14 @@ class TestOperators(unittest.TestCase):
         mock12a = mock1 ** mock2
         mock123a = mock1 ** mock2 ** mock3
         mock123b = mock12a ** mock3
-
+        mock123a_manual = ptt.FeatureUnionPipeline(
+                ptt.FeatureUnionPipeline(mock1, mock2),
+                mock3
+        )
+        mock123b_manual = ptt.FeatureUnionPipeline(
+                mock1,
+                ptt.FeatureUnionPipeline(mock2, mock3),
+        )
         
         self.assertEqual(2, len(mock12a.models))
         self.assertEqual(2, len(mock12a.models))
@@ -195,6 +226,8 @@ class TestOperators(unittest.TestCase):
             self.assertEqual(1, len(rtr))
             self.assertTrue("qid" in rtr.columns)
             self.assertTrue("docno" in rtr.columns)
+            self.assertFalse("features_x" in rtr.columns)
+            self.assertFalse("features_y" in rtr.columns)
             #self.assertTrue("score" in rtr.columns)
             self.assertTrue("features" in rtr.columns)
             self.assertTrue("q1" in rtr["qid"].values)
@@ -212,9 +245,7 @@ class TestOperators(unittest.TestCase):
         mock_f1 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]))
         mock_f2 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 50]], columns=["qid", "docno", "score"]))
 
-        # test using direct instantiation, as well as using the ** operator
-        for pipeline in [mock_input >> ptt.FeatureUnionPipeline(mock_f1, mock_f2), mock_input >> mock_f1 ** mock_f2]:
-
+        def _test_expression(pipeline):
             # check access to the objects
             self.assertEqual(2, len(pipeline))
             self.assertEqual(2, len(pipeline[1]))
@@ -226,10 +257,16 @@ class TestOperators(unittest.TestCase):
             self.assertTrue("docno" in rtr.columns)
             #self.assertTrue("score" in rtr.columns)
             self.assertTrue("features" in rtr.columns)
+            self.assertFalse("features_x" in rtr.columns)
+            self.assertFalse("features_y" in rtr.columns)
             self.assertTrue("q1" in rtr["qid"].values)
             self.assertTrue("doc1" in rtr["docno"].values)
             import numpy as np
             self.assertTrue( np.array_equal(np.array([10,50]), rtr.iloc[0]["features"]))
+
+        # test using direct instantiation, as well as using the ** operator
+        _test_expression(mock_input >> ptt.FeatureUnionPipeline(mock_f1, mock_f2))
+        _test_expression(mock_input >> mock_f1 ** mock_f2)       
 
 if __name__ == "__main__":
     unittest.main()

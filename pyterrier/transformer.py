@@ -361,16 +361,31 @@ class FeatureUnionPipeline(NAryTransformerBase):
         if not "docno" in inputRes.columns and "docid" in inputRes.columns:
             raise ValueError("FeatureUnion operates as a re-ranker, but input did not have either docno or docid columns, found columns were %s" %  str(inputRes.columns))
         import numpy as np
+
+        # a parent could be a feature union, but it still passes the inputRes directly, so inputRes should never have a features column
+        if "features" in inputRes.columns:
+            raise ValueError("FeatureUnion operates as a re-ranker. They can be nested, but input should not contain a features column; found columns were %s" %  str(inputRes.columns))
         
+        #print( str(id(self)) +" inputRes=" + str(inputRes.columns.values) + " " + str(id(inputRes)))
+
         all_results = []
-        for m in self.models:
-            results = m.transform(inputRes)
-            if not "features" in results.columns:
-                if not "score" in results.columns:
-                    raise ValueError("Results from %s did not include either score or features columns, found columns were %s" % (repr(m), str(results.columns)) )
-                results["features"] = results.apply(lambda row : np.array([row["score"]]), axis=1)
-                results = results.drop(columns=["score"])
+
+        for i, m in enumerate(self.models):
+            #IMPORTANT this .copy() is important, in case an operand transformer changes inputRes
+            results = m.transform(inputRes.copy())
+            assert not "features_x" in results.columns 
+            assert not "features_y" in results.columns
             all_results.append( results )
+
+    
+        for m, res in zip(self.models, all_results):
+            #IMPORTANT: dont do this BEFORE calling subsequent feature untions
+            if not "features" in res.columns:
+                if not "score" in res.columns:
+                    raise ValueError("Results from %s did not include either score or features columns, found columns were %s" % (repr(m), str(res.columns)) )
+                res["features"] = res.apply(lambda row : np.array([row["score"]]), axis=1)
+                res.drop(columns=["score"], inplace=True)
+            #print("%d got %d features from operand %d" % ( id(self) ,   len(results.iloc[0]["features"]), i))
 
         def _concat_features(row):
             assert isinstance(row["features_x"], np.ndarray)
@@ -382,14 +397,33 @@ class FeatureUnionPipeline(NAryTransformerBase):
         
         def _reduce_fn(left, right):
             import pandas as pd
+            #print("LEFT="+ str(left.columns.values) )#+" " + str(len(left.iloc[0]["features"])))
+            #print("RIGHT="+ str(right.columns.values)  )#+" " + str(len(right.iloc[0]["features"])))
             rtr = pd.merge(left, right, on=["qid", "docno"])
             rtr["features"] = rtr.apply(_concat_features, axis=1)
             rtr.drop(columns=["features_x", "features_y"], inplace=True)
+            #print("RTR="+str(rtr.columns.values))
+            #print(len(rtr.iloc[0]["features"]))
             return rtr
         
         from functools import reduce
+        # for r in all_results:
+        #     print(r.columns.values)
+        #print("%d all_results is merging %d" % (id(self),  len(all_results)))
         final_DF = reduce(_reduce_fn, all_results)
+        #print(final_DF)
+        #final merge - this brings us the score attribute
+
+        assert not "features" in inputRes.columns
+
+        #print(str(id(self)) +" inputRes=" + str(inputRes.columns.values) + " " + str(id(inputRes)))
+        #print(str(id(self)) +" final_DF=" + str(final_DF.columns.values))
+
         final_DF = inputRes.merge(final_DF, on=["qid", "docno"])
+        final_DF = final_DF.loc[:,~final_DF.columns.duplicated()]
+        #print("%d final_DF=%s " % (id(self), str(final_DF.columns.values) ))
+        assert not "features_x" in final_DF.columns 
+        assert not "features_y" in final_DF.columns 
         return final_DF
 
 class ComposedPipeline(NAryTransformerBase):
