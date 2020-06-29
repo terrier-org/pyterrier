@@ -4,14 +4,15 @@ Part of the power of PyTerrier comes in the ability to make complex retrieval pi
 
 | Operator   | Meaning                         | Implemented |
 |------------|---------------------------------|-------------|
-|    `>>`    |        Then - chaining pipes    | [x]         |
-|    `&`     |  Document Set Intersection      | [x]         |
-|    `\|`    |   Document Set  Union           | [x]         |
-|    `**`    |     Features Union              | [x]         |
-|    `+`     |  Linear combination of scores   | [x]         |
+|    `>>`    |      Then - chaining pipes      | [x]         |
+|    `&`     |    Document Set Intersection    | [x]         |
+|    `\|`    |        Document Set Union       | [x]         |
+|    `**`    |          Features Union         | [x]         |
+|    `+`     |   Linear combination of scores  | [x]         |
 |    `*`     |    Scalar factoring of scores   | [x]         |
 |    `%`     |        Apply rank cutoff        | [x]         |
-|    `^`     |         Concatenate run         | [x]         |
+|    `^`     |  Concatenate run with another   | [x]         |
+|    `~`     |     Cache transformer result    | [x]         |
 
 ## Definitions
 
@@ -137,10 +138,24 @@ topdocs = alldocs % 10 >> ExpensiveReranker()
 finaldocs = topdocs ^ alldocs
 ```
 
+## Caching
+
+Some transformers are expensive to apply, particularly initial retrievals. For instance, we might find ourselves repeatedly running our BM25 baseline. We can request Pyterrier to _cache_ the outcome of a transformer for a given qid by using the unary `~` operator.
+
+Consider the following example:
+```python
+from pyterrier import BatchRetrieve, Experiment
+firstpass = BatchRetrieve(index, "BM25")
+reranker = ~firstpass >> BatchRetrieve(index, "BM25F")
+Experiment([~firstpass, ~reranker], topics, qrels)
+```
+In this example, `firstpass` is cached when it is used in the Experiment evaluation, as well as when it is used in the reranker. We also cache the outcome of the Experiment, so that another evaluation will be faster.
+
+By default, Pyterrier caches results to `~/.pyterrier/transformer_cache/`.
 
 ## Optimisation
 
-Some operators can be optimised by the underlying search engine - for instance, cutting a ranking earlier. So the following two pipelines are semantically equivalent, the latter might be more efficient:
+Some operators applied to transformer can be optimised by the underlying search engine - for instance, cutting a ranking earlier. So while the following two pipelines are semantically equivalent, the latter might be more efficient:
 ```python
 pipe1 = BatchRetrieve(index, "BM25") % 10
 pipe2 = pipe1.compile()
