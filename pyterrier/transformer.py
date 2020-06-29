@@ -358,13 +358,16 @@ class FeatureUnionPipeline(NAryTransformerBase):
     name = "FUnion"
 
     def transform(self, inputRes):
-        assert "docno" in inputRes.columns or "docid" in inputRes.columns
+        if not "docno" in inputRes.columns and "docid" in inputRes.columns:
+            raise ValueError("FeatureUnion operates as a re-ranker, but input did not have either docno or docid columns, found columns were %s" %  str(inputRes.columns))
         import numpy as np
         
         all_results = []
         for m in self.models:
             results = m.transform(inputRes)
             if not "features" in results.columns:
+                if not "score" in results.columns:
+                    raise ValueError("Results from %s did not include either score or features columns, found columns were %s" % (repr(m), str(results.columns)) )
                 results["features"] = results.apply(lambda row : np.array([row["score"]]), axis=1)
                 results = results.drop(columns=["score"])
             all_results.append( results )
@@ -373,9 +376,7 @@ class FeatureUnionPipeline(NAryTransformerBase):
             assert isinstance(row["features_x"], np.ndarray)
             assert isinstance(row["features_y"], np.ndarray)
             
-            #left_features = row["features_x"] if isinstance(row["features_x"], np.ndarray) else np.array(row["features_x"])
             left_features = row["features_x"]
-            #right_features = row["features_y"] if isinstance(row["features_y"], np.ndarray) else np.array(row["features_y"])
             right_features = row["features_y"]
             return np.concatenate((left_features, right_features))
         
