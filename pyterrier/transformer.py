@@ -268,7 +268,7 @@ class ConcatenateTransformer(BinaryTransformerBase):
         # take the first set as the top of the ranking
         res1 = self.left.transform(topics_and_res)
         # identify the lowest score for each query
-        last_scores = res1.groupby('qid').min()[['score']].rename(columns={"score" : "_lastscore"})
+        last_scores = res1[['qid', 'score']].groupby('qid').min().rename(columns={"score" : "_lastscore"})
 
         # the right hand side will provide the rest of the ranking        
         res2 = self.right.transform(topics_and_res)
@@ -282,7 +282,7 @@ class ConcatenateTransformer(BinaryTransformerBase):
         # explanation: remainder["score"] - remainder["_firstscore"] - self.epsilon ensures that the
         # first document in remainder has a score of -epsilon; we then add the score of the last document
         # from res1
-        first_scores = remainder.groupby('qid').max()[['score']].rename(columns={"score" : "_firstscore"})
+        first_scores = remainder[['qid', 'score']].groupby('qid').max().rename(columns={"score" : "_firstscore"})
 
         remainder = remainder.merge(last_scores, on=["qid"]).merge(first_scores, on=["qid"])
         remainder["score"] = remainder["score"] - remainder["_firstscore"] + remainder["_lastscore"] - self.epsilon

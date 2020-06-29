@@ -103,8 +103,9 @@ class TestOperators(unittest.TestCase):
         self.assertEqual(1, len(rtr))
         
     def test_concatenate(self):
-        mock1 = ptt.UniformTransformer( pd.DataFrame([["q1", "d2", 2, 4.9], ["q1", "d3", 1, 5.1]], columns=["qid", "docno", "rank", "score"]))
-        mock2 = ptt.UniformTransformer( pd.DataFrame([["q1", "d1", 1, 4.9], ["q1", "d3", 2, 5.1]], columns=["qid", "docno", "rank", "score"]))
+        import numpy as np
+        mock1 = ptt.UniformTransformer( pd.DataFrame([["q1", "d2", 2, 4.9, np.array([1,2])], ["q1", "d3", 1, 5.1, np.array([1,2])]], columns=["qid", "docno", "rank", "score", "bla"]))
+        mock2 = ptt.UniformTransformer( pd.DataFrame([["q1", "d1", 1, 4.9, np.array([1,1])], ["q1", "d3", 2, 5.1, np.array([1,2])]], columns=["qid", "docno", "rank", "score", "bla"]))
 
         cutpipe = mock1 ^ mock2
         rtr = cutpipe.transform(None)
