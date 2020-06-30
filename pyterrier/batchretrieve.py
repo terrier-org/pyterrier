@@ -258,20 +258,35 @@ class TextScorer(TransformerBase):
     def __init__(self, body_attr="body", background_index=None, **kwargs):
         #super().__init__(**kwargs)
         self.body_attr = body_attr
-        # self.controls = controls
-        # self.properties = properties
+        if background_index is not None:
+            self.background_indexref = parse_index_like(background_index)
+        else:
+            self.background_indexref = None
         self.kwargs = kwargs
 
     def transform(self, topics_and_res):
-        from . import DFIndexer
+        from . import DFIndexer, autoclass, IndexFactory
         from .index import IndexingType
         documents = topics_and_res[["docno", self.body_attr]].drop_duplicates()
         indexref = DFIndexer(None, type=IndexingType.MEMORY).index(documents[self.body_attr], documents["docno"])
-        print(indexref)
+        index_docs = IndexFactory.of(indexref)
+
+        # if a background index is set, we create an "IndexWithBackground" using that and our new index
+        if self.background_indexref is None:
+            index = index_docs
+        else:
+            index_background = IndexFactory.of(self.background_indexref)
+            index = autoclass("org.terrier.python.IndexWithBackground")(index_docs, index_background)          
+
+        # we have provided the documents, so we dont need a docno or docid column that will confuse 
+        # BR and think it is re-ranking
         if "docid" in topics_and_res.columns:
             topics_and_res = topics_and_res.drop(columns=["docid"])
         topics_and_res = topics_and_res.drop(columns=["docno"])
-        inner = BatchRetrieve(indexref, **(self.kwargs))
+
+        # and then just instantiate BR using the our new index 
+        # we take all other arguments as arguments for BR
+        inner = BatchRetrieve(index, **(self.kwargs))
         return inner.transform(topics_and_res)
 
 class FeaturesBatchRetrieve(BatchRetrieve):
