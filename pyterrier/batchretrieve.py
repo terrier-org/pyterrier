@@ -224,7 +224,7 @@ class BatchRetrieve(BatchRetrieveBase):
             self.indexref.toString(),
             str(self.controls),
             str(self.properties)
-            ])
+            ]) + ")"
 
     def __str__(self):
         return "BR(" + self.controls["wmodel"] + ")"
@@ -391,7 +391,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
             str(self.features),
             str(self.controls),
             str(self.properties)
-        ])
+        ]) + ")"
 
     def __str__(self):
         return "FBR(" + self.controls["wmodel"] + " and " + str(len(self.features)) + " features)"
