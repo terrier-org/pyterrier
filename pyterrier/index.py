@@ -23,6 +23,7 @@ BlockIndexer = None
 Collection = None
 BasicSinglePassIndexer = None
 BlockSinglePassIndexer = None
+BasicMemoryIndexer = None
 Arrays = None
 Array = None
 ApplicationSetup = None
@@ -43,6 +44,7 @@ def run_autoclass():
     global BlockIndexer
     global BasicSinglePassIndexer
     global BlockSinglePassIndexer
+    global BasicMemoryIndexer
     global Collection
     global Arrays
     global Array
@@ -63,6 +65,7 @@ def run_autoclass():
     BlockIndexer = autoclass("org.terrier.structures.indexing.classical.BlockIndexer")
     BasicSinglePassIndexer = autoclass("org.terrier.structures.indexing.singlepass.BasicSinglePassIndexer")
     BlockSinglePassIndexer = autoclass("org.terrier.structures.indexing.singlepass.BlockSinglePassIndexer")
+    BasicMemoryIndexer = autoclass("org.terrier.python.MemoryIndexer")
     Collection = autoclass("org.terrier.indexing.Collection")
     Arrays = autoclass("java.util.Arrays")
     Array = autoclass('java.lang.reflect.Array')
@@ -114,7 +117,12 @@ class Indexer:
         """
         if StringReader is None:
             run_autoclass()
-        self.path = os.path.join(index_path, "data.properties")
+        if type is IndexingType.MEMORY:
+            self.path = None
+        else:
+            self.path = os.path.join(index_path, "data.properties")
+            if not os.path.isdir(index_path):
+                os.makedirs(index_path)
         self.index_called = False
         self.index_dir = index_path
         self.blocks = blocks
@@ -122,8 +130,6 @@ class Indexer:
         self.properties = Properties()
         self.setProperties(**self.default_properties)
         self.overwrite = overwrite
-        if not os.path.isdir(index_path):
-            os.makedirs(index_path)
 
     def setProperties(self, **kwargs):
         """
@@ -142,6 +148,8 @@ class Indexer:
         """
         Check if index exists at the `path` given when object was created
         """
+        if self.path is None:
+            return
         if os.path.isfile(self.path):
             if not self.overwrite:
                 raise ValueError("Index already exists at " + self.path)
@@ -168,9 +176,14 @@ class Indexer:
                 index = BlockIndexer(self.index_dir, "data")
             else:
                 index = BasicIndexer(self.index_dir, "data")
+        elif self.type is IndexingType.MEMORY:
+            if self.blocks:
+                raise Exception("Memory indexing with positions not yet implemented")
+            else:
+                index = BasicMemoryIndexer()
         else:
-            raise Exception("Memory indexing not yet implemented")
-
+            raise Exception("Unknown indexer type")
+        assert index is not None
         return index
 
     def createAsList(self, files_path):
@@ -338,6 +351,8 @@ class DFIndexer(Indexer):
         else:
             default_props.remove("indexer.meta.forward.keylens")
 
+        if self.type is IndexingType.MEMORY:
+            return index.getIndex().getIndexRef()
         return IndexRef.of(self.index_dir + "/data.properties")
 
 class PythonListIterator(PythonJavaClass):
@@ -450,6 +465,8 @@ class IterDictIndexer(Indexer):
         index.index([javaDocCollection])
         self.index_called = True
         collectionIterator = None
+        if self.type is IndexingType.MEMORY:
+            return index.getIndex().getIndexRef()
         return IndexRef.of(self.index_dir + "/data.properties")
 
 class TRECCollectionIndexer(Indexer):
@@ -515,6 +532,8 @@ class TRECCollectionIndexer(Indexer):
         index.index(collsArray)
         colObj.close()
         self.index_called = True
+        if self.type is IndexingType.MEMORY:
+            return index.getIndex().getIndexRef()
         return IndexRef.of(self.index_dir + "/data.properties")
 
 class FilesIndexer(Indexer):
@@ -549,6 +568,8 @@ class FilesIndexer(Indexer):
         simpleColl = SimpleFileCollection(asList, False)
         index.index([simpleColl])
         self.index_called = True
+        if self.type is IndexingType.MEMORY:
+            return index.getIndex().getIndexRef()
         return IndexRef.of(self.index_dir + "/data.properties")
 
 class TQDMCollection(PythonJavaClass):

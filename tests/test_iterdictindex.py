@@ -24,17 +24,15 @@ class TestIterDictIndexer(BaseTestCase):
         self.assertIsNotNone(indexref)
         return indexref
 
-    def _make_check_index(self, n, single_pass, fields=('text',), meta=('docno', 'url', 'title')):
+    def _make_check_index(self, n, index_type, fields=('text',), meta=('docno', 'url', 'title')):
+        from pyterrier.index import IndexingType
         it = (
             {'docno': '1', 'url': 'url1', 'text': 'He ran out of money, so he had to stop playing', 'title': 'Woes of playing poker'},
             {'docno': '2', 'url': 'url2', 'text': 'The waves were crashing on the shore; it was a', 'title': 'Lovely sight'},
             {'docno': '3', 'url': 'url3', 'text': 'The body may perhaps compensates for the loss', 'title': 'Best of Viktor Prowoll'},
         )
         it = itertools.islice(it, n)
-        if single_pass:
-            indexref = self._create_index(it, fields, meta, pt.IndexingType.SINGLEPASS)
-        else:
-            indexref = self._create_index(it, fields, meta, pt.IndexingType.CLASSIC)
+        indexref = self._create_index(it, fields, meta, index_type)
         index = pt.IndexFactory.of(indexref)
         self.assertIsNotNone(index)
         self.assertEqual(n, index.getCollectionStatistics().getNumberOfDocuments())
@@ -44,10 +42,11 @@ class TestIterDictIndexer(BaseTestCase):
         self.assertEqual(len(fields), index.getCollectionStatistics().numberOfFields)
         for f in fields:
             self.assertTrue(f in index.getCollectionStatistics().getFieldNames())
-        if single_pass:
-            self.assertFalse(os.path.isfile(self.test_dir + '/data.direct.bf'))
-        else:
+        if index_type is IndexingType.CLASSIC:
             self.assertTrue(os.path.isfile(self.test_dir + '/data.direct.bf'))
+            self.assertTrue(index.hasIndexStructure("direct"))
+        else:
+            self.assertFalse(os.path.isfile(self.test_dir + '/data.direct.bf'))
         inv = index.getInvertedIndex()
         lex = index.getLexicon()
         post = inv.getPostings(lex.getLexiconEntry('plai'))
@@ -87,40 +86,60 @@ class TestIterDictIndexer(BaseTestCase):
         self.assertFalse(jIter1.hasNext())
 
     def test_createindex1(self):
-        self._make_check_index(1, single_pass=False)
+        from pyterrier.index import IndexingType
+        self._make_check_index(1, IndexingType.CLASSIC)
 
     def test_createindex2(self):
-        self._make_check_index(2, single_pass=False)
+        from pyterrier.index import IndexingType
+        self._make_check_index(2, IndexingType.CLASSIC)
 
     def test_createindex3(self):
-        self._make_check_index(3, single_pass=False)
+        from pyterrier.index import IndexingType
+        self._make_check_index(3, IndexingType.CLASSIC)
 
     def test_createindex1_single_pass(self):
-        self._make_check_index(1, single_pass=True)
+        from pyterrier.index import IndexingType
+        self._make_check_index(1, IndexingType.SINGLEPASS)
 
     def test_createindex2_single_pass(self):
-        self._make_check_index(2, single_pass=True)
+        from pyterrier.index import IndexingType
+        self._make_check_index(2, IndexingType.SINGLEPASS)
 
     def test_createindex3_single_pass(self):
-        self._make_check_index(3, single_pass=True)
+        from pyterrier.index import IndexingType
+        self._make_check_index(3, IndexingType.SINGLEPASS)
+
+    def test_createindex3_memory(self):
+        from pyterrier.index import IndexingType
+        self._make_check_index(3, IndexingType.MEMORY)
+
+    def test_createindex1_2fields_memory(self):
+        from pyterrier.index import IndexingType
+        self._make_check_index(1, IndexingType.MEMORY, fields=['text', 'title'])
 
     def test_createindex1_2fields(self):
-        self._make_check_index(1, single_pass=False, fields=['text', 'title'])
+        from pyterrier.index import IndexingType
+        self._make_check_index(1, IndexingType.CLASSIC, fields=['text', 'title'])
 
     def test_createindex2_2fields(self):
-        self._make_check_index(2, single_pass=False, fields=['text', 'title'])
+        from pyterrier.index import IndexingType
+        self._make_check_index(2, IndexingType.CLASSIC, fields=['text', 'title'])
 
     def test_createindex3_2fields(self):
-        self._make_check_index(3, single_pass=False, fields=['text', 'title'])
+        from pyterrier.index import IndexingType
+        self._make_check_index(3, IndexingType.CLASSIC, fields=['text', 'title'])
 
     def test_createindex1_single_pass_2fields(self):
-        self._make_check_index(1, single_pass=True, fields=['text', 'title'])
+        from pyterrier.index import IndexingType
+        self._make_check_index(1, IndexingType.SINGLEPASS, fields=['text', 'title'])
 
     def test_createindex2_single_pass_2fields(self):
-        self._make_check_index(2, single_pass=True, fields=['text', 'title'])
+        from pyterrier.index import IndexingType
+        self._make_check_index(2, IndexingType.SINGLEPASS, fields=['text', 'title'])
 
     def test_createindex3_single_pass_2fields(self):
-        self._make_check_index(3, single_pass=True, fields=['text', 'title'])
+        from pyterrier.index import IndexingType
+        self._make_check_index(3, IndexingType.SINGLEPASS, fields=['text', 'title'])
 
 if __name__ == "__main__":
     unittest.main()

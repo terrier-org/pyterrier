@@ -229,7 +229,7 @@ class BatchRetrieve(BatchRetrieveBase):
     def __str__(self):
         return "BR(" + self.controls["wmodel"] + ")"
 
-    @deprecation.deprecated(deprecated_in="0.2.0",
+    @deprecation.deprecated(deprecated_in="0.3.0",
                         details="Please use pt.Utils.write_results_trec()")
     def saveResult(self, result, path, run_name=None):
         if run_name is None:
@@ -251,6 +251,28 @@ def _mergeDicts(defaults, settings):
     if settings is not None and len(settings) > 0:
         KV.update(settings)
     return KV
+
+
+class TextScorer(TransformerBase):
+
+    def __init__(self, body_attr="body", background_index=None, **kwargs):
+        #super().__init__(**kwargs)
+        self.body_attr = body_attr
+        # self.controls = controls
+        # self.properties = properties
+        self.kwargs = kwargs
+
+    def transform(self, topics_and_res):
+        from . import DFIndexer
+        from .index import IndexingType
+        documents = topics_and_res[["docno", self.body_attr]].drop_duplicates()
+        indexref = DFIndexer(None, type=IndexingType.MEMORY).index(documents[self.body_attr], documents["docno"])
+        print(indexref)
+        if "docid" in topics_and_res.columns:
+            topics_and_res = topics_and_res.drop(columns=["docid"])
+        topics_and_res = topics_and_res.drop(columns=["docno"])
+        inner = BatchRetrieve(indexref, **(self.kwargs))
+        return inner.transform(topics_and_res)
 
 class FeaturesBatchRetrieve(BatchRetrieve):
     """

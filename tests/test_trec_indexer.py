@@ -48,3 +48,10 @@ class TestTRECIndexer(unittest.TestCase):
         index = pt.IndexFactory.of(indexRef)
         self.assertEqual(11429, index.getCollectionStatistics().getNumberOfDocuments())
         self.assertFalse(os.path.isfile(self.test_dir + '/data.direct.bf'))
+
+    def test_TREC_indexing_memory(self):
+        indexer = pt.TRECCollectionIndexer(self.test_dir, type=pt.IndexingType.MEMORY)
+        indexRef = indexer.index(pt.Utils.get_files_in_dir(self.here + "/fixtures/vaswani_npl/corpus/"))
+        self.assertIsNotNone(indexRef)
+        index = pt.IndexFactory.of(indexRef)
+        self.assertEqual(11429, index.getCollectionStatistics().getNumberOfDocuments())

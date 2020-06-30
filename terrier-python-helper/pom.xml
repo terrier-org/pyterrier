@@ -14,7 +14,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>1.7</maven.compiler.source>
     <maven.compiler.target>1.7</maven.compiler.target>
-    <build.terrier.version>5.2</build.terrier.version>
+    <build.terrier.version>5.3</build.terrier.version>
   </properties>
 
   <organization>
@@ -72,6 +72,13 @@
     <dependency>
 			<groupId>org.terrier</groupId>
 			<artifactId>terrier-core</artifactId>
+			<version>${build.terrier.version}</version>
+      <scope>provided</scope>
+		</dependency>
+
+    <dependency>
+			<groupId>org.terrier</groupId>
+			<artifactId>terrier-realtime</artifactId>
 			<version>${build.terrier.version}</version>
       <scope>provided</scope>
 		</dependency>

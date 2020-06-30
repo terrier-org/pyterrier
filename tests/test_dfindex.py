@@ -23,7 +23,8 @@ class TestDFIndexer(BaseTestCase):
         self.assertIsNotNone(indexref)
         return indexref
 
-    def _make_check_index(self, n, single_pass, include_urls=False):
+    def _make_check_index(self, n, index_type, include_urls=False):
+        from pyterrier.index import IndexingType
         import pandas as pd
         df = pd.DataFrame({
             'docno': ['1', '2', '3'],
@@ -36,20 +37,18 @@ class TestDFIndexer(BaseTestCase):
         })
         df = df.head(n)
         metadata = df[["docno", "url"]] if include_urls else df["docno"]
-        if single_pass:
-            indexref = self._create_index(pt.IndexingType.SINGLEPASS, df["text"], metadata)
-        else:
-            indexref = self._create_index(pt.IndexingType.CLASSIC, df["text"], metadata)
+        indexref = self._create_index(index_type, df["text"], metadata)
         index = pt.IndexFactory.of(indexref)
         self.assertIsNotNone(index)
         self.assertEqual(n, index.getCollectionStatistics().getNumberOfDocuments())
         self.assertTrue("docno" in index.getMetaIndex().getKeys())
         if include_urls:
             self.assertTrue("url" in index.getMetaIndex().getKeys())
-        if single_pass:
-            self.assertFalse(os.path.isfile(self.test_dir + '/data.direct.bf'))
-        else:
+        if index_type is IndexingType.CLASSIC:
             self.assertTrue(os.path.isfile(self.test_dir + '/data.direct.bf'))
+            self.assertTrue(index.hasIndexStructure("direct"))
+        else:
+            self.assertFalse(os.path.isfile(self.test_dir + '/data.direct.bf'))
 
     def test_checkjavaDocIteratr(self):
         import pandas as pd
@@ -86,25 +85,44 @@ class TestDFIndexer(BaseTestCase):
         self.assertFalse(jIter1.hasNext())
 
     def test_createindex1_two_metadata(self):
-        self._make_check_index(1, single_pass=False, include_urls=True)
+        from pyterrier.index import IndexingType
+        self._make_check_index(1, IndexingType.CLASSIC, include_urls=True)
 
     def test_createindex1(self):
-        self._make_check_index(1, single_pass=False)
+        from pyterrier.index import IndexingType
+        self._make_check_index(1, IndexingType.CLASSIC)
 
     def test_createindex2(self):
-        self._make_check_index(2, single_pass=False)
+        from pyterrier.index import IndexingType
+        self._make_check_index(2, IndexingType.CLASSIC)
 
     def test_createindex3(self):
-        self._make_check_index(3, single_pass=False)
+        from pyterrier.index import IndexingType
+        self._make_check_index(3, IndexingType.CLASSIC)
 
     def test_createindex1_single_pass(self):
-        self._make_check_index(1, single_pass=True)
+        from pyterrier.index import IndexingType
+        self._make_check_index(1, IndexingType.SINGLEPASS)
 
     def test_createindex2_single_pass(self):
-        self._make_check_index(2, single_pass=True)
+        from pyterrier.index import IndexingType
+        self._make_check_index(2, IndexingType.SINGLEPASS)
 
     def test_createindex3_single_pass(self):
-        self._make_check_index(3, single_pass=True)
+        from pyterrier.index import IndexingType
+        self._make_check_index(3, IndexingType.SINGLEPASS)
+
+    def test_createindex1_memory(self):
+        from pyterrier.index import IndexingType
+        self._make_check_index(1, IndexingType.MEMORY)
+
+    def test_createindex2_memory(self):
+        from pyterrier.index import IndexingType
+        self._make_check_index(2, IndexingType.MEMORY)
+
+    def test_createindex3_memory(self):
+        from pyterrier.index import IndexingType
+        self._make_check_index(3, IndexingType.MEMORY)
 
 if __name__ == "__main__":
     unittest.main()
