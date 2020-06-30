@@ -292,6 +292,16 @@ class Utils:
         return Utils.mean_of_measures(result, metrics)
 
     @staticmethod
+    def ensure(dictionary, measures, qids):
+        for q in qids:
+            if q not in dictionary:
+                dictionary[q] = { m : 0 for m in measures }
+            # for m in measures:
+            #     if m not in dictionary[q][m]:
+            #         dictionary[q][m] = 0
+        return dictionary
+
+    @staticmethod
     def mean_of_measures(result, measures=None):
         measures_sum = {}
         mean_dict = {}

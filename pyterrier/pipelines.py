@@ -73,13 +73,19 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
     actual_metric_names=[]
     for name,res in zip(names,results):
         evalMeasuresDict = Utils.evaluate(res, qrels_dict, metrics=eval_metrics, perquery=perquery or baseline is not None)
-    
+        
+        if perquery or baseline is not None:
+            # this ensures that all queries are present in various dictionaries
+            # its equivalent to "trec_eval -c"
+            evalMeasuresDict = Utils.ensure(evalMeasuresDict, eval_metrics, qrels_dict.keys())
+
+
         if baseline is not None:
             evalDictsPerQ.append(evalMeasuresDict)
             evalMeasuresDict = Utils.mean_of_measures(evalMeasuresDict)
 
         if perquery:
-            for qid in evalMeasuresDict:
+            for qid in qrels_dict:
                 for measurename in evalMeasuresDict[qid]:
                     evalsRows.append([name, qid, measurename,  evalMeasuresDict[qid][measurename]])
             evalDict[name] = evalMeasuresDict

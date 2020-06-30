@@ -3,9 +3,22 @@ import pyterrier as pt
 import os
 import unittest
 import warnings
+import pyterrier.transformer as ptt
 from .base import BaseTestCase
 
 class TestExperiment(BaseTestCase):
+
+    def test_differing_queries(self):
+        topics = pd.DataFrame([["q1", "q1"], ["q2", "q1"] ], columns=["qid", "query"])
+        res1 = pd.DataFrame([["q1", "d1", 1.0]], columns=["qid", "docno", "score"])
+        res2 = pd.DataFrame([["q1", "d1", 1.0], ["q2", "d1", 2.0] ], columns=["qid", "docno", "score"])
+        qrels = pd.DataFrame([["q1", "d1", 1], ["q2", "d1", 1] ], columns=["qid", "docno", "label"])
+        pt.pipelines.Experiment(
+            [ptt.UniformTransformer(res1), ptt.UniformTransformer(res2)],
+            topics,
+            qrels,
+            ["map"],
+            baseline=0)
 
     def test_one_row(self):
         vaswani = pt.datasets.get_dataset("vaswani")
