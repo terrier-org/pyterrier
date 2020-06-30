@@ -293,13 +293,15 @@ class Utils:
 
     @staticmethod
     def ensure(dictionary, measures, qids):
+        missing = 0
         for q in qids:
             if q not in dictionary:
                 dictionary[q] = { m : 0 for m in measures }
+                missing+=1
             # for m in measures:
             #     if m not in dictionary[q][m]:
             #         dictionary[q][m] = 0
-        return dictionary
+        return (dictionary, missing)
 
     @staticmethod
     def mean_of_measures(result, measures=None):

@@ -66,6 +66,8 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
             names.append(str(system))
 
     qrels_dict = Utils.convert_qrels_to_dict(qrels)
+    all_qids = topics["qid"].values
+    #all_qids = qrels_dict.keys()
 
     evalsRows=[]
     evalDict={}
@@ -77,15 +79,16 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
         if perquery or baseline is not None:
             # this ensures that all queries are present in various dictionaries
             # its equivalent to "trec_eval -c"
-            evalMeasuresDict = Utils.ensure(evalMeasuresDict, eval_metrics, qrels_dict.keys())
-
+            (evalMeasuresDict, missing) = Utils.ensure(evalMeasuresDict, eval_metrics, all_qids)
+            if missing > 0:
+                warn("%s was missing %d queries, expected %d" % (name, missing, len(all_qids) ))
 
         if baseline is not None:
             evalDictsPerQ.append(evalMeasuresDict)
             evalMeasuresDict = Utils.mean_of_measures(evalMeasuresDict)
 
         if perquery:
-            for qid in qrels_dict:
+            for qid in all_qids:
                 for measurename in evalMeasuresDict[qid]:
                     evalsRows.append([name, qid, measurename,  evalMeasuresDict[qid][measurename]])
             evalDict[name] = evalMeasuresDict

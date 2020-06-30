@@ -13,12 +13,14 @@ class TestExperiment(BaseTestCase):
         res1 = pd.DataFrame([["q1", "d1", 1.0]], columns=["qid", "docno", "score"])
         res2 = pd.DataFrame([["q1", "d1", 1.0], ["q2", "d1", 2.0] ], columns=["qid", "docno", "score"])
         qrels = pd.DataFrame([["q1", "d1", 1], ["q2", "d1", 1] ], columns=["qid", "docno", "label"])
-        pt.pipelines.Experiment(
-            [ptt.UniformTransformer(res1), ptt.UniformTransformer(res2)],
-            topics,
-            qrels,
-            ["map"],
-            baseline=0)
+        with warnings.catch_warnings(record=True) as w:
+            pt.pipelines.Experiment(
+                [ptt.UniformTransformer(res1), ptt.UniformTransformer(res2)],
+                topics,
+                qrels,
+                ["map"],
+                baseline=0)
+            assert "missing" in str(w[-1].message)
 
     def test_one_row(self):
         vaswani = pt.datasets.get_dataset("vaswani")
