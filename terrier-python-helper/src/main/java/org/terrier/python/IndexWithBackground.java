@@ -11,11 +11,17 @@ public class IndexWithBackground extends Index {
     Index parent;
     Index background;
     ProxyLexicon proxLex;
-    
+    boolean replace;
+
     public IndexWithBackground(Index _parent, Index _background) {
+        this(_parent, _background, true);
+    }  
+
+    public IndexWithBackground(Index _parent, Index _background, boolean _replace) {
         this.parent = _parent;
         this.background = _background;
         this.proxLex = new ProxyLexicon(parent.getLexicon(), background.getLexicon());
+        this.replace = _replace;
     }
 
     @Override 
@@ -57,7 +63,7 @@ public class IndexWithBackground extends Index {
     }
 
 
-    static class ProxyLexicon extends Lexicon<String>
+    class ProxyLexicon extends Lexicon<String>
     {
         Lexicon<String> pLexicon;
         Lexicon<String> bLexicon;
@@ -71,15 +77,21 @@ public class IndexWithBackground extends Index {
             return this.bLexicon.numberOfEntries();
         }
 
+        protected LexiconEntry adjust(LexiconEntry parent, LexiconEntry background) {
+            if (background == null)
+                return parent;
+            if (replace) //deduct the stats of this from itself, i.e. EntryStats of a non-existent term
+                parent.subtract(parent);
+            parent.add(background);
+            return parent;
+        }
+
         @Override
         public LexiconEntry getLexiconEntry(String term) {
             LexiconEntry rtr = this.pLexicon.getLexiconEntry(term);
             if (rtr == null)
                 return null;
-            LexiconEntry background = this.bLexicon.getLexiconEntry(term);
-            if (background != null)
-                rtr.add(background);
-            return rtr;
+            return adjust(rtr, this.bLexicon.getLexiconEntry(term));
         }
 
         @Override
@@ -87,8 +99,7 @@ public class IndexWithBackground extends Index {
             Map.Entry<String,LexiconEntry> rtr = this.pLexicon.getLexiconEntry(termid);
             if (rtr == null)
                 return null;
-            LexiconEntry background = this.bLexicon.getLexiconEntry(rtr.getKey());
-            rtr.getValue().add(background);
+            rtr.setValue( adjust(rtr.getValue(), this.bLexicon.getLexiconEntry(rtr.getKey())) );
             return rtr;
         }
 
@@ -97,8 +108,7 @@ public class IndexWithBackground extends Index {
             Map.Entry<String,LexiconEntry> rtr = this.pLexicon.getIthLexiconEntry(index);
             if (rtr == null)
                 return null;
-            LexiconEntry background = this.bLexicon.getLexiconEntry(rtr.getKey());
-            rtr.getValue().add(background);
+            rtr.setValue( adjust(rtr.getValue(), this.bLexicon.getLexiconEntry(rtr.getKey())) );
             return rtr;
         }
 
