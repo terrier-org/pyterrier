@@ -8,7 +8,12 @@ import org.terrier.structures.CollectionStatistics;
 import org.terrier.querying.SearchRequest;
 import org.terrier.structures.MetaIndex;
 import org.terrier.structures.Index;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class RequestContextMatching implements Matching {
+
+    protected static final Logger logger = LoggerFactory.getLogger(RequestContextMatching.class);
 
     public static String CONTROL_META = "request_context_matching";
     public static String CONTEXT_SOURCE = "request_context_matching_source";
@@ -88,7 +93,7 @@ public class RequestContextMatching implements Matching {
             } else {
                 scores = new double[docids.length];
             }
-
+            logger.info("Found " + docids.length + " documents from Request for query " + queryNumber);
             return new QueryResultSet(docids, scores, new short[docids.length]);
         } catch (Exception e) {
             throw new RuntimeException("Problem making resultset", e);
