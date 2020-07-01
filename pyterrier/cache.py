@@ -116,7 +116,13 @@ class ChestCacheTransformer(TransformerBase):
         for index, row in input_res.iterrows():
             qid = row["qid"]
             self.requests += 1
-            df = self.chest.get(qid, None)
+            try:
+                df = self.chest.get(qid, None)
+            except:
+                # occasionally we have file not founds, 
+                # lets remove from the cache and continue
+                del self.chest[qid]
+                df = None
             if df is None:
                 todo.append(row.to_frame().T)
             else:
