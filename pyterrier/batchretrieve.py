@@ -268,11 +268,9 @@ class TextScorer(TransformerBase):
         from . import DFIndexer, autoclass, IndexFactory
         from .index import IndexingType
         documents = topics_and_res[["docno", self.body_attr]].drop_duplicates()
-        print("Starting indexer")
         indexref = DFIndexer(None, type=IndexingType.MEMORY).index(documents[self.body_attr], documents["docno"])
         index_docs = IndexFactory.of(indexref)
-        print("index ready")
-
+        
         # if a background index is set, we create an "IndexWithBackground" using both that and our new index
         if self.background_indexref is None:
             index = index_docs
@@ -281,10 +279,7 @@ class TextScorer(TransformerBase):
             index = autoclass("org.terrier.python.IndexWithBackground")(index_docs, index_background)          
 
         # we have provided the documents, so we dont need a docno or docid column that will confuse 
-        # BR and think it is re-ranking
-        #if "docid" in topics_and_res.columns:
-        #    topics_and_res = topics_and_res.drop(columns=["docid"])
-        #topics_and_res = topics_and_res.drop(columns=["docno", "score", "rank"])
+        # BR and think it is re-ranking. In fact, we only need qid and query
         topics = topics_and_res[["qid", "query"]].dropna(axis=0, subset=["query"]).drop_duplicates()
 
         # and then just instantiate BR using the our new index 
