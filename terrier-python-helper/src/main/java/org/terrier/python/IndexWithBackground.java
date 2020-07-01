@@ -8,6 +8,44 @@ import java.io.IOException;
 
 public class IndexWithBackground extends Index {
 
+    static class FieldLexiconEntrySeparatePointer extends FieldLexiconEntry {
+        int number_of_entries;
+        public FieldLexiconEntrySeparatePointer(int fieldcount){
+            super(fieldcount);
+        }
+        public void setPointer(Pointer p) {
+            number_of_entries = p.getNumberOfEntries();
+            startOffset = ((BitIndexPointer)p).getOffset();
+            startBitOffset = ((BitIndexPointer)p).getOffsetBits();
+        }
+
+        public String pointerToString() {
+            return String.valueOf(number_of_entries) + super.pointerToString();
+        }
+
+        public int getNumberOfEntries() {
+            return number_of_entries;
+        }
+    }
+
+    static class BasicLexiconEntrySeparatePointer extends BasicLexiconEntry {
+        int number_of_entries;
+        public BasicLexiconEntrySeparatePointer(){}
+        public void setPointer(Pointer p) {
+            number_of_entries = p.getNumberOfEntries();
+            startOffset = ((BitIndexPointer)p).getOffset();
+            startBitOffset = ((BitIndexPointer)p).getOffsetBits();
+        }
+
+        public String pointerToString() {
+            return String.valueOf(number_of_entries) + super.pointerToString();
+        }
+
+        public int getNumberOfEntries() {
+            return number_of_entries;
+        }
+    }
+
     Index parent;
     Index background;
     ProxyLexicon proxLex;
@@ -80,8 +118,24 @@ public class IndexWithBackground extends Index {
         protected LexiconEntry adjust(LexiconEntry parent, LexiconEntry background) {
             if (background == null)
                 return parent;
+            
+            // kludge round the fact that the default entry stories N_t and pointer value in the same place in
+            // BasicLexiconEntry and FieldLexiconEntry
+            if (parent instanceof FieldLexiconEntry) {
+                LexiconEntry newEntry = new FieldLexiconEntrySeparatePointer(((FieldLexiconEntry)parent).getFieldFrequencies().length);
+                newEntry.setPointer(parent);
+                newEntry.add(parent);
+                parent = newEntry;
+            }else if (parent instanceof BasicLexiconEntry) {
+                LexiconEntry newEntry = new BasicLexiconEntrySeparatePointer();
+                newEntry.setPointer(parent);
+                newEntry.add(parent);
+                parent = newEntry;
+            }
+            
             if (replace) //deduct the stats of this from itself, i.e. EntryStats of a non-existent term
                 parent.subtract(parent);
+
             parent.add(background);
             return parent;
         }
