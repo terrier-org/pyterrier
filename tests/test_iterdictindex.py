@@ -109,13 +109,15 @@ class TestIterDictIndexer(BaseTestCase):
         from pyterrier.index import IndexingType
         self._make_check_index(3, IndexingType.SINGLEPASS)
 
-    def test_createindex3_memory(self):
-        from pyterrier.index import IndexingType
-        self._make_check_index(3, IndexingType.MEMORY)
+    # Issue #43
 
-    def test_createindex1_2fields_memory(self):
-        from pyterrier.index import IndexingType
-        self._make_check_index(1, IndexingType.MEMORY, fields=['text', 'title'])
+    # def test_createindex3_memory(self):
+    #     from pyterrier.index import IndexingType
+    #     self._make_check_index(3, IndexingType.MEMORY)
+
+    # def test_createindex1_2fields_memory(self):
+    #     from pyterrier.index import IndexingType
+    #     self._make_check_index(1, IndexingType.MEMORY, fields=['text', 'title'])
 
     def test_createindex1_2fields(self):
         from pyterrier.index import IndexingType
