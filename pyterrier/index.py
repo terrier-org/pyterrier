@@ -267,9 +267,12 @@ class DFIndexUtils:
 
         # this method creates the documents as and when needed.
         def convertDoc(text_row, meta_column):
-            # meta_row = []
+            if text_row is None:
+                text_row = ""
             hashmap = HashMap()
             for column, value in meta_column[1].iteritems():
+                if value is None:
+                    value = ""
                 hashmap.put(column, value)
             return(TaggedDocument(StringReader(text_row), hashmap, Tokeniser.getTokeniser()))
         

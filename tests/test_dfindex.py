@@ -50,6 +50,40 @@ class TestDFIndexer(BaseTestCase):
         else:
             self.assertFalse(os.path.isfile(self.test_dir + '/data.direct.bf'))
 
+    def test_checkjavaDocIteratr_None(self):
+        import pandas as pd
+        df = pd.DataFrame({
+            'docno':
+                ['1', '2', '3'],
+            'url':
+                ['url1', 'url2', 'url3'],
+            'text':
+                [None,
+                 'The waves were crashing on the shore; it was a',
+                 'Some other text']
+        })
+
+        from pyterrier import DFIndexUtils
+
+        d1 = df.head(1)
+        jIter1, metalens = DFIndexUtils.create_javaDocIterator(d1["text"], d1["docno"])
+        self.assertEqual(1, len(metalens))
+        self.assertEqual(1, metalens["docno"])
+        self.assertTrue(jIter1.hasNext())
+        self.assertIsNotNone(jIter1.next())
+        self.assertFalse(jIter1.hasNext())
+
+        d2 = df.head(2)
+        jIter1, metalens = DFIndexUtils.create_javaDocIterator(d2["text"], d2[["docno", "url"]])
+        self.assertEqual(2, len(metalens))
+        self.assertEqual(1, metalens["docno"])
+        self.assertEqual(4, metalens["url"])
+        self.assertTrue(jIter1.hasNext())
+        self.assertIsNotNone(jIter1.next())
+        self.assertTrue(jIter1.hasNext())
+        self.assertIsNotNone(jIter1.next())
+        self.assertFalse(jIter1.hasNext())
+
     def test_checkjavaDocIteratr(self):
         import pandas as pd
         df = pd.DataFrame({
