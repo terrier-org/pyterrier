@@ -30,7 +30,7 @@ class TestUtils(BaseTestCase):
 
     def test_save_letor(self):
         import numpy as np
-        res = pd.DataFrame([["1", "d1", 5.3, 1, np.array([1, 2])]], columns=['qid', 'docno', 'score', 'rank', 'features'])
+        res = pd.DataFrame([["1", "d1", 5.3, 1, np.array([1, 2])], ["1", "d2", 5.3, 1, np.array([2, 1])]], columns=['qid', 'docno', 'score', 'rank', 'features'])
         res_dict = res.set_index(['qid', 'docno']).to_dict()
         del res_dict["score"]
         del res_dict["rank"]
