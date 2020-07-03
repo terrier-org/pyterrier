@@ -1,7 +1,7 @@
 import pandas as pd
 import unittest
 import pyterrier as pt
-
+import warnings
 import pyterrier.transformer as ptt;
 from matchpy import *
 
@@ -189,13 +189,16 @@ class TestOperators(unittest.TestCase):
 
 
     def test_feature_union_multi(self):
-        mock0 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 0]], columns=["qid", "docno", "score"]))
+        mock0 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 0], ["q1", "doc2", 0]], columns=["qid", "docno", "score"]))
 
-        mock1 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))
-        mock2 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]))
-        mock3 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 15]], columns=["qid", "docno", "score"]))
+        mock1 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5], ["q1", "doc2", 0]], columns=["qid", "docno", "score"]))
+        mock2 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 10], ["q1", "doc2", 0]], columns=["qid", "docno", "score"]))
+        mock3 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 15], ["q1", "doc2", 0]], columns=["qid", "docno", "score"]))
 
         mock3_empty = ptt.UniformTransformer(pd.DataFrame([], columns=["qid", "docno", "score"]))
+        mock2_partial = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]))
+        mock3_partial = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 15]], columns=["qid", "docno", "score"]))
+
 
         mock12a = mock1 ** mock2
         mock123a = mock1 ** mock2 ** mock3
@@ -217,6 +220,17 @@ class TestOperators(unittest.TestCase):
                 mock1,
                 ptt.FeatureUnionPipeline(mock3_empty, mock3),
         )
+
+        mock123p = ptt.FeatureUnionPipeline(
+                mock1,
+                ptt.FeatureUnionPipeline(mock2, mock3_partial),
+        )
+
+        mock12p3 = ptt.FeatureUnionPipeline(
+                mock1,
+                ptt.FeatureUnionPipeline(mock2_partial, mock3),
+        )
+        
         
         self.assertEqual(2, len(mock12a.models))
         self.assertEqual(2, len(mock12a.models))
@@ -234,18 +248,18 @@ class TestOperators(unittest.TestCase):
         def _test_expression(expression):
             # we dont need an input, as both Identity transformers will return anyway
             rtr = (mock0 >> expression).transform(None)
+            #print(rtr)
             self.assertIsNotNone(rtr)
-            self.assertEqual(1, len(rtr))
+            self.assertEqual(2, len(rtr))
             self.assertTrue("qid" in rtr.columns)
             self.assertTrue("docno" in rtr.columns)
             self.assertFalse("features_x" in rtr.columns)
             self.assertFalse("features_y" in rtr.columns)
-            #self.assertTrue("score" in rtr.columns)
             self.assertTrue("features" in rtr.columns)
             self.assertTrue("q1" in rtr["qid"].values)
             self.assertTrue("doc1" in rtr["docno"].values)
             import numpy as np
-            self.assertTrue( np.array_equal(np.array([5,10,15]), rtr.iloc[0]["features"]))
+            self.assertTrue( np.allclose(np.array([5,10,15]), rtr.iloc[0]["features"]))
 
         _test_expression(mock123_simple)
         _test_expression(mock123a)
@@ -256,6 +270,14 @@ class TestOperators(unittest.TestCase):
         with self.assertRaises(ValueError):
             _test_expression(mock12e3)
         
+        with warnings.catch_warnings(record=True) as w:
+            _test_expression(mock123p)
+            assert "Got less results than expected" in str(w[-1].message)
+        
+        with warnings.catch_warnings(record=True) as w:
+            _test_expression(mock12p3)
+            assert "Got less results than expected" in str(w[-1].message)
+
 
     def test_feature_union(self): 
         mock_input = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))

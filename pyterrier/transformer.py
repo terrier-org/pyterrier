@@ -376,20 +376,25 @@ class FeatureUnionPipeline(NAryTransformerBase):
             results = m.transform(inputRes.copy())
             if len(results) == 0:
                 raise ValueError("Got no results from %s, expected %d" % (repr(m), num_results) )
-            if len(results) < num_results:
-                warn("Got less results than expected from %s, expected %d received %d" % (repr(m), num_results, len(results)))
             assert not "features_x" in results.columns 
             assert not "features_y" in results.columns
             all_results.append( results )
 
     
-        for m, res in zip(self.models, all_results):
+        for i, (m, res) in enumerate(zip(self.models, all_results)):
             #IMPORTANT: dont do this BEFORE calling subsequent feature unions
             if not "features" in res.columns:
                 if not "score" in res.columns:
                     raise ValueError("Results from %s did not include either score or features columns, found columns were %s" % (repr(m), str(res.columns)) )
+
+                if len(res) < num_results:
+                    warn("Got less results than expected from %s, expected %d received %d, missing values will have 0" % (repr(m), num_results, len(results)))
+                    all_results[i] = res = inputRes[["qid", "docno"]].merge(res, on=["qid", "docno"], how="left")
+                    res["score"] = res["score"].fillna(value=0)
+
                 res["features"] = res.apply(lambda row : np.array([row["score"]]), axis=1)
                 res.drop(columns=["score"], inplace=True)
+            assert "features" in res.columns
             #print("%d got %d features from operand %d" % ( id(self) ,   len(results.iloc[0]["features"]), i))
 
         def _concat_features(row):
