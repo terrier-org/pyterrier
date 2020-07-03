@@ -70,6 +70,13 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     if mem is not None:
         jnius_config.add_options('-Xmx' + str(mem) + 'm')
     from jnius import autoclass, cast
+
+    # we only accept Java version 11 and newer; so anything starting 1. or 9. is too old
+    java_version = autoclass("java.lang.System").getProperty("java.version")
+    if java_version.startswith("1.") or java_version.startswith("9."):
+        raise RuntimeError("Pyterrier requires Java 11 or newer, we only found Java version %s;"
+            +" install a more recent Java, or change os.environ['JAVA_HOME'] to point to the proper Java installation")
+    
     properties = autoclass('java.util.Properties')()
     ApplicationSetup = autoclass('org.terrier.utility.ApplicationSetup')
 
