@@ -25,9 +25,10 @@ class TestExperiment(BaseTestCase):
     def test_one_row(self):
         vaswani = pt.datasets.get_dataset("vaswani")
         br = pt.BatchRetrieve(vaswani.get_index())
-        rtr = pt.pipelines.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"])
+        rtr = pt.pipelines.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg", "num_q"])
         print(rtr)
-
+        self.assertEqual(10, rtr.iloc[0]["num_q"])
+        
         rtr = pt.pipelines.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"], dataframe=False)
         print(rtr)
 

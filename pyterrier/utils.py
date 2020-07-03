@@ -309,14 +309,13 @@ class Utils:
         mean_dict = {}
         if measures is None:
             measures = next(iter(result.values()))
-        measure_no_mean = set(["num_q", "num_rel", "num_ret", "num_rel_ret"])
+        measures_no_mean = set(["num_q", "num_rel", "num_ret", "num_rel_ret"])
         for val in result.values():
             for measure in measures:
                 measure_val = val[measure]
                 measures_sum[measure] = measures_sum.get(measure, 0.0) + measure_val
         for measure, value in measures_sum.items():
-            if not measure in measure_no_mean:
-                mean_dict[measure] = value / len(result.values())
+            mean_dict[measure] = value / (1 if measure in measures_no_mean else len(result.values()) )
         return mean_dict
 
     # create a dataframe of string of queries or a list or tuple of strings of queries
