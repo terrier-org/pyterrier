@@ -20,7 +20,7 @@ class Utils:
             res = res.merge(qrels, on=['qid', 'docno'], how='left').fillna(default_label)
         with autoopen(filename, "wt") as f:
             for i, row in res.iterrows():
-                values = res["features"].values[0]
+                values = row["features"].values
                 label = row["label"] if qrels is not None else default_label
                 feat_str = ' '.join( [ '%i:%f' % (i+1,values[i]) for i in range(len(values)) ] )
                 f.write("%d qid:%s %s # docno=%s\n" % (label, row["qid"], feat_str, row["docno"]))
