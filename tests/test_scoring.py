@@ -62,7 +62,14 @@ class TestScoring(BaseTestCase):
         #self.assertEqual(pt.Utils.evaluate(output1,dataset.get_qrels()), pt.Utils.evaluate(output2,dataset.get_qrels()))
         
 
-        
+    def test_scoring_manual_empty(self):
+        input = pd.DataFrame([["q1", "fox", "d1", ""]], columns=["qid", "query", "docno", "body"])
+        from pyterrier.batchretrieve import TextScorer
+        scorer = TextScorer(wmodel="Tf")
+        rtr = scorer(input)
+        self.assertEqual(1, len(rtr))
+        self.assertTrue("score" in rtr.columns)
+        self.assertEqual(0, rtr.iloc[0]["score"])
 
     def test_scoring_manual(self):
         input = pd.DataFrame([["q1", "fox", "d1", "all the fox were fox"]], columns=["qid", "query", "docno", "body"])

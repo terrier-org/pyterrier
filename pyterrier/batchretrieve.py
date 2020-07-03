@@ -285,7 +285,11 @@ class TextScorer(TransformerBase):
         # and then just instantiate BR using the our new index 
         # we take all other arguments as arguments for BR
         inner = BatchRetrieve(index, **(self.kwargs))
-        return inner.transform(topics)
+        inner_res = inner.transform(topics)
+        if len(inner_res) < len(topics_and_res):
+            inner_res = topics_and_res[["qid", "docno"]].merge(inner_res, on=["qid", "docno"], how="left")
+            inner_res["score"] = inner_res["score"].fillna(value=0)
+        return inner_res
 
 class FeaturesBatchRetrieve(BatchRetrieve):
     """
