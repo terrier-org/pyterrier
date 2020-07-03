@@ -9,6 +9,7 @@ import pandas as pd
 import pickle
 from functools import partial
 import datetime
+from warnings import warn
 
 DEFINITION_FILE = ".transformer"
 
@@ -72,7 +73,11 @@ class ChestCacheTransformer(TransformerBase):
         # we take the md5 of the __repr__ of the pipeline to make a unique identifier for the pipeline
         # all different pipelines should return unique __repr_() values, as these are intended to be
         # unambiguous
-        trepr = str(self.inner.__repr__())
+        trepr = repr(self.inner)
+        if "object at 0x" in trepr:
+            warn("Cannot cache pipeline %s has a component has not overridden __repr__" % trepr)
+            self.disable = True
+            
         uid = hashlib.md5( bytes(trepr, "utf-8") ).hexdigest()
         destdir = path.join(CACHE_DIR, uid)
         os.makedirs(destdir, exist_ok=True)
@@ -105,6 +110,8 @@ class ChestCacheTransformer(TransformerBase):
         return self.inner
 
     def transform(self, input_res):
+        if self.disable:
+            return self.inner.transform(input_res)
         if "docid" in input_res.columns or "docno" in input_res.columns:
             raise ValueError("Caching currently only supports input dataframes with queries as inputs and cannot be used for re-rankers")
         return self._transform_qid(input_res)
