@@ -1,6 +1,7 @@
 
 import types
 from matchpy import ReplacementRule, Wildcard, Symbol, Operation, Arity, replace_all, Pattern, CustomConstraint
+from warnings import warn
 
 LAMBDA = lambda:0
 def is_lambda(v):
@@ -360,26 +361,30 @@ class FeatureUnionPipeline(NAryTransformerBase):
     def transform(self, inputRes):
         if not "docno" in inputRes.columns and "docid" in inputRes.columns:
             raise ValueError("FeatureUnion operates as a re-ranker, but input did not have either docno or docid columns, found columns were %s" %  str(inputRes.columns))
+
+        num_results = len(inputRes)
         import numpy as np
 
         # a parent could be a feature union, but it still passes the inputRes directly, so inputRes should never have a features column
         if "features" in inputRes.columns:
             raise ValueError("FeatureUnion operates as a re-ranker. They can be nested, but input should not contain a features column; found columns were %s" %  str(inputRes.columns))
         
-        #print( str(id(self)) +" inputRes=" + str(inputRes.columns.values) + " " + str(id(inputRes)))
-
         all_results = []
 
         for i, m in enumerate(self.models):
             #IMPORTANT this .copy() is important, in case an operand transformer changes inputRes
             results = m.transform(inputRes.copy())
+            if len(results) == 0:
+                raise ValueError("Got no results from %s, expected %d" % (repr(m), num_results) )
+            if len(results) < num_results:
+                warn("Got less results than expected from %s, expected %d received %d" % (repr(m), num_results, len(results)))
             assert not "features_x" in results.columns 
             assert not "features_y" in results.columns
             all_results.append( results )
 
     
         for m, res in zip(self.models, all_results):
-            #IMPORTANT: dont do this BEFORE calling subsequent feature untions
+            #IMPORTANT: dont do this BEFORE calling subsequent feature unions
             if not "features" in res.columns:
                 if not "score" in res.columns:
                     raise ValueError("Results from %s did not include either score or features columns, found columns were %s" % (repr(m), str(res.columns)) )
@@ -397,13 +402,9 @@ class FeatureUnionPipeline(NAryTransformerBase):
         
         def _reduce_fn(left, right):
             import pandas as pd
-            #print("LEFT="+ str(left.columns.values) )#+" " + str(len(left.iloc[0]["features"])))
-            #print("RIGHT="+ str(right.columns.values)  )#+" " + str(len(right.iloc[0]["features"])))
             rtr = pd.merge(left, right, on=["qid", "docno"])
             rtr["features"] = rtr.apply(_concat_features, axis=1)
             rtr.drop(columns=["features_x", "features_y"], inplace=True)
-            #print("RTR="+str(rtr.columns.values))
-            #print(len(rtr.iloc[0]["features"]))
             return rtr
         
         from functools import reduce

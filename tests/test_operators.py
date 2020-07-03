@@ -195,6 +195,8 @@ class TestOperators(unittest.TestCase):
         mock2 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]))
         mock3 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 15]], columns=["qid", "docno", "score"]))
 
+        mock3_empty = ptt.UniformTransformer(pd.DataFrame([], columns=["qid", "docno", "score"]))
+
         mock12a = mock1 ** mock2
         mock123a = mock1 ** mock2 ** mock3
         mock123b = mock12a ** mock3
@@ -205,6 +207,15 @@ class TestOperators(unittest.TestCase):
         mock123b_manual = ptt.FeatureUnionPipeline(
                 mock1,
                 ptt.FeatureUnionPipeline(mock2, mock3),
+        )
+        mock123e = ptt.FeatureUnionPipeline(
+                mock1,
+                ptt.FeatureUnionPipeline(mock2, mock3_empty),
+        )
+
+        mock12e3 = ptt.FeatureUnionPipeline(
+                mock1,
+                ptt.FeatureUnionPipeline(mock3_empty, mock3),
         )
         
         self.assertEqual(2, len(mock12a.models))
@@ -239,6 +250,12 @@ class TestOperators(unittest.TestCase):
         _test_expression(mock123_simple)
         _test_expression(mock123a)
         _test_expression(mock123b)
+        _test_expression(mock123b)
+        with self.assertRaises(ValueError):
+            _test_expression(mock123e)
+        with self.assertRaises(ValueError):
+            _test_expression(mock12e3)
+        
 
     def test_feature_union(self): 
         mock_input = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))
