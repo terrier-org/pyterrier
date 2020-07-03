@@ -67,7 +67,7 @@ Pyterrier allows simple access to standard information retrieval test collection
 ```python
 topics = pt.datasets.get_dataset("trec-robust-2004").get_topics()
 qrels = pt.datasets.get_dataset("trec-robust-2004").get_qrels()
-pt.Experiment(topics, [BM25_br, PL2_br], eval_metrics, qrels)
+pt.Experiment([BM25_br, PL2_br], topics, qrels, eval_metrics)
 ```
 
 You can use `pt.datasets.list_datasets()` to see available test collections - if your favourite test collection is missing, [you can submit a Pull Request](https://github.com/terrier-org/pyterrier/pulls).
