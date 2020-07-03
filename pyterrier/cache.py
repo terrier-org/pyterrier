@@ -67,6 +67,7 @@ class ChestCacheTransformer(TransformerBase):
         super().__init__(**kwargs)
         on="qid"
         self.inner = inner
+        self.disable = False
         if CACHE_DIR is None:
             init()
 
