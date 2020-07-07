@@ -387,8 +387,8 @@ class FeatureUnionPipeline(NAryTransformerBase):
                 if not "score" in res.columns:
                     raise ValueError("Results from %s did not include either score or features columns, found columns were %s" % (repr(m), str(res.columns)) )
 
-                if len(res) < num_results:
-                    warn("Got less results than expected from %s, expected %d received %d, missing values will have 0" % (repr(m), num_results, len(results)))
+                if len(res) != num_results:
+                    warn("Got number of results different expected from %s, expected %d received %d, feature scores for any missing documents be 0" % (repr(m), num_results, len(results)))
                     all_results[i] = res = inputRes[["qid", "docno"]].merge(res, on=["qid", "docno"], how="left")
                     res["score"] = res["score"].fillna(value=0)
 
@@ -413,21 +413,18 @@ class FeatureUnionPipeline(NAryTransformerBase):
             return rtr
         
         from functools import reduce
-        # for r in all_results:
-        #     print(r.columns.values)
-        #print("%d all_results is merging %d" % (id(self),  len(all_results)))
         final_DF = reduce(_reduce_fn, all_results)
-        #print(final_DF)
-        #final merge - this brings us the score attribute
 
+        # final_DF should have the features column
+        assert "features" in final_DF.columns
+
+        # we used .copy() earlier, inputRes should still have no features column
         assert not "features" in inputRes.columns
 
-        #print(str(id(self)) +" inputRes=" + str(inputRes.columns.values) + " " + str(id(inputRes)))
-        #print(str(id(self)) +" final_DF=" + str(final_DF.columns.values))
-
+        # final merge - this brings us the score attribute from any previous transformer
         final_DF = inputRes.merge(final_DF, on=["qid", "docno"])
+        # remove the duplicated columns
         final_DF = final_DF.loc[:,~final_DF.columns.duplicated()]
-        #print("%d final_DF=%s " % (id(self), str(final_DF.columns.values) ))
         assert not "features_x" in final_DF.columns 
         assert not "features_y" in final_DF.columns 
         return final_DF
