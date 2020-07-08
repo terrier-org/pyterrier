@@ -209,9 +209,9 @@ class XGBoostLTR_pipeline(LTR_pipeline):
             topics_and_results_Valid(DataFrame): A dataframe with the topics and results for validation
         """
         if len(topics_and_results_Train) == 0:
-            raise ValueError("No training topics to fit to")
+            raise ValueError("No training results to fit to")
         if len(topics_and_results_Valid) == 0:
-            raise ValueError("No training topics to fit to")
+            raise ValueError("No validation results to fit to")
 
         if 'features' not in topics_and_results_Train.columns:
             raise ValueError("No features column retrieved in training")
