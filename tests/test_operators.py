@@ -272,11 +272,11 @@ class TestOperators(unittest.TestCase):
         
         with warnings.catch_warnings(record=True) as w:
             _test_expression(mock123p)
-            assert "Got less results than expected" in str(w[-1].message)
+            assert "Got number of results" in str(w[-1].message)
         
         with warnings.catch_warnings(record=True) as w:
             _test_expression(mock12p3)
-            assert "Got less results than expected" in str(w[-1].message)
+            assert "Got number of results" in str(w[-1].message)
 
 
     def test_feature_union(self): 
