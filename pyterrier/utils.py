@@ -308,11 +308,15 @@ class Utils:
 
     @staticmethod
     def mean_of_measures(result, measures=None):
+        import numpy as np
         measures_sum = {}
         mean_dict = {}
         if measures is None:
             measures = next(iter(result.values()))
         measures_no_mean = set(["num_q", "num_rel", "num_ret", "num_rel_ret"])
+        if "iprec_at_recall" in measures:
+            measures = measures + ["iprec_at_recall_%0.2f" % cutoff for cutoff in np.arange(0., 1.1, 0.1) ]
+            measures.remove("iprec_at_recall")
         for val in result.values():
             for measure in measures:
                 measure_val = val[measure]
