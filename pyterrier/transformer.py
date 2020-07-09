@@ -291,7 +291,7 @@ class ConcatenateTransformer(BinaryTransformerBase):
 
         # now bring together and re-sort
         # this sort should match trec_eval
-        rtr = pd.concat([res1, remainder]).sort_values(["qid", "score", "docno"], ascending=[True, False, True]) 
+        rtr = pd.concat([res1, remainder]).sort_values(by=["qid", "score", "docno"], ascending=[True, False, True]) 
 
         # recompute the ranks
         rtr = rtr.drop(columns=["rank"])

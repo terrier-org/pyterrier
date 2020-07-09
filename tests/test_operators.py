@@ -2,7 +2,6 @@ import pandas as pd
 import unittest
 import pyterrier as pt
 import warnings
-import pyterrier.transformer as ptt
 from matchpy import *
 
 class TestOperators(unittest.TestCase):
@@ -13,12 +12,14 @@ class TestOperators(unittest.TestCase):
             pt.init()
 
     def test_then(self):
+        
         def rewrite(topics):
             for index, row in topics.iterrows():
                 row["query"] = row["query"] + " test"
             return topics
         fn1 = lambda topics : rewrite(topics)
         fn2 = lambda topics : rewrite(topics)
+        import pyterrier.transformer as ptt
         sequence1 = ptt.LambdaPipeline(fn1) >> ptt.LambdaPipeline(fn2)
         sequence2 = ptt.LambdaPipeline(fn1) >> fn2
         sequence3 = ptt.LambdaPipeline(fn1) >> rewrite
@@ -40,6 +41,7 @@ class TestOperators(unittest.TestCase):
 
 
     def test_then_multi(self):
+        import pyterrier.transformer as ptt
         mock1 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))
         mock2 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]))
         mock3 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]))
@@ -75,6 +77,7 @@ class TestOperators(unittest.TestCase):
 
 
     def test_mul(self):
+        import pyterrier.transformer as ptt
         mock = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))
         for comb in [mock * 10, 10 * mock]:
             rtr = comb.transform(None)
@@ -84,6 +87,7 @@ class TestOperators(unittest.TestCase):
             self.assertEqual(50, rtr.iloc[0]["score"])
     
     def test_plus(self):
+        import pyterrier.transformer as ptt
         mock1 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))
         mock2 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]))
 
@@ -97,6 +101,7 @@ class TestOperators(unittest.TestCase):
         self.assertEqual(15, rtr.iloc[0]["score"])
 
     def test_rank_cutoff(self):
+        import pyterrier.transformer as ptt
         mock1 = ptt.UniformTransformer( pd.DataFrame([["q1", "d2", 1, 5.1], ["q1", "d3", 2, 5.1]], columns=["qid", "docno", "rank", "score"]))
         cutpipe = mock1 % 1
         rtr = cutpipe.transform(None)
@@ -104,6 +109,7 @@ class TestOperators(unittest.TestCase):
         
     def test_concatenate(self):
         import numpy as np
+        import pyterrier.transformer as ptt
         mock1 = ptt.UniformTransformer( pd.DataFrame([["q1", "d2", 2, 4.9, np.array([1,2])], ["q1", "d3", 1, 5.1, np.array([1,2])]], columns=["qid", "docno", "rank", "score", "bla"]))
         mock2 = ptt.UniformTransformer( pd.DataFrame([["q1", "d1", 1, 4.9, np.array([1,1])], ["q1", "d3", 2, 5.1, np.array([1,2])]], columns=["qid", "docno", "rank", "score", "bla"]))
 
@@ -122,6 +128,7 @@ class TestOperators(unittest.TestCase):
 
 
     def test_plus_multi_rewrite(self):
+        import pyterrier.transformer as ptt
         mock1 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))
         mock2 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]))
         mock3 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 15]], columns=["qid", "docno", "score"]))
@@ -139,6 +146,7 @@ class TestOperators(unittest.TestCase):
 
 
     def test_union(self):
+        import pyterrier.transformer as ptt
         mock1 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))
         mock2 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc2", 10]], columns=["qid", "docno", "score"]))
 
@@ -152,6 +160,7 @@ class TestOperators(unittest.TestCase):
         self.assertTrue("doc2" in rtr["docno"].values)
 
     def test_intersect(self):
+        import pyterrier.transformer as ptt
         mock1 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))
         mock2 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc2", 10], ["q1", "doc1", 10]], columns=["qid", "docno", "score"]))
 
@@ -189,6 +198,7 @@ class TestOperators(unittest.TestCase):
 
 
     def test_feature_union_multi(self):
+        import pyterrier.transformer as ptt
         mock0 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 0], ["q1", "doc2", 0]], columns=["qid", "docno", "score"]))
 
         mock1 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5], ["q1", "doc2", 0]], columns=["qid", "docno", "score"]))
@@ -280,6 +290,7 @@ class TestOperators(unittest.TestCase):
 
 
     def test_feature_union(self): 
+        import pyterrier.transformer as ptt
         mock_input = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))
         
         mock_f1 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]))
