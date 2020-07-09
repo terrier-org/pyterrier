@@ -2,7 +2,7 @@ import pandas as pd
 import unittest
 import pyterrier as pt
 import warnings
-import pyterrier.transformer as ptt;
+import pyterrier.transformer as ptt
 from matchpy import *
 
 class TestOperators(unittest.TestCase):

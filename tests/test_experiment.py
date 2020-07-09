@@ -3,7 +3,6 @@ import pyterrier as pt
 import os
 import unittest
 import warnings
-import pyterrier.transformer as ptt
 from .base import BaseTestCase
 
 class TestExperiment(BaseTestCase):
@@ -13,9 +12,10 @@ class TestExperiment(BaseTestCase):
         res1 = pd.DataFrame([["q1", "d1", 1.0]], columns=["qid", "docno", "score"])
         res2 = pd.DataFrame([["q1", "d1", 1.0], ["q2", "d1", 2.0] ], columns=["qid", "docno", "score"])
         qrels = pd.DataFrame([["q1", "d1", 1], ["q2", "d1", 1] ], columns=["qid", "docno", "label"])
+        from pyterrier.transformer import UniformTransformer
         with warnings.catch_warnings(record=True) as w:
             pt.pipelines.Experiment(
-                [ptt.UniformTransformer(res1), ptt.UniformTransformer(res2)],
+                [UniformTransformer(res1), UniformTransformer(res2)],
                 topics,
                 qrels,
                 ["map"],
