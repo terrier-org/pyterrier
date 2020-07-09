@@ -46,12 +46,6 @@ class TestUtils(BaseTestCase):
                 self.assertEqual(row1["qid"], row2["qid"])
                 self.assertTrue(np.array_equal(row1["features"], row2["features"]))        
 
-    def test_parse_trec_topics_file(self):
-        input = os.path.dirname(os.path.realpath(__file__)) + "/fixtures/topics.trec"
-        exp_result = pd.DataFrame([["1", "light"], ["2", "radiowave"], ["3", "sound"]], columns=['qid', 'query'])
-        result = pt.Utils.parse_trec_topics_file(input)
-        self.assertTrue(exp_result.equals(result))
-
     def test_convert_df_to_pytrec_eval_float(self):
         input = pd.DataFrame([["1", "1", 12.5], ["1", "7", 4.3], ["2", "12", 8.5]], columns=["qid", "docno", "score"])
         exp_result = {"1": {"1": 12.5, "7": 4.3}, "2": {"12": 8.5}}

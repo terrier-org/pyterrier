@@ -1,6 +1,11 @@
 import urllib.request
 import wget
 import os
+import pandas as pd
+from .transformer import is_lambda
+import types
+import requests
+from tqdm import tqdm
 
 STANDARD_TERRIER_INDEX_FILES = [
     "data.direct.bf",
@@ -15,6 +20,9 @@ STANDARD_TERRIER_INDEX_FILES = [
 ]
 
 class Dataset():
+
+    def _configure(self, **kwargs):
+        pass
 
     def get_corpus_location(self):
         ''' Returns the location of the files to allow indexing the corpus '''
@@ -41,10 +49,59 @@ class RemoteDataset(Dataset):
         self.corpus_home = os.path.join(pt_home, "corpora", name)
         self.locations = locations
         self.name = name
+        self.user = None
+        self.password = None
+
+    def _configure(self, **kwargs):
+        if 'user' in kwargs:
+            self.user = kwargs['user']
+            self.password = kwargs['password']
+
+    @staticmethod
+    def download(URL, filename, **kwargs):
+        basename = os.path.basename(filename)
+        r = requests.get(URL, allow_redirects=True, stream=True, **kwargs)
+        r.raise_for_status()
+        total = int(r.headers.get('content-length', 0))
+        with open(filename, 'wb') as file, tqdm(
+                desc=basename,
+                total=total,
+                unit='iB',
+                unit_scale=True,
+                unit_divisor=1024,
+        ) as bar:
+            for data in r.iter_content(chunk_size=1024):
+                size = file.write(data)
+                bar.update(size)
+
+    def _check_variant(self, component, variant=None):
+        name=self.name
+        if not component in self.locations:
+            raise ValueError("No %s in dataset %s" % (component, name))
+        if variant is None:
+            if not isinstance(self.locations[component], list):
+                raise ValueError("For %s in dataset %s, you must specify a variant=. Available are: %s" % (component, name, str(self.locations[component].keys())))
+            location = self.locations[component][0]
+        else:
+            if isinstance(self.locations[component], list):
+                raise ValueError("For %s in dataset %s, there are no variants, but you specified %s" % (component, name, variant))
+            if not variant in self.locations[component]:
+                raise ValueError("For %s in dataset %s, there is no variant %s. Available are: %s" % (component, name, variant, str(self.locations[component].keys())))
 
     def _get_one_file(self, component, variant=None):
-        filetype=None
+        filetype=None        
+        self._check_variant(component, variant)
         location = self.locations[component][0] if variant is None else self.locations[component][variant]
+
+        if is_lambda(location) or isinstance(location, types.FunctionType):
+            argcount = location.__code__.co_argcount
+            if argcount == 0:
+                return location()
+            elif argcount == 3:
+                return location(self, component, variant)
+            else:
+                raise TypeError("Expected function with 0 or 3 arguments for  %s %s %s" % (component, name, variant))
+
         local = location[0]
         URL = location [1]
         if len(location) > 2:
@@ -56,21 +113,27 @@ class RemoteDataset(Dataset):
         if not os.path.exists(local):
             try:
                 print("Downloading %s %s to %s" % (self.name, component, local))
-                wget.download(URL, local)
+                kwargs = {}
+                if self.user is not None:
+                    kwargs["auth"]=(self.user, self.password)
+                RemoteDataset.download(URL, local, **kwargs)
             except urllib.error.HTTPError as he:
                 raise ValueError("Could not fetch " + URL) from he
         return (local, filetype)
 
-    def _get_all_files(self, component):
+    def _get_all_files(self, component, **kwargs):
         localDir = os.path.join(self.corpus_home, component)
         if not os.path.exists(localDir):
             os.makedirs(localDir)
             print("Downloading %s %s to %s" % (self.name, component, localDir))
+        kwargs = {}
+        if self.user is not None:
+            kwargs["auth"]=(self.user, self.password)
         for (local, URL) in self.locations[component]:
             local = os.path.join(localDir, local)
             if not os.path.exists(local):
                 try:
-                    wget.download(URL, local)
+                    RemoteDataset.download(URL, local, **kwargs)
                 except urllib.error.HTTPError as he:
                     raise ValueError("Could not fetch " + URL) from he
         return localDir
@@ -82,13 +145,16 @@ class RemoteDataset(Dataset):
             return True
         return self.locations[component].keys()
 
-    def get_corpus(self):
+    def get_corpus(self, **kwargs):
         import pyterrier as pt
-        return pt.Utils.get_files_in_dir(self._get_all_files("corpus"))
+        return pt.Utils.get_files_in_dir(self._get_all_files("corpus", **kwargs))
 
     def get_qrels(self, variant=None):
         import pyterrier as pt
-        return pt.Utils.parse_qrels(self._get_one_file("qrels", variant)[0])
+        filename, type = self._get_one_file("qrels", variant)
+        if type == "direct":
+            return filename 
+        return pt.Utils.parse_qrels(filename)
 
     def get_topics(self, variant=None, **kwargs):
         import pyterrier as pt
@@ -99,11 +165,17 @@ class RemoteDataset(Dataset):
             return pt.Utils.parse_singleline_topics_file(file, **kwargs)
         elif filetype == "trecxml":
             return pt.Utils.parse_trecxml_topics_file(file, **kwargs)
+        elif filetype == "direct":
+            return file
+        raise ValueError("Unknown filetype %s for %s topics %s"  % (filetype, self.name, variant))
 
     def get_index(self):
         import pyterrier as pt
         thedir = self._get_all_files("index")
         return pt.autoclass("org.terrier.querying.IndexRef").of(os.path.join(thedir, "data.properties"))
+
+    def __repr__(self):
+        return "RemoteDataset for %s, with %s" % (self.name, str(list(self.locations.keys())))
 
 TREC_COVID_FILES = {
     "topics" : {
@@ -131,6 +203,157 @@ TREC_DEEPLEARNING_MSMARCO_FILES = {
             "train" : ("msmarco-doctrain-qrels.tsv.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-doctrain-qrels.tsv.gz"),
             "dev" : ("msmarco-docdev-qrels.tsv.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-docdev-qrels.tsv.gz"),
             "test" : ("2019qrels-docs.txt", "https://trec.nist.gov/data/deep/2019qrels-docs.txt")
+        }
+}
+
+# remove WT- prefix from topics
+def remove_prefix(self, component, variant):
+    import pyterrier as pt
+    topics_file, type = self._get_one_file("topics_prefixed", variant)
+    if type == "trec":
+        topics = pt.Utils.parse_trec_topics_file(topics_file)
+    elif type == "singleline":
+        topics = pt.Utils.parse_singleline_topics_file(topics_file)
+    else:
+        raise ValueError("Unknown topic type %s" % type)
+    topics["qid"] = topics.apply(lambda row: row["qid"].split("-")[1], axis=1)
+    return (topics, "direct")
+
+
+# a function to fix the namedpage TREC Web track 2002
+def parse_desc_only(self, component, variant):
+    import pyterrier as pt
+    file, type = self._get_one_file("topics_special_np")
+    topics = pt.Utils.parse_trec_topics_file(file, whitelist=["DESC"], blacklist=None)
+    topics["qid"] = topics.apply(lambda row: row["qid"].replace("NP", ""), axis=1)
+    return (topics, "direct")
+
+TREC_WT_2002_FILES = {
+    "topics" : 
+        { 
+            "td" : ("webtopics_551-600.txt.gz", "https://trec.nist.gov/data/topics_eng/webtopics_551-600.txt.gz", "trec"),
+            "np" : parse_desc_only
+        },
+    "topics_special_np" : [
+        ("webnamed_page_topics.1-150.txt.gz", "https://trec.nist.gov/data/topics_eng/webnamed_page_topics.1-150.txt.gz", "trec")
+    ],
+    "qrels" : 
+        { 
+            "np" : ("qrels.named-page.txt.gz", "https://trec.nist.gov/data/qrels_eng/qrels.named-page.txt.gz"),
+            "td" : ("qrels.distillation.txt.gz", "https://trec.nist.gov/data/qrels_eng/qrels.distillation.txt.gz")
+        }
+}
+
+TREC_WT_2003_FILES = {
+    "topics" : 
+        { 
+            "np" : ("webtopics_551-600.txt.gz", "https://trec.nist.gov/data/topics_eng/webtopics_551-600.txt.gz", "trec"),
+            "td" : ("2003.distillation_topics.1-50.txt", "https://trec.nist.gov/data/topics_eng/2003.distillation_topics.1-50.txt", "trec"),
+        },
+    "qrels" : 
+        { 
+            "np" : ("qrels.named-page.txt.gz", "https://trec.nist.gov/data/qrels_eng/qrels.named-page.txt.gz"),
+            "td" : ("qrels.distillation.2003.txt", "https://trec.nist.gov/data/qrels_eng/qrels.distillation.2003.txt")
+        }
+}
+
+def filter_on_qid_type(self, component, variant):
+    if component == "topics":
+        data = self.get_topics("all")
+    elif component == "qrels":
+        data = self.get_qrels("all")
+    qid2type = pd.read_csv("https://trec.nist.gov/data/web/04.topic-map.official.txt", names=["qid", "type"], sep=" ")
+    qid2type["qid"] = qid2type.apply(lambda row: row["qid"].split("-")[1], axis=1)
+    rtr = data.merge(qid2type[qid2type["type"] == variant], on=["qid"])
+    if len(rtr) == 0:
+        raise ValueError("No such topic type '%s'" % variant)
+    rtr.drop(columns=['type'], inplace=True)
+    return (rtr, "direct")
+
+TREC_WT_2004_FILES = {
+    "topics" : 
+        { 
+            "all" : remove_prefix,
+            "np": filter_on_qid_type,
+            "hp": filter_on_qid_type,
+            "td": filter_on_qid_type,
+        },
+    "topics_prefixed" : 
+        { 
+            "all" : ("Web2004.query.stream.trecformat.txt", "https://trec.nist.gov/data/web/Web2004.query.stream.trecformat.txt", "trec")
+        },
+    "qrels" : 
+        {
+            "hp" : filter_on_qid_type,
+            "td" : filter_on_qid_type,
+            "np" : filter_on_qid_type,
+            "all" : ("04.qrels.web.mixed.txt", "https://trec.nist.gov/data/web/04.qrels.web.mixed.txt")
+        }
+}
+
+FIFTY_PCT_INDEX_BASE = "http://www.dcs.gla.ac.uk/~craigm/IR_HM/index/"
+FIFTY_PCT_FILES = {
+    "index":
+        [(filename, FIFTY_PCT_INDEX_BASE + filename) for filename in ["data.meta-0.fsomapfile"] + STANDARD_TERRIER_INDEX_FILES]
+}
+
+
+
+# a function for the TREC Web track 2009 qrels, to make prels into qrels
+def prel2qrel(self, component, variant): 
+    prel_file, _ = self._get_one_file("prels", variant)
+    df = pd.read_csv(prel_file, sep=" ", names=["qid", "docno", "label", "oth1", "oth2"])[["qid", "docno", "label"]]
+    df["qid"] = df["qid"].astype(str)
+    df["docno"] = df["docno"].astype(str)
+    return (df, "direct")
+
+TREC_WT_2009_FILES = {
+    "topics" : [  
+            remove_prefix
+        ],
+
+    "topics_prefixed" : [  
+            ("wt09.topics.queries-only", "https://trec.nist.gov/data/web/09/wt09.topics.queries-only", "singleline")
+        ],
+    "qrels" :  {
+        "adhoc" : prel2qrel, 
+        "adhoc.catA" : prel2qrel,
+        "adhoc.catB" : prel2qrel,
+    },
+    "prels" : {
+        "adhoc" : ("prels.1-50.gz", "https://trec.nist.gov/data/web/09/prels.1-50.gz"),
+        "adhoc.catA" : ("prels.catA.1-50.gz", "https://trec.nist.gov/data/web/09/prels.catA.1-50.gz"),
+        "adhoc.catB" : ("prels.catB.1-50.gz", "https://trec.nist.gov/data/web/09/prels.catB.1-50.gz")
+    }
+}
+
+TREC_WT_2010_FILES = {
+     "topics" : [  
+            ("wt2010-topics.queries-only", "https://trec.nist.gov/data/web/10/wt2010-topics.queries-only", "singleline")
+        ],
+    "qrels" : 
+        { 
+            "adhoc" : ("qrels.adhoc", "https://trec.nist.gov/data/web/10/10.adhoc-qrels.final")
+        }
+}
+
+TREC_WT_2011_FILES = {
+     "topics" : [  
+            ("queries.101-150.txt", "https://trec.nist.gov/data/web/11/queries.101-150.txt", "singleline")
+        ],
+    "qrels" : 
+        { 
+            "adhoc" : ("qrels.adhoc", "https://trec.nist.gov/data/web/11/qrels.adhoc")
+        }
+}
+
+TREC_WT_2012_FILES = {
+     "topics" : [  
+            ("queries.151-200.txt", "https://trec.nist.gov/data/web/12/queries.151-200.txt", "singleline")
+        ],
+    "qrels" : 
+        { 
+            "adhoc" : ("qrels.adhoc", "https://trec.nist.gov/data/web/12/qrels.adhoc")
         }
 }
 
@@ -162,19 +385,32 @@ VASWANI_FILES = {
 }
 
 DATASET_MAP = {
+    "50pct" : RemoteDataset("50pct", FIFTY_PCT_FILES),
     "vaswani": RemoteDataset("vaswani", VASWANI_FILES),
     "trec-deep-learning-docs" : RemoteDataset("trec-deep-learning-docs", TREC_DEEPLEARNING_MSMARCO_FILES),
     "trec-robust-2004" : RemoteDataset("trec-robust-2004", TREC_ROBUST_04_FILES),
     "trec-robust-2005" : RemoteDataset("trec-robust-2005", TREC_ROBUST_05_FILES),
-    "trec-wt2g" : RemoteDataset("trec-wt2g", TREC_WT2G_FILES),
     "trec-covid" : RemoteDataset("trec-covid", TREC_COVID_FILES),
+    #wt2g
+    "trec-wt2g" : RemoteDataset("trec-wt2g", TREC_WT2G_FILES),
+    #.gov
+    "trec-wt-2002" : RemoteDataset("trec-wt-2002", TREC_WT_2002_FILES),
+    "trec-wt-2003" : RemoteDataset("trec-wt-2003", TREC_WT_2002_FILES),
+    "trec-wt-2004" : RemoteDataset("trec-wt-2004", TREC_WT_2004_FILES),
+    #.clueweb09
+    "trec-wt-2009" : RemoteDataset("trec-wt-2009", TREC_WT_2009_FILES),
+    "trec-wt-2010" : RemoteDataset("trec-wt-2010", TREC_WT_2010_FILES),
+    "trec-wt-2011" : RemoteDataset("trec-wt-2011", TREC_WT_2011_FILES),
+    "trec-wt-2012" : RemoteDataset("trec-wt-2012", TREC_WT_2012_FILES),
 }
 
-def get_dataset(name):
+def get_dataset(name, **kwargs):
     '''
         Get a dataset by name
     '''
-    return DATASET_MAP[name]
+    rtr = DATASET_MAP[name]
+    rtr._configure(**kwargs)
+    return rtr
 
 def datasets():
     '''

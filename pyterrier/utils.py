@@ -141,7 +141,10 @@ class Utils:
         from . import check_version
         assert check_version("5.3")
         trecquerysource = autoclass('org.terrier.applications.batchquerying.TRECQuery')
-        tqs = trecquerysource([file_path], doc_tag, id_tag, whitelist, blacklist)
+        tqs = trecquerysource(
+            [file_path], doc_tag, id_tag, whitelist, blacklist,
+            # help jnius select the correct constructor 
+            signature="([Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;)V")
         topics_lst=[]
         while(tqs.hasNext()):
             topic = tqs.next()
