@@ -213,9 +213,9 @@ class Utils:
         Returns:
             dict: {qid:{docno:label,},}
         """
-        run_dict_pytrec_eval = defaultdict(dict)     
-        for index, row in df.iterrows():
-            run_dict_pytrec_eval[row['qid']][row['docno']] = int(row['label'])
+        run_dict_pytrec_eval = defaultdict(dict)
+        for row in df.itertuples():
+            run_dict_pytrec_eval[row.qid][row.docno] = int(row.label)
         return(run_dict_pytrec_eval)
 
     @staticmethod
