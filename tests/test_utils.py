@@ -1,5 +1,4 @@
 import pandas as pd
-
 import pyterrier as pt
 import unittest
 import os
@@ -65,6 +64,13 @@ class TestUtils(BaseTestCase):
         #print(exp_result)
         #print(result)
         pd.testing.assert_frame_equal(exp_result, result)
+
+    def test_convert_qrels_to_dict(self):
+        input = os.path.dirname(os.path.realpath(__file__)) + "/fixtures/qrels"
+        exp_result = {"1": {"13": 1, "15": 1}, "2": {"17": 1, "8": 1, "4": 1}, "3": {"2": 1}}
+        df = pt.Utils.parse_qrels(input)
+        result = dict(pt.Utils.convert_qrels_to_dict(df))
+        self.assertEqual(exp_result, result)
 
     def test_evaluate(self):
         input_qrels = pd.DataFrame([["1", "12", 1], ["1", "26", 1], ["1", "5", 1], ["1", "6", 1], ["2", "12", 1], ["2", "13", 1], ["2", "7", 1], ["2", "17", 1]], columns=["qid", "docno", "label"])
