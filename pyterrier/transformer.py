@@ -244,9 +244,9 @@ class SetIntersectionTransformer(BinaryTransformerBase):
     
     def transform(self, topics):
         res1 = self.left.transform(topics)
-        res2 = self.right.transform(topics)
-        # NB: there may be other duplicate columns
-        rtr = res1.merge(res2, on=["qid", "docno"]).drop(columns=["score_x", "score_y"])
+        res2 = self.right.transform(topics)        
+        final_cols = ["qid", "query", "docno"]
+        rtr = res1.merge(res2, on=final_cols)[final_cols]
         return rtr
 
 class CombSumTransformer(BinaryTransformerBase):
