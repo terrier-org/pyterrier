@@ -234,9 +234,11 @@ class SetUnionTransformer(BinaryTransformerBase):
         assert isinstance(res1, pd.DataFrame)
         assert isinstance(res2, pd.DataFrame)
         rtr = pd.concat([res1, res2])
-        rtr = rtr.drop_duplicates(subset=["qid", "docno"])
-        rtr = rtr.sort_values(by=['qid', 'docno'])
-        rtr = rtr.drop(columns=["score"])
+        
+        on_cols = ["qid", "docno"]     
+        rtr = rtr.drop_duplicates(subset=on_cols)
+        rtr = rtr.sort_values(by=on_cols)
+        rtr = rtr[on_cols + ["query"]]
         return rtr
 
 class SetIntersectionTransformer(BinaryTransformerBase):
@@ -244,9 +246,10 @@ class SetIntersectionTransformer(BinaryTransformerBase):
     
     def transform(self, topics):
         res1 = self.left.transform(topics)
-        res2 = self.right.transform(topics)        
-        final_cols = ["qid", "query", "docno"]
-        rtr = res1.merge(res2, on=final_cols)[final_cols]
+        res2 = self.right.transform(topics)  
+        
+        on_cols = ["qid", "docno"]        
+        rtr = res1.merge(res2, on=on_cols, suffixes=('','_y'))[on_cols + ["query"]]
         return rtr
 
 class CombSumTransformer(BinaryTransformerBase):
