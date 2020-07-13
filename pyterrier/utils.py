@@ -19,11 +19,11 @@ class Utils:
         if qrels is not None:
             res = res.merge(qrels, on=['qid', 'docno'], how='left').fillna(default_label)
         with autoopen(filename, "wt") as f:
-            for i, row in res.iterrows():
-                values = row["features"]
-                label = row["label"] if qrels is not None else default_label
+            for row in res.itertuples():
+                values = row.features
+                label = row.label if qrels is not None else default_label
                 feat_str = ' '.join( [ '%i:%f' % (i+1,values[i]) for i in range(len(values)) ] )
-                f.write("%d qid:%s %s # docno=%s\n" % (label, row["qid"], feat_str, row["docno"]))
+                f.write("%d qid:%s %s # docno=%s\n" % (label, row.qid, feat_str, row.docno))
     
     @staticmethod
     def write_results_trec(res, filename, run_name="pyterrier"):
@@ -230,8 +230,8 @@ class Utils:
             dict: {qid:{docno:score,},}
         """
         run_dict_pytrec_eval = defaultdict(dict)
-        for index, row in df.iterrows():
-            run_dict_pytrec_eval[row['qid']][row['docno']] = float(row['score'])
+        for row in df.itertuples():
+            run_dict_pytrec_eval[row.qid][row.docno] = float(row.score)
         return(run_dict_pytrec_eval)
 
     @staticmethod

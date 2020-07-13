@@ -162,10 +162,10 @@ class BatchRetrieve(BatchRetrieveBase):
             queries['qid'] = queries['qid'].astype(str)
 
 
-        for index,row in tqdm(queries.iterrows(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.iterrows():
+        for row in tqdm(queries.itertuples(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
             rank = 0
-            qid = str(row['qid'])
-            query = row['query']
+            qid = str(row.qid)
+            query = row.query
             srq = self.manager.newSearchRequest(qid, query)
             
             for control, value in self.controls.items():
@@ -358,9 +358,9 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         if queries["qid"].dtype == np.int64:
             queries['qid'] = queries['qid'].astype(str)
 
-        for index, row in tqdm(queries.iterrows(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.iterrows():
-            qid = str(row['qid'])
-            query = row['query']
+        for row in tqdm(queries.itertuples(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
+            qid = str(row.qid)
+            query = row.query
 
             srq = self.manager.newSearchRequest(qid, query)
 

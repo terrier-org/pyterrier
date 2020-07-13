@@ -29,9 +29,9 @@ class SDM(TransformerBase):
         # instantiate the DependenceModelPreProcess, specifying a proximity model if specified
         sdm = DependenceModelPreProcess() if self.prox_model is None else DependenceModelPreProcess(self.prox_model)
         
-        for index,row in tqdm(queries.iterrows(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.iterrows():
-            qid = row["qid"]
-            query = row["query"]
+        for row in tqdm(queries.itertuples(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
+            qid = row.qid
+            query = row.query
             # parse the querying into a MQT
             rq = pt.autoclass("org.terrier.querying.Request")()
             rq.setQueryID(qid)
@@ -114,9 +114,9 @@ class QueryExpansion(TransformerBase):
 
         queries = topics_and_res[["qid", "query"]].dropna(axis=0, subset=["query"]).drop_duplicates()
                 
-        for index,row in tqdm(queries.iterrows(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.iterrows():
-            qid = row["qid"]
-            query = row["query"]
+        for row in tqdm(queries.itertuples(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
+            qid = row.qid
+            query = row.query
             srq = self.manager.newSearchRequest(qid, query)
             rq = cast("org.terrier.querying.Request", srq)
             self.qe.configureIndex(rq.getIndex())

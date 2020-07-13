@@ -121,8 +121,9 @@ class ChestCacheTransformer(TransformerBase):
         rtr = []
         todo=[]
         
+        # We cannot remove this iterrows() without knowing how to take named tuples into a dataframe
         for index, row in input_res.iterrows():
-            qid = row["qid"]
+            qid = str(row["qid"])
             self.requests += 1
             try:
                 df = self.chest.get(qid, None)
@@ -137,10 +138,10 @@ class ChestCacheTransformer(TransformerBase):
                 self.hits += 1
                 rtr.append(df)
         if len(todo) > 0:
-            tood_df = pd.concat(todo)
-            todo_res = self.inner.transform(tood_df)
-            for indx, row in tood_df.iterrows():
-                qid = row["qid"]
+            todo_df = pd.concat(todo)
+            todo_res = self.inner.transform(todo_df)
+            for row in todo_df.itertuples():
+                qid = row.qid
                 this_query_res = todo_res[todo_res["qid"] == qid]
                 self.chest[qid] = this_query_res
                 rtr.append(this_query_res)
