@@ -147,22 +147,27 @@ class TestOperators(unittest.TestCase):
 
     def test_union(self):
         import pyterrier.transformer as ptt
-        mock1 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))
-        mock2 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc2", 10]], columns=["qid", "docno", "score"]))
+        mock1 = ptt.UniformTransformer(pd.DataFrame([["q1", "q1texta", "doc1", 5], ["q1", "q1texta", "doc3", 5]], columns=["qid", "query", "docno", "score"]))
+        mock2 = ptt.UniformTransformer(pd.DataFrame([["q1", "q1textb", "doc2", 10]], [["q1", "q1textb", "doc3", 10]], columns=["qid", "query", "docno", "score"]))
 
         combined = mock1 | mock2
         # we dont need an input, as both Identity transformers will return anyway
         rtr = combined.transform(None)
 
-        self.assertEqual(2, len(rtr))
+        self.assertEqual(3, len(rtr))
         self.assertTrue("q1" in rtr["qid"].values)
         self.assertTrue("doc1" in rtr["docno"].values)
         self.assertTrue("doc2" in rtr["docno"].values)
+        # in case we have different values for query for the same (qid, docno), we use only the first one
+        self.assertTrue("q1texta" in rtr["query"].values)
+        self.assertTrue("q1textb" in rtr[rtr.docno == "doc2"]["query"].values) 
+        self.assertTrue("q1textb" not in rtr[rtr.docno == "doc3"]["query"].values) 
+
 
     def test_intersect(self):
         import pyterrier.transformer as ptt
-        mock1 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))
-        mock2 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc2", 10], ["q1", "doc1", 10]], columns=["qid", "docno", "score"]))
+        mock1 = ptt.UniformTransformer(pd.DataFrame([["q1", "q1texta", "doc1", 5]], columns=["qid", "query", "docno", "score"]))
+        mock2 = ptt.UniformTransformer(pd.DataFrame([["q1", "q1textb", "doc2", 10], ["q1", "q1textb", "doc1", 10]], columns=["qid", "query", "docno", "score"]))
 
         combined = mock1 & mock2
         # we dont need an input, as both Identity transformers will return anyway
@@ -172,7 +177,10 @@ class TestOperators(unittest.TestCase):
         self.assertTrue("q1" in rtr["qid"].values)
         self.assertTrue("doc1" in rtr["docno"].values)
         self.assertFalse("doc2" in rtr["docno"].values)
-
+        # in case we have different values for query for the same (qid, docno), we use the left one
+        self.assertTrue("q1texta" in rtr["query"].values)
+        self.assertTrue("q1textb" not in rtr["query"].values) 
+        
     def test_feature_union_multi_actual(self):
         dataset = pt.get_dataset("vaswani")
         index = dataset.get_index()

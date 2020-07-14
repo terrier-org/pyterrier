@@ -112,7 +112,7 @@ class TransformerBase:
     def transform(self, topics_or_res):
         '''
             Abstract method for all transformations. Typically takes as input a Pandas
-            DataFrame, and also returns one also.
+            DataFrame, and also returns one.
         '''
         pass
 
@@ -225,6 +225,14 @@ class NAryTransformerBase(TransformerBase,Operation):
         return len(self.models)
 
 class SetUnionTransformer(BinaryTransformerBase):
+    '''      
+        This operator makes a retrieval set that includes documents that occur in the union (either) of both retrieval sets. 
+        For instance, let left and right be pandas dataframes, both with the columns = [qid, query, docno, score], 
+        left = [1, "text1", doc1, 0.42] and right = [1, "text1", doc2, 0.24]. 
+        Then, left | right will be a dataframe with only the columns [qid, query, docno] and two rows = [[1, "text1", doc1], [1, "text1", doc2]].
+                
+        In case of duplicated both containing (qid, docno), only the first occurrence will be used.
+    '''
     name = "Union"
 
     def transform(self, topics):
@@ -234,19 +242,30 @@ class SetUnionTransformer(BinaryTransformerBase):
         assert isinstance(res1, pd.DataFrame)
         assert isinstance(res2, pd.DataFrame)
         rtr = pd.concat([res1, res2])
-        rtr = rtr.drop_duplicates(subset=["qid", "docno"])
-        rtr = rtr.sort_values(by=['qid', 'docno'])
-        rtr = rtr.drop(columns=["score"])
+        
+        on_cols = ["qid", "docno"]     
+        rtr = rtr.drop_duplicates(subset=on_cols)
+        rtr = rtr.sort_values(by=on_cols)
+        rtr = rtr[on_cols + ["query"]]
         return rtr
 
 class SetIntersectionTransformer(BinaryTransformerBase):
+    '''
+        This operator makes a retrieval set that only includes documents that occur in the intersection of both retrieval sets. 
+        For instance, let left and right be pandas dataframes, both with the columns = [qid, query, docno, score], 
+        left = [[1, "text1", doc1, 0.42]] (one row) and right = [[1, "text1", doc1, 0.24],[1, "text1", doc2, 0.24]] (two rows).
+        Then, left & right will be a dataframe with only the columns [qid, query, docno] and one single row = [[1, "text1", doc1]].
+                
+        For columns other than (qid, docno), only the left value will be used.
+    '''
     name = "Intersect"
     
     def transform(self, topics):
         res1 = self.left.transform(topics)
-        res2 = self.right.transform(topics)
-        # NB: there may be other duplicate columns
-        rtr = res1.merge(res2, on=["qid", "docno"]).drop(columns=["score_x", "score_y"])
+        res2 = self.right.transform(topics)  
+        
+        on_cols = ["qid", "docno"]        
+        rtr = res1.merge(res2, on=on_cols, suffixes=('','_y'))[on_cols + ["query"]]
         return rtr
 
 class CombSumTransformer(BinaryTransformerBase):
