@@ -230,9 +230,7 @@ class SetUnionTransformer(BinaryTransformerBase):
         For instance, let left and right be pandas dataframes, both with the columns = [qid, query, docno, score], 
         left = [1, "text1", doc1, 0.42] and right = [1, "text1", doc2, 0.24]. 
         Then, left | right will be a dataframe with only the columns [qid, query, docno] and two rows = [[1, "text1", doc1], [1, "text1", doc2]].
-        
-        Note that the score (and rank) columns are dropped, as the intention is that the resulting document sets are re-ranked.
-        
+                
         In case of duplicated both containing (qid, docno), only the first occurrence will be used.
     '''
     name = "Union"
@@ -257,9 +255,7 @@ class SetIntersectionTransformer(BinaryTransformerBase):
         For instance, let left and right be pandas dataframes, both with the columns = [qid, query, docno, score], 
         left = [[1, "text1", doc1, 0.42]] (one row) and right = [[1, "text1", doc1, 0.24],[1, "text1", doc2, 0.24]] (two rows).
         Then, left & right will be a dataframe with only the columns [qid, query, docno] and one single row = [[1, "text1", doc1]].
-        
-        Note that the score (and rank) columns are dropped, as the intention is that the resulting document sets are re-ranked.
-        
+                
         For columns other than (qid, docno), only the left value will be used.
     '''
     name = "Intersect"
