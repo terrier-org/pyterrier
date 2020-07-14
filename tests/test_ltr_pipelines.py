@@ -17,8 +17,8 @@ class TestLTRPipeline(BaseTestCase):
             'random_state': 42
         }
 
-        topics = pt.Utils.parse_trec_topics_file(self.here + "/fixtures/vaswani_npl/query_light.trec").head(5)
-        qrels = pt.Utils.parse_qrels(self.here + "/fixtures/vaswani_npl/qrels")
+        topics = pt.io.read_topics(self.here + "/fixtures/vaswani_npl/query_light.trec").head(5)
+        qrels = pt.io.read_qrels(self.here + "/fixtures/vaswani_npl/qrels")
 
         pipeline = pt.FeaturesBatchRetrieve(self.here + "/fixtures/index/data.properties", ["WMODEL:PL2", "WMODEL:BM25"], controls={"wmodel" : "DPH"}) >> \
             pt.XGBoostLTR_pipeline(xgb.sklearn.XGBRanker(**xgparams))
@@ -32,8 +32,8 @@ class TestLTRPipeline(BaseTestCase):
     def test_ltr_pipeline(self):
         from sklearn.ensemble import RandomForestClassifier
 
-        topics = pt.Utils.parse_trec_topics_file(self.here + "/fixtures/vaswani_npl/query_light.trec").head(5)
-        qrels = pt.Utils.parse_qrels(self.here + "/fixtures/vaswani_npl/qrels")
+        topics = pt.io.read_topics(self.here + "/fixtures/vaswani_npl/query_light.trec").head(5)
+        qrels = pt.io.read_qrels(self.here + "/fixtures/vaswani_npl/qrels")
 
         pipeline = pt.FeaturesBatchRetrieve(self.here + "/fixtures/index/data.properties", ["WMODEL:PL2", "WMODEL:BM25"], controls={"wmodel" : "DPH"}) >> \
             pt.LTR_pipeline(RandomForestClassifier())
