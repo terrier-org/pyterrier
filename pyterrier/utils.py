@@ -1,5 +1,4 @@
 import pandas as pd
-import pytrec_eval
 from collections import defaultdict
 import os
 
@@ -245,6 +244,7 @@ class Utils:
             metrics(list): A list of strings specifying which evaluation metrics to use. Default=['map', 'ndcg']
             perquery(bool): If true return each metric for each query, else return mean metrics. Default=False
         """
+        import pytrec_eval
         def now():
             from datetime import datetime
             return datetime.now().strftime("%H:%M:%S.%f")

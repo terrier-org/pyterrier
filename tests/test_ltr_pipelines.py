@@ -6,6 +6,9 @@ from .base import BaseTestCase
 class TestLTRPipeline(BaseTestCase):
 
     def test_xgltr_pipeline(self):
+        if self.windows:
+            self.skipTest("Wont work on Windows")
+
         import xgboost as xgb
 
         xgparams = {
@@ -30,6 +33,9 @@ class TestLTRPipeline(BaseTestCase):
         )
 
     def test_ltr_pipeline(self):
+        if self.windows:
+            self.skipTest("Wont work on Windows")
+
         from sklearn.ensemble import RandomForestClassifier
 
         topics = pt.Utils.parse_trec_topics_file(self.here + "/fixtures/vaswani_npl/query_light.trec").head(5)

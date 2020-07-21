@@ -11,3 +11,4 @@ class BaseTestCase(unittest.TestCase):
         if not pt.started():
             pt.init(version=terrier_version)
         self.here = os.path.dirname(os.path.realpath(__file__))
+        self.windows = "nt" == os.name

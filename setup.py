@@ -33,6 +33,8 @@ def get_version(rel_path):
 requirements = []
 with open('requirements.txt', 'rt') as f:
     for req in f.read().splitlines():
+        if req.startswith("#"):
+            continue
         if req.startswith('git+'):
             pkg_name = req.split('/')[-1].replace('.git', '')
             if "#egg=" in pkg_name:

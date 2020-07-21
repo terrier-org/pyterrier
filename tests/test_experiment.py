@@ -8,6 +8,8 @@ from .base import BaseTestCase
 class TestExperiment(BaseTestCase):
 
     def test_differing_queries(self):
+        if self.windows:
+            self.skipTest("Wont work on Windows")
         topics = pd.DataFrame([["q1", "q1"], ["q2", "q1"] ], columns=["qid", "query"])
         res1 = pd.DataFrame([["q1", "d1", 1.0]], columns=["qid", "docno", "score"])
         res2 = pd.DataFrame([["q1", "d1", 1.0], ["q2", "d1", 2.0] ], columns=["qid", "docno", "score"])
@@ -23,6 +25,8 @@ class TestExperiment(BaseTestCase):
             assert "missing" in str(w[-1].message)
 
     def test_one_row(self):
+        if self.windows:
+            self.skipTest("Wont work on Windows")
         vaswani = pt.datasets.get_dataset("vaswani")
         br = pt.BatchRetrieve(vaswani.get_index())
         rtr = pt.pipelines.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg", "num_q"])
@@ -40,6 +44,9 @@ class TestExperiment(BaseTestCase):
 
 
     def test_perquery(self):
+        if self.windows:
+            self.skipTest("Wont work on Windows")
+
         vaswani = pt.datasets.get_dataset("vaswani")
         br = pt.BatchRetrieve(vaswani.get_index())
         rtr = pt.pipelines.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"], perquery=True)
@@ -49,6 +56,9 @@ class TestExperiment(BaseTestCase):
         print(rtr)
 
     def test_baseline(self):
+        if self.windows:
+            self.skipTest("Wont work on Windows")
+
         dataset = pt.get_dataset("vaswani")
         df = pt.Experiment(
             [pt.BatchRetrieve(dataset.get_index(), wmodel="BM25"), pt.BatchRetrieve(dataset.get_index(), wmodel="DPH")], 
