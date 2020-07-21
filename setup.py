@@ -42,6 +42,8 @@ with open('requirements.txt', 'rt') as f:
             requirements.append(f'{pkg_name} @ {req}')
         else:
             requirements.append(req)
+    if not "nt" in os.name:
+        requirements.append("pytrec_eval")
 
 setup(
     name="python-terrier",
