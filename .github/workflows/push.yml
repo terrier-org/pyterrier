@@ -72,4 +72,6 @@ jobs:
         #install this software
         pip install --timeout=120 .
         pip install pytest
+        #show the environment
+        set
         pytest
