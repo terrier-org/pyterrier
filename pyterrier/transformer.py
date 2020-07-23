@@ -246,7 +246,7 @@ class SetUnionTransformer(BinaryTransformerBase):
         on_cols = ["qid", "docno"]     
         rtr = rtr.drop_duplicates(subset=on_cols)
         rtr = rtr.sort_values(by=on_cols)
-        rtr = rtr[on_cols + ["query"]]
+        rtr.drop(columns=["score", "rank"], inplace=True, errors='ignore')
         return rtr
 
 class SetIntersectionTransformer(BinaryTransformerBase):
@@ -264,8 +264,9 @@ class SetIntersectionTransformer(BinaryTransformerBase):
         res1 = self.left.transform(topics)
         res2 = self.right.transform(topics)  
         
-        on_cols = ["qid", "docno"]        
-        rtr = res1.merge(res2, on=on_cols, suffixes=('','_y'))[on_cols + ["query"]]
+        on_cols = ["qid", "docno"]
+        rtr = res1.merge(res2, on=on_cols, suffixes=('','_y'))
+        rtr.drop(columns=["score", "rank"], inplace=True, errors='ignore')
         return rtr
 
 class CombSumTransformer(BinaryTransformerBase):
