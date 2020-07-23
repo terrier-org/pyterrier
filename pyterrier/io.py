@@ -1,8 +1,5 @@
 import pandas as pd
 
-
-SUPPORTED_TOPIC_FORMATS = ["trec", "trecxml", "singleline"]
-
 def autoopen(filename, mode='rb'):
     if filename.endswith(".gz"):
         import gzip
@@ -13,12 +10,11 @@ def autoopen(filename, mode='rb'):
     return open(filename, mode)
 
 def read_results(filename, format="trec", **kwargs):
-    if format == "trec" or format is None:
-        return _read_results_trec(filename)
-    elif format == "letor":
-        return _read_results_letor(filename, **kwargs)
-    else:
-        raise ValueError("Format %s not known, possible values are trec or letor" % format)
+    if format is None:
+        format = "trec"
+    if not format in SUPPORTED_RESULTS_FORMATS:
+        raise ValueError("Format %s not known, supported types are %s" % str(SUPPORTED_RESULTS_FORMATS.keys()))
+    return SUPPORTED_RESULTS_FORMATS[format][0](filename, **kwargs)
 
 def _read_results_letor(filename, labels=False):
 
@@ -71,12 +67,11 @@ def _read_results_trec(filename):
     return df
 
 def write_results(res, filename, format="trec", **kwargs):
-    if format == "trec" or format is None:
-        _write_results_trec(res, filename, **kwargs)
-    elif format == "letor":
-        _write_results_letor(res, filename, **kwargs)
-    else:
-        raise ValueError("Format %s not known, possible values are trec or letor")
+    if format is None:
+        format = "trec" 
+    if not format in SUPPORTED_RESULTS_FORMATS:
+        raise ValueError("Format %s not known, supported types are %s" % str(SUPPORTED_RESULTS_FORMATS.keys()))
+    return SUPPORTED_RESULTS_FORMATS[format][1](res, filename, **kwargs)
 
 def _write_results_trec(res, filename, run_name="pyterrier"):
         res_copy = res.copy()[["qid", "docno", "rank", "score"]]
@@ -95,14 +90,11 @@ def _write_results_letor(res, filename, qrels=None, default_label=0):
             f.write("%d qid:%s %s # docno=%s\n" % (label, row.qid, feat_str, row.docno))
 
 def read_topics(filename, format="trec", **kwargs):
-    if format == "trec" or format is None:
-        return _read_topics_trec(filename, **kwargs)
-    elif format == "trec":
-        return _read_topics_trecxml(filename, **kwargs)    
-    elif format == "singleline":
-        return _read_topics_singleline(filename, **kwargs)
-    else:
-        raise ValueError("Format %s not known, possible values are trec, trecxml or singleline")
+    if format is None:
+        format = "trec"
+    if not format in SUPPORTED_TOPICS_FORMATS:
+        raise ValueError("Format %s not known, supported types are %s" % str(SUPPORTED_TOPIC_FORMATS.keys()))
+    return SUPPORTED_TOPICS_FORMATS[format](filename, **kwargs)
 
 def _read_topics_trec(file_path, doc_tag="TOP", id_tag="NUM", whitelist=["TITLE"], blacklist=["DESC","NARR"]):
     """
@@ -198,3 +190,14 @@ def read_qrels(file_path):
     df["qid"] = df["qid"].astype(str)
     df["docno"] = df["docno"].astype(str)
     return df
+
+SUPPORTED_TOPICS_FORMATS = {
+    "trec" : _read_topics_trec,
+    "trecxml" : _read_topics_trecxml,
+    "singleline": _read_topics_singleline
+}
+
+SUPPORTED_RESULTS_FORMATS = {
+    "trec" : (_read_results_trec, _write_results_trec),
+    "letor" : (_read_results_letor, _write_results_letor)
+}

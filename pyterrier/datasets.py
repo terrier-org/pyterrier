@@ -159,7 +159,7 @@ class RemoteDataset(Dataset):
     def get_topics(self, variant=None, **kwargs):
         import pyterrier as pt
         file, filetype = self._get_one_file("topics", variant)
-        if filetype is None or filetype in pt.io.SUPPORTED_TOPIC_FORMATS:
+        if filetype is None or filetype in pt.io.SUPPORTED_TOPICS_FORMATS:
             return pt.io.read_topics(file, format=filetype, **kwargs)
         elif filetype == "direct":
             return file
@@ -206,7 +206,7 @@ TREC_DEEPLEARNING_MSMARCO_FILES = {
 def remove_prefix(self, component, variant):
     import pyterrier as pt
     topics_file, type = self._get_one_file("topics_prefixed", variant)
-    if type in pt.io.SUPPORTED_TOPIC_FORMATS:
+    if type in pt.io.SUPPORTED_TOPICS_FORMATS:
         topics = pt.io.read_topics(topics_file, type)
     else:
         raise ValueError("Unknown topic type %s" % type)
