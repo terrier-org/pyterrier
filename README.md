@@ -83,7 +83,29 @@ index.getLexicon()["circuit"].getDocumentFrequency()
 
 There are lots of examples in the [index API notebook](examples/notebooks/index_api.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/index_api.ipynb)
 
-## Credits
+# Open Source Licence
+
+PyTerrier is subject to the terms detailed in the Mozilla Public License Version 2.0. The Mozilla Public License can be found in the file [LICENSE.txt](LICENSE.txt). By using this software, you have agreed to the licence.
+
+# Citation Licence
+
+The source and binary forms of PyTerrier are subject to the following citation license: 
+
+By downloading and using PyTerrier, you agree to cite at the undernoted paper describing PyTerrier in any kind of material you produce where PyTerrier was used to conduct search or experimentation, whether be it a research paper, dissertation, article, poster, presentation, or documentation. By using this software, you have agreed to the citation licence.
+
+Declarative Experimentation inInformation Retrieval using PyTerrier. Craig Macdonald and Nicola Tonellotto. In Proceedings of ICTIR 2020.
+
+```bibtex
+@inproceesings{
+    author = {Craig Macdonald and Nicola Tonellotto},
+    title = {Declarative Experimentation inInformation Retrieval using PyTerrier},
+    booktitle = {Proceedings of ICTIR 2020},
+    year = {2020}
+}
+
+```
+
+# Credits
 
  - Alex Tsolov, University of Glasgow
  - Craig Macdonald, University of Glasgow
