@@ -154,17 +154,13 @@ class RemoteDataset(Dataset):
         filename, type = self._get_one_file("qrels", variant)
         if type == "direct":
             return filename 
-        return pt.Utils.parse_qrels(filename)
+        return pt.io.read_qrels(filename)
 
     def get_topics(self, variant=None, **kwargs):
         import pyterrier as pt
         file, filetype = self._get_one_file("topics", variant)
-        if filetype is None or filetype == "trec":
-            return pt.Utils.parse_trec_topics_file(file, **kwargs)
-        elif filetype == "singleline":
-            return pt.Utils.parse_singleline_topics_file(file, **kwargs)
-        elif filetype == "trecxml":
-            return pt.Utils.parse_trecxml_topics_file(file, **kwargs)
+        if filetype is None or filetype in pt.io.SUPPORTED_TOPICS_FORMATS:
+            return pt.io.read_topics(file, format=filetype, **kwargs)
         elif filetype == "direct":
             return file
         raise ValueError("Unknown filetype %s for %s topics %s"  % (filetype, self.name, variant))
@@ -210,10 +206,8 @@ TREC_DEEPLEARNING_MSMARCO_FILES = {
 def remove_prefix(self, component, variant):
     import pyterrier as pt
     topics_file, type = self._get_one_file("topics_prefixed", variant)
-    if type == "trec":
-        topics = pt.Utils.parse_trec_topics_file(topics_file)
-    elif type == "singleline":
-        topics = pt.Utils.parse_singleline_topics_file(topics_file)
+    if type in pt.io.SUPPORTED_TOPICS_FORMATS:
+        topics = pt.io.read_topics(topics_file, type)
     else:
         raise ValueError("Unknown topic type %s" % type)
     topics["qid"] = topics.apply(lambda row: row["qid"].split("-")[1], axis=1)
@@ -224,7 +218,7 @@ def remove_prefix(self, component, variant):
 def parse_desc_only(self, component, variant):
     import pyterrier as pt
     file, type = self._get_one_file("topics_special_np")
-    topics = pt.Utils.parse_trec_topics_file(file, whitelist=["DESC"], blacklist=None)
+    topics = pt.io.read_topics(file, format="trec", whitelist=["DESC"], blacklist=None)
     topics["qid"] = topics.apply(lambda row: row["qid"].replace("NP", ""), axis=1)
     return (topics, "direct")
 

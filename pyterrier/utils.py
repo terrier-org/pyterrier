@@ -2,7 +2,11 @@ import pandas as pd
 import pytrec_eval
 from collections import defaultdict
 import os
+import deprecation
 
+
+@deprecation.deprecated(deprecated_in="0.3.0",
+                        details="Please use pt.io.autopen()")
 def autoopen(filename, mode='rb'):
     if filename.endswith(".gz"):
         import gzip
@@ -15,6 +19,8 @@ def autoopen(filename, mode='rb'):
 class Utils:
 
     @staticmethod
+    @deprecation.deprecated(deprecated_in="0.3.0",
+                        details="Please use pt.io.write_results(res, filename, format='letor')")
     def write_results_letor(res, filename, qrels=None, default_label=0):
         if qrels is not None:
             res = res.merge(qrels, on=['qid', 'docno'], how='left').fillna(default_label)
@@ -26,6 +32,8 @@ class Utils:
                 f.write("%d qid:%s %s # docno=%s\n" % (label, row.qid, feat_str, row.docno))
     
     @staticmethod
+    @deprecation.deprecated(deprecated_in="0.3.0",
+                        details="Please use pt.io.write_results(res, filename, format='trec')")
     def write_results_trec(res, filename, run_name="pyterrier"):
         res_copy = res.copy()[["qid", "docno", "rank", "score"]]
         res_copy.insert(1, "Q0", "Q0")
@@ -33,15 +41,8 @@ class Utils:
         res_copy.to_csv(filename, sep=" ", header=False, index=False)
 
     @staticmethod
-    def parse_query_result(filename):
-        results = []
-        with open(filename, 'rt') as file:
-            for line in file:
-                split_line = line.strip("\n").split(" ")
-                results.append([split_line[1], float(split_line[2])])
-        return results
-
-    @staticmethod
+    @deprecation.deprecated(deprecated_in="0.3.0",
+                        details="Please use pt.io.read_results(filename, format='letor')")
     def parse_letor_results_file(filename, labels=False):
 
         def _parse_line(l):
@@ -84,6 +85,8 @@ class Utils:
             return pd.DataFrame(rows, columns=["qid", "docno", "features", "label"] if labels else ["qid", "docno", "features"])
 
     @staticmethod
+    @deprecation.deprecated(deprecated_in="0.3.0",
+                        details="Please use pt.io.read_results(filename, format='trec')")
     def parse_results_file(filename):
         results = []
         df = pd.read_csv(filename, sep=r'\s+', names=["qid", "iter", "docno", "rank", "score", "name"])
@@ -95,15 +98,8 @@ class Utils:
         return df
 
     @staticmethod
-    def parse_res_file(filename):
-        results = []
-        with open(filename, 'r') as file:
-            for line in file:
-                split_line = line.strip("\n").split(" ")
-                results.append([split_line[0], split_line[2], float(split_line[4])])
-        return results
-
-    @staticmethod
+    @deprecation.deprecated(deprecated_in="0.3.0",
+                        details="Please use pt.io.read_topics(filename, format='singleline')")
     def parse_singleline_topics_file(filepath, tokenise=True):
         """
         Parse a file containing topics, one per line
@@ -126,6 +122,8 @@ class Utils:
         return pd.DataFrame(rows, columns=["qid", "query"])
 
     @staticmethod
+    @deprecation.deprecated(deprecated_in="0.3.0",
+                        details="Please use pt.io.read_topics(filename, format='trec')")
     def parse_trec_topics_file(file_path, doc_tag="TOP", id_tag="NUM", whitelist=["TITLE"], blacklist=["DESC","NARR"]):
         """
         Parse a file containing topics in standard TREC format
@@ -154,6 +152,8 @@ class Utils:
         return topics_dt
 
     @staticmethod
+    @deprecation.deprecated(deprecated_in="0.3.0",
+                        details="Please use pt.io.read_topics(filename, format='trecxml')")
     def parse_trecxml_topics_file(filename, tags=["query", "question", "narrative"], tokenise=True):
         """
         Parse a file containing topics in TREC-like XML format
@@ -185,6 +185,8 @@ class Utils:
         return pd.DataFrame(topics, columns=["qid", "query"])
 
     @staticmethod
+    @deprecation.deprecated(deprecated_in="0.3.0",
+                        details="Please use pt.io.read_qrels(filename)")
     def parse_qrels(file_path):
         """
         Parse a file containing qrels
@@ -245,20 +247,14 @@ class Utils:
             metrics(list): A list of strings specifying which evaluation metrics to use. Default=['map', 'ndcg']
             perquery(bool): If true return each metric for each query, else return mean metrics. Default=False
         """
-        def now():
-            from datetime import datetime
-            return datetime.now().strftime("%H:%M:%S.%f")
-        #print(now() + " evaluate started")    
         if isinstance(res, pd.DataFrame):
             batch_retrieve_results_dict = Utils.convert_res_to_dict(res)
         else:
             batch_retrieve_results_dict = res
-        #print(now() + " res ready")
         if isinstance(qrels, pd.DataFrame):
             qrels_dic = Utils.convert_qrels_to_dict(qrels)
         else:
             qrels_dic = qrels
-        #print(now() + " qrels ready")
         req_metrics = set()
         cutdown = False
         for m in metrics:
@@ -272,9 +268,7 @@ class Utils:
 
         evaluator = pytrec_eval.RelevanceEvaluator(qrels_dic, req_metrics)
 
-        #print(now() + " evaluating")
         result = evaluator.evaluate(batch_retrieve_results_dict)
-        #print(now() + " evaluation done")
         if perquery:
             if not cutdown:
                 return result

@@ -34,8 +34,8 @@ See examples in the [indexing notebook](examples/notebooks/indexing.ipynb) [![Op
 # Retrieval and Evaluation
 
 ```python
-topics = pt.Utils.parse_trec_topics_file(topicsFile)
-qrels = pt.Utils.parse_qrels(qrelsFile)
+topics = pt.io.read_topics(topicsFile)
+qrels = pt.io.read_qrels(qrelsFile)
 BM25_br = pt.BatchRetrieve(index, controls={"wmodel": "BM25"})
 res = BM25_br.transform(topics)
 pt.Utils.evaluate(res, qrels, metrics = ['map'])

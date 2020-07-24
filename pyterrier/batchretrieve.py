@@ -230,7 +230,7 @@ class BatchRetrieve(BatchRetrieveBase):
         return "BR(" + self.controls["wmodel"] + ")"
 
     @deprecation.deprecated(deprecated_in="0.3.0",
-                        details="Please use pt.Utils.write_results_trec()")
+                        details="Please use pt.io.write_results(res, path, format='trec')")
     def saveResult(self, result, path, run_name=None):
         if run_name is None:
             run_name = self.controls["wmodel"]

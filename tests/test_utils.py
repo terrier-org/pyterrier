@@ -21,8 +21,8 @@ class TestUtils(BaseTestCase):
         res_dict = res.set_index(['qid', 'docno']).to_dict()
         for filename in ["rtr.res", "rtr.res.gz", "rtr.res.bz2"]:
             filepath = os.path.join(self.test_dir, filename)
-            pt.Utils.write_results_trec(res, filepath)
-            res2 = pt.Utils.parse_results_file(filepath)
+            pt.io.write_results(res, filepath, format="trec")
+            res2 = pt.io.read_results(filepath)
             res2_dict = res2.set_index(['qid', 'docno']).to_dict()
             del res2_dict["name"]
             self.assertEqual(res_dict, res2_dict)
@@ -35,8 +35,8 @@ class TestUtils(BaseTestCase):
         del res_dict["rank"]
         for filename in ["rtr.letor", "rtr.letor.gz", "rtr.letor.bz2"]:
             filepath = os.path.join(self.test_dir, filename)
-            pt.Utils.write_results_letor(res, filepath)
-            res2 = pt.Utils.parse_letor_results_file(filepath)
+            pt.io.write_results(res, filepath, format="letor")
+            res2 = pt.io.read_results(filepath, format="letor")
 
             for ((i1, row1), (i2, row2)) in zip(res.iterrows(), res2.iterrows()):
                 self.assertEqual(row1["qid"], row2["qid"])
@@ -60,7 +60,7 @@ class TestUtils(BaseTestCase):
     def test_parse_qrels(self):
         input = os.path.dirname(os.path.realpath(__file__)) + "/fixtures/qrels"
         exp_result = pd.DataFrame([["1", "13", 1], ["1", "15", 1], ["2", "8", 1], ["2", "4", 1], ["2", "17", 1], ["3", "2", 1]], columns=['qid', 'docno', 'label'])
-        result = pt.Utils.parse_qrels(input)
+        result = pt.io.read_qrels(input)
         #print(exp_result)
         #print(result)
         pd.testing.assert_frame_equal(exp_result, result)
@@ -68,7 +68,7 @@ class TestUtils(BaseTestCase):
     def test_convert_qrels_to_dict(self):
         input = os.path.dirname(os.path.realpath(__file__)) + "/fixtures/qrels"
         exp_result = {"1": {"13": 1, "15": 1}, "2": {"17": 1, "8": 1, "4": 1}, "3": {"2": 1}}
-        df = pt.Utils.parse_qrels(input)
+        df = pt.io.read_qrels(input)
         result = dict(pt.Utils.convert_qrels_to_dict(df))
         self.assertEqual(exp_result, result)
 

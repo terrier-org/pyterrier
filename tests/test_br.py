@@ -4,6 +4,22 @@ import os
 import unittest
 from .base import BaseTestCase
 
+def parse_res_file(filename):
+    results = []
+    with open(filename, 'r') as file:
+        for line in file:
+            split_line = line.strip("\n").split(" ")
+            results.append([split_line[0], split_line[2], float(split_line[4])])
+    return results
+
+def parse_query_result(filename):
+    results = []
+    with open(filename, 'rt') as file:
+        for line in file:
+            split_line = line.strip("\n").split(" ")
+            results.append([split_line[1], float(split_line[2])])
+    return results
+
 class TestBatchRetrieve(BaseTestCase):
 
     def test_form_dataframe_with_string(self):
@@ -78,7 +94,7 @@ class TestBatchRetrieve(BaseTestCase):
         for indexSrc in (indexloc, jindexref, jindex):
             retr = pt.BatchRetrieve(indexSrc)
             result = retr.transform("light")
-            exp_result = pt.Utils.parse_query_result(os.path.dirname(
+            exp_result = parse_query_result(os.path.dirname(
                 os.path.realpath(__file__)) + "/fixtures/light_results")
             for index, row in result.iterrows():
                 self.assertEqual(row['docno'], exp_result[index][0])
@@ -91,7 +107,7 @@ class TestBatchRetrieve(BaseTestCase):
         retr = pt.BatchRetrieve(indexref)
         input = pd.DataFrame([["1", "Stability"], ["2", "Generator"]], columns=['qid', 'query'])
         result = retr.transform(input)
-        exp_result = pt.Utils.parse_res_file(os.path.dirname(
+        exp_result = parse_res_file(os.path.dirname(
             os.path.realpath(__file__)) + "/fixtures/two_queries_result")
         for index, row in result.iterrows():
             self.assertEqual(row['qid'], exp_result[index][0])
@@ -100,7 +116,7 @@ class TestBatchRetrieve(BaseTestCase):
 
         input = pd.DataFrame([[1, "Stability"], [2, "Generator"]], columns=['qid', 'query'])
         result = retr.transform(input)
-        exp_result = pt.Utils.parse_res_file(os.path.dirname(
+        exp_result = parse_res_file(os.path.dirname(
             os.path.realpath(__file__)) + "/fixtures/two_queries_result")
         for index, row in result.iterrows():
             self.assertEqual(str(row['qid']), exp_result[index][0])

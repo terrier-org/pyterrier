@@ -13,6 +13,7 @@ pipelines = None
 anserini = None
 transformer = None
 cache = None
+io = None
 file_path = os.path.dirname(os.path.abspath(__file__))
 firstInit = False
 ApplicationSetup = None
@@ -97,13 +98,14 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     global index
     global transformer
     global cache
+    global io
     rewrite = importlib.import_module('.rewrite', package='pyterrier') 
     anserini = importlib.import_module('.anserini', package='pyterrier') 
     pipelines = importlib.import_module('.pipelines', package='pyterrier') 
     index = importlib.import_module('.index', package='pyterrier') 
     transformer = importlib.import_module('.transformer', package='pyterrier') 
     cache = importlib.import_module('.cache', package='pyterrier') 
-
+    io = importlib.import_module('.io', package='pyterrier') 
 
     # append the python helpers
     if packages is None:
