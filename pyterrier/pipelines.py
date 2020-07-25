@@ -5,8 +5,41 @@ import numpy as np
 from .utils import Utils
 from .transformer import TransformerBase, EstimatorBase
 
-#def Experiment(topics, retr_systems, eval_metrics, qrels, names=None, perquery=False, dataframe=True):
-def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=False, dataframe=True, baseline=None):
+def _bold_cols(data, col_type):
+    if not data.name in col_type:
+        return [''] * len(data)
+    
+    colormax_attr = f'font-weight: bold'
+    colormaxlast_attr = f'font-weight: bold'
+    if col_type[data.name] == "+":  
+        max_value = data.max()
+    else:
+        max_value = data.min()
+    
+    is_max = [colormax_attr if v == max_value else '' for v in data]
+    is_max[len(data) - list(reversed(data)).index(max_value) -  1] = colormaxlast_attr
+    return is_max
+
+def _color_cols(data, col_type, 
+                       colormax='antiquewhite', colormaxlast='lightgreen', 
+                       colormin='antiquewhite', colorminlast='lightgreen' ):
+    if not data.name in col_type:
+      return [''] * len(data)
+    
+    if col_type[data.name] == "+":
+      colormax_attr = f'background-color: {colormax}'
+      colormaxlast_attr = f'background-color: {colormaxlast}'
+      max_value = data.max()
+    else:
+      colormax_attr = f'background-color: {colormin}'
+      colormaxlast_attr = f'background-color: {colorminlast}'
+      max_value = data.min()
+    
+    is_max = [colormax_attr if v == max_value else '' for v in data]
+    is_max[len(data) - list(reversed(data)).index(max_value) -  1] = colormaxlast_attr
+    return is_max
+
+def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=False, dataframe=True, baseline=None, highlight="bold"):
     """
     Cornac style experiment. Combines retrieval and evaluation.
     Allows easy comparison of multiple retrieval systems with different properties and controls.
@@ -22,6 +55,8 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
         dataframe(bool): If True return results as a dataframe. Else as a dictionary of dictionaries. Default=True.
         baseline(int): If set to the index of an item of the retr_system list, will calculate the number of queries improved, degraded and the statistical significance (paired t-test p value) for each measure.
             Default=None: If None, no additional columns added for each measure
+        highlight(str) : If "bold", highlights in bold the best measure value in each column; 
+            if "color" or "colour" uses green to indicate highest values
 
     Returns:
         A Dataframe with each retrieval system with each metric evaluated.
@@ -101,6 +136,8 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
         if perquery:
             return pd.DataFrame(evalsRows, columns=["name", "qid", "measure", "value"])
 
+        highlight_cols = { actual_metric_names : "+" }
+
         if baseline is not None:
             assert len(evalDictsPerQ) == len(retr_systems)
             from scipy import stats
@@ -123,11 +160,20 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
             delta_names=[]
             for m in actual_metric_names:
                 delta_names.append("%s +" % m)
+                highlight_cols["%s +" % m] = "+"
                 delta_names.append("%s -" % m)
+                highlight_cols["%s -" % m] = "-"
                 delta_names.append("%s p-value" % m)
             actual_metric_names.extend(delta_names)
+
+        df = pd.DataFrame(evalsRows, columns=["name"] + actual_metric_names)
+        
+        if highlight == "color" or highlight == "colour" :
+            df.style.apply(_color_cols, axis=0, col_type=highlight_cols)
+        elif highlight == "bold":
+            df.style.apply(_bold_cols, axis=0, col_type=highlight_cols)
             
-        return pd.DataFrame(evalsRows, columns=["name"] + actual_metric_names)
+        return df 
     return evalDict
     # evals = {}
 
