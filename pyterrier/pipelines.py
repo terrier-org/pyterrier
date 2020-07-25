@@ -39,7 +39,7 @@ def _color_cols(data, col_type,
     is_max[len(data) - list(reversed(data)).index(max_value) -  1] = colormaxlast_attr
     return is_max
 
-def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=False, dataframe=True, baseline=None, highlight="bold"):
+def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=False, dataframe=True, baseline=None, highlight=None):
     """
     Cornac style experiment. Combines retrieval and evaluation.
     Allows easy comparison of multiple retrieval systems with different properties and controls.
@@ -169,9 +169,9 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
         df = pd.DataFrame(evalsRows, columns=["name"] + actual_metric_names)
         
         if highlight == "color" or highlight == "colour" :
-            df.style.apply(_color_cols, axis=0, col_type=highlight_cols)
+            df = df.style.apply(_color_cols, axis=0, col_type=highlight_cols)
         elif highlight == "bold":
-            df.style.apply(_bold_cols, axis=0, col_type=highlight_cols)
+            df = df.style.apply(_bold_cols, axis=0, col_type=highlight_cols)
             
         return df 
     return evalDict
