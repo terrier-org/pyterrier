@@ -65,7 +65,10 @@ Our [example pipelines](pipeline_examples.md) show other common use cases. For m
 
 Complex learning to rank pipelines, including for learning-to-rank, can be constructed using Pyterrier's operator language. For example, to combine two features and make them available for learning, we can use the `**` operator.
 ```python
-two_features = BM25_br >> ( pt.BatchRetrieve(indexref, controls={"wmodel":"DirichletLM"}) ** pt.BatchRetrieve(indexref, controls={"wmodel":"PL2"}) )
+two_features = BM25_br >> ( \
+  pt.BatchRetrieve(indexref, controls={"wmodel":"DirichletLM"}) ** 
+  pt.BatchRetrieve(indexref, controls={"wmodel":"PL2"}) \
+ )
 ```
 There are several worked examples in the [learning-to-rank notebook](examples/notebooks/ltr.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/ltr.ipynb). Some pipelines can be automatically optimised - more detail about pipeline optimisation are included in our ICTIR 2020 paper.
 
