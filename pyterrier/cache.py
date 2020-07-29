@@ -114,7 +114,7 @@ class ChestCacheTransformer(TransformerBase):
         if self.disable:
             return self.inner.transform(input_res)
         if "docid" in input_res.columns or "docno" in input_res.columns:
-            raise ValueError("Caching currently only supports input dataframes with queries as inputs and cannot be used for re-rankers")
+            raise ValueError("Caching of %s for re-ranking is not supported. Caching currently only supports input dataframes with queries as inputs and cannot be used for re-rankers." % self.inner.__repr__())
         return self._transform_qid(input_res)
 
     def _transform_qid(self, input_res):
