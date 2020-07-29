@@ -54,11 +54,23 @@ There is a worked example in the [experiment notebook](examples/notebooks/experi
 
 # Pipelines
 
-Pyterrier makes it easy to develop complex [retrieval pipelines](pipelines.md) using Python operators to combine different retrieval approaches. Our [example pipelines](pipeline_examples.md) show how to conduct various common use cases. Each retrieval approach is a transformer, having one key method, `transform()`, which takes a single Pandas dataframe as input, and returns another dataframe. For more information, see the [Pyterrier data model](datamodel.md).
+Pyterrier makes it easy to develop complex [retrieval pipelines](pipelines.md) using Python operators such as `>>` to chain different retrieval components. Each retrieval approach is a transformer, having one key method, `transform()`, which takes a single Pandas dataframe as input, and returns another dataframe. Two examples might encapsulate applying the sequential dependence model, or a query expansion process:
+```python
+sdm_bm25 = pt.rewrite.SDM() >> pt.BatchRetrieve(indexref, controls={"wmodel":"BM25"})
+bo1_qe = BM25_br >> pt.rewrite.Bo1QueryExpansion() >> BM25_br
+````
+Our [example pipelines](pipeline_examples.md) show other common use cases. For more information, see the [Pyterrier data model](datamodel.md).
 
 # Learning to Rank
 
-Complex learning to rank pipelines, including for learning-to-rank, can be constructed using Pyterrier's operator language. There are several worked examples in the [learning-to-rank notebook](examples/notebooks/ltr.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/ltr.ipynb)
+Complex learning to rank pipelines, including for learning-to-rank, can be constructed using Pyterrier's operator language. For example, to combine two features and make them available for learning, we can use the `**` operator.
+```python
+two_features = BM25_br >> ( \
+  pt.BatchRetrieve(indexref, controls={"wmodel":"DirichletLM"}) ** 
+  pt.BatchRetrieve(indexref, controls={"wmodel":"PL2"}) \
+ )
+```
+There are several worked examples in the [learning-to-rank notebook](examples/notebooks/ltr.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/ltr.ipynb). Some pipelines can be automatically optimised - more detail about pipeline optimisation are included in our ICTIR 2020 paper.
 
 # Dataset API
 
