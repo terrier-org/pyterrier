@@ -5,7 +5,6 @@ import numpy as np
 from .utils import Utils
 from .transformer import TransformerBase, EstimatorBase
 
-#def Experiment(topics, retr_systems, eval_metrics, qrels, names=None, perquery=False, dataframe=True):
 def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=False, dataframe=True, baseline=None):
     """
     Cornac style experiment. Combines retrieval and evaluation.
@@ -67,7 +66,6 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
 
     qrels_dict = Utils.convert_qrels_to_dict(qrels)
     all_qids = topics["qid"].values
-    #all_qids = qrels_dict.keys()
 
     evalsRows=[]
     evalDict={}
@@ -129,13 +127,7 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
             
         return pd.DataFrame(evalsRows, columns=["name"] + actual_metric_names)
     return evalDict
-    # evals = {}
 
-    # for weight, res in zip(names, results):
-    #     evals[weight] = Utils.evaluate(res, qrels, metrics=eval_metrics, perquery=perquery)
-    # if dataframe:
-    #     evals = pd.DataFrame.from_dict(evals, orient='index')
-    #return evals
 
 class LTR_pipeline(EstimatorBase):
     """
@@ -149,13 +141,6 @@ class LTR_pipeline(EstimatorBase):
             LTR: The model which to use for learning-to-rank. Must have a fit() and predict() methods.
         """
         super().__init__(*args, **kwargs)
-        # if isinstance(model, str):
-        #     from .batchretrieve import FeaturesBatchRetrieve
-        #     self.feat_retrieve = FeaturesBatchRetrieve(index, features)
-        #     self.feat_retrieve.setControl('wmodel', model)
-        # else:
-        #     self.feat_retrieve = model
-        # self.qrels = qrels
         self.LTR = LTR
 
     def fit(self, topics_and_results_Train, qrelsTrain, topics_and_results_Valid=None, qrelsValid=None):
