@@ -178,10 +178,49 @@ TREC_COVID_FILES = {
         "round1" : ("topics-rnd1.xml", "https://ir.nist.gov/covidSubmit/data/topics-rnd1.xml", "trecxml"),
         "round2" : ("topics-rnd2.xml", "https://ir.nist.gov/covidSubmit/data/topics-rnd2.xml", "trecxml"),
         "round3" : ("topics-rnd3.xml", "https://ir.nist.gov/covidSubmit/data/topics-rnd3.xml", "trecxml"),
+        "round4" : ("topics-rnd4.xml", "https://ir.nist.gov/covidSubmit/data/topics-rnd4.xml", "trecxml"),
+        "round5" : ("topics-rnd5.xml", "https://ir.nist.gov/covidSubmit/data/topics-rnd5.xml", "trecxml"),
     },
     "qrels" : {
         "round1" : ("qrels-rnd1.txt", "https://ir.nist.gov/covidSubmit/data/qrels-rnd1.txt"),
-        "round2" : ("qrels-rnd2.txt", "https://ir.nist.gov/covidSubmit/data/qrels-rnd2.txt")
+        "round2" : ("qrels-rnd2.txt", "https://ir.nist.gov/covidSubmit/data/qrels-rnd2.txt"),
+        "round3" : ("qrels-rnd3.txt", "https://ir.nist.gov/covidSubmit/data/qrels-covid_d3_j2.5-3.txt"),
+        "round3-cumulative" : ("qrels-rnd3-cumulative.txt", "https://ir.nist.gov/covidSubmit/data/qrels-covid_d3_j0.5-3.txt"),
+        "round4" : ("qrels-rnd4.txt", "https://ir.nist.gov/covidSubmit/data/qrels-covid_d4_j3.5-4.txt"),
+        "round4-cumulative" : ("qrels-rnd4-cumulative.txt", "https://ir.nist.gov/covidSubmit/data/qrels-covid_d4_j0.5-4.txt"),
+    },
+    "extra_info" : { 
+        "docids-rnd3" : ("docids-rnd3.txt", "https://ir.nist.gov/covidSubmit/data/docids-rnd3.txt"),
+        "docids-rnd4" : ("docids-rnd4.txt", "https://ir.nist.gov/covidSubmit/data/docids-rnd4.txt"),
+        "docids-rnd5" : ("docids-rnd5.txt", "https://ir.nist.gov/covidSubmit/data/docids-rnd5.txt")
+    },
+    "corpus" : 
+        #[("round4.tar.gz", "https://ai2-semanticscholar-cord-19.s3-us-west-2.amazonaws.com/historical_releases/cord-19_2020-06-19.tar.gz")],
+        [("round5.tar.gz", "https://ai2-semanticscholar-cord-19.s3-us-west-2.amazonaws.com/historical_releases/cord-19_2020-07-16.tar.gz")],    
+}
+
+TREC_PRECISION_MEDICINE_FILES = {
+    "topics" : {
+        "2017" : ("topics2017.xml", "http://www.trec-cds.org/topics2017.xml", "trecxml"),
+        "2018" : ("topics2018.xml", "http://www.trec-cds.org/topics2018.xml", "trecxml"),
+        "2019" : ("topics2019.xml", "http://www.trec-cds.org/topics2019.xml", "trecxml"),
+        "2020" : ("topics2020.xml", "http://www.trec-cds.org/topics2020.xml", "trecxml")
+    },
+    "qrels" : {
+        "qrels-2017-abstracts" : ("qrels-2017-abstracts.txt", "https://trec.nist.gov/data/precmed/qrels-final-abstracts.txt"),  #TODO keep original names
+        "qrels-2017-abstracts-sample" : ("qrels-2017-abstracts-sample.txt", "https://trec.nist.gov/data/precmed/sample-qrels-final-abstracts.txt"),
+        "qrels-2017-trials" : ("qrels-2017-trials.txt", "https://trec.nist.gov/data/precmed/qrels-final-trials.txt"),
+        "qrels-2018-abstracts" : ("qrels-2018-abstracts.txt", "https://trec.nist.gov/data/precmed/qrels-treceval-abstracts-2018-v2.txt"),
+        "qrels-2018-abstracts-sample" : ("qrels-2018-abstracts-sample.txt", "https://trec.nist.gov/data/precmed/qrels-sample-abstracts-v2.txt"),
+        "qrels-2018-trials" : ("qrels-2018-trials.txt", "https://trec.nist.gov/data/precmed/qrels-treceval-clinical_trials-2018-v2.txt"),
+        "qrels-2018-trials-sample" : ("qrels-2018-trials-sample.txt", "https://trec.nist.gov/data/precmed/qrels-sample-trials-v2.txt"),
+        "qrels-2019-abstracts" : ("qrels-2019-abstracts.txt", "https://trec.nist.gov/data/precmed/qrels-treceval-abstracts.2019.txt"),
+        "qrels-2019-trials" : ("qrels-2019-trials.txt", "https://trec.nist.gov/data/precmed/qrels-treceval-trials.38.txt"),
+        "qrels-2019-abstracts-sample" : ("qrels-2019-abstracts-sample.txt", "https://trec.nist.gov/data/precmed/qrels-sampleval-abstracts.2019.txt"),
+        "qrels-2019-trials-sample" : ("qrels-2019-trials-sample.txt", "https://trec.nist.gov/data/precmed/qrels-sampleval-trials.38.txt")
+    },
+    "extra_info" : { 
+        "topics2019" : ("topics2019-list-disease-gene.tsv", "topics2019-list-disease-gene.tsv")
     }
 }
 
@@ -384,6 +423,7 @@ DATASET_MAP = {
     "trec-deep-learning-docs" : RemoteDataset("trec-deep-learning-docs", TREC_DEEPLEARNING_MSMARCO_FILES),
     "trec-robust-2004" : RemoteDataset("trec-robust-2004", TREC_ROBUST_04_FILES),
     "trec-robust-2005" : RemoteDataset("trec-robust-2005", TREC_ROBUST_05_FILES),
+    "trec-precision-medicine" : RemoteDataset("trec-precicion-medicine", TREC_PRECISION_MEDICINE_FILES),
     "trec-covid" : RemoteDataset("trec-covid", TREC_COVID_FILES),
     #wt2g
     "trec-wt2g" : RemoteDataset("trec-wt2g", TREC_WT2G_FILES),
