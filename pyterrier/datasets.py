@@ -164,6 +164,10 @@ class RemoteDataset(Dataset):
         elif filetype == "direct":
             return file
         raise ValueError("Unknown filetype %s for %s topics %s"  % (filetype, self.name, variant))
+        
+    def get_extra_info(self, variant=None, sep=',', columns=None):
+        import pandas as pd
+        return pd.read_csv(self._get_one_file("extra_info", variant)[0], sep=sep, columns=columns)
 
     def get_index(self):
         import pyterrier as pt
@@ -218,9 +222,6 @@ TREC_PRECISION_MEDICINE_FILES = {
         "qrels-2019-trials" : ("qrels-2019-trials.txt", "https://trec.nist.gov/data/precmed/qrels-treceval-trials.38.txt"),
         "qrels-2019-abstracts-sample" : ("qrels-2019-abstracts-sample.txt", "https://trec.nist.gov/data/precmed/qrels-sampleval-abstracts.2019.txt"),
         "qrels-2019-trials-sample" : ("qrels-2019-trials-sample.txt", "https://trec.nist.gov/data/precmed/qrels-sampleval-trials.38.txt")
-    },
-    "extra_info" : { 
-        "topics2019" : ("topics2019-list-disease-gene.tsv", "topics2019-list-disease-gene.tsv")
     }
 }
 
