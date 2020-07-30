@@ -222,8 +222,8 @@ class XGBoostLTR_pipeline(LTR_pipeline):
         va_res = topics_and_results_Valid.merge(qrelsValid, on=['qid', 'docno'], how='left').fillna(0)
 
         self.LTR.fit(
-            np.stack(tr_res["features"].values),
-            tr_res["label"].values, tr_res.groupby(["qid"]).count()["docno"].values,
+            np.stack(tr_res["features"].values), tr_res["label"].values, 
+            group=tr_res.groupby(["qid"]).count()["docno"].values, # we name group here for libghtgbm compat. 
             eval_set=[(np.stack(va_res["features"].values), va_res["label"].values)],
             eval_group=[va_res.groupby(["qid"]).count()["docno"].values]
         )
