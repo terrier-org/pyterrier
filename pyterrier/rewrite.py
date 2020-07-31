@@ -12,6 +12,13 @@ QueryResultSet = pt.autoclass("org.terrier.matching.QueryResultSet")
 DependenceModelPreProcess = pt.autoclass("org.terrier.querying.DependenceModelPreProcess")
 
 class SDM(TransformerBase):
+    '''
+        Implements the sequential dependence model, which Terrier supports using its
+        Indri/Galagoo compatible matchop query language. The rewritten query is derived using
+        the Terrier class DependenceModelPreProcess. 
+
+        This transformer changes the query. It must be followed by a Terrier Retrieve() transformer.
+    '''
 
     def __init__(self, verbose = 0, remove_stopwords = True, prox_model = None, **kwargs):
         super().__init__(**kwargs)
@@ -61,6 +68,10 @@ class SDM(TransformerBase):
             new_query = new_query[:-1]
             results.append([qid, new_query])
         return pd.DataFrame(results, columns=["qid", "query"])
+
+class SequentialDependence(SDM):
+    ''' alias for SDM '''
+    pass
     
 class QueryExpansion(TransformerBase):
     '''
@@ -102,7 +113,9 @@ class QueryExpansion(TransformerBase):
                 docids.append(docid)
                 scores.append(0.0)
                 occurrences.append(0)
-        return QueryResultSet(docids,scores, occurrences)
+        else:
+            raise ValueError("Input resultset has neither docid nor docno")
+        return QueryResultSet(docids, scores, occurrences)
 
     def _configure_request(self, rq):
         rq.setControl("qe_fb_docs", str(self.fb_docs))
