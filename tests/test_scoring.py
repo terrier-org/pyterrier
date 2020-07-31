@@ -55,7 +55,7 @@ class TestScoring(BaseTestCase):
         output2 = br2(input2)
         self.assertTrue( "score" in output2.columns )
 
-        joined = output1.merge(output2, on=["qid", "docno"])[["qid", "docno", "score_x", "score_y", "docid_x", "docid_y"]]
+        joined = output1.merge(output2, on=["qid", "docno"])[["qid", "docno", "score_x", "score_y"]]
         print(joined)
         #TODO: there is a bug here. TextScorer should have the same score, but it doesnt; occasionally terms arent matched
         #self.assertTrue(np.array_equal(joined["score_x"].values, joined["score_y"].values))
@@ -102,4 +102,12 @@ class TestScoring(BaseTestCase):
         self.assertTrue("score" in rtr.columns)
         self.assertEqual(2/index_background.getCollectionStatistics().getNumberOfDocuments(), rtr.iloc[0]["score"])
         
-        
+    def test_scoring_qe(self):
+        input = pd.DataFrame([["q1", "fox", "d1", "all the fox were fox"]], columns=["qid", "query", "docno", "body"])
+        from pyterrier.batchretrieve import TextScorer
+        scorer = pt.batchretrieve.TextIndexProcessor(pt.rewrite.Bo1QueryExpansion, takes="docs", returns="queries")
+        rtr = scorer(input)
+        self.assertTrue("qid" in rtr.columns)
+        self.assertTrue("query" in rtr.columns)
+        self.assertTrue("docno" not in rtr.columns)
+        self.assertTrue("^" in rtr.iloc[0]["query"])
