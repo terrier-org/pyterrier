@@ -133,13 +133,15 @@ class LTR_pipeline(EstimatorBase):
     """
     This class simplifies the use of Scikit-learn's techniques for learning-to-rank.
     """
-    def __init__(self, LTR, *args, **kwargs):
+    def __init__(self, LTR, *args, fit_kwargs={}, **kwargs):
         """
         Init method
 
         Args:
             LTR: The model which to use for learning-to-rank. Must have a fit() and predict() methods.
+            fit_kwargs: A dictionary containing additional arguments that can be passed to LTR's fit() method.  
         """
+        self.fit_kwargs = fit_kwargs
         super().__init__(*args, **kwargs)
         self.LTR = LTR
 
@@ -155,7 +157,8 @@ class LTR_pipeline(EstimatorBase):
         if 'features' not in topics_and_results_Train.columns:
             raise ValueError("No features column retrieved")
         train_DF = topics_and_results_Train.merge(qrelsTrain, on=['qid', 'docno'], how='left').fillna(0)
-        self.LTR.fit(np.stack(train_DF["features"].values), train_DF["label"].values)
+        kwargs = self.fit_kwargs
+        self.LTR.fit(np.stack(train_DF["features"].values), train_DF["label"].values, **kwargs)
         return self
 
     def transform(self, test_DF):
@@ -206,11 +209,13 @@ class XGBoostLTR_pipeline(LTR_pipeline):
         tr_res = topics_and_results_Train.merge(qrelsTrain, on=['qid', 'docno'], how='left').fillna(0)
         va_res = topics_and_results_Valid.merge(qrelsValid, on=['qid', 'docno'], how='left').fillna(0)
 
+        kwargs = self.fit_kwargs
         self.LTR.fit(
             np.stack(tr_res["features"].values), tr_res["label"].values, 
             group=tr_res.groupby(["qid"]).count()["docno"].values, # we name group here for libghtgbm compat. 
             eval_set=[(np.stack(va_res["features"].values), va_res["label"].values)],
-            eval_group=[va_res.groupby(["qid"]).count()["docno"].values]
+            eval_group=[va_res.groupby(["qid"]).count()["docno"].values],
+            **kwargs
         )
 
 class PerQueryMaxMinScoreTransformer(TransformerBase):
