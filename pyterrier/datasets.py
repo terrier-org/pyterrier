@@ -42,11 +42,16 @@ class Dataset():
 
 class RemoteDataset(Dataset):
 
-    def __init__(self, name, locations):
+    def __init__(self, name, locations, corpus_home=None):
         from os.path import expanduser
         userhome = expanduser("~")
-        pt_home = os.path.join(userhome, ".pyterrier")
-        self.corpus_home = os.path.join(pt_home, "corpora", name)
+        pt_home = os.path.join(userhome, ".pyterrier")        
+        
+        if corpus_home:
+            self.corpus_home = corpus_home
+        else:
+            self.corpus_home = os.path.join(pt_home, "corpora", name)       
+
         self.locations = locations
         self.name = name
         self.user = None
@@ -103,7 +108,7 @@ class RemoteDataset(Dataset):
                 raise TypeError("Expected function with 0 or 3 arguments for  %s %s %s" % (component, name, variant))
 
         local = location[0]
-        URL = location [1]
+        URL = location[1]
         if len(location) > 2:
             filetype = location[2]
 
