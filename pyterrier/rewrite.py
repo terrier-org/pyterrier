@@ -98,7 +98,9 @@ class QueryExpansion(TransformerBase):
             metaindex = index.getMetaIndex()
             for docno in docnos:
                 docid = metaindex.getDocument("docno", docno)
-                assert docid != -1, "could not match docno" + docno + " to a docid for query " + qid    
+                # Sometimes docs in qrels are not present in indexed data 
+                if docid == -1:
+                    continue                
                 docids.append(docid)
                 scores.append(0.0)
                 occurrences.append(0)
