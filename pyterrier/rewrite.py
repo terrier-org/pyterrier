@@ -150,7 +150,7 @@ class QueryExpansion(TransformerBase):
             # this control for Terrier stops it re-stemming the expanded terms
             new_query = "applypipeline:off "
             for me in rq.getMatchingQueryTerms():
-                new_query += me.getKey().toString() + "^" + str(me.getValue().getWeight()) + " "
+                new_query += me.getKey().toString() + ( "^%.9f "  % me.getValue().getWeight() ) 
             # remove trailing space
             new_query = new_query[:-1]
             results.append([qid, new_query])

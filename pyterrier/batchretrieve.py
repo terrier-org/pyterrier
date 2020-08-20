@@ -276,10 +276,14 @@ class TextIndexProcessor(TransformerBase):
     def transform(self, topics_and_res):
         from . import DFIndexer, autoclass, IndexFactory
         from .index import IndexingType
-        documents = topics_and_res[["docno", self.body_attr]].drop_duplicates()
+        documents = topics_and_res[["docno", self.body_attr]].drop_duplicates(subset="docno")
         indexref = DFIndexer(None, type=IndexingType.MEMORY).index(documents[self.body_attr], documents["docno"])
         docno2docid = { docno:id for id, docno in enumerate(documents["docno"]) }
         index_docs = IndexFactory.of(indexref)
+        docno2docid = {}
+        for i in range(0, index_docs.getCollectionStatistics().getNumberOfDocuments()):
+            docno2docid[index_docs.getMetaIndex().getItem("docno", i)] = i
+        assert len(docno2docid) == index_docs.getCollectionStatistics().getNumberOfDocuments(), "docno2docid size (%d) doesnt match index (%d)" % (len(docno2docid), index_docs.getCollectionStatistics().getNumberOfDocuments())
         
         # if a background index is set, we create an "IndexWithBackground" using both that and our new index
         if self.background_indexref is None:
@@ -298,7 +302,6 @@ class TextIndexProcessor(TransformerBase):
             # we have to pass the documents, but its desirable to have the docids mapped to the new index already
             # build a mapping, as the metaindex may not have reverse lookups enabled
             input = topics_and_res.copy()
-            docno2docid = { docno:id for id, docno in enumerate(documents["docno"]) }
             # add the docid to the dataframe
             input["docid"] = input.apply(lambda row: docno2docid[row["docno"]], axis=1)
 
