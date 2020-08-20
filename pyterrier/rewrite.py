@@ -197,10 +197,15 @@ class RM3(QueryExpansion):
         assert prf_found, 'terrier-prf jar not found: you should start Pyterrier with '\
             + 'pt.init(boot_packages=["org.terrier:terrier-prf:0.0.1-SNAPSHOT"])'
         rm = pt.autoclass("org.terrier.querying.RM3")()
-        rm.fbTerms = fb_terms
-        rm.fbDocs = fb_docs
+        self.fb_terms = fb_terms
+        self.fb_docs = fb_docs
         kwargs["qeclass"] = rm
         super().__init__(*args, **kwargs)
+        
+    def transform(self, queries_and_docs):
+        self.qe.fbTerms = self.fb_terms
+        self.qe.fbDocs = self.fb_docs
+        return super().transform(queries_and_docs)
 
 class AxiomaticQE(QueryExpansion):
     '''
@@ -222,7 +227,13 @@ class AxiomaticQE(QueryExpansion):
         assert prf_found, 'terrier-prf jar not found: you should start Pyterrier with '\
             + 'pt.init(boot_packages=["org.terrier:terrier-prf:0.0.1-SNAPSHOT"])'
         rm = pt.autoclass("org.terrier.querying.AxiomaticQE")()
-        rm.fbTerms = fb_terms
-        rm.fbDocs = fb_docs
+        self.fb_terms = fb_terms
+        self.fb_docs = fb_docs
         kwargs["qeclass"] = rm
         super().__init__(*args, **kwargs)
+
+    def transform(self, queries_and_docs):
+        self.qe.fbTerms = self.fb_terms
+        self.qe.fbDocs = self.fb_docs
+        return super().transform(queries_and_docs)
+
