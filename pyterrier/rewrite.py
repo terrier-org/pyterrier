@@ -4,6 +4,7 @@ from tqdm import tqdm
 import pandas as pd
 from .batchretrieve import parse_index_like
 from .transformer import TransformerBase, Symbol
+from warnings import warn
 
 TerrierQLParser = pt.autoclass("org.terrier.querying.TerrierQLParser")()
 TerrierQLToMatchingQueryTerms = pt.autoclass("org.terrier.querying.TerrierQLToMatchingQueryTerms")()
@@ -107,12 +108,20 @@ class QueryExpansion(TransformerBase):
             scores = []
             occurrences = []
             metaindex = index.getMetaIndex()
+            skipped = 0
             for docno in docnos:
                 docid = metaindex.getDocument("docno", docno)
+                if docid == -1:
+                    skipped +=1 
                 assert docid != -1, "could not match docno" + docno + " to a docid for query " + qid    
                 docids.append(docid)
                 scores.append(0.0)
                 occurrences.append(0)
+            if skipped > 0:
+                if skipped == len(docnos):
+                    warn("*ALL* %d feedback docnos for qid %s could not be found in the index" % (skipped, qid))
+                else:
+                    warn("%d feedback docnos for qid %s could not be found in the index" % (skipped, qid))
         else:
             raise ValueError("Input resultset has neither docid nor docno")
         return QueryResultSet(docids, scores, occurrences)
