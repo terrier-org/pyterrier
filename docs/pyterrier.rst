@@ -34,6 +34,14 @@ pyterrier.anserini module
     :undoc-members:
     :show-inheritance:
 
+pyterrier.io module
+--------------------------
+
+.. automodule:: pyterrier.io
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 pyterrier.datasets module
 --------------------------
 
