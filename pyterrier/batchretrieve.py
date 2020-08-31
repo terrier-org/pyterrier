@@ -169,7 +169,7 @@ class BatchRetrieve(BatchRetrieveBase):
             srq = self.manager.newSearchRequest(qid, query)
             
             for control, value in self.controls.items():
-                srq.setControl(control, value)
+                srq.setControl(control, str(value))
 
             # this is needed until terrier-core issue #106 lands
             if "applypipeline:off" in query:
@@ -404,7 +404,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
             srq = self.manager.newSearchRequest(qid, query)
 
             for control, value in self.controls.items():
-                srq.setControl(control, value)
+                srq.setControl(control, str(value))
 
             # this is needed until terrier-core issue #106 lands
             if "applypipeline:off" in query:
