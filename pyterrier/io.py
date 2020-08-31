@@ -92,9 +92,9 @@ def write_results(res, filename, format="trec", **kwargs):
         **kwargs (dict): Other arguments for the internal method
 
     Supported Formats:
-        "trec": output columns are $qid Q0 $docno $rank $score $runname
-        "letor": This follows the LETOR and MSLR datasets, in that output columns are $label qid:$qid [$fid:$value]+ # docno=$docno
-        "minimal": output columns are $qid $docno $rank.
+        * "trec" -- output columns are $qid Q0 $docno $rank $score $runname
+        * "letor" -- This follows the LETOR and MSLR datasets, in that output columns are $label qid:$qid [$fid:$value]+ # docno=$docno
+        * "minimal": output columns are $qid $docno $rank.
     
     """
     if format is None:
@@ -129,11 +129,16 @@ def read_topics(filename, format="trec", **kwargs):
 
     Parameters:
         filename(str): The filename of the topics file
-        format(str): One of "trec", trecxml or "singleline". Default is "trec" 
+        format(str): One of "trec", "trecxml" or "singleline". Default is "trec" 
 
     Returns:
         pandas.Dataframe with columns=['qid','query']
         both columns have type string
+
+    Supported Formats:
+        * "trec" -- an SGML-formatted TREC topics file. Delimited by TOP tags, each having NUM and TITLE tags; DESC and NARR tags are skipped by default. Control using whitelist and blacklist kwargs
+        * "trecxml" -- a more modern XML formatted topics file. Delimited by topic tags, each having nunber tags. query, question and narrative tags are parsed by default. Control using tags kwarg.
+        * "singeline" -- one query per line, preceeded by a space or colon. Tokenised by default, use tokenise=False kwargs to prevent tokenisation.
     """
     if format is None:
         format = "trec"
