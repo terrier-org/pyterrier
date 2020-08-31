@@ -1,6 +1,10 @@
 import pandas as pd
 
 def autoopen(filename, mode='rb'):
+    """
+    A drop-in for open() that applies automatic compression for .gz and .bz2 file extensions
+    """
+
     if filename.endswith(".gz"):
         import gzip
         return gzip.open(filename, mode)
@@ -10,6 +14,17 @@ def autoopen(filename, mode='rb'):
     return open(filename, mode)
 
 def read_results(filename, format="trec", **kwargs):
+    """
+    Reads a file into a results dataframe.
+
+    Parameters:
+        filename (str): The filename of the file to be read. Compressed files are handled automatically.
+        format (str): The format of the results file: one of "trec", "letor", "minimal". Default is "trec"
+        **kwargs (dict): Other arguments for the internal method
+    
+    Returns:
+        dataframe with usual qid, docno, score columns etc
+    """
     if format is None:
         format = "trec"
     if not format in SUPPORTED_RESULTS_FORMATS:
@@ -67,6 +82,21 @@ def _read_results_trec(filename):
     return df
 
 def write_results(res, filename, format="trec", **kwargs):
+    """
+    Write a results dataframe to a file.
+
+    Parameters:
+        res (DataFrame): A results dataframe, with usual columns of qid, docno etc 
+        filename (str): The filename of the file to be written. Compressed files are handled automatically.
+        format (str): The format of the results file: one of "trec", "letor", "minimal"
+        **kwargs (dict): Other arguments for the internal method
+
+    Supported Formats:
+        "trec": output columns are $qid Q0 $docno $rank $score $runname
+        "letor": This follows the LETOR and MSLR datasets, in that output columns are $label qid:$qid [$fid:$value]+ # docno=$docno
+        "minimal": output columns are $qid $docno $rank.
+    
+    """
     if format is None:
         format = "trec" 
     if not format in SUPPORTED_RESULTS_FORMATS:
@@ -77,6 +107,10 @@ def _write_results_trec(res, filename, run_name="pyterrier"):
         res_copy = res.copy()[["qid", "docno", "rank", "score"]]
         res_copy.insert(1, "Q0", "Q0")
         res_copy.insert(5, "run_name", run_name)
+        res_copy.to_csv(filename, sep=" ", header=False, index=False)
+
+def _write_results_minimal(res, filename, run_name="pyterrier"):
+        res_copy = res.copy()[["qid", "docno", "rank"]]
         res_copy.to_csv(filename, sep=" ", header=False, index=False)
 
 def _write_results_letor(res, filename, qrels=None, default_label=0):
@@ -90,23 +124,24 @@ def _write_results_letor(res, filename, qrels=None, default_label=0):
             f.write("%d qid:%s %s # docno=%s\n" % (label, row.qid, feat_str, row.docno))
 
 def read_topics(filename, format="trec", **kwargs):
-    if format is None:
-        format = "trec"
-    if not format in SUPPORTED_TOPICS_FORMATS:
-        raise ValueError("Format %s not known, supported types are %s" % str(SUPPORTED_TOPIC_FORMATS.keys()))
-    return SUPPORTED_TOPICS_FORMATS[format](filename, **kwargs)
-
-def _read_topics_trec(file_path, doc_tag="TOP", id_tag="NUM", whitelist=["TITLE"], blacklist=["DESC","NARR"]):
     """
-    Parse a file containing topics in standard TREC format
+    Reads a file containing topics 
 
-    Args:
-        file_path(str): The path to the topics file
+    Parameters:
+        filename(str): The filename of the topics file
+        format(str): One of "trec", trecxml or "singleline". Default is "trec" 
 
     Returns:
         pandas.Dataframe with columns=['qid','query']
         both columns have type string
     """
+    if format is None:
+        format = "trec"
+    if not format in SUPPORTED_TOPICS_FORMATS:
+        raise ValueError("Format %s not known, supported types are %s" % str(SUPPORTED_TOPICS_FORMATS.keys()))
+    return SUPPORTED_TOPICS_FORMATS[format](filename, **kwargs)
+
+def _read_topics_trec(file_path, doc_tag="TOP", id_tag="NUM", whitelist=["TITLE"], blacklist=["DESC","NARR"]):
     from jnius import autoclass
     from . import check_version
     assert check_version("5.3")
@@ -176,9 +211,9 @@ def _read_topics_singleline(filepath, tokenise=True):
 
 def read_qrels(file_path):
     """
-    Parse a file containing qrels
+    Reads a file containing qrels (relevance assessments)
 
-    Args:
+    Parameters:
         file_path(str): The path to the qrels file
 
     Returns:
@@ -199,5 +234,6 @@ SUPPORTED_TOPICS_FORMATS = {
 
 SUPPORTED_RESULTS_FORMATS = {
     "trec" : (_read_results_trec, _write_results_trec),
-    "letor" : (_read_results_letor, _write_results_letor)
+    "letor" : (_read_results_letor, _write_results_letor),
+    "minimal" : (None, _write_results_minimal)
 }
