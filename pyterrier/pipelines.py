@@ -225,6 +225,6 @@ class PerQueryMaxMinScoreTransformer(TransformerBase):
     
     def transform(self, topics_and_res):
         from sklearn.preprocessing import minmax_scale
-        #topics_and_res = topics_and_res.copy()
+        topics_and_res = topics_and_res.copy()
         topics_and_res["score"] = topics_and_res.groupby('qid')["score"].transform(lambda x: minmax_scale(x))
         return topics_and_res
