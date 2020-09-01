@@ -204,6 +204,8 @@ TREC_COVID_FILES = {
 TREC_DEEPLEARNING_MSMARCO_FILES = {
     "corpus" : 
         [("msmarco-docs.trec.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-docs.trec.gz")],
+    "corpus-tsv":
+        [("msmarco-docs.tsv.gz",  "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-docs.tsv.gz")],
     "topics" : 
         { 
             "train" : ("msmarco-doctrain-queries.tsv.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-doctrain-queries.tsv.gz", "singleline"),
