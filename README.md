@@ -56,7 +56,7 @@ There is a worked example in the [experiment notebook](examples/notebooks/experi
 
 Pyterrier makes it easy to develop complex [retrieval pipelines](pipelines.md) using Python operators such as `>>` to chain different retrieval components. Each retrieval approach is a transformer, having one key method, `transform()`, which takes a single Pandas dataframe as input, and returns another dataframe. Two examples might encapsulate applying the sequential dependence model, or a query expansion process:
 ```python
-sdm_bm25 = pt.rewrite.SDM() >> pt.BatchRetrieve(indexref, wmodel="BM25"})
+sdm_bm25 = pt.rewrite.SDM() >> pt.BatchRetrieve(indexref, wmodel="BM25")
 bo1_qe = BM25_br >> pt.rewrite.Bo1QueryExpansion() >> BM25_br
 ````
 Our [example pipelines](pipeline_examples.md) show other common use cases. For more information, see the [Pyterrier data model](datamodel.md).
