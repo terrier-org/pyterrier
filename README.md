@@ -36,7 +36,7 @@ See examples in the [indexing notebook](examples/notebooks/indexing.ipynb) [![Op
 ```python
 topics = pt.io.read_topics(topicsFile)
 qrels = pt.io.read_qrels(qrelsFile)
-BM25_br = pt.BatchRetrieve(index, controls={"wmodel": "BM25"})
+BM25_br = pt.BatchRetrieve(index, wmodel="BM25")
 res = BM25_br.transform(topics)
 pt.Utils.evaluate(res, qrels, metrics = ['map'])
 ```
@@ -56,7 +56,7 @@ There is a worked example in the [experiment notebook](examples/notebooks/experi
 
 Pyterrier makes it easy to develop complex [retrieval pipelines](pipelines.md) using Python operators such as `>>` to chain different retrieval components. Each retrieval approach is a transformer, having one key method, `transform()`, which takes a single Pandas dataframe as input, and returns another dataframe. Two examples might encapsulate applying the sequential dependence model, or a query expansion process:
 ```python
-sdm_bm25 = pt.rewrite.SDM() >> pt.BatchRetrieve(indexref, controls={"wmodel":"BM25"})
+sdm_bm25 = pt.rewrite.SDM() >> pt.BatchRetrieve(indexref, wmodel="BM25"})
 bo1_qe = BM25_br >> pt.rewrite.Bo1QueryExpansion() >> BM25_br
 ````
 Our [example pipelines](pipeline_examples.md) show other common use cases. For more information, see the [Pyterrier data model](datamodel.md).
@@ -66,8 +66,8 @@ Our [example pipelines](pipeline_examples.md) show other common use cases. For m
 Complex learning to rank pipelines, including for learning-to-rank, can be constructed using Pyterrier's operator language. For example, to combine two features and make them available for learning, we can use the `**` operator.
 ```python
 two_features = BM25_br >> ( \
-  pt.BatchRetrieve(indexref, controls={"wmodel":"DirichletLM"}) ** 
-  pt.BatchRetrieve(indexref, controls={"wmodel":"PL2"}) \
+  pt.BatchRetrieve(indexref, wmodel="DirichletLM") ** 
+  pt.BatchRetrieve(indexref, wmodel="PL2") \
  )
 ```
 There are several worked examples in the [learning-to-rank notebook](examples/notebooks/ltr.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/ltr.ipynb). Some pipelines can be automatically optimised - more detail about pipeline optimisation are included in our ICTIR 2020 paper.
