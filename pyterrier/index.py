@@ -459,7 +459,7 @@ class IterDictIndexer(Indexer):
             'FieldTags.casesensitive': 'true',
             'indexer.meta.forward.keys': ','.join(meta),
             # What are the ramifications of setting all lengths to a large value like this? (storage cost?)
-            'indexer.meta.forward.keylens': meta_lengths
+            'indexer.meta.forward.keylens': ','.join(meta_lengths)
         })
         # we need to prevent collectionIterator from being GCd
         collectionIterator = FlatJSONDocumentIterator(iter(it)) # force it to be iter
