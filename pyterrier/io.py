@@ -94,7 +94,7 @@ def write_results(res, filename, format="trec", **kwargs):
     Supported Formats:
         * "trec" -- output columns are $qid Q0 $docno $rank $score $runname
         * "letor" -- This follows the LETOR and MSLR datasets, in that output columns are $label qid:$qid [$fid:$value]+ # docno=$docno
-        * "minimal": output columns are $qid $docno $rank.
+        * "minimal": output columns are $qid $docno $rank, tab-separated.
     
     """
     if format is None:
@@ -111,7 +111,7 @@ def _write_results_trec(res, filename, run_name="pyterrier"):
 
 def _write_results_minimal(res, filename, run_name="pyterrier"):
         res_copy = res.copy()[["qid", "docno", "rank"]]
-        res_copy.to_csv(filename, sep=" ", header=False, index=False)
+        res_copy.to_csv(filename, sep="\t", header=False, index=False)
 
 def _write_results_letor(res, filename, qrels=None, default_label=0):
     if qrels is not None:
