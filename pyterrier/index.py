@@ -452,14 +452,14 @@ class IterDictIndexer(Indexer):
             meta_lengths(list[int]): length of metadata, defaults to 512 characters
         """
         self.checkIndexExists()
+        # What are the ramifications of setting all lengths to a large value like this? (storage cost?)
         if meta_lengths is None:
-            meta_lengths = ','.join(['512'] * len(meta))
+            meta_lengths = ['512'] * len(meta)
         self.setProperties(**{
             'FieldTags.process': ','.join(fields),
             'FieldTags.casesensitive': 'true',
             'indexer.meta.forward.keys': ','.join(meta),
-            # What are the ramifications of setting all lengths to a large value like this? (storage cost?)
-            'indexer.meta.forward.keylens': ','.join(meta_lengths)
+            'indexer.meta.forward.keylens': ','.join([str(l) for l in meta_lengths])
         })
         # we need to prevent collectionIterator from being GCd
         collectionIterator = FlatJSONDocumentIterator(iter(it)) # force it to be iter
