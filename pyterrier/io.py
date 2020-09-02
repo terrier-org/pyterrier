@@ -1,5 +1,18 @@
 import pandas as pd
 
+
+def coerce_dataframe(obj):
+    if isinstance(obj, pd.DataFrame):
+        return obj
+    import types
+    if isinstance(obj, types.GeneratorType):
+        #its a generator, lets assume it generates dataframes
+        rtr=[]
+        for x in obj:
+            assert isinstance(x, pd.DataFrame)
+            rtr.append(x)
+        return pd.concat(rtr)
+
 def autoopen(filename, mode='rb'):
     """
     A drop-in for open() that applies automatic compression for .gz and .bz2 file extensions
@@ -92,7 +105,7 @@ def write_results(res, filename, format="trec", **kwargs):
         **kwargs (dict): Other arguments for the internal method
 
     Supported Formats:
-        * "trec" -- output columns are $qid Q0 $docno $rank $score $runname
+        * "trec" -- output columns are $qid Q0 $docno $rank $score $runname, space separated
         * "letor" -- This follows the LETOR and MSLR datasets, in that output columns are $label qid:$qid [$fid:$value]+ # docno=$docno
         * "minimal": output columns are $qid $docno $rank, tab-separated.
     
@@ -101,6 +114,8 @@ def write_results(res, filename, format="trec", **kwargs):
         format = "trec" 
     if not format in SUPPORTED_RESULTS_FORMATS:
         raise ValueError("Format %s not known, supported types are %s" % str(SUPPORTED_RESULTS_FORMATS.keys()))
+    # convert generators to results 
+    res = coerce_dataframe(res)
     return SUPPORTED_RESULTS_FORMATS[format][1](res, filename, **kwargs)
 
 def _write_results_trec(res, filename, run_name="pyterrier"):

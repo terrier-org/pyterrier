@@ -247,6 +247,9 @@ class Utils:
             metrics(list): A list of strings specifying which evaluation metrics to use. Default=['map', 'ndcg']
             perquery(bool): If true return each metric for each query, else return mean metrics. Default=False
         """
+        from .io import coerce_dataframe
+        if not isinstance(res, dict):
+            res = coerce_dataframe(res)
         if isinstance(res, pd.DataFrame):
             batch_retrieve_results_dict = Utils.convert_res_to_dict(res)
         else:
