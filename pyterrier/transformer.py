@@ -2,6 +2,7 @@
 import types
 from matchpy import ReplacementRule, Wildcard, Symbol, Operation, Arity, replace_all, Pattern, CustomConstraint
 from warnings import warn
+import pandas as pd
 
 LAMBDA = lambda:0
 def is_lambda(v):
@@ -28,7 +29,9 @@ def get_transformer(v):
         return LambdaPipeline(v)
     if isinstance(v, types.FunctionType):
         return LambdaPipeline(v)
-    raise ValueError("Passed parameter %s cannot be coerced into a transformer", str(v))
+    if isinstance(v, pd.DataFrame):
+        return SourceTransformer(v)
+    raise ValueError("Passed parameter %s of type %s cannot be coerced into a transformer" % (str(v), type(v)))
 
 rewrites_setup = False
 rewrite_rules = []
@@ -180,6 +183,31 @@ class IdentityTransformer(TransformerBase, Operation):
     
     def transform(self, topics):
         return topics
+
+class SourceTransformer(TransformerBase, Operation):
+    '''
+    A Transformer that can be used when results have been saved in a dataframe.
+    It will select results on qid.
+    If a query column is in the dataframe passed in the constructor, this will override any query
+    column in the topics dataframe passed to the transform() method.
+    '''
+    arity = Arity.nullary
+
+    def __init__(self, rtr, **kwargs):
+        super().__init__(operands=[], **kwargs)
+        self.operands=[]
+        self.df = rtr[0]
+        self.df_contains_query = "query" in self.df.columns
+        assert "qid" in self.df.columns
+    
+    def transform(self, topics):
+        assert "qid" in topics.columns
+        columns=["qid"]
+        topics_contains_query = "query" in topics.columns
+        if not self.df_contains_query and topics_contains_query:
+            columns.append("query")
+        rtr = topics[columns].merge(self.df, on="qid")
+        return rtr
 
 # this class is useful for testing. it returns a copy of the same
 # dataframe each time transform is called

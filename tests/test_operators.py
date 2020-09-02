@@ -11,6 +11,34 @@ class TestOperators(unittest.TestCase):
         if not pt.started():
             pt.init()
 
+    def test_then_dataframe(self):
+        #this test is we can have DataFrame >> SOMETHINGELSE
+
+        topicsSource = pd.DataFrame([["1", "AA"]], columns=["qid", "query"])
+
+        def rewrite(topics):
+            for index, row in topics.iterrows():
+                row["query"] = row["query"] + " test"
+            return topics
+        fn1 = lambda topics : rewrite(topics)
+        import pyterrier.transformer as ptt
+        
+        topics = pd.DataFrame([["1", "A"]], columns=["qid", "query"])
+        rtr = ptt.SourceTransformer(topicsSource)(topics)
+        self.assertEqual(1, len(rtr))
+        self.assertTrue("query" in rtr.columns)
+        self.assertTrue("qid" in rtr.columns)
+        self.assertEqual(2, len(rtr.columns))  
+        self.assertEqual("AA", rtr.iloc[0]["query"])
+
+        sequence1 = topicsSource >> ptt.LambdaPipeline(fn1)
+        rtr = sequence1(topics)
+        self.assertTrue("query" in rtr.columns)
+        self.assertTrue("qid" in rtr.columns)
+        self.assertEqual(2, len(rtr.columns))        
+        self.assertEqual(1, len(rtr))
+        self.assertEqual("AA test", rtr.iloc[0]["query"])
+
     def test_then(self):
         
         def rewrite(topics):
