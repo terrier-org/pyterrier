@@ -32,6 +32,7 @@ class TestOperators(unittest.TestCase):
         self.assertEqual("AA", rtr.iloc[0]["query"])
 
         sequence1 = topicsSource >> ptt.LambdaPipeline(fn1)
+        self.assertTrue(isinstance(sequence1[0], ptt.SourceTransformer))
         rtr = sequence1(topics)
         self.assertTrue("query" in rtr.columns)
         self.assertTrue("qid" in rtr.columns)
