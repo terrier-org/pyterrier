@@ -11,8 +11,6 @@ def is_lambda(v):
 def is_transformer(v):
     if isinstance(v, TransformerBase):
         return True
-    if 'transform' in dir(v):
-        return True
     return False
 
 def get_transformer(v):
