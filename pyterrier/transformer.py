@@ -176,7 +176,6 @@ class TransformerBase:
             queries = input
         batch=[]      
         for query in queries.itertuples():
-            batch=[]
             if len(batch) == batch_size:
                 batch_topics = pd.concat(batch)
                 batch=[]
