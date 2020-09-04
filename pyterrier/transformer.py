@@ -165,6 +165,29 @@ class TransformerBase:
     def __invert__(self):
         from .cache import ChestCacheTransformer
         return ChestCacheTransformer(self)
+
+    def transform_gen(self, input, batch_size=1):
+        docno_provided = "docno" in input.columns
+        docid_provided = "docid" in input.columns
+        
+        if docno_provided or docid_provided:
+            queries = input[["qid"]].drop_duplicates()
+        else:
+            queries = input
+        batch=[]      
+        for query in queries.itertuples():
+            if len(batch) == batch_size:
+                batch_topics = pd.concat(batch)
+                batch=[]
+                yield self.transform(batch_topics)
+            batch.append(input[input["qid"] == query.qid])
+        if len(batch) > 0:
+            batch_topics = pd.concat(batch)
+            yield self.transform(batch_topics)
+        
+
+        
+
     
 class EstimatorBase(TransformerBase):
     '''

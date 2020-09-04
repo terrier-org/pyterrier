@@ -27,6 +27,11 @@ class TestUtils(BaseTestCase):
             del res2_dict["name"]
             self.assertEqual(res_dict, res2_dict)
 
+    def test_save_trec_generator(self):
+        br = pt.BatchRetrieve(pt.get_dataset("vaswani").get_index(), wmodel="TF_IDF")
+        filepath = os.path.join(self.test_dir, "test.res")
+        pt.io.write_results(br.transform_gen(pt.get_dataset("vaswani").get_topics().head()), filepath, format="trec")
+
     def test_save_letor(self):
         import numpy as np
         res = pd.DataFrame([["1", "d1", 5.3, 1, np.array([1, 2])], ["1", "d2", 5.3, 1, np.array([2, 1])]], columns=['qid', 'docno', 'score', 'rank', 'features'])
