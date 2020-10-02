@@ -112,7 +112,8 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
                     additionals = [None] * (3*len(actual_metric_names))
                 else:
                     for m in actual_metric_names:
-                        perQuery = np.array( [ evalDictsPerQ[i][q][m] for q in evalDictsPerQ[i] ])
+                        # we iterate through queries based on the baseline, in case run has different order
+                        perQuery = np.array( [ evalDictsPerQ[i][q][m] for q in evalDictsPerQ[baseline] ])
                         delta_plus = (perQuery > baselinePerQuery[m]).sum()
                         delta_minus = (perQuery < baselinePerQuery[m]).sum()
                         p = stats.ttest_rel(perQuery, baselinePerQuery[m])[1]
