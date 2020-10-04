@@ -54,7 +54,7 @@ def setup_terrier(file_path, terrier_version=None, helper_version=None, boot_pac
 
     Args:
         file_path(str): Where to download
-        terrier_version(str): Which version of Terrier - None is latest
+        terrier_version(str): Which version of Terrier - None is latest release; "snapshot" uses Jitpack to download a build of the current Github 5.x branch.
         helper_version(str): Which version of the helper - None is latest
     """
     # If version is not specified, find newest and download it
@@ -63,7 +63,12 @@ def setup_terrier(file_path, terrier_version=None, helper_version=None, boot_pac
     else:
         terrier_version = str(terrier_version) # just in case its a float
     # obtain the fat jar from Maven
-    trJar = mavenresolver.downloadfile(TERRIER_PKG, "terrier-assemblies", terrier_version, file_path, "jar-with-dependencies")
+    # "snapshot" means use Jitpack.io to get a build of the current
+    # 5.x branch from Github - see https://jitpack.io/#terrier-org/terrier-core/5.x-SNAPSHOT
+    if terrier_version == "snapshot":
+        trJar = mavenresolver.downloadfile("com.github.terrier-org.terrier-core", "terrier-assemblies", "5.x-SNAPSHOT", file_path, "jar-with-dependencies")
+    else:
+        trJar = mavenresolver.downloadfile(TERRIER_PKG, "terrier-assemblies", terrier_version, file_path, "jar-with-dependencies")
 
     # now the helper classes
     if helper_version is None:
