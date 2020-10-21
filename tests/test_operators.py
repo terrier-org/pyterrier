@@ -131,7 +131,7 @@ class TestOperators(unittest.TestCase):
 
     def test_rank_cutoff(self):
         import pyterrier.transformer as ptt
-        mock1 = ptt.UniformTransformer( pd.DataFrame([["q1", "d2", 1, 5.1], ["q1", "d3", 2, 5.1]], columns=["qid", "docno", "rank", "score"]))
+        mock1 = ptt.UniformTransformer( pd.DataFrame([["q1", "d2", 0, 5.1], ["q1", "d3", 1, 5.1]], columns=["qid", "docno", "rank", "score"]))
         cutpipe = mock1 % 1
         rtr = cutpipe.transform(None)
         self.assertEqual(1, len(rtr))

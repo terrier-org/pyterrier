@@ -21,7 +21,7 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
         self.assertTrue("docno" in result.columns)
         self.assertTrue("score" in result.columns)
         self.assertTrue("features" in result.columns)
-        self.assertEqual(3, len(result))
+        self.assertEqual(2, len(result))
         self.assertEqual(result.iloc[0]["features"].size, 2)
 
         pipe_simple = firstpass >> (pt.BatchRetrieve(indexref, wmodel="DPH") ** pt.BatchRetrieve(indexref, wmodel="PL2"))

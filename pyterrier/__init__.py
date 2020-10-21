@@ -7,13 +7,15 @@ from . import datasets
 import importlib
 
 #sub modules
-rewrite = None
-index = None
-pipelines = None
 anserini = None
-transformer = None
 cache = None
+index = None
 io = None
+model = None
+pipelines = None
+rewrite = None
+transformer = None
+
 file_path = os.path.dirname(os.path.abspath(__file__))
 firstInit = False
 ApplicationSetup = None
@@ -93,20 +95,23 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     globals()["cast"] = cast
     globals()["ApplicationSetup"] = ApplicationSetup
 
-    global rewrite
+    
     global anserini
-    global pipelines
-    global index
-    global transformer
     global cache
+    global index
     global io
-    rewrite = importlib.import_module('.rewrite', package='pyterrier') 
+    global model
+    global pipelines
+    global rewrite
+    global transformer
     anserini = importlib.import_module('.anserini', package='pyterrier') 
-    pipelines = importlib.import_module('.pipelines', package='pyterrier') 
+    cache = importlib.import_module('.cache', package='pyterrier')
     index = importlib.import_module('.index', package='pyterrier') 
-    transformer = importlib.import_module('.transformer', package='pyterrier') 
-    cache = importlib.import_module('.cache', package='pyterrier') 
-    io = importlib.import_module('.io', package='pyterrier') 
+    io = importlib.import_module('.io', package='pyterrier')
+    model = importlib.import_module('.model', package='pyterrier')
+    pipelines = importlib.import_module('.pipelines', package='pyterrier') 
+    rewrite = importlib.import_module('.rewrite', package='pyterrier')
+    transformer = importlib.import_module('.transformer', package='pyterrier')
 
     # append the python helpers
     if packages is None:

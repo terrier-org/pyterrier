@@ -3,6 +3,7 @@ import types
 from matchpy import ReplacementRule, Wildcard, Symbol, Operation, Arity, replace_all, Pattern, CustomConstraint
 from warnings import warn
 import pandas as pd
+from .model import add_ranks
 
 LAMBDA = lambda:0
 def is_lambda(v):
@@ -327,6 +328,7 @@ class CombSumTransformer(BinaryTransformerBase):
         merged = res1.merge(res2, on=["qid", "docno"])
         merged["score"] = merged["score_x"] + merged["score_y"]
         merged = merged.drop(columns=['score_x', 'score_y'])
+        merged = add_ranks(merged)
         return merged
 
 class ConcatenateTransformer(BinaryTransformerBase):
@@ -363,9 +365,7 @@ class ConcatenateTransformer(BinaryTransformerBase):
         rtr = pd.concat([res1, remainder]).sort_values(by=["qid", "score", "docno"], ascending=[True, False, True]) 
 
         # recompute the ranks
-        rtr = rtr.drop(columns=["rank"])
-        rtr["rank"] = rtr.groupby("qid").rank(ascending=False)["score"].astype(int)
-
+        rtr = add_ranks(rtr)
         return rtr
 
 class ScalarProductTransformer(BinaryTransformerBase):
@@ -397,13 +397,16 @@ class RankCutoffTransformer(BinaryTransformerBase):
         super().__init__(operands, **kwargs)
         self.transformer = operands[0]
         self.cutoff = operands[1]
+        if self.cutoff.value % 10 == 9:
+            warn("Rank cutoff off-by-one bug #66 now fixed, but you used a cutoff ending in 9. Please check your cutoff value. ", DeprecationWarning, 2)
 
     def transform(self, topics_and_res):
         res = self.transformer.transform(topics_and_res)
         if not "rank" in res.columns:
             assert False, "require rank to be present in the result set"
 
-        res = res[res["rank"] <= self.cutoff.value]
+        # this assumes that the minimum rank cutoff is model.FIRST_RANK, i.e. 0
+        res = res[res["rank"] < self.cutoff.value]
         return res
 
 class LambdaPipeline(TransformerBase):
