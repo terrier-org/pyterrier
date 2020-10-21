@@ -135,7 +135,7 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
         if perquery:
             return pd.DataFrame(evalsRows, columns=["name", "qid", "measure", "value"])
 
-        highlight_cols = { actual_metric_names : "+" }
+        highlight_cols = { m : "+"  for m in actual_metric_names }
 
         if baseline is not None:
             assert len(evalDictsPerQ) == len(retr_systems)
