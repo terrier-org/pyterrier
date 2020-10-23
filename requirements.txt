@@ -10,3 +10,4 @@ deprecation
 chest
 scipy
 requests
+joblib
