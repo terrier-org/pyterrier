@@ -6,6 +6,7 @@ stdout_ref = None
 stderr_ref = None
 TERRIER_PKG = "org.terrier"
 
+
 @deprecation.deprecated(deprecated_in="0.1.3",
                         # remove_id="",
                         details="Use the logging(level) function instead")
@@ -17,6 +18,10 @@ def logging(level):
     autoclass("org.terrier.python.PTUtils").setLogLevel(level, None)
 # make an alias
 _logging = logging
+
+def new_indexref(s):
+    from . import IndexRef
+    return IndexRef.of(s)
 
 def setup_jnius():
     from jnius import protocol_map # , autoclass
@@ -45,6 +50,18 @@ def setup_jnius():
         '__getitem__': _lexicon_getitem,
         '__contains__': lambda self, term: self.getLexiconEntry(term) is not None,
         '__len__': lambda self: self.numberOfEntries()
+    }
+
+    def index_ref_reduce(self):
+        return (
+            new_indexref,
+            (str(self.toString()),),
+            None
+        )
+
+    protocol_map["org.terrier.querying.IndexRef"] = {
+        '__reduce__' : index_ref_reduce,
+        '__getstate__' : lambda self : None,
     }
 
 def setup_terrier(file_path, terrier_version=None, helper_version=None, boot_packages=[]):

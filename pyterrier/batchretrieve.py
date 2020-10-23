@@ -128,7 +128,27 @@ class BatchRetrieve(BatchRetrieveBase):
 
         MF = autoclass('org.terrier.querying.ManagerFactory')
         self.manager = MF._from_(self.indexref)
-        
+    
+    def __reduce__(self):
+        return (
+            self.__class__,
+            (self.indexref,),
+            self.__getstate__()
+        )
+
+    def __getstate__(self): 
+        return  {
+                'controls' : self.controls, 
+                'properties' : self.properties, 
+                'metadata' : self.metadata,
+                }
+
+    def __setstate__(self, d): 
+        self.controls = d["controls"]
+        self.metadata = d["metadata"]
+        self.properties.update(d["properties"])
+        for key,value in d["properties"].items():
+            self.appSetup.setProperty(key, str(value))
 
     def transform(self, queries):
         """
@@ -218,7 +238,7 @@ class BatchRetrieve(BatchRetrieveBase):
         # ensure to return the query
         res_dt = res_dt.merge(queries[["qid", "query"]], on=["qid"])
         return res_dt
-
+        
     def __repr__(self):
         return "BR(" + ",".join([
             self.indexref.toString(),
@@ -473,3 +493,5 @@ class FeaturesBatchRetrieve(BatchRetrieve):
 
     def __str__(self):
         return "FBR(" + self.controls["wmodel"] + " and " + str(len(self.features)) + " features)"
+
+    #TODO __reduce__ etc

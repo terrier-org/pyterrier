@@ -276,3 +276,38 @@ class PerQueryMaxMinScoreTransformer(TransformerBase):
         topics_and_res = topics_and_res.copy()
         topics_and_res["score"] = topics_and_res.groupby('qid')["score"].transform(lambda x: minmax_scale(x))
         return topics_and_res
+
+class ParallelTransformer(TransformerBase):
+
+    def __init__(self, parent, n_jobs, **kwargs):
+        # TODO FIX: super().__init__(kwargs)
+        self.parent = parent
+        self.n_jobs = n_jobs
+
+    def transform(self, topics_and_res):
+        #TODO group by qid.
+        
+        def chunks(df, n):
+            """Yield successive n-sized chunks from df."""
+            for i in range(0, len(df), n):
+                yield df.iloc[ i: min(len(df),i + n)]
+        
+        def with_initializer(p, f_init):
+            # Overwrite initializer hook in the Loky ProcessPoolExecutor
+            # https://github.com/tomMoral/loky/blob/f4739e123acb711781e46581d5ed31ed8201c7a9/loky/process_executor.py#L850
+            hasattr(p._backend, '_workers') or p.__enter__()
+            origin_init = p._backend._workers._initializer
+            def new_init():
+                origin_init()
+                f_init()
+            p._backend._workers._initializer = new_init if callable(origin_init) else f_init
+            return p
+
+        from math import ceil
+        splits = list( chunks(topics_and_res, ceil(len(topics_and_res)/self.n_jobs)))
+        import pyterrier as pt
+        from joblib import Parallel, delayed
+
+        with Parallel(n_jobs=self.n_jobs) as parallel:
+            results = with_initializer(parallel, lambda: pt.init(**pt.init_args))(delayed(self.parent)(topics) for topics in splits)
+            return pd.concat(results)
