@@ -39,10 +39,10 @@ class TestModel(BaseTestCase):
         self.assertRaises(AssertionError, coerce_queries_dataframe, input)
 
         input = {"25" : "mathematical"}
-        self.assertRaises(AssertionError, coerce_queries_dataframe, input)
+        self.assertRaises(ValueError, coerce_queries_dataframe, input)
 
         input = None
-        self.assertRaises(AssertionError, coerce_queries_dataframe, input)
+        self.assertRaises(ValueError, coerce_queries_dataframe, input)
 
     def test_coerce_dataframe_with_tuple(self):
         input = ("light", "mathematical", "electronic")

@@ -1,3 +1,5 @@
+import pandas as pd
+
 # This file has useful methods for using the Pyterrier Pandas datamodel
 
 # the first rank SHOULD be 0, see the standard "Welcome to TREC email"
@@ -34,4 +36,4 @@ def coerce_queries_dataframe(query):
                 indexed_query.append([str(i + 1), item])
             return pd.DataFrame(indexed_query, columns=['qid', 'query'])
     # catch-all when we dont recognise the type
-    raise ValueError("Could not coerce %s (type %s) into a DataFrame of queries" % (str(query), str(type(queries))))
+    raise ValueError("Could not coerce %s (type %s) into a DataFrame of queries" % (str(query), str(type(query))))
