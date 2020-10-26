@@ -3,9 +3,9 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 
-from .utils import Utils
 from .index import Indexer
 from .transformer import TransformerBase, Symbol
+from .model import coerce_queries_dataframe
 from tqdm import tqdm
 import deprecation
 
@@ -142,7 +142,7 @@ class BatchRetrieve(BatchRetrieveBase):
         """
         results=[]
         if not isinstance(queries, pd.DataFrame):
-            queries=Utils.form_dataframe(queries)
+            queries=coerce_queries_dataframe(queries)
         docno_provided = "docno" in queries.columns
         docid_provided = "docid" in queries.columns
         scores_provided = "scores" in queries.columns
@@ -378,7 +378,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
             pandas.Dataframe with columns=['qid', 'docno', 'score', 'features']
         """
         results = []
-        queries = Utils.form_dataframe(topics)
+        queries = coerce_queries_dataframe(topics)
 
         docno_provided = "docno" in queries.columns
         docid_provided = "docid" in queries.columns

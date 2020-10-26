@@ -4,6 +4,7 @@ import os
 import unittest
 from .base import BaseTestCase
 
+
 def parse_res_file(filename):
     results = []
     with open(filename, 'r') as file:
@@ -21,28 +22,6 @@ def parse_query_result(filename):
     return results
 
 class TestBatchRetrieve(BaseTestCase):
-
-    def test_form_dataframe_with_string(self):
-        input = "light"
-        exp_result = pd.DataFrame([["1", "light"]], columns=['qid', 'query'])
-        result = pt.Utils.form_dataframe(input)
-        self.assertTrue(exp_result.equals(result))
-
-    def test_form_dataframe_with_list(self):
-        input = ["light", "mathematical", "electronic"]
-        exp_result = pd.DataFrame([["1", "light"], ["2", "mathematical"], ["3", "electronic"]], columns=['qid', 'query'])
-        result = pt.Utils.form_dataframe(input)
-        self.assertTrue(exp_result.equals(result))
-
-    def test_form_dataframe_throws_assertion_error(self):
-        input = ("light", "mathematical", 25)
-        self.assertRaises(AssertionError, pt.Utils.form_dataframe, input)
-
-    def test_form_dataframe_with_tuple(self):
-        input = ("light", "mathematical", "electronic")
-        exp_result = pd.DataFrame([["1", "light"], ["2", "mathematical"], ["3", "electronic"]], columns=['qid', 'query'])
-        result = pt.Utils.form_dataframe(input)
-        self.assertTrue(exp_result.equals(result))
 
     def test_candidate_set_one_doc(self):
         if not pt.check_version("5.3"):
