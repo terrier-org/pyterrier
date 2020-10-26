@@ -1,4 +1,5 @@
-from .utils import Utils
+from .model import coerce_queries_dataframe
+
 from tqdm import tqdm
 from .batchretrieve import BatchRetrieveBase
 
@@ -95,7 +96,7 @@ class AnseriniBatchRetrieve(BatchRetrieveBase):
         """
         results=[]
         if not isinstance(queries, pd.DataFrame):
-            queries=Utils.form_dataframe(queries)
+            queries=coerce_queries_dataframe(queries)
         docno_provided = "docno" in queries.columns
         docid_provided = "docid" in queries.columns
         scores_provided = "scores" in queries.columns

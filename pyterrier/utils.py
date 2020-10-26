@@ -324,30 +324,11 @@ class Utils:
 
     # create a dataframe of string of queries or a list or tuple of strings of queries
     @staticmethod
+    @deprecation.deprecated(deprecated_in="0.3.0",
+                        details="Please use pt.model.coerce_queries_dataframe_qrels(query)")
     def form_dataframe(query):
-        """
-        Convert either a string or a list of strings to a dataframe for use as topics in retrieval.
-
-        Args:
-            query: Either a string or a list of strings
-
-        Returns:
-            dataframe with columns=['qid','query']
-        """
-        if isinstance(query, pd.DataFrame):
-            return query
-        elif isinstance(query, str):
-            return pd.DataFrame([["1", query]], columns=['qid', 'query'])
-        # if queries is a list or tuple
-        elif isinstance(query, list) or isinstance(query, tuple):
-            # if the list or tuple is made of strings
-            if query != [] and isinstance(query[0], str):
-                indexed_query = []
-                for i, item in enumerate(query):
-                    # all elements must be of same type
-                    assert isinstance(item, str), f"{item} is not a string"
-                    indexed_query.append([str(i + 1), item])
-                return pd.DataFrame(indexed_query, columns=['qid', 'query'])
+        from .model import coerce_queries_dataframe
+        return coerce_queries_dataframe(query)
 
     @staticmethod
     def get_files_in_dir(dir):
