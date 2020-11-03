@@ -4,6 +4,11 @@ from pyterrier.model import add_ranks, FIRST_RANK, coerce_queries_dataframe
 
 class TestModel(BaseTestCase):
 
+    def test_rank_zero_query(self):
+        df = pd.DataFrame([], columns=["qid", "docno", "score"])
+        df = add_ranks(df)
+        self.assertTrue("rank" in df.columns)
+
     def test_rank_one_query(self):
         df = pd.DataFrame([["q1", "doc1", 5], ["q1", "doc2", 5]], columns=["qid", "docno", "score"])
         df = add_ranks(df)
