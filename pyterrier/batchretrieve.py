@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 from .index import Indexer
 from .transformer import TransformerBase, Symbol
-from .model import coerce_queries_dataframe
+from .model import coerce_queries_dataframe, FIRST_RANK
 from tqdm import tqdm
 import deprecation
 
@@ -145,7 +145,7 @@ class BatchRetrieve(BatchRetrieveBase):
             queries=coerce_queries_dataframe(queries)
         docno_provided = "docno" in queries.columns
         docid_provided = "docid" in queries.columns
-        scores_provided = "scores" in queries.columns
+        scores_provided = "score" in queries.columns
         if docno_provided or docid_provided:
             from . import check_version
             assert check_version(5.3)
@@ -163,7 +163,7 @@ class BatchRetrieve(BatchRetrieveBase):
 
 
         for row in tqdm(queries.itertuples(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
-            rank = 0
+            rank = FIRST_RANK
             qid = str(row.qid)
             query = row.query
             srq = self.manager.newSearchRequest(qid, query)
@@ -184,17 +184,19 @@ class BatchRetrieve(BatchRetrieveBase):
                 srq.setControl("matchopql", "on")
 
             # this handles the case that a candidate set of documents has been set. 
+            num_expected = None
             if docno_provided or docid_provided:
                 # we use RequestContextMatching to make a ResultSet from the 
                 # documents in the candidate set. 
                 matching_config_factory = RequestContextMatching.of(srq)
                 input_query_results = input_results[input_results["qid"] == qid]
+                num_expected = len(input_query_results)
                 if docid_provided:
                     matching_config_factory.fromDocids(input_query_results["docid"].values.tolist())
                 elif docno_provided:
                     matching_config_factory.fromDocnos(input_query_results["docno"].values.tolist())
                 if scores_provided:
-                    matching_config_factory.withScores(input_query_results["scores"].values.tolist())
+                    matching_config_factory.withScores(input_query_results["score"].values.tolist())
                 matching_config_factory.build()
                 srq.setControl("matching", "org.terrier.matching.ScoringMatching" + "," + srq.getControl("matching"))
 
@@ -206,6 +208,8 @@ class BatchRetrieve(BatchRetrieveBase):
             if len(result) > 0 and len(set(self.metadata) & set(result.getMetaKeys())) != len(self.metadata):
                 raise KeyError("Requested metadata: %s, obtained metadata %s" % (str(self.metadata), str(result.getMetaKeys()))) 
 
+            if num_expected is not None:
+                assert(num_expected == len(result))
             # prepare the dataframe for the results of the query
             for item in result:
                 metadata_list = []
@@ -345,6 +349,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
     """
     FBR_default_controls = BatchRetrieve.default_controls.copy()
     FBR_default_controls["matching"] = "FatFeaturedScoringMatching,org.terrier.matching.daat.FatFull"
+    del FBR_default_controls["wmodel"]
     FBR_default_properties = BatchRetrieve.default_properties.copy()
 
     def __init__(self, index_location, features, controls=None, properties=None, **kwargs):
@@ -365,6 +370,14 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         properties = _mergeDicts(FeaturesBatchRetrieve.FBR_default_properties, properties)
         self.features = features
         properties["fat.featured.scoring.matching.features"] = ";".join(features)
+
+        # record the weighting model
+        self.wmodel = None
+        if "wmodel" in kwargs:
+            self.wmodel = kwargs["wmodel"]
+        if "wmodel" in controls:
+            self.wmodel = controls["wmodel"]
+        
         super().__init__(index_location, controls, properties, **kwargs)
 
     def transform(self, topics):
@@ -382,8 +395,9 @@ class FeaturesBatchRetrieve(BatchRetrieve):
 
         docno_provided = "docno" in queries.columns
         docid_provided = "docid" in queries.columns
-        scores_provided = "scores" in queries.columns
+        scores_provided = "score" in queries.columns
         if docno_provided or docid_provided:
+            #re-ranking mode
             from . import check_version
             assert check_version(5.3)
             input_results = queries
@@ -394,9 +408,19 @@ class FeaturesBatchRetrieve(BatchRetrieve):
             queries = input_results[["qid", "query"]].dropna(axis=0, subset=["query"]).drop_duplicates()
             RequestContextMatching = autoclass("org.terrier.python.RequestContextMatching")
 
+            if not scores_provided and self.wmodel is None:
+                raise ValueError("We're in re-ranking mode, but input does not have scores, and wmodel is None")
+        else:
+            assert not scores_provided
+
+            if self.wmodel is None:
+                raise ValueError("We're in retrieval mode, but wmodel is None. FeaturesBatchRetrieve requires a wmodel be set for identifying the candidate set. "
+                    +" Hint: wmodel argument for FeaturesBatchRetrieve, e.g. FeaturesBatchRetrieve(index, features, wmodel=\"DPH\")")
+
         if queries["qid"].dtype == np.int64:
             queries['qid'] = queries['qid'].astype(str)
 
+        newscores=[]
         for row in tqdm(queries.itertuples(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
             qid = str(row.qid)
             query = row.query
@@ -429,7 +453,12 @@ class FeaturesBatchRetrieve(BatchRetrieve):
                 elif docno_provided:
                     matching_config_factory.fromDocnos(input_query_results["docno"].values.tolist())
                 if scores_provided:
-                    matching_config_factory.withScores(input_query_results["scores"].values.tolist())
+                    matching_config_factory.withScores(input_query_results["score"].values.tolist())
+                    if self.wmodel is None:
+                        # we provide the scores, so dont use a weighting model
+                        srq.setControl("wmodel", "Null")
+                    else:
+                        srq.setControl("wmodel", self.wmodel)
                 matching_config_factory.build()
                 srq.setControl("matching", ",".join(["FatFeaturedScoringMatching","ScoringMatchingWithFat", srq.getControl("matching")]))
             
@@ -440,27 +469,30 @@ class FeaturesBatchRetrieve(BatchRetrieve):
 
             docids=fres.getDocids()
             scores= fres.getScores()
-            metadata_list = []
-            for meta_column in self.metadata:
-                metadata_list.append(fres.getMetaItems("docno"))
-            feats_values = []            
-            for feat in feat_names:
-                feats_values.append(fres.getFeatureScores(feat))
-            rank = 0
+            metadata_list = [fres.getMetaItems(meta_column) for meta_column in self.metadata]
+            feats_values = [fres.getFeatureScores(feat) for feat in feat_names]
+            rank = FIRST_RANK
             for i in range(fres.getResultSize()):
-                
-                feats_array = []
-                for j in range(len(feats_values)):
-                    feats_array.append(feats_values[j][i])
-                feats_array = np.array(feats_array)
-                meta=[]
-                for meta_idx, meta_column in enumerate(self.metadata):
-                    meta.append( metadata_list[meta_idx][i] )
-
-                results.append( [qid, docids[i], rank ] + meta + [ scores[i], feats_array] )
+                doc_features = np.array([ feature[i] for feature in feats_values])
+                meta=[ metadata_col[i] for metadata_col in metadata_list]
+                results.append( [qid, docids[i], rank, doc_features ] + meta )
+                newscores.append(scores[i])
                 rank += 1
 
-        res_dt = pd.DataFrame(results, columns=["qid", "docid", "rank", "docno", "score", "features"])
+        res_dt = pd.DataFrame(results, columns=["qid", "docid", "rank", "features"] + self.metadata)
+        if scores_provided and self.wmodel is None:
+            # we take the scores from the input dataframe, as ScoringMatchingWithFat overwrites them
+
+            # prefer to join on docid
+            if docid_provided:
+                res_dt = res_dt.merge(topics[["qid", "docid", "score"]], on=["qid", "docid"], how='right')
+            else:
+                assert docno_provided
+                res_dt = res_dt.merge(topics[["qid", "docno", "score"]], on=["qid", "docno"], how='right')
+        elif self.wmodel is not None:
+            # we use new scores obtained from Terrier
+            # order should be same as the results column 
+            res_dt["score"] = newscores
         return res_dt
 
     def __repr__(self):

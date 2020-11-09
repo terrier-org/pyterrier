@@ -62,7 +62,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
 
     # get the initial classpath for the JVM
     classpathTrJars = setup_terrier(HOME_DIR, version, boot_packages=boot_packages)
-
+    
     # Import pyjnius and other classes
     import jnius_config
     for jar in classpathTrJars:
@@ -153,11 +153,15 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
 def started():
     return(firstInit)
 
+def version():
+    from jnius import autoclass
+    return autoclass("org.terrier.Version").VERSION
+
 def check_version(min):
     from jnius import autoclass
     from packaging.version import Version
     min = Version(str(min))
-    currentVer = Version(autoclass("org.terrier.Version").VERSION.replace("-SNAPSHOT", ""))
+    currentVer = Version(version().replace("-SNAPSHOT", ""))
     return currentVer >= min
 
 def redirect_stdouterr():
