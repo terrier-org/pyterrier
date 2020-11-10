@@ -7,8 +7,8 @@ from .base import BaseTestCase
 class TestFeaturesBatchRetrieve(BaseTestCase):
 
     def test_fbr_reranking(self):
-        if not pt.check_version("5.3"):
-            self.skipTest("Requires Terrier 5.3")
+        if not pt.check_version("5.4"):
+            self.skipTest("Requires Terrier 5.4")
         # this test examines the use of ScoringMatchingWithFat 
         JIR = pt.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of(self.here + "/fixtures/index/data.properties")
@@ -72,6 +72,10 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
         #PL2 score
         result1F_map = { row.docno : row.feature0 for row in result1.itertuples() }
         result2_map = { row.docno : row.score for row in result2.itertuples() }
+
+        print(result1F_map)
+        print(result2_map)
+        
 
         # check features scores
         # NB: places can go no less than 4, as two documents have similar PL2 scores

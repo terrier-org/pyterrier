@@ -195,8 +195,9 @@ class BatchRetrieve(BatchRetrieveBase):
                     matching_config_factory.fromDocids(input_query_results["docid"].values.tolist())
                 elif docno_provided:
                     matching_config_factory.fromDocnos(input_query_results["docno"].values.tolist())
-                if scores_provided:
-                    matching_config_factory.withScores(input_query_results["score"].values.tolist())
+                # batch retrieve is a scoring process that always overwrites the score; no need to provide scores as input
+                #if scores_provided:
+                #    matching_config_factory.withScores(input_query_results["score"].values.tolist())
                 matching_config_factory.build()
                 srq.setControl("matching", "org.terrier.matching.ScoringMatching" + "," + srq.getControl("matching"))
 
@@ -453,9 +454,9 @@ class FeaturesBatchRetrieve(BatchRetrieve):
                 elif docno_provided:
                     matching_config_factory.fromDocnos(input_query_results["docno"].values.tolist())
                 if scores_provided:
-                    matching_config_factory.withScores(input_query_results["score"].values.tolist())
                     if self.wmodel is None:
-                        # we provide the scores, so dont use a weighting model
+                        # we provide the scores, so dont use a weighting model, and pass the scores through Terrier
+                        matching_config_factory.withScores(input_query_results["score"].values.tolist())
                         srq.setControl("wmodel", "Null")
                     else:
                         srq.setControl("wmodel", self.wmodel)
@@ -480,19 +481,20 @@ class FeaturesBatchRetrieve(BatchRetrieve):
                 rank += 1
 
         res_dt = pd.DataFrame(results, columns=["qid", "docid", "rank", "features"] + self.metadata)
-        if scores_provided and self.wmodel is None:
-            # we take the scores from the input dataframe, as ScoringMatchingWithFat overwrites them
+        # if scores_provided and self.wmodel is None:
+        #     # we take the scores from the input dataframe, as ScoringMatchingWithFat overwrites them
 
-            # prefer to join on docid
-            if docid_provided:
-                res_dt = res_dt.merge(topics[["qid", "docid", "score"]], on=["qid", "docid"], how='right')
-            else:
-                assert docno_provided
-                res_dt = res_dt.merge(topics[["qid", "docno", "score"]], on=["qid", "docno"], how='right')
-        elif self.wmodel is not None:
-            # we use new scores obtained from Terrier
-            # order should be same as the results column 
-            res_dt["score"] = newscores
+        #     # prefer to join on docid
+        #     if docid_provided:
+        #         res_dt = res_dt.merge(topics[["qid", "docid", "score"]], on=["qid", "docid"], how='right')
+        #     else:
+        #         assert docno_provided
+        #         res_dt = res_dt.merge(topics[["qid", "docno", "score"]], on=["qid", "docno"], how='right')
+        # elif self.wmodel is not None:
+        #     # we use new scores obtained from Terrier
+        #     # order should be same as the results column 
+        #     res_dt["score"] = newscores
+        res_dt["score"] = newscores
         return res_dt
 
     def __repr__(self):
