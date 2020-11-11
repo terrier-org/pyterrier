@@ -7,7 +7,7 @@ MAVEN_BASE_URL = "https://repo1.maven.org/maven2/"
 JITPACK_BASE_URL = "https://jitpack.io/"
 
 # obtain a file from maven
-def downloadfile(orgName, packageName, version, file_path, artifact="jar"):
+def downloadfile(orgName, packageName, version, file_path, artifact="jar", force_download=False):
     orgName = orgName.replace(".", "/")
     suffix = ""
     ext = "jar"
@@ -20,7 +20,7 @@ def downloadfile(orgName, packageName, version, file_path, artifact="jar"):
 
     filelocation = orgName + "/" + packageName + "/" + version + "/" + filename
 
-    if os.path.isfile(os.path.join(file_path, filename)):
+    if os.path.isfile(os.path.join(file_path, filename)) and not force_download:
         return os.path.join(file_path, filename)
 
     # check local Maven repo, and use that if it exists
@@ -31,7 +31,11 @@ def downloadfile(orgName, packageName, version, file_path, artifact="jar"):
     if os.path.isfile(mvnLocalLocation):
         return mvnLocalLocation
 
-    print(packageName + " " + version + "  " + artifact  + " not found, downloading to " + file_path + "...")
+    if force_download:
+        print("Downloading "+ packageName + " " + version + "  " + artifact  + " to " + file_path + "...")
+    else:
+        print(packageName + " " + version + "  " + artifact  + " not found, downloading to " + file_path + "...")
+    
     if "com/github" in orgName:
         mvnUrl = JITPACK_BASE_URL + filelocation
     else:
