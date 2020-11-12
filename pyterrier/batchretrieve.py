@@ -1,12 +1,11 @@
 from jnius import autoclass, cast
 import pandas as pd
 import numpy as np
-from tqdm import tqdm
+from . import tqdm
 
 from .index import Indexer
 from .transformer import TransformerBase, Symbol
 from .model import coerce_queries_dataframe, FIRST_RANK
-from tqdm import tqdm
 import deprecation
 
 # import time

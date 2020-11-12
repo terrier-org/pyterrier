@@ -5,7 +5,7 @@ import pandas as pd
 from .transformer import is_lambda
 import types
 import requests
-from tqdm import tqdm
+from . import tqdm
 
 STANDARD_TERRIER_INDEX_FILES = [
     "data.direct.bf",

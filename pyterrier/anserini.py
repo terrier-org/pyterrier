@@ -1,11 +1,10 @@
 from .model import coerce_queries_dataframe
 
-from tqdm import tqdm
 from .batchretrieve import BatchRetrieveBase
 
 import pandas as pd
 import numpy as np
-from tqdm import tqdm
+from . import tqdm
 
 anserini_monkey=False
 def init_anserini():

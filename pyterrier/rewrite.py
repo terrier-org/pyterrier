@@ -1,9 +1,9 @@
 import pyterrier as pt
 from jnius import cast
-from tqdm import tqdm
 import pandas as pd
 from .batchretrieve import parse_index_like
 from .transformer import TransformerBase, Symbol
+from . import tqdm
 from warnings import warn
 
 TerrierQLParser = pt.autoclass("org.terrier.querying.TerrierQLParser")()

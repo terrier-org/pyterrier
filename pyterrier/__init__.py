@@ -2,7 +2,6 @@ __version__ = "0.3.0.dev"
 
 import os
 from .bootstrap import _logging, setup_terrier, setup_jnius
-from . import datasets
 
 import importlib
 
@@ -22,10 +21,10 @@ ApplicationSetup = None
 IndexFactory = None
 IndexRef = None
 properties = None
-
+tqdm = None
 HOME_DIR = None
 
-def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, logging='WARN', home_dir=None, boot_packages=[]):
+def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, logging='WARN', home_dir=None, boot_packages=[], tqdm=None):
     """
     Function necessary to be called before Terrier classes and methods can be used.
     Loads the Terrier.jar file and imports classes. Also finds the correct version of Terrier to download if no version is specified.
@@ -35,7 +34,8 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
             If None, find the newest Terrier released version in Maven Central and download it.
             If "snapshot", will download the latest build from Jitpack.
         mem(str): Maximum memory allocated for the Java virtual machine heap in MB. Corresponds to java -Xmx commandline argument. Default is 1/4 of physical memory.
-        packages(list(str)): Extra maven package coordinates files to load. Default=[]. More information at https://github.com/terrier-org/terrier-core/blob/5.x/doc/terrier_develop.md
+        boot_packages(list(str)): Extra maven package coordinates files to load before starting Java. Default=[]. More information at https://github.com/terrier-org/terrier-core/blob/5.x/doc/terrier_develop.md
+        packages(list(str)): Extra maven package coordinates files to load, using the Terrier classloader. Default=[]. More information at https://github.com/terrier-org/terrier-core/blob/5.x/doc/terrier_develop.md
         jvm_opts(list(str)): Extra options to pass to the JVM. Default=[].
             For instance, you may enable Java assertions by setting jvm_opts=['-ea']
         redirect_io(boolean): If True, the Java System.out and System.err will be redirected to Pythons sys.out and sys.err. Default=True.
@@ -43,7 +43,10 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
                       Can be one of 'INFO', 'DEBUG', 'TRACE', 'WARN', 'ERROR'. The latter is the quietest.
                       Default='WARN'.
         home_dir(str): the home directory to use. Default to PYTERRIER_HOME environment variable.
+        tqdm: The tqdm instance to use for progress bars. Defaults to tqdm.tqdm
     """
+    set_tqdm(tqdm)
+
     global ApplicationSetup
     global properties
     global firstInit
@@ -151,6 +154,22 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     globals()["IndexingType"] = IndexingType
 
     firstInit = True
+
+def set_tqdm(type):
+    global tqdm
+    
+    if type is None or type == 'tqdm':
+        from tqdm import tqdm as bartype
+        tqdm = bartype
+    elif type == 'notebook':
+        from tqdm.notebook import tqdm as bartype
+        tqdm = bartype
+    elif type == 'auto':
+        from tqdm.auto import tqdm as bartype
+        tqdm = bartype
+    else:
+        raise ValueError("Unknown tqdm type %s" % str(type))
+    
 
 def started():
     return(firstInit)

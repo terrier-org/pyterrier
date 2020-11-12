@@ -585,7 +585,7 @@ class TQDMSizeCollection(PythonJavaClass):
     def __init__(self, collection, total):
         super(TQDMSizeCollection, self).__init__()
         self.collection = collection
-        from tqdm import tqdm
+        from . import tqdm
         self.pbar = tqdm(total=total, unit="documents")
     
     @java_method('()Z')
@@ -622,7 +622,7 @@ class TQDMCollection(PythonJavaClass):
         assert isinstance(collection, autoclass("org.terrier.indexing.MultiDocumentFileCollection"))
         self.collection = collection
         size = self.collection.FilesToProcess.size()
-        from tqdm import tqdm
+        from . import tqdm
         self.pbar = tqdm(total=size, unit="files")
         self.last = -1
     
