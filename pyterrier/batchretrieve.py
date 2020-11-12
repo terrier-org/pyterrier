@@ -161,7 +161,7 @@ class BatchRetrieve(BatchRetrieveBase):
             queries['qid'] = queries['qid'].astype(str)
 
 
-        for row in tqdm(queries.itertuples(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
+        for row in tqdm(queries.itertuples(), desc=str(self), total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
             rank = FIRST_RANK
             qid = str(row.qid)
             query = row.query
@@ -423,7 +423,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
             queries['qid'] = queries['qid'].astype(str)
 
         newscores=[]
-        for row in tqdm(queries.itertuples(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
+        for row in tqdm(queries.itertuples(), desc=str(self), total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
             qid = str(row.qid)
             query = row.query
 
