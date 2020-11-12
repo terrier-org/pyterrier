@@ -105,7 +105,7 @@ class Indexer:
             "trec.collection.class": "TRECCollection",
     }
 
-    def __init__(self, index_path, *args, blocks=False, overwrite=False, type=IndexingType.CLASSIC, **kwargs):
+    def __init__(self, index_path, *args, blocks=False, overwrite=False, verbose=False, type=IndexingType.CLASSIC, **kwargs):
         """
         Init method
 
@@ -130,6 +130,7 @@ class Indexer:
         self.properties = Properties()
         self.setProperties(**self.default_properties)
         self.overwrite = overwrite
+        self.verbose = verbose
 
     def setProperties(self, **kwargs):
         """
@@ -339,8 +340,11 @@ class DFIndexer(Indexer):
 
         # make a Collection class for Terrier
         javaDocCollection = autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
+        if self.verbose:
+            javaDocCollection = TQDMSizeCollection(javaDocCollection, len(text)) 
         index = self.createIndexer()
-        index.index([javaDocCollection])
+        index.index(autoclass("org.terrier.python.PTUtils").makeCollection(javaDocCollection))
+        javaDocCollection.close()
         self.index_called = True
         collectionIterator = None
 
@@ -574,6 +578,41 @@ class FilesIndexer(Indexer):
         if self.type is IndexingType.MEMORY:
             return index.getIndex().getIndexRef()
         return IndexRef.of(self.index_dir + "/data.properties")
+
+class TQDMSizeCollection(PythonJavaClass):
+    __javainterfaces__ = ['org/terrier/indexing/Collection']
+
+    def __init__(self, collection, total):
+        super(TQDMSizeCollection, self).__init__()
+        self.collection = collection
+        from tqdm import tqdm
+        self.pbar = tqdm(total=total, unit="documents")
+    
+    @java_method('()Z')
+    def nextDocument(self):
+        rtr = self.collection.nextDocument()
+        self.pbar.update()
+        return rtr
+
+    @java_method('()V')
+    def reset(self):
+        self.pbar.reset()
+        self.collection.reset()
+
+    @java_method('()V')
+    def close(self):
+        self.pbar.close()
+        self.collection.close()
+
+    @java_method('()Z')
+    def endOfCollection(self):
+        return self.collection.endOfCollection()
+
+    @java_method('()Lorg/terrier/indexing/Document;')
+    def getDocument(self):
+        return self.collection.getDocument()
+        
+
 
 class TQDMCollection(PythonJavaClass):
     __javainterfaces__ = ['org/terrier/indexing/Collection']

@@ -266,7 +266,7 @@ class TextIndexProcessor(TransformerBase):
         for instance query expansion based on text.
     '''
 
-    def __init__(self, innerclass, takes="queries", returns="docs", body_attr="body", background_index=None, **kwargs):
+    def __init__(self, innerclass, takes="queries", returns="docs", body_attr="body", background_index=None, verbose=False, **kwargs):
         #super().__init__(**kwargs)
         self.innerclass = innerclass
         self.takes = takes
@@ -277,12 +277,13 @@ class TextIndexProcessor(TransformerBase):
         else:
             self.background_indexref = None
         self.kwargs = kwargs
+        self.verbose = verbose
 
     def transform(self, topics_and_res):
         from . import DFIndexer, autoclass, IndexFactory
         from .index import IndexingType
         documents = topics_and_res[["docno", self.body_attr]].drop_duplicates(subset="docno")
-        indexref = DFIndexer(None, type=IndexingType.MEMORY).index(documents[self.body_attr], documents["docno"])
+        indexref = DFIndexer(None, type=IndexingType.MEMORY, verbose=self.verbose).index(documents[self.body_attr], documents["docno"])
         docno2docid = { docno:id for id, docno in enumerate(documents["docno"]) }
         index_docs = IndexFactory.of(indexref)
         docno2docid = {}
@@ -314,6 +315,7 @@ class TextIndexProcessor(TransformerBase):
         # and then just instantiate BR using the our new index 
         # we take all other arguments as arguments for BR
         inner = self.innerclass(index, **(self.kwargs))
+        inner.verbose = self.verbose
         inner_res = inner.transform(input)
 
         if self.returns == "docs":
