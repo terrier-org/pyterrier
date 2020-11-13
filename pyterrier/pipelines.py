@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from .utils import Utils
 from .transformer import TransformerBase, EstimatorBase
+from .model import add_ranks
 
 def _bold_cols(data, col_type):
     if not data.name in col_type:
@@ -217,7 +218,7 @@ class LTR_pipeline(EstimatorBase):
             topicsTest(DataFrame): A dataframe with the test topics.
         """
         test_DF["score"] = self.LTR.predict(np.stack(test_DF["features"].values))
-        return test_DF
+        return add_ranks(test_DF)
 
 class XGBoostLTR_pipeline(LTR_pipeline):
     """
