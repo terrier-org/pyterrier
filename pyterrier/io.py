@@ -107,7 +107,7 @@ def write_results(res, filename, format="trec", **kwargs):
     Supported Formats:
         * "trec" -- output columns are $qid Q0 $docno $rank $score $runname, space separated
         * "letor" -- This follows the LETOR and MSLR datasets, in that output columns are $label qid:$qid [$fid:$value]+ # docno=$docno
-        * "minimal": output columns are $qid $docno $rank, tab-separated.
+        * "minimal": output columns are $qid $docno $rank, tab-separated. This is used for submissions to the MSMARCO leaderboard.
     
     """
     if format is None:
