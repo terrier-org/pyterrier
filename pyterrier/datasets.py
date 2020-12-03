@@ -6,6 +6,7 @@ from .transformer import is_lambda
 import types
 import requests
 from . import tqdm
+import tarfile
 
 STANDARD_TERRIER_INDEX_FILES = [
     "data.direct.bf",
@@ -106,6 +107,16 @@ class RemoteDataset(Dataset):
         URL = location[1]
         if len(location) > 2:
             filetype = location[2]
+        if "#" in URL:
+            tarname, intarfile = URL.split("#")
+            assert not "/" in intarfile
+            assert ".tar" in tarname or ".tgz" in tarname
+            localtarfile, _ = self._get_one_file("tars", tarname)
+            tarobj = tarfile.open(localtarfile, "r")
+            tarobj.extract(intarfile, path=self.corpus_home)
+            local = os.path.join(self.corpus_home, local)
+            os.rename(os.path.join(self.corpus_home, intarfile), local)
+            return (local, filetype)
 
         if not os.path.exists(self.corpus_home):
             os.makedirs(self.corpus_home)
@@ -132,10 +143,21 @@ class RemoteDataset(Dataset):
         for (local, URL) in self.locations[component]:
             local = os.path.join(localDir, local)
             if not os.path.exists(local):
-                try:
-                    RemoteDataset.download(URL, local, **kwargs)
-                except urllib.error.HTTPError as he:
-                    raise ValueError("Could not fetch " + URL) from he
+                if "#" in URL:
+                    tarname, intarfile = URL.split("#")
+                    assert not "/" in intarfile
+                    assert ".tar" in tarname or ".tgz" in tarname
+                    localtarfile, _ = self._get_one_file("tars", tarname)
+                    tarobj = tarfile.open(localtarfile, "r")
+                    tarobj.extract(intarfile, path=self.corpus_home)
+                    local = os.path.join(self.corpus_home, local)
+                    #TODO, files could be recompressed here to save space
+                    os.rename(os.path.join(self.corpus_home, intarfile), local)
+                else:
+                    try:
+                        RemoteDataset.download(URL, local, **kwargs)
+                    except urllib.error.HTTPError as he:
+                        raise ValueError("Could not fetch " + URL) from he
         return localDir
 
     def _describe_component(self, component):
@@ -223,10 +245,19 @@ TREC_DEEPLEARNING_DOCS_MSMARCO_FILES = {
 }
 
 TREC_DEEPLEARNING_PASSAGE_MSMARCO_FILES = {
-    "topics" : 
+    "corpus" : 
+        [("collection.tsv", "collection.tar.gz#collection.tsv")],
+    "topics" :
         { 
+            "train" : ("queries.train.tsv", "queries.tar.gz#queries.train.tsv", "singleline"),
+            "dev" : ("queries.dev.tsv", "queries.tar.gz#queries.dev.tsv", "singleline"),
+            "eval" : ("queries.eval.tsv", "queries.tar.gz#queries.eval.tsv", "singleline"),
             "test-2019" : ("msmarco-test2019-queries.tsv.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-test2019-queries.tsv.gz", "singleline"),
-        },
+        },        
+    "tars" : {
+        "queries.tar.gz" : ("queries.tar.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/queries.tar.gz"),
+        "collection.tar.gz" : ("collection.tar.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/collection.tar.gz")
+    },
     "qrels" : 
         { 
             "train" : ("qrels.train.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/qrels.train.tsv"),
