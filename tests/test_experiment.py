@@ -22,6 +22,18 @@ class TestExperiment(BaseTestCase):
                 baseline=0)
             self.assertTrue("missing" in str(w[-1].message))
 
+    def test_mrt(self):
+        brs = [
+            pt.BatchRetrieve(pt.datasets.get_dataset("vaswani").get_index(), wmodel="DPH"), 
+            pt.BatchRetrieve(pt.datasets.get_dataset("vaswani").get_index(), wmodel="BM25")
+        ]
+        topics = pt.datasets.get_dataset("vaswani").get_topics().head(10)
+        qrels =  pt.datasets.get_dataset("vaswani").get_qrels()
+        pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], baseline=0, highlight="color")
+        pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], highlight="color")
+        pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"])
+        pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], baseline=0, highlight="color")
+
 
     def test_differing_order(self):
         topics = pd.DataFrame([["q1", "q1"], ["q2", "q1"] ], columns=["qid", "query"])
