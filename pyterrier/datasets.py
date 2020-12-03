@@ -261,7 +261,7 @@ TREC_DEEPLEARNING_PASSAGE_MSMARCO_FILES = {
     "qrels" : 
         { 
             "train" : ("qrels.train.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/qrels.train.tsv"),
-            "dev" : ("qrels.dev.tsv", "hhttps://msmarco.blob.core.windows.net/msmarcoranking/qrels.dev.tsv"),
+            "dev" : ("qrels.dev.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/qrels.dev.tsv"),
             "test-2019" : ("2019qrels-docs.txt", "https://trec.nist.gov/data/deep/2019qrels-pass.txt")
         }
 }
