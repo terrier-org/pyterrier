@@ -201,7 +201,7 @@ TREC_COVID_FILES = {
     },
 }
 
-TREC_DEEPLEARNING_MSMARCO_FILES = {
+TREC_DEEPLEARNING_DOCS_MSMARCO_FILES = {
     "corpus" : 
         [("msmarco-docs.trec.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-docs.trec.gz")],
     "corpus-tsv":
@@ -219,6 +219,19 @@ TREC_DEEPLEARNING_MSMARCO_FILES = {
             "train" : ("msmarco-doctrain-qrels.tsv.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-doctrain-qrels.tsv.gz"),
             "dev" : ("msmarco-docdev-qrels.tsv.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-docdev-qrels.tsv.gz"),
             "test" : ("2019qrels-docs.txt", "https://trec.nist.gov/data/deep/2019qrels-docs.txt")
+        }
+}
+
+TREC_DEEPLEARNING_PASSAGE_MSMARCO_FILES = {
+    "topics" : 
+        { 
+            "test-2019" : ("msmarco-test2019-queries.tsv.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-test2019-queries.tsv.gz", "singleline"),
+        },
+    "qrels" : 
+        { 
+            "train" : ("qrels.train.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/qrels.train.tsv"),
+            "dev" : ("qrels.dev.tsv", "hhttps://msmarco.blob.core.windows.net/msmarcoranking/qrels.dev.tsv"),
+            "test-2019" : ("2019qrels-docs.txt", "https://trec.nist.gov/data/deep/2019qrels-pass.txt")
         }
 }
 
@@ -423,7 +436,8 @@ VASWANI_FILES = {
 DATASET_MAP = {
     "50pct" : RemoteDataset("50pct", FIFTY_PCT_FILES),
     "vaswani": RemoteDataset("vaswani", VASWANI_FILES),
-    "trec-deep-learning-docs" : RemoteDataset("trec-deep-learning-docs", TREC_DEEPLEARNING_MSMARCO_FILES),
+    "trec-deep-learning-docs" : RemoteDataset("trec-deep-learning-docs", TREC_DEEPLEARNING_DOCS_MSMARCO_FILES),
+    "trec-deep-learning-passages" : RemoteDataset("trec-deep-learning-passages", TREC_DEEPLEARNING_PASSAGE_MSMARCO_FILES),
     "trec-robust-2004" : RemoteDataset("trec-robust-2004", TREC_ROBUST_04_FILES),
     "trec-robust-2005" : RemoteDataset("trec-robust-2005", TREC_ROBUST_05_FILES),
     #medical-like tracks
