@@ -138,7 +138,7 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
             evalMeasuresDict = Utils.mean_of_measures(evalMeasuresDict)
 
         if mrt_needed:
-            evalMeasuresDict["mrt"] = time
+            evalMeasuresDict["mrt"] = time / float(len(all_qids))
 
         if perquery:
             for qid in all_qids:
