@@ -56,7 +56,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     # we keep a local directory
     if home_dir is not None:
         HOME_DIR = home_dir
-    if "PYTERRIER_HOME" in os.environ:
+    elif "PYTERRIER_HOME" in os.environ:
         HOME_DIR = os.environ["PYTERRIER_HOME"]
     else:
         from os.path import expanduser
