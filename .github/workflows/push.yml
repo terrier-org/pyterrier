@@ -19,7 +19,7 @@ jobs:
         os: ['ubuntu-latest', 'macOs-latest']
         architecture: ['x64']
         terrier: ['5.3', '5.4-SNAPSHOT']
-        exclude:
+#        exclude:
 #          - java: 8
 #            terrier: '5.3-SNAPSHOT'
 
