@@ -14,6 +14,7 @@ model = None
 pipelines = None
 rewrite = None
 transformer = None
+lambdas = None
 
 file_path = os.path.dirname(os.path.abspath(__file__))
 firstInit = False
@@ -118,6 +119,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     global cache
     global index
     global io
+    global lambdas
     global model
     global pipelines
     global rewrite
@@ -126,6 +128,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     cache = importlib.import_module('.cache', package='pyterrier')
     index = importlib.import_module('.index', package='pyterrier') 
     io = importlib.import_module('.io', package='pyterrier')
+    lambdas = importlib.import_module('.lambdas', package='pyterrier')
     model = importlib.import_module('.model', package='pyterrier')
     pipelines = importlib.import_module('.pipelines', package='pyterrier') 
     rewrite = importlib.import_module('.rewrite', package='pyterrier')

@@ -16,6 +16,7 @@ Welcome to Pyterrier's documentation!
 
    modules/core
    modules/datasets
+   modules/lambdas
    
 
 

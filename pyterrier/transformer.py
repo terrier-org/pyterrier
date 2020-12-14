@@ -409,6 +409,40 @@ class RankCutoffTransformer(BinaryTransformerBase):
         res = res[res["rank"] < self.cutoff.value]
         return res
 
+class LambdaDocumentScoringTransformer(TransformerBase):
+    def __init__(self, lambdaFn,  *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fn = lambdaFn
+    
+    def transform(self, inputRes):
+        fn = self.fn
+        outputRes = inputRes.copy()
+        outputRes["score"] = outputRes.apply(fn, axis=1)
+        outputRes = add_ranks(outputRes)
+        return outputRes
+
+class LambdaDocFeatureTransformer(TransformerBase):
+    def __init__(self, lambdaFn,  *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fn = lambdaFn
+
+    def transform(self, inputRes):
+        fn = self.fn
+        outputRes = inputRes.copy()
+        outputRes["features"] = outputRes.apply(fn, axis=1)
+        return outputRes
+
+class LambdaQueryTransformer(TransformerBase):
+    def __init__(self, lambdaFn,  *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fn = lambdaFn
+
+    def transform(self, inputRes):
+        fn = self.fn
+        outputRes = inputRes.copy()
+        outputRes["query"] = outputRes.apply(fn, axis=1)
+        return outputRes
+
 class LambdaPipeline(TransformerBase):
     """
     This class allows pipelines components to be written as functions or lambdas
