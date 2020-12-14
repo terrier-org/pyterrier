@@ -18,10 +18,10 @@ jobs:
         java: [11, 13]
         os: ['ubuntu-latest', 'macOs-latest']
         architecture: ['x64']
-        terrier: ['5.3']
+        terrier: ['5.3', '5.4-SNAPSHOT']
         exclude:
-          - java: 8
-            terrier: '5.3-SNAPSHOT'
+#          - java: 8
+#            terrier: '5.3-SNAPSHOT'
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -44,7 +44,7 @@ jobs:
         architecture: ${{ matrix.architecture }}
     
     - name: Install Terrier snapshot
-      if: matrix.terrier == '5.3-SNAPSHOT'
+      if: matrix.terrier == '5.4-SNAPSHOT'
       run: |
         git clone https://github.com/terrier-org/terrier-core.git
         cd terrier-core
