@@ -35,7 +35,7 @@ def query(fn : Callable[..., str], *args, **kwargs) -> TransformerBase:
             # a naieve function to remove stopwords
             def _remove_stops(q):
                 terms = q["query"].split(" ")
-                terms = ([t for t in terms if not t in stops ]
+                terms = [t for t in terms if not t in stops ]
                 return " ".join(terms)
 
             # a query rewriting lambda transformer applying _remove_stops
@@ -43,7 +43,7 @@ def query(fn : Callable[..., str], *args, **kwargs) -> TransformerBase:
 
             # an equivalent query rewriting lamdba transformer using an anonymous lambda function
             p2 = pt.lambdas.query(
-                    lambda q :  " ".join([t for t in q["query"].split(" ") if not t in stops ])
+                    lambda q :  " ".join([t for t in q["query"].split(" ") if t not in stops ])
                 ) >> pt.BatchRetrieve(index, wmodel="DPH")
 
     """
