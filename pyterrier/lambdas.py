@@ -39,7 +39,7 @@ def query(fn : Callable[..., str], *args, **kwargs) -> TransformerBase:
                 return " ".join(terms)
 
             # a query rewriting lambda transformer applying _remove_stops
-            p1 = pt.lambdas.query(_remove_stops)
+            p1 = pt.lambdas.query(_remove_stops) >> pt.BatchRetrieve(index, wmodel="DPH")
 
             # an equivalent query rewriting lamdba transformer using an anonymous lambda function
             p2 = pt.lambdas.query(
