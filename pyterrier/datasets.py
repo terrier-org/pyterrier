@@ -21,24 +21,39 @@ STANDARD_TERRIER_INDEX_FILES = [
 ]
 
 class Dataset():
+    """
+        Represents a dataset (test collection) for indexing or retrieval. A common use-case is to use the Dataset within an Experiment::
+
+            dataset = pt.get_dataset("trec-robust-2004")
+            pt.Experiment([br1, br2], dataset.get_topics(), dataset.get_qrels(), eval_metrics=["map", "recip_rank"])
+
+    """
 
     def _configure(self, **kwargs):
         pass
 
     def get_corpus_location(self):
-        ''' Returns the location of the files to allow indexing the corpus '''
+        """ 
+            Returns the location of the files to allow indexing the corpus. 
+        """
         pass
 
-    def get_index(self):
-        ''' Returns the IndexRef of the index to allow retrieval '''
+    def get_index(self, variant=None):
+        """ 
+            Returns the IndexRef of the index to allow retrieval. Only a few datasets provide indices ready made.
+        """
         pass
 
-    def get_topics(self):
-        ''' Returns the topics, as a dataframe, ready for retrieval '''
+    def get_topics(self, variant=None):
+        """
+            Returns the topics, as a dataframe, ready for retrieval. 
+        """
         pass
 
-    def get_qrels(self):
-        ''' Returns the qrels, as a dataframe, ready for evaluation '''
+    def get_qrels(self, variant=None):
+        """ 
+            Returns the qrels, as a dataframe, ready for evaluation.
+        """
         pass
 
 class RemoteDataset(Dataset):
@@ -488,23 +503,23 @@ DATASET_MAP = {
 }
 
 def get_dataset(name, **kwargs):
-    '''
+    """
         Get a dataset by name
-    '''
+    """
     rtr = DATASET_MAP[name]
     rtr._configure(**kwargs)
     return rtr
 
 def datasets():
-    '''
+    """
         Lists all the names of the datasets
-    '''
+    """
     return DATASET_MAP.keys()
 
 def list_datasets():
-    '''
+    """
         Returns a dataframe of all datasets, listing which topics, qrels, corpus files or indices are available
-    '''
+    """
     import pandas as pd
     rows=[]
     for k in datasets():

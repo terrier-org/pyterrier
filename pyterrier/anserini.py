@@ -7,7 +7,7 @@ import numpy as np
 from . import tqdm
 
 anserini_monkey=False
-def init_anserini():
+def _init_anserini():
     global anserini_monkey
     if anserini_monkey:
         return
@@ -42,11 +42,27 @@ def init_anserini():
 
 
 class AnseriniBatchRetrieve(BatchRetrieveBase):
+    """
+        Allows retrieval from an Anserini index. To use this class, PyTerrier should have been started using `pt.init(boot_packages=["io.anserini:anserini:0.9.2:fatjar"])`.
+    """
     def __init__(self, index_location, k=1000, wmodel="BM25", **kwargs):
+        """
+            Construct an AnseriniBatchRetrieve retrieve. 
+
+            Args:
+
+                index_location(str): The location of the Anserini index.
+                wmodel(str): Weighting models supported by Anserini. There are three options: 
+                
+                 * `"BM25"` - the BM25 weighting model
+                 * `"QLD"`  - Dirichlet language modelling
+                 *  `"TFIDF"` - Lucene's `ClassicSimilarity <https://lucene.apache.org/core/8_1_0/core/org/apache/lucene/search/similarities/ClassicSimilarity.html>`_.
+                k(int): number of results to return. Default is 1000.
+        """
         super().__init__(kwargs)
         self.index_location = index_location
         self.k = k
-        init_anserini()
+        _init_anserini()
         from pyserini.search import pysearch
         self.searcher = pysearch.SimpleSearcher(index_location)
         self.wmodel = wmodel
@@ -91,7 +107,7 @@ class AnseriniBatchRetrieve(BatchRetrieveBase):
             queries: String for a single query, list of queries, or a pandas.Dataframe with columns=['qid', 'query']
 
         Returns:
-            pandas.Dataframe with columns=['qid', 'docno', 'rank', 'score']
+            pandas.DataFrame with columns=['qid', 'docno', 'rank', 'score']
         """
         results=[]
         if not isinstance(queries, pd.DataFrame):

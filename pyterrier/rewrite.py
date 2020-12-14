@@ -1,7 +1,7 @@
 import pyterrier as pt
 from jnius import cast
 import pandas as pd
-from .batchretrieve import parse_index_like
+from .batchretrieve import _parse_index_like
 from .transformer import TransformerBase, Symbol
 from . import tqdm
 from warnings import warn
@@ -85,7 +85,7 @@ class QueryExpansion(TransformerBase):
             self.qe = pt.autoclass(qeclass)()
         else:
             self.qe = qeclass
-        self.indexref = parse_index_like(index_like)
+        self.indexref = _parse_index_like(index_like)
         for k,v in properties.items():
             pt.ApplicationSetup.setProperty(k, str(v))
         self.applytp = pt.autoclass("org.terrier.querying.ApplyTermPipeline")()

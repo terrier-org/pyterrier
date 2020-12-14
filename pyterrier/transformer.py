@@ -413,9 +413,10 @@ class LambdaPipeline(TransformerBase):
     """
     This class allows pipelines components to be written as functions or lambdas
 
-    :Example:
-    >>> # this pipeline would remove all but the first two documents from a result set
-    >>> lp = LambdaPipeline(lambda res : res[res["rank"] < 2])
+    Example::
+        
+        # this pipeline would remove all but the first two documents from a result set
+        lp = LambdaPipeline(lambda res : res[res["rank"] < 2])
 
     """
 

@@ -23,7 +23,7 @@ def _matchop(query):
             return True
     return False
 
-def parse_index_like(index_location):
+def _parse_index_like(index_location):
     JIR = autoclass('org.terrier.querying.IndexRef')
     JI = autoclass('org.terrier.structures.Index')
 
@@ -101,7 +101,7 @@ class BatchRetrieve(BatchRetrieveBase):
     def __init__(self, index_location, controls=None, properties=None, metadata=["docno"],  num_results=None, wmodel=None, **kwargs):
         super().__init__(kwargs)
         
-        self.indexref = parse_index_like(index_location)
+        self.indexref = _parse_index_like(index_location)
         self.appSetup = autoclass('org.terrier.utility.ApplicationSetup')
         self.properties = _mergeDicts(BatchRetrieve.default_properties, properties)
         self.metadata = metadata
@@ -272,7 +272,7 @@ class TextIndexProcessor(TransformerBase):
         self.returns = returns
         self.body_attr = body_attr
         if background_index is not None:
-            self.background_indexref = parse_index_like(background_index)
+            self.background_indexref = _parse_index_like(background_index)
         else:
             self.background_indexref = None
         self.kwargs = kwargs
@@ -332,6 +332,27 @@ class TextIndexProcessor(TransformerBase):
         return inner_res
 
 class TextScorer(TextIndexProcessor):
+    """
+        A re-ranker class, which takes the queries and the contents of documents, indexes the contents of the documents using a MemoryIndex, and performs ranking of those documents with respect to the queries.
+        Unknown kwargs are passed to BatchRetrieve.
+
+        Arguments:
+            takes(str): configuration - what is needed as input: `"queries"`, or `"docs"`.
+            returns(str): configuration - what is needed as output: `"queries"`, or `"docs"`.
+            body_attr(str): what dataframe input column contains the text of the document. Default is `"body"`.
+            wmodel(str): example of configuration passed to BatchRetrieve.
+
+        Example::
+
+            df = pt.DataFrame(
+                [
+                    ["q1", "chemical reactions", "d1", "professor protor poured the chemicals"],
+                    ["q1", "chemical reactions", "d2", "chemical brothers turned up the beats"],
+                ], columns=["qid", "query", "text"])
+            textscorer = pt.TextScorer(takes="docs", body_attr="text", wmodel="TF_IDF")
+            rtr = textscorer.transform(df)
+            #rtr will score each document for the query "chemical reactions" based on the provided document contents
+    """
 
     def __init__(self, **kwargs):
         super().__init__(BatchRetrieve, **kwargs)

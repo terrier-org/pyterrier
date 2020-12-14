@@ -6,7 +6,14 @@ Different transformers change the dataframes in different ways - for instance, r
 
 We define different dataframe "types" of data frame - the "primary key" is emphasised.
 
-1. Queries
+| Data Type         | Required Columns                                | Description                                 | 
+|-------------------|-------------------------------------------------|---------------------------------------------|
+|    Q              | ["qid", "query"]                                | A set of queries                            |
+|    D              | ["docno"]                                       | A set of documents                          |
+|    R              | ["qid", "docno", "score", "rank"]               | A ranking of documents for each query       |
+|    R w/ features  | ["qid", "docno", "score", "rank", "features"]   | A numpy array of features for each document |
+
+1. Queries (Q)
 
 A dataframe with two columns:
  - _qid_: A unique identified for each query
@@ -19,7 +26,14 @@ An example dataframe with one query might be constructed as:
 pd.DataFrame([["q1", "a query"]], columns=["qid", "query")
 ```
 
-2. Ranked Documents
+2. Set of documents (D)
+
+A dataframe with columns:
+ - _docno_: The unique idenitifier for each document
+
+There might be other attributes such as text
+
+3. Ranked Documents (R)
 
 A dataframe with more columns, clearly inspired by the TREC results format:
  - _qid_: A unique identifier for each query
@@ -37,11 +51,6 @@ An example dataframe with two documents might be constructed as:
 ```python
 pd.DataFrame([["q1", "a query", "d5", 5.2, 1], ["q1", None, "d10", 4.9, 2]], columns=["qid", "query", "docno", "score", "rank")
 ```
-
-
-3. Set of documents
-
-As per ranked documents, but the score and rank attributes can be omitted.
 
 4. Set of documents with features
 

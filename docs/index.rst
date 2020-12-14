@@ -2,10 +2,21 @@ Welcome to Pyterrier's documentation!
 =====================================
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 1
+   :caption: Notes
 
-   pyterrier.rst
+   notes/installation.md
+   notes/pipelines.md
+   notes/pipeline_examples.md
+   notes/datamodel.md
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Package Reference
+
+   modules/core
+   modules/datasets
+   
 
 
 Indices and tables
