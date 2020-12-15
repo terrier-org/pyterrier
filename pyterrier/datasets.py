@@ -59,15 +59,19 @@ class Dataset():
 class RemoteDataset(Dataset):
 
     def __init__(self, name, locations):
-        from os.path import expanduser
-        pt_home = HOME_DIR
-        self.corpus_home = os.path.join(pt_home, "corpora", name)
         self.locations = locations
         self.name = name
         self.user = None
         self.password = None
 
     def _configure(self, **kwargs):
+        from os.path import expanduser
+        pt_home = HOME_DIR
+        if pt_home is None:
+            from os.path import expanduser
+            userhome = expanduser("~")
+            pt_home = os.path.join(userhome, ".pyterrier")
+        self.corpus_home = os.path.join(pt_home, "corpora", self.name)
         if 'user' in kwargs:
             self.user = kwargs['user']
             self.password = kwargs['password']
