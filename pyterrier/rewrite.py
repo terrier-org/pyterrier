@@ -179,11 +179,21 @@ class DFRQueryExpansion(QueryExpansion):
 
 class Bo1QueryExpansion(DFRQueryExpansion):
     def __init__(self, *args, **kwargs):
+        """
+        Args:
+            fb_terms(int): number of terms to add to the query
+            fb_docs(int): number of feedback documents to consider
+        """
         kwargs["qemodel"] = "Bo1"
         super().__init__(*args, **kwargs)
 
 class KLQueryExpansion(DFRQueryExpansion):
     def __init__(self, *args, **kwargs):
+        """
+        Args:
+            fb_terms(int): number of terms to add to the query
+            fb_docs(int): number of feedback documents to consider
+        """
         kwargs["qemodel"] = "KL"
         super().__init__(*args, **kwargs)
 
@@ -193,6 +203,11 @@ class RM3(QueryExpansion):
         Performs query expansion using RM3 relevance models
     '''
     def __init__(self, *args, fb_terms=10, fb_docs=3, **kwargs):
+        """
+        Args:
+            fb_terms(int): number of terms to add to the query
+            fb_docs(int): number of feedback documents to consider
+        """
         global terrier_prf_package_loaded
 
         #if not terrier_prf_package_loaded:
@@ -223,6 +238,11 @@ class AxiomaticQE(QueryExpansion):
         Performs query expansion using axiomatic query expansion
     '''
     def __init__(self, *args, fb_terms=10, fb_docs=3, **kwargs):
+        """
+        Args:
+            fb_terms(int): number of terms to add to the query
+            fb_docs(int): number of feedback documents to consider
+        """
         global terrier_prf_package_loaded
 
         #if not terrier_prf_package_loaded:

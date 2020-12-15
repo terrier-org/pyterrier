@@ -17,6 +17,7 @@ Welcome to Pyterrier's documentation!
    modules/core
    modules/datasets
    modules/terrier-retrieval
+   modules/rewrite
 
 
 Indices and tables
