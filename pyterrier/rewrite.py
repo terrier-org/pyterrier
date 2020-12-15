@@ -181,6 +181,7 @@ class Bo1QueryExpansion(DFRQueryExpansion):
     def __init__(self, *args, **kwargs):
         """
         Args:
+            index_like: the Terrier index to use.
             fb_terms(int): number of terms to add to the query
             fb_docs(int): number of feedback documents to consider
         """
@@ -191,6 +192,7 @@ class KLQueryExpansion(DFRQueryExpansion):
     def __init__(self, *args, **kwargs):
         """
         Args:
+            index_like: the Terrier index to use
             fb_terms(int): number of terms to add to the query
             fb_docs(int): number of feedback documents to consider
         """
@@ -205,6 +207,7 @@ class RM3(QueryExpansion):
     def __init__(self, *args, fb_terms=10, fb_docs=3, **kwargs):
         """
         Args:
+            index_like: the Terrier index to use
             fb_terms(int): number of terms to add to the query
             fb_docs(int): number of feedback documents to consider
         """
@@ -240,6 +243,7 @@ class AxiomaticQE(QueryExpansion):
     def __init__(self, *args, fb_terms=10, fb_docs=3, **kwargs):
         """
         Args:
+            index_like: the Terrier index to use
             fb_terms(int): number of terms to add to the query
             fb_docs(int): number of feedback documents to consider
         """
