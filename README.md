@@ -108,7 +108,7 @@ By downloading and using PyTerrier, you agree to cite at the undernoted paper de
 [Declarative Experimentation inInformation Retrieval using PyTerrier. Craig Macdonald and Nicola Tonellotto. In Proceedings of ICTIR 2020.](https://arxiv.org/abs/2007.14271)
 
 ```bibtex
-@inproceesings{
+@inproceedings{pyterrier2020ictir,
     author = {Craig Macdonald and Nicola Tonellotto},
     title = {Declarative Experimentation inInformation Retrieval using PyTerrier},
     booktitle = {Proceedings of ICTIR 2020},
