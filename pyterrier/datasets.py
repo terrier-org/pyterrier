@@ -5,7 +5,7 @@ import pandas as pd
 from .transformer import is_lambda
 import types
 import requests
-from . import tqdm
+from . import tqdm, HOME_DIR
 import tarfile
 
 STANDARD_TERRIER_INDEX_FILES = [
@@ -60,8 +60,7 @@ class RemoteDataset(Dataset):
 
     def __init__(self, name, locations):
         from os.path import expanduser
-        userhome = expanduser("~")
-        pt_home = os.path.join(userhome, ".pyterrier")
+        pt_home = HOME_DIR
         self.corpus_home = os.path.join(pt_home, "corpora", name)
         self.locations = locations
         self.name = name
