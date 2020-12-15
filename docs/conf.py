@@ -1,4 +1,4 @@
-    # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Configuration file for the Sphinx documentation builder.
 #
@@ -16,6 +16,9 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 import sphinx_rtd_theme
+
+import pyterrier as pt
+pt.init()
 
 
 # -- Project information -----------------------------------------------------
@@ -139,7 +142,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'Pyterrier.tex', 'Pyterrier Documentation',
-     'A-Tsolov', 'manual'),
+     'Contributors to PyTerrier', 'manual'),
 ]
 
 

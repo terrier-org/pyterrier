@@ -57,17 +57,9 @@ class BatchRetrieveBase(TransformerBase, Symbol):
 class BatchRetrieve(BatchRetrieveBase):
     """
     Use this class for retrieval by Terrier
-
-    Attributes:
-        default_controls(dict): stores the default controls
-        default_properties(dict): stores the default properties
-        IndexRef: stores the index reference object
-        appSetup: stores the Terrier ApplicationSetup object
-        verbose(bool): If True transform method will display progress
-        properties(dict): Current properties
-        controls(dict): Current controls
-        num_results(int): Number of results to retrieve. 
     """
+
+    #: default_controls(dict): stores the default controls
     default_controls = {
         "terrierql": "on",
         "parsecontrols": "on",
@@ -79,6 +71,7 @@ class BatchRetrieve(BatchRetrieveBase):
         "wmodel": "DPH",
     }
 
+    #: default_properties(dict): stores the default properties
     default_properties = {
         "querying.processes": "terrierql:TerrierQLParser,parsecontrols:TerrierQLToControls,parseql:TerrierQLToMatchingQueryTerms,matchopql:MatchingOpQLParser,applypipeline:ApplyTermPipeline,localmatching:LocalManager$ApplyLocalMatching,qe:QueryExpansion,labels:org.terrier.learning.LabelDecorator,filters:LocalManager$PostFilterProcess",
         "querying.postfilters": "decorate:SimpleDecorate,site:SiteFilter,scope:Scope",
@@ -87,18 +80,18 @@ class BatchRetrieve(BatchRetrieveBase):
         "termpipelines": "Stopwords,PorterStemmer"
     }
 
-    """
-        Init method
-
-        Args:
-            index_location: An index-like object - An Index, an IndexRef, or a String that can be resolved to an IndexRef
-            controls(dict): A dictionary with with the control names and values
-            properties(dict): A dictionary with with the property keys and values
-            verbose(bool): If True transform method will display progress
-            num_results(int): Number of results to retrieve. 
-            metadata(list): What metadata to retrieve
-    """
     def __init__(self, index_location, controls=None, properties=None, metadata=["docno"],  num_results=None, wmodel=None, **kwargs):
+        """
+            Init method
+
+            Args:
+                index_location: An index-like object - An Index, an IndexRef, or a String that can be resolved to an IndexRef
+                controls(dict): A dictionary with with the control names and values
+                properties(dict): A dictionary with with the property keys and values
+                verbose(bool): If True transform method will display progress
+                num_results(int): Number of results to retrieve. 
+                metadata(list): What metadata to retrieve
+        """
         super().__init__(kwargs)
         
         self.indexref = _parse_index_like(index_location)
@@ -360,19 +353,13 @@ class TextScorer(TextIndexProcessor):
 class FeaturesBatchRetrieve(BatchRetrieve):
     """
     Use this class for retrieval with multiple features
-
-    Attributes:
-        default_controls(dict): stores the default controls
-        default_properties(dict): stores the default properties
-        IndexRef: stores the index reference object
-        appSetup: stores the Terrier ApplicationSetup object
-        verbose(bool): If True transform method will display progress
-        properties(dict): Current properties
-        controls(dict): Current controls
     """
+
+    #: FBR_default_controls(dict): stores the default properties for a FBR
     FBR_default_controls = BatchRetrieve.default_controls.copy()
     FBR_default_controls["matching"] = "FatFeaturedScoringMatching,org.terrier.matching.daat.FatFull"
     del FBR_default_controls["wmodel"]
+    #: FBR_default_properties(dict): stores the default properties
     FBR_default_properties = BatchRetrieve.default_properties.copy()
 
     def __init__(self, index_location, features, controls=None, properties=None, **kwargs):
@@ -387,8 +374,6 @@ class FeaturesBatchRetrieve(BatchRetrieve):
                 verbose(bool): If True transform method will display progress
                 num_results(int): Number of results to retrieve. 
         """
-        # if props==None:
-        #     importProps()
         controls = _mergeDicts(FeaturesBatchRetrieve.FBR_default_controls, controls)
         properties = _mergeDicts(FeaturesBatchRetrieve.FBR_default_properties, properties)
         self.features = features
