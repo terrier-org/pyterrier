@@ -105,6 +105,7 @@ def setup(app):
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
+
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
 #
@@ -114,6 +115,8 @@ html_static_path = ['_static']
 # 'searchbox.html']``.
 #
 # html_sidebars = {}
+
+html_logo = "_static/pyterrier logo 200w.png"
 
 
 # -- Options for HTMLHelp output ---------------------------------------------
