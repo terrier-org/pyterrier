@@ -204,7 +204,7 @@ class RM3(QueryExpansion):
     '''
         Performs query expansion using RM3 relevance models
     '''
-    def __init__(self, *args, fb_terms=10, fb_docs=3, **kwargs):
+    def __init__(self, *args, fb_terms=10, fb_docs=3, fb_lambda=0.6, **kwargs):
         """
         Args:
             index_like: the Terrier index to use
@@ -226,10 +226,13 @@ class RM3(QueryExpansion):
         assert prf_found, 'terrier-prf jar not found: you should start Pyterrier with '\
             + 'pt.init(boot_packages=["org.terrier:terrier-prf:0.0.1-SNAPSHOT"])'
         rm = pt.autoclass("org.terrier.querying.RM3")()
-        self.fb_terms = fb_terms
-        self.fb_docs = fb_docs
+        self.fb_lambda = fb_lambda
         kwargs["qeclass"] = rm
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, fb_terms=fb_terms, fb_docs=fb_docs, **kwargs)
+
+    def _configure_request(self, rq):
+        super()._configure_request(rq)
+        rq.setControl("rm3.lambda", str(self.fb_lambda))
         
     def transform(self, queries_and_docs):
         self.qe.fbTerms = self.fb_terms
