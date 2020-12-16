@@ -438,6 +438,40 @@ TREC_WT2G_FILES = {
     "topics" : [ (  "topics.401-450.gz", "https://trec.nist.gov/data/topics_eng/topics.401-450.gz" ) ]
 }
 
+def _merge_years(self, component, variant):
+    MAP_METHOD = { 
+        "topics" : RemoteDataset.get_topics,
+        "qrels" : RemoteDataset.get_qrels,  
+    }
+    dfs = []
+    low, hi = variant.split("-")
+    for y in range(int(low), int(hi)+1):
+        df = MAP_METHOD[component](self, variant=str(y))
+        dfs.append(df)
+    return (pd.concat(dfs), "direct")
+
+TREC_TB_FILES = {
+    "topics" : {
+        "2004" : ( "04topics.701-750.txt", "https://trec.nist.gov/data/terabyte/04/04topics.701-750.txt" ),
+        "2005" : ( "04topics.701-750.txt", "https://trec.nist.gov/data/terabyte/05/05.topics.751-800.txt" ),
+        "2006" : ( "06.topics.801-850.txt", "https://trec.nist.gov/data/terabyte/06/06.topics.801-850.txt" ),
+        "2004-2006" : ("06.topics.701-850.txt", "https://trec.nist.gov/data/terabyte/06/06.topics.701-850.txt"),
+
+        "2006-np" : ( "06.np_topics.901-1081.txt", "https://trec.nist.gov/data/terabyte/06/06.np_topics.901-1081.txt" ),
+        "2005-np" : ( "05.np_topics.601-872.final.txt", "https://trec.nist.gov/data/terabyte/05/05.np_topics.601-872.final.txt")
+    },
+
+    "qrels" : {
+        "2004" : ( "04.qrels.12-Nov-04", "https://trec.nist.gov/data/terabyte/04/04.qrels.12-Nov-04"),
+        "2005" : ( "05.adhoc_qrels", "https://trec.nist.gov/data/terabyte/05/05.adhoc_qrels"),
+        "2006" : ( "qrels.tb06.top50", "https://trec.nist.gov/data/terabyte/06/qrels.tb06.top50"),
+        "2004-2006" : _merge_years,
+
+        "2005-np" : ( "05.np_qrels", "https://trec.nist.gov/data/terabyte/05/05.np_qrels"),
+        "2006-np" : ( "qrels.tb06.np", "https://trec.nist.gov/data/terabyte/06/qrels.tb06.np"),
+    }
+}
+
 TREC_ROBUST_04_FILES = {
     "qrels" : [ ("qrels.robust2004.txt", "https://trec.nist.gov/data/robust/qrels.robust2004.txt") ],
     "topics" : [ (  "04.testset.gz", "https://trec.nist.gov/data/robust/04.testset.gz" ) ]
@@ -489,6 +523,7 @@ DATASET_MAP = {
     "trec-deep-learning-passages" : RemoteDataset("trec-deep-learning-passages", TREC_DEEPLEARNING_PASSAGE_MSMARCO_FILES),
     "trec-robust-2004" : RemoteDataset("trec-robust-2004", TREC_ROBUST_04_FILES),
     "trec-robust-2005" : RemoteDataset("trec-robust-2005", TREC_ROBUST_05_FILES),
+    "trec-terabyte" : RemoteDataset("trec-terabyte", TREC_TB_FILES),
     #medical-like tracks
     "trec-precision-medicine" : RemoteDataset("trec-precicion-medicine", TREC_PRECISION_MEDICINE_FILES),
     "trec-covid" : RemoteDataset("trec-covid", TREC_COVID_FILES),
