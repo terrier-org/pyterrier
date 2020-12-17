@@ -21,7 +21,7 @@ Welcome to Pyterrier's documentation!
 
 .. toctree::
    :maxdepth: 1
-   :caption: Expeirments
+   :caption: Experiments
 
    experiments/Robust04
 
