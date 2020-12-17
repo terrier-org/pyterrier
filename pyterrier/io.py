@@ -26,7 +26,6 @@ def autoopen(filename, mode='rb'):
         return bz2.open(filename, mode)
     return open(filename, mode)
 
-@staticmethod
 def find_files(dir):
     """
     Returns all the files present in a directory and its subdirectories
