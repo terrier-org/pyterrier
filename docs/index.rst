@@ -19,6 +19,11 @@ Welcome to Pyterrier's documentation!
    modules/terrier-retrieval
    modules/rewrite
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Expeirments
+
+   experiments/Robust04
 
 Indices and tables
 ==================
