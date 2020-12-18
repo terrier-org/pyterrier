@@ -45,7 +45,8 @@ df = fix_width(df, "corpus")
 df = df[["dataset", "corpus", "index", "topics", "qrels"]]
 table = df.set_index('dataset').to_markdown(tablefmt="rst")
 
-with open("modules/datasets-list-inc.rst", "wt") as f:
+os.makedirs("_includes")
+with open("_includes/datasets-list-inc.rst", "wt") as f:
     f.write(table)
 
 # -- Project information -----------------------------------------------------
