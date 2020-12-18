@@ -116,3 +116,5 @@ terrier-python-helper/target/
 terrier-python-helper/.settings
 *jar
 logs/
+
+docs/_include/*
