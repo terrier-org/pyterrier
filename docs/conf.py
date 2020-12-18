@@ -150,6 +150,10 @@ html_static_path = ['_static']
 html_logo = "_static/pyterrier logo 200w.png"
 
 
+autodoc_default_options = {
+    'member-order':    'bysource',
+}
+
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
