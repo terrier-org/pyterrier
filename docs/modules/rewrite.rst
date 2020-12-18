@@ -18,6 +18,7 @@ SequentialDependence
 This class implements Metzler and Croft's sequential dependence model, designed to boost the scores of
 documents where the query terms occur in close proximity. Application of this transformer rewrites 
 each input query such that:
+
  - pairs of adjacent query terms are added as `#1` and `#uw8` complex query terms, with a low weight.
  - the full query is added as `#uw12` complex query term, with a low weight.
  - all terms are weighted by a proximity model, either Dirichlet LM or pBiL2.
