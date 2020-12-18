@@ -1,4 +1,4 @@
-Welcome to Pyterrier's documentation!
+Welcome to PyTerrier's documentation!
 =====================================
 
 .. toctree::

@@ -37,7 +37,7 @@ def _get_text(row, name, width):
     return '[' + _wrap(', '.join(value), width=width) + ']'
 
 def fix_width(df, name, width=20):
-    df[name] = df.apply(lambda row: _get_text(row, name, width), axis=1) #_wrap(', '.join(row[name]), width=width), axis=1)
+    df[name] = df.apply(lambda row: _get_text(row, name, width), axis=1)
     return df
 df = fix_width(df, "qrels")
 df = fix_width(df, "topics")
@@ -51,15 +51,17 @@ with open("_includes/datasets-list-inc.rst", "wt") as f:
     f.write(table)
 
 # -- Project information -----------------------------------------------------
+import datetime
+now = datetime.datetime.now()
 
-project = 'Pyterrier'
-copyright = '2020, the University of Glasgow'
-author = 'Contributors to Pyterrier'
+project = 'PyTerrier'
+copyright = '%d, the University of Glasgow' % (now.year)
+author = 'Contributors to PyTerrier'
 
 # The short X.Y version
 version = ''
 # The full version, including alpha/beta/rc tags
-release = '0.2.0'
+release = pt.__version__
 
 
 # -- General configuration ---------------------------------------------------
@@ -178,7 +180,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'Pyterrier.tex', 'Pyterrier Documentation',
+    (master_doc, 'Pyterrier.tex', 'PyTerrier Documentation',
      'Contributors to PyTerrier', 'manual'),
 ]
 
@@ -188,7 +190,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'pyterrier', 'Pyterrier Documentation',
+    (master_doc, 'pyterrier', 'PyTerrier Documentation',
      [author], 1)
 ]
 
@@ -199,8 +201,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'Pyterrier', 'Pyterrier Documentation',
-     author, 'Pyterrier', 'One line description of project.',
+    (master_doc, 'PyTerrier', 'PyTerrier Documentation',
+     author, 'PyTerrier', 'One line description of project.',
      'Miscellaneous'),
 ]
 
