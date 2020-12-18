@@ -17,6 +17,7 @@ Welcome to PyTerrier's documentation!
    modules/core
    modules/datasets
    modules/io
+   modules/terrier-indexing   
    modules/terrier-retrieval
    modules/rewrite
    modules/anserini
