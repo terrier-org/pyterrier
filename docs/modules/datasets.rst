@@ -41,7 +41,7 @@ PyTerrier provides a ready-made index. This allows experiments to be easily cond
         eval_metrics=["map"]
     )
 
-Indexing and then retrieval of docuemnts from the `MSMARCO documents corpus <https://microsoft.github.io/msmarco/>`_ can be achieved as follows::
+Indexing and then retrieval of documents from the `MSMARCO document corpus <https://microsoft.github.io/msmarco/>`_ can be achieved as follows::
 
     dataset = pt.get_dataset("trec-deep-learning-docs")
     indexer = pt.TRECCollectionIndexer("./index")
