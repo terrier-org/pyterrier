@@ -9,9 +9,9 @@ each defined dataset can download and provide easy access to:
  - relevance assessments (aka, labels or qrels), as a dataframe, ready for evaluation
  - ready-made Terrier indices, where appropriate
 
-.. autoclass:: pyterrier.datasets.list_datasets()
+.. autofunction:: pyterrier.datasets.list_datasets()
 
-.. autoclass:: pyterrier.datasets.get_dataset()
+.. autofunction:: pyterrier.datasets.get_dataset()
 
 .. autoclass:: pyterrier.datasets.Dataset
     :members:

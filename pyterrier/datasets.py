@@ -34,7 +34,7 @@ class Dataset():
 
     def get_corpus_location(self):
         """ 
-            Returns the location of the files to allow indexing the corpus. 
+            Returns the location of the files to allow indexing the corpus, i.e. it returns a list of filenames.
         """
         pass
 
