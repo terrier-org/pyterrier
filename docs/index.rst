@@ -16,8 +16,10 @@ Welcome to Pyterrier's documentation!
 
    modules/core
    modules/datasets
+   modules/io
    modules/terrier-retrieval
    modules/rewrite
+   modules/anserini
 
 .. toctree::
    :maxdepth: 1
