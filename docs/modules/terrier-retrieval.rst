@@ -1,5 +1,5 @@
 Terrier Retrieval
-=================
+-----------------
 
 BatchRetrieve is one of the most commonly used PyTerrier objects. It represents a retrieval transformation, 
 in which queries are mapped to retrieved documents. BatchRetrieve uses a pre-existing Terrier index data
