@@ -1,5 +1,5 @@
 Query Rewriting
-===============
+---------------
 
 Query rewriting refers to changing the formulation of the query in order to improve the effectiveness of the
 search ranking. PyTerrier supplies a number of query rewriting transformers designed to work with BatchRetrieve.
