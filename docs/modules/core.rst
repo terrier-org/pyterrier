@@ -1,5 +1,5 @@
 pyterrier package
-=================
+-----------------
 
 .. automodule:: pyterrier
     :members:

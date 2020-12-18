@@ -1,5 +1,5 @@
 pyterrier.anserini package
-==========================
+--------------------------
 
 
 Through an integration of pyserini, PyTerrier can integrate results from the Lucene-based Anserini platform into retrieval pipelines.
@@ -9,7 +9,7 @@ Through an integration of pyserini, PyTerrier can integrate results from the Luc
         
 
 Examples
-~~~~~~~~
+========
 
 Comparative retrieval from Anserini and Terrier::
 

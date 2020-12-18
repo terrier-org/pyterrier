@@ -1,5 +1,5 @@
 pyterrier.io package
-====================
+--------------------
 
 
 This module provides useful utility methods for reading and writing files. In particular,
