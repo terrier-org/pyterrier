@@ -188,6 +188,7 @@ def set_tqdm(type):
         tqdm = bartype
     else:
         raise ValueError("Unknown tqdm type %s" % str(type))
+    tqdm.pandas()
     
 
 def started():

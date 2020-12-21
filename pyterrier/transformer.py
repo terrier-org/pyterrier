@@ -409,8 +409,14 @@ class RankCutoffTransformer(BinaryTransformerBase):
         # this assumes that the minimum rank cutoff is model.FIRST_RANK, i.e. 0
         res = res[res["rank"] < self.cutoff.value]
         return res
+    
+class ApplyTransformerBase(TransformerBase):
+    def __init__(self, fn, *args, verbose=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fn = fn
+        self.verbose = verbose
 
-class ApplyDocumentScoringTransformer(TransformerBase):
+class ApplyDocumentScoringTransformer(ApplyTransformerBase):
     """
         Implements a transformer that can apply a function to perform document scoring. The supplied function 
         should take as input one row, and return a float for the score of the document.
@@ -433,11 +439,14 @@ class ApplyDocumentScoringTransformer(TransformerBase):
     def transform(self, inputRes):
         fn = self.fn
         outputRes = inputRes.copy()
-        outputRes["score"] = outputRes.apply(fn, axis=1)
+        if self.verbose:
+            outputRes["score"] = outputRes.progress_apply(fn, axis=1, desc="pt.apply.doc_score")
+        else:
+            outputRes["score"] = outputRes.apply(fn, axis=1)
         outputRes = add_ranks(outputRes)
         return outputRes
 
-class ApplyDocFeatureTransformer(TransformerBase):
+class ApplyDocFeatureTransformer(ApplyTransformerBase):
     """
         Implements a transformer that can apply a function to perform feature scoring. The supplied function 
         should take as input one row, and return a numpy array for the features of the document.
@@ -460,10 +469,13 @@ class ApplyDocFeatureTransformer(TransformerBase):
     def transform(self, inputRes):
         fn = self.fn
         outputRes = inputRes.copy()
-        outputRes["features"] = outputRes.apply(fn, axis=1)
+        if self.verbose:
+            outputRes["features"] = outputRes.progress_apply(fn, axis=1, desc="pt.apply.doc_features")
+        else:
+            outputRes["features"] = outputRes.apply(fn, axis=1)
         return outputRes
 
-class ApplyQueryTransformer(TransformerBase):
+class ApplyQueryTransformer(ApplyTransformerBase):
     """
         Implements a query rewriting transformer by passing a function to perform the rewriting. The function should take
         as input one row, and return the string form of the new query.
@@ -480,18 +492,21 @@ class ApplyQueryTransformer(TransformerBase):
             pipe = pt.apply.query(lambda row: row["query"] + " extra words") >> pt.BatchRetrieve(index)
 
     """
-    def __init__(self, fn,  *args, **kwargs):
+    def __init__(self, fn, *args, verbose=False, **kwargs):
         """
             Arguments:
              - fn (Callable): Takes as input a panda Series for a row representing a query, and returns the new string query 
+             - verbose (bool): Display a tqdm progress bar for this transformer
         """
         super().__init__(fn, *args, **kwargs)
-        self.fn = fn
 
     def transform(self, inputRes):
         fn = self.fn
         outputRes = inputRes.copy()
-        outputRes["query"] = outputRes.apply(fn, axis=1)
+        if self.verbose:
+            outputRes["query"] = outputRes.progress_apply(fn, axis=1, desc="pt.apply.query")
+        else:
+            outputRes["query"] = outputRes.apply(fn, axis=1)
         return outputRes
 
 class ApplyGenericTransformer(TransformerBase):
@@ -514,9 +529,12 @@ class ApplyGenericTransformer(TransformerBase):
 
     """
 
-    def __init__(self, lambdaFn,  *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fn = lambdaFn
+    def __init__(self, fn,  *args, **kwargs):
+        """
+            Arguments:
+             - fn (Callable): Takes as input a panda DataFrame, and returns a new Pandas DataFrame 
+        """
+        super().__init__(fn, *args, **kwargs)
 
     def transform(self, inputRes):
         fn = self.fn
