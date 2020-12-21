@@ -4,6 +4,7 @@ from matchpy import ReplacementRule, Wildcard, Symbol, Operation, Arity, replace
 from warnings import warn
 import pandas as pd
 from .model import add_ranks
+import deprecation
 
 LAMBDA = lambda:0
 def is_lambda(v):
@@ -25,9 +26,9 @@ def get_transformer(v):
     if is_transformer(v):
         return v
     if is_lambda(v):
-        return LambdaPipeline(v)
+        return ApplyGenericTransformer(v)
     if isinstance(v, types.FunctionType):
-        return LambdaPipeline(v)
+        return ApplyGenericTransformer(v)
     if isinstance(v, pd.DataFrame):
         return SourceTransformer(v)
     raise ValueError("Passed parameter %s of type %s cannot be coerced into a transformer" % (str(v), type(v)))
@@ -409,10 +410,25 @@ class RankCutoffTransformer(BinaryTransformerBase):
         res = res[res["rank"] < self.cutoff.value]
         return res
 
-class LambdaDocumentScoringTransformer(TransformerBase):
-    def __init__(self, lambdaFn,  *args, **kwargs):
+class ApplyDocumentScoringTransformer(TransformerBase):
+    """
+        Implements a transformer that can apply a function to perform document scoring. The supplied function 
+        should take as input one row, and return a float for the score of the document.
+        
+        Usually accessed using pt.apply.doc_score()::
+
+            def _score_fn(row):
+                return float(row["url".count("/")])
+            
+            pipe = pt.BatchRetrieve(index) >> pt.apply.doc_score(_score_fn)
+    """
+    def __init__(self, fn,  *args, **kwargs):
+        """
+            Arguments:
+             - fn (Callable): Takes as input a panda Series for a row representing that document, and returns the new float doument score 
+        """
         super().__init__(*args, **kwargs)
-        self.fn = lambdaFn
+        self.fn = fn
     
     def transform(self, inputRes):
         fn = self.fn
@@ -421,10 +437,25 @@ class LambdaDocumentScoringTransformer(TransformerBase):
         outputRes = add_ranks(outputRes)
         return outputRes
 
-class LambdaDocFeatureTransformer(TransformerBase):
-    def __init__(self, lambdaFn,  *args, **kwargs):
+class ApplyDocFeatureTransformer(TransformerBase):
+    """
+        Implements a transformer that can apply a function to perform feature scoring. The supplied function 
+        should take as input one row, and return a numpy array for the features of the document.
+        
+        Usually accessed using pt.apply.doc_features()::
+
+            def _feature_fn(row):
+                return numpy.array([len(row["url"], row["url".count("/")])
+            
+            pipe = pt.BatchRetrieve(index) >> pt.apply.doc_features(_feature_fn) >> pt.LTRpipeline(xgBoost())
+    """
+    def __init__(self, fn,  *args, **kwargs):
+        """
+            Arguments:
+             - fn (Callable): Takes as input a panda Series for a row representing that document, and returns a new numpy array representing the features of that document
+        """
         super().__init__(*args, **kwargs)
-        self.fn = lambdaFn
+        self.fn = fn
 
     def transform(self, inputRes):
         fn = self.fn
@@ -432,10 +463,30 @@ class LambdaDocFeatureTransformer(TransformerBase):
         outputRes["features"] = outputRes.apply(fn, axis=1)
         return outputRes
 
-class LambdaQueryTransformer(TransformerBase):
-    def __init__(self, lambdaFn,  *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fn = lambdaFn
+class ApplyQueryTransformer(TransformerBase):
+    """
+        Implements a query rewriting transformer by passing a function to perform the rewriting. The function should take
+        as input one row, and return the string form of the new query.
+        
+        Usually accessed using pt.apply.query() passing it the function::
+
+            def _rewriting_fn(row):
+                return row["query"] + " extra words"
+            
+            pipe = pt.apply.query(_rewriting_fn) >> pt.BatchRetrieve(index)
+
+        Similarly, a lambda function can also be used::
+
+            pipe = pt.apply.query(lambda row: row["query"] + " extra words") >> pt.BatchRetrieve(index)
+
+    """
+    def __init__(self, fn,  *args, **kwargs):
+        """
+            Arguments:
+             - fn (Callable): Takes as input a panda Series for a row representing a query, and returns the new string query 
+        """
+        super().__init__(fn, *args, **kwargs)
+        self.fn = fn
 
     def transform(self, inputRes):
         fn = self.fn
@@ -443,14 +494,23 @@ class LambdaQueryTransformer(TransformerBase):
         outputRes["query"] = outputRes.apply(fn, axis=1)
         return outputRes
 
-class LambdaPipeline(TransformerBase):
+class ApplyGenericTransformer(TransformerBase):
     """
-    This class allows pipelines components to be written as functions or lambdas
+    Allows arbitrary pipelines components to be written as functions. The function should take as input
+    a dataframe, and return a new dataframe. The function should abide by the main contracual obligations,
+    e.g. updating then "rank" column.
+
+    This class is normally accessed through pt.apply.generic()
+
+    If you are scoring, query rewriting or calculating features, it is advised to use one of the other
+    variants.
 
     Example::
         
         # this pipeline would remove all but the first two documents from a result set
-        lp = LambdaPipeline(lambda res : res[res["rank"] < 2])
+        lp = ApplyGenericTransformer(lambda res : res[res["rank"] < 2])
+
+        pipe = pt.BatchRetrieve(index) >> lp
 
     """
 
@@ -461,6 +521,11 @@ class LambdaPipeline(TransformerBase):
     def transform(self, inputRes):
         fn = self.fn
         return fn(inputRes)
+
+@deprecation.deprecated(deprecated_in="0.3.0",
+                        details="Please use pt.ApplyGenericTransformer")
+class LambdaPipeline(ApplyGenericTransformer):
+    pass
 
 class FeatureUnionPipeline(NAryTransformerBase):
     name = "FUnion"
@@ -543,7 +608,7 @@ class ComposedPipeline(NAryTransformerBase):
 
     :Example:
 
-    >>> comp = ComposedPipeline([ DPH_br, LambdaPipeline(lambda res : res[res["rank"] < 2])])
+    >>> comp = ComposedPipeline([ DPH_br, ApplyGenericTransformer(lambda res : res[res["rank"] < 2])])
     >>> # OR
     >>> # we can even use lambdas as transformers
     >>> comp = ComposedPipeline([DPH_br, lambda res : res[res["rank"] < 2]])

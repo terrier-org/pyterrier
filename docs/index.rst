@@ -16,7 +16,7 @@ Welcome to PyTerrier's documentation!
 
    modules/core
    modules/datasets
-   modules/lambdas   
+   modules/apply   
    modules/io
    modules/terrier-indexing   
    modules/terrier-retrieval
