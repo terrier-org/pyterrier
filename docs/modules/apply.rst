@@ -30,7 +30,8 @@ In each case, the result from calling a pyterrier.apply function is another PyTe
 (i.e. extends TransformerBase), and which can be used for experimentation or combined with other 
 PyTerrier transformers through the standard PyTerrier operators.
 
+If verbose=True is passed to any pyterrier function (except generic()), then a TQDM progress bar will be shown as the transformer is applied.
+
 .. automodule:: pyterrier.apply
     :members:
 
-If verbose=True is passed to any pyterrier apply function, then a TQDM progress bar will be shown as the transformer is applied.

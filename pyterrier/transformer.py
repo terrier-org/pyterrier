@@ -4,6 +4,7 @@ from matchpy import ReplacementRule, Wildcard, Symbol, Operation, Arity, replace
 from warnings import warn
 import pandas as pd
 from .model import add_ranks
+from . import tqdm
 import deprecation
 
 LAMBDA = lambda:0
@@ -440,7 +441,8 @@ class ApplyDocumentScoringTransformer(ApplyTransformerBase):
         fn = self.fn
         outputRes = inputRes.copy()
         if self.verbose:
-            outputRes["score"] = outputRes.progress_apply(fn, axis=1, desc="pt.apply.doc_score")
+            tqdm.pandas(desc="pt.apply.doc_score", unit="d")
+            outputRes["score"] = outputRes.progress_apply(fn, axis=1)
         else:
             outputRes["score"] = outputRes.apply(fn, axis=1)
         outputRes = add_ranks(outputRes)
@@ -470,7 +472,8 @@ class ApplyDocFeatureTransformer(ApplyTransformerBase):
         fn = self.fn
         outputRes = inputRes.copy()
         if self.verbose:
-            outputRes["features"] = outputRes.progress_apply(fn, axis=1, desc="pt.apply.doc_features")
+            tqdm.pandas(desc="pt.apply.doc_features", unit="d")
+            outputRes["features"] = outputRes.progress_apply(fn, axis=1)
         else:
             outputRes["features"] = outputRes.apply(fn, axis=1)
         return outputRes
@@ -492,7 +495,7 @@ class ApplyQueryTransformer(ApplyTransformerBase):
             pipe = pt.apply.query(lambda row: row["query"] + " extra words") >> pt.BatchRetrieve(index)
 
     """
-    def __init__(self, fn, *args, verbose=False, **kwargs):
+    def __init__(self, fn, *args, **kwargs):
         """
             Arguments:
              - fn (Callable): Takes as input a panda Series for a row representing a query, and returns the new string query 
@@ -504,7 +507,8 @@ class ApplyQueryTransformer(ApplyTransformerBase):
         fn = self.fn
         outputRes = inputRes.copy()
         if self.verbose:
-            outputRes["query"] = outputRes.progress_apply(fn, axis=1, desc="pt.apply.query")
+            tqdm.pandas(desc="pt.apply.query", unit="d")
+            outputRes["query"] = outputRes.progress_apply(fn, axis=1)
         else:
             outputRes["query"] = outputRes.apply(fn, axis=1)
         return outputRes

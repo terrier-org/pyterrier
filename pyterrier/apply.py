@@ -11,6 +11,10 @@ def query(fn : Callable[..., str], *args, **kwargs) -> TransformerBase:
         The supplied function is called once for each query, and must return a string containing the new query formulation.
         Each time it is called, the function is supplied with a Panda Series representing the attributes of the query.
 
+        Arguments:
+         - fn(Callable): the function to apply to each row
+         - verbose(bool): if set to True, a TQDM progress bar will be displayed
+
         Examples::
 
             # this will remove pre-defined stopwords from the query
@@ -41,6 +45,10 @@ def doc_score(fn : Callable[..., float], *args, **kwargs) -> TransformerBase:
         The supplied function is called once for each document, and must return a float containing the new score for that document.
         Each time it is called, the function is supplied with a Panda Series representing the attributes of the query and document.
 
+        Arguments:
+         - fn(Callable): the function to apply to each row
+         - verbose(bool): if set to True, a TQDM progress bar will be displayed
+
         Example::
 
             # this transformer will subtract 5 from the score of each document
@@ -56,6 +64,10 @@ def doc_features(fn : Callable[..., NDArray[Any]], *args, **kwargs) -> Transform
 
         The supplied function is called once for each document, must each time return a 1D numpy array.
         Each time it is called, the function is supplied with a Panda Series representing the attributes of the query and document.
+
+        Arguments:
+         - fn(Callable): the function to apply to each row
+         - verbose(bool): if set to True, a TQDM progress bar will be displayed
 
         Example::
 
@@ -82,6 +94,9 @@ def generic(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> Tra
         The supplied function is called once for an entire result set as a dataframe (which may contain one of more queries).
         Each time it should return a new dataframe. The returned dataframe should abide by the general PyTerrier Data Model,
         for instance updating the rank column if the scores are amended.
+
+        Arguments:
+         - fn(Callable): the function to apply to each row
 
         Example::
 
