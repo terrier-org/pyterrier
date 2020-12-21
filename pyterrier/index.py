@@ -128,6 +128,19 @@ class Indexer:
         self.overwrite = overwrite
         self.verbose = verbose
 
+    def setProperty(self, k, v):
+        """
+        Set the named property to the specified value.
+
+        Args:
+            k(str): name of the Terrier property
+            v(str): value of the Terrier property
+
+        Usage::
+            indexer.setProperty("termpipelines", "")
+        """
+        self.properties.put(k, v)
+
     def setProperties(self, **kwargs):
         """
         Set the properties to the given ones.

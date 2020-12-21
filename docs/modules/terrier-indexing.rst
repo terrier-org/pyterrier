@@ -95,3 +95,29 @@ Example indexing MSMARCO Passage Ranking dataset::
     
     iter_indexer = pt.IterDictIndexer("./passage_index")
     indexref3 = iter_indexer.index(msmarco_generate(), meta=['docno', 'text'], meta_lengths=[20, 4096])
+
+Indexing Configuration
+======================
+
+Our aim is to expose all conventional Terrier indexing configuration through PyTerrier, for instance as constructor arguments
+to the Indexer classes. However, as Terrier is a legacy platform, some changes will take time to integrate into Terrier. 
+Moreover, the manner of the configuration needed varies a little between the Indexer classes. In the following, we list common
+indexing configurations, and how to apply them when indexing using PyTerrier, noting any differences betweeen the Indexer classes.
+
+- *stemming configuation or stopwords*: the default Terrier indexing configuration is to use a term pipeline of `Stopwords,PorterStemmer`. You can change the term pipeline configuration using the `"termpipeline"` property::
+
+    indexer.setProperty("termpipelines", "")
+
+ Note that any subsequent indexing or retrieval operation would also require the `"termpipeline"` property to be suitably updated.
+ See the `org.terrier.terms <http://terrier.org/docs/current/javadoc/org/terrier/terms/package-summary.html>`_ package for a list of 
+ the available term pipeline objects provided by Terrier.
+
+- *tokenisation*: Similarly, tokenisation is controlled by the `"tokeniser"` property. `EnglishTokeniser <http://terrier.org/docs/current/javadoc/org/terrier/indexing/tokenisation/EnglishTokeniser.html>`_ is the  default tokeniser. Other tokenisers are listed in  `org.terrier.indexing.tokenisation <http://terrier.org/docs/current/javadoc/org/terrier/indexing/tokenisation/package-summary.html>`_ package. For instance, use `indexer.setProperty("tokeniser", "UTFTokeniser")` when indexing non-English text.
+
+- *positions (aka blocks)* - all indexers expose a `blocks` boolean constructor argument to allow position information to be recoreded in the index.
+
+- *fields* - fields refers to storing the frequency of a terms occurrence in different parts of a document, e.g. title vs body vs anchor text In the IterDictIndexer, Fields are set in the `index()` method; otherwise the `"FieldTags.process"` property must be set. See the Terrier `indexing documentation on fields <https://github.com/terrier-org/terrier-core/blob/5.x/doc/configure_indexing.md#fields>`_ for more information. 
+
+- *changing the tags parsed by TREC Collection* - use the relevant properties listed in the Terrier `indexing documentation <https://github.com/terrier-org/terrier-core/blob/5.x/doc/configure_indexing.md#basic-indexing-setup>`_.
+
+- *metaindex configuration*: metadata refers to the arbitrary strings associated to each document recorded in a Terrier index. These can range from the `"docno"` attribute of each document, as used to support experimentation, to other attributes such as the URL of the documents, or even the raw text of the document. Indeed, storing the raw text of each document is a trick often used when applying additional re-rankers such as BERT (see `pyterrier_bert <https://github.com/cmacdonald/pyterrier_bert>`_ for more information on integrating PyTerrier with BERT-based re-rankers). For most indexers, the `"indexer.meta.forward.keys"`, and `"indexer.meta.forward.keylens"` properties will need adjusted. If you wish to save the text of documents indexed by the Terrier TRECCollection class, you will also need to adjust the `"TaggedDocument.abstracts"`, `"TaggedDocument.abstracts.tags"`, `"TaggedDocument.abstracts.tags.casesensitive"` and `"TaggedDocument.abstracts.lengths"` properties.
