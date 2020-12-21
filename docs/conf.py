@@ -1,4 +1,4 @@
-    # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Configuration file for the Sphinx documentation builder.
 #
@@ -18,16 +18,50 @@ sys.path.insert(0, os.path.abspath('..'))
 import sphinx_rtd_theme
 
 
-# -- Project information -----------------------------------------------------
 
-project = 'Pyterrier'
-copyright = '2020, the University of Glasgow'
-author = 'Contributors to Pyterrier'
+# -- Dataset table listing -----------------------------------------------------
+import pyterrier as pt
+import textwrap
+pt.init()
+df = pt.list_datasets()
+def _wrap(text, width):
+    return text
+    #return '\\\n_'.join(textwrap.wrap(text, width=width))
+
+def _get_text(row, name, width):
+    value = row.get(name)
+    if type(value) != list:
+        return value
+    if len(value) == 1:
+        return value
+    return '[' + _wrap(', '.join(value), width=width) + ']'
+
+def fix_width(df, name, width=20):
+    df[name] = df.apply(lambda row: _get_text(row, name, width), axis=1)
+    return df
+df = fix_width(df, "qrels")
+df = fix_width(df, "topics")
+df = fix_width(df, "corpus")
+df = df[["dataset", "corpus", "index", "topics", "qrels"]]
+table = df.set_index('dataset').to_markdown(tablefmt="rst")
+
+if not os.path.exists("_includes"):
+    os.makedirs("_includes")
+with open("_includes/datasets-list-inc.rst", "wt") as f:
+    f.write(table)
+
+# -- Project information -----------------------------------------------------
+import datetime
+now = datetime.datetime.now()
+
+project = 'PyTerrier'
+copyright = '%d, the University of Glasgow' % (now.year)
+author = 'Contributors to PyTerrier'
 
 # The short X.Y version
 version = ''
 # The full version, including alpha/beta/rc tags
-release = '0.2.0'
+release = pt.__version__
 
 
 # -- General configuration ---------------------------------------------------
@@ -86,6 +120,11 @@ pygments_style = 'sphinx'
 html_theme = "sphinx_rtd_theme"
 html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
+# increasing sphinx width
+# https://stackoverflow.com/a/43186995
+def setup(app):
+    app.add_css_file('my_theme.css')
+
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
@@ -97,6 +136,7 @@ html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
+
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
 #
@@ -107,6 +147,12 @@ html_static_path = ['_static']
 #
 # html_sidebars = {}
 
+html_logo = "_static/pyterrier logo 200w.png"
+
+
+autodoc_default_options = {
+    'member-order':    'bysource',
+}
 
 # -- Options for HTMLHelp output ---------------------------------------------
 
@@ -138,8 +184,8 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'Pyterrier.tex', 'Pyterrier Documentation',
-     'A-Tsolov', 'manual'),
+    (master_doc, 'Pyterrier.tex', 'PyTerrier Documentation',
+     'Contributors to PyTerrier', 'manual'),
 ]
 
 
@@ -148,7 +194,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'pyterrier', 'Pyterrier Documentation',
+    (master_doc, 'pyterrier', 'PyTerrier Documentation',
      [author], 1)
 ]
 
@@ -159,8 +205,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'Pyterrier', 'Pyterrier Documentation',
-     author, 'Pyterrier', 'One line description of project.',
+    (master_doc, 'PyTerrier', 'PyTerrier Documentation',
+     author, 'PyTerrier', 'One line description of project.',
      'Miscellaneous'),
 ]
 

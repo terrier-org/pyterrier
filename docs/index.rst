@@ -1,4 +1,4 @@
-Welcome to Pyterrier's documentation!
+Welcome to PyTerrier's documentation!
 =====================================
 
 .. toctree::
@@ -16,13 +16,21 @@ Welcome to Pyterrier's documentation!
 
    modules/core
    modules/datasets
-   modules/lambdas
-   
+   modules/lambdas   
+   modules/io
+   modules/terrier-indexing   
+   modules/terrier-retrieval
+   modules/rewrite
+   modules/anserini
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Experiments
+
+   experiments/Robust04
 
 Indices and tables
 ==================
 
 * :ref:`genindex`
-* :ref:`modindex`
 * :ref:`search`

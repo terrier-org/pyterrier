@@ -1,12 +1,15 @@
-![Python package](https://github.com/terrier-org/pyterrier/workflows/Python%20package/badge.svg) [![PyPI version](https://badge.fury.io/py/python-terrier.svg)](https://badge.fury.io/py/python-terrier)
+![Python package](https://github.com/terrier-org/pyterrier/workflows/Python%20package/badge.svg) 
+[![PyPI version](https://badge.fury.io/py/python-terrier.svg)](https://badge.fury.io/py/python-terrier)
+[![Documentation Status](https://readthedocs.org/projects/pyterrier/badge/?version=latest)](https://pyterrier.readthedocs.io/en/latest/)
 
-# Pyterrier
+
+# PyTerrier
 
 A Python API for Terrier
 
 # Installation
 
-Easiest way to get started with Pyterrier is to use one of our Colab notebooks - look for the ![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg) badges below.
+The easiest way to get started with PyTerrier is to use one of our Colab notebooks - look for the ![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg) badges below.
 
 ### Linux or Google Colab
 1. `pip install --upgrade git+https://github.com/terrier-org/pyterrier.git#egg=python-terrier`
@@ -18,7 +21,7 @@ Easiest way to get started with Pyterrier is to use one of our Colab notebooks -
 2. `pip install --upgrade git+https://github.com/terrier-org/pyterrier.git#egg=python-terrier`
 
 ### Windows
-Pyterrier is not available for Windows because [pytrec_eval](https://github.com/cvangysel/pytrec_eval) [isn't available for Windows](https://github.com/cvangysel/pytrec_eval/issues/19). If you can compile & install pytrec_eval youself, it should work fine.
+PyTerrier is not available for Windows because [pytrec_eval](https://github.com/cvangysel/pytrec_eval) [isn't available for Windows](https://github.com/cvangysel/pytrec_eval/issues/19). If you can compile & install pytrec_eval youself, it should work fine.
 
 # Indexing
 
@@ -74,7 +77,7 @@ There are several worked examples in the [learning-to-rank notebook](examples/no
 
 # Dataset API
 
-Pyterrier allows simple access to standard information retrieval test collections through its dataset API, which can download the topics, qrels, corpus or, for some test collections, a ready-made Terrier index.
+PyTerrier allows simple access to standard information retrieval test collections through its dataset API, which can download the topics, qrels, corpus or, for some test collections, a ready-made Terrier index.
 
 ```python
 topics = pt.datasets.get_dataset("trec-robust-2004").get_topics()
@@ -95,6 +98,10 @@ index.getLexicon()["circuit"].getDocumentFrequency()
 
 There are lots of examples in the [index API notebook](examples/notebooks/index_api.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/index_api.ipynb)
 
+# Documentation
+
+More documentation for PyTerrier is available at https://pyterrier.readthedocs.io/en/latest/.
+
 # Open Source Licence
 
 PyTerrier is subject to the terms detailed in the Mozilla Public License Version 2.0. The Mozilla Public License can be found in the file [LICENSE.txt](LICENSE.txt). By using this software, you have agreed to the licence.
@@ -108,7 +115,7 @@ By downloading and using PyTerrier, you agree to cite at the undernoted paper de
 [Declarative Experimentation inInformation Retrieval using PyTerrier. Craig Macdonald and Nicola Tonellotto. In Proceedings of ICTIR 2020.](https://arxiv.org/abs/2007.14271)
 
 ```bibtex
-@inproceesings{
+@inproceedings{pyterrier2020ictir,
     author = {Craig Macdonald and Nicola Tonellotto},
     title = {Declarative Experimentation inInformation Retrieval using PyTerrier},
     booktitle = {Proceedings of ICTIR 2020},

@@ -78,23 +78,18 @@ def run_autoclass():
 
 # Using enum class create enumerations
 class IndexingType(enum.Enum):
-    CLASSIC = 1
-    SINGLEPASS = 2
-    MEMORY = 3
+    """
+        This enum is used to determine the type of index built by Terrier. The default is CLASSIC.
+    """
+    CLASSIC = 1 #: A classical indexing regime, which also creates a direct index structure, useful for query expansion
+    SINGLEPASS = 2 #: A single-pass indexing regime, which builds an inverted index directly. No direct index structure is created. Typically is faster than classical indexing.
+    MEMORY = 3 #: An in-memory index. No direct index is created.
 
 class Indexer:
     """
     Parent class. It can be used to load an existing index.
     Use one of its children classes if you wish to create a new index.
 
-    Attributes:
-        default_properties(dict): Contains the default properties
-        path(str): The index directory + /data.properties
-        index_called(bool): True if index() method of child Indexer has been called, false otherwise
-        index_dir(str): The index directory
-        blocks(bool): If true the index has blocks enabled
-        properties: A Terrier Properties object, which is a hashtable with properties and their values
-        overwrite(bool): If True the index() method of child Indexer will overwrite any existing index
     """
 
     default_properties = {
@@ -113,6 +108,7 @@ class Indexer:
             index_path (str): Directory to store index
             blocks (bool): Create indexer with blocks if true, else without blocks
             overwrite (bool): If index already present at `index_path`, True would overwrite it, False throws an Exception
+            verbose (bool): Provide progess bars if possible
             type (IndexingType): the specific indexing procedure to use. Default is IndexingType.CLASSIC.
         """
         if StringReader is None:
@@ -293,14 +289,6 @@ class DFIndexer(Indexer):
     """
     Use this Indexer if you wish to index a pandas.Dataframe
 
-    Attributes:
-        default_properties(dict): Contains the default properties
-        path(str): The index directory + /data.properties
-        index_called(bool): True if index() method of child Indexer has been called, false otherwise
-        index_dir(str): The index directory
-        blocks(bool): If true the index has blocks enabled
-        properties: A Terrier Properties object, which is a hashtable with properties and their values
-        overwrite(bool): If True the index() method of child Indexer will overwrite any existing index
     """
     def index(self, text, *args, **kwargs):
         """
@@ -436,14 +424,6 @@ class IterDictIndexer(Indexer):
     """
     Use this Indexer if you wish to index an iter of dicts (possibly with multiple fields)
 
-    Attributes:
-        default_properties(dict): Contains the default properties
-        path(str): The index directory + /data.properties
-        index_called(bool): True if index() method of child Indexer has been called, false otherwise
-        index_dir(str): The index directory
-        blocks(bool): If true the index has blocks enabled
-        properties: A Terrier Properties object, which is a hashtable with properties and their values
-        overwrite(bool): If True the index() method of child Indexer will overwrite any existing index
     """
     def index(self, it, fields=('text',), meta=('docno',), meta_lengths=None):
         """
@@ -482,18 +462,9 @@ class TRECCollectionIndexer(Indexer):
         'trecweb' : 'org.terrier.indexing.TRECWebCollection',
         'warc' : 'org.terrier.indexing.WARC10Collection'
     }
-    """
-    Use this Indexer if you wish to index a TREC formatted collection
 
-    Attributes:
-        default_properties(dict): Contains the default properties
-        path(str): The index directory + /data.properties
-        index_called(bool): True if index() method of child Indexer has been called, false otherwise
-        index_dir(str): The index directory
-        blocks(bool): If true the index has blocks enabled
-        properties: A Terrier Properties object, which is a hashtable with properties and their values
-        overwrite(bool): If True the index() method of child Indexer will overwrite any existing index
-        verbose(bool): If True, will display a progress bar based on files indexed
+    """
+        Use this Indexer if you wish to index a TREC formatted collection
     """
 
     def __init__(self, index_path, blocks=False, overwrite=False, type=IndexingType.CLASSIC, collection="trec", verbose=False):
@@ -545,16 +516,7 @@ class TRECCollectionIndexer(Indexer):
 
 class FilesIndexer(Indexer):
     '''
-    Use this Indexer if you wish to index a pdf, docx, txt etc files
-
-    Attributes:
-        default_properties(dict): Contains the default properties
-        path(str): The index directory + /data.properties
-        index_called(bool): True if index() method of child Indexer has been called, false otherwise
-        index_dir(str): The index directory
-        blocks(bool): If true the index has blocks enabled
-        properties: A Terrier Properties object, which is a hashtable with properties and their values
-        overwrite(bool): If True the index() method of child Indexer will overwrite any existing index
+        Use this Indexer if you wish to index a pdf, docx, txt etc files
     '''
 
     def __init__(self, index_path, *args, **kwargs):
@@ -564,7 +526,7 @@ class FilesIndexer(Indexer):
 
     def index(self, files_path):
         """
-        Index the specified TREC formatted files
+        Index the specified files.
 
         Args:
             files_path: can be a String of the path or a list of Strings of the paths for multiple files

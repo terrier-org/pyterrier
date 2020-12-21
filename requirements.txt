@@ -11,3 +11,4 @@ chest
 scipy
 requests
 nptyping
+tabulate

@@ -5,7 +5,7 @@ import pandas as pd
 from .transformer import is_lambda
 import types
 import requests
-from . import tqdm
+from . import tqdm, HOME_DIR
 import tarfile
 
 STANDARD_TERRIER_INDEX_FILES = [
@@ -34,7 +34,7 @@ class Dataset():
 
     def get_corpus_location(self):
         """ 
-            Returns the location of the files to allow indexing the corpus. 
+            Returns the location of the files to allow indexing the corpus, i.e. it returns a list of filenames.
         """
         pass
 
@@ -59,16 +59,19 @@ class Dataset():
 class RemoteDataset(Dataset):
 
     def __init__(self, name, locations):
-        from os.path import expanduser
-        userhome = expanduser("~")
-        pt_home = os.path.join(userhome, ".pyterrier")
-        self.corpus_home = os.path.join(pt_home, "corpora", name)
         self.locations = locations
         self.name = name
         self.user = None
         self.password = None
 
     def _configure(self, **kwargs):
+        from os.path import expanduser
+        pt_home = HOME_DIR
+        if pt_home is None:
+            from os.path import expanduser
+            userhome = expanduser("~")
+            pt_home = os.path.join(userhome, ".pyterrier")
+        self.corpus_home = os.path.join(pt_home, "corpora", self.name)
         if 'user' in kwargs:
             self.user = kwargs['user']
             self.password = kwargs['password']
@@ -180,7 +183,7 @@ class RemoteDataset(Dataset):
             return None
         if type(self.locations[component]) == type([]):
             return True
-        return self.locations[component].keys()
+        return list(self.locations[component].keys())
 
     def get_corpus(self, **kwargs):
         import pyterrier as pt

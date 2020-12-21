@@ -50,7 +50,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
         tqdm: The `tqdm <https://tqdm.github.io/>`_ instance to use for progress bars within PyTerrier. Defaults to tqdm.tqdm. Available options are `'tqdm'`, `'auto'` or `'notebook'`.
 
    
-    **Locating the Terrier .jar file:** PyTerrier is not tied to a specific version fo Terrier and will automatically locate and download a recent Terrier .jar file. However, inevitably, some functionalities will require more recent Terrier versions. 
+    **Locating the Terrier .jar file:** PyTerrier is not tied to a specific version of Terrier and will automatically locate and download a recent Terrier .jar file. However, inevitably, some functionalities will require more recent Terrier versions. 
     
      * If set, PyTerrier uses the `version` init kwarg to determine the .jar file to look for.
      * If the `version` init kwarg is not set, Terrier will query MavenCentral to determine the latest Terrier release.

@@ -6,7 +6,7 @@ PyTerrier requires Python 3.6 or newer, and Java 11 or newer.
 
 PyTerrier is natively supported on Linux and Mac OS X. PyTerrier uses [Pytrec_eval](https://github.com/cvangysel/pytrec_eval) extensively, and the latter does not install automatically on Windows.
 
-## Installation
+## Installation
 
 Installing PyTerrier is easy - it can be installed from the command-line in the normal way:
 ```
