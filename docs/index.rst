@@ -16,11 +16,11 @@ Welcome to PyTerrier's documentation!
 
    modules/core
    modules/datasets
-   modules/apply   
    modules/io
    modules/terrier-indexing   
    modules/terrier-retrieval
    modules/rewrite
+   modules/apply
    modules/anserini
 
 .. toctree::
