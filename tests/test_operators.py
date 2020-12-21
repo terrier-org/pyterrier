@@ -31,7 +31,7 @@ class TestOperators(unittest.TestCase):
         self.assertEqual(2, len(rtr.columns))  
         self.assertEqual("AA", rtr.iloc[0]["query"])
 
-        sequence1 = topicsSource >> ptt.LambdaPipeline(fn1)
+        sequence1 = topicsSource >> ptt.ApplyGenericTransformer(fn1)
         self.assertTrue(isinstance(sequence1[0], ptt.SourceTransformer))
         rtr = sequence1(topics)
         self.assertTrue("query" in rtr.columns)
@@ -49,11 +49,11 @@ class TestOperators(unittest.TestCase):
         fn1 = lambda topics : rewrite(topics)
         fn2 = lambda topics : rewrite(topics)
         import pyterrier.transformer as ptt
-        sequence1 = ptt.LambdaPipeline(fn1) >> ptt.LambdaPipeline(fn2)
-        sequence2 = ptt.LambdaPipeline(fn1) >> fn2
-        sequence3 = ptt.LambdaPipeline(fn1) >> rewrite
-        sequence4 = fn1 >> ptt.LambdaPipeline(fn2)
-        sequence5 = rewrite >> ptt.LambdaPipeline(fn2)
+        sequence1 = ptt.ApplyGenericTransformer(fn1) >> ptt.ApplyGenericTransformer(fn2)
+        sequence2 = ptt.ApplyGenericTransformer(fn1) >> fn2
+        sequence3 = ptt.ApplyGenericTransformer(fn1) >> rewrite
+        sequence4 = fn1 >> ptt.ApplyGenericTransformer(fn2)
+        sequence5 = rewrite >> ptt.ApplyGenericTransformer(fn2)
         
         for sequence in [sequence1, sequence2, sequence3, sequence4, sequence5]:
             self.assertTrue(isinstance(sequence, ptt.TransformerBase))

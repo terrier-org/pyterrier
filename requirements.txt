@@ -10,4 +10,5 @@ deprecation
 chest
 scipy
 requests
+nptyping
 tabulate
