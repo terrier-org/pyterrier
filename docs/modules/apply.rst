@@ -2,13 +2,15 @@ pyterrier.apply module
 --------------------------
 
 PyTerrier pipelines are easily extensible through the use of apply functions.
-These are inspired by the `Pandas apply() <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.apply.html>`_, which allow
-to apply a function to each row of a dataframe. Instead, in PyTerrier, apply
-small functions (including Python lambdas) to allow to easily construct 
+These are inspired by the `Pandas apply() <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.apply.html>`_, 
+which allow to apply a function to each row of a dataframe. Instead, in PyTerrier, 
+apply small functions (including Python lambdas) to allow to easily construct 
 pipeline transformers to address common use cases.
 
 The table below lists the main classes of transformation in the PyTerrier data 
-model, as well as the appropriate apply function to use in each case.
+model, as well as the appropriate apply function to use in each case. These vary
+in terms of the type of the input dataframe (queries or ranked documents), and
+the cardinality change in the dataframes by application of the transformer.
 
 +-------+---------+-------------+------------------+---------------------------+----------------------+------------------+
 + Input | Output  | Cardinality | Example          | Example apply             | Input type           | Return type      |
