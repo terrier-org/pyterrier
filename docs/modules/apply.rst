@@ -17,13 +17,13 @@ the cardinality change in the dataframes by application of the transformer.
 +=======+=========+=============+==================+===========================+======================+==================+
 |   Q   |    Q    |   1 to 1    | Query rewriting  | `pt.apply.query()`        | row of one query     |  str             |
 +-------+---------+-------------+------------------+---------------------------+----------------------+------------------+
-| Q x D | Q x D   | 1 to 1      | Re-ranking       | `pt.apply.doc_score()`    | row of one document  | float            |
+| Q x D |  Q x D  |   1 to 1    | Re-ranking       | `pt.apply.doc_score()`    | row of one document  | float            |
 +-------+---------+-------------+------------------+---------------------------+----------------------+------------------+
-| Q x D | Q x Df  | 1 to 1      | Feature scoring  | `pt.apply.doc_features()` | row of one document  | numpy array      |
+| Q x D |  Q x Df |   1 to 1    | Feature scoring  | `pt.apply.doc_features()` | row of one document  | numpy array      |
 +-------+---------+-------------+------------------+---------------------------+----------------------+------------------+
-| Q x D | Q       | N to 1      | Query expansion  | `pt.apply.generic()`      | entire dataframe     | entire dataframe |
+| Q x D |    Q    |   N to 1    | Query expansion  | `pt.apply.generic()`      | entire dataframe     | entire dataframe |
 +-------+---------+-------------+------------------+---------------------------+----------------------+------------------+
-| Q     | Q x D   | 1 to N      | Retrieval        | `pt.apply.generic()`      | entire dataframe     | entire dataframe |
+|   Q   |  Q x D  |   1 to N    | Retrieval        | `pt.apply.generic()`      | entire dataframe     | entire dataframe |
 +-------+---------+-------------+------------------+---------------------------+----------------------+------------------+
 
 In each case, the result from calling a pyterrier.apply function is another PyTerrier transformer 
@@ -32,3 +32,5 @@ PyTerrier transformers through the standard PyTerrier operators.
 
 .. automodule:: pyterrier.apply
     :members:
+
+If verbose=True is passed to any pyterrier apply function, then a TQDM progress bar will be shown as the transformer is applied.
