@@ -18,7 +18,7 @@ Note that the SDM() rewriter has a number of constructor parameters:
 
 A simple QE run can be achieved using
 ```python
-pt.BatchRetrieve(indexref, wmodel="BM25", control={"qe" : "on"})
+pt.BatchRetrieve(indexref, wmodel="BM25", controls={"qe" : "on"})
 ```
 
 As this is pseudo-relevance feedback in nature, it identifies a set of documents, extracts informative term in the top-ranked documents, and re-exectutes the query.

@@ -20,6 +20,7 @@ Welcome to PyTerrier's documentation!
    modules/terrier-indexing   
    modules/terrier-retrieval
    modules/rewrite
+   modules/apply
    modules/anserini
 
 .. toctree::
