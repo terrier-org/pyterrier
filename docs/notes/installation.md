@@ -1,10 +1,12 @@
 # Installing and Configuring PyTerrier
 
+PyTerrier is a declarative platform for information retrieval experiemnts in Python. It uses the Java-based [Terrier information retrievel platform](http://terrier.org) internally to support indexing and retrieval operations.
+
 ## Pre-requisites
 
 PyTerrier requires Python 3.6 or newer, and Java 11 or newer. 
 
-PyTerrier is natively supported on Linux and Mac OS X. PyTerrier uses [Pytrec_eval](https://github.com/cvangysel/pytrec_eval) extensively, and the latter does not install automatically on Windows.
+PyTerrier is natively supported on Linux and Mac OS X. PyTerrier uses [Pytrec_eval](https://github.com/cvangysel/pytrec_eval) for evaluation, and the latter does not install automatically on Windows.
 
 ## Installation
 
@@ -36,4 +38,4 @@ import pyterrier as pt
 pt.init()
 ```
 
-`pt.init()` has a multitude of options, for instance that can make PyTerrier more notebook friendly, or to change the underlying version of Terrier. See the API reference for `pt.init()` for more information.
+`pt.init()` has a multitude of options, for instance that can make PyTerrier more notebook friendly, or to change the underlying version of Terrier. See the [API reference](https://pyterrier.readthedocs.io/en/latest/modules/core.html#pyterrier.init) for more information.
