@@ -1,5 +1,7 @@
+.. _pyterrier.apply:
+
 pyterrier.apply module
---------------------------
+----------------------
 
 PyTerrier pipelines are easily extensible through the use of apply functions.
 These are inspired by the `Pandas apply() <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.apply.html>`_, 
@@ -30,7 +32,8 @@ In each case, the result from calling a pyterrier.apply function is another PyTe
 (i.e. extends TransformerBase), and which can be used for experimentation or combined with other 
 PyTerrier transformers through the standard PyTerrier operators.
 
-If verbose=True is passed to any pyterrier function (except generic()), then a TQDM progress bar will be shown as the transformer is applied.
+If verbose=True is passed to any pyterrier function (except generic()), then a `TQDM <https://tqdm.github.io/>`_ progress bar 
+will be shown as the transformer is applied.
 
 .. automodule:: pyterrier.apply
     :members:

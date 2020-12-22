@@ -17,9 +17,9 @@ def is_transformer(v):
     return False
 
 def get_transformer(v):
-    ''' 
+    """ 
         Used to coerce functions, lambdas etc into transformers 
-    '''
+    """
 
     if isinstance(v, Wildcard):
         # get out of jail for matchpy
@@ -108,28 +108,31 @@ class Scalar(Symbol):
         self.value = value
 
 class TransformerBase:
-    '''
+    """
         Base class for all transformers. Implements the various operators >> + * | & 
         as well as the compile() for rewriting complex pipelines into more simples ones.
-    '''
+    """
 
     def transform(self, topics_or_res):
-        '''
+        """
             Abstract method for all transformations. Typically takes as input a Pandas
             DataFrame, and also returns one.
-        '''
+        """
         pass
 
     def compile(self):
-        '''
+        """
             Rewrites this pipeline by applying of the Matchpy rules in rewrite_rules.
-        '''
+        """
         if not rewrites_setup:
             setup_rewrites()
         print("Applying %d rules" % len(rewrite_rules))
         return replace_all(self, rewrite_rules)
 
     def __call__(self, *args, **kwargs):
+        """
+            Sets up a default method for every transformer, which is aliased to transform(). 
+        """
         return self.transform(*args, **kwargs)
 
     def __rshift__(self, right):
@@ -170,6 +173,11 @@ class TransformerBase:
         return ChestCacheTransformer(self)
 
     def transform_gen(self, input, batch_size=1):
+        """
+            Method for executing a transformer pipeline on smaller batches of queries.
+            The input dataframe is grouped into batches of batch_size queries, and a generator
+            returned, such that transform() is only executed for a smaller batch at a time. 
+        """
         docno_provided = "docno" in input.columns
         docid_provided = "docid" in input.columns
         
@@ -193,13 +201,24 @@ class TransformerBase:
 
     
 class EstimatorBase(TransformerBase):
-    '''
+    """
         This is a base class for things that can be fitted.
-    '''
+    """
     def fit(self, topics_or_res_tr, qrels_tr, topics_or_res_va, qrels_va):
+        """
+            Method for training the transformer.
+            Arguments:
+            - topics_or_res_tr(DataFrame): training topics (probably with documents)
+            - qrels_tr(DataFrame): training qrels
+            - topics_or_res_va(DataFrame): validation topics (probably with documents)
+            - qrels_va(DataFrame): validation qrels
+        """
         pass
 
 class IdentityTransformer(TransformerBase, Operation):
+    """
+        A transformer that returns exactly the same as its input.
+    """
     arity = Arity.nullary
 
     def __init__(self, *args, **kwargs):
@@ -209,12 +228,12 @@ class IdentityTransformer(TransformerBase, Operation):
         return topics
 
 class SourceTransformer(TransformerBase, Operation):
-    '''
+    """
     A Transformer that can be used when results have been saved in a dataframe.
     It will select results on qid.
     If a query column is in the dataframe passed in the constructor, this will override any query
     column in the topics dataframe passed to the transform() method.
-    '''
+    """
     arity = Arity.nullary
 
     def __init__(self, rtr, **kwargs):
@@ -233,9 +252,11 @@ class SourceTransformer(TransformerBase, Operation):
         rtr = topics[columns].merge(self.df, on="qid")
         return rtr
 
-# this class is useful for testing. it returns a copy of the same
-# dataframe each time transform is called
 class UniformTransformer(TransformerBase, Operation):
+    """
+        A transformer that returns the same dataframe every time transform()
+        is called. This class is useful for testing. 
+    """
     arity = Arity.nullary
 
     def __init__(self, rtr, **kwargs):
@@ -248,6 +269,9 @@ class UniformTransformer(TransformerBase, Operation):
         return rtr
 
 class BinaryTransformerBase(TransformerBase,Operation):
+    """
+        A base class for all operator transformers that can combine the input of exactly 2 transformers. 
+    """
     arity = Arity.binary
 
     def __init__(self, operands, **kwargs):
@@ -257,6 +281,9 @@ class BinaryTransformerBase(TransformerBase,Operation):
         self.right = operands[1]
 
 class NAryTransformerBase(TransformerBase,Operation):
+    """
+        A base class for all operator transformers that can combine the input of 2 or more transformers. 
+    """
     arity = Arity.polyadic
 
     def __init__(self, operands, **kwargs):
@@ -265,26 +292,26 @@ class NAryTransformerBase(TransformerBase,Operation):
         self.models = list( map(lambda x : get_transformer(x), models) )
 
     def __getitem__(self, number):
-        '''
+        """
             Allows access to the ith transformer.
-        '''
+        """
         return self.models[number]
 
     def __len__(self):
-        '''
+        """
             Returns the number of transformers in the operator.
-        '''
+        """
         return len(self.models)
 
 class SetUnionTransformer(BinaryTransformerBase):
-    '''      
+    """      
         This operator makes a retrieval set that includes documents that occur in the union (either) of both retrieval sets. 
         For instance, let left and right be pandas dataframes, both with the columns = [qid, query, docno, score], 
         left = [1, "text1", doc1, 0.42] and right = [1, "text1", doc2, 0.24]. 
         Then, left | right will be a dataframe with only the columns [qid, query, docno] and two rows = [[1, "text1", doc1], [1, "text1", doc2]].
                 
         In case of duplicated both containing (qid, docno), only the first occurrence will be used.
-    '''
+    """
     name = "Union"
 
     def transform(self, topics):
@@ -302,14 +329,14 @@ class SetUnionTransformer(BinaryTransformerBase):
         return rtr
 
 class SetIntersectionTransformer(BinaryTransformerBase):
-    '''
+    """
         This operator makes a retrieval set that only includes documents that occur in the intersection of both retrieval sets. 
         For instance, let left and right be pandas dataframes, both with the columns = [qid, query, docno, score], 
         left = [[1, "text1", doc1, 0.42]] (one row) and right = [[1, "text1", doc1, 0.24],[1, "text1", doc2, 0.24]] (two rows).
         Then, left & right will be a dataframe with only the columns [qid, query, docno] and one single row = [[1, "text1", doc1]].
                 
         For columns other than (qid, docno), only the left value will be used.
-    '''
+    """
     name = "Intersect"
     
     def transform(self, topics):
@@ -322,6 +349,10 @@ class SetIntersectionTransformer(BinaryTransformerBase):
         return rtr
 
 class CombSumTransformer(BinaryTransformerBase):
+    """
+        Adds the scores of documents from two different retrieval transformers.
+        Documents not present in one transformer are given a score of 0.
+    """
     name = "Sum"
 
     def transform(self, topics_and_res):
@@ -371,9 +402,9 @@ class ConcatenateTransformer(BinaryTransformerBase):
         return rtr
 
 class ScalarProductTransformer(BinaryTransformerBase):
-    '''
-    multiplies the retrieval score by a scalar
-    '''
+    """
+        Multiplies the retrieval score by a scalar
+    """
     arity = Arity.binary
     name = "ScalarProd"
 
@@ -388,9 +419,9 @@ class ScalarProductTransformer(BinaryTransformerBase):
         return res
 
 class RankCutoffTransformer(BinaryTransformerBase):
-    '''
-    applies a rank cutoff for each query
-    '''
+    """
+        Applies a rank cutoff for each query
+    """
     arity = Arity.binary
     name = "RankCutoff"
 
@@ -412,6 +443,9 @@ class RankCutoffTransformer(BinaryTransformerBase):
         return res
     
 class ApplyTransformerBase(TransformerBase):
+    """
+        A base class for Apply*Transformers
+    """
     def __init__(self, fn, *args, verbose=False, **kwargs):
         super().__init__(*args, **kwargs)
         self.fn = fn
@@ -550,6 +584,15 @@ class LambdaPipeline(ApplyGenericTransformer):
     pass
 
 class FeatureUnionPipeline(NAryTransformerBase):
+    """
+        Implements the feature union operator.
+
+        Example::
+            cands = pt.BatchRetrieve(index wmodel="BM25")
+            pl2f = pt.BatchRetrieve(index wmodel="PL2F")
+            bm25f = pt.BatchRetrieve(index wmodel="BM25F")
+            pipe = cands >> (pl2f ** bm25f)
+    """
     name = "FUnion"
 
     def transform(self, inputRes):
@@ -624,20 +667,20 @@ class FeatureUnionPipeline(NAryTransformerBase):
         return final_DF
 
 class ComposedPipeline(NAryTransformerBase):
-    name = "Compose"
     """ 
-    This class allows pipeline components to be chained together using the "then" operator.
+        This class allows pipeline components to be chained together using the "then" operator.
 
-    :Example:
+        :Example:
 
-    >>> comp = ComposedPipeline([ DPH_br, ApplyGenericTransformer(lambda res : res[res["rank"] < 2])])
-    >>> # OR
-    >>> # we can even use lambdas as transformers
-    >>> comp = ComposedPipeline([DPH_br, lambda res : res[res["rank"] < 2]])
-    >>> # this is equivelent
-    >>> # comp = DPH_br >> lambda res : res[res["rank"] < 2]]
+        >>> comp = ComposedPipeline([ DPH_br, ApplyGenericTransformer(lambda res : res[res["rank"] < 2])])
+        >>> # OR
+        >>> # we can even use lambdas as transformers
+        >>> comp = ComposedPipeline([DPH_br, lambda res : res[res["rank"] < 2]])
+        >>> # this is equivelent
+        >>> # comp = DPH_br >> lambda res : res[res["rank"] < 2]]
     """
-    
+    name = "Compose"
+
     def transform(self, topics):
         for m in self.models:
             topics = m.transform(topics)
