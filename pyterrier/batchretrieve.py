@@ -337,7 +337,7 @@ class TextScorer(TextIndexProcessor):
 
         Example::
 
-            df = pt.DataFrame(
+            df = pd.DataFrame(
                 [
                     ["q1", "chemical reactions", "d1", "professor protor poured the chemicals"],
                     ["q1", "chemical reactions", "d2", "chemical brothers turned up the beats"],
