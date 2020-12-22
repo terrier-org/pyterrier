@@ -105,10 +105,10 @@ class Indexer:
         Init method
 
         Args:
-            index_path (str): Directory to store index
-            blocks (bool): Create indexer with blocks if true, else without blocks
-            overwrite (bool): If index already present at `index_path`, True would overwrite it, False throws an Exception
-            verbose (bool): Provide progess bars if possible
+            index_path (str): Directory to store index. Ignored for IndexingType.MEMORY.
+            blocks (bool): Create indexer with blocks if true, else without blocks. Default is False.
+            overwrite (bool): If index already present at `index_path`, True would overwrite it, False throws an Exception. Default is False.
+            verbose (bool): Provide progess bars if possible. Default is False.
             type (IndexingType): the specific indexing procedure to use. Default is IndexingType.CLASSIC.
         """
         if StringReader is None:
@@ -485,11 +485,11 @@ class TRECCollectionIndexer(Indexer):
         Init method
 
         Args:
-            index_path (str): Directory to store index
-            blocks (bool): Create indexer with blocks if true, else without blocks
-            overwrite (bool): If index already present at `index_path`, True would overwrite it, False throws an Exception
+            index_path (str): Directory to store index. Ignored for IndexingType.MEMORY.
+            blocks (bool): Create indexer with blocks if true, else without blocks. Default is False.
+            overwrite (bool): If index already present at `index_path`, True would overwrite it, False throws an Exception. Default is False.
             type (IndexingType): the specific indexing procedure to use. Default is IndexingType.CLASSIC.
-            collection (Class name, or Class instance, or one of "trec", "trecweb", "warc")
+            collection (Class name, or Class instance, or one of "trec", "trecweb", "warc"). Default is "trec".
         """
         super().__init__(index_path, blocks=blocks, overwrite=overwrite, type=type)
         if isinstance(collection, str):
