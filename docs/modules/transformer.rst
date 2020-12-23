@@ -74,26 +74,6 @@ to use these directly but they are documented for completeness.
 | `~`    | cache            | ChestCacheTransformer     |
 +--------+------------------+---------------------------+
 
-.. autoclass:: pyterrier.transformer.IdentityTransformer
-.. autoclass:: pyterrier.transformer.SourceTransformer
-.. autoclass:: pyterrier.transformer.UniformTransformer
-.. autoclass:: pyterrier.transformer.BinaryTransformerBase
-.. autoclass:: pyterrier.transformer.NAryTransformerBase
-.. autoclass:: pyterrier.transformer.SetUnionTransformer
-.. autoclass:: pyterrier.transformer.SetIntersectionTransformer
-.. autoclass:: pyterrier.transformer.CombSumTransformer
-.. autoclass:: pyterrier.transformer.ConcatenateTransformer
-.. autoclass:: pyterrier.transformer.ScalarProductTransformer
-.. autoclass:: pyterrier.transformer.RankCutoffTransformer
-.. autoclass:: pyterrier.transformer.ApplyTransformerBase
-.. autoclass:: pyterrier.transformer.ApplyDocumentScoringTransformer
-.. autoclass:: pyterrier.transformer.ApplyDocFeatureTransformer
-.. autoclass:: pyterrier.transformer.ApplyQueryTransformer
-.. autoclass:: pyterrier.transformer.ApplyGenericTransformer
-.. autoclass:: pyterrier.transformer.FeatureUnionPipeline
-.. autoclass:: pyterrier.transformer.ComposedPipeline
-.. autoclass:: pyterrier.cache.ChestCacheTransformer
-
 
 Writing your own transformer
 ============================
