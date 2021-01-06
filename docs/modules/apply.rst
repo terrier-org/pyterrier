@@ -10,9 +10,16 @@ apply small functions (including Python lambdas) to allow to easily construct
 pipeline transformers to address common use cases.
 
 The table below lists the main classes of transformation in the PyTerrier data 
-model, as well as the appropriate apply function to use in each case. These vary
-in terms of the type of the input dataframe (queries or ranked documents), and
-the cardinality change in the dataframes by application of the transformer.
+model, as well as the appropriate apply method to use in each case. In general,
+if there is a one-to-one mapping between the input and the output, then the specific
+pt.apply methods should be used (i.e. `query()`, `doc_score()`, `.doc_features()`).
+If the cardinality of the dataframe changes through applying the transformer, 
+then `generic()` must be applied.
+
+Each apply method takes as input a function (e.g. a function name, or a lambda expression). 
+Objects that are passed to the function vary in terms of the type of the input dataframe 
+(queries or ranked documents), and also vary in terms of what should be returned by the 
+function.
 
 +-------+---------+-------------+------------------+---------------------------+----------------------+------------------+
 + Input | Output  | Cardinality | Example          | Example apply             | Input type           | Return type      |
@@ -28,12 +35,32 @@ the cardinality change in the dataframes by application of the transformer.
 |   Q   |  Q x D  |   1 to N    | Retrieval        | `pt.apply.generic()`      | entire dataframe     | entire dataframe |
 +-------+---------+-------------+------------------+---------------------------+----------------------+------------------+
 
-In each case, the result from calling a pyterrier.apply function is another PyTerrier transformer 
+In each case, the result from calling a pyterrier.apply method is another PyTerrier transformer 
 (i.e. extends TransformerBase), and which can be used for experimentation or combined with other 
 PyTerrier transformers through the standard PyTerrier operators.
 
-If verbose=True is passed to any pyterrier function (except generic()), then a `TQDM <https://tqdm.github.io/>`_ progress bar 
-will be shown as the transformer is applied.
+If `verbose=True` is passed to any pyterrier apply method (except `generic()`), then a `TQDM <https://tqdm.github.io/>`_ 
+progress bar will be shown as the transformer is applied.
+
+Example
+=======
+
+In the following, we create a document re-ranking transformer that increases the score of documents by 10% if their url attribute contains `"https:"`
+
+    >>> df = pd.DataFrame([["q1", "d1", "https://www.example.com", 1.0, 1]], columns=["qid", "docno", "url", "score", "rank"])
+    >>> df
+    qid docno                      url  score  rank
+    0  q1    d1  https://www.example.com    1.0     1
+    >>> 
+    >>> http_boost = pt.apply.doc_score(lambda row: row["score"] * 1.1 if "https:" in row["url"] else row["score"])
+    >>> http_boost(df)
+    qid docno                      url  score  rank
+    0  q1    d1  https://www.example.com    1.1     0
+
+Further examples are shown for each apply method below.
+
+Apply Methods
+=============
 
 .. automodule:: pyterrier.apply
     :members:

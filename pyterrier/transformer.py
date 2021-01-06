@@ -468,8 +468,7 @@ class ApplyDocumentScoringTransformer(ApplyTransformerBase):
             Arguments:
              - fn (Callable): Takes as input a panda Series for a row representing that document, and returns the new float doument score 
         """
-        super().__init__(*args, **kwargs)
-        self.fn = fn
+        super().__init__(fn, *args, **kwargs)
     
     def transform(self, inputRes):
         fn = self.fn
@@ -499,8 +498,7 @@ class ApplyDocFeatureTransformer(ApplyTransformerBase):
             Arguments:
              - fn (Callable): Takes as input a panda Series for a row representing that document, and returns a new numpy array representing the features of that document
         """
-        super().__init__(*args, **kwargs)
-        self.fn = fn
+        super().__init__(fn, *args, **kwargs)
 
     def transform(self, inputRes):
         fn = self.fn
