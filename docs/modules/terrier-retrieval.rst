@@ -9,10 +9,11 @@ structure, typically saved on disk.
 Typical usage::
 
     index = pt.IndexFactory.of("/path/to/data.properties")
+    tf_idf = pt.BatchRetrieve(index, wmodel="TF_IDF")
     bm25 = pt.BatchRetrieve(index, wmodel="BM25")
     pl2 = pt.BatchRetrieve(index, wmodel="PL2")
 
-    pt.Experiment([bm25, pl2], topic, qrels, eval_metrics=["map"])
+    pt.Experiment([tf_idf, bm25, pl2], topic, qrels, eval_metrics=["map"])
 
 As BatchRetrieve is a retrieval transformation, it takes as input dataframes with columns `["qid", "query"]`,
 and returns dataframes with columns `["qid", "query", "docno", "score", "rank"]`.
