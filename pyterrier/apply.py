@@ -106,4 +106,4 @@ def generic(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> Tra
             pipe = pt.BatchRetrieve(index) >> pt.apply.generic(lambda res : res[res["rank"] < 2])
 
     """
-    return ApplyDocFeatureTransformer(fn, *args, **kwargs)
+    return ApplyGenericTransformer(fn, *args, **kwargs)
