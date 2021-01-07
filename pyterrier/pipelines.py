@@ -260,7 +260,7 @@ class XGBoostLTR_pipeline(LTR_pipeline):
         test_DF = topics_and_docs_Test
         # xgb is more sensitive about the type of the values.
         test_DF["score"] = self.LTR.predict(np.stack(test_DF["features"].values))
-        return test_DF
+        return add_ranks(test_DF)
 
     def fit(self, topics_and_results_Train, qrelsTrain, topics_and_results_Valid, qrelsValid):
         """
