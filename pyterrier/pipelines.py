@@ -241,6 +241,7 @@ class LTR_pipeline(EstimatorBase):
         Args:
             topicsTest(DataFrame): A dataframe with the test topics.
         """
+        test_DF = test_DF.copy()
         test_DF["score"] = self.LTR.predict(np.stack(test_DF["features"].values))
         return add_ranks(test_DF)
 
