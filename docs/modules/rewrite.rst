@@ -1,10 +1,11 @@
 Query Rewriting
-===============
+---------------
 
 Query rewriting refers to changing the formulation of the query in order to improve the effectiveness of the
 search ranking. PyTerrier supplies a number of query rewriting transformers designed to work with BatchRetrieve.
 
 Firstly, we differentiate between two forms of query rewriting:
+
  - `Q -> Q`: this rewrites the query, for instance by adding/removing extra query terms. Examples might 
    be a WordNet- or Word2Vec-based QE; The input dataframes contain only `["qid", "docno"]` columns and
    similarly, the output dataframes contain only `["qid", "docno"]` columns.
@@ -18,6 +19,7 @@ SequentialDependence
 This class implements Metzler and Croft's sequential dependence model, designed to boost the scores of
 documents where the query terms occur in close proximity. Application of this transformer rewrites 
 each input query such that:
+
  - pairs of adjacent query terms are added as `#1` and `#uw8` complex query terms, with a low weight.
  - the full query is added as `#uw12` complex query term, with a low weight.
  - all terms are weighted by a proximity model, either Dirichlet LM or pBiL2.
@@ -66,6 +68,7 @@ which will result in identical retrieval effectiveness::
     pipelineQE = pt.BatchRetrieve(index, wmodel="DPH", controls={"qemodel" : "Bo1", "qe" : "on"})
 
 However, using `pt.rewrite.Bo1QueryExpansion` is preferable as:
+
  - the semantics of retrieve >> rewrite >> retrieve are clearly visible.
  - the complex control configuration of Terrier need not be learned. 
  - the rewritten query is visible outside, and not hidden inside Terrier.

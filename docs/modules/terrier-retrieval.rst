@@ -1,5 +1,5 @@
 Terrier Retrieval
-=================
+-----------------
 
 BatchRetrieve is one of the most commonly used PyTerrier objects. It represents a retrieval transformation, 
 in which queries are mapped to retrieved documents. BatchRetrieve uses a pre-existing Terrier index data
@@ -9,10 +9,11 @@ structure, typically saved on disk.
 Typical usage::
 
     index = pt.IndexFactory.of("/path/to/data.properties")
+    tf_idf = pt.BatchRetrieve(index, wmodel="TF_IDF")
     bm25 = pt.BatchRetrieve(index, wmodel="BM25")
     pl2 = pt.BatchRetrieve(index, wmodel="PL2")
 
-    pt.Experiment([bm25, pl2], topic, qrels, eval_metrics=["map"])
+    pt.Experiment([tf_idf, bm25, pl2], topic, qrels, eval_metrics=["map"])
 
 As BatchRetrieve is a retrieval transformation, it takes as input dataframes with columns `["qid", "query"]`,
 and returns dataframes with columns `["qid", "query", "docno", "score", "rank"]`.
@@ -82,6 +83,7 @@ Index-Like Objects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When working with Terrier indices, BatchRetrieve allows can make use of:
+
  - a string representing an index, such as "/path/to/data.properties"
  - a Terrier `IndexRef <http://terrier.org/docs/current/javadoc/org/terrier/querying/IndexRef.html>`_ object, constructed from a string, but which may also hold a reference to the existing index.
  - a Terrier `Index <http://terrier.org/docs/current/javadoc/org/terrier/structures/Index.html>`_ object - the actual loaded index.

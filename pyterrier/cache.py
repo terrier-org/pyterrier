@@ -62,6 +62,36 @@ def clear_cache():
     shutil.rmtree(CACHE_DIR)
 
 class ChestCacheTransformer(TransformerBase):
+    """
+        A transformer that cache the results of the consituent (inner) transformer. 
+        This is instantiated using the `~` operator on any transformer.
+
+        Caching is unqiue based on the configuration of the pipeline, as read by executing
+        retr() on the pipeline. Caching lookup is based on the qid, so any change in query
+        _formulation_ will not be reflected in a cache's results.
+
+        Example Usage::
+
+            dataset = pt.get_dataset("trec-robust-2004")
+            # use for first pass and 2nd pass
+            BM25 = pt.BatchRetrieve(index, wmodel="BM25")
+
+            # used for query expansion
+            RM3 = pt.rewrite.RM3(index)
+            pt.Experiment([
+                    ~BM25,
+                    (~BM25) >> RM3 >> BM25
+                ],
+                dataset.get_topics(),
+                dataset.get_qrels(),
+                eval_metrics=["map"]
+            )
+
+        In the above example, we use the `~` operator on the first pass retrieval using BM25, but not on the 2nd pass retrieval, 
+        as the query formulation will differ during the second pass.
+
+        Caching is not supported for re-ranking transformers.        
+    """
 
     def __init__(self, inner, **kwargs):
         super().__init__(**kwargs)

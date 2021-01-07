@@ -34,7 +34,7 @@ class Dataset():
 
     def get_corpus_location(self):
         """ 
-            Returns the location of the files to allow indexing the corpus. 
+            Returns the location of the files to allow indexing the corpus, i.e. it returns a list of filenames.
         """
         pass
 
@@ -183,7 +183,7 @@ class RemoteDataset(Dataset):
             return None
         if type(self.locations[component]) == type([]):
             return True
-        return self.locations[component].keys()
+        return list(self.locations[component].keys())
 
     def get_corpus(self, **kwargs):
         import pyterrier as pt

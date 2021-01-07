@@ -14,6 +14,7 @@ model = None
 pipelines = None
 rewrite = None
 transformer = None
+apply = None
 
 file_path = os.path.dirname(os.path.abspath(__file__))
 firstInit = False
@@ -49,7 +50,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
         tqdm: The `tqdm <https://tqdm.github.io/>`_ instance to use for progress bars within PyTerrier. Defaults to tqdm.tqdm. Available options are `'tqdm'`, `'auto'` or `'notebook'`.
 
    
-    **Locating the Terrier .jar file:** PyTerrier is not tied to a specific version fo Terrier and will automatically locate and download a recent Terrier .jar file. However, inevitably, some functionalities will require more recent Terrier versions. 
+    **Locating the Terrier .jar file:** PyTerrier is not tied to a specific version of Terrier and will automatically locate and download a recent Terrier .jar file. However, inevitably, some functionalities will require more recent Terrier versions. 
     
      * If set, PyTerrier uses the `version` init kwarg to determine the .jar file to look for.
      * If the `version` init kwarg is not set, Terrier will query MavenCentral to determine the latest Terrier release.
@@ -118,6 +119,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     global cache
     global index
     global io
+    global apply
     global model
     global pipelines
     global rewrite
@@ -126,6 +128,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     cache = importlib.import_module('.cache', package='pyterrier')
     index = importlib.import_module('.index', package='pyterrier') 
     io = importlib.import_module('.io', package='pyterrier')
+    apply = importlib.import_module('.apply', package='pyterrier')
     model = importlib.import_module('.model', package='pyterrier')
     pipelines = importlib.import_module('.pipelines', package='pyterrier') 
     rewrite = importlib.import_module('.rewrite', package='pyterrier')
@@ -170,7 +173,15 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
 
 def set_tqdm(type):
     """
-        Set the tqdm type that Pyterrier will use internally.
+        Set the tqdm progress bar type that Pyterrier will use internally.
+        Many PyTerrier transformations can be expensive to apply in some settings - users can
+        view progress by using the verbose=True kwarg to many classes, such as BatchRetrieve.
+
+        The `tqdm <https://tqdm.github.io/>`_ progress bar can be made prettier when using appropriately configured Jupyter notebook setups.
+        Allowable options for type are:
+         - 'tqdm': corresponds to the standard text progresss bar, ala `from tqdm import tqdm`.
+         - 'notebook': corresponds to a notebook progress bar, ala `from tqdm.notebook import tqdm`
+         - 'auto': allows tqdm to decide on the progress bar type, ala `from tqdm.auto import tqdm`. Note that this works fine on Google Colab, but not on Jupyter unless the `ipywidgets have been installed <https://ipywidgets.readthedocs.io/en/stable/user_install.html>`_.
     """
     global tqdm
     
@@ -185,6 +196,7 @@ def set_tqdm(type):
         tqdm = bartype
     else:
         raise ValueError("Unknown tqdm type %s" % str(type))
+    tqdm.pandas()
     
 
 def started():
@@ -224,6 +236,11 @@ def redirect_stdouterr():
 def logging(level):
     """
         Set the logging level. Equivalent to setting the logging= parameter to init().
+        The following string values are allowed, corresponding to Java logging levels:
+         - `'ERROR'`: only show error messages
+         - `'WARN'`: only show warnings and error messages (default)
+         - `'INFO'`: show information, warnings and error messages
+         - `'DEBUG'`: show debugging, information, warnings and error messages
     """
     from . import bootstrap
     bootstrap.logging(level)
@@ -233,6 +250,13 @@ def set_property(k, v):
         Allows to set a property in Terrier's global properties configuration. Example::
 
             pt.set_property("termpipelines", "")
+
+        While Terrier has a variety of properties -- as discussed in its 
+        `indexing <https://github.com/terrier-org/terrier-core/blob/5.x/doc/configure_indexing.md>`_ 
+        and `retrieval <https://github.com/terrier-org/terrier-core/blob/5.x/doc/configure_retrieval.md>`_ 
+        configuration guides -- in PyTerrier, we aim to expose Terrier configuration through appropriate 
+        methods or arguments. So this method should be seen as a safety-valve - a way to override the 
+        Terrier configuration not explicitly supported by PyTerrier.
     """
     properties[k] = v
     ApplicationSetup.bootstrapInitialisation(properties)

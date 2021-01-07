@@ -6,7 +6,7 @@
 
 
 ```python
-pt.rewrite.SDM() >> pt.BatchRetrieve(indexref, controls={"wmodel":"BM25"})
+pt.rewrite.SDM() >> pt.BatchRetrieve(indexref, wmodel="BM25")
 ```
 
 Note that the SDM() rewriter has a number of constructor parameters:
@@ -16,9 +16,9 @@ Note that the SDM() rewriter has a number of constructor parameters:
 
 ### Divergence from Randomness Query Expansion
 
-A simple QE run can be achieved using
+A simple QE transformer can be achieved using
 ```python
-pt.BatchRetrieve(indexref, wmodel="BM25", control={"qe" : "on"})
+pt.BatchRetrieve(indexref, wmodel="BM25", controls={"qe" : "on"})
 ```
 
 As this is pseudo-relevance feedback in nature, it identifies a set of documents, extracts informative term in the top-ranked documents, and re-exectutes the query.
@@ -87,7 +87,7 @@ Having shown some of the main formulations, lets show how to build different for
 ```python
 bm25_cands = pt.BatchRetrieve(indexref, wmodel="BM25")
 dph_cands = pt.BatchRetrieve(indexref, wmodel="DPH")
-all_cands = bm25_cands & dph_cands
+all_cands = bm25_cands | dph_cands
 
 all_features = all_cands >> (  
     pt.BatchRetrieve(indexref, wmodel="BM25F") **
