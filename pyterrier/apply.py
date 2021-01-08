@@ -81,7 +81,7 @@ def doc_features(fn : Callable[..., NDArray[Any]], *args, **kwargs) -> Transform
                 f2 = len(content.split(" "))
                 return np.array([f1, f2])
 
-            p = bt.BatchRetrieve(index, wmodel="BM25") >> 
+            p = pt.BatchRetrieve(index, wmodel="BM25") >> 
                 pt.apply.doc_features(_features )
 
     """
