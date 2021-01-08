@@ -42,8 +42,10 @@ def _color_cols(data, col_type,
 
 def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=False, dataframe=True, baseline=None, highlight=None):
     """
-    Cornac style experiment. Combines retrieval and evaluation.
-    Allows easy comparison of multiple retrieval systems with different properties and controls.
+    Allows easy comparison of multiple retrieval transformer pipelines using a common set of topics, and
+    identical evaluation measures computed using the same qrels. In essence, each transformer is applied on 
+    the provided set of topics. Then the named trec_eval evaluation measures are computed 
+    (using `pt.Utils.evaluate()`) for each system.
 
     Args:
         retr_systems(list): A list of transformers to evaluate. If you already have the results for one 

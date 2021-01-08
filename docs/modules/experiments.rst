@@ -117,3 +117,6 @@ Often used measures, including the name that must be used, are:
  - Number of relevant documents retrieved (`num_rel_ret`) - not averaged
  - Interpolated recall precision curves (`iprec_at_recall`). This is family of measures, so requesting this will produce output measurements for `iprec_at_recall_0.00`, `iprec_at_recall_0.10`, etc.
  - Precision at rank cutoff (e.g. `P_5`)
+ - Mean response time (`mrt`) will report the average number of milliseconds to conduct a query (this is calculated by pt.Experiment() directly, not pytrec_eval).
+
+See also a `list of common TREC eval measures <http://www.rafaelglater.com/en/post/learn-how-to-use-trec_eval-to-evaluate-your-information-retrieval-system>`_.
