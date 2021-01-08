@@ -545,7 +545,7 @@ class ApplyQueryTransformer(ApplyTransformerBase):
             outputRes["query"] = outputRes.apply(fn, axis=1)
         return outputRes
 
-class ApplyGenericTransformer(TransformerBase):
+class ApplyGenericTransformer(ApplyTransformerBase):
     """
     Allows arbitrary pipelines components to be written as functions. The function should take as input
     a dataframe, and return a new dataframe. The function should abide by the main contracual obligations,
