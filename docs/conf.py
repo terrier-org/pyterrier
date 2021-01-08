@@ -18,14 +18,13 @@ sys.path.insert(0, os.path.abspath('..'))
 sys.path.append('.')
 import sphinx_rtd_theme
 
-
-
 # -- Dataset table listing -----------------------------------------------------
 import pyterrier as pt
 import textwrap
 pt.init()
 
 from extras import generate_includes
+generate_includes.setup()
 generate_includes.dataset_include()
 generate_includes.experiment_includes()
 
