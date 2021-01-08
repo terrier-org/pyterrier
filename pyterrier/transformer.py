@@ -119,10 +119,61 @@ class TransformerBase:
             DataFrame, and also returns one.
         """
         pass
+        
+    def transform_gen(self, input, batch_size=1):
+        """
+            Method for executing a transformer pipeline on smaller batches of queries.
+            The input dataframe is grouped into batches of batch_size queries, and a generator
+            returned, such that transform() is only executed for a smaller batch at a time. 
+        """
+        docno_provided = "docno" in input.columns
+        docid_provided = "docid" in input.columns
+        
+        if docno_provided or docid_provided:
+            queries = input[["qid"]].drop_duplicates()
+        else:
+            queries = input
+        batch=[]      
+        for query in queries.itertuples():
+            if len(batch) == batch_size:
+                batch_topics = pd.concat(batch)
+                batch=[]
+                yield self.transform(batch_topics)
+            batch.append(input[input["qid"] == query.qid])
+        if len(batch) > 0:
+            batch_topics = pd.concat(batch)
+            yield self.transform(batch_topics)
+
+    def search(self, query : str, qid : str = "1"):
+        """
+            Method for executing a transformer (pipeline) for a single query. 
+            Returns a dataframe with the results for the specified query. This
+            is a utility method, and most uses are expected to use the transform()
+            method passing a dataframe.
+
+            Arguments:
+             - query(str): String form of the query to run
+             - qid(str): the query id to associate to this request. defaults to 1.
+
+            Example::
+
+                bm25 = pt.BatchRetrieve(index, wmodel="BM25")
+                res = bm25.search("example query")
+
+                # is equivalent to
+                queryDf = pd.DataFrame([["1", "example query"]], columns=["qid", "query"])
+                res = bm25.transform(queryDf)
+            
+            
+        """
+        import pandas as pd
+        queryDf = pd.DataFrame([[qid, query]], columns=["qid", "query"])
+        return self.transform(queryDf)
 
     def compile(self):
         """
-            Rewrites this pipeline by applying of the Matchpy rules in rewrite_rules.
+            Rewrites this pipeline by applying of the Matchpy rules in rewrite_rules. Pipeline
+            optimisation is discussed in the `ICTIR 2020 paper on PyTerrier <https://arxiv.org/abs/2007.14271>`_.
         """
         if not rewrites_setup:
             setup_rewrites()
@@ -171,31 +222,6 @@ class TransformerBase:
     def __invert__(self):
         from .cache import ChestCacheTransformer
         return ChestCacheTransformer(self)
-
-    def transform_gen(self, input, batch_size=1):
-        """
-            Method for executing a transformer pipeline on smaller batches of queries.
-            The input dataframe is grouped into batches of batch_size queries, and a generator
-            returned, such that transform() is only executed for a smaller batch at a time. 
-        """
-        docno_provided = "docno" in input.columns
-        docid_provided = "docid" in input.columns
-        
-        if docno_provided or docid_provided:
-            queries = input[["qid"]].drop_duplicates()
-        else:
-            queries = input
-        batch=[]      
-        for query in queries.itertuples():
-            if len(batch) == batch_size:
-                batch_topics = pd.concat(batch)
-                batch=[]
-                yield self.transform(batch_topics)
-            batch.append(input[input["qid"] == query.qid])
-        if len(batch) > 0:
-            batch_topics = pd.concat(batch)
-            yield self.transform(batch_topics)
-        
 
         
 

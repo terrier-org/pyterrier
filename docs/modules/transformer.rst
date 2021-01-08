@@ -35,8 +35,8 @@ This class is the base class for all transformers.
 .. autoclass:: pyterrier.transformer.TransformerBase
     :members:
 
-By extending TransformerBase, all transformer implementations gain the necessary "dunder" methods (e.g. `__rshift__()`)
-to support the operators. 
+Moreover, by extending TransformerBase, all transformer implementations gain the necessary "dunder" methods (e.g. `__rshift__()`)
+to support the transformer operators (`>>`, `+` etc). 
 
 EstimatorBase
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
