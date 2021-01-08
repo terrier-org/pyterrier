@@ -108,5 +108,5 @@ Often used measures, including the name that must be used, are:
  - Number of retrieved documents (`num_ret`) - not averaged
  - Number of relevant documents (`num_rel`) - not averaged
  - Number of relevant documents retrieved (`num_rel_ret`) - not averaged
- - Interpolated recall precision curves (`iprec_at_recall`). This is family of measures, so requesting this will produce `iprec_at_recall_0.00` `iprec_at_recall_0.10`, etc.
+ - Interpolated recall precision curves (`iprec_at_recall`). This is family of measures, so requesting this will produce `iprec_at_recall_0.00`, `iprec_at_recall_0.10`, etc.
  - Precision at rank cutoff (e.g. `P_5`)
