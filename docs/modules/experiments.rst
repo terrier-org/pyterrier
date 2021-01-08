@@ -7,6 +7,9 @@ by the `pytrec_eval <https://github.com/cvangysel/pytrec_eval>`_ tool.
 
 The main way to achieve this is using `pt.Experiment()`.
 
+API
+========
+
 .. autofunction:: pyterrier.Experiment()
 
 
@@ -72,8 +75,12 @@ row and the baseline row. NB: For the baseline, these values are NaN.
 
 .. include:: ../_includes/experiment-sig.rst
 
-For this test collection, there is no significant different in MAP or mean reciprocal rank 
-between TF_IDF and BM25 weighting models.
+For this test collection, between the TF_IDF and BM25 weighting models, there is no 
+significant difference observed for in MAP, but there is for mean reciprocal rank (*p<0.05*). Indeed,
+while BM25 improves average precision for 46 queries over TF_IDF, it degrades it for 45; on the 
+other hand, the rank of the first relevant document is improved for 16 queries by BM25 over
+TD_IDF.
+
 
 Per-query Effectiveness
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -108,5 +115,5 @@ Often used measures, including the name that must be used, are:
  - Number of retrieved documents (`num_ret`) - not averaged
  - Number of relevant documents (`num_rel`) - not averaged
  - Number of relevant documents retrieved (`num_rel_ret`) - not averaged
- - Interpolated recall precision curves (`iprec_at_recall`). This is family of measures, so requesting this will produce `iprec_at_recall_0.00`, `iprec_at_recall_0.10`, etc.
+ - Interpolated recall precision curves (`iprec_at_recall`). This is family of measures, so requesting this will produce output measurements for `iprec_at_recall_0.00`, `iprec_at_recall_0.10`, etc.
  - Precision at rank cutoff (e.g. `P_5`)
