@@ -47,7 +47,7 @@ Each row represents one system. We can manually set the names of the systems, us
         names=["TF_IDF", "BM25"]
     )
 
-This produces tables that are more easily interpretable.
+This produces dataframes that are more easily interpretable.
 
 .. include:: ../_includes/experiment-names.rst
 
@@ -89,7 +89,7 @@ Finally, if necessary, we can request per-query performances using the `perquery
         perquery=True
     )
 
-This provides a table where each row is the performance of a given system for a give query on a particular evaluation measure.
+This provides a dataframe where each row is the performance of a given system for a give query on a particular evaluation measure.
 
 .. include:: ../_includes/experiment-perq.rst
 
