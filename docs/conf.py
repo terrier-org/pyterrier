@@ -15,6 +15,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
+sys.path.append('.')
 import sphinx_rtd_theme
 
 
@@ -23,32 +24,10 @@ import sphinx_rtd_theme
 import pyterrier as pt
 import textwrap
 pt.init()
-df = pt.list_datasets()
-def _wrap(text, width):
-    return text
-    #return '\\\n_'.join(textwrap.wrap(text, width=width))
 
-def _get_text(row, name, width):
-    value = row.get(name)
-    if type(value) != list:
-        return value
-    if len(value) == 1:
-        return value
-    return '[' + _wrap(', '.join(value), width=width) + ']'
-
-def fix_width(df, name, width=20):
-    df[name] = df.apply(lambda row: _get_text(row, name, width), axis=1)
-    return df
-df = fix_width(df, "qrels")
-df = fix_width(df, "topics")
-df = fix_width(df, "corpus")
-df = df[["dataset", "corpus", "index", "topics", "qrels"]]
-table = df.set_index('dataset').to_markdown(tablefmt="rst")
-
-if not os.path.exists("_includes"):
-    os.makedirs("_includes")
-with open("_includes/datasets-list-inc.rst", "wt") as f:
-    f.write(table)
+from extras import generate_includes
+generate_includes.dataset_include()
+generate_includes.experiment_includes()
 
 # -- Project information -----------------------------------------------------
 import datetime

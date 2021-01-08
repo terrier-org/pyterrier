@@ -46,7 +46,9 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
     Allows easy comparison of multiple retrieval systems with different properties and controls.
 
     Args:
-        retr_systems(list): A list of BatchRetrieve objects to compare
+        retr_systems(list): A list of transformers to evaluate. If you already have the results for 
+        one (or more) of your systems, a results dataframe can also be used here. Results produced 
+        by the transformers must have "qid", "docno", "score", "rank" columns.
         topics: Either a path to a topics file or a pandas.Dataframe with columns=['qid', 'query']
         qrels: Either a path to a qrels file or a pandas.Dataframe with columns=['qid','docno', 'label']   
         eval_metrics(list): Which evaluation metrics to use. E.g. ['map']

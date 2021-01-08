@@ -19,6 +19,7 @@ Welcome to PyTerrier's documentation!
    modules/io
    modules/terrier-indexing   
    modules/terrier-retrieval
+   modules/experiments
    modules/rewrite
    modules/transformer
    modules/apply
