@@ -213,6 +213,20 @@ class RemoteDataset(Dataset):
     def __repr__(self):
         return "RemoteDataset for %s, with %s" % (self.name, str(list(self.locations.keys())))
 
+
+ANTIQUE_FILES = {
+    "topics" : {
+        "train" : ("antique-train-queries.txt", "http://ciir.cs.umass.edu/downloads/Antique/antique-train-queries.txt", "singleline"),
+        "test" : ("antique-test-queries.txt", "http://ciir.cs.umass.edu/downloads/Antique/antique-test-queries.txt", "singleline"),
+    },
+    "qrels" : {
+        "train" : ("antique-train.qrel", "http://ciir.cs.umass.edu/downloads/Antique/antique-train.qrel", "singleline"),
+        "test" : ("antique-test.qrel", "http://ciir.cs.umass.edu/downloads/Antique/antique-test.qrel", "singleline"),
+    },
+    "corpus" : 
+        [("antique-collection.txt", "http://ciir.cs.umass.edu/downloads/Antique/antique-collection.txt")],
+}
+
 TREC_COVID_FILES = {
     "topics" : {
         "round1" : ("topics-rnd1.xml", "https://ir.nist.gov/covidSubmit/data/topics-rnd1.xml", "trecxml"),
@@ -483,7 +497,11 @@ VASWANI_FILES = {
 }
 
 DATASET_MAP = {
+    # used for UGlasgow teaching
     "50pct" : RemoteDataset("50pct", FIFTY_PCT_FILES),
+    # umass antique corpus - see http://ciir.cs.umass.edu/downloads/Antique/
+    "antique" : RemoteDataset("antique", ANTIQUE_FILES),
+    # generated from http://ir.dcs.gla.ac.uk/resources/test_collections/npl/
     "vaswani": RemoteDataset("vaswani", VASWANI_FILES),
     "trec-deep-learning-docs" : RemoteDataset("trec-deep-learning-docs", TREC_DEEPLEARNING_DOCS_MSMARCO_FILES),
     "trec-deep-learning-passages" : RemoteDataset("trec-deep-learning-passages", TREC_DEEPLEARNING_PASSAGE_MSMARCO_FILES),
@@ -498,7 +516,7 @@ DATASET_MAP = {
     "trec-wt-2002" : RemoteDataset("trec-wt-2002", TREC_WT_2002_FILES),
     "trec-wt-2003" : RemoteDataset("trec-wt-2003", TREC_WT_2002_FILES),
     "trec-wt-2004" : RemoteDataset("trec-wt-2004", TREC_WT_2004_FILES),
-    #.clueweb09
+    #clueweb09
     "trec-wt-2009" : RemoteDataset("trec-wt-2009", TREC_WT_2009_FILES),
     "trec-wt-2010" : RemoteDataset("trec-wt-2010", TREC_WT_2010_FILES),
     "trec-wt-2011" : RemoteDataset("trec-wt-2011", TREC_WT_2011_FILES),
