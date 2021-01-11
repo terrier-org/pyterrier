@@ -527,7 +527,7 @@ VASWANI_FILES = {
     "qrels":
         [("qrels", VASWANI_CORPUS_BASE + "qrels")],
     "index":
-        [(filename, VASWANI_INDEX_BASE + filename) for filename in STANDARD_TERRIER_INDEX_FILES]
+        [(filename, VASWANI_INDEX_BASE + filename) for filename in STANDARD_TERRIER_INDEX_FILES + ["data.meta-0.fsomapfile"]]
 }
 
 DATASET_MAP = {
