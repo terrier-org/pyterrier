@@ -24,6 +24,7 @@ Welcome to PyTerrier's documentation!
    modules/transformer
    modules/apply
    modules/anserini
+   modules/ltr
 
 .. toctree::
    :maxdepth: 1

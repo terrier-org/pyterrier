@@ -34,11 +34,6 @@ BatchRetrieve
 .. autoclass:: pyterrier.BatchRetrieve
     :members: transform 
 
-FeaturesBatchRetrieve
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autoclass:: pyterrier.FeaturesBatchRetrieve
-    :members: transform 
 
 
 Terrier Configuration

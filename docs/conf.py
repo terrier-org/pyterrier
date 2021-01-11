@@ -24,9 +24,10 @@ import textwrap
 pt.init()
 
 from extras import generate_includes
-generate_includes.setup()
-generate_includes.dataset_include()
-generate_includes.experiment_includes()
+if not "QUICK" in os.environ:
+    generate_includes.setup()
+    generate_includes.dataset_include()
+    generate_includes.experiment_includes()
 
 # -- Project information -----------------------------------------------------
 import datetime

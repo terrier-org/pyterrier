@@ -477,6 +477,21 @@ class ApplyTransformerBase(TransformerBase):
         self.fn = fn
         self.verbose = verbose
 
+class ApplyForEachQuery(ApplyTransformerBase):
+    def __init__(self, fn,  *args, add_ranks=True, **kwargs):
+        """
+            Arguments:
+             - fn (Callable): Takes as input a panda Series for a row representing that document, and returns the new float doument score 
+        """
+        super().__init__(fn, *args, **kwargs)
+        self.add_ranks = add_ranks
+    
+    def transform(self, res):
+        rtr = pd.concat(self.fn(group) for qid, group in res.groupby("qid"))
+        if self.add_ranks:
+            rtr = add_ranks(rtr)
+        return rtr
+
 class ApplyDocumentScoringTransformer(ApplyTransformerBase):
     """
         Implements a transformer that can apply a function to perform document scoring. The supplied function 

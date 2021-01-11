@@ -5,6 +5,7 @@ import numpy as np
 from .utils import Utils
 from .transformer import TransformerBase, EstimatorBase
 from .model import add_ranks
+import deprecation
 
 def _bold_cols(data, col_type):
     if not data.name in col_type:
@@ -206,96 +207,17 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
         return df 
     return evalDict
 
+from .ltr import RegressionTransformer, LTRTransformer
+@deprecation.deprecated(deprecated_in="0.3.0",
+                        details="Please use pt.ltr.apply_learned_model(learner, form='regression')")
+class LTR_pipeline(RegressionTransformer):
+    pass
 
-class LTR_pipeline(EstimatorBase):
-    """
-    This class simplifies the use of Scikit-learn's techniques for learning-to-rank.
-    """
-    def __init__(self, LTR, *args, fit_kwargs={}, **kwargs):
-        """
-        Init method
+@deprecation.deprecated(deprecated_in="0.3.0",
+                        details="Please use pt.ltr.apply_learned_model(learner, form='ltr')")
+class XGBoostLTR_pipeline(LTRTransformer):
+    pass
 
-        Args:
-            LTR: The model which to use for learning-to-rank. Must have a fit() and predict() methods.
-            fit_kwargs: A dictionary containing additional arguments that can be passed to LTR's fit() method.  
-        """
-        self.fit_kwargs = fit_kwargs
-        super().__init__(*args, **kwargs)
-        self.LTR = LTR
-
-    def fit(self, topics_and_results_Train, qrelsTrain, topics_and_results_Valid=None, qrelsValid=None):
-        """
-        Trains the model with the given topics.
-
-        Args:
-            topicsTrain(DataFrame): A dataframe with the topics to train the model
-        """
-        if len(topics_and_results_Train) == 0:
-            raise ValueError("No topics to fit to")
-        if 'features' not in topics_and_results_Train.columns:
-            raise ValueError("No features column retrieved")
-        train_DF = topics_and_results_Train.merge(qrelsTrain, on=['qid', 'docno'], how='left').fillna(0)
-        kwargs = self.fit_kwargs
-        self.LTR.fit(np.stack(train_DF["features"].values), train_DF["label"].values, **kwargs)
-        return self
-
-    def transform(self, test_DF):
-        """
-        Predicts the scores for the given topics.
-
-        Args:
-            topicsTest(DataFrame): A dataframe with the test topics.
-        """
-        test_DF = test_DF.copy()
-        test_DF["score"] = self.LTR.predict(np.stack(test_DF["features"].values))
-        return add_ranks(test_DF)
-
-class XGBoostLTR_pipeline(LTR_pipeline):
-    """
-    This class simplifies the use of XGBoost's techniques for learning-to-rank.
-    """
-
-    def transform(self, topics_and_docs_Test):
-        """
-        Predicts the scores for the given topics.
-
-        Args:
-            topicsTest(DataFrame): A dataframe with the test topics.
-        """
-        test_DF = topics_and_docs_Test
-        # xgb is more sensitive about the type of the values.
-        test_DF["score"] = self.LTR.predict(np.stack(test_DF["features"].values))
-        return add_ranks(test_DF)
-
-    def fit(self, topics_and_results_Train, qrelsTrain, topics_and_results_Valid, qrelsValid):
-        """
-        Trains the model with the given training and validation topics.
-
-        Args:
-            topics_and_results_Train(DataFrame): A dataframe with the topics and results to train the model
-            topics_and_results_Valid(DataFrame): A dataframe with the topics and results for validation
-        """
-        if len(topics_and_results_Train) == 0:
-            raise ValueError("No training results to fit to")
-        if len(topics_and_results_Valid) == 0:
-            raise ValueError("No validation results to fit to")
-
-        if 'features' not in topics_and_results_Train.columns:
-            raise ValueError("No features column retrieved in training")
-        if 'features' not in topics_and_results_Valid.columns:
-            raise ValueError("No features column retrieved in validation")
-
-        tr_res = topics_and_results_Train.merge(qrelsTrain, on=['qid', 'docno'], how='left').fillna(0)
-        va_res = topics_and_results_Valid.merge(qrelsValid, on=['qid', 'docno'], how='left').fillna(0)
-
-        kwargs = self.fit_kwargs
-        self.LTR.fit(
-            np.stack(tr_res["features"].values), tr_res["label"].values, 
-            group=tr_res.groupby(["qid"]).count()["docno"].values, # we name group here for libghtgbm compat. 
-            eval_set=[(np.stack(va_res["features"].values), va_res["label"].values)],
-            eval_group=[va_res.groupby(["qid"]).count()["docno"].values],
-            **kwargs
-        )
 
 class PerQueryMaxMinScoreTransformer(TransformerBase):
     '''
