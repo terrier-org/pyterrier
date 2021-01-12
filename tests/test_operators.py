@@ -129,6 +129,24 @@ class TestOperators(unittest.TestCase):
         self.assertEqual("doc1", rtr.iloc[0]["docno"])
         self.assertEqual(15, rtr.iloc[0]["score"])
 
+    def test_plus_more_cols(self):
+        import pyterrier.transformer as ptt
+        from pyterrier.model import add_ranks
+        mock1 = ptt.UniformTransformer(add_ranks(pd.DataFrame([["q1", "a query", "doc1", 5]], columns=["qid", "query", "docno", "score"])))
+        mock2 = ptt.UniformTransformer(add_ranks(pd.DataFrame([["q1", "a query", "doc1", 10]], columns=["qid", "query", "docno", "score"])))
+
+        combined = mock1 + mock2
+        # we dont need an input, as both Identity transformers will return anyway
+        rtr = combined.transform(None)
+
+        self.assertEqual(1, len(rtr))
+        self.assertEqual("q1", rtr.iloc[0]["qid"])
+        self.assertEqual("doc1", rtr.iloc[0]["docno"])
+        self.assertEqual(15, rtr.iloc[0]["score"])
+        bad_columns = ["rank_x", "rank_y", "rank_r", "query_x", "query_y", "query_R", "score_x", "score_y", "score_r"]
+        for bad in bad_columns:
+            self.assertFalse(bad in rtr.columns, "column %s in returned dataframe" % bad)
+
     def test_rank_cutoff(self):
         import pyterrier.transformer as ptt
         mock1 = ptt.UniformTransformer( pd.DataFrame([["q1", "d2", 0, 5.1], ["q1", "d3", 1, 5.1]], columns=["qid", "docno", "rank", "score"]))
@@ -338,10 +356,10 @@ class TestOperators(unittest.TestCase):
 
     def test_feature_union(self): 
         import pyterrier.transformer as ptt
-        mock_input = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))
+        mock_input = ptt.UniformTransformer(pd.DataFrame([["q1", "a query", "doc1", 5]], columns=["qid", "query", "docno", "score"]))
         
-        mock_f1 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]))
-        mock_f2 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 50]], columns=["qid", "docno", "score"]))
+        mock_f1 = ptt.UniformTransformer(pd.DataFrame([["q1", "a query", "doc1", 10]], columns=["qid", "query", "docno", "score"]))
+        mock_f2 = ptt.UniformTransformer(pd.DataFrame([["q1", "a query", "doc1", 50]], columns=["qid", "query", "docno", "score"]))
 
         def _test_expression(pipeline):
             # check access to the objects
@@ -355,8 +373,12 @@ class TestOperators(unittest.TestCase):
             self.assertTrue("docno" in rtr.columns)
             #self.assertTrue("score" in rtr.columns)
             self.assertTrue("features" in rtr.columns)
-            self.assertFalse("features_x" in rtr.columns)
-            self.assertFalse("features_y" in rtr.columns)
+
+            bad_columns = ["rank_x", "rank_y", "rank_r", "query_x", "query_y", "query_R", "score_x", "score_y", "score_r", "features_x", "features_y"]
+            print(rtr.columns)
+            for bad in bad_columns:
+                self.assertFalse(bad in rtr.columns, "column %s in returned dataframe" % bad)
+
             self.assertTrue("q1" in rtr["qid"].values)
             self.assertTrue("doc1" in rtr["docno"].values)
             import numpy as np

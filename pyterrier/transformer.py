@@ -384,9 +384,12 @@ class CombSumTransformer(BinaryTransformerBase):
     def transform(self, topics_and_res):
         res1 = self.left.transform(topics_and_res)
         res2 = self.right.transform(topics_and_res)
-        merged = res1.merge(res2, on=["qid", "docno"])
-        merged["score"] = merged["score_x"] + merged["score_y"]
-        merged = merged.drop(columns=['score_x', 'score_y'])
+        both_cols = set(res1.columns) & set(res2.columns)
+        both_cols.remove("qid")
+        both_cols.remove("docno")
+        merged = res1.merge(res2, on=["qid", "docno"], suffixes=[None, "_r"])
+        merged["score"] = merged["score"] + merged["score_r"]
+        merged = merged.drop(columns=["%s_r" % col for col in both_cols])
         merged = add_ranks(merged)
         return merged
 
@@ -668,9 +671,14 @@ class FeatureUnionPipeline(NAryTransformerBase):
         
         def _reduce_fn(left, right):
             import pandas as pd
-            rtr = pd.merge(left, right, on=["qid", "docno"])
+            both_cols = set(left.columns) & set(right.columns)
+            both_cols.remove("qid")
+            both_cols.remove("docno")
+            both_cols.remove("features")
+            rtr = pd.merge(left, right, on=["qid", "docno"])            
             rtr["features"] = rtr.apply(_concat_features, axis=1)
-            rtr.drop(columns=["features_x", "features_y"], inplace=True)
+            rtr.rename(columns={"%s_x" % col : col for col in both_cols}, inplace=True)
+            rtr.drop(columns=["features_x", "features_y"] + ["%s_y" % col for col in both_cols], inplace=True)
             return rtr
         
         from functools import reduce
@@ -683,9 +691,14 @@ class FeatureUnionPipeline(NAryTransformerBase):
         assert not "features" in inputRes.columns
 
         # final merge - this brings us the score attribute from any previous transformer
+        both_cols = set(inputRes.columns) & set(final_DF.columns)
+        both_cols.remove("qid")
+        both_cols.remove("docno")
         final_DF = inputRes.merge(final_DF, on=["qid", "docno"])
+        final_DF.rename(columns={"%s_x" % col : col for col in both_cols}, inplace=True)
+        final_DF.drop(columns=["%s_y" % col for col in both_cols], inplace=True)
         # remove the duplicated columns
-        final_DF = final_DF.loc[:,~final_DF.columns.duplicated()]
+        #final_DF = final_DF.loc[:,~final_DF.columns.duplicated()]
         assert not "features_x" in final_DF.columns 
         assert not "features_y" in final_DF.columns 
         return final_DF
