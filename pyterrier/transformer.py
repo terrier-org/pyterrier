@@ -144,7 +144,7 @@ class TransformerBase:
             batch_topics = pd.concat(batch)
             yield self.transform(batch_topics)
 
-    def search(self, query : str, qid : str = "1"):
+    def search(self, query : str, qid : str = "1", sort=True):
         """
             Method for executing a transformer (pipeline) for a single query. 
             Returns a dataframe with the results for the specified query. This
@@ -154,6 +154,7 @@ class TransformerBase:
             Arguments:
              - query(str): String form of the query to run
              - qid(str): the query id to associate to this request. defaults to 1.
+             - sort(bool): ensures the results are sorted by descending rank (defaults to True)
 
             Example::
 
@@ -168,7 +169,10 @@ class TransformerBase:
         """
         import pandas as pd
         queryDf = pd.DataFrame([[qid, query]], columns=["qid", "query"])
-        return self.transform(queryDf)
+        rtr = self.transform(queryDf)
+        if "qid" in rtr.columns and "rank" in rtr.columns:
+            rtr = rtr.sort_values(["qid", "rank"], ascending=[True,True])
+        return rtr
 
     def compile(self):
         """
