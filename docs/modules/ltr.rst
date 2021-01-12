@@ -30,12 +30,12 @@ Feature Union (`**`)
 
 PyTerrier's main way to faciliate calculating extra features is through the `**` operator. Consider an example where
 the candidate set should be identified using the BM25 weighting model, and then additional features computed using the
-PL2F and BM25F models::
+Tf and PL2 models::
 
     bm25 = pt.BatchRetrieve(index, wmodel="BM25")
-    bm25f = pt.BatchRetrieve(index, wmodel="BM25F")
-    pl2f = pt.BatchRetrieve(index, wmodel="PL2F")
-    pipeline = bm25 >> (bm25f ** pl2f)
+    tf = pt.BatchRetrieve(index, wmodel="Tf")
+    pl2 = pt.BatchRetrieve(index, wmodel="PL2")
+    pipeline = bm25 >> (tf ** pl2)
 
 The output of the bm25 ranker would look like:
 
@@ -45,14 +45,14 @@ The output of the bm25 ranker would look like:
    1  q1             d5     (bm25 score)
 ====  ==========  ========  ============
 
-Application of the feature-union operator (`**`) ensures that bm25f and pl2f 
+Application of the feature-union operator (`**`) ensures that tf and pl2 
 operate as *re-rankers*, i.e. they re-rank the documents identified by bm25.
 For each document, the score they calculate combined into the `"features"` column, as follows:
 
 ====  ==========  ========  ============  =========================
   ..  qid          docno        score              features
 ====  ==========  ========  ============  =========================
-   1  q1             d5     (bm25 score)  [bm25f score, pl2f score]
+   1  q1             d5     (bm25 score)  [tf score, pl2 score]
 ====  ==========  ========  ============  =========================
 
 
@@ -63,7 +63,7 @@ FeaturesBatchRetrieve
 
 When doing executing the pipeline above, then re-ranking of the documents again can be slow, as each separate BatchRetrieve
 object has to re-access the inverted index. For this reason, PyTerrier provides a class called FeaturesBatchRetrieve,
-which allows multiple query dependent features to be calculated at once.
+which allows multiple query dependent features to be calculated at once, by virtue of Terrier's Fat framework.
 
 
 .. autoclass:: pyterrier.FeaturesBatchRetrieve
@@ -71,8 +71,8 @@ which allows multiple query dependent features to be calculated at once.
 
 An equivalent pipeline to the example above would be::
 
-    #pipeline = bm25 >> (bm25f ** pl2f)
-    pipeline = pt.FeaturesBatchRetrieve(index, wmodel="BM25", features=["WMODEL:BM25F", "WMODEL:PL2F"]
+    #pipeline = bm25 >> (tf ** pl2)
+    pipeline = pt.FeaturesBatchRetrieve(index, wmodel="BM25", features=["WMODEL:Tf", "WMODEL:PL2"]
 
 
 Apply Functions
