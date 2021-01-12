@@ -187,7 +187,7 @@ class RemoteDataset(Dataset):
 
     def get_corpus(self, **kwargs):
         import pyterrier as pt
-        return pt.Utils.get_files_in_dir(self._get_all_files("corpus", **kwargs))
+        return pt.io.find_files(self._get_all_files("corpus", **kwargs))
 
     def get_qrels(self, variant=None):
         import pyterrier as pt
