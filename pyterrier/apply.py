@@ -1,5 +1,5 @@
 from typing import Callable, Any
-from .transformer import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyGenericTransformer, TransformerBase
+from .transformer import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyGenericTransformer, TransformerBase
 from nptyping import NDArray
 import numpy as np
 import pandas as pd
@@ -86,6 +86,9 @@ def doc_features(fn : Callable[..., NDArray[Any]], *args, **kwargs) -> Transform
 
     """
     return ApplyDocFeatureTransformer(fn, *args, **kwargs)
+
+def by_query(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> TransformerBase:
+    return ApplyForEachQuery(fn, *args, **kwargs)
 
 def generic(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> TransformerBase:
     """
