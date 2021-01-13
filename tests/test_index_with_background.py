@@ -78,7 +78,7 @@ class TestBackground(BaseTestCase):
                 br1 = pt.BatchRetrieve(index_small, wmodel="Tf")
                 brall = pt.BatchRetrieve(index_big, wmodel="Tf")
                 with_doc = pd.DataFrame([["q1", q, "1048", 1047]], columns=["qid", "query", "docno", "docid"])
-                rtr1 = br1.transform(q)
+                rtr1 = br1.search(q)
             except JavaException as ja:
                 print(ja.stacktrace)
                 raise ja

@@ -85,7 +85,7 @@ class TestBatchRetrieve(BaseTestCase):
         jindex = pt.IndexFactory.of(jindexref)
         for indexSrc in (indexloc, jindexref, jindex):
             retr = pt.BatchRetrieve(indexSrc)
-            result = retr.transform("light")
+            result = retr.search("light")
             exp_result = parse_query_result(os.path.dirname(
                 os.path.realpath(__file__)) + "/fixtures/light_results")
             i=0
