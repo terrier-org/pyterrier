@@ -16,7 +16,7 @@ In particular, conventional retrieval transformers (such as `pt.BatchRetrieve`) 
 To permit the second phase, PyTerrier data model allows for a `"features"` column to be associated to each retrieved document. 
 Such features can be generated using specialised transformers, or by combining other re-ranking transformers using the  `**`
 feature-union operator; Lastly, to facilitate the final phase, we provide easy ways to integrate with standard learning libraries
-such as `sklearn <https://scikit-learn.org/>`_, `xgBoost <https://xgboost.readthedocs.io/en/latest/>`_  and 
+such as `sklearn <https://scikit-learn.org/>`_, `XGBoost <https://xgboost.readthedocs.io/en/latest/>`_  and 
 `LightGBM <http://lightgbm.readthedocs.io/>`_.
 
 In the following, we focus on the second and third phases, as well as describing ways to assist in conducting learning to rank
@@ -103,7 +103,7 @@ through `rf.features_importances_`.
 Gradient Boosted Trees & LambdaMART
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Both `xgBoost <https://xgboost.readthedocs.io/en/latest/>`_  and `LightGBM <http://lightgbm.readthedocs.io/>`_
+Both `XGBoost <https://xgboost.readthedocs.io/en/latest/>`_  and `LightGBM <http://lightgbm.readthedocs.io/>`_
 provide gradient boosted regression tree and LambdaMART implementations. These support a sklearn-like
 interface that is supported by PyTerrier by supplying `form="ltr"` kwarg to `pt.ltr.apply_learned_model()`::
 
@@ -137,6 +137,7 @@ interface that is supported by PyTerrier by supplying `form="ltr"` kwarg to `pt.
 
 In our experience, LightGBM *tends* to be more effective than xgBoost.
 
+Similar to sklearn, both XGBoost and LightGBM provide features importances via `lmart_x.features_importances_` and `lmart_l.features_importances_`.
 
 Working with Features
 =====================
