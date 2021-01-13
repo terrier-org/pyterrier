@@ -1,5 +1,5 @@
-Runnning Experiments
---------------------
+Running Experiments
+-------------------
 
 PyTerrier aims to make it easy to conduct an information retrieval experiment, namely in running a transformer 
 pipeline over a set of queries, and evaluating the outcome using standard information retrieval metrics (as calculated
