@@ -21,6 +21,7 @@ Welcome to PyTerrier's documentation!
    transformer
    operators.md
    pipeline_examples.md
+   neural
    experiments/Robust04
 
 .. toctree::
