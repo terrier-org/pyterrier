@@ -1,5 +1,5 @@
-pyterrier.anserini package
---------------------------
+pyterrier.anserini - Anserini/Lucene Support
+--------------------------------------------
 
 
 Through an integration of pyserini, PyTerrier can integrate results from the Lucene-based Anserini platform into retrieval pipelines.

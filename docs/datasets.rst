@@ -1,5 +1,5 @@
-pyterrier.datasets module
---------------------------
+Importing Datasets
+-----------------------
 
 The datasets module allows easy access to existing standard test collections, particulary those from `TREC <https://trec.nist.gov/>`_. In particular, 
 each defined dataset can download and provide easy access to:
@@ -22,7 +22,7 @@ Available Datasets
 The table below lists the provided datasets, detailing the attributes available for each dataset.
 In each column, True designates the presence of a single artefact of that type, while a list denotes the available variants.
 
-.. include:: ../_includes/datasets-list-inc.rst
+.. include:: ./_includes/datasets-list-inc.rst
 
 
 Examples

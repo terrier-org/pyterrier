@@ -3,34 +3,35 @@ Welcome to PyTerrier's documentation!
 
 .. toctree::
    :maxdepth: 1
-   :caption: Notes
+   :caption: Guides
 
-   notes/installation.md
-   notes/pipelines.md
-   notes/pipeline_examples.md
-   notes/datamodel.md
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Package Reference
-
-   modules/core
-   modules/datasets
-   modules/io
-   modules/terrier-indexing   
-   modules/terrier-retrieval
-   modules/experiments
-   modules/rewrite
-   modules/transformer
-   modules/apply
-   modules/anserini
-   modules/ltr
+   installation
+   datasets
+   terrier-indexing   
+   terrier-retrieval
+   experiments
+   rewrite
+   ltr
 
 .. toctree::
    :maxdepth: 1
-   :caption: Experiments
+   :caption: Explanations & Illustrations
 
+   datamodel.md
+   transformer
+   pipelines.md
+   pipeline_examples.md
    experiments/Robust04
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Other Modules
+
+   io
+   apply
+   anserini
+
+
 
 Indices and tables
 ==================

@@ -1,4 +1,4 @@
-# Pipelines and Operators
+# Operators on Transformers
 
 Part of the power of PyTerrier comes in the ability to make complex retrieval pipelines. This is made possible by the operators available on Pyterrier's transformer objects. The following table summarises the available operators
 

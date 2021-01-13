@@ -1,4 +1,4 @@
-# TREC Robust 2004
+# Experiments on TREC Robust 2004
 
 This document gives a flavour of indexing and obtaining retrieval baselines on the TREC Robust04 test collections. 
 You can run these experiments for yourself by using the [associated provided notebook](https://github.com/terrier-org/pyterrier/blob/master/examples/experiments/Robust04.ipynb).

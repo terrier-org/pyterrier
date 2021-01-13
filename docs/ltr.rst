@@ -1,5 +1,5 @@
-Learning to Rank with PyTerrier
--------------------------------
+Learning to Rank 
+----------------
 
 Introduction
 ============

@@ -38,7 +38,7 @@ Getting average effectiveness over a set of topics::
 
 The returned dataframe is as follows:
 
-.. include:: ../_includes/experiment-basic.rst
+.. include:: ./_includes/experiment-basic.rst
 
 Each row represents one system. We can manually set the names of the systems, using the `names=` kwarg, as follows::
 
@@ -52,7 +52,7 @@ Each row represents one system. We can manually set the names of the systems, us
 
 This produces dataframes that are more easily interpretable.
 
-.. include:: ../_includes/experiment-names.rst
+.. include:: ./_includes/experiment-names.rst
 
 Significance Testing
 ~~~~~~~~~~~~~~~~~~~~
@@ -73,7 +73,7 @@ the number of queries improved compared to the baseline, the number of queries
 degraded, as well as the paired t-test p-value in the difference between each
 row and the baseline row. NB: For the baseline, these values are NaN.
 
-.. include:: ../_includes/experiment-sig.rst
+.. include:: ./_includes/experiment-sig.rst
 
 For this test collection, between the TF_IDF and BM25 weighting models, there is no 
 significant difference observed for in MAP, but there is for mean reciprocal rank (*p<0.05*). Indeed,
@@ -98,7 +98,7 @@ Finally, if necessary, we can request per-query performances using the `perquery
 
 This provides a dataframe where each row is the performance of a given system for a give query on a particular evaluation measure.
 
-.. include:: ../_includes/experiment-perq.rst
+.. include:: ./_includes/experiment-perq.rst
 
 NB: For brevity, we only show the top 5 rows of the returned table.
 

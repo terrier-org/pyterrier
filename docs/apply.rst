@@ -1,7 +1,7 @@
 .. _pyterrier.apply:
 
-pyterrier.apply module
-----------------------
+pyterrier.apply - Custom Transformers
+-------------------------------------
 
 PyTerrier pipelines are easily extensible through the use of apply functions.
 These are inspired by the `Pandas apply() <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.apply.html>`_, 
