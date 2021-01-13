@@ -135,9 +135,8 @@ class BatchRetrieve(BatchRetrieveBase):
         """
         results=[]
         if not isinstance(queries, pd.DataFrame):
-            print("X")
             warn(".transform() should be passed a dataframe. Use .search() to execute a single query.", FutureWarning, 2)
-            queries=coerce_queries_dataframe(queries)
+            queries = coerce_queries_dataframe(queries)
         
         docno_provided = "docno" in queries.columns
         docid_provided = "docid" in queries.columns
@@ -405,7 +404,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         """
         results = []
         if not isinstance(queries, pd.DataFrame):
-            warn(".transform() should be passed a dataframe. Use .search() to execute a single query.", FutureWarning, 1)
+            warn(".transform() should be passed a dataframe. Use .search() to execute a single query.", FutureWarning, 2)
             queries = coerce_queries_dataframe(queries)
 
         docno_provided = "docno" in queries.columns
