@@ -127,14 +127,16 @@ class BatchRetrieve(BatchRetrieveBase):
         Performs the retrieval
 
         Args:
-            queries: String for a single query, list of queries, or a pandas.Dataframe with columns=['qid', 'query']
+            queries: String for a single query, list of queries, or a pandas.Dataframe with columns=['qid', 'query']. For re-ranking,
+                the DataFrame may also have a 'docid' and or 'docno' column.
 
         Returns:
             pandas.Dataframe with columns=['qid', 'docno', 'rank', 'score']
         """
         results=[]
         if not isinstance(queries, pd.DataFrame):
-            warn(".transform() should be passed a dataframe. Use .search() to execute a single query.", DeprecationWarning, 2)
+            print("X")
+            warn(".transform() should be passed a dataframe. Use .search() to execute a single query.", DeprecationWarning, 1)
             queries=coerce_queries_dataframe(queries)
         
         docno_provided = "docno" in queries.columns
@@ -403,7 +405,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         """
         results = []
         if not isinstance(queries, pd.DataFrame):
-            warn(".transform() should be passed a dataframe. Use .search() to execute a single query.", DeprecationWarning, 2)
+            warn(".transform() should be passed a dataframe. Use .search() to execute a single query.", DeprecationWarning, 1)
             queries = coerce_queries_dataframe(queries)
 
         docno_provided = "docno" in queries.columns
