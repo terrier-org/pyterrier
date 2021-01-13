@@ -1,4 +1,4 @@
-PyTerrier transformers
+PyTerrier Transformers
 ----------------------
 
 PyTerrier's retrieval architecture is based on three concepts:
@@ -23,6 +23,21 @@ before returning it.
 +-------+---------+-------------+------------------+------------------------------+
 | Q x D |  Q x Df |   1 to 1    | Feature scoring  | `pt.FeaturesBatchRetrieve()` |
 +-------+---------+-------------+------------------+------------------------------+
+
+Optimisation
+============
+
+Some operators applied to transformer can be optimised by the underlying search engine - for instance, cutting a ranking 
+earlier. So while the following two pipelines are semantically equivalent, the latter might be more efficient::
+
+    pipe1 = BatchRetrieve(index, "BM25") % 10
+    pipe2 = pipe1.compile()
+
+Fitting
+=======
+When fit() is called on a pipeline, all estimators (transformer that also have a `fit()` method, as specified by 
+`EstimatorBase`) are fitted, in turn. This allows one (or more) stages of learning to be integrated into a retrieval
+pipeline.
 
 Transformer base classes
 ========================
@@ -89,3 +104,7 @@ Here are some hints for using Transformers:
 
  - If you return ranked results, use `pt.model.add_ranks()` to add the rank column.
 
+
+## Fitting
+
+When fit() is called on a pipeline, all estimators (transformer that also have a fit()) method, as specified by EstimatorBase) are fitted in turn.

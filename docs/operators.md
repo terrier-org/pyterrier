@@ -138,7 +138,7 @@ topdocs = alldocs % 10 >> ExpensiveReranker()
 finaldocs = topdocs ^ alldocs
 ```
 
-## Caching
+### Caching
 
 Some transformers are expensive to apply, particularly initial retrievals. For instance, we might find ourselves repeatedly running our BM25 baseline. We can request Pyterrier to _cache_ the outcome of a transformer for a given qid by using the unary `~` operator.
 
@@ -153,14 +153,3 @@ In this example, `firstpass` is cached when it is used in the Experiment evaluat
 
 By default, Pyterrier caches results to `~/.pyterrier/transformer_cache/`.
 
-## Optimisation
-
-Some operators applied to transformer can be optimised by the underlying search engine - for instance, cutting a ranking earlier. So while the following two pipelines are semantically equivalent, the latter might be more efficient:
-```python
-pipe1 = BatchRetrieve(index, "BM25") % 10
-pipe2 = pipe1.compile()
-```
-
-## Fitting
-
-When fit() is called on a pipeline, all estimators (transformer that also have a fit()) method, as specified by EstimatorBase) are fitted in turn.

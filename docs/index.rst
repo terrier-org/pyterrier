@@ -19,7 +19,7 @@ Welcome to PyTerrier's documentation!
 
    datamodel.md
    transformer
-   pipelines.md
+   operators.md
    pipeline_examples.md
    experiments/Robust04
 
