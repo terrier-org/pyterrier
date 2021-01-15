@@ -13,12 +13,16 @@ class TestIterDictIndexer(BaseTestCase):
     def setUp(self):
         # Create a temporary directory
         self.test_dir = tempfile.mkdtemp()
+        print("Created " + self.test_dir)
 
     def tearDown(self):
         # Remove the directory after the test
         shutil.rmtree(self.test_dir)
+        print("Deleting " + self.test_dir)
+        
 
     def _create_index(self, it, fields, meta, type):
+        print("Writing index to " + self.test_dir)
         pd_indexer = pt.IterDictIndexer(self.test_dir, type=type)
         indexref = pd_indexer.index(it, fields, meta)
         self.assertIsNotNone(indexref)

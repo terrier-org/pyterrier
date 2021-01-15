@@ -20,12 +20,15 @@ class TestTRECIndexer(unittest.TestCase):
     def setUp(self):
         # Create a temporary directory
         self.test_dir = tempfile.mkdtemp()
+        print("Created " + self.test_dir)
 
     def tearDown(self):
         # Remove the directory after the test
         shutil.rmtree(self.test_dir)
+        print("Deleting " + self.test_dir)
 
     def test_TREC_indexing_pbar(self):
+        print("Writing index to " + self.test_dir)
         indexer = pt.TRECCollectionIndexer(self.test_dir, verbose=True)
         indexRef = indexer.index(pt.io.find_files(self.here + "/fixtures/vaswani_npl/corpus/"))
         self.assertIsNotNone(indexRef)
@@ -34,6 +37,7 @@ class TestTRECIndexer(unittest.TestCase):
         self.assertTrue(os.path.isfile(self.test_dir + '/data.direct.bf'))
 
     def test_TREC_indexing(self):
+        print("Writing index to " + self.test_dir)
         indexer = pt.TRECCollectionIndexer(self.test_dir)
         indexRef = indexer.index(pt.io.find_files(self.here + "/fixtures/vaswani_npl/corpus/"))
         self.assertIsNotNone(indexRef)
@@ -42,6 +46,7 @@ class TestTRECIndexer(unittest.TestCase):
         self.assertTrue(os.path.isfile(self.test_dir + '/data.direct.bf'))
 
     def test_TREC_indexing_singlepass(self):
+        print("Writing index to " + self.test_dir)
         indexer = pt.TRECCollectionIndexer(self.test_dir, type=pt.IndexingType.SINGLEPASS)
         indexRef = indexer.index(pt.io.find_files(self.here + "/fixtures/vaswani_npl/corpus/"))
         self.assertIsNotNone(indexRef)
@@ -50,6 +55,7 @@ class TestTRECIndexer(unittest.TestCase):
         self.assertFalse(os.path.isfile(self.test_dir + '/data.direct.bf'))
 
     def test_TREC_indexing_memory(self):
+        print("Writing index to " + self.test_dir)
         indexer = pt.TRECCollectionIndexer(self.test_dir, type=pt.IndexingType.MEMORY)
         indexRef = indexer.index(pt.io.find_files(self.here + "/fixtures/vaswani_npl/corpus/"))
         self.assertIsNotNone(indexRef)
