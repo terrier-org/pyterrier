@@ -10,6 +10,7 @@ anserini = None
 cache = None
 index = None
 io = None
+ltr = None
 model = None
 pipelines = None
 rewrite = None
@@ -126,6 +127,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     global index
     global io
     global apply
+    global ltr
     global model
     global pipelines
     global rewrite
@@ -134,6 +136,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     cache = importlib.import_module('.cache', package='pyterrier')
     index = importlib.import_module('.index', package='pyterrier') 
     io = importlib.import_module('.io', package='pyterrier')
+    ltr = importlib.import_module('.ltr', package='pyterrier')
     apply = importlib.import_module('.apply', package='pyterrier')
     model = importlib.import_module('.model', package='pyterrier')
     pipelines = importlib.import_module('.pipelines', package='pyterrier') 
