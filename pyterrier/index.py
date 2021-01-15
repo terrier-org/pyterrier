@@ -288,7 +288,7 @@ class DFIndexUtils:
         
         df = pd.DataFrame.from_dict(all_metadata, orient="columns")
         lengths = DFIndexUtils.get_column_lengths(df)
-        
+        print("Collection of length %d" % len(text.values))
         return (
             PythonListIterator(
                 text.values,
@@ -389,6 +389,7 @@ class PythonListIterator(PythonJavaClass):
 
     @java_method('()Z')
     def hasNext(self):
+        print("hasNext %d < %d" % (self.index , self.len) )
         return self.index < self.len
 
     @java_method('()Ljava/lang/Object;')
