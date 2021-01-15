@@ -56,6 +56,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
      * If the `version` init kwarg is not set, Terrier will query MavenCentral to determine the latest Terrier release.
      * If `version` is set to `"snapshot"`, the latest .jar file build derived from the `Terrier Github repository <https://github.com/terrier-org/terrier-core/>`_ will be downloaded from `Jitpack <https://jitpack.io/>`_.
      * Otherwise the local (`~/.mvn`) and MavenCentral repositories are searched for the jar file at the given version.
+     
     In this way, the default setting is to download the latest release of Terrier from MavenCentral. The user is also able to use a locally installed copy in their private Maven repository, or track the latest build of Terrier from Jitpack.
     
     """
@@ -184,9 +185,10 @@ def set_tqdm(type):
 
         The `tqdm <https://tqdm.github.io/>`_ progress bar can be made prettier when using appropriately configured Jupyter notebook setups.
         Allowable options for type are:
-         - 'tqdm': corresponds to the standard text progresss bar, ala `from tqdm import tqdm`.
-         - 'notebook': corresponds to a notebook progress bar, ala `from tqdm.notebook import tqdm`
-         - 'auto': allows tqdm to decide on the progress bar type, ala `from tqdm.auto import tqdm`. Note that this works fine on Google Colab, but not on Jupyter unless the `ipywidgets have been installed <https://ipywidgets.readthedocs.io/en/stable/user_install.html>`_.
+
+         - `'tqdm'`: corresponds to the standard text progresss bar, ala `from tqdm import tqdm`.
+         - `'notebook'`: corresponds to a notebook progress bar, ala `from tqdm.notebook import tqdm`
+         - `'auto'`: allows tqdm to decide on the progress bar type, ala `from tqdm.auto import tqdm`. Note that this works fine on Google Colab, but not on Jupyter unless the `ipywidgets have been installed <https://ipywidgets.readthedocs.io/en/stable/user_install.html>`_.
     """
     global tqdm
     
@@ -242,10 +244,12 @@ def logging(level):
     """
         Set the logging level. Equivalent to setting the logging= parameter to init().
         The following string values are allowed, corresponding to Java logging levels:
+        
          - `'ERROR'`: only show error messages
          - `'WARN'`: only show warnings and error messages (default)
          - `'INFO'`: show information, warnings and error messages
          - `'DEBUG'`: show debugging, information, warnings and error messages
+
     """
     from . import bootstrap
     bootstrap.logging(level)
