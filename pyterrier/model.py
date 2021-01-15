@@ -5,15 +5,22 @@ import pandas as pd
 # the first rank SHOULD be 0, see the standard "Welcome to TREC email"
 FIRST_RANK = 0
 
+# set to True to ensure that the resulting dataframe is correctly /ordered/
+# as well as having correct ranks assigned
+STRICT_SORT = False
+
 def add_ranks(rtr):
     rtr.drop(columns=["rank"], errors="ignore", inplace=True)
     if len(rtr) == 0:
         rtr["rank"] = pd.Series(index=rtr.index, dtype='int64')
         return rtr
-    # -1 assures that first rank will be 0
-    rtr["rank"] = rtr.groupby("qid").rank(ascending=False, method="first")["score"].astype(int) -1
-    return rtr
 
+    # -1 assures that first rank will be FIRST_RANK
+    rtr["rank"] = rtr.groupby("qid", sort=False).rank(ascending=False, method="first")["score"].astype(int) -1 + FIRST_RANK
+    if STRICT_SORT:
+        rtr.sort_values(["qid", "rank"], ascending=[True,True], inplace=True )
+    return rtr
+    
 def coerce_queries_dataframe(query):
     """
     Convert either a string or a list of strings to a dataframe for use as topics in retrieval.

@@ -1,5 +1,5 @@
 from typing import Callable, Any
-from .transformer import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyGenericTransformer, TransformerBase
+from .transformer import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyGenericTransformer, TransformerBase
 from nptyping import NDArray
 import numpy as np
 import pandas as pd
@@ -81,11 +81,14 @@ def doc_features(fn : Callable[..., NDArray[Any]], *args, **kwargs) -> Transform
                 f2 = len(content.split(" "))
                 return np.array([f1, f2])
 
-            p = bt.BatchRetrieve(index, wmodel="BM25") >> 
+            p = pt.BatchRetrieve(index, wmodel="BM25") >> 
                 pt.apply.doc_features(_features )
 
     """
     return ApplyDocFeatureTransformer(fn, *args, **kwargs)
+
+def by_query(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> TransformerBase:
+    return ApplyForEachQuery(fn, *args, **kwargs)
 
 def generic(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> TransformerBase:
     """
@@ -106,4 +109,4 @@ def generic(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> Tra
             pipe = pt.BatchRetrieve(index) >> pt.apply.generic(lambda res : res[res["rank"] < 2])
 
     """
-    return ApplyDocFeatureTransformer(fn, *args, **kwargs)
+    return ApplyGenericTransformer(fn, *args, **kwargs)

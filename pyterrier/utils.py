@@ -331,6 +331,8 @@ class Utils:
         return coerce_queries_dataframe(query)
 
     @staticmethod
+    @deprecation.deprecated(deprecated_in="0.3.0",
+                        details="Please use pt.io.find_files(dir)")
     def get_files_in_dir(dir):
         """
         Returns all the files present in a directory and its subdirectories
@@ -343,7 +345,7 @@ class Utils:
         """
         lst = []
         files = []
-        for (dirpath, dirnames, filenames) in os.walk(dir):
+        for (dirpath, dirnames, filenames) in os.walk(dir, followlinks=True):
             for name in filenames:
                 files.append(os.path.join(dirpath, name))
         return sorted(files)

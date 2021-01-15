@@ -5,6 +5,7 @@ import numpy as np
 from .utils import Utils
 from .transformer import TransformerBase, EstimatorBase
 from .model import add_ranks
+import deprecation
 
 def _bold_cols(data, col_type):
     if not data.name in col_type:
@@ -42,19 +43,24 @@ def _color_cols(data, col_type,
 
 def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=False, dataframe=True, baseline=None, highlight=None):
     """
-    Cornac style experiment. Combines retrieval and evaluation.
-    Allows easy comparison of multiple retrieval systems with different properties and controls.
+    Allows easy comparison of multiple retrieval transformer pipelines using a common set of topics, and
+    identical evaluation measures computed using the same qrels. In essence, each transformer is applied on 
+    the provided set of topics. Then the named trec_eval evaluation measures are computed 
+    (using `pt.Utils.evaluate()`) for each system.
 
     Args:
-        retr_systems(list): A list of BatchRetrieve objects to compare
+        retr_systems(list): A list of transformers to evaluate. If you already have the results for one 
+            (or more) of your systems, a results dataframe can also be used here. Results produced by 
+            the transformers must have "qid", "docno", "score", "rank" columns.
         topics: Either a path to a topics file or a pandas.Dataframe with columns=['qid', 'query']
         qrels: Either a path to a qrels file or a pandas.Dataframe with columns=['qid','docno', 'label']   
         eval_metrics(list): Which evaluation metrics to use. E.g. ['map']
-        names(list)=List of names for each retrieval system when presenting the results.
+        names(list): List of names for each retrieval system when presenting the results.
             Default=None. If None: Use names of weighting models for each retrieval system.
         perquery(bool): If true return each metric for each query, else return mean metrics. Default=False.
         dataframe(bool): If True return results as a dataframe. Else as a dictionary of dictionaries. Default=True.
-        baseline(int): If set to the index of an item of the retr_system list, will calculate the number of queries improved, degraded and the statistical significance (paired t-test p value) for each measure.
+        baseline(int): If set to the index of an item of the retr_system list, will calculate the number of queries 
+            improved, degraded and the statistical significance (paired t-test p value) for each measure.
             Default=None: If None, no additional columns added for each measure
         highlight(str) : If "bold", highlights in bold the best measure value in each column; 
             if "color" or "colour" uses green to indicate highest values
@@ -201,95 +207,17 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
         return df 
     return evalDict
 
+from .ltr import RegressionTransformer, LTRTransformer
+@deprecation.deprecated(deprecated_in="0.3.0",
+                        details="Please use pt.ltr.apply_learned_model(learner, form='regression')")
+class LTR_pipeline(RegressionTransformer):
+    pass
 
-class LTR_pipeline(EstimatorBase):
-    """
-    This class simplifies the use of Scikit-learn's techniques for learning-to-rank.
-    """
-    def __init__(self, LTR, *args, fit_kwargs={}, **kwargs):
-        """
-        Init method
+@deprecation.deprecated(deprecated_in="0.3.0",
+                        details="Please use pt.ltr.apply_learned_model(learner, form='ltr')")
+class XGBoostLTR_pipeline(LTRTransformer):
+    pass
 
-        Args:
-            LTR: The model which to use for learning-to-rank. Must have a fit() and predict() methods.
-            fit_kwargs: A dictionary containing additional arguments that can be passed to LTR's fit() method.  
-        """
-        self.fit_kwargs = fit_kwargs
-        super().__init__(*args, **kwargs)
-        self.LTR = LTR
-
-    def fit(self, topics_and_results_Train, qrelsTrain, topics_and_results_Valid=None, qrelsValid=None):
-        """
-        Trains the model with the given topics.
-
-        Args:
-            topicsTrain(DataFrame): A dataframe with the topics to train the model
-        """
-        if len(topics_and_results_Train) == 0:
-            raise ValueError("No topics to fit to")
-        if 'features' not in topics_and_results_Train.columns:
-            raise ValueError("No features column retrieved")
-        train_DF = topics_and_results_Train.merge(qrelsTrain, on=['qid', 'docno'], how='left').fillna(0)
-        kwargs = self.fit_kwargs
-        self.LTR.fit(np.stack(train_DF["features"].values), train_DF["label"].values, **kwargs)
-        return self
-
-    def transform(self, test_DF):
-        """
-        Predicts the scores for the given topics.
-
-        Args:
-            topicsTest(DataFrame): A dataframe with the test topics.
-        """
-        test_DF["score"] = self.LTR.predict(np.stack(test_DF["features"].values))
-        return add_ranks(test_DF)
-
-class XGBoostLTR_pipeline(LTR_pipeline):
-    """
-    This class simplifies the use of XGBoost's techniques for learning-to-rank.
-    """
-
-    def transform(self, topics_and_docs_Test):
-        """
-        Predicts the scores for the given topics.
-
-        Args:
-            topicsTest(DataFrame): A dataframe with the test topics.
-        """
-        test_DF = topics_and_docs_Test
-        # xgb is more sensitive about the type of the values.
-        test_DF["score"] = self.LTR.predict(np.stack(test_DF["features"].values))
-        return test_DF
-
-    def fit(self, topics_and_results_Train, qrelsTrain, topics_and_results_Valid, qrelsValid):
-        """
-        Trains the model with the given training and validation topics.
-
-        Args:
-            topics_and_results_Train(DataFrame): A dataframe with the topics and results to train the model
-            topics_and_results_Valid(DataFrame): A dataframe with the topics and results for validation
-        """
-        if len(topics_and_results_Train) == 0:
-            raise ValueError("No training results to fit to")
-        if len(topics_and_results_Valid) == 0:
-            raise ValueError("No validation results to fit to")
-
-        if 'features' not in topics_and_results_Train.columns:
-            raise ValueError("No features column retrieved in training")
-        if 'features' not in topics_and_results_Valid.columns:
-            raise ValueError("No features column retrieved in validation")
-
-        tr_res = topics_and_results_Train.merge(qrelsTrain, on=['qid', 'docno'], how='left').fillna(0)
-        va_res = topics_and_results_Valid.merge(qrelsValid, on=['qid', 'docno'], how='left').fillna(0)
-
-        kwargs = self.fit_kwargs
-        self.LTR.fit(
-            np.stack(tr_res["features"].values), tr_res["label"].values, 
-            group=tr_res.groupby(["qid"]).count()["docno"].values, # we name group here for libghtgbm compat. 
-            eval_set=[(np.stack(va_res["features"].values), va_res["label"].values)],
-            eval_group=[va_res.groupby(["qid"]).count()["docno"].values],
-            **kwargs
-        )
 
 class PerQueryMaxMinScoreTransformer(TransformerBase):
     '''

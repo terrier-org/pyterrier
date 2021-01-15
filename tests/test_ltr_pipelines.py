@@ -21,7 +21,7 @@ class TestLTRPipeline(BaseTestCase):
         qrels = pt.io.read_qrels(self.here + "/fixtures/vaswani_npl/qrels")
 
         pipeline = pt.FeaturesBatchRetrieve(self.here + "/fixtures/index/data.properties", ["WMODEL:PL2", "WMODEL:BM25"], controls={"wmodel" : "DPH"}) >> \
-            pt.XGBoostLTR_pipeline(xgb.sklearn.XGBRanker(**xgparams))
+            pt.ltr.apply_learned_model(xgb.sklearn.XGBRanker(**xgparams), form="ltr")
         
         pipeline.fit(topics, qrels, topics, qrels)
         pt.Utils.evaluate(
@@ -36,7 +36,7 @@ class TestLTRPipeline(BaseTestCase):
         qrels = pt.io.read_qrels(self.here + "/fixtures/vaswani_npl/qrels")
 
         pipeline = pt.FeaturesBatchRetrieve(self.here + "/fixtures/index/data.properties", ["WMODEL:PL2", "WMODEL:BM25"], controls={"wmodel" : "DPH"}) >> \
-            pt.LTR_pipeline(RandomForestClassifier())
+            pt.ltr.apply_learned_model(RandomForestClassifier())
         
         pipeline.fit(topics, qrels)
         pt.Utils.evaluate(

@@ -1,7 +1,7 @@
 from .model import coerce_queries_dataframe
 
 from .batchretrieve import BatchRetrieveBase
-
+from warnings import warn
 import pandas as pd
 import numpy as np
 from . import tqdm
@@ -111,6 +111,7 @@ class AnseriniBatchRetrieve(BatchRetrieveBase):
         """
         results=[]
         if not isinstance(queries, pd.DataFrame):
+            warn(".transform() should be passed a dataframe. Use .search() to execute a single query.", DeprecationWarning, 2)
             queries=coerce_queries_dataframe(queries)
         docno_provided = "docno" in queries.columns
         docid_provided = "docid" in queries.columns

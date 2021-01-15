@@ -119,10 +119,65 @@ class TransformerBase:
             DataFrame, and also returns one.
         """
         pass
+        
+    def transform_gen(self, input, batch_size=1):
+        """
+            Method for executing a transformer pipeline on smaller batches of queries.
+            The input dataframe is grouped into batches of batch_size queries, and a generator
+            returned, such that transform() is only executed for a smaller batch at a time. 
+        """
+        docno_provided = "docno" in input.columns
+        docid_provided = "docid" in input.columns
+        
+        if docno_provided or docid_provided:
+            queries = input[["qid"]].drop_duplicates()
+        else:
+            queries = input
+        batch=[]      
+        for query in queries.itertuples():
+            if len(batch) == batch_size:
+                batch_topics = pd.concat(batch)
+                batch=[]
+                yield self.transform(batch_topics)
+            batch.append(input[input["qid"] == query.qid])
+        if len(batch) > 0:
+            batch_topics = pd.concat(batch)
+            yield self.transform(batch_topics)
+
+    def search(self, query : str, qid : str = "1", sort=True):
+        """
+            Method for executing a transformer (pipeline) for a single query. 
+            Returns a dataframe with the results for the specified query. This
+            is a utility method, and most uses are expected to use the transform()
+            method passing a dataframe.
+
+            Arguments:
+             - query(str): String form of the query to run
+             - qid(str): the query id to associate to this request. defaults to 1.
+             - sort(bool): ensures the results are sorted by descending rank (defaults to True)
+
+            Example::
+
+                bm25 = pt.BatchRetrieve(index, wmodel="BM25")
+                res = bm25.search("example query")
+
+                # is equivalent to
+                queryDf = pd.DataFrame([["1", "example query"]], columns=["qid", "query"])
+                res = bm25.transform(queryDf)
+            
+            
+        """
+        import pandas as pd
+        queryDf = pd.DataFrame([[qid, query]], columns=["qid", "query"])
+        rtr = self.transform(queryDf)
+        if "qid" in rtr.columns and "rank" in rtr.columns:
+            rtr = rtr.sort_values(["qid", "rank"], ascending=[True,True])
+        return rtr
 
     def compile(self):
         """
-            Rewrites this pipeline by applying of the Matchpy rules in rewrite_rules.
+            Rewrites this pipeline by applying of the Matchpy rules in rewrite_rules. Pipeline
+            optimisation is discussed in the `ICTIR 2020 paper on PyTerrier <https://arxiv.org/abs/2007.14271>`_.
         """
         if not rewrites_setup:
             setup_rewrites()
@@ -171,31 +226,6 @@ class TransformerBase:
     def __invert__(self):
         from .cache import ChestCacheTransformer
         return ChestCacheTransformer(self)
-
-    def transform_gen(self, input, batch_size=1):
-        """
-            Method for executing a transformer pipeline on smaller batches of queries.
-            The input dataframe is grouped into batches of batch_size queries, and a generator
-            returned, such that transform() is only executed for a smaller batch at a time. 
-        """
-        docno_provided = "docno" in input.columns
-        docid_provided = "docid" in input.columns
-        
-        if docno_provided or docid_provided:
-            queries = input[["qid"]].drop_duplicates()
-        else:
-            queries = input
-        batch=[]      
-        for query in queries.itertuples():
-            if len(batch) == batch_size:
-                batch_topics = pd.concat(batch)
-                batch=[]
-                yield self.transform(batch_topics)
-            batch.append(input[input["qid"] == query.qid])
-        if len(batch) > 0:
-            batch_topics = pd.concat(batch)
-            yield self.transform(batch_topics)
-        
 
         
 
@@ -358,9 +388,12 @@ class CombSumTransformer(BinaryTransformerBase):
     def transform(self, topics_and_res):
         res1 = self.left.transform(topics_and_res)
         res2 = self.right.transform(topics_and_res)
-        merged = res1.merge(res2, on=["qid", "docno"])
-        merged["score"] = merged["score_x"] + merged["score_y"]
-        merged = merged.drop(columns=['score_x', 'score_y'])
+        both_cols = set(res1.columns) & set(res2.columns)
+        both_cols.remove("qid")
+        both_cols.remove("docno")
+        merged = res1.merge(res2, on=["qid", "docno"], suffixes=[None, "_r"])
+        merged["score"] = merged["score"] + merged["score_r"]
+        merged = merged.drop(columns=["%s_r" % col for col in both_cols])
         merged = add_ranks(merged)
         return merged
 
@@ -451,6 +484,21 @@ class ApplyTransformerBase(TransformerBase):
         self.fn = fn
         self.verbose = verbose
 
+class ApplyForEachQuery(ApplyTransformerBase):
+    def __init__(self, fn,  *args, add_ranks=True, **kwargs):
+        """
+            Arguments:
+             - fn (Callable): Takes as input a panda Series for a row representing that document, and returns the new float doument score 
+        """
+        super().__init__(fn, *args, **kwargs)
+        self.add_ranks = add_ranks
+    
+    def transform(self, res):
+        rtr = pd.concat(self.fn(group) for qid, group in res.groupby("qid"))
+        if self.add_ranks:
+            rtr = add_ranks(rtr)
+        return rtr
+
 class ApplyDocumentScoringTransformer(ApplyTransformerBase):
     """
         Implements a transformer that can apply a function to perform document scoring. The supplied function 
@@ -468,8 +516,7 @@ class ApplyDocumentScoringTransformer(ApplyTransformerBase):
             Arguments:
              - fn (Callable): Takes as input a panda Series for a row representing that document, and returns the new float doument score 
         """
-        super().__init__(*args, **kwargs)
-        self.fn = fn
+        super().__init__(fn, *args, **kwargs)
     
     def transform(self, inputRes):
         fn = self.fn
@@ -499,8 +546,7 @@ class ApplyDocFeatureTransformer(ApplyTransformerBase):
             Arguments:
              - fn (Callable): Takes as input a panda Series for a row representing that document, and returns a new numpy array representing the features of that document
         """
-        super().__init__(*args, **kwargs)
-        self.fn = fn
+        super().__init__(fn, *args, **kwargs)
 
     def transform(self, inputRes):
         fn = self.fn
@@ -547,7 +593,7 @@ class ApplyQueryTransformer(ApplyTransformerBase):
             outputRes["query"] = outputRes.apply(fn, axis=1)
         return outputRes
 
-class ApplyGenericTransformer(TransformerBase):
+class ApplyGenericTransformer(ApplyTransformerBase):
     """
     Allows arbitrary pipelines components to be written as functions. The function should take as input
     a dataframe, and return a new dataframe. The function should abide by the main contracual obligations,
@@ -644,9 +690,14 @@ class FeatureUnionPipeline(NAryTransformerBase):
         
         def _reduce_fn(left, right):
             import pandas as pd
-            rtr = pd.merge(left, right, on=["qid", "docno"])
+            both_cols = set(left.columns) & set(right.columns)
+            both_cols.remove("qid")
+            both_cols.remove("docno")
+            both_cols.remove("features")
+            rtr = pd.merge(left, right, on=["qid", "docno"])            
             rtr["features"] = rtr.apply(_concat_features, axis=1)
-            rtr.drop(columns=["features_x", "features_y"], inplace=True)
+            rtr.rename(columns={"%s_x" % col : col for col in both_cols}, inplace=True)
+            rtr.drop(columns=["features_x", "features_y"] + ["%s_y" % col for col in both_cols], inplace=True)
             return rtr
         
         from functools import reduce
@@ -659,9 +710,14 @@ class FeatureUnionPipeline(NAryTransformerBase):
         assert not "features" in inputRes.columns
 
         # final merge - this brings us the score attribute from any previous transformer
+        both_cols = set(inputRes.columns) & set(final_DF.columns)
+        both_cols.remove("qid")
+        both_cols.remove("docno")
         final_DF = inputRes.merge(final_DF, on=["qid", "docno"])
+        final_DF.rename(columns={"%s_x" % col : col for col in both_cols}, inplace=True)
+        final_DF.drop(columns=["%s_y" % col for col in both_cols], inplace=True)
         # remove the duplicated columns
-        final_DF = final_DF.loc[:,~final_DF.columns.duplicated()]
+        #final_DF = final_DF.loc[:,~final_DF.columns.duplicated()]
         assert not "features_x" in final_DF.columns 
         assert not "features_y" in final_DF.columns 
         return final_DF

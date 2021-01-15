@@ -187,7 +187,7 @@ class RemoteDataset(Dataset):
 
     def get_corpus(self, **kwargs):
         import pyterrier as pt
-        return pt.Utils.get_files_in_dir(self._get_all_files("corpus", **kwargs))
+        return pt.io.find_files(self._get_all_files("corpus", **kwargs))
 
     def get_qrels(self, variant=None):
         import pyterrier as pt
@@ -212,6 +212,20 @@ class RemoteDataset(Dataset):
 
     def __repr__(self):
         return "RemoteDataset for %s, with %s" % (self.name, str(list(self.locations.keys())))
+
+
+ANTIQUE_FILES = {
+    "topics" : {
+        "train" : ("antique-train-queries.txt", "http://ciir.cs.umass.edu/downloads/Antique/antique-train-queries.txt", "singleline"),
+        "test" : ("antique-test-queries.txt", "http://ciir.cs.umass.edu/downloads/Antique/antique-test-queries.txt", "singleline"),
+    },
+    "qrels" : {
+        "train" : ("antique-train.qrel", "http://ciir.cs.umass.edu/downloads/Antique/antique-train.qrel", "singleline"),
+        "test" : ("antique-test.qrel", "http://ciir.cs.umass.edu/downloads/Antique/antique-test.qrel", "singleline"),
+    },
+    "corpus" : 
+        [("antique-collection.txt", "http://ciir.cs.umass.edu/downloads/Antique/antique-collection.txt")],
+}
 
 TREC_COVID_FILES = {
     "topics" : {
@@ -438,6 +452,40 @@ TREC_WT2G_FILES = {
     "topics" : [ (  "topics.401-450.gz", "https://trec.nist.gov/data/topics_eng/topics.401-450.gz" ) ]
 }
 
+def _merge_years(self, component, variant):
+    MAP_METHOD = { 
+        "topics" : RemoteDataset.get_topics,
+        "qrels" : RemoteDataset.get_qrels,  
+    }
+    dfs = []
+    low, hi = variant.split("-")
+    for y in range(int(low), int(hi)+1):
+        df = MAP_METHOD[component](self, variant=str(y))
+        dfs.append(df)
+    return (pd.concat(dfs), "direct")
+
+TREC_TB_FILES = {
+    "topics" : {
+        "2004" : ( "04topics.701-750.txt", "https://trec.nist.gov/data/terabyte/04/04topics.701-750.txt" ),
+        "2005" : ( "04topics.701-750.txt", "https://trec.nist.gov/data/terabyte/05/05.topics.751-800.txt" ),
+        "2006" : ( "06.topics.801-850.txt", "https://trec.nist.gov/data/terabyte/06/06.topics.801-850.txt" ),
+        "2004-2006" : ("06.topics.701-850.txt", "https://trec.nist.gov/data/terabyte/06/06.topics.701-850.txt"),
+
+        "2006-np" : ( "06.np_topics.901-1081.txt", "https://trec.nist.gov/data/terabyte/06/06.np_topics.901-1081.txt" ),
+        "2005-np" : ( "05.np_topics.601-872.final.txt", "https://trec.nist.gov/data/terabyte/05/05.np_topics.601-872.final.txt")
+    },
+
+    "qrels" : {
+        "2004" : ( "04.qrels.12-Nov-04", "https://trec.nist.gov/data/terabyte/04/04.qrels.12-Nov-04"),
+        "2005" : ( "05.adhoc_qrels", "https://trec.nist.gov/data/terabyte/05/05.adhoc_qrels"),
+        "2006" : ( "qrels.tb06.top50", "https://trec.nist.gov/data/terabyte/06/qrels.tb06.top50"),
+        "2004-2006" : _merge_years,
+
+        "2005-np" : ( "05.np_qrels", "https://trec.nist.gov/data/terabyte/05/05.np_qrels"),
+        "2006-np" : ( "qrels.tb06.np", "https://trec.nist.gov/data/terabyte/06/qrels.tb06.np"),
+    }
+}
+
 TREC_ROBUST_04_FILES = {
     "qrels" : [ ("qrels.robust2004.txt", "https://trec.nist.gov/data/robust/qrels.robust2004.txt") ],
     "topics" : [ (  "04.testset.gz", "https://trec.nist.gov/data/robust/04.testset.gz" ) ]
@@ -479,16 +527,21 @@ VASWANI_FILES = {
     "qrels":
         [("qrels", VASWANI_CORPUS_BASE + "qrels")],
     "index":
-        [(filename, VASWANI_INDEX_BASE + filename) for filename in STANDARD_TERRIER_INDEX_FILES]
+        [(filename, VASWANI_INDEX_BASE + filename) for filename in STANDARD_TERRIER_INDEX_FILES + ["data.meta-0.fsomapfile"]]
 }
 
 DATASET_MAP = {
+    # used for UGlasgow teaching
     "50pct" : RemoteDataset("50pct", FIFTY_PCT_FILES),
+    # umass antique corpus - see http://ciir.cs.umass.edu/downloads/Antique/
+    "antique" : RemoteDataset("antique", ANTIQUE_FILES),
+    # generated from http://ir.dcs.gla.ac.uk/resources/test_collections/npl/
     "vaswani": RemoteDataset("vaswani", VASWANI_FILES),
     "trec-deep-learning-docs" : RemoteDataset("trec-deep-learning-docs", TREC_DEEPLEARNING_DOCS_MSMARCO_FILES),
     "trec-deep-learning-passages" : RemoteDataset("trec-deep-learning-passages", TREC_DEEPLEARNING_PASSAGE_MSMARCO_FILES),
     "trec-robust-2004" : RemoteDataset("trec-robust-2004", TREC_ROBUST_04_FILES),
     "trec-robust-2005" : RemoteDataset("trec-robust-2005", TREC_ROBUST_05_FILES),
+    "trec-terabyte" : RemoteDataset("trec-terabyte", TREC_TB_FILES),
     #medical-like tracks
     "trec-precision-medicine" : RemoteDataset("trec-precicion-medicine", TREC_PRECISION_MEDICINE_FILES),
     "trec-covid" : RemoteDataset("trec-covid", TREC_COVID_FILES),
@@ -498,7 +551,7 @@ DATASET_MAP = {
     "trec-wt-2002" : RemoteDataset("trec-wt-2002", TREC_WT_2002_FILES),
     "trec-wt-2003" : RemoteDataset("trec-wt-2003", TREC_WT_2002_FILES),
     "trec-wt-2004" : RemoteDataset("trec-wt-2004", TREC_WT_2004_FILES),
-    #.clueweb09
+    #clueweb09
     "trec-wt-2009" : RemoteDataset("trec-wt-2009", TREC_WT_2009_FILES),
     "trec-wt-2010" : RemoteDataset("trec-wt-2010", TREC_WT_2010_FILES),
     "trec-wt-2011" : RemoteDataset("trec-wt-2011", TREC_WT_2011_FILES),

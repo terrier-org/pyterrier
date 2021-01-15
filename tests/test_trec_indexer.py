@@ -27,7 +27,7 @@ class TestTRECIndexer(unittest.TestCase):
 
     def test_TREC_indexing_pbar(self):
         indexer = pt.TRECCollectionIndexer(self.test_dir, verbose=True)
-        indexRef = indexer.index(pt.Utils.get_files_in_dir(self.here + "/fixtures/vaswani_npl/corpus/"))
+        indexRef = indexer.index(pt.io.find_files(self.here + "/fixtures/vaswani_npl/corpus/"))
         self.assertIsNotNone(indexRef)
         index = pt.IndexFactory.of(indexRef)
         self.assertEqual(11429, index.getCollectionStatistics().getNumberOfDocuments())
@@ -35,7 +35,7 @@ class TestTRECIndexer(unittest.TestCase):
 
     def test_TREC_indexing(self):
         indexer = pt.TRECCollectionIndexer(self.test_dir)
-        indexRef = indexer.index(pt.Utils.get_files_in_dir(self.here + "/fixtures/vaswani_npl/corpus/"))
+        indexRef = indexer.index(pt.io.find_files(self.here + "/fixtures/vaswani_npl/corpus/"))
         self.assertIsNotNone(indexRef)
         index = pt.IndexFactory.of(indexRef)
         self.assertEqual(11429, index.getCollectionStatistics().getNumberOfDocuments())
@@ -43,7 +43,7 @@ class TestTRECIndexer(unittest.TestCase):
 
     def test_TREC_indexing_singlepass(self):
         indexer = pt.TRECCollectionIndexer(self.test_dir, type=pt.IndexingType.SINGLEPASS)
-        indexRef = indexer.index(pt.Utils.get_files_in_dir(self.here + "/fixtures/vaswani_npl/corpus/"))
+        indexRef = indexer.index(pt.io.find_files(self.here + "/fixtures/vaswani_npl/corpus/"))
         self.assertIsNotNone(indexRef)
         index = pt.IndexFactory.of(indexRef)
         self.assertEqual(11429, index.getCollectionStatistics().getNumberOfDocuments())
@@ -51,7 +51,7 @@ class TestTRECIndexer(unittest.TestCase):
 
     def test_TREC_indexing_memory(self):
         indexer = pt.TRECCollectionIndexer(self.test_dir, type=pt.IndexingType.MEMORY)
-        indexRef = indexer.index(pt.Utils.get_files_in_dir(self.here + "/fixtures/vaswani_npl/corpus/"))
+        indexRef = indexer.index(pt.io.find_files(self.here + "/fixtures/vaswani_npl/corpus/"))
         self.assertIsNotNone(indexRef)
         index = pt.IndexFactory.of(indexRef)
         self.assertEqual(11429, index.getCollectionStatistics().getNumberOfDocuments())

@@ -1,4 +1,4 @@
-PyTerrier transformers
+PyTerrier Transformers
 ----------------------
 
 PyTerrier's retrieval architecture is based on three concepts:
@@ -7,7 +7,7 @@ PyTerrier's retrieval architecture is based on three concepts:
  - the *transformation* of those dataframes by standard information retrieval operations, defined as transformers.
  - the compsition of transformers, supported by the operators defined on transformers.
 
-In essence, a PyTerrier transformer is a class with a transform() method, which takes as input a dataframe, and changes it,
+In essence, a PyTerrier transformer is a class with a `transform()` method, which takes as input a dataframe, and changes it,
 before returning it.
 
 +-------+---------+-------------+------------------+------------------------------+
@@ -24,6 +24,21 @@ before returning it.
 | Q x D |  Q x Df |   1 to 1    | Feature scoring  | `pt.FeaturesBatchRetrieve()` |
 +-------+---------+-------------+------------------+------------------------------+
 
+Optimisation
+============
+
+Some operators applied to transformer can be optimised by the underlying search engine - for instance, cutting a ranking 
+earlier. So while the following two pipelines are semantically equivalent, the latter might be more efficient::
+
+    pipe1 = BatchRetrieve(index, "BM25") % 10
+    pipe2 = pipe1.compile()
+
+Fitting
+=======
+When `fit()` is called on a pipeline, all estimators (transformers that also have a `fit()` method, as specified by 
+`EstimatorBase`) within the pipeline are fitted, in turn. This allows one (or more) stages of learning to be 
+integrated into a retrieval pipeline.
+
 Transformer base classes
 ========================
 
@@ -35,13 +50,13 @@ This class is the base class for all transformers.
 .. autoclass:: pyterrier.transformer.TransformerBase
     :members:
 
-By extending TransformerBase, all transformer implementations gain the necessary "dunder" methods (e.g. `__rshift__()`)
-to support the operators. 
+Moreover, by extending TransformerBase, all transformer implementations gain the necessary "dunder" methods (e.g. `__rshift__()`)
+to support the transformer operators (`>>`, `+` etc). 
 
 EstimatorBase
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This class exposes a fit() method that can be used for transformers that can be trained.
+This class exposes a `fit()` method that can be used for transformers that can be trained.
 
 .. autoclass:: pyterrier.transformer.EstimatorBase
     :members:
@@ -49,7 +64,7 @@ This class exposes a fit() method that can be used for transformers that can be 
 Internal transformers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A singificant number of transformers are defined in pyterrier.transformer to implement operators etc. Its is not expected
+A significant number of transformers are defined in pyterrier.transformer to implement operators etc. Its is not expected
 to use these directly but they are documented for completeness.
 
 +--------+------------------+---------------------------+
@@ -85,7 +100,7 @@ Several common transformations are supported through the functions in the :ref:`
 However, if your transformer has state, such as an expensive model to be loaded at startup time, you may want to 
 extend TransformerBase directly. 
 
-Here are some hints for using Transformers:
+Here are some hints for writing Transformers:
 
  - If you return ranked results, use `pt.model.add_ranks()` to add the rank column.
-
+ - If your approach can be trained, you should extends EstimatorBase, and implement the `fit()` method.

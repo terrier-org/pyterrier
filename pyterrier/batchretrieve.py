@@ -2,7 +2,7 @@ from jnius import autoclass, cast
 import pandas as pd
 import numpy as np
 from . import tqdm
-
+from warnings import warn
 from .index import Indexer
 from .transformer import TransformerBase, Symbol
 from .model import coerce_queries_dataframe, FIRST_RANK
@@ -127,14 +127,17 @@ class BatchRetrieve(BatchRetrieveBase):
         Performs the retrieval
 
         Args:
-            queries: String for a single query, list of queries, or a pandas.Dataframe with columns=['qid', 'query']
+            queries: String for a single query, list of queries, or a pandas.Dataframe with columns=['qid', 'query']. For re-ranking,
+                the DataFrame may also have a 'docid' and or 'docno' column.
 
         Returns:
             pandas.Dataframe with columns=['qid', 'docno', 'rank', 'score']
         """
         results=[]
         if not isinstance(queries, pd.DataFrame):
-            queries=coerce_queries_dataframe(queries)
+            warn(".transform() should be passed a dataframe. Use .search() to execute a single query.", FutureWarning, 2)
+            queries = coerce_queries_dataframe(queries)
+        
         docno_provided = "docno" in queries.columns
         docid_provided = "docid" in queries.columns
         scores_provided = "score" in queries.columns
@@ -388,18 +391,21 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         
         super().__init__(index_location, controls, properties, **kwargs)
 
-    def transform(self, topics):
+    def transform(self, queries):
         """
         Performs the retrieval with multiple features
 
         Args:
-            topics: String for a single query, list of queries, or a pandas.Dataframe with columns=['qid', 'query']
+            queries: String for a single query, list of queries, or a pandas.Dataframe with columns=['qid', 'query']. For re-ranking,
+                the DataFrame may also have a 'docid' and or 'docno' column.
 
         Returns:
-            pandas.Dataframe with columns=['qid', 'docno', 'score', 'features']
+            pandas.DataFrame with columns=['qid', 'docno', 'score', 'features']
         """
         results = []
-        queries = coerce_queries_dataframe(topics)
+        if not isinstance(queries, pd.DataFrame):
+            warn(".transform() should be passed a dataframe. Use .search() to execute a single query.", FutureWarning, 2)
+            queries = coerce_queries_dataframe(queries)
 
         docno_provided = "docno" in queries.columns
         docid_provided = "docid" in queries.columns
