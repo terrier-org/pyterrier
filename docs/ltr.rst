@@ -1,3 +1,5 @@
+.. _pyterrier.ltr:
+
 Learning to Rank 
 ----------------
 
@@ -64,7 +66,6 @@ FeaturesBatchRetrieve
 When doing executing the pipeline above, then re-ranking of the documents again can be slow, as each separate BatchRetrieve
 object has to re-access the inverted index. For this reason, PyTerrier provides a class called FeaturesBatchRetrieve,
 which allows multiple query dependent features to be calculated at once, by virtue of Terrier's Fat framework.
-
 
 .. autoclass:: pyterrier.FeaturesBatchRetrieve
     :members: transform 
