@@ -284,6 +284,7 @@ class DFIndexUtils:
                 if value is None:
                     value = ""
                 hashmap.put(column, value)
+            print("Made document for " + str(hashmap.toString()))
             return(TaggedDocument(StringReader(text_row), hashmap, Tokeniser.getTokeniser()))
         
         df = pd.DataFrame.from_dict(all_metadata, orient="columns")
@@ -396,6 +397,7 @@ class PythonListIterator(PythonJavaClass):
     def next(self):
         text = self.text[self.index]
         meta = self.meta.__next__()
+        print("next %d" % self.index)
         self.index += 1
         if self.convertFn is not None:
             return self.convertFn(text, meta)
