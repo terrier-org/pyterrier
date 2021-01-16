@@ -72,4 +72,4 @@ jobs:
         #install this software
         pip install --timeout=120 .
         pip install pytest
-        pytest
+        pytest tests/test_dfindex.py

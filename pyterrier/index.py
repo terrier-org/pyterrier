@@ -351,7 +351,8 @@ class DFIndexer(Indexer):
             javaDocCollection = TQDMSizeCollection(javaDocCollection, len(text)) 
         index = self.createIndexer()
         index.index(autoclass("org.terrier.python.PTUtils").makeCollection(javaDocCollection))
-        del(lastdoc)
+        global lastdoc
+        lastdoc = None
         javaDocCollection.close()
         self.index_called = True
         collectionIterator = None
