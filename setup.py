@@ -57,7 +57,7 @@ setup(
     packages=['pyterrier'] + ['pyterrier.' + i for i in find_packages('pyterrier')],
     classifiers=[
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MPL License",
+        "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
         "Operating System :: OS Independent",
     ],
     install_requires=requirements,
