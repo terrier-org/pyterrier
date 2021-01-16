@@ -285,7 +285,9 @@ class DFIndexUtils:
                     value = ""
                 hashmap.put(column, value)
             print("Made document for " + str(hashmap.toString()))
-            return(TaggedDocument(StringReader(text_row), hashmap, Tokeniser.getTokeniser()))
+            rtr = TaggedDocument(StringReader(text_row), hashmap, Tokeniser.getTokeniser())
+            print("returning " + str(rtr))
+            return rtr
         
         df = pd.DataFrame.from_dict(all_metadata, orient="columns")
         lengths = DFIndexUtils.get_column_lengths(df)
