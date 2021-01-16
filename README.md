@@ -32,7 +32,7 @@ PyTerrier has a number of useful classes for creating indices:
  - For Pandas Dataframe you can use DFIndexer.
  - For any abitrary iterable dictionaries, you can use IterDictIndexer.
 
-See examples in the [indexing notebook](examples/notebooks/indexing.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/indexing.ipynb)
+See the [indexing documentation](https://pyterrier.readthedocs.io/en/latest/terrier-indexing.html), or the examples in the [indexing notebook](examples/notebooks/indexing.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/indexing.ipynb)
 
 # Retrieval and Evaluation
 
@@ -44,10 +44,10 @@ res = BM25_br.transform(topics)
 pt.Utils.evaluate(res, qrels, metrics = ['map'])
 ```
 
-There is a worked example in the [retrieval and evaluation notebook](examples/notebooks/retrieval_and_evaluation.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/retrieval_and_evaluation.ipynb)
+See also the [retrieval documentation](https://pyterrier.readthedocs.io/en/latest/terrier-retrieval.html), or the worked example in the [retrieval and evaluation notebook](examples/notebooks/retrieval_and_evaluation.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/retrieval_and_evaluation.ipynb)
 
 # Experiment - Perform Retrieval and Evaluation with a single function
-Pyterrier provides an experiment object, which allows to compare multiple retrieval approaches on the same queries & relevance assessments:
+PyTerrier provides an [Experiment](https://pyterrier.readthedocs.io/en/latest/experiments.html) function, which allows to compare multiple retrieval approaches on the same queries & relevance assessments:
 
 ```python
 pt.Experiment([BM25_br, PL2_br], topics, qrels, ["map", "ndcg"])
@@ -57,27 +57,29 @@ There is a worked example in the [experiment notebook](examples/notebooks/experi
 
 # Pipelines
 
-Pyterrier makes it easy to develop complex [retrieval pipelines](docs/notes/pipelines.md) using Python operators such as `>>` to chain different retrieval components. Each retrieval approach is a transformer, having one key method, `transform()`, which takes a single Pandas dataframe as input, and returns another dataframe. Two examples might encapsulate applying the sequential dependence model, or a query expansion process:
+Pyterrier makes it easy to develop complex retrieval pipelines using Python operators such as `>>` to chain different retrieval components. Each retrieval approach is a [transformer](https://pyterrier.readthedocs.io/en/latest/transformer.html), having one key method, `transform()`, which takes a single Pandas dataframe as input, and returns another dataframe. Two examples might encapsulate applying the sequential dependence model, or a query expansion process:
 ```python
 sdm_bm25 = pt.rewrite.SDM() >> pt.BatchRetrieve(indexref, wmodel="BM25")
 bo1_qe = BM25_br >> pt.rewrite.Bo1QueryExpansion() >> BM25_br
-````
-Our [example pipelines](docs/notes/pipeline_examples.md) show other common use cases. For more information, see the [Pyterrier data model](datamodel.md).
+```
+
+There is documentation on [transformer operators](https://pyterrier.readthedocs.io/en/latest/operators.html) as well as  [example pipelines](https://pyterrier.readthedocs.io/en/latest/pipeline_examples.html) show other common use cases. For more information, see the [PyTerrier data model](https://pyterrier.readthedocs.io/en/latest/datamodel.html).
 
 # Learning to Rank
 
-Complex learning to rank pipelines, including for learning-to-rank, can be constructed using Pyterrier's operator language. For example, to combine two features and make them available for learning, we can use the `**` operator.
+Complex learning to rank pipelines, including for learning-to-rank, can be constructed using PyTerrier's operator language. For example, to combine two features and make them available for learning, we can use the `**` operator.
 ```python
 two_features = BM25_br >> ( \
   pt.BatchRetrieve(indexref, wmodel="DirichletLM") ** 
   pt.BatchRetrieve(indexref, wmodel="PL2") \
  )
 ```
-There are several worked examples in the [learning-to-rank notebook](examples/notebooks/ltr.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/ltr.ipynb). Some pipelines can be automatically optimised - more detail about pipeline optimisation are included in our ICTIR 2020 paper.
+
+See also the [learning to rank documentation](https://pyterrier.readthedocs.io/en/latest/ltr.html), as well as the worked examples in the [learning-to-rank notebook](examples/notebooks/ltr.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/ltr.ipynb). Some pipelines can be automatically optimised - more detail about pipeline optimisation are included in our ICTIR 2020 paper.
 
 # Dataset API
 
-PyTerrier allows simple access to standard information retrieval test collections through its dataset API, which can download the topics, qrels, corpus or, for some test collections, a ready-made Terrier index.
+PyTerrier allows simple access to standard information retrieval test collections through its [dataset API](https://pyterrier.readthedocs.io/en/latest/datasets.html), which can download the topics, qrels, corpus or, for some test collections, a ready-made Terrier index.
 
 ```python
 topics = pt.datasets.get_dataset("trec-robust-2004").get_topics()
