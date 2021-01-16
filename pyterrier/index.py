@@ -242,6 +242,7 @@ class Indexer:
             util = "-" + util
         CLITool.main(["indexutil", "-I" + self.path, util])
 
+lastdoc=None
 class DFIndexUtils:
 
     @staticmethod
@@ -286,6 +287,8 @@ class DFIndexUtils:
                 hashmap.put(column, value)
             print("Made document for " + str(hashmap.toString()))
             rtr = TaggedDocument(StringReader(text_row), hashmap, Tokeniser.getTokeniser())
+            global lastdoc
+            lastdoc = rtr
             print("returning " + str(rtr))
             return rtr
         
@@ -348,6 +351,7 @@ class DFIndexer(Indexer):
             javaDocCollection = TQDMSizeCollection(javaDocCollection, len(text)) 
         index = self.createIndexer()
         index.index(autoclass("org.terrier.python.PTUtils").makeCollection(javaDocCollection))
+        del(lastdoc)
         javaDocCollection.close()
         self.index_called = True
         collectionIterator = None
