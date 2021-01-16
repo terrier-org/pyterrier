@@ -32,6 +32,10 @@ CLITool = None
 IndexRef = None
 IndexFactory = None
 
+
+# lastdoc ensures that a Document instance from a Collection is not GCd before Java has used it.
+lastdoc=None
+
 def run_autoclass():
     global StringReader
     global HashMap
@@ -242,7 +246,7 @@ class Indexer:
             util = "-" + util
         CLITool.main(["indexutil", "-I" + self.path, util])
 
-lastdoc=None
+
 class DFIndexUtils:
 
     @staticmethod
@@ -285,16 +289,10 @@ class DFIndexUtils:
                 if value is None:
                     value = ""
                 hashmap.put(column, value)
-            print("Made document for " + str(hashmap.toString()))
-            rtr = TaggedDocument(StringReader(text_row), hashmap, Tokeniser.getTokeniser())
-            global lastdoc
-            lastdoc = rtr
-            print("returning " + str(rtr))
-            return rtr
-        
+            return TaggedDocument(StringReader(text_row), hashmap, Tokeniser.getTokeniser())
+            
         df = pd.DataFrame.from_dict(all_metadata, orient="columns")
         lengths = DFIndexUtils.get_column_lengths(df)
-        print("Collection of length %d" % len(text.values))
         return (
             PythonListIterator(
                 text.values,
@@ -397,18 +395,19 @@ class PythonListIterator(PythonJavaClass):
 
     @java_method('()Z')
     def hasNext(self):
-        print("hasNext %d < %d" % (self.index , self.len) )
         return self.index < self.len
 
     @java_method('()Ljava/lang/Object;')
     def next(self):
         text = self.text[self.index]
         meta = self.meta.__next__()
-        print("next %d" % self.index)
         self.index += 1
+        global lastdoc
         if self.convertFn is not None:
-            return self.convertFn(text, meta)
-        return [text, meta]
+            lastdoc = self.convertFn(text, meta)
+        else:
+            lastdoc = [text, meta]
+        return lastdoc
 
 class FlatJSONDocumentIterator(PythonJavaClass):
     __javainterfaces__ = ['java/util/Iterator']
@@ -440,7 +439,9 @@ class FlatJSONDocumentIterator(PythonJavaClass):
         result = self._next
         self._next = next(self._it, StopIteration)
         if result is not StopIteration:
-            return FlatJSONDocument(json.dumps(result))
+            global lastdoc
+            lastdoc = FlatJSONDocument(json.dumps(result))
+            return lastdoc
         return None
 
 class IterDictIndexer(Indexer):
@@ -473,6 +474,8 @@ class IterDictIndexer(Indexer):
         javaDocCollection = autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
         index = self.createIndexer()
         index.index([javaDocCollection])
+        global lastdoc
+        lastdoc = None
         self.index_called = True
         collectionIterator = None
         if self.type is IndexingType.MEMORY:
@@ -531,6 +534,8 @@ class TRECCollectionIndexer(Indexer):
             colObj = TQDMCollection(colObj)
             collsArray = autoclass("org.terrier.python.PTUtils").makeCollection(colObj)
         index.index(collsArray)
+        global lastdoc
+        lastdoc = None
         colObj.close()
         self.index_called = True
         if self.type is IndexingType.MEMORY:
@@ -559,6 +564,8 @@ class FilesIndexer(Indexer):
         asList = self.createAsList(files_path)
         simpleColl = SimpleFileCollection(asList, False)
         index.index([simpleColl])
+        global lastdoc
+        lastdoc = None
         self.index_called = True
         if self.type is IndexingType.MEMORY:
             return index.getIndex().getIndexRef()
@@ -595,7 +602,9 @@ class TQDMSizeCollection(PythonJavaClass):
 
     @java_method('()Lorg/terrier/indexing/Document;')
     def getDocument(self):
-        return self.collection.getDocument()
+        global lastdoc
+        lastdoc = self.collection.getDocument()
+        return lastdoc
         
 
 
@@ -636,5 +645,7 @@ class TQDMCollection(PythonJavaClass):
 
     @java_method('()Lorg/terrier/indexing/Document;')
     def getDocument(self):
-        return self.collection.getDocument()
+        global lastdoc
+        lastdoc = self.collection.getDocument()
+        return lastdoc
         
