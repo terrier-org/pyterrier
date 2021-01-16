@@ -1,4 +1,4 @@
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 import os
 from .bootstrap import _logging, setup_terrier, setup_jnius
