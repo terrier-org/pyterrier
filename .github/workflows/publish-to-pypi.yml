@@ -15,7 +15,9 @@ jobs:
     runs-on: ubuntu-18.04
 
     steps:
+    - name: Display phase
       run: echo "Deploying $GITHUB_EVENT_INPUT_RELEASETYPE to PyPI"
+
     - uses: actions/checkout@master
     - name: Set up Python 3.7
       uses: actions/setup-python@v1
