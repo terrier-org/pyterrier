@@ -20,7 +20,7 @@ class TestDFIndexer(BaseTestCase):
         print("Deleting " + self.test_dir)
 
     def _create_index(self, type, dfText, dfMeta):
-        print("Writing index to " + self.test_dir)
+        print("Writing index type "+str(type)+" to " + self.test_dir)
         pd_indexer = pt.DFIndexer(self.test_dir, type=type)
         indexref = pd_indexer.index(dfText, dfMeta)
         self.assertIsNotNone(indexref)
