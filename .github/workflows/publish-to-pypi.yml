@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-18.04
 
     steps:
+      run: echo "Deploying $GITHUB_EVENT_INPUT_RELEASETYPE to PyPI"
     - uses: actions/checkout@master
     - name: Set up Python 3.7
       uses: actions/setup-python@v1
@@ -24,14 +25,14 @@ jobs:
       run: python setup.py sdist
   
     - name: Publish distribution 📦 to Test PyPI
-      if: startsWith(github.event.input.releasetype, 'test')
+      if: github.event.input.releasetype == 'test'
       uses: pypa/gh-action-pypi-publish@master
       with:
         password: ${{ secrets.test_pypi_password }}
         repository_url: https://test.pypi.org/legacy/
 
     - name: Publish distribution 📦 to PyPI
-      if: startsWith(github.event.input.releasetype, 'release')
+      if: github.event.input.releasetype == 'release'
       uses: pypa/gh-action-pypi-publish@master
       with:
         password: ${{ secrets.pypi_password }}
