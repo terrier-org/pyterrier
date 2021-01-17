@@ -1,8 +1,46 @@
 from .base import BaseTestCase
 import pandas as pd
 from pyterrier.model import add_ranks, FIRST_RANK, coerce_queries_dataframe
-
+import pyterrier as pt
 class TestModel(BaseTestCase):
+
+    def test_push_query(self):
+        df = pt.new.queries(["q1", "q2"])
+        self.assertEqual(2, len(df))
+
+        df2 = pt.model.push_queries(df, keep_original=False)
+        self.assertTrue("query_0" in df2)
+        self.assertFalse("query" in df2)
+
+        df2 = pt.model.push_queries(df, keep_original=True)
+        self.assertTrue("query_0" in df2)
+        self.assertTrue("query" in df2)
+        
+        df3 = pt.model.push_queries(df2, keep_original=True)
+        self.assertTrue("query_0" in df3)
+        self.assertTrue("query_1" in df3)
+        self.assertTrue("query" in df3)
+    
+    def test_pop_query(self):
+        df = pt.new.queries(["q1", "q2"])
+        self.assertEqual(2, len(df))
+
+        df2 = pt.model.push_queries(df, keep_original=False)
+        self.assertTrue("query_0" in df2)
+        self.assertFalse("query" in df2)
+        df2["query"] = ["a", "b"]
+        self.assertTrue("query" in df2)
+        self.assertEqual("q1", df2.iloc[0]["query_0"])
+        self.assertEqual("q2", df2.iloc[1]["query_0"])
+
+        df3 = pt.model.pop_queries(df2)
+        self.assertFalse("query_1" in df3)
+        self.assertTrue("query" in df3)
+        # check that we dont have duplicated query column
+        self.assertEqual(2, len(df3.columns))
+        self.assertEqual("q1", df3.iloc[0]["query"])
+        self.assertEqual("q2", df3.iloc[1]["query"])
+
 
     def test_rank_zero_query(self):
         df = pd.DataFrame([], columns=["qid", "docno", "score"])

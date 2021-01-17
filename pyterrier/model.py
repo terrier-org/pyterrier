@@ -9,7 +9,7 @@ FIRST_RANK = 0
 # as well as having correct ranks assigned
 STRICT_SORT = False
 
-def add_ranks(rtr):
+def add_ranks(rtr : pd.DataFrame):
     rtr.drop(columns=["rank"], errors="ignore", inplace=True)
     if len(rtr) == 0:
         rtr["rank"] = pd.Series(index=rtr.index, dtype='int64')
@@ -20,6 +20,72 @@ def add_ranks(rtr):
     if STRICT_SORT:
         rtr.sort_values(["qid", "rank"], ascending=[True,True], inplace=True )
     return rtr
+
+
+def _last_query(df : pd.DataFrame) -> int:
+    """
+        Returns the index of the last query column.
+        Given a dataframe, returns:
+
+            -1 is there is only a query column
+            0 query_0 exists
+            1 query_1 exists
+    """
+    last = -1
+    columns = set(df.columns)
+    while True:
+        if not "query_%d" % (last+1) in columns:
+            break
+        last+=1
+        
+    #print("input %s rtr %d" % (str(columns), last))
+    return last
+
+def push_queries(df: pd.DataFrame, keep_original:bool=False, inplace:bool=False) -> pd.DataFrame:
+    """
+        Changes a dataframe such that the "query" column becomes "query_0", and any
+        "query_0" columns becames "query_1" etc.
+
+        Arguments:
+            df: Dataframe with a "query" column
+            keep_original: if True, the query column is also left unchanged. Useful for client code. 
+                Defaults to False.
+            inplace: if False, a copy of the dataframe is returned. If True, changes are made to the
+                supplied dataframe. Defaults to False. 
+    """
+    if "query" not in df.columns:
+        raise TypeError("Expected a query column, but found %s" % df.columns) 
+    df = df if inplace else df.copy()
+    last_col = _last_query(df)
+    rename_cols={}
+    if last_col >= 0: 
+        rename_cols = { "query_%d" % col_index : "query_%d" % (col_index+1) for col_index in range(0, last_col+1) }
+    rename_cols["query"] = "query_0"
+    df = df.rename(columns=rename_cols)
+    if keep_original:
+        df['query'] = "query_0"
+    return df
+
+def pop_queries(df: pd.DataFrame, inplace:bool=False):
+    """
+        Changes a dataframe such that the "query_0" column becomes "query_1", and any
+        "query_1" columns becames "query_0" etc. In effect, does the opposite of push_queries().
+        The current "query" column is dropped.
+
+        Arguments:
+            df: Dataframe with a "query" column
+            inplace: if False, a copy of the dataframe is returned. If True, changes are made to the
+                supplied dataframe. Defaults to False. 
+    """
+    if "query_0" not in df.columns:
+        raise TypeError("Expected a query_0 column, but found %s" % df.columns) 
+    last_col = _last_query(df)
+    df = df if inplace else df.copy()
+    df.drop(columns=["query"], inplace=True)
+    rename_cols = { "query_%d" % (col_index+1) : "query_%d" % (col_index) for col_index in range(0, last_col+1) }
+    rename_cols["query_0"] = "query"
+    df = df.rename(columns=rename_cols)
+    return df
     
 def coerce_queries_dataframe(query):
     """
