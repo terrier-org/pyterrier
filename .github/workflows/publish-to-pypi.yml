@@ -19,11 +19,18 @@ jobs:
       run: echo "Deploying "${{github.event.inputs.releasetype}}" $INPUT_RELEASETYPE to PyPI"
 
     - uses: actions/checkout@master
+
     - name: Set up Python 3.7
       uses: actions/setup-python@v1
       with:
         python-version: 3.7
-    - name: Build a source tarball
+
+    - name: Build a test source tarball
+      if: github.event.inputs.releasetype == 'test'
+      run: PYTERRIER_VERSION_SUFFIX=".`date +%s`" python setup.py sdist
+
+    - name: Build a release source tarball
+      if: github.event.inputs.releasetype == 'release'
       run: python setup.py sdist
   
     - name: Publish distribution 📦 to Test PyPI
