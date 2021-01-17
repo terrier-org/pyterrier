@@ -63,7 +63,7 @@ def push_queries(df: pd.DataFrame, keep_original:bool=False, inplace:bool=False)
     rename_cols["query"] = "query_0"
     df = df.rename(columns=rename_cols)
     if keep_original:
-        df['query'] = "query_0"
+        df['query'] = df["query_0"]
     return df
 
 def pop_queries(df: pd.DataFrame, inplace:bool=False):

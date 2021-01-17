@@ -9,33 +9,38 @@ class TestModel(BaseTestCase):
         self.assertEqual(2, len(df))
 
         df2 = pt.model.push_queries(df, keep_original=False)
-        self.assertTrue("query_0" in df2)
-        self.assertFalse("query" in df2)
+        self.assertTrue("query_0" in df2.columns)
+        self.assertFalse("query" in df2.columns)
+        self.assertEqual("q1", df2.iloc[0]["query_0"])
+        self.assertEqual("q2", df2.iloc[1]["query_0"])
 
         df2 = pt.model.push_queries(df, keep_original=True)
-        self.assertTrue("query_0" in df2)
-        self.assertTrue("query" in df2)
+        for col in ["query", "query_0"]:
+            self.assertTrue(col in df2.columns)
+            self.assertEqual("q1", df2.iloc[0][col])
+            self.assertEqual("q2", df2.iloc[1][col])
         
         df3 = pt.model.push_queries(df2, keep_original=True)
-        self.assertTrue("query_0" in df3)
-        self.assertTrue("query_1" in df3)
-        self.assertTrue("query" in df3)
+        for col in ["query", "query_0", "query_1"]:
+            self.assertTrue(col in df3.columns)
+            self.assertEqual("q1", df3.iloc[0][col])
+            self.assertEqual("q2", df3.iloc[1][col])
     
     def test_pop_query(self):
         df = pt.new.queries(["q1", "q2"])
         self.assertEqual(2, len(df))
 
         df2 = pt.model.push_queries(df, keep_original=False)
-        self.assertTrue("query_0" in df2)
-        self.assertFalse("query" in df2)
+        self.assertTrue("query_0" in df2.columns)
+        self.assertFalse("query" in df2.columns)
         df2["query"] = ["a", "b"]
-        self.assertTrue("query" in df2)
+        self.assertTrue("query" in df2.columns)
         self.assertEqual("q1", df2.iloc[0]["query_0"])
         self.assertEqual("q2", df2.iloc[1]["query_0"])
 
         df3 = pt.model.pop_queries(df2)
-        self.assertFalse("query_1" in df3)
-        self.assertTrue("query" in df3)
+        self.assertFalse("query_1" in df3.columns)
+        self.assertTrue("query" in df3.columns)
         # check that we dont have duplicated query column
         self.assertEqual(2, len(df3.columns))
         self.assertEqual("q1", df3.iloc[0]["query"])
