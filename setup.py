@@ -54,6 +54,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     package_data={'': ['LICENSE.txt', 'requirements.txt', 'requirements-test.txt']},
+    include_package_data=True,
     url="https://github.com/terrier-org/pyterrier",
     packages=['pyterrier'] + ['pyterrier.' + i for i in find_packages('pyterrier')],
     classifiers=[
