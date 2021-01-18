@@ -4,6 +4,21 @@ from pyterrier.model import add_ranks, FIRST_RANK, coerce_queries_dataframe
 import pyterrier as pt
 class TestModel(BaseTestCase):
 
+    def test_query_cols(self):
+        df = pt.new.queries(["q1", "q2"])
+        self.assertEqual(2, len(df))
+        df2 = pt.model.push_queries(df, keep_original=True)
+        query_cols = pt.model.query_columns(df2)
+        for col in ["qid", "query", "query_0"]:
+            self.assertTrue(col in query_cols)
+
+        df3 = pt.new.ranked_documents([[1]], query=[["hello"]])
+        query_cols = pt.model.query_columns(df3)
+        for col in ["qid", "query"]:
+            self.assertTrue(col in query_cols)
+        for col in ["docno", "score", "rank"]:
+            self.assertFalse(col in query_cols)
+
     def test_push_query(self):
         df = pt.new.queries(["q1", "q2"])
         self.assertEqual(2, len(df))

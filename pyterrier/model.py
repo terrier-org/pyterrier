@@ -1,4 +1,5 @@
 import pandas as pd
+from typing import Sequence
 
 # This file has useful methods for using the Pyterrier Pandas datamodel
 
@@ -21,6 +22,23 @@ def add_ranks(rtr : pd.DataFrame):
         rtr.sort_values(["qid", "rank"], ascending=[True,True], inplace=True )
     return rtr
 
+def query_columns(df : pd.DataFrame, qid=True) -> Sequence[str]:
+    """
+        Given a dataframe, returns the names of all columns that contain the current query or
+        previous generations of the query (as performed by `push_queries()`).
+    """
+    columns=set(df.columns)
+    rtr = []
+    if qid and "qid" in columns:
+        rtr.append("qid")
+    if "query" in columns:
+        rtr.append("query")
+    import re
+    query_col_re = re.compile('^query_[\\d]+')
+    for c in columns:
+        if query_col_re.search(c):
+            rtr.append(c)
+    return rtr
 
 def _last_query(df : pd.DataFrame) -> int:
     """
@@ -30,6 +48,8 @@ def _last_query(df : pd.DataFrame) -> int:
             -1 is there is only a query column
             0 query_0 exists
             1 query_1 exists
+            etc
+        
     """
     last = -1
     columns = set(df.columns)
