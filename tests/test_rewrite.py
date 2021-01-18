@@ -42,10 +42,16 @@ class TestRewrite(BaseTestCase):
         queriesOut = sdm.transform(queriesIn)
         self.assertEqual(len(queriesOut), 2)
         self.assertEqual(queriesOut.iloc[0]["query"], "compact")
+
+        # check for pushed query representation        
+        self.assertTrue("query_0" in queriesOut.columns)
+        self.assertEqual(queriesOut.iloc[0]["query_0"], "compact")
+
         query2 = queriesOut.iloc[1]["query"]
         self.assertTrue("#1" in query2)
         self.assertTrue("#uw8" in query2)
         self.assertTrue("#combine" in query2)
+        self.assertEqual(queriesOut.iloc[1]["query_0"], "compact memories")
         
         br_normal = pt.BatchRetrieve(indexref)
         pipe = sdm >> br_normal
@@ -153,6 +159,8 @@ class TestRewrite(BaseTestCase):
 
             queriesOut = qe.transform(res)
             self.assertEqual(len(queriesOut), 1)
+            self.assertTrue("query_0" in queriesOut.columns)
+            self.assertEqual(queriesOut.iloc[0]["query_0"], "compact")
             query = queriesOut.iloc[0]["query"]
             self.assertTrue("compact^1.82230972" in query)
             self.assertTrue("applypipeline:off " in query)
