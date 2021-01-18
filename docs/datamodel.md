@@ -31,7 +31,7 @@ pt.new.queries(["a query"], qid=["q1"])
 ```
 
 When a query has been rewritten, for instance by applying the sequential dependence model or
-query expansion, the previous formulation of the query is available under the "query_1" attribute.
+query expansion, the previous formulation of the query is available under the "query_0" attribute.
 
 ## 2. Set of documents (D)
 
