@@ -85,7 +85,7 @@ def ranked_documents(
             R4 = pt.new.ranked_documents([[1]], qid=["q100"])
 
             # one query, one document, qid and docno specified
-            R5 = pt.new.ranked_documents([[1]], qid=["q100"], docno=[["d20]])
+            R5 = pt.new.ranked_documents([[1]], qid=["q100"], docno=[["d20"]])
 
     """
     
