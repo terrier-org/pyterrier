@@ -25,6 +25,13 @@ An example dataframe with one query might be constructed as:
 ```python
 pd.DataFrame([["q1", "a query"]], columns=["qid", "query")
 ```
+or `pt.new.ranked_documents()`
+```python
+pt.new.queries(["a query"], qid=["q1"])
+```
+
+When a query has been rewritten, for instance by applying the sequential dependence model or
+query expansion, the previous formulation of the query is available under the "query_1" attribute.
 
 ## 2. Set of documents (D)
 
@@ -51,7 +58,11 @@ Note that the retrieved documents is a subset of the cartesian product of docume
 An example dataframe with two documents might be constructed as:
 
 ```python
-pd.DataFrame([["q1", "a query", "d5", 5.2, 1], ["q1", None, "d10", 4.9, 2]], columns=["qid", "query", "docno", "score", "rank")
+pd.DataFrame([["q1", "a query", "d5", 5.2, 9], ["q1", None, "d10", 4.9, 1]], columns=["qid", "query", "docno", "score", "rank")
+```
+or using `pt.new.ranked_documents()`:
+```python
+pt.new.ranked_documents([[5.2, 4.9]], qid=["q1"], docno=[["d5", "d10"]])
 ```
 
 ## 4. Set of documents with features
