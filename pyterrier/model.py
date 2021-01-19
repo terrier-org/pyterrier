@@ -10,8 +10,17 @@ FIRST_RANK = 0
 # as well as having correct ranks assigned
 STRICT_SORT = False
 
-def add_ranks(rtr : pd.DataFrame):
-    rtr.drop(columns=["rank"], errors="ignore", inplace=True)
+def add_ranks(rtr : pd.DataFrame, inplace:bool=True) -> pd.DataFrame:
+    """
+        Canonical method for adding a rank column which is calculated based on the score attribute
+        for each query. Note that the dataframe is NOT sorted by this operation.
+
+        Arguments
+            df: dataframe to create rank attribute for
+            inplace: whether to return a new dataframe, or alter the current one. 
+                Defaults to True, as most transformers create a new dataframe within transform().
+    """
+    rtr = rtr.drop(columns=["rank"], errors="ignore", inplace=inplace)
     if len(rtr) == 0:
         rtr["rank"] = pd.Series(index=rtr.index, dtype='int64')
         return rtr
@@ -19,13 +28,17 @@ def add_ranks(rtr : pd.DataFrame):
     # -1 assures that first rank will be FIRST_RANK
     rtr["rank"] = rtr.groupby("qid", sort=False).rank(ascending=False, method="first")["score"].astype(int) -1 + FIRST_RANK
     if STRICT_SORT:
-        rtr.sort_values(["qid", "rank"], ascending=[True,True], inplace=True )
+        rtr = rtr.sort_values(["qid", "rank"], ascending=[True,True], inplace=inplace )
     return rtr
 
 def query_columns(df : pd.DataFrame, qid=True) -> Sequence[str]:
     """
         Given a dataframe, returns the names of all columns that contain the current query or
         previous generations of the query (as performed by `push_queries()`).
+
+        Arguments:
+            df: Dataframe of queries to consider
+            qid: whether to include the "qid" column in the returned list
     """
     columns=set(df.columns)
     rtr = []
