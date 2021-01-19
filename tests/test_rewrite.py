@@ -18,6 +18,22 @@ class TestRewrite(BaseTestCase):
         # Remove the directory after the test
         shutil.rmtree(self.test_dir)
 
+    def test_reset_with_docs(self):
+        inputDF = pt.new.ranked_documents([[1, 2], [2,0]])
+        inputDF["query"] = ["one #1", "one #1", "one two #1", "one two #1"]
+        inputDF["query_0"] = ["one", "one", "one two", "one two"]
+        outputDF = pt.rewrite.reset().transform(inputDF)
+        self.assertEqual(len(inputDF), len(outputDF))
+        self.assertTrue("query" in outputDF.columns)
+        self.assertFalse("query_0" in outputDF.columns)
+        self.assertTrue("docno" in outputDF.columns)
+        self.assertTrue("score" in outputDF.columns)
+        self.assertTrue("rank" in outputDF.columns)
+        self.assertEqual(outputDF.iloc[0]["query"], "one")
+        self.assertEqual(outputDF.iloc[1]["query"], "one")
+        self.assertEqual(outputDF.iloc[2]["query"], "one two")
+        self.assertEqual(outputDF.iloc[3]["query"], "one two")
+
     def test_sdm_freq(self):
         if not pt.check_version("5.3"):
             self.skipTest("Requires Terrier 5.3")
