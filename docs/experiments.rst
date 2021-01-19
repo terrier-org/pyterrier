@@ -1,9 +1,11 @@
 Running Experiments
 -------------------
 
-PyTerrier aims to make it easy to conduct an information retrieval experiment, namely in running a transformer 
-pipeline over a set of queries, and evaluating the outcome using standard information retrieval metrics (as calculated
-by the `pytrec_eval <https://github.com/cvangysel/pytrec_eval>`_ tool.
+PyTerrier aims to make it easy to conduct an information retrieval experiment, namely, to run a transformer 
+pipeline over a set of queries, and evaluating the outcome using standard information retrieval evaluation 
+metrics based on known relevant documents (obtained from a set relevance assessments, also known as *qrels*).
+The evaluation metrics are calculated by the `pytrec_eval <https://github.com/cvangysel/pytrec_eval>`_ library,
+a Python wrapper around the widely-used `trec_eval evaluation tool <https://github.com/usnistgov/trec_eval>`_.
 
 The main way to achieve this is using `pt.Experiment()`.
 
@@ -57,7 +59,8 @@ This produces dataframes that are more easily interpretable.
 Significance Testing
 ~~~~~~~~~~~~~~~~~~~~
 
-We can perform significance testing by declaring the index of our baseline using `baseline=0`::
+We can perform significance testing by specifying the index of which transformer we consider to be our baseline,
+e.g. `baseline=0`::
 
     pt.Experiment(
         [tfidf, bm25],
@@ -71,15 +74,15 @@ We can perform significance testing by declaring the index of our baseline using
 In this case, additional columns are returned for each measure, indicating 
 the number of queries improved compared to the baseline, the number of queries
 degraded, as well as the paired t-test p-value in the difference between each
-row and the baseline row. NB: For the baseline, these values are NaN.
+row and the baseline row. NB: For the baseline, these values are NaN (not applicable).
 
 .. include:: ./_includes/experiment-sig.rst
 
 For this test collection, between the TF_IDF and BM25 weighting models, there is no 
-significant difference observed for in MAP, but there is for mean reciprocal rank (*p<0.05*). Indeed,
-while BM25 improves average precision for 46 queries over TF_IDF, it degrades it for 45; on the 
-other hand, the rank of the first relevant document is improved for 16 queries by BM25 over
-TD_IDF.
+significant difference observed in terms of MAP, but there is a significant different in terms of 
+mean reciprocal rank (*p<0.05*). Indeed, while BM25 improves average precision for 46 queries 
+over TF_IDF, it degrades it for 45; on the other hand, the rank of the first relevant document 
+is improved for 16 queries by BM25 over TD_IDF.
 
 
 Per-query Effectiveness

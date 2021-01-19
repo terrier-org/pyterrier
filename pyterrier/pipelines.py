@@ -56,14 +56,14 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
         qrels: Either a path to a qrels file or a pandas.Dataframe with columns=['qid','docno', 'label']   
         eval_metrics(list): Which evaluation metrics to use. E.g. ['map']
         names(list): List of names for each retrieval system when presenting the results.
-            Default=None. If None: Use names of weighting models for each retrieval system.
-        perquery(bool): If true return each metric for each query, else return mean metrics. Default=False.
+            Default=None. If None: Obtains the `str()` representation of each transformer as its name.
+        perquery(bool): If true return each metric for each query, else return mean metrics across all queries. Default=False.
         dataframe(bool): If True return results as a dataframe. Else as a dictionary of dictionaries. Default=True.
         baseline(int): If set to the index of an item of the retr_system list, will calculate the number of queries 
             improved, degraded and the statistical significance (paired t-test p value) for each measure.
             Default=None: If None, no additional columns added for each measure
-        highlight(str) : If "bold", highlights in bold the best measure value in each column; 
-            if "color" or "colour" uses green to indicate highest values
+        highlight(str) : If `highlight="bold"`, highlights in bold the best measure value in each column; 
+            if `highlight="color"` or `"colour"`, then the cell with the highest metric value will have a green background.
 
     Returns:
         A Dataframe with each retrieval system with each metric evaluated.
