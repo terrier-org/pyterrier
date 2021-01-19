@@ -13,12 +13,15 @@ DependenceModelPreProcess = pt.autoclass("org.terrier.querying.DependenceModelPr
 
 def reset() -> TransformerBase:
     """
-        Undoes a query rewriting operation. This results in the query formulation stored in the `"query_0"`
+        Undoes a previous query rewriting operation. This results in the query formulation stored in the `"query_0"`
         attribute being moved to the `"query"` attribute, and, if present, the `"query_1"` being moved to
         `"query_0"` and so on. This transformation is useful if you have rewritten the query for the purposes
         of one retrieval stage, but wish a subquent transformer to be applies on the original formulation.
 
+        Internally, this function applies `pt.model.pop_queries()`.
+
         Example::
+
             firststage = pt.rewrite.SDM() >> pt.BatchRetrieve(index, wmodel="DPH")
             secondstage = pyterrier_bert.cedr.CEDRPipeline()
             fullranker = firststage >> pt.rewrite.reset() >> secondstage
