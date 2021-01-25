@@ -182,8 +182,8 @@ class Bo1QueryExpansion(DFRQueryExpansion):
         """
         Args:
             index_like: the Terrier index to use.
-            fb_terms(int): number of terms to add to the query
-            fb_docs(int): number of feedback documents to consider
+            fb_terms(int): number of terms to add to the query. Terrier's default setting is 10 expansion terms.
+            fb_docs(int): number of feedback documents to consider. Terrier's default setting is 3 feedback documents.
         """
         kwargs["qemodel"] = "Bo1"
         super().__init__(*args, **kwargs)
@@ -193,8 +193,8 @@ class KLQueryExpansion(DFRQueryExpansion):
         """
         Args:
             index_like: the Terrier index to use
-            fb_terms(int): number of terms to add to the query
-            fb_docs(int): number of feedback documents to consider
+            fb_terms(int): number of terms to add to the query. Terrier's default setting is 10 expansion terms.
+            fb_docs(int): number of feedback documents to consider. Terrier's default setting is 3 feedback documents.
         """
         kwargs["qemodel"] = "KL"
         super().__init__(*args, **kwargs)
@@ -208,8 +208,8 @@ class RM3(QueryExpansion):
         """
         Args:
             index_like: the Terrier index to use
-            fb_terms(int): number of terms to add to the query
-            fb_docs(int): number of feedback documents to consider
+            fb_terms(int): number of terms to add to the query. Terrier's default setting is 10 expansion terms.
+            fb_docs(int): number of feedback documents to consider. Terrier's default setting is 3 feedback documents.
         """
         global terrier_prf_package_loaded
 
@@ -247,8 +247,8 @@ class AxiomaticQE(QueryExpansion):
         """
         Args:
             index_like: the Terrier index to use
-            fb_terms(int): number of terms to add to the query
-            fb_docs(int): number of feedback documents to consider
+            fb_terms(int): number of terms to add to the query. Terrier's default setting is 10 expansion terms.
+            fb_docs(int): number of feedback documents to consider. Terrier's default setting is 3 feedback documents.
         """
         global terrier_prf_package_loaded
 
