@@ -7,11 +7,13 @@ search ranking. PyTerrier supplies a number of query rewriting transformers desi
 Firstly, we differentiate between two forms of query rewriting:
 
  - `Q -> Q`: this rewrites the query, for instance by adding/removing extra query terms. Examples might 
-   be a WordNet- or Word2Vec-based QE; The input dataframes contain only `["qid", "docno"]` columns and
+   be a WordNet- or Word2Vec-based query expansion, or proximity query rewriting, such as the sequential
+   dependence model. In this form, the input dataframes contain only `["qid", "docno"]` columns and
    similarly, the output dataframes contain only `["qid", "docno"]` columns.
 
- - `R -> Q`: these class of transformers rewrite a query by makiung use of am associated set of documents.
-   This is typically exemplifed by pseudo-relevance feedback.
+ - `R -> Q`: these class of transformers rewrite a query by making use of an associated set of documents
+   for each query. This is exemplifed by pseudo-relevance feedback, where expansion terms are identified
+   from the retrieved documents of each query.
 
 SequentialDependence
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -25,7 +27,7 @@ each input query such that:
  - all terms are weighted by a proximity model, either Dirichlet LM or pBiL2.
 
 For example, the query `pyterrier IR platform` would become `pyterrier IR platform #1(pyterrier IR) #1(IR platform) #uw8(pyterrier IR) #uw8(IR platform) #uw12(pyterrier IR platform)`.
-This is simplified - in practice, we also (a) set the weight of the proximity terms to be low using a `#combine()`
+NB: Acutally, we have simplified the rewritten query - in practice, we also (a) set the weight of the proximity terms to be low using a `#combine()`
 operator and (b) set a proximity term weighting model.
 
 This transfomer is only compatible with BatchRetrieve, as Terrier supports the `#1` and `#uwN` complex query terms operators.
@@ -46,7 +48,7 @@ References:
 Bo1QueryExpansion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This applies the Bo1 Divergence from Randomess query expansion model to rewrite the
+This class applies the Bo1 Divergence from Randomess query expansion model to rewrite the
 query based on the occurences of terms in the feedback documents provided for each
 query. In this way, it takes in a dataframe with columns `["qid", "query", "docno", "score", "rank"]`
 and returns a dataframe with  `["qid", "query"]`.
@@ -79,7 +81,7 @@ References:
 KLQueryExpansion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Similar to Bo1, a Divergence from Randomess query expansion model based on Kullback Leibler divergence.
+Similar to Bo1, this class deploys a Divergence from Randomess query expansion model based on Kullback Leibler divergence.
 
 .. autoclass:: pyterrier.rewrite.KLQueryExpansion
     :members: transform 
