@@ -4,10 +4,11 @@ pyterrier.apply - Custom Transformers
 -------------------------------------
 
 PyTerrier pipelines are easily extensible through the use of apply functions.
-These are inspired by the `Pandas apply() <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.apply.html>`_, 
-which allow to apply a function to each row of a dataframe. Instead, in PyTerrier, 
-apply small functions (including Python lambdas) to allow to easily construct 
-pipeline transformers to address common use cases.
+These are inspired by the `Pandas apply() <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.apply.html>`_
+method, which allow to apply a function to each row of a dataframe. Instead, 
+in PyTerrier, the apply methods allow to construct pipeline transformers 
+to address common use cases by using custom functions (including Python lambda
+functions) to easily transform inputs.
 
 The table below lists the main classes of transformation in the PyTerrier data 
 model, as well as the appropriate apply method to use in each case. In general,
@@ -36,7 +37,7 @@ function.
 +-------+---------+-------------+------------------+---------------------------+----------------------+------------------+
 
 In each case, the result from calling a pyterrier.apply method is another PyTerrier transformer 
-(i.e. extends TransformerBase), and which can be used for experimentation or combined with other 
+(i.e. extends TransformerBase), which can be used for experimentation or combined with other 
 PyTerrier transformers through the standard PyTerrier operators.
 
 If `verbose=True` is passed to any pyterrier apply method (except `generic()`), then a `TQDM <https://tqdm.github.io/>`_ 
