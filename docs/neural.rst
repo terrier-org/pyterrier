@@ -1,3 +1,5 @@
+.. _neural:
+
 Neural Rankers and Rerankers
 ----------------------------
 
@@ -85,17 +87,15 @@ Long documents are broken up into passages using a sliding-window operation. The
 document is the maximum of any consitutent passages::
 
     from pyterrier_bert.colbert import ColBERTPipeline
-    from pyterrier_bert.passager import SlidingWindowPassager, MaxPassage
 
     pipeline = DPH_br_body >> \
-        SlidingWindowPassager() >> \
+        pt.text.sliding() >> \
         ColBERTPipeline("/path/to/checkpoint") >> \
-        MaxPassage()
+        pt.text.max_passage()
 
 Outlook
 =======
 
 We continue to work on improving the integration of neural rankers and re-rankers within PyTerrier. We foresee:
  - easier indexing of text.
- - integration of text transformations such as SlidingWindowPassager within PyTerrier.
  - first-stage dense retrieval transformers. 

@@ -13,3 +13,6 @@ requests
 nptyping
 tabulate
 jinja2
+sphinx_rtd_theme
+more_itertools
+myst_parser

@@ -16,6 +16,7 @@ model = None
 new = None
 pipelines = None
 rewrite = None
+text = None
 transformer = None
 
 file_path = os.path.dirname(os.path.abspath(__file__))
@@ -122,30 +123,8 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     globals()["cast"] = cast
     globals()["ApplicationSetup"] = ApplicationSetup
 
-    
-    global anserini
-    global apply
-    global cache
-    global index
-    global io
-    global apply
-    global ltr
-    global model
-    global new
-    global pipelines
-    global rewrite
-    global transformer
-    anserini = importlib.import_module('.anserini', package='pyterrier') 
-    cache = importlib.import_module('.cache', package='pyterrier')
-    index = importlib.import_module('.index', package='pyterrier') 
-    io = importlib.import_module('.io', package='pyterrier')
-    new = importlib.import_module('.new', package='pyterrier')
-    ltr = importlib.import_module('.ltr', package='pyterrier')
-    apply = importlib.import_module('.apply', package='pyterrier')
-    model = importlib.import_module('.model', package='pyterrier')
-    pipelines = importlib.import_module('.pipelines', package='pyterrier') 
-    rewrite = importlib.import_module('.rewrite', package='pyterrier')
-    transformer = importlib.import_module('.transformer', package='pyterrier')
+    for sub_module_name in ['anserini', 'apply', 'cache', 'index', 'io', 'model', 'new', 'ltr', 'pipelines', 'rewrite', 'text', 'transformer']:
+        globals()[sub_module_name] = importlib.import_module('.' + sub_module_name, package='pyterrier') 
 
     # append the python helpers
     if packages is None:
