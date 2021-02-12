@@ -1,13 +1,44 @@
+.. _pt.text:
+
 Working with Document Texts
 ---------------------------
 
 Many modern retrieval techniques are concerned with operating directly on the text of documents. PyTerrier supports these
 forms of interactions.
 
-Retrieving the Text of Documents
-================================
+Indexing and Retrieval of Text in Terrier indices
+=================================================
 
-When operating on the text of documents, you will need to have the text stored as an attribute in your dataframes.
+If you are using a Terrier index for your first-stage ranking, you will want to record the text
+of the documents in the MetaIndex. The following configuration demonstrates saving the title
+and remainder of the documents separately in the Terrier index MetaIndex when indexing a 
+TREC-formatted corpus::
+
+    files = []  # list of filenames to be indexed
+    indexer = pt.TRECCollectionIndexer(INDEX_DIR, 
+        # record that we save additional document metadata called 'textæ
+        meta= {'docno' : 26, 'text' : 2048},
+        # The tags from which to save the text. ELSE is special tag name, which means anything not consumed by other tags.
+        meta_tags = {'text' : 'ELSE'}
+        verbose=True)
+    indexref = indexer.index(files)
+    index = pt.IndexFactory.of(indexref)
+
+On the other-hand, for a TSV-formatted corpus such as MSMARCO passages, indexing is easier
+using IterDictIndexer::
+
+    def msmarco_generate():
+        dataset = pt.get_dataset(("trec-deep-learning-passages")
+        with pt.io.autoopen(dataset.get_corpus()[0], 'rt') as corpusfile:
+            for l in corpusfile:
+                docno, passage = l.split("\t")
+                yield {'docno' : docno, 'text' : passage}
+
+    iter_indexer = pt.IterDictIndexer("./passage_index")
+    indexref = iter_indexer.index(msmarco_generate(), meta={'docno' : 20, 'text': 4096})
+
+
+During retrieval you will need to have the text stored as an attribute in your dataframes.
 
 This can be achieved in one of several ways:
  - requesting document metadata when using `BatchRetrieve`
