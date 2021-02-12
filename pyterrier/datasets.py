@@ -32,7 +32,7 @@ class Dataset():
     def _configure(self, **kwargs):
         pass
 
-    def get_corpus_location(self):
+    def get_corpus(self):
         """ 
             Returns the location of the files to allow indexing the corpus, i.e. it returns a list of filenames.
         """
@@ -310,12 +310,13 @@ def remove_prefix(self, component, variant):
     return (topics, "direct")
 
 
-# a function to fix the namedpage TREC Web track 2002
+# a function to fix the namedpage TREC Web tracks 2001 and 2002
 def parse_desc_only(self, component, variant):
     import pyterrier as pt
-    file, type = self._get_one_file("topics_special_np")
+    file, type = self._get_one_file("topics_desc_only", variant=variant)
     topics = pt.io.read_topics(file, format="trec", whitelist=["DESC"], blacklist=None)
     topics["qid"] = topics.apply(lambda row: row["qid"].replace("NP", ""), axis=1)
+    topics["qid"] = topics.apply(lambda row: row["qid"].replace("EP", ""), axis=1)
     return (topics, "direct")
 
 TREC_WT_2002_FILES = {
@@ -324,9 +325,9 @@ TREC_WT_2002_FILES = {
             "td" : ("webtopics_551-600.txt.gz", "https://trec.nist.gov/data/topics_eng/webtopics_551-600.txt.gz", "trec"),
             "np" : parse_desc_only
         },
-    "topics_special_np" : [
-        ("webnamed_page_topics.1-150.txt.gz", "https://trec.nist.gov/data/topics_eng/webnamed_page_topics.1-150.txt.gz", "trec")
-    ],
+    "topics_desc_only" : {
+        "np" : ("webnamed_page_topics.1-150.txt.gz", "https://trec.nist.gov/data/topics_eng/webnamed_page_topics.1-150.txt.gz", "trec")
+    },
     "qrels" : 
         { 
             "np" : ("qrels.named-page.txt.gz", "https://trec.nist.gov/data/qrels_eng/qrels.named-page.txt.gz"),
@@ -460,6 +461,22 @@ TREC_WT2G_FILES = {
     "topics" : [ (  "topics.401-450.gz", "https://trec.nist.gov/data/topics_eng/topics.401-450.gz" ) ]
 }
 
+TREC_WT10G_FILES = {
+    "qrels" : {
+        "trec9" : ("qrels.trec9.main_web.gz", "https://trec.nist.gov/data/qrels_eng/qrels.trec9.main_web.gz"),
+        "trec10-adhoc" : ("qrels.trec10.main_web.gz", "https://trec.nist.gov/data/qrels_eng/qrels.trec10.main_web.gz"),
+        "trec10-hp" : ("qrels.trec10.entrypage.gz", "https://trec.nist.gov/data/qrels_eng/qrels.trec10.entrypage.gz"),
+    },
+    "topics" : {
+        "trec9" : (  "topics.451-500.gz", "https://trec.nist.gov/data/topics_eng/topics.451-500.gz" ),
+        "trec10-adhoc" : (  "topics.501-550.txt", "https://trec.nist.gov/data/topics_eng/topics.501-550.txt" ),
+         "trec10-hp" : parse_desc_only
+    },
+    "topics_desc_only" : {
+         "trec10-hp" : (  "entry_page_topics.1-145.txt", "https://trec.nist.gov/data/topics_eng/entry_page_topics.1-145.txt" ),
+    },
+}
+
 def _merge_years(self, component, variant):
     MAP_METHOD = { 
         "topics" : RemoteDataset.get_topics,
@@ -541,7 +558,7 @@ VASWANI_FILES = {
 DATASET_MAP = {
     # used for UGlasgow teaching
     "50pct" : RemoteDataset("50pct", FIFTY_PCT_FILES),
-    # umass antique corpus - see http://ciir.cs.umass.edu/downloads/Antique/
+    # umass antique corpus - see http://ciir.cs.umass.edu/downloads/Antique/ 
     "antique" : RemoteDataset("antique", ANTIQUE_FILES),
     # generated from http://ir.dcs.gla.ac.uk/resources/test_collections/npl/
     "vaswani": RemoteDataset("vaswani", VASWANI_FILES),
@@ -555,6 +572,8 @@ DATASET_MAP = {
     "trec-covid" : RemoteDataset("trec-covid", TREC_COVID_FILES),
     #wt2g
     "trec-wt2g" : RemoteDataset("trec-wt2g", TREC_WT2G_FILES),
+    #wt10g
+    "trec-wt10g" : RemoteDataset("trec-wt10g", TREC_WT10G_FILES),
     #.gov
     "trec-wt-2002" : RemoteDataset("trec-wt-2002", TREC_WT_2002_FILES),
     "trec-wt-2003" : RemoteDataset("trec-wt-2003", TREC_WT_2002_FILES),
