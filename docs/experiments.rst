@@ -21,7 +21,6 @@ Examples
 Average Effectiveness
 ~~~~~~~~~~~~~~~~~~~~~
 
-
 Getting average effectiveness over a set of topics::
 
     dataset = pt.get_dataset("vaswani")
@@ -55,6 +54,24 @@ Each row represents one system. We can manually set the names of the systems, us
 This produces dataframes that are more easily interpretable.
 
 .. include:: ./_includes/experiment-names.rst
+
+We can also reduce the number of decimal places reported using the `round=` kwarg, as follows::
+
+    pt.Experiment(
+        [tfidf, bm25],
+        dataset.get_topics(),
+        dataset.get_qrels(),
+        eval_metrics=["map", "recip_rank"],
+        round={"map" : 4, "recip_rank" : 3},
+        names=["TF_IDF", "BM25"]
+    )
+
+The result is as follows:
+
+.. include:: ./_includes/experiment-round.rst
+
+Passing an integer value to `round=` (e.g. `round=3`) applies rounding to all evaluation measures.
+
 
 Significance Testing
 ~~~~~~~~~~~~~~~~~~~~
