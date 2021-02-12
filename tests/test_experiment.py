@@ -29,11 +29,35 @@ class TestExperiment(BaseTestCase):
         ]
         topics = pt.datasets.get_dataset("vaswani").get_topics().head(10)
         qrels =  pt.datasets.get_dataset("vaswani").get_qrels()
-        pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], baseline=0, highlight="color")
-        pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], highlight="color")
         pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"])
+        pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], highlight="color")
         pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], baseline=0, highlight="color")
 
+    def test_various_metrics(self):
+        topics = pt.datasets.get_dataset("vaswani").get_topics().head(10)
+        res = [
+            pt.BatchRetrieve(pt.datasets.get_dataset("vaswani").get_index(), wmodel="DPH")(topics), 
+            pt.BatchRetrieve(pt.datasets.get_dataset("vaswani").get_index(), wmodel="BM25")(topics)
+        ]
+        
+        qrels =  pt.datasets.get_dataset("vaswani").get_qrels()
+        # what we ask for -> what we should get as a metric
+        family2measure = {
+            'ndcg_cut_5' : 'ndcg_cut_5',
+            'P' : "P_5",
+            'P_5' : "P_5",
+            "iprec_at_recall" : "iprec_at_recall_0.50",
+            "official" : "gm_map",
+            "set" : "set_recall",
+            "recall" : "recall_5"
+        }
+        for m in family2measure:
+            df1 = pt.Experiment(res, topics, qrels, eval_metrics=[m])
+            df2 = pt.Experiment(res, topics, qrels, eval_metrics=[m], baseline=0)
+            df3 = pt.Experiment(res, topics, qrels, eval_metrics=[m], perquery=True)
+            self.assertIn(family2measure[m], df1.columns)
+            self.assertIn(family2measure[m], df2.columns)
+            self.assertTrue(len(df3[df3["measure"] == family2measure[m]])>0)
 
     def test_differing_order(self):
         topics = pd.DataFrame([["q1", "q1"], ["q2", "q1"] ], columns=["qid", "query"])

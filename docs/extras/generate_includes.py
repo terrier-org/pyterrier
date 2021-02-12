@@ -67,6 +67,17 @@ def experiment_includes():
         [tfidf, bm25],
         dataset.get_topics(),
         dataset.get_qrels(),
+        eval_metrics=["official"],
+        names=["TF_IDF", "BM25"]
+    ).to_markdown(tablefmt="rst")
+
+    with open("_includes/experiment-official.rst", "wt") as f:
+        f.write(table)
+
+    table = pt.Experiment(
+        [tfidf, bm25],
+        dataset.get_topics(),
+        dataset.get_qrels(),
         eval_metrics=["map", "recip_rank"],
         round={"map" : 4, "recip_rank" : 3},
         names=["TF_IDF", "BM25"]
