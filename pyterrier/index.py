@@ -10,6 +10,12 @@ import pandas as pd
 import os
 import enum
 import json
+import tempfile
+import contextlib
+import threading
+import select
+import math
+from collections import deque
 
 StringReader = None
 HashMap = None
@@ -31,6 +37,8 @@ Properties = None
 CLITool = None
 IndexRef = None
 IndexFactory = None
+StructureMerger = None
+BlockStructureMerger = None
 
 
 # lastdoc ensures that a Document instance from a Collection is not GCd before Java has used it.
@@ -57,6 +65,8 @@ def run_autoclass():
     global CLITool
     global IndexRef
     global IndexFactory
+    global StructureMerger
+    global BlockStructureMerger
 
     StringReader = autoclass("java.io.StringReader")
     HashMap = autoclass("java.util.HashMap")
@@ -78,6 +88,8 @@ def run_autoclass():
     CLITool = autoclass("org.terrier.applications.CLITool")
     IndexRef = autoclass('org.terrier.querying.IndexRef')
     IndexFactory = autoclass('org.terrier.structures.IndexFactory')
+    StructureMerger = autoclass("org.terrier.structures.merging.StructureMerger")
+    BlockStructureMerger = autoclass("org.terrier.structures.merging.BlockStructureMerger")
 
 
 # Using enum class create enumerations
@@ -88,6 +100,16 @@ class IndexingType(enum.Enum):
     CLASSIC = 1 #: A classical indexing regime, which also creates a direct index structure, useful for query expansion
     SINGLEPASS = 2 #: A single-pass indexing regime, which builds an inverted index directly. No direct index structure is created. Typically is faster than classical indexing.
     MEMORY = 3 #: An in-memory index. No direct index is created.
+
+
+# Using enum class create enumerations
+class IndexingMode(enum.Enum):
+    """
+        This enum is used to determine the mode of multi-threaded indexing: deterministic or fast
+    """
+    DETERMINISTIC = 1 #: Repeated runs will always have the same result
+    FAST = 2 #: Repeated runs will not have the same result, but indexing is faster because documents can be better allocated to free theads
+
 
 class Indexer:
     """
@@ -178,27 +200,48 @@ class Indexer:
         Returns:
             Created index object
         """
+        Indexer, _ = self.indexerAndMergerClasses()
+        if Indexer is BasicMemoryIndexer:
+            index = Indexer()
+        else:
+            index = Indexer(self.index_dir, "data")
+        assert index is not None
+        return index
+
+    def indexerAndMergerClasses(self):
+        """
+        Check `single_pass` and
+        - if false, check `blocks` and create a BlockIndexer if true, else create BasicIndexer
+        - if true, check `blocks` and create a BlockSinglePassIndexer if true, else create BasicSinglePassIndexer
+        Returns:
+            type objects for indexer and merger for the given configuration
+        """
         ApplicationSetup.getProperties().putAll(self.properties)
         # ApplicationSetup.bootstrapInitialisation(self.properties)
         if self.type is IndexingType.SINGLEPASS:
             if self.blocks:
-                index = BlockSinglePassIndexer(self.index_dir, "data")
+                Indexer = BlockSinglePassIndexer
+                Merger = BlockStructureMerger
             else:
-                index = BasicSinglePassIndexer(self.index_dir, "data")
+                Indexer = BasicSinglePassIndexer
+                Merger = StructureMerger
         elif self.type is IndexingType.CLASSIC:
             if self.blocks:
-                index = BlockIndexer(self.index_dir, "data")
+                Indexer = BlockIndexer
+                Merger = BlockStructureMerger
             else:
-                index = BasicIndexer(self.index_dir, "data")
+                Indexer = BasicIndexer
+                Merger = StructureMerger
         elif self.type is IndexingType.MEMORY:
             if self.blocks:
                 raise Exception("Memory indexing with positions not yet implemented")
             else:
-                index = BasicMemoryIndexer()
+                Indexer = BasicMemoryIndexer
+                Merger = None
         else:
             raise Exception("Unknown indexer type")
-        assert index is not None
-        return index
+        assert Indexer is not None
+        return Indexer, Merger
 
     def createAsList(self, files_path):
         """
@@ -444,12 +487,14 @@ class FlatJSONDocumentIterator(PythonJavaClass):
             return lastdoc
         return None
 
-class IterDictIndexer(Indexer):
-    """
-    Use this Indexer if you wish to index an iter of dicts (possibly with multiple fields)
 
-    """
-    def index(self, it, fields=('text',), meta=('docno',), meta_lengths=None):
+class _BaseIterDictIndexer(Indexer):
+    def __init__(self, index_path, *args, threads=None, mode=IndexingMode.DETERMINISTIC, **kwargs):
+        super().__init__(index_path, *args, **kwargs)
+        self.threads = threads
+        self.mode = mode
+
+    def _setup(self, fields, meta, meta_lengths):
         """
         Index the specified iter of dicts with the (optional) specified fields
 
@@ -469,6 +514,26 @@ class IterDictIndexer(Indexer):
             'indexer.meta.forward.keys': ','.join(meta),
             'indexer.meta.forward.keylens': ','.join([str(l) for l in meta_lengths])
         })
+
+
+class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
+    """
+    Use this Indexer if you wish to index an iter of dicts (possibly with multiple fields).
+    This version is used for Windows -- which doesn't support the faster fifo implementation.
+    """
+    def index(self, it, fields=('text',), meta=('docno',), meta_lengths=None, threads=None):
+        """
+        Index the specified iter of dicts with the (optional) specified fields
+
+        Args:
+            it(iter[dict]): an iter of document dict to be indexed
+            fields(list[str]): keys to be indexed as fields
+            meta(list[str]): keys to be considered as metdata
+            meta_lengths(list[int]): length of metadata, defaults to 512 characters
+        """
+        self._setup(fields, meta, meta_lengths)
+        assert self.threads is None or self.threads == 1, 'IterDictIndexer does not support multiple threads on Windows'
+        assert self.mode == IndexingMode.DETERMINISTIC, 'IterDictIndexer does not support IndexingMode.FAST on Windows'
         # we need to prevent collectionIterator from being GCd
         collectionIterator = FlatJSONDocumentIterator(iter(it)) # force it to be iter
         javaDocCollection = autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
@@ -481,6 +546,89 @@ class IterDictIndexer(Indexer):
         if self.type is IndexingType.MEMORY:
             return index.getIndex().getIndexRef()
         return IndexRef.of(self.index_dir + "/data.properties")
+
+
+class _IterDictIndexer_fifo(_BaseIterDictIndexer):
+    """
+    Use this Indexer if you wish to index an iter of dicts (possibly with multiple fields).
+    This version is optimized by using multiple threads and POSIX fifos to tranfer data,
+    which ends up being much faster.
+    """
+    def index(self, it, fields=('text',), meta=('docno',), meta_lengths=None):
+        """
+        Index the specified iter of dicts with the (optional) specified fields
+
+        Args:
+            it(iter[dict]): an iter of document dict to be indexed
+            fields(list[str]): keys to be indexed as fields
+            meta(list[str]): keys to be considered as metdata
+            meta_lengths(list[int]): length of metadata, defaults to 512 characters
+        """
+        self._setup(fields, meta, meta_lengths)
+
+        os.makedirs(self.index_dir, exist_ok=True) # ParallelIndexer expects the directory to exist
+
+        threads = self.threads or 0.8 # 80% of available CPUs if nothing specified
+        assert threads > 0
+        if isinstance(threads, float): # User can supply % of available CPUs to use
+            cpu_count = os.cpu_count() or 1
+            threads = math.ceil(cpu_count * threads)
+
+        Indexer, Merger = self.indexerAndMergerClasses()
+
+        if Indexer is BasicMemoryIndexer:
+            raise ValueError('Memory indexer not yet supported')
+
+        # Document iterator
+        fifos = []
+        j_collections = []
+        CollectionFromDocumentIterator = autoclass("org.terrier.python.CollectionFromDocumentIterator")
+        JsonlDocumentIterator = autoclass("org.terrier.python.JsonlDocumentIterator")
+        ParallelIndexer = autoclass("org.terrier.python.ParallelIndexer")
+        with tempfile.TemporaryDirectory() as d:
+            # Make a POSIX FIFO with associated java collection for each thread to use
+            for i in range(threads):
+                fifo = f'{d}/docs-{i}.jsonl'
+                os.mkfifo(fifo)
+                j_collections.append(CollectionFromDocumentIterator(JsonlDocumentIterator(fifo)))
+                fifos.append(fifo)
+
+            # Start dishing out the docs to the fifos
+            threading.Thread(target=self._write_fifos, args=(it, fifos), daemon=True).start()
+
+            # Start the indexing threads
+            ParallelIndexer.buildParallel(j_collections, self.index_dir, Indexer, Merger)
+        return IndexRef.of(self.index_dir + "/data.properties")
+
+    def _write_fifos(self, it, fifos):
+        c = len(fifos)
+        with contextlib.ExitStack() as stack:
+            fifos = [stack.enter_context(open(f, 'wt')) for f in fifos]
+            ready = None
+            for doc in it:
+                if not ready: # either first iteration or deque is empty
+                    if self.mode == IndexingMode.FAST and len(fifos) > 1:
+                        # Not all the fifos may be ready yet for the next document. Rather than
+                        # witing for one to finish up, go ahead and can check wich are ready with
+                        # the select syscall. This will block until at least one is ready. This
+                        # optimization can actually have a pretty big impact-- on CORD19, indexing
+                        # with 8 threads was 30% faster with this.
+                        _, ready, _ = select.select([], fifos, [])
+                        ready = deque(ready)
+                    else:
+                        ready = deque(fifos)
+                fifo = ready.popleft()
+                json.dump(doc, fifo)
+                fifo.write('\n')
+
+
+# Windows doesn't support fifos -- so we have 2 versions.
+# Choose which one to expose based on whether os.mkfifo exists.
+if hasattr(os, 'mkfifo'):
+    IterDictIndexer = _IterDictIndexer_fifo
+else:
+    IterDictIndexer = _IterDictIndexer_nofifo
+
 
 class TRECCollectionIndexer(Indexer):
     type_to_class = {

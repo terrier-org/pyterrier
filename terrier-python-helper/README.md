@@ -7,6 +7,7 @@ This package contains useful Java classes for pyterrier.
  - Redirecting Java stdout/stderr to the same as Python
  - Changing logging level
  - A Collection class that is useful from Java
+ - Multi-threaded indexing
 
 ## Usage
 
