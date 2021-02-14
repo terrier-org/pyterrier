@@ -21,7 +21,7 @@ class TestIterDictIndexer(BaseTestCase):
         print("Deleting " + self.test_dir)
         
 
-    def _create_index(self, it, fields, meta, type):
+    def _create_index(self, it, fields, meta, type, indexer):
         print("Writing index to " + self.test_dir)
         pd_indexer = pt.IterDictIndexer(self.test_dir, type=type)
         indexref = pd_indexer.index(it, fields, meta)
@@ -30,40 +30,46 @@ class TestIterDictIndexer(BaseTestCase):
 
     def _make_check_index(self, n, index_type, fields=('text',), meta=('docno', 'url', 'title')):
         from pyterrier.index import IndexingType
-        it = (
-            {'docno': '1', 'url': 'url1', 'text': 'He ran out of money, so he had to stop playing', 'title': 'Woes of playing poker'},
-            {'docno': '2', 'url': 'url2', 'text': 'The waves were crashing on the shore; it was a', 'title': 'Lovely sight'},
-            {'docno': '3', 'url': 'url3', 'text': 'The body may perhaps compensates for the loss', 'title': 'Best of Viktor Prowoll'},
-        )
-        it = itertools.islice(it, n)
-        indexref = self._create_index(it, fields, meta, index_type)
-        index = pt.IndexFactory.of(indexref)
-        self.assertIsNotNone(index)
-        self.assertEqual(n, index.getCollectionStatistics().getNumberOfDocuments())
-        self.assertEqual(len(set(meta)), len(index.getMetaIndex().getKeys()))
-        for m in meta:
-            self.assertTrue(m in index.getMetaIndex().getKeys())
-        self.assertEqual(len(fields), index.getCollectionStatistics().numberOfFields)
-        for f in fields:
-            self.assertTrue(f in index.getCollectionStatistics().getFieldNames())
-        if index_type is IndexingType.CLASSIC:
-            self.assertTrue(os.path.isfile(self.test_dir + '/data.direct.bf'))
-            self.assertTrue(index.hasIndexStructure("direct"))
-        else:
-            self.assertFalse(os.path.isfile(self.test_dir + '/data.direct.bf'))
-        inv = index.getInvertedIndex()
-        lex = index.getLexicon()
-        post = inv.getPostings(lex.getLexiconEntry('plai'))
-        post.next()
-        from jnius import cast
-        post = cast("org.terrier.structures.postings.FieldPosting", post)
-        if 'title' in fields:
-            self.assertEqual(2, post.frequency)
-            self.assertEqual(1, post.fieldFrequencies[0])
-            self.assertEqual(1, post.fieldFrequencies[1])
-        else:
-            self.assertEqual(1, post.frequency)
-            self.assertEqual(1, post.fieldFrequencies[0])
+        # Test both versions: _fifo (for UNIX) and _nofifo (for Windows)
+        for Indexer in [pt.index._IterDictIndexer_fifo, pt.index._IterDictIndexer_nofifo]:
+            with self.subTest(indexer=Indexer):
+                it = (
+                    {'docno': '1', 'url': 'url1', 'text': 'He ran out of money, so he had to stop playing', 'title': 'Woes of playing poker'},
+                    {'docno': '2', 'url': 'url2', 'text': 'The waves were crashing on the shore; it was a', 'title': 'Lovely sight'},
+                    {'docno': '3', 'url': 'url3', 'text': 'The body may perhaps compensates for the loss', 'title': 'Best of Viktor Prowoll'},
+                )
+                it = itertools.islice(it, n)
+                indexref = self._create_index(it, fields, meta, index_type, Indexer)
+                index = pt.IndexFactory.of(indexref)
+                self.assertIsNotNone(index)
+                self.assertEqual(n, index.getCollectionStatistics().getNumberOfDocuments())
+                self.assertEqual(len(set(meta)), len(index.getMetaIndex().getKeys()))
+                for m in meta:
+                    self.assertTrue(m in index.getMetaIndex().getKeys())
+                self.assertEqual(len(fields), index.getCollectionStatistics().numberOfFields)
+                for f in fields:
+                    self.assertTrue(f in index.getCollectionStatistics().getFieldNames())
+                if index_type is IndexingType.CLASSIC:
+                    self.assertTrue(os.path.isfile(self.test_dir + '/data.direct.bf'))
+                    self.assertTrue(index.hasIndexStructure("direct"))
+                else:
+                    self.assertFalse(os.path.isfile(self.test_dir + '/data.direct.bf'))
+                inv = index.getInvertedIndex()
+                lex = index.getLexicon()
+                post = inv.getPostings(lex.getLexiconEntry('plai'))
+                post.next()
+                from jnius import cast
+                post = cast("org.terrier.structures.postings.FieldPosting", post)
+                if 'title' in fields:
+                    self.assertEqual(2, post.frequency)
+                    self.assertEqual(1, post.fieldFrequencies[0])
+                    self.assertEqual(1, post.fieldFrequencies[1])
+                else:
+                    self.assertEqual(1, post.frequency)
+                    self.assertEqual(1, post.fieldFrequencies[0])
+            # reset index directory for next run
+            self.tearDown()
+            self.setUp()
 
 
     def test_checkjavaDocIterator(self):
