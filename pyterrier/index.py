@@ -564,27 +564,30 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
             meta(list[str]): keys to be considered as metdata
             meta_lengths(list[int]): length of metadata, defaults to 512 characters
         """
+        CollectionFromDocumentIterator = autoclass("org.terrier.python.CollectionFromDocumentIterator")
+        JsonlDocumentIterator = autoclass("org.terrier.python.JsonlDocumentIterator")
+        ParallelIndexer = autoclass("org.terrier.python.ParallelIndexer")
+
         self._setup(fields, meta, meta_lengths)
 
         os.makedirs(self.index_dir, exist_ok=True) # ParallelIndexer expects the directory to exist
 
-        threads = self.threads or 0.8 # 80% of available CPUs if nothing specified
-        assert threads > 0
-        if isinstance(threads, float): # User can supply % of available CPUs to use
-            cpu_count = os.cpu_count() or 1
-            threads = math.ceil(cpu_count * threads)
-
         Indexer, Merger = self.indexerAndMergerClasses()
 
         if Indexer is BasicMemoryIndexer:
-            raise ValueError('Memory indexer not yet supported')
+            assert self.threads is None or self.threads == 1, 'IterDictIndexer does not support multiple threads for IndexingType.MEMORY'
+            assert self.mode == IndexingMode.DETERMINISTIC, 'IterDictIndexer does not support IndexingMode.FAST for IndexingType.MEMORY'
+            threads = 1
+        else:
+            threads = self.threads or 0.8 # 80% of available CPUs if nothing specified
+            assert threads > 0
+            if isinstance(threads, float): # User can supply % of available CPUs to use
+                cpu_count = os.cpu_count() or 1
+                threads = math.ceil(cpu_count * threads)
 
         # Document iterator
         fifos = []
         j_collections = []
-        CollectionFromDocumentIterator = autoclass("org.terrier.python.CollectionFromDocumentIterator")
-        JsonlDocumentIterator = autoclass("org.terrier.python.JsonlDocumentIterator")
-        ParallelIndexer = autoclass("org.terrier.python.ParallelIndexer")
         with tempfile.TemporaryDirectory() as d:
             # Make a POSIX FIFO with associated java collection for each thread to use
             for i in range(threads):
@@ -596,9 +599,15 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
             # Start dishing out the docs to the fifos
             threading.Thread(target=self._write_fifos, args=(it, fifos), daemon=True).start()
 
+            # Different process for memory indexer (still taking advantage of faster fifos)
+            if Indexer is BasicMemoryIndexer:
+                index = Indexer()
+                index.index(j_collections)
+                return index.getIndex().getIndexRef()
+
             # Start the indexing threads
             ParallelIndexer.buildParallel(j_collections, self.index_dir, Indexer, Merger)
-        return IndexRef.of(self.index_dir + "/data.properties")
+            return IndexRef.of(self.index_dir + "/data.properties")
 
     def _write_fifos(self, it, fifos):
         c = len(fifos)
