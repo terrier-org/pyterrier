@@ -214,6 +214,109 @@ class RemoteDataset(Dataset):
         return "RemoteDataset for %s, with %s" % (self.name, str(list(self.locations.keys())))
 
 
+class IRDSDataset(Dataset):
+    def __init__(self, irds_id):
+        self._irds_id = irds_id
+        self._irds_ref = None
+
+    def irds_ref(self):
+        if self._irds_ref is None:
+            self._irds_ref = ir_datasets.load(self._irds_id)
+        return self._irds_ref
+
+    def get_corpus(self):
+        raise NotImplementedError("IRDSDataset doesn't support get_corpus; use get_corpus_iter instead")
+
+    def get_corpus_iter(self):
+        ds = self.irds_ref()
+        assert ds.has_docs(), f"{self._irds_id} doesn't support get_corpus_iter"
+        for doc in ds.docs_iter():
+            doc = doc._asdict()
+            # pyterrier uses "docno"
+            doc['docno'] = doc.pop('doc_id')
+            yield doc
+
+    def get_index(self, variant=None):
+        # TODO: should this automaticaly build an index?
+        raise NotImplementedError("IRDSDataset doesn't support get_index")
+
+    def get_topics(self, variant=None):
+        """
+            Returns the topics, as a dataframe, ready for retrieval. 
+        """
+        ds = self.irds_ref()
+        assert ds.has_queries(), f"{self._irds_id} doesn't support get_topics"
+        qcls = ds.queries_cls()
+        assert variant is None or variant in qcls._fields[1:], f"{self._irds_id} only supports the following topic variants {qcls._fields[1:]}"
+        df = pd.DataFrame(ds.queries_iter())
+
+        df.rename(columns={"query_id": "qid"}, inplace=True) # pyterrier uses "qid"
+
+        if variant is not None:
+            df.rename(columns={variant: "query"}, inplace=True) # user specified which version of the query they want
+            df.drop(df.columns.difference(['qid','query']), 1, inplace=True)
+        elif len(qcls._fields) == 2:
+            # auto-rename single query field to "query" if there's only query_id and that field
+            df.rename(columns={qcls._fields[1]: "query"}, inplace=True)
+        else:
+            print(f'There are multiple query fields available: {qcls._fields[1:]}. To use with pyterrier, provide variant or modify dataframe to add query column.')
+
+        return df
+
+    def get_qrels(self, variant=None):
+        """ 
+            Returns the qrels, as a dataframe, ready for evaluation.
+        """
+        ds = self.irds_ref()
+        assert ds.has_qrels(), f"{self._irds_id} doesn't support get_qrels"
+        qrelcls = ds.qrels_cls()
+        qrel_fields = [f for f in qrelcls._fields if f not in ('query_id', 'doc_id', 'iteration')]
+        assert variant is None or variant in qrel_fields, f"{self._irds_id} only supports the following qrel variants {qrel_fields}"
+        df = pd.DataFrame(ds.qrels_iter())
+
+        # pyterrier uses "qid" and "docno"
+        df.rename(columns={
+            "query_id": "qid",
+            "doc_id": "docno"}, inplace=True)
+
+        # pyterrier uses "label"
+        if variant is not None:
+            df.rename(columns={variant: "label"}, inplace=True)
+        if len(qrel_fields) == 1:
+            # usually "relevance"
+            df.rename(columns={qrel_fields[0]: "label"}, inplace=True)
+        elif 'relevance' in qrel_fields:
+            print(f'There are multiple qrel fields available: {qrel_fields}. Defaulting to "relevance", but to use a different one, supply variant')
+            df.rename(columns={'relevance': "label"}, inplace=True)
+        else:
+            print(f'There are multiple qrel fields available: {qrel_fields}. To use with pyterrier, provide variant or modify dataframe to add query column.')
+
+        return df
+
+    def _describe_component(self, component):
+        ds = self.irds_ref()
+        if component == "topics":
+            if ds.has_queries():
+                fields = ds.queries_cls()._fields[1:]
+                if len(fields) > 1:
+                    return list(fields)
+                return True
+            return None
+        if component == "qrels":
+            if ds.has_qrels():
+                fields = [f for f in ds.qrels_cls()._fields if f not in ('qurey_id', 'doc_id', 'iteration')]
+                if len(fields) > 1:
+                    return list(fields)
+                return True
+            return None
+        if component == "corpus":
+            return ds.has_docs() or None
+        return None
+
+    def __repr__(self):
+        return f"IRDSDataset({repr(self._irds_id)})"
+
+
 ANTIQUE_FILES = {
     "topics" : {
         "train" : ("antique-train-queries.txt", "http://ciir.cs.umass.edu/downloads/Antique/antique-train-queries.txt", "singleline"),
@@ -584,6 +687,19 @@ DATASET_MAP = {
     "trec-wt-2011" : RemoteDataset("trec-wt-2011", TREC_WT_2011_FILES),
     "trec-wt-2012" : RemoteDataset("trec-wt-2012", TREC_WT_2012_FILES),
 }
+
+
+# Include all datasets from ir_datasets with "irds:" prefix so they don't conflict with pt dataset names
+# Results in records like:
+# irds:antique
+# irds:antique/test
+# irds:antique/test/non-offensive
+# irds:antique/train
+# ...
+import ir_datasets
+for ds_id in ir_datasets.registry:
+    DATASET_MAP[f'irds:{ds_id}'] = IRDSDataset(ds_id)
+
 
 def get_dataset(name, **kwargs):
     """
