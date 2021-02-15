@@ -89,7 +89,7 @@ pt.Experiment([BM25_br, PL2_br], topics, qrels, eval_metrics)
 
 You can use `pt.datasets.list_datasets()` to see available test collections - if your favourite test collection is missing, [you can submit a Pull Request](https://github.com/terrier-org/pyterrier/pulls).
 
-All datasets from the [ir_datasts package](https://github.com/allenai/ir_datasets) are available
+All datasets from the [ir_datasets package](https://github.com/allenai/ir_datasets) are available
 under the `irds:` prefix. E.g., use `pt.datasets.get_dataset("irds:medline/2004/trec-genomics-2004")`
 to get the TREC Genomics 2004 dataset. A full catalogue of ir_datasets is available [here](https://ir-datasets.com/all.html).
 
