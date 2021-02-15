@@ -13,3 +13,4 @@ requests
 nptyping
 tabulate
 jinja2
+ir_datasets>=0.1.7
