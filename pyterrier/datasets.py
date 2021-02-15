@@ -227,10 +227,13 @@ class IRDSDataset(Dataset):
     def get_corpus(self):
         raise NotImplementedError("IRDSDataset doesn't support get_corpus; use get_corpus_iter instead")
 
-    def get_corpus_iter(self):
+    def get_corpus_iter(self, verbose=True):
         ds = self.irds_ref()
         assert ds.has_docs(), f"{self._irds_id} doesn't support get_corpus_iter"
-        for doc in ds.docs_iter():
+        it = ds.docs_iter()
+        if verbose:
+            it = tqdm(it, desc=f'{self._irds_id} documents', total=ds.docs_count())
+        for doc in it:
             doc = doc._asdict()
             # pyterrier uses "docno"
             doc['docno'] = doc.pop('doc_id')
@@ -304,7 +307,7 @@ class IRDSDataset(Dataset):
             return None
         if component == "qrels":
             if ds.has_qrels():
-                fields = [f for f in ds.qrels_cls()._fields if f not in ('qurey_id', 'doc_id', 'iteration')]
+                fields = [f for f in ds.qrels_cls()._fields if f not in ('query_id', 'doc_id', 'iteration')]
                 if len(fields) > 1:
                     return list(fields)
                 return True
