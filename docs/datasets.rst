@@ -21,6 +21,8 @@ Available Datasets
 
 The table below lists the provided datasets, detailing the attributes available for each dataset.
 In each column, True designates the presence of a single artefact of that type, while a list denotes the available variants.
+Datasets with the ``irds:`` prefix are from the `ir_datasets package <https://github.com/allenai/ir_datasets>`_; further
+documentation on these datasets can be found `here <https://ir-datasets.com/all.html>`_.
 
 .. include:: ./_includes/datasets-list-inc.rst
 
