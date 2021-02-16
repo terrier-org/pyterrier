@@ -44,6 +44,12 @@ class Dataset():
         """
         pass
 
+    def get_corpus_lang(self):
+        """
+            Returns the ISO 639-1 language code for the corpus, or None for multiple/other/unknown
+        """
+        pass
+
     def get_index(self, variant=None):
         """ 
             Returns the IndexRef of the index to allow retrieval. Only a few datasets provide indices ready made.
@@ -53,6 +59,12 @@ class Dataset():
     def get_topics(self, variant=None):
         """
             Returns the topics, as a dataframe, ready for retrieval. 
+        """
+        pass
+
+    def get_topics_lang(self):
+        """
+            Returns the ISO 639-1 language code for the topics, or None for multiple/other/unknown
         """
         pass
 
@@ -201,6 +213,11 @@ class RemoteDataset(Dataset):
         import pyterrier as pt
         return pt.io.find_files(self._get_all_files("corpus", **kwargs))
 
+    def get_corpus_lang(self):
+        if 'corpus' in self.locations:
+            return 'en' # all are english
+        return None
+
     def get_qrels(self, variant=None):
         import pyterrier as pt
         filename, type = self._get_one_file("qrels", variant)
@@ -216,6 +233,11 @@ class RemoteDataset(Dataset):
         elif filetype == "direct":
             return file
         raise ValueError("Unknown filetype %s for %s topics %s"  % (filetype, self.name, variant))
+
+    def get_topics_lang(self):
+        if 'topics' in self.locations:
+            return 'en' # all are english
+        return None
 
     def get_index(self):
         import pyterrier as pt
@@ -251,6 +273,12 @@ class IRDSDataset(Dataset):
             doc['docno'] = doc.pop('doc_id')
             yield doc
 
+    def get_corpus_lang(self):
+        ds = self.irds_ref()
+        if ds.has_docs():
+            return ds.docs_lang()
+        return None
+
     def get_index(self, variant=None):
         # TODO: should this automaticaly build an index?
         raise NotImplementedError("IRDSDataset doesn't support get_index")
@@ -277,6 +305,12 @@ class IRDSDataset(Dataset):
             print(f'There are multiple query fields available: {qcls._fields[1:]}. To use with pyterrier, provide variant or modify dataframe to add query column.')
 
         return df
+
+    def get_topics_lang(self):
+        ds = self.irds_ref()
+        if ds.has_queries():
+            return ds.queries_lang()
+        return None
 
     def get_qrels(self, variant=None):
         """ 
@@ -735,9 +769,10 @@ def datasets():
     """
     return DATASET_MAP.keys()
 
-def list_datasets():
+def list_datasets(en_only=True):
     """
-        Returns a dataframe of all datasets, listing which topics, qrels, corpus files or indices are available
+        Returns a dataframe of all datasets, listing which topics, qrels, corpus files or indices are available.
+        By default, filters to only datasets with both a corpus and topics in English.
     """
     import pandas as pd
     rows=[]
@@ -746,8 +781,15 @@ def list_datasets():
         rows.append([
             k, 
             dataset._describe_component("topics"), 
+            dataset.get_topics_lang(), 
             dataset._describe_component("qrels"), 
             dataset._describe_component("corpus"), 
-            dataset._describe_component("index"),
+            dataset.get_corpus_lang(), 
+            dataset._describe_component("index"), 
             dataset.info_url() ])
-    return pd.DataFrame(rows, columns=["dataset", "topics", "qrels", "corpus", "index", "info_url"])
+    result = pd.DataFrame(rows, columns=["dataset", "topics", "topics_lang", "qrels", "corpus", "corpus_lang", "index", "info_url"])
+    if en_only:
+        topics_filter = (result['topics'].isnull()) | (result['topics_lang'] == 'en')
+        corpus_filter = (result['corpus'].isnull()) | (result['corpus_lang'] == 'en')
+        result = result[topics_filter & corpus_filter]
+    return result
