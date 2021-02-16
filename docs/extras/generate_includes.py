@@ -28,7 +28,7 @@ def dataset_include():
     df = fix_width(df, "qrels")
     df = fix_width(df, "topics")
     df = fix_width(df, "corpus")
-    df = df[["dataset", "corpus", "index", "topics", "qrels"]]
+    df = df[["dataset", "corpus", "index", "topics", "qrels", "info_url"]]
     table = df.set_index('dataset').to_markdown(tablefmt="rst")
 
     with open("_includes/datasets-list-inc.rst", "wt") as f:

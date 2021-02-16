@@ -38,6 +38,12 @@ class Dataset():
         """
         pass
 
+    def get_corpus_iter(self, verbose=True):
+        """
+            Returns an iter of dicts for this collection. If verbose=True, a tqdm pbar shows the progress over this iterator.
+        """
+        pass
+
     def get_index(self, variant=None):
         """ 
             Returns the IndexRef of the index to allow retrieval. Only a few datasets provide indices ready made.
@@ -53,6 +59,12 @@ class Dataset():
     def get_qrels(self, variant=None):
         """ 
             Returns the qrels, as a dataframe, ready for evaluation.
+        """
+        pass
+
+    def info_url(self):
+        """
+            Returns a url that provides more information about this dataset.
         """
         pass
 
@@ -315,6 +327,11 @@ class IRDSDataset(Dataset):
         if component == "corpus":
             return ds.has_docs() or None
         return None
+
+    def info_url(self):
+        top_id = self._irds_id.split('/', 1)[0]
+        suffix = f'#{self._irds_id}' if top_id != self._irds_id else ''
+        return f'https://ir-datasets.com/{top_id}.html{suffix}'
 
     def __repr__(self):
         return f"IRDSDataset({repr(self._irds_id)})"
@@ -731,5 +748,6 @@ def list_datasets():
             dataset._describe_component("topics"), 
             dataset._describe_component("qrels"), 
             dataset._describe_component("corpus"), 
-            dataset._describe_component("index") ])
-    return pd.DataFrame(rows, columns=["dataset", "topics", "qrels", "corpus", "index"])
+            dataset._describe_component("index"),
+            dataset.info_url() ])
+    return pd.DataFrame(rows, columns=["dataset", "topics", "qrels", "corpus", "index", "info_url"])
