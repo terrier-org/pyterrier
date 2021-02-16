@@ -96,6 +96,17 @@ Example indexing MSMARCO Passage Ranking dataset::
     iter_indexer = pt.IterDictIndexer("./passage_index")
     indexref3 = iter_indexer.index(msmarco_generate(), meta=['docno', 'text'], meta_lengths=[20, 4096])
 
+On UNIX-based systems, you can also perform multi-threaded indexing::
+
+    iter_indexer = pt.IterDictIndexer("./passage_index_8", threads=8)
+    indexref4 = iter_indexer.index(msmarco_generate(), meta=['docno', 'text'], meta_lengths=[20, 4096])
+
+Note that the behavior with multiple threads is non-deterministic; if you need deterministic behavior
+you must index in single-threaded mode. Furthermore, indexing can only go as quickly as the
+document iterator, so to take full advantage of multi-threaded indexing, you will need to keep the
+iterator function light-weight. Many datasets provide a fast corpus iteration function
+(``get_corpus_iter()``), see more information in the `datasets documentation <datasets.html>`_.
+
 Indexing Configuration
 ======================
 

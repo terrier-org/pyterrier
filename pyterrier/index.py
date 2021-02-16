@@ -622,6 +622,7 @@ if hasattr(os, 'mkfifo'):
     IterDictIndexer = _IterDictIndexer_fifo
 else:
     IterDictIndexer = _IterDictIndexer_nofifo
+IterDictIndexer.__name__ = 'IterDictIndexer' # trick sphinx into not using "alias of"
 
 
 class TRECCollectionIndexer(Indexer):
