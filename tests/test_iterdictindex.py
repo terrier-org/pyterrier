@@ -23,23 +23,27 @@ class TestIterDictIndexer(BaseTestCase):
 
     def _create_index(self, it, fields, meta, type, indexer):
         print("Writing index to " + self.test_dir)
-        pd_indexer = pt.IterDictIndexer(self.test_dir, type=type)
-        indexref = pd_indexer.index(it, fields, meta)
+        indexref = indexer.index(it, fields, meta)
         self.assertIsNotNone(indexref)
         return indexref
 
     def _make_check_index(self, n, index_type, fields=('text',), meta=('docno', 'url', 'title')):
         from pyterrier.index import IndexingType
         # Test both versions: _fifo (for UNIX) and _nofifo (for Windows)
-        for Indexer in [pt.index._IterDictIndexer_fifo, pt.index._IterDictIndexer_nofifo]:
-            with self.subTest(indexer=Indexer):
+        indexers = [
+            pt.index._IterDictIndexer_fifo(self.test_dir, type=index_type),
+            pt.index._IterDictIndexer_fifo(self.test_dir, type=index_type, threads=4),
+            pt.index._IterDictIndexer_nofifo(self.test_dir, type=index_type),
+        ]
+        for indexer in indexers:
+            with self.subTest(indexer=indexer):
                 it = (
                     {'docno': '1', 'url': 'url1', 'text': 'He ran out of money, so he had to stop playing', 'title': 'Woes of playing poker'},
                     {'docno': '2', 'url': 'url2', 'text': 'The waves were crashing on the shore; it was a', 'title': 'Lovely sight'},
                     {'docno': '3', 'url': 'url3', 'text': 'The body may perhaps compensates for the loss', 'title': 'Best of Viktor Prowoll'},
                 )
                 it = itertools.islice(it, n)
-                indexref = self._create_index(it, fields, meta, index_type, Indexer)
+                indexref = self._create_index(it, fields, meta, index_type, indexer)
                 index = pt.IndexFactory.of(indexref)
                 self.assertIsNotNone(index)
                 self.assertEqual(n, index.getCollectionStatistics().getNumberOfDocuments())
@@ -68,8 +72,8 @@ class TestIterDictIndexer(BaseTestCase):
                     self.assertEqual(1, post.frequency)
                     self.assertEqual(1, post.fieldFrequencies[0])
             # reset index directory for next run
-            self.tearDown()
-            self.setUp()
+            shutil.rmtree(self.test_dir)
+            os.mkdir(self.test_dir)
 
 
     def test_checkjavaDocIterator(self):

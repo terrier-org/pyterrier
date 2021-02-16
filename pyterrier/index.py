@@ -102,15 +102,6 @@ class IndexingType(enum.Enum):
     MEMORY = 3 #: An in-memory index. No direct index is created.
 
 
-# Using enum class create enumerations
-class IndexingMode(enum.Enum):
-    """
-        This enum is used to determine the mode of multi-threaded indexing: deterministic or fast
-    """
-    DETERMINISTIC = 1 #: Repeated runs will always have the same result
-    FAST = 2 #: Repeated runs will not have the same result, but indexing is faster because documents can be better allocated to free theads
-
-
 class Indexer:
     """
     Parent class. It can be used to load an existing index.
@@ -489,10 +480,9 @@ class FlatJSONDocumentIterator(PythonJavaClass):
 
 
 class _BaseIterDictIndexer(Indexer):
-    def __init__(self, index_path, *args, threads=None, mode=IndexingMode.DETERMINISTIC, **kwargs):
+    def __init__(self, index_path, *args, threads=1, **kwargs):
         super().__init__(index_path, *args, **kwargs)
         self.threads = threads
-        self.mode = mode
 
     def _setup(self, fields, meta, meta_lengths):
         """
@@ -532,8 +522,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
             meta_lengths(list[int]): length of metadata, defaults to 512 characters
         """
         self._setup(fields, meta, meta_lengths)
-        assert self.threads is None or self.threads == 1, 'IterDictIndexer does not support multiple threads on Windows'
-        assert self.mode == IndexingMode.DETERMINISTIC, 'IterDictIndexer does not support IndexingMode.FAST on Windows'
+        assert self.threads == 1, 'IterDictIndexer does not support multiple threads on Windows'
         # we need to prevent collectionIterator from being GCd
         collectionIterator = FlatJSONDocumentIterator(iter(it)) # force it to be iter
         javaDocCollection = autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
@@ -574,23 +563,18 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
 
         Indexer, Merger = self.indexerAndMergerClasses()
 
+        assert self.threads > 0, "threads must be positive"
         if Indexer is BasicMemoryIndexer:
-            assert self.threads is None or self.threads == 1, 'IterDictIndexer does not support multiple threads for IndexingType.MEMORY'
-            assert self.mode == IndexingMode.DETERMINISTIC, 'IterDictIndexer does not support IndexingMode.FAST for IndexingType.MEMORY'
-            threads = 1
-        else:
-            threads = self.threads or 0.8 # 80% of available CPUs if nothing specified
-            assert threads > 0
-            if isinstance(threads, float): # User can supply % of available CPUs to use
-                cpu_count = os.cpu_count() or 1
-                threads = math.ceil(cpu_count * threads)
+            assert self.threads == 1, 'IterDictIndexer does not support multiple threads for IndexingType.MEMORY'
+        if self.threads > 1:
+            print('Warning: using multiple threads is non-deterministic. For deterministic behavior, use threads=1')
 
         # Document iterator
         fifos = []
         j_collections = []
         with tempfile.TemporaryDirectory() as d:
             # Make a POSIX FIFO with associated java collection for each thread to use
-            for i in range(threads):
+            for i in range(self.threads):
                 fifo = f'{d}/docs-{i}.jsonl'
                 os.mkfifo(fifo)
                 j_collections.append(CollectionFromDocumentIterator(JsonlDocumentIterator(fifo)))
@@ -616,15 +600,16 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
             ready = None
             for doc in it:
                 if not ready: # either first iteration or deque is empty
-                    if self.mode == IndexingMode.FAST and len(fifos) > 1:
+                    if len(fifos) > 1:
                         # Not all the fifos may be ready yet for the next document. Rather than
-                        # witing for one to finish up, go ahead and can check wich are ready with
-                        # the select syscall. This will block until at least one is ready. This
+                        # witing for the next one to finish up, go ahead and can check wich are ready
+                        # with the select syscall. This will block until at least one is ready. This
                         # optimization can actually have a pretty big impact-- on CORD19, indexing
                         # with 8 threads was 30% faster with this.
                         _, ready, _ = select.select([], fifos, [])
                         ready = deque(ready)
                     else:
+                        # single threaded mode
                         ready = deque(fifos)
                 fifo = ready.popleft()
                 json.dump(doc, fifo)
