@@ -13,3 +13,5 @@ requests
 nptyping
 tabulate
 jinja2
+ir_datasets>=0.2.0
+sphinx_rtd_theme
