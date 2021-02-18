@@ -48,7 +48,7 @@ class Dataset():
         """
             Returns the ISO 639-1 language code for the corpus, or None for multiple/other/unknown
         """
-        pass
+        return None
 
     def get_index(self, variant=None):
         """ 
@@ -66,7 +66,7 @@ class Dataset():
         """
             Returns the ISO 639-1 language code for the topics, or None for multiple/other/unknown
         """
-        pass
+        return None
 
     def get_qrels(self, variant=None):
         """ 
@@ -78,7 +78,7 @@ class Dataset():
         """
             Returns a url that provides more information about this dataset.
         """
-        pass
+        return None
 
 class RemoteDataset(Dataset):
 
@@ -247,6 +247,9 @@ class RemoteDataset(Dataset):
     def __repr__(self):
         return "RemoteDataset for %s, with %s" % (self.name, str(list(self.locations.keys())))
 
+    def info_url(self):
+        return self.locations['info_url'] if "info_url" in self.locations else None
+
 
 class IRDSDataset(Dataset):
     def __init__(self, irds_id):
@@ -382,6 +385,7 @@ ANTIQUE_FILES = {
     },
     "corpus" : 
         [("antique-collection.txt", "http://ciir.cs.umass.edu/downloads/Antique/antique-collection.txt")],
+    "info_url" : "https://ciir.cs.umass.edu/downloads/Antique/readme.txt",
 }
 
 TREC_COVID_FILES = {
@@ -410,6 +414,7 @@ TREC_COVID_FILES = {
         "docids-rnd4" : ("docids-rnd4.txt", "https://ir.nist.gov/covidSubmit/data/docids-rnd4.txt"),
         "docids-rnd5" : ("docids-rnd5.txt", "https://ir.nist.gov/covidSubmit/data/docids-rnd5.txt")
     },
+    "info_url"  : "https://ir.nist.gov/covidSubmit/"
 }
 
 TREC_DEEPLEARNING_DOCS_MSMARCO_FILES = {
@@ -430,7 +435,8 @@ TREC_DEEPLEARNING_DOCS_MSMARCO_FILES = {
             "train" : ("msmarco-doctrain-qrels.tsv.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-doctrain-qrels.tsv.gz"),
             "dev" : ("msmarco-docdev-qrels.tsv.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-docdev-qrels.tsv.gz"),
             "test" : ("2019qrels-docs.txt", "https://trec.nist.gov/data/deep/2019qrels-docs.txt")
-        }
+        },
+    "info_url" : "https://microsoft.github.io/msmarco/",
 }
 
 TREC_DEEPLEARNING_PASSAGE_MSMARCO_FILES = {
@@ -452,7 +458,8 @@ TREC_DEEPLEARNING_PASSAGE_MSMARCO_FILES = {
             "train" : ("qrels.train.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/qrels.train.tsv"),
             "dev" : ("qrels.dev.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/qrels.dev.tsv"),
             "test-2019" : ("2019qrels-docs.txt", "https://trec.nist.gov/data/deep/2019qrels-pass.txt")
-        }
+        },
+    "info_url" : "https://microsoft.github.io/MSMARCO-Passage-Ranking/",
 }
 
 # remove WT- prefix from topics
@@ -489,7 +496,8 @@ TREC_WT_2002_FILES = {
         { 
             "np" : ("qrels.named-page.txt.gz", "https://trec.nist.gov/data/qrels_eng/qrels.named-page.txt.gz"),
             "td" : ("qrels.distillation.txt.gz", "https://trec.nist.gov/data/qrels_eng/qrels.distillation.txt.gz")
-        }
+        },
+    "info_url" : "https://trec.nist.gov/data/t11.web.html",
 }
 
 TREC_WT_2003_FILES = {
@@ -502,7 +510,8 @@ TREC_WT_2003_FILES = {
         { 
             "np" : ("qrels.named-page.txt.gz", "https://trec.nist.gov/data/qrels_eng/qrels.named-page.txt.gz"),
             "td" : ("qrels.distillation.2003.txt", "https://trec.nist.gov/data/qrels_eng/qrels.distillation.2003.txt")
-        }
+        },
+    "info_url" : "https://trec.nist.gov/data/t12.web.html",
 }
 
 def filter_on_qid_type(self, component, variant):
@@ -536,7 +545,8 @@ TREC_WT_2004_FILES = {
             "td" : filter_on_qid_type,
             "np" : filter_on_qid_type,
             "all" : ("04.qrels.web.mixed.txt", "https://trec.nist.gov/data/web/04.qrels.web.mixed.txt")
-        }
+        },
+    "info_url" : "https://trec.nist.gov/data/t13.web.html",
 }
 
 FIFTY_PCT_INDEX_BASE = "http://www.dcs.gla.ac.uk/~craigm/IR_HM/"
@@ -580,7 +590,8 @@ TREC_WT_2009_FILES = {
         "adhoc" : ("prels.1-50.gz", "https://trec.nist.gov/data/web/09/prels.1-50.gz"),
         "adhoc.catA" : ("prels.catA.1-50.gz", "https://trec.nist.gov/data/web/09/prels.catA.1-50.gz"),
         "adhoc.catB" : ("prels.catB.1-50.gz", "https://trec.nist.gov/data/web/09/prels.catB.1-50.gz")
-    }
+    },
+    "info_url" : "https://trec.nist.gov/data/web09.html",
 }
 
 TREC_WT_2010_FILES = {
@@ -590,7 +601,8 @@ TREC_WT_2010_FILES = {
     "qrels" : 
         { 
             "adhoc" : ("qrels.adhoc", "https://trec.nist.gov/data/web/10/10.adhoc-qrels.final")
-        }
+        },
+    "info_url" : "https://trec.nist.gov/data/web10.html",
 }
 
 TREC_WT_2011_FILES = {
@@ -610,12 +622,14 @@ TREC_WT_2012_FILES = {
     "qrels" : 
         { 
             "adhoc" : ("qrels.adhoc", "https://trec.nist.gov/data/web/12/qrels.adhoc")
-        }
+        },
+    "info_url" : "https://trec.nist.gov/data/web2011.html",
 }
 
 TREC_WT2G_FILES = {
     "qrels" : [ ("qrels.trec8.small_web.gz", "https://trec.nist.gov/data/qrels_eng/qrels.trec8.small_web.gz") ],
-    "topics" : [ (  "topics.401-450.gz", "https://trec.nist.gov/data/topics_eng/topics.401-450.gz" ) ]
+    "topics" : [ (  "topics.401-450.gz", "https://trec.nist.gov/data/topics_eng/topics.401-450.gz" ) ],
+    "info_url" : "https://trec.nist.gov/data/t8.web.html",
 }
 
 TREC_WT10G_FILES = {
@@ -632,6 +646,7 @@ TREC_WT10G_FILES = {
     "topics_desc_only" : {
          "trec10-hp" : (  "entry_page_topics.1-145.txt", "https://trec.nist.gov/data/topics_eng/entry_page_topics.1-145.txt" ),
     },
+    "info_url" : "https://trec.nist.gov/data/t9.web.html",
 }
 
 def _merge_years(self, component, variant):
@@ -665,16 +680,19 @@ TREC_TB_FILES = {
 
         "2005-np" : ( "05.np_qrels", "https://trec.nist.gov/data/terabyte/05/05.np_qrels"),
         "2006-np" : ( "qrels.tb06.np", "https://trec.nist.gov/data/terabyte/06/qrels.tb06.np"),
-    }
+    },
+    "info_url" : "https://trec.nist.gov/data/terabyte.html"
 }
 
 TREC_ROBUST_04_FILES = {
     "qrels" : [ ("qrels.robust2004.txt", "https://trec.nist.gov/data/robust/qrels.robust2004.txt") ],
-    "topics" : [ (  "04.testset.gz", "https://trec.nist.gov/data/robust/04.testset.gz" ) ]
+    "topics" : [ (  "04.testset.gz", "https://trec.nist.gov/data/robust/04.testset.gz" ) ],
+    "info_url" : "https://trec.nist.gov/data/t13_robust.html",
 }
 TREC_ROBUST_05_FILES = {
     "qrels" : [ ("TREC2005.qrels.txt", "https://trec.nist.gov/data/robust/05/TREC2005.qrels.txt") ],
-    "topics" : [ (  "05.50.topics.txt", "https://trec.nist.gov/data/robust/05/05.50.topics.txt" ) ]
+    "topics" : [ (  "05.50.topics.txt", "https://trec.nist.gov/data/robust/05/05.50.topics.txt" ) ],
+    "info_url" : "https://trec.nist.gov/data/t14_robust.html",
 }
 
 TREC_PRECISION_MEDICINE_FILES = {
@@ -696,7 +714,8 @@ TREC_PRECISION_MEDICINE_FILES = {
         "qrels-2019-trials" : ("qrels-2019-trials.txt", "https://trec.nist.gov/data/precmed/qrels-treceval-trials.38.txt"),
         "qrels-2019-abstracts-sample" : ("qrels-2019-abstracts-sample.txt", "https://trec.nist.gov/data/precmed/qrels-sampleval-abstracts.2019.txt"),
         "qrels-2019-trials-sample" : ("qrels-2019-trials-sample.txt", "https://trec.nist.gov/data/precmed/qrels-sampleval-trials.38.txt")
-    }
+    },
+    "info_url" : "https://trec.nist.gov/data/precmed.html",
 }
 
 VASWANI_CORPUS_BASE = "https://raw.githubusercontent.com/terrier-org/pyterrier/master/tests/fixtures/vaswani_npl/"
@@ -709,7 +728,8 @@ VASWANI_FILES = {
     "qrels":
         [("qrels", VASWANI_CORPUS_BASE + "qrels")],
     "index":
-        [(filename, VASWANI_INDEX_BASE + filename) for filename in STANDARD_TERRIER_INDEX_FILES + ["data.meta-0.fsomapfile"]]
+        [(filename, VASWANI_INDEX_BASE + filename) for filename in STANDARD_TERRIER_INDEX_FILES + ["data.meta-0.fsomapfile"]],
+    "info_url" : "http://ir.dcs.gla.ac.uk/resources/test_collections/npl/",
 }
 
 DATASET_MAP = {
