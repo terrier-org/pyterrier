@@ -14,7 +14,7 @@ and the latter does not install automatically on Windows.
 Installation
 ============
 
-Installing PyTerrier is easy - it can be installed from the command-line in the normal way using Pip:
+Installing PyTerrier is easy - it can be installed from the command-line in the normal way using Pip::
 
     pip install python-terrier
 
