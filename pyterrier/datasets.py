@@ -743,7 +743,6 @@ TREC_PRECISION_MEDICINE_FILES = {
     "info_url" : "https://trec.nist.gov/data/precmed.html",
 }
 
-def trec2text(dataset):
 
 
 VASWANI_CORPUS_BASE = "https://raw.githubusercontent.com/terrier-org/pyterrier/master/tests/fixtures/vaswani_npl/"
