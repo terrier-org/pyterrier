@@ -5,6 +5,7 @@ import pandas as pd
 from .transformer import is_lambda
 import types
 import requests
+from .io import autoopen
 from . import tqdm, HOME_DIR
 import tarfile
 
@@ -213,6 +214,11 @@ class RemoteDataset(Dataset):
         import pyterrier as pt
         return pt.io.find_files(self._get_all_files("corpus", **kwargs))
 
+    def get_corpus_iter(self, **kwargs):
+        if not "corpus_iter" in self.locations:
+            raise ValueError("Cannot supply a corpus iterator on datasets %s" % self.name)
+        return self.locations["corpus_iter"](self, **kwargs)
+        
     def get_corpus_lang(self):
         if 'corpus' in self.locations:
             return 'en' # all are english
@@ -233,7 +239,7 @@ class RemoteDataset(Dataset):
         elif filetype == "direct":
             return file
         raise ValueError("Unknown filetype %s for %s topics %s"  % (filetype, self.name, variant))
-
+    
     def get_topics_lang(self):
         if 'topics' in self.locations:
             return 'en' # all are english
@@ -283,7 +289,7 @@ class IRDSDataset(Dataset):
         return None
 
     def get_index(self, variant=None):
-        # TODO: should this automaticaly build an index?
+        # this is only for indices where Terrier provides an index already
         raise NotImplementedError("IRDSDataset doesn't support get_index")
 
     def get_topics(self, variant=None):
@@ -374,6 +380,14 @@ class IRDSDataset(Dataset):
         return f"IRDSDataset({repr(self._irds_id)})"
 
 
+def passage_generate(dataset):
+    for filename in dataset.get_corpus():
+        with autoopen(filename, 'rt') as corpusfile:
+            for l in corpusfile: #for each line
+                docno, passage = l.split("\t")
+                yield {'docno' : docno, 'text' : passage}
+
+
 ANTIQUE_FILES = {
     "topics" : {
         "train" : ("antique-train-queries.txt", "http://ciir.cs.umass.edu/downloads/Antique/antique-train-queries.txt", "singleline"),
@@ -386,6 +400,7 @@ ANTIQUE_FILES = {
     "corpus" : 
         [("antique-collection.txt", "http://ciir.cs.umass.edu/downloads/Antique/antique-collection.txt")],
     "info_url" : "https://ciir.cs.umass.edu/downloads/Antique/readme.txt",
+    "corpus_iter" : passage_generate
 }
 
 TREC_COVID_FILES = {
@@ -417,6 +432,13 @@ TREC_COVID_FILES = {
     "info_url"  : "https://ir.nist.gov/covidSubmit/"
 }
 
+def msmarco_document_generate(dataset):
+    for filename in dataset.get_corpus(variant="corpus-tsv"):
+        with autoopen(filename, 'rt') as corpusfile:
+            for l in corpusfile: #for each line
+                docno, url, title, passage = l.split("\t")
+                yield {'docno' : docno, 'url' : url, 'title' : title, 'text' : passage}
+
 TREC_DEEPLEARNING_DOCS_MSMARCO_FILES = {
     "corpus" : 
         [("msmarco-docs.trec.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-docs.trec.gz")],
@@ -437,6 +459,7 @@ TREC_DEEPLEARNING_DOCS_MSMARCO_FILES = {
             "test" : ("2019qrels-docs.txt", "https://trec.nist.gov/data/deep/2019qrels-docs.txt")
         },
     "info_url" : "https://microsoft.github.io/msmarco/",
+    "corpus_iter" : msmarco_document_generate
 }
 
 TREC_DEEPLEARNING_PASSAGE_MSMARCO_FILES = {
@@ -460,6 +483,7 @@ TREC_DEEPLEARNING_PASSAGE_MSMARCO_FILES = {
             "test-2019" : ("2019qrels-docs.txt", "https://trec.nist.gov/data/deep/2019qrels-pass.txt")
         },
     "info_url" : "https://microsoft.github.io/MSMARCO-Passage-Ranking/",
+    "corpus_iter" : passage_generate
 }
 
 # remove WT- prefix from topics
@@ -612,7 +636,8 @@ TREC_WT_2011_FILES = {
     "qrels" : 
         { 
             "adhoc" : ("qrels.adhoc", "https://trec.nist.gov/data/web/11/qrels.adhoc")
-        }
+        },
+    "info_url" : "https://trec.nist.gov/data/web2011.html",
 }
 
 TREC_WT_2012_FILES = {
@@ -623,7 +648,7 @@ TREC_WT_2012_FILES = {
         { 
             "adhoc" : ("qrels.adhoc", "https://trec.nist.gov/data/web/12/qrels.adhoc")
         },
-    "info_url" : "https://trec.nist.gov/data/web2011.html",
+    "info_url" : "https://trec.nist.gov/data/web2012.html",
 }
 
 TREC_WT2G_FILES = {
@@ -717,6 +742,9 @@ TREC_PRECISION_MEDICINE_FILES = {
     },
     "info_url" : "https://trec.nist.gov/data/precmed.html",
 }
+
+def trec2text(dataset):
+
 
 VASWANI_CORPUS_BASE = "https://raw.githubusercontent.com/terrier-org/pyterrier/master/tests/fixtures/vaswani_npl/"
 VASWANI_INDEX_BASE = "https://raw.githubusercontent.com/terrier-org/pyterrier/master/tests/fixtures/index/"
