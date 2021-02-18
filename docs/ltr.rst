@@ -110,8 +110,9 @@ interface that is supported by PyTerrier by supplying `form="ltr"` kwarg to `pt.
 
     import xgboost as xgb
     lmart_x = xgb.sklearn.XGBRanker(objective='rank:ndcg', 
-          learning_rate= 0.1, 
-          gamma= 1.0 min_child_weight=0.1,
+          learning_rate=0.1, 
+          gamma=1.0, 
+          min_child_weight=0.1,
           max_depth=6,
           verbose=2,
           random_state=42)

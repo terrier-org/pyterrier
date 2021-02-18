@@ -28,7 +28,7 @@ def dataset_include():
     df = fix_width(df, "qrels")
     df = fix_width(df, "topics")
     df = fix_width(df, "corpus")
-    df = df[["dataset", "corpus", "index", "topics", "qrels"]]
+    df = df[["dataset", "corpus", "index", "topics", "qrels", "info_url"]]
     table = df.set_index('dataset').to_markdown(tablefmt="rst")
 
     with open("_includes/datasets-list-inc.rst", "wt") as f:
@@ -61,6 +61,29 @@ def experiment_includes():
     ).to_markdown(tablefmt="rst")
 
     with open("_includes/experiment-names.rst", "wt") as f:
+        f.write(table)
+
+    table = pt.Experiment(
+        [tfidf, bm25],
+        dataset.get_topics(),
+        dataset.get_qrels(),
+        eval_metrics=["official"],
+        names=["TF_IDF", "BM25"]
+    ).to_markdown(tablefmt="rst")
+
+    with open("_includes/experiment-official.rst", "wt") as f:
+        f.write(table)
+
+    table = pt.Experiment(
+        [tfidf, bm25],
+        dataset.get_topics(),
+        dataset.get_qrels(),
+        eval_metrics=["map", "recip_rank"],
+        round={"map" : 4, "recip_rank" : 3},
+        names=["TF_IDF", "BM25"]
+    ).to_markdown(tablefmt="rst")
+
+    with open("_includes/experiment-round.rst", "wt") as f:
         f.write(table)
 
     table = pt.Experiment(
