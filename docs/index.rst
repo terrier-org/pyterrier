@@ -21,6 +21,7 @@ Welcome to PyTerrier's documentation!
    transformer
    operators
    pipeline_examples.md
+   text
    neural
    experiments/Robust04
 
