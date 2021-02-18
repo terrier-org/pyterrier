@@ -175,7 +175,7 @@ class RemoteDataset(Dataset):
                 raise ValueError("Could not fetch " + URL) from he
         return (local, filetype)
 
-    def _get_all_files(self, component, **kwargs):
+    def _get_all_files(self, component, variant=None, **kwargs):
         localDir = os.path.join(self.corpus_home, component)
         if not os.path.exists(localDir):
             os.makedirs(localDir)
@@ -183,7 +183,8 @@ class RemoteDataset(Dataset):
         kwargs = {}
         if self.user is not None:
             kwargs["auth"]=(self.user, self.password)
-        for (local, URL) in self.locations[component]:
+        file_list = self.locations[component] if variant is None else self.locations[component][variant]
+        for (local, URL) in file_list:
             local = os.path.join(localDir, local)
             if not os.path.exists(local):
                 if "#" in URL:
@@ -216,7 +217,7 @@ class RemoteDataset(Dataset):
 
     def get_corpus_iter(self, **kwargs):
         if not "corpus_iter" in self.locations:
-            raise ValueError("Cannot supply a corpus iterator on datasets %s" % self.name)
+            raise ValueError("Cannot supply a corpus iterator on dataset %s" % self.name)
         return self.locations["corpus_iter"](self, **kwargs)
         
     def get_corpus_lang(self):
@@ -245,9 +246,9 @@ class RemoteDataset(Dataset):
             return 'en' # all are english
         return None
 
-    def get_index(self):
+    def get_index(self, variant=None):
         import pyterrier as pt
-        thedir = self._get_all_files("index")
+        thedir = self._get_all_files("index", variant=variant)
         return pt.autoclass("org.terrier.querying.IndexRef").of(os.path.join(thedir, "data.properties"))
 
     def __repr__(self):
@@ -575,8 +576,10 @@ TREC_WT_2004_FILES = {
 
 FIFTY_PCT_INDEX_BASE = "http://www.dcs.gla.ac.uk/~craigm/IR_HM/"
 FIFTY_PCT_FILES = {
-    "index":
-        [(filename, FIFTY_PCT_INDEX_BASE + "index/" + filename) for filename in ["data.meta-0.fsomapfile"] + STANDARD_TERRIER_INDEX_FILES],
+    "index": {
+        "ex1" : [(filename, FIFTY_PCT_INDEX_BASE + "index/" + filename) for filename in ["data.meta-0.fsomapfile"] + STANDARD_TERRIER_INDEX_FILES],
+        "ex2" : [(filename, FIFTY_PCT_INDEX_BASE + "index_block_fields_2021_content/" + filename) for filename in ["data.meta-0.fsomapfile", "data-pagerank.oos.gz"] + STANDARD_TERRIER_INDEX_FILES],   
+    },
     "topics": { 
             "training" : ("training.topics", FIFTY_PCT_INDEX_BASE + "topics/" + "training.topics", "trec"),
             "validation" : ("validation.topics", FIFTY_PCT_INDEX_BASE + "topics/" + "validation.topics", "trec"),
