@@ -578,7 +578,7 @@ FIFTY_PCT_INDEX_BASE = "http://www.dcs.gla.ac.uk/~craigm/IR_HM/"
 FIFTY_PCT_FILES = {
     "index": {
         "ex1" : [(filename, FIFTY_PCT_INDEX_BASE + "index/" + filename) for filename in ["data.meta-0.fsomapfile"] + STANDARD_TERRIER_INDEX_FILES],
-        "ex2" : [(filename, FIFTY_PCT_INDEX_BASE + "index_block_fields_2021_content/" + filename) for filename in ["data.meta-0.fsomapfile", "data-pagerank.oos.gz"] + STANDARD_TERRIER_INDEX_FILES],   
+        "ex2" : [(filename, FIFTY_PCT_INDEX_BASE + "index_block_fields_2021_content/" + filename) for filename in ["data.meta-0.fsomapfile", "data-pagerank.oos"] + STANDARD_TERRIER_INDEX_FILES],   
     },
     "topics": { 
             "training" : ("training.topics", FIFTY_PCT_INDEX_BASE + "topics/" + "training.topics", "trec"),
