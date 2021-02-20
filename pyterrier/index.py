@@ -15,6 +15,7 @@ import contextlib
 import threading
 import select
 import math
+from warnings import warn
 from collections import deque
 
 StringReader = None
@@ -567,7 +568,7 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
         if Indexer is BasicMemoryIndexer:
             assert self.threads == 1, 'IterDictIndexer does not support multiple threads for IndexingType.MEMORY'
         if self.threads > 1:
-            print('Warning: using multiple threads is non-deterministic. For deterministic behavior, use threads=1')
+            warn('Using multiple threads results in a non-deterministic ordering of document in the index. For deterministic behavior, use threads=1')
 
         # Document iterator
         fifos = []
