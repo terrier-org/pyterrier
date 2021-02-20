@@ -22,12 +22,12 @@ def get_text(
         - metakeys(list(str) or str): a list of strings of the metadata keys to retrieve from the index. Defaults to ["body"]
         - by_query(bool): whether the entire dataframe should be progressed at once, rather than one query at a time. 
             Defaults to false, which means that all document metadata will be fetched at once.
-        - verbose(bool): whether to print a tqdm progress bar. Defaults to false. Has no effect when by_query=False/
+        - verbose(bool): whether to print a tqdm progress bar. Defaults to false. Has no effect when by_query=False
 
     Example::
 
         pipe = pt.BatchRetrieve(index, wmodel="DPH") \ 
-            >> pt.text.get_text() \ 
+            >> pt.text.get_text(index) \ 
             >> pt.text.scorer(wmodel="DPH")
 
     """
