@@ -428,7 +428,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
             assert not scores_provided
 
             if self.wmodel is None:
-                raise ValueError("We're in retrieval mode, but wmodel is None. FeaturesBatchRetrieve requires a wmodel be set for identifying the candidate set. "
+                raise ValueError("We're in retrieval mode (input columns were "+str(queries.columns)+"), but wmodel is None. FeaturesBatchRetrieve requires a wmodel be set for identifying the candidate set. "
                     +" Hint: wmodel argument for FeaturesBatchRetrieve, e.g. FeaturesBatchRetrieve(index, features, wmodel=\"DPH\")")
 
         if queries["qid"].dtype == np.int64:
@@ -489,24 +489,11 @@ class FeaturesBatchRetrieve(BatchRetrieve):
             for i in range(fres.getResultSize()):
                 doc_features = np.array([ feature[i] for feature in feats_values])
                 meta=[ metadata_col[i] for metadata_col in metadata_list]
-                results.append( [qid, docids[i], rank, doc_features ] + meta )
+                results.append( [qid, query, docids[i], rank, doc_features ] + meta )
                 newscores.append(scores[i])
                 rank += 1
 
-        res_dt = pd.DataFrame(results, columns=["qid", "docid", "rank", "features"] + self.metadata)
-        # if scores_provided and self.wmodel is None:
-        #     # we take the scores from the input dataframe, as ScoringMatchingWithFat overwrites them
-
-        #     # prefer to join on docid
-        #     if docid_provided:
-        #         res_dt = res_dt.merge(topics[["qid", "docid", "score"]], on=["qid", "docid"], how='right')
-        #     else:
-        #         assert docno_provided
-        #         res_dt = res_dt.merge(topics[["qid", "docno", "score"]], on=["qid", "docno"], how='right')
-        # elif self.wmodel is not None:
-        #     # we use new scores obtained from Terrier
-        #     # order should be same as the results column 
-        #     res_dt["score"] = newscores
+        res_dt = pd.DataFrame(results, columns=["qid", "query", "docid", "rank", "features"] + self.metadata)
         res_dt["score"] = newscores
         return res_dt
 
@@ -519,4 +506,6 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         ]) + ")"
 
     def __str__(self):
+        if self.wmodel is None:
+            return "FBR(" + str(len(self.features)) + " features)"
         return "FBR(" + self.controls["wmodel"] + " and " + str(len(self.features)) + " features)"
