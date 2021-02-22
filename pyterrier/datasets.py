@@ -248,6 +248,8 @@ class RemoteDataset(Dataset):
 
     def get_index(self, variant=None):
         import pyterrier as pt
+        if self.name == "50pct" and variant is None:
+            variant="ex1"
         thedir = self._get_all_files("index", variant=variant)
         return pt.autoclass("org.terrier.querying.IndexRef").of(os.path.join(thedir, "data.properties"))
 
