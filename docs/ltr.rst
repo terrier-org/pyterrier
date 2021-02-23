@@ -109,6 +109,7 @@ provide gradient boosted regression tree and LambdaMART implementations. These s
 interface that is supported by PyTerrier by supplying `form="ltr"` kwarg to `pt.ltr.apply_learned_model()`::
 
     import xgboost as xgb
+    # this configures XGBoost as LambdaMART
     lmart_x = xgb.sklearn.XGBRanker(objective='rank:ndcg', 
           learning_rate=0.1, 
           gamma=1.0, 
@@ -121,6 +122,7 @@ interface that is supported by PyTerrier by supplying `form="ltr"` kwarg to `pt.
     lmart_x_pipe.fit(train_topics, qrels)
 
     import lightgbm as lgb
+    # this configures LightGBM as LambdaMART
     lmart_l = lgb.LGBMRanker(task="train",
         min_data_in_leaf=1,
         min_sum_hessian_in_leaf=100,
