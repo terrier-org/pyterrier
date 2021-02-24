@@ -1,4 +1,5 @@
 from pyterrier.transformer import TransformerBase
+from pyterrier.datasets import IRDSDataset
 import more_itertools
 from collections import defaultdict
 import re
@@ -15,10 +16,11 @@ def get_text(
         by_query : bool = False,
         verbose : bool = False) -> TransformerBase:
     """
-    A utility transformer for obtaining the text from the text of documents (or other document metadata) from Terrier's MetaIndex.
+    A utility transformer for obtaining the text from the text of documents (or other document metadata) from Terrier's MetaIndex
+    or an IRDSDataset docstore.
 
     Arguments:
-        - indexlike: a Terrier index to retrieve the metadata from 
+        - indexlike: a Terrier index or IRDSDataset to retrieve the metadata from
         - metakeys(list(str) or str): a list of strings of the metadata keys to retrieve from the index. Defaults to ["body"]
         - by_query(bool): whether the entire dataframe should be progressed at once, rather than one query at a time. 
             Defaults to false, which means that all document metadata will be fetched at once.
@@ -35,20 +37,29 @@ def get_text(
     JIR = pt.autoclass('org.terrier.querying.IndexRef')
     JI = pt.autoclass('org.terrier.structures.Index')
 
+    if isinstance(metadata, str):
+        metadata = [metadata]
+
     if isinstance(indexlike, str) or isinstance(indexlike, JIR):
         index = pt.IndexFactory.of(indexlike)
+        add_text_fn = _add_text_terrier_metaindex(index, metadata)
     elif isinstance(indexlike, JI):
-        index = indexlike
+        add_text_fn = _add_text_terrier_metaindex(indexlike, metadata)
+    elif isinstance(indexlike, IRDSDataset):
+        add_text_fn = _add_text_irds_docstore(indexlike, metadata)
     else:
-        raise ValueError("indexlike %s of type %s not supported. Pass a string, an IndexRef or an Index" %
+        raise ValueError("indexlike %s of type %s not supported. Pass a string, an IndexRef, an Index, or an IRDSDataset" %
             (str(indexlike), type(indexlike)))
 
+    if by_query:
+        return pt.apply.by_query(add_text_fn, verbose=verbose)
+    return pt.apply.generic(add_text_fn)
+
+
+def _add_text_terrier_metaindex(index, metadata):
     metaindex = index.getMetaIndex()
     if metaindex is None:
         raise ValueError("Index %s does not have a metaindex" % str(indexlike))
-
-    if isinstance(metadata, str):
-        metadata = [metadata]
 
     for k in metadata:
         if not k in metaindex.getKeys():
@@ -77,9 +88,37 @@ def get_text(
             res = add_docids(res)
         return add_text_function_docids(res)
 
-    if by_query:
-        return pt.apply.by_query(add_text_generic, verbose=verbose)
-    return pt.apply.generic(add_text_generic)
+    return add_text_generic
+
+
+def _add_text_irds_docstore(irds_dataset, metadata):
+    irds = irds_dataset.irds_ref()
+    assert irds.has_docs(), f"dataset {irds_dataset} doesn't provide docs"
+    docs_cls = irds.docs_cls()
+
+    for k in metadata:
+        if not k in docs_cls._fields:
+            raise ValueError(f"{irds_dataset} did not have requested field {k}. Keys present are {docs_cls._fields} (from {docs_cls})")
+    field_idx = [(f, docs_cls._fields.index(f)) for f in metadata]
+
+    docstore = irds.docs_store()
+
+    def add_text_function_docids(res):
+        assert 'docno' in res, "requires docno column"
+        res = res.copy()
+        docids = res.docno.values.tolist()
+        did2idx = {did: i for i, did in enumerate(docids)}
+        new_columns = {f: [None] * len(docids) for f in metadata}
+        for doc in docstore.get_many_iter(docids):
+            didx = did2idx[doc.doc_id]
+            for f, fidx in field_idx:
+                new_columns[f][didx] = doc[fidx]
+        for k, v in new_columns.items():
+            res[k] = v
+        return res
+
+    return add_text_function_docids
+
 
 def scorer(*args, **kwargs) -> TransformerBase:
     """

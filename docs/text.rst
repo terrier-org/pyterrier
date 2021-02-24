@@ -45,8 +45,10 @@ This can be achieved in one of several ways:
  - adding document metadata later using `get_text()`
 
 BatchRetrieve accepts a `metadata` keyword-argument which allows for additional metadata attributes to be retrieved.
-Alternatively, the `pt.text.get_text()` transformer can be used, which can extract metadata from a Terrier index for
-documents already retrieved.
+
+Alternatively, the `pt.text.get_text()` transformer can be used, which can extract metadata from a Terrier index
+or IRDSDataset for documents already retrieved. The main advantage of using IRDSDataset is that it supports
+all document fields, not just those that were included as meta fields when indexing.
 
 Examples::
 
@@ -54,6 +56,9 @@ Examples::
     pipe1 = pt.BatchRetrieve(index, metadata=["docno", "body"])
 
     pipe2 = pt.BatchRetrieve(index) >> pt.text.get_text(index, "body")
+
+    dataset = pt.get_dataset('irds:vaswani')
+    pipe3 = pt.BatchRetrieve(index) >> pt.text.get_text(dataset, "text")
 
 
 .. autofunction:: pyterrier.text.get_text()
