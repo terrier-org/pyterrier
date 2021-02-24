@@ -6,7 +6,7 @@ Learning to Rank
 Introduction
 ============
 
-PyTerrier makes it easy to formulate learning to rank pipelines. Conceptually, learning to rank consist of three phases:
+PyTerrier makes it easy to formulate learning to rank pipelines. Conceptually, learning to rank consists of three phases:
 
  1. identifying a candidate set of documents for each query
  2. computing extra features on these documents
@@ -17,11 +17,11 @@ PyTerrier allows each of these phases to be expressed as transformers, and for t
 In particular, conventional retrieval transformers (such as `pt.BatchRetrieve`) can be used for the first phase.
 To permit the second phase, PyTerrier data model allows for a `"features"` column to be associated to each retrieved document. 
 Such features can be generated using specialised transformers, or by combining other re-ranking transformers using the  `**`
-feature-union operator; Lastly, to facilitate the final phase, we provide easy ways to integrate with standard learning libraries
+feature-union operator; Lastly, to facilitate the final phase, we provide easy ways to integrate PyTerrier pipelines with standard learning libraries
 such as `sklearn <https://scikit-learn.org/>`_, `XGBoost <https://xgboost.readthedocs.io/en/latest/>`_  and 
 `LightGBM <http://lightgbm.readthedocs.io/>`_.
 
-In the following, we focus on the second and third phases, as well as describing ways to assist in conducting learning to rank
+In the following, we focus on the second and third phases, as well as describe ways to assist in conducting learning to rank
 experiments. 
 
 Calculating Features
@@ -47,9 +47,10 @@ The output of the bm25 ranker would look like:
    1  q1             d5     (bm25 score)
 ====  ==========  ========  ============
 
-Application of the feature-union operator (`**`) ensures that tf and pl2 
-operate as *re-rankers*, i.e. they re-rank the documents identified by bm25.
-For each document, the score they calculate combined into the `"features"` column, as follows:
+Application of the feature-union operator (`**`) ensures that `tf` and `pl2`
+operate as *re-rankers*, i.e. they are applied only on the documents retrieved by `bm25`.
+For each document, the score calculate by `tf` and `pl2` are combined into 
+the `"features"` column, as follows:
 
 ====  ==========  ========  ============  =========================
   ..  qid          docno        score              features
@@ -63,7 +64,7 @@ For each document, the score they calculate combined into the `"features"` colum
 FeaturesBatchRetrieve
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When doing executing the pipeline above, then re-ranking of the documents again can be slow, as each separate BatchRetrieve
+When executing the pipeline above, the re-ranking of the documents again can be slow, as each separate BatchRetrieve
 object has to re-access the inverted index. For this reason, PyTerrier provides a class called FeaturesBatchRetrieve,
 which allows multiple query dependent features to be calculated at once, by virtue of Terrier's Fat framework.
 
@@ -79,8 +80,9 @@ An equivalent pipeline to the example above would be::
 Apply Functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If you have a way to calculate all one or mulitple ranking features, you can use pt.apply functions to create
-your feature sets.  See the :ref:`pyterrier.apply` for examples.
+If you have a way to calculate one or multiple ranking features at once, you can use pt.apply functions to create
+your feature sets.  See the :ref:`pyterrier.apply` for examples. Functions created by pt.apply can be combined using 
+the `**` operator.
 
 Learning
 ========
@@ -99,7 +101,7 @@ A sklearn regressor can be passed directly to `pt.ltr.apply_learned_model()`::
     pt.Experiment([bm25, rf_pipe], test_topics, qrels, ["map"], names=["BM25 Baseline", "LTR"])
 
 Note that for analysis, the features importances identified by RandomForestRegressor can be accessed
-through `rf.features_importances_`.
+through `rf.features_importances_` - see the `relevant sklearn documentation <https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html#sklearn.ensemble.RandomForestRegressor.feature_importances_>_` for more information.
 
 Gradient Boosted Trees & LambdaMART
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -146,7 +148,7 @@ Similar to sklearn, both XGBoost and LightGBM provide features importances via `
 Working with Features
 =====================
 
-We provide additional transformations fucntions to aid the analysis of learned model, for instance, removing (ablating) features from a 
+We provide additional transformations functions to aid the analysis of learned model, for instance, removing (ablating) features from a 
 complex ranking pipeline.
 
 .. autofunction:: pyterrier.ltr.ablate_features()

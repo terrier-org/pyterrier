@@ -86,8 +86,8 @@ class BatchRetrieve(BatchRetrieveBase):
 
             Args:
                 index_location: An index-like object - An Index, an IndexRef, or a String that can be resolved to an IndexRef
-                controls(dict): A dictionary with with the control names and values
-                properties(dict): A dictionary with with the property keys and values
+                controls(dict): A dictionary with the control names and values
+                properties(dict): A dictionary with the property keys and values
                 verbose(bool): If True transform method will display progress
                 num_results(int): Number of results to retrieve. 
                 metadata(list): What metadata to retrieve
@@ -372,8 +372,8 @@ class FeaturesBatchRetrieve(BatchRetrieve):
             Args:
                 index_location: An index-like object - An Index, an IndexRef, or a String that can be resolved to an IndexRef
                 features(list): List of features to use
-                controls(dict): A dictionary with with the control names and values
-                properties(dict): A dictionary with with the control names and values
+                controls(dict): A dictionary with the control names and values
+                properties(dict): A dictionary with the property keys and values
                 verbose(bool): If True transform method will display progress
                 num_results(int): Number of results to retrieve. 
         """
