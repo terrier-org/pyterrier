@@ -165,7 +165,7 @@
 									<doctitle>${project.parent.Name} ${project.version} API</doctitle>
 									<use>true</use>
 									<version>true</version>
-                  <source>8</source>
+                  <source>11</source>
 									<windowtitle>${project.parent.Name} ${project.version} API</windowtitle>
 									<failOnError>false</failOnError>
 									<failOnWarnings>false</failOnWarnings>
