@@ -26,3 +26,4 @@ To deploy to Maven central
 ## Credits
 
 Craig Macdonald, University of Glasgow
+Sean MacAvaney, University of Glasgow
