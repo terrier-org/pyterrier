@@ -133,7 +133,7 @@ class LTRTransformer(RegressionTransformer):
         )
 
 
-def ablate_features(fids : list) -> TransformerBase:
+def ablate_features(fids : FeatureList) -> TransformerBase:
     """
         Ablates features (sets feature value to 0) from a pipeline. This is useful for 
         performing feature ablation studies, whereby a feature is removed from the pipeline
@@ -147,11 +147,11 @@ def ablate_features(fids : list) -> TransformerBase:
 def keep_features(fids : FeatureList) -> TransformerBase:
     """
         Reduces the features in a pipeline to only those mentioned. This is useful for 
-        performing feature ablation studies, whereby only some features are kept from a 
-        pipeline woth more features before learning. 
+        performing feature ablation studies, whereby only some features are kept 
+        (and other removed) from a pipeline before learning occurs. 
 
         Args: 
-            fids: one or a list of integers corresponding to features indices to be kept
+            fids: one or a list of integers corresponding to the features indice to be kept
     """
     return KeepFeatures(fids)
 
@@ -186,8 +186,8 @@ def score_to_feature() -> TransformerBase:
     """
         Takes the document's "score" from the score attribute, and uses it as a single feature. 
         In particular, a feature union operator does not use any score of the documents in the
-        candidate set as a ranking feaure. Using the result of this function in a feature-union
-        means that an additional ranking feature is provided to th learner.
+        candidate set as a ranking feaure. Using the resulting transformer within a feature-union
+        means that an additional ranking feature is added to the "feature" column.
 
         Example::
 
