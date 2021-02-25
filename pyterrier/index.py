@@ -206,9 +206,6 @@ class Indexer:
             Created index object
         """
         
-        self.properties['indexer.meta.forward.keys'] = ','.join(self.meta.keys())
-        self.properties['indexer.meta.forward.keylens'] = ','.join([str(l) for l in self.meta.values()])
-
         Indexer, _ = self.indexerAndMergerClasses()
         if Indexer is BasicMemoryIndexer:
             index = Indexer()
@@ -225,6 +222,8 @@ class Indexer:
         Returns:
             type objects for indexer and merger for the given configuration
         """
+        self.properties['indexer.meta.forward.keys'] = ','.join(self.meta.keys())
+        self.properties['indexer.meta.forward.keylens'] = ','.join([str(l) for l in self.meta.values()])
         ApplicationSetup.getProperties().putAll(self.properties)
         if self.type is IndexingType.SINGLEPASS:
             if self.blocks:
