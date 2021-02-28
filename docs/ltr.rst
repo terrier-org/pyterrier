@@ -101,7 +101,7 @@ A sklearn regressor can be passed directly to `pt.ltr.apply_learned_model()`::
     pt.Experiment([bm25, rf_pipe], test_topics, qrels, ["map"], names=["BM25 Baseline", "LTR"])
 
 Note that for analysis, the features importances identified by RandomForestRegressor can be accessed
-through `rf.features_importances_` - see the `relevant sklearn documentation <https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html#sklearn.ensemble.RandomForestRegressor.feature_importances_>_` for more information.
+through `rf.features_importances_` - see the `relevant sklearn documentation <https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html#sklearn.ensemble.RandomForestRegressor.feature_importances_>`_ for more information.
 
 Gradient Boosted Trees & LambdaMART
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
