@@ -30,7 +30,7 @@ For example, the query `pyterrier IR platform` would become `pyterrier IR platfo
 NB: Acutally, we have simplified the rewritten query - in practice, we also (a) set the weight of the proximity terms to be low using a `#combine()`
 operator and (b) set a proximity term weighting model.
 
-This transfomer is only compatible with BatchRetrieve, as Terrier supports the `#1` and `#uwN` complex query terms operators.
+This transfomer is only compatible with BatchRetrieve, as Terrier supports the `#1` and `#uwN` complex query terms operators. The Terrier index must have blocks (positional information) recorded in the index.
 
 .. autoclass:: pyterrier.rewrite.SequentialDependence
     :members: transform
