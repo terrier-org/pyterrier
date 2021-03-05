@@ -139,7 +139,13 @@ interface that is supported by PyTerrier by supplying `form="ltr"` kwarg to `pt.
     lmart_l_pipe = pipeline >> pt.ltr.apply_learned_model(lmart_l, form="ltr")
     lmart_l_pipe.fit(train_topics, train_qrels, validation_topics, validation_qrels)
 
-    pt.Experiment([bm25, lmart_x_pipe, lmart_l_pipe], test_topics, qrels, ["map"], names=["BM25 Baseline", "LambdaMART (xgBoost)", "LambdaMART (LightGBM)" ])
+    pt.Experiment(
+        [bm25, lmart_x_pipe, lmart_l_pipe], 
+        test_topics, 
+        test_qrels, 
+        ["map"], 
+        names=["BM25 Baseline", "LambdaMART (xgBoost)", "LambdaMART (LightGBM)" ]
+    )
 
 In our experience, LightGBM *tends* to be more effective than xgBoost.
 
