@@ -459,7 +459,8 @@ TREC_DEEPLEARNING_DOCS_MSMARCO_FILES = {
         { 
             "train" : ("msmarco-doctrain-qrels.tsv.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-doctrain-qrels.tsv.gz"),
             "dev" : ("msmarco-docdev-qrels.tsv.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-docdev-qrels.tsv.gz"),
-            "test" : ("2019qrels-docs.txt", "https://trec.nist.gov/data/deep/2019qrels-docs.txt")
+            "test" : ("2019qrels-docs.txt", "https://trec.nist.gov/data/deep/2019qrels-docs.txt"),
+            "test-2020" : ("2020qrels-docs.txt", "https://trec.nist.gov/data/deep/2020qrels-docs.txt")
         },
     "info_url" : "https://microsoft.github.io/msmarco/",
     "corpus_iter" : msmarco_document_generate
