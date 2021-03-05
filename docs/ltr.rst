@@ -89,6 +89,9 @@ Learning
 
 .. autofunction:: pyterrier.ltr.apply_learned_model()
 
+The resulting transformer implements EstimatorBase, in other words it has a `fit()` method, that can be trained using
+training topics and qrels, as well as (optionally) validation topics and qrels. See also :ref:`pt.transformer.estimatorbase`.
+
 SKLearn
 ~~~~~~~
 
@@ -100,7 +103,7 @@ A sklearn regressor can be passed directly to `pt.ltr.apply_learned_model()`::
     rf_pipe.fit(train_topics, qrels)
     pt.Experiment([bm25, rf_pipe], test_topics, qrels, ["map"], names=["BM25 Baseline", "LTR"])
 
-Note that for analysis, the features importances identified by RandomForestRegressor can be accessed
+Note that for analysis, the feature importances identified by RandomForestRegressor can be accessed
 through `rf.features_importances_` - see the `relevant sklearn documentation <https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html#sklearn.ensemble.RandomForestRegressor.feature_importances_>`_ for more information.
 
 Gradient Boosted Trees & LambdaMART
@@ -149,7 +152,7 @@ interface that is supported by PyTerrier by supplying `form="ltr"` kwarg to `pt.
 
 In our experience, LightGBM *tends* to be more effective than xgBoost.
 
-Similar to sklearn, both XGBoost and LightGBM provide features importances via `lmart_x.features_importances_` and `lmart_l.features_importances_`.
+Similar to sklearn, both XGBoost and LightGBM provide feature importances via `lmart_x.features_importances_` and `lmart_l.features_importances_`.
 
 Working with Features
 =====================

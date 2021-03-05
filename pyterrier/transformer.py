@@ -237,11 +237,13 @@ class EstimatorBase(TransformerBase):
     def fit(self, topics_or_res_tr, qrels_tr, topics_or_res_va, qrels_va):
         """
             Method for training the transformer.
+
             Arguments:
-            - topics_or_res_tr(DataFrame): training topics (probably with documents)
+             - topics_or_res_tr(DataFrame): training topics (usually with documents)
             - qrels_tr(DataFrame): training qrels
-            - topics_or_res_va(DataFrame): validation topics (probably with documents)
+             - topics_or_res_va(DataFrame): validation topics (usually with documents)
             - qrels_va(DataFrame): validation qrels
+
         """
         pass
 
