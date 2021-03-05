@@ -121,7 +121,7 @@ interface that is supported by PyTerrier by supplying `form="ltr"` kwarg to `pt.
           random_state=42)
     
     lmart_x_pipe = pipeline >> pt.ltr.apply_learned_model(lmart_x, form="ltr")
-    lmart_x_pipe.fit(train_topics, qrels)
+    lmart_x_pipe.fit(train_topics, train_qrels, validation_topics, validation_qrels)
 
     import lightgbm as lgb
     # this configures LightGBM as LambdaMART
@@ -137,7 +137,7 @@ interface that is supported by PyTerrier by supplying `form="ltr"` kwarg to `pt.
         importance_type="gain",
         num_iterations=10)
     lmart_l_pipe = pipeline >> pt.ltr.apply_learned_model(lmart_l, form="ltr")
-    lmart_l_pipe.fit(train_topics, qrels)
+    lmart_l_pipe.fit(train_topics, train_qrels, validation_topics, validation_qrels)
 
     pt.Experiment([bm25, lmart_x_pipe, lmart_l_pipe], test_topics, qrels, ["map"], names=["BM25 Baseline", "LambdaMART (xgBoost)", "LambdaMART (LightGBM)" ])
 
