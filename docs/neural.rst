@@ -17,7 +17,7 @@ Indexing, Retrieval and Scoring of Text using Terrier
 
 If you are using a Terrier index for your first-stage ranking, you will want to record the text
 of the documents in the MetaIndex. More of PyTerrier's support for operating on text is documented
-in `Working with Document Texts <text.html>`_.
+in :ref:`pt.text`.
 
 Available Neural Re-ranking Integrations
 ========================================
@@ -40,4 +40,5 @@ Outlook
 =======
 
 We continue to work on improving the integration of neural rankers and re-rankers within PyTerrier. We foresee:
- - first-stage dense retrieval transformers. 
+ - first-stage dense retrieval transformers.
+ - more neural integration via `OpenNIR <https://opennir.net/>`_.

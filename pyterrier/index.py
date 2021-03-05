@@ -637,6 +637,10 @@ class TRECCollectionIndexer(Indexer):
             overwrite (bool): If index already present at `index_path`, True would overwrite it, False throws an Exception. Default is False.
             type (IndexingType): the specific indexing procedure to use. Default is IndexingType.CLASSIC.
             collection (Class name, or Class instance, or one of "trec", "trecweb", "warc"). Default is "trec".
+            meta(Dict[str,int]): What metadata for each document to record in the index, and what length to reserve. Defaults to `{"docno" : 20}`.
+            meta_reverse(List[str]): What metadata shoudl we be able to resolve back to a docid. Defaults to `["docno"]`.
+            meta_tags(Dict[str,str]): For collections formed using tagged data (e.g. HTML), which tags correspond to which metadata. This is useful for recording the text of documents for use in neural rankers - see :ref:`pt.text`.
+
         """
         super().__init__(index_path, blocks=blocks, overwrite=overwrite, type=type)
         if isinstance(collection, str):
@@ -695,12 +699,19 @@ class TRECCollectionIndexer(Indexer):
 class FilesIndexer(Indexer):
     '''
         Use this Indexer if you wish to index a pdf, docx, txt etc files
+
+        Args:
+            index_path (str): Directory to store index. Ignored for IndexingType.MEMORY.
+            blocks (bool): Create indexer with blocks if true, else without blocks. Default is False.
+            type (IndexingType): the specific indexing procedure to use. Default is IndexingType.CLASSIC.
+            meta(Dict[str,int]): What metadata for each document to record in the index, and what length to reserve. Defaults to `{"docno" : 20, "filename" : 512}`.
+            meta_reverse(List[str]): What metadata shoudl we be able to resolve back to a docid. Defaults to `["docno"]`,
+            meta_tags(Dict[str,str]): For collections formed using tagged data (e.g. HTML), which tags correspond to which metadata. Defaults to empty. This is useful for recording the text of documents for use in neural rankers - see :ref:`pt.text`.
+
     '''
 
-    def __init__(self, index_path, *args, **kwargs):
-        super().__init__(index_path, args, kwargs)
-        self.meta=["docno", "filename"] 
-        self.meta_lengths=[20,512]
+    def __init__(self, index_path, meta={"docno" : 20, "filename" : 512}, *args, **kwargs):
+        super().__init__(index_path, *args, meta, **kwargs)
 
     def index(self, files_path):
         """
