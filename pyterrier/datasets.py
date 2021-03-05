@@ -21,6 +21,17 @@ STANDARD_TERRIER_INDEX_FILES = [
     "data.properties"
 ]
 
+class GeneratorLen(object):
+    def __init__(self, gen, length):
+        self.gen = gen
+        self.length = length
+
+    def __len__(self): 
+        return self.length
+
+    def __iter__(self):
+        return self.gen
+
 class Dataset():
     """
         Represents a dataset (test collection) for indexing or retrieval. A common use-case is to use the Dataset within an Experiment::
@@ -279,11 +290,13 @@ class IRDSDataset(Dataset):
         it = ds.docs_iter()
         if verbose:
             it = tqdm(it, desc=f'{self._irds_id} documents', total=ds.docs_count())
-        for doc in it:
-            doc = doc._asdict()
-            # pyterrier uses "docno"
-            doc['docno'] = doc.pop('doc_id')
-            yield doc
+        def gen():
+            for doc in it:
+                doc = doc._asdict()
+                # pyterrier uses "docno"
+                doc['docno'] = doc.pop('doc_id')
+                yield doc
+        return GeneratorLen(gen(), ds.docs_count())
 
     def get_corpus_lang(self):
         ds = self.irds_ref()
