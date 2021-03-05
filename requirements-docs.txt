@@ -1,0 +1,4 @@
+myst_parser
+sphinx_rtd_theme
+tabulate
+jinja2
