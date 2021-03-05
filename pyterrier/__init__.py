@@ -170,6 +170,8 @@ def set_tqdm(type):
         view progress by using the verbose=True kwarg to many classes, such as BatchRetrieve.
 
         The `tqdm <https://tqdm.github.io/>`_ progress bar can be made prettier when using appropriately configured Jupyter notebook setups.
+        We use this automatically when Google Colab is detected.
+
         Allowable options for type are:
 
          - `'tqdm'`: corresponds to the standard text progresss bar, ala `from tqdm import tqdm`.
@@ -177,8 +179,15 @@ def set_tqdm(type):
          - `'auto'`: allows tqdm to decide on the progress bar type, ala `from tqdm.auto import tqdm`. Note that this works fine on Google Colab, but not on Jupyter unless the `ipywidgets have been installed <https://ipywidgets.readthedocs.io/en/stable/user_install.html>`_.
     """
     global tqdm
+
+    import sys
+    if type is None:
+        if 'google.colab' in sys.modules:
+            type = 'notebook'
+        else:
+            type = 'tqdm'
     
-    if type is None or type == 'tqdm':
+    if type == 'tqdm':
         from tqdm import tqdm as bartype
         tqdm = bartype
     elif type == 'notebook':
