@@ -3,6 +3,7 @@ import unittest
 import os
 import pyterrier as pt
 from .base import BaseTestCase
+import warnings
 
 class TestFeaturesBatchRetrieve(BaseTestCase):
 
@@ -115,6 +116,16 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
         retrBasic = pt.BatchRetrieve(indexref)
         if "matching" in retrBasic.controls:
             self.assertNotEqual(retrBasic.controls["matching"], "FatFeaturedScoringMatching,org.terrier.matching.daat.FatFull")
+
+    def test_fbr_empty(self):
+        JIR = pt.autoclass('org.terrier.querying.IndexRef')
+        indexref = JIR.of(self.here + "/fixtures/index/data.properties")
+        retr = pt.FeaturesBatchRetrieve(indexref, ["WMODEL:PL2"], wmodel="DPH")
+        input = pd.DataFrame([["1", ""]], columns=['qid', 'query'])
+        with warnings.catch_warnings(record=True) as w:
+            result = retr.transform(input)
+            assert "Skipping empty query" in str(w[-1].message)
+        self.assertTrue(len(result) == 0)
 
 if __name__ == "__main__":
     unittest.main()
