@@ -101,6 +101,31 @@ mean reciprocal rank (*p<0.05*). Indeed, while BM25 improves average precision f
 over TF_IDF, it degrades it for 45; on the other hand, the rank of the first relevant document 
 is improved for 16 queries by BM25 over TD_IDF.
 
+Further more, modern experimental convention suggests that it is important to correct for multiple
+testing in the comparative evaluation of many IR systems. Experiments provides supported for the
+multiple testing correction methods supported by the `statsmodels package <https://www.statsmodels.org/dev/generated/statsmodels.stats.multitest.multipletests.html#statsmodels.stats.multitest.multipletests>`_,
+such as `Bonferroni`::
+
+    pt.Experiment(
+        [tfidf, bm25],
+        dataset.get_topics(),
+        dataset.get_qrels(),
+        eval_metrics=["map"],
+        names=["TF_IDF", "BM25"],
+        baseline=0,
+        correction='bonferroni'
+    )
+
+This adds two further columns for each measure, denoting if the null hypothesis can be rejected (e.g. `"map reject"`),
+as well as the corrected p value (`"map p-value corrected"`), as shown below:
+
+.. include:: ./_includes/experiment-sig-corr.rst
+
+The table below summarises the multiple testing correction methods supported:
+
+.. include:: ./_includes/experiment-corr-methods.rst
+
+Any value in the Aliases column can be passed to Experiment's `correction=` kwarg.
 
 Per-query Effectiveness
 ~~~~~~~~~~~~~~~~~~~~~~~

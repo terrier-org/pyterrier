@@ -81,18 +81,20 @@ class TestExperiment(BaseTestCase):
         vaswani = pt.datasets.get_dataset("vaswani")
         br = pt.BatchRetrieve(vaswani.get_index())
         rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg", "num_q"])
-        print(rtr)
         self.assertEqual(10, rtr.iloc[0]["num_q"])
         
         rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"], dataframe=False)
-        print(rtr)
-
+        
         with warnings.catch_warnings(record=True) as w:
             rtr = pt.Experiment(vaswani.get_topics().head(10), [br], ["map", "ndcg"], vaswani.get_qrels(), dataframe=False)
             assert len(w) == 1
             assert issubclass(w[-1].category, DeprecationWarning)
             assert "Signature" in str(w[-1].message)
 
+    def test_one_row_round(self):
+        vaswani = pt.datasets.get_dataset("vaswani")
+        br = pt.BatchRetrieve(vaswani.get_index())
+        rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg", "num_q"], round=2)
 
     def test_perquery(self):
         vaswani = pt.datasets.get_dataset("vaswani")
@@ -101,6 +103,15 @@ class TestExperiment(BaseTestCase):
         print(rtr)
 
         rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"], perquery=True, dataframe=False)
+        print(rtr)
+
+    def test_perquery_round(self):
+        vaswani = pt.datasets.get_dataset("vaswani")
+        br = pt.BatchRetrieve(vaswani.get_index())
+        rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"], perquery=True, round=2)
+        print(rtr)
+
+        rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"], perquery=True, dataframe=False, round=2)
         print(rtr)
 
     def test_baseline(self):
@@ -114,3 +125,18 @@ class TestExperiment(BaseTestCase):
         self.assertTrue("map +" in df.columns)
         self.assertTrue("map -" in df.columns)
         self.assertTrue("map p-value" in df.columns)
+
+    def test_baseline_corrected(self):
+        dataset = pt.get_dataset("vaswani")
+        for corr in ['hs', 'bonferroni', 'holm-sidak']:            
+            df = pt.Experiment(
+                [pt.BatchRetrieve(dataset.get_index(), wmodel="BM25"), pt.BatchRetrieve(dataset.get_index(), wmodel="DPH")], 
+                dataset.get_topics().head(10), 
+                dataset.get_qrels(),
+                eval_metrics=["map", "ndcg"], 
+                baseline=0, correction='hs')
+            self.assertTrue("map +" in df.columns)
+            self.assertTrue("map -" in df.columns)
+            self.assertTrue("map p-value" in df.columns)
+            self.assertTrue("map p-value corrected" in df.columns)
+            self.assertTrue("map reject" in df.columns)

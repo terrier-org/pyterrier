@@ -96,6 +96,27 @@ def experiment_includes():
     ).to_markdown(tablefmt="rst")
     with open("_includes/experiment-sig.rst", "wt") as f:
         f.write(table)
+
+    table = pt.Experiment(
+        [tfidf, bm25],
+        dataset.get_topics(),
+        dataset.get_qrels(),
+        eval_metrics=["map"],
+        names=["TF_IDF", "BM25"],
+        baseline=0, correction='bonferroni'
+    ).to_markdown(tablefmt="rst")
+    with open("_includes/experiment-sig-corr.rst", "wt") as f:
+        f.write(table)
+
+    import statsmodels.stats.multitest
+    import pandas as pd
+    rows=[]
+    for (shortcut, name), aliases in zip ( statsmodels.stats.multitest.multitest_methods_names.items(), statsmodels.stats.multitest._alias_list ):
+        rows.append([aliases, name])
+    table = pd.DataFrame(rows, columns=["Aliases", "Correction Method"]).to_markdown(tablefmt="rst")
+    with open("_includes/experiment-corr-methods.rst", "wt") as f:
+        f.write(table)
+
     
     table = pt.Experiment(
         [tfidf, bm25],
