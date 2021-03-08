@@ -455,10 +455,11 @@ class FlatJSONDocumentIterator(PythonJavaClass):
             return lastdoc
         return None
 
-
-class _BaseIterDictIndexer(Indexer):
+from pyterrier.transformer import IterDictIndexerBase
+class _BaseIterDictIndexer(Indexer, IterDictIndexerBase):
     def __init__(self, index_path, *args, threads=1, **kwargs):
-        super().__init__(index_path, *args, **kwargs)
+        IterDictIndexerBase.__init__(self, *args, **kwargs)
+        Indexer.__init__(self, index_path, *args, **kwargs)
         self.threads = threads
 
     def _setup(self, fields, meta, meta_lengths):
