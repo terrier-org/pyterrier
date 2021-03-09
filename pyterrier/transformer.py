@@ -89,7 +89,7 @@ def setup_rewrites():
 
     def push_fbr_earlier(_br1, _fbr):
         #TODO copy more attributes
-        _fbr.controls["wmodel"] = _br1.controls["wmodel"]
+        _fbr.wmodel = _br1.controls["wmodel"]
         return _fbr
 
     # rewrite a BR followed by a FBR into a FBR
