@@ -19,7 +19,7 @@ This page summarises the available notebooks for PyTerrier.
 |    Notebook      |   On Colab?     | Description                      |   
 | ---------------- | --------------- | -------------------------------- |
 | [Robust04.ipynb](experiments/Robust04.ipynb)   |                 | Demonstration of [query expansion](https://pyterrier.readthedocs.io/en/latest/rewrite.html) effectiveness on TREC Robust04 |
-| [uogTrBaseDPHQ.ipynb](https://github.com/cmacdonald/pyterrier-msmarco-document-leaderboard-runs/blob/master/uogTrBaseDPH.ipynb)  |  |   DPH run submitted to MSMARCO  Document Ranking Task leaderboard  |
+| [uogTrBaseDPH.ipynb](https://github.com/cmacdonald/pyterrier-msmarco-document-leaderboard-runs/blob/master/uogTrBaseDPH.ipynb)  |  |   DPH run submitted to MSMARCO  Document Ranking Task leaderboard  |
 | [uogTrBaseDPHQ.ipynb](https://github.com/cmacdonald/pyterrier-msmarco-document-leaderboard-runs/blob/master/uogTrBaseDPHQ.ipynb)  |  |   DPH + Bo1 query expansion run submitted to MSMARCO  Document Ranking Task leaderboard  |
 
 ## PyTerrier Neural Re-Ranking
