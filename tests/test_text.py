@@ -16,6 +16,20 @@ class TestText(BaseTestCase):
         self.assertTrue("score" in dfOut.columns)
         self.assertEqual(1.0, dfOut.iloc[0].score)
         self.assertEqual(1.0, dfOut.iloc[1].score)
+
+    def test_fetch_text_docno(self):
+        dfinput = pd.DataFrame([["q1", "a query", "1"]], columns=["qid", "query", "docno"])
+        #indexref, str, Index
+        for indexlike in [
+            pt.get_dataset("vaswani").get_index(), 
+            pt.get_dataset("vaswani").get_index().toString(),
+            pt.IndexFactory.of(pt.get_dataset("vaswani").get_index())
+        ]:
+            textT = pt.text.get_text(indexlike, "docno")
+            self.assertTrue(isinstance(textT, pt.transformer.TransformerBase))
+            dfOut = textT.transform(dfinput)
+            self.assertTrue(isinstance(dfOut, pd.DataFrame))
+            self.assertTrue("docno" in dfOut.columns)
         
     def test_fetch_text_docid(self):
         dfinput = pd.DataFrame([["q1", "a query", 1]], columns=["qid", "query", "docid"])

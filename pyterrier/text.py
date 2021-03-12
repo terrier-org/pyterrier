@@ -59,16 +59,16 @@ def get_text(
 def _add_text_terrier_metaindex(index, metadata):
     metaindex = index.getMetaIndex()
     if metaindex is None:
-        raise ValueError("Index %s does not have a metaindex" % str(indexlike))
+        raise ValueError("Index %s does not have a metaindex" % str(index))
 
     for k in metadata:
         if not k in metaindex.getKeys():
             raise ValueError("Index from %s did not have requested metaindex key %s. Keys present in metaindex are %s" % 
-            (str(indexlike), k, str( metaindex.getKeys()) ))
+            (str(index), k, str( metaindex.getKeys()) ))
 
     def add_docids(res):
         res = res.copy()
-        res["docid"] = res.apply(lambda row: metaindex.getDocument("docno", row.docno))
+        res["docid"] = res.apply(lambda row: metaindex.getDocument("docno", row.docno), axis=1)
         return res
 
     def add_text_function_docids(res):
@@ -85,6 +85,7 @@ def _add_text_terrier_metaindex(index, metadata):
 
     def add_text_generic(res):
         if not "docid" in res.columns:
+            assert "docno" in res.columns, "Neither docid nor docno are in the input dataframe, found %s" % (str(res.columns))
             res = add_docids(res)
         return add_text_function_docids(res)
 
