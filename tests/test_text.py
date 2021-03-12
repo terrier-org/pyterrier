@@ -32,13 +32,19 @@ class TestText(BaseTestCase):
             self.assertTrue("docno" in dfOut.columns)
 
     def test_fetch_text_irds(self):
-        dfinput = pd.DataFrame([["q1", "a query", "4"]], columns=["qid", "query", "docno"])
+        dfinput = pd.DataFrame([
+            ["q1", "a query", "4"],
+            ["q1", "a query", "1"],
+            ["q1", "a query", "4"],
+            ], columns=["qid", "query", "docno"])
         textT = pt.text.get_text(pt.get_dataset('irds:vaswani'), "text")
         self.assertTrue(isinstance(textT, pt.transformer.TransformerBase))
         dfOut = textT.transform(dfinput)
         self.assertTrue(isinstance(dfOut, pd.DataFrame))
         self.assertTrue("text" in dfOut.columns)
         self.assertTrue("the british computer society  report of a conference held in cambridge\njune\n" in dfOut.iloc[0].text)
+        self.assertTrue("compact memories have flexible capacities  a digital data storage\nsystem with capacity up to bits and random and or sequential access\nis described\n" in dfOut.iloc[1].text)
+        self.assertTrue("the british computer society  report of a conference held in cambridge\njune\n" in dfOut.iloc[2].text)
 
     def test_passager_title(self):
         dfinput = pd.DataFrame([["q1", "a query", "doc1", "title", "body sentence"]], columns=["qid", "query", "docno", "title", "body"])
