@@ -107,12 +107,14 @@ def _add_text_irds_docstore(irds_dataset, metadata):
         assert 'docno' in res, "requires docno column"
         res = res.copy()
         docids = res.docno.values.tolist()
-        did2idx = {did: i for i, did in enumerate(docids)}
+        did2idxs = defaultdict(list)
+        for i, did in enumerate(docids):
+            did2idxs[did].append(i)
         new_columns = {f: [None] * len(docids) for f in metadata}
         for doc in docstore.get_many_iter(docids):
-            didx = did2idx[doc.doc_id]
-            for f, fidx in field_idx:
-                new_columns[f][didx] = doc[fidx]
+            for didx in did2idxs[doc.doc_id]:
+                for f, fidx in field_idx:
+                    new_columns[f][didx] = doc[fidx]
         for k, v in new_columns.items():
             res[k] = v
         return res
