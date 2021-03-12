@@ -24,6 +24,9 @@ This page summarises the available notebooks for PyTerrier.
 
 ## PyTerrier Neural Re-Ranking
 
+|    Notebook      |   On Colab?     | Description                      |  Read More | 
+| ---------------- | --------------- | -------------------------------- | ---------- |
+| [pt_indexed_epic.ipynb](https://github.com/Georgetown-IR-Lab/OpenNIR/blob/master/examples/pt_indexed_epic.ipynb)  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Georgetown-IR-Lab/OpenNIR/blob/master/examples/pt_indexed_epic.ipynb) | Demonstration of pre-computing EPIC vectors and using them for second-stage scoring using PyTerrier on the TREC COVID benchmark | [OpenNIR repository](https://github.com/Georgetown-IR-Lab/OpenNIR)
 
 
 ## PyTerrier Dense Retrieval
