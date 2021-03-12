@@ -308,7 +308,7 @@ class IRDSDataset(Dataset):
         # this is only for indices where Terrier provides an index already
         raise NotImplementedError("IRDSDataset doesn't support get_index")
 
-    def get_topics(self, variant=None):
+    def get_topics(self, variant=None, tokenise_query=True):
         """
             Returns the topics, as a dataframe, ready for retrieval. 
         """
@@ -328,6 +328,14 @@ class IRDSDataset(Dataset):
             df.rename(columns={qcls._fields[1]: "query"}, inplace=True)
         else:
             print(f'There are multiple query fields available: {qcls._fields[1:]}. To use with pyterrier, provide variant or modify dataframe to add query column.')
+
+        # apply pyterrier tokenisation (otherwise the queries may not play well with batchretrieve)
+        if tokenise_query and 'query' in df:
+            import pyterrier as pt
+            tokeniser = pt.autoclass("org.terrier.indexing.tokenisation.Tokeniser").getTokeniser()
+            def pt_tokenise(text):
+                return ' '.join(tokeniser.getTokens(text))
+            df['query'] = df['query'].apply(pt_tokenise)
 
         return df
 
