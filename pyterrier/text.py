@@ -68,14 +68,14 @@ def _add_text_terrier_metaindex(index, metadata):
 
     def add_docids(res):
         res = res.copy()
-        res["docid"] = res.apply(lambda row: met.getDocument("docno", row.docno))
+        res["docid"] = res.apply(lambda row: metaindex.getDocument("docno", row.docno))
         return res
 
     def add_text_function_docids(res):
         res = res.copy()
         docids = res.docid.values.tolist()
         # indexed by docid then keys
-        allmeta = index.getMetaIndex().getItems(metadata, docids)
+        allmeta = metaindex.getItems(metadata, docids)
         import numpy as np
         # get transpose to make easier for insertion back into dataframe?
         allmeta = np.array(allmeta).T
