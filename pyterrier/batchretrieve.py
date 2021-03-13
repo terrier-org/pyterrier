@@ -161,6 +161,10 @@ class BatchRetrieve(BatchRetrieveBase):
             rank = FIRST_RANK
             qid = str(row.qid)
             query = row.query
+            if len(query) == 0:
+                warn("Skipping empty query for qid %s" % qid)
+                continue
+
             srq = self.manager.newSearchRequest(qid, query)
             
             for control, value in self.controls.items():
@@ -438,6 +442,9 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         for row in tqdm(queries.itertuples(), desc=str(self), total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
             qid = str(row.qid)
             query = row.query
+            if len(query) == 0:
+                warn("Skipping empty query for qid %s" % qid)
+                continue
 
             srq = self.manager.newSearchRequest(qid, query)
 

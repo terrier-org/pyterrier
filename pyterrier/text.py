@@ -59,23 +59,23 @@ def get_text(
 def _add_text_terrier_metaindex(index, metadata):
     metaindex = index.getMetaIndex()
     if metaindex is None:
-        raise ValueError("Index %s does not have a metaindex" % str(indexlike))
+        raise ValueError("Index %s does not have a metaindex" % str(index))
 
     for k in metadata:
         if not k in metaindex.getKeys():
             raise ValueError("Index from %s did not have requested metaindex key %s. Keys present in metaindex are %s" % 
-            (str(indexlike), k, str( metaindex.getKeys()) ))
+            (str(index), k, str( metaindex.getKeys()) ))
 
     def add_docids(res):
         res = res.copy()
-        res["docid"] = res.apply(lambda row: met.getDocument("docno", row.docno))
+        res["docid"] = res.apply(lambda row: metaindex.getDocument("docno", row.docno), axis=1)
         return res
 
     def add_text_function_docids(res):
         res = res.copy()
         docids = res.docid.values.tolist()
         # indexed by docid then keys
-        allmeta = index.getMetaIndex().getItems(metadata, docids)
+        allmeta = metaindex.getItems(metadata, docids)
         import numpy as np
         # get transpose to make easier for insertion back into dataframe?
         allmeta = np.array(allmeta).T
@@ -85,6 +85,7 @@ def _add_text_terrier_metaindex(index, metadata):
 
     def add_text_generic(res):
         if not "docid" in res.columns:
+            assert "docno" in res.columns, "Neither docid nor docno are in the input dataframe, found %s" % (str(res.columns))
             res = add_docids(res)
         return add_text_function_docids(res)
 
@@ -107,12 +108,14 @@ def _add_text_irds_docstore(irds_dataset, metadata):
         assert 'docno' in res, "requires docno column"
         res = res.copy()
         docids = res.docno.values.tolist()
-        did2idx = {did: i for i, did in enumerate(docids)}
+        did2idxs = defaultdict(list)
+        for i, did in enumerate(docids):
+            did2idxs[did].append(i)
         new_columns = {f: [None] * len(docids) for f in metadata}
         for doc in docstore.get_many_iter(docids):
-            didx = did2idx[doc.doc_id]
-            for f, fidx in field_idx:
-                new_columns[f][didx] = doc[fidx]
+            for didx in did2idxs[doc.doc_id]:
+                for f, fidx in field_idx:
+                    new_columns[f][didx] = doc[fidx]
         for k, v in new_columns.items():
             res[k] = v
         return res

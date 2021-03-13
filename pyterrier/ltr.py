@@ -108,11 +108,14 @@ class LTRTransformer(RegressionTransformer):
 
         Args:
             topics_and_results_Train(DataFrame): A dataframe with the topics and results to train the model
+            qrelsTrain(DataFrame): A dataframe containing the qrels for the training topics
             topics_and_results_Valid(DataFrame): A dataframe with the topics and results for validation
+            qrelsValid(DataFrame): A dataframe containing the qrels for the validation topics
+            
         """
-        if len(topics_and_results_Train) == 0:
+        if topics_and_results_Train is None or len(topics_and_results_Train) == 0:
             raise ValueError("No training results to fit to")
-        if len(topics_and_results_Valid) == 0:
+        if topics_and_results_Valid is None or len(topics_and_results_Valid) == 0:
             raise ValueError("No validation results to fit to")
 
         if 'features' not in topics_and_results_Train.columns:
@@ -126,7 +129,7 @@ class LTRTransformer(RegressionTransformer):
         kwargs = self.fit_kwargs
         self.learner.fit(
             np.stack(tr_res["features"].values), tr_res["label"].values, 
-            group=tr_res.groupby(["qid"]).count()["docno"].values, # we name group here for libghtgbm compat. 
+            group=tr_res.groupby(["qid"]).count()["docno"].values, # we name group here for lightgbm compat. 
             eval_set=[(np.stack(va_res["features"].values), va_res["label"].values)],
             eval_group=[va_res.groupby(["qid"]).count()["docno"].values],
             **kwargs

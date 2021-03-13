@@ -1,3 +1,5 @@
+.. _pt.transformer:
+
 PyTerrier Transformers
 ----------------------
 
@@ -37,7 +39,10 @@ Fitting
 =======
 When `fit()` is called on a pipeline, all estimators (transformers that also have a `fit()` method, as specified by 
 `EstimatorBase`) within the pipeline are fitted, in turn. This allows one (or more) stages of learning to be 
-integrated into a retrieval pipeline.
+integrated into a retrieval pipeline.  See :ref:`pyterrier.ltr` for examples.
+
+When calling fit on a composed pipeline (i.e. one created using the `>>` operator), this will will call `fit()` on any 
+estimators within that pipeline.
 
 Transformer base classes
 ========================
@@ -52,6 +57,8 @@ This class is the base class for all transformers.
 
 Moreover, by extending TransformerBase, all transformer implementations gain the necessary "dunder" methods (e.g. `__rshift__()`)
 to support the transformer operators (`>>`, `+` etc). 
+
+.. _pt.transformer.estimatorbase:
 
 EstimatorBase
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

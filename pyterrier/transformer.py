@@ -90,7 +90,7 @@ def setup_rewrites():
 
     def push_fbr_earlier(_br1, _fbr):
         #TODO copy more attributes
-        _fbr.controls["wmodel"] = _br1.controls["wmodel"]
+        _fbr.wmodel = _br1.controls["wmodel"]
         return _fbr
 
     # rewrite a BR followed by a FBR into a FBR
@@ -245,12 +245,12 @@ class EstimatorBase(TransformerBase):
     def fit(self, topics_or_res_tr, qrels_tr, topics_or_res_va, qrels_va):
         """
             Method for training the transformer.
+
             Arguments:
              - topics_or_res_tr(DataFrame): training topics (usually with documents)
              - qrels_tr(DataFrame): training qrels
              - topics_or_res_va(DataFrame): validation topics (usually with documents)
              - qrels_va(DataFrame): validation qrels
-
         """
         pass
 
