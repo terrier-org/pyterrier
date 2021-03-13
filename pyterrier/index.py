@@ -458,7 +458,7 @@ class FlatJSONDocumentIterator(PythonJavaClass):
 from pyterrier.transformer import IterDictIndexerBase
 class _BaseIterDictIndexer(Indexer, IterDictIndexerBase):
     def __init__(self, index_path, *args, threads=1, **kwargs):
-        IterDictIndexerBase.__init__(self, *args, **kwargs)
+        IterDictIndexerBase.__init__(self)
         Indexer.__init__(self, index_path, *args, **kwargs)
         self.threads = threads
 
