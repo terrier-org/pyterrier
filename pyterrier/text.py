@@ -340,7 +340,37 @@ class SlidingWindowPassager(TransformerBase):
         self._check_columns(topics_and_res)
 
         # now apply the passaging
-        return self.applyPassaging(topics_and_res, labels="label" in topics_and_res.columns)
+        if "qid" in topics_and_res.columns: 
+            return self.applyPassaging(topics_and_res, labels="label" in topics_and_res.columns)
+        return self.applyPassaging_no_qid(topics_and_res)
+
+    def applyPassaging_no_qid(self, df):
+        p = re.compile(r"\s+")
+        rows=[]
+        for row in df.itertuples():
+            row = row._asdict()
+            toks = p.split(row[self.text_attr])
+            if len(toks) < self.passage_length:
+                row['docno'] = row['docno'] + "%p0"
+                row[self.text_attr] = ' '.join(toks)
+                if self.prepend_title:
+                    row[self.text_attr] = str(row[self.title_attr]) + self.join + row[self.text_attr]
+                    del(row[self.title_attr])
+                rows.append(row)
+            else:
+                passageCount=0
+                for i, passage in enumerate( slidingWindow(toks, self.passage_length, self.passage_stride)):
+                    newRow = row.copy()
+                    newRow['docno'] = row['docno'] + "%p" + str(i)
+                    newRow[self.text_attr] = ' '.join(passage)
+                    if self.prepend_title:
+                        newRow.drop(labels=[self.title_attr], inplace=True)
+                        newRow[self.text_attr] = str(row[self.title_attr]) + self.join + newRow[self.text_attr]
+                        del(newRow[self.title_attr])
+                    rows.append(newRow)
+                    passageCount+=1
+        return pd.DataFrame(rows)
+
 
     def applyPassaging(self, df, labels=True):
         newRows=[]
