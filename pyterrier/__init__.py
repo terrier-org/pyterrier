@@ -123,7 +123,11 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     globals()["cast"] = cast
     globals()["ApplicationSetup"] = ApplicationSetup
 
-    for sub_module_name in ['anserini', 'apply', 'cache', 'index', 'io', 'model', 'new', 'ltr', 'pipelines', 'rewrite', 'text', 'transformer']:
+    # apply is an object, not a module, as it also has __get_attr__() implemented
+    from .apply import _apply
+    globals()['apply'] = _apply()
+
+    for sub_module_name in ['anserini', 'cache', 'index', 'io', 'model', 'new', 'ltr', 'pipelines', 'rewrite', 'text', 'transformer']:
         globals()[sub_module_name] = importlib.import_module('.' + sub_module_name, package='pyterrier') 
 
     # append the python helpers

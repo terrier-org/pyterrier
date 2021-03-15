@@ -4,6 +4,18 @@ from nptyping import NDArray
 import numpy as np
 import pandas as pd
 
+def _bind(instance, func, as_name=None):
+    """
+    Bind the function *func* to *instance*, with either provided name *as_name*
+    or the existing name of *func*. The provided *func* should accept the 
+    instance as the first argument, i.e. "self".
+    """
+    if as_name is None:
+        as_name = func.__name__
+    bound_method = func.__get__(instance, instance.__class__)
+    setattr(instance, as_name, bound_method)
+    return bound_method
+
 def query(fn : Callable[..., str], *args, **kwargs) -> TransformerBase:
     """
         Create a transformer that takes as input a query, and applies a supplied function to compute a new query formulation.
@@ -12,8 +24,8 @@ def query(fn : Callable[..., str], *args, **kwargs) -> TransformerBase:
         Each time it is called, the function is supplied with a Panda Series representing the attributes of the query.
 
         Arguments:
-         - fn(Callable): the function to apply to each row
-         - verbose(bool): if set to True, a TQDM progress bar will be displayed
+        - fn(Callable): the function to apply to each row
+        - verbose(bool): if set to True, a TQDM progress bar will be displayed
 
         Examples::
 
@@ -46,8 +58,8 @@ def doc_score(fn : Callable[..., float], *args, **kwargs) -> TransformerBase:
         Each time it is called, the function is supplied with a Panda Series representing the attributes of the query and document.
 
         Arguments:
-         - fn(Callable): the function to apply to each row
-         - verbose(bool): if set to True, a TQDM progress bar will be displayed
+        - fn(Callable): the function to apply to each row
+        - verbose(bool): if set to True, a TQDM progress bar will be displayed
 
         Example::
 
@@ -66,8 +78,8 @@ def doc_features(fn : Callable[..., NDArray[Any]], *args, **kwargs) -> Transform
         Each time it is called, the function is supplied with a Panda Series representing the attributes of the query and document.
 
         Arguments:
-         - fn(Callable): the function to apply to each row
-         - verbose(bool): if set to True, a TQDM progress bar will be displayed
+        - fn(Callable): the function to apply to each row
+        - verbose(bool): if set to True, a TQDM progress bar will be displayed
 
         Example::
 
@@ -88,6 +100,9 @@ def doc_features(fn : Callable[..., NDArray[Any]], *args, **kwargs) -> Transform
     return ApplyDocFeatureTransformer(fn, *args, **kwargs)
 
 def by_query(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> TransformerBase:
+    """
+        As `pt.apply.generic()` except that fn receives a dataframe for one query at at time.
+    """
     return ApplyForEachQuery(fn, *args, **kwargs)
 
 def generic(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> TransformerBase:
@@ -99,7 +114,7 @@ def generic(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> Tra
         for instance updating the rank column if the scores are amended.
 
         Arguments:
-         - fn(Callable): the function to apply to each row
+        - fn(Callable): the function to apply to each row
 
         Example::
 
@@ -110,3 +125,30 @@ def generic(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> Tra
 
     """
     return ApplyGenericTransformer(fn, *args, **kwargs)
+
+class _apply:
+
+    def __init__(self):
+        _bind(self, lambda self, fn, *args, **kwargs : query(fn, *args, **kwargs), as_name='query')
+        _bind(self, lambda self, fn, *args, **kwargs : doc_score(fn, *args, **kwargs), as_name='doc_score')
+        _bind(self, lambda self, fn, *args, **kwargs : doc_features(fn, *args, **kwargs), as_name='doc_features')
+        _bind(self, lambda self, fn, *args, **kwargs : by_query(fn, *args, **kwargs), as_name='by_query')
+        _bind(self, lambda self, fn, *args, **kwargs : generic(fn, *args, **kwargs), as_name='generic')
+    
+    def __getattr__(self, item):
+        from functools import partial
+        return partial(generic_apply, item)
+
+def generic_apply(name, *args, drop=False, **kwargs) -> TransformerBase:
+    if drop:
+        return ApplyGenericTransformer(lambda df : df.drop(name, axis=1), *args, **kwargs) 
+    
+    if len(args) == 0:
+        raise ValueError("Must specify a fn, e.g. a lambda")
+
+    fn = args[0]
+    args=[]
+    def _new_column(df):
+        df[name] = df.apply(fn, axis=1)
+        return df
+    return ApplyGenericTransformer(_new_column, *args, **kwargs)
