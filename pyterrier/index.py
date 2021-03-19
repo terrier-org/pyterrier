@@ -106,6 +106,7 @@ def createCollection(files_path : List[str], coll_type : str = 'trec', props = {
         collectionClzName = type_to_class[coll_type]
     else:
         collectionClzName = coll_type
+    collectionClzName = collectionClzName.split(",")
     _props = HashMap()
     for k, v in props.items():
         _props[k] = v
@@ -114,7 +115,7 @@ def createCollection(files_path : List[str], coll_type : str = 'trec', props = {
     cls_list = autoclass("java.util.List")._class
     asList = createAsList(files_path)
     colObj = autoclass("org.terrier.indexing.CollectionFactory").loadCollections(
-        [collectionClzName],
+        collectionClzName,
         [cls_list, cls_string, cls_string, cls_string],
         [asList, autoclass("org.terrier.utility.TagSet").TREC_DOC_TAGS, "", ""])
     return colObj
@@ -707,9 +708,9 @@ class TRECCollectionIndexer(Indexer):
         """
         super().__init__(index_path, blocks=blocks, overwrite=overwrite, type=type)
         if isinstance(collection, str):
-            if collection in TRECCollectionIndexer.type_to_class:
-                collection = TRECCollectionIndexer.type_to_class[collection]
-        self.collection = collection.split(",")
+            if collection in type_to_class:
+                collection = type_to_class[collection]
+        self.collection = collection
         self.verbose = verbose
         self.meta = meta
         self.meta_reverse = meta_reverse
