@@ -9,6 +9,8 @@ from .io import autoopen
 from . import tqdm, HOME_DIR
 import tarfile
 
+import pyterrier
+
 STANDARD_TERRIER_INDEX_FILES = [
     "data.direct.bf",
     "data.document.fsarrayfile",
@@ -786,6 +788,7 @@ VASWANI_FILES = {
     "index":
         [(filename, VASWANI_INDEX_BASE + filename) for filename in STANDARD_TERRIER_INDEX_FILES + ["data.meta-0.fsomapfile"]],
     "info_url" : "http://ir.dcs.gla.ac.uk/resources/test_collections/npl/",
+    "corpus_iter" : lambda dataset, **kwargs : pyterrier.index.treccollection2textgen(dataset.get_corpus(), num_docs=11429, verbose=kwargs.get("verbose", False))
 }
 
 DATASET_MAP = {
