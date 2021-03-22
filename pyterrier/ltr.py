@@ -169,17 +169,11 @@ class FastRankEstimator(EstimatorBase):
     def fit(self, topics_and_results_Train, qrelsTrain, topics_and_results_Valid=None, qrelsValid=None):
         if topics_and_results_Train is None or len(topics_and_results_Train) == 0:
             raise ValueError("No training results to fit to")
-        if topics_and_results_Valid is None or len(topics_and_results_Valid) == 0:
-            raise ValueError("No validation results to fit to")
 
         if 'features' not in topics_and_results_Train.columns:
             raise ValueError("No features column retrieved in training")
-        if 'features' not in topics_and_results_Valid.columns:
-            raise ValueError("No features column retrieved in validation")
 
         tr_res = topics_and_results_Train.merge(qrelsTrain, on=['qid', 'docno'], how='left').fillna(0)
-        va_res = topics_and_results_Valid.merge(qrelsValid, on=['qid', 'docno'], how='left').fillna(0)
-
         dataset = self._make_dataset(tr_res, add_labels=True)
         self.model = dataset.train_model(self.learner)
 
