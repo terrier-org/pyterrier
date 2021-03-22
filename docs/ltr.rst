@@ -158,6 +158,24 @@ In our experience, LightGBM *tends* to be more effective than xgBoost.
 
 Similar to sklearn, both XGBoost and LightGBM provide feature importances via `lmart_x.features_importances_` and `lmart_l.features_importances_`.
 
+FastRank: Coordinate Ascent
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We now support `FastRank <https://github.com/jjfiv/fastrank>`_ for learning models::
+
+    !pip install fastrank
+    import fastrank
+    train_request = fastrank.TrainRequest.coordinate_ascent()
+    params = train_request.params
+    params.init_random = True
+    params.normalize = True
+    params.seed = 1234567
+
+    ca_pipe = pipeline >> pt.ltr.apply_learned_model(train_request, form="fastrank")
+    ca_pipe.fit(train_topics, train_qrels)
+
+FastRank provides two learners: a random forest implementation (`fastrank.TrainRequest.random_forest()`) and coordinate ascent (`fastrank.TrainRequest.coordinate_ascent()`), a linear model.
+
 Working with Features
 =====================
 
