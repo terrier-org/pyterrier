@@ -111,7 +111,7 @@ def ranked_documents(
         scores = np.array(scores).flatten()
         construct = {"qid" : qid, "docno" : docno, "score" : scores}
         for k, v in others.items():
-            assert len(v) == len(scores)
+            assert len(v) == len(scores), "kwarg %s had length %d but was expected to have length %d" % (k, len(v), len(scores))
             construct[k] = np.array( v ).flatten()
         rtr = pd.DataFrame(construct)        
     else:
