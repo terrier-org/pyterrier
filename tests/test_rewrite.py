@@ -27,7 +27,16 @@ class TestRewrite(BaseTestCase):
         if not pt.check_version("5.3"):
             self.skipTest("Requires Terrier 5.3")
         self._sdm(False)
-    
+
+    def test_sdm_docs(self):
+        docs = pt.new.ranked_documents([[1,1]], qid=["q1"], query=["hello friend","hello friend"])
+        sdm = pt.rewrite.SDM()
+        pipe = docs >> sdm
+        qids = pt.new.queries(["hello there"], qid=["q1"])  
+        rtr = pipe(qids)
+        print(rtr)
+        self.assertEqual(2, len(rtr))
+
 
     def _sdm(self, freq):
         dataset = pt.datasets.get_dataset("vaswani")
