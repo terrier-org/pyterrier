@@ -56,6 +56,7 @@ class RegressionTransformer(EstimatorBase):
         self.fit_kwargs = fit_kwargs
         super().__init__(*args, **kwargs)
         self.learner = learner
+        self.num_f = None
 
     def fit(self, topics_and_results_Train, qrelsTrain, topics_and_results_Valid=None, qrelsValid=None):
         """
@@ -71,6 +72,7 @@ class RegressionTransformer(EstimatorBase):
         train_DF = topics_and_results_Train.merge(qrelsTrain, on=['qid', 'docno'], how='left').fillna(0)
         kwargs = self.fit_kwargs
         self.learner.fit(np.stack(train_DF["features"].values), train_DF["label"].values, **kwargs)
+        self.num_f = train_DF.iloc[0].features.shape[0]
         return self
 
     def transform(self, test_DF):
@@ -81,26 +83,23 @@ class RegressionTransformer(EstimatorBase):
             topicsTest(DataFrame): A dataframe with the test topics.
         """
         test_DF = test_DF.copy()
+
+        # check for change in number of features
+        found_numf = test_DF.iloc[0].features.shape[0]
+        if self.num_f is not None:
+            if found_numf != self.num_f:
+                raise ValueError("Expected %d features, but found %d features" % (self.num_f, found_numf))
+        if hasattr(self.learner, 'feature_importances_'):
+            if len(self.learner.feature_importances_) != found_numf:
+                raise ValueError("Expected %d features, but found %d features" % (len(self.learner.feature_importances_), found_numf))
+
         test_DF["score"] = self.learner.predict(np.stack(test_DF["features"].values))
         return add_ranks(test_DF)
 
 class LTRTransformer(RegressionTransformer):
     """
-    This class simplifies the use of XGBoost's techniques for learning-to-rank.
+    This class simplifies the use of LightGBM and XGBoost for learning-to-rank.
     """
-
-    def transform(self, topics_and_docs_Test):
-        """
-        Predicts the scores for the given topics.
-
-        Args:
-            topicsTest(DataFrame): A dataframe with the test topics.
-        """
-        test_DF = topics_and_docs_Test
-        # xgb is more sensitive about the type of the values.
-        test_DF = test_DF.copy()
-        test_DF["score"] = self.learner.predict(np.stack(test_DF["features"].values))
-        return add_ranks(test_DF)
 
     def fit(self, topics_and_results_Train, qrelsTrain, topics_and_results_Valid, qrelsValid):
         """
@@ -134,6 +133,7 @@ class LTRTransformer(RegressionTransformer):
             eval_group=[va_res.groupby(["qid"]).count()["docno"].values],
             **kwargs
         )
+        self.num_f = tr_res.iloc[0].features.shape[0]
 
 class FastRankEstimator(EstimatorBase):
     """
@@ -150,6 +150,7 @@ class FastRankEstimator(EstimatorBase):
         super().__init__(*args, **kwargs)
         self.learner = learner
         self.model = None
+        self.num_f = None
 
     def _make_dataset(self, test_DF, add_labels = False):
         
@@ -175,6 +176,7 @@ class FastRankEstimator(EstimatorBase):
 
         tr_res = topics_and_results_Train.merge(qrelsTrain, on=['qid', 'docno'], how='left').fillna(0)
         dataset = self._make_dataset(tr_res, add_labels=True)
+        self.num_f = dataset.num_features()
         self.model = dataset.train_model(self.learner)
 
     def transform(self, topics_and_docs_Test):
@@ -188,6 +190,15 @@ class FastRankEstimator(EstimatorBase):
             raise ValueError("fit() must be called first")
         test_DF = topics_and_docs_Test.copy()
         dataset = self._make_dataset(test_DF, add_labels=False)
+
+        # check for change in number of features
+        found_numf = dataset.num_features()
+        if self.num_f is not None and found_numf != self.num_f:
+            raise ValueError("Expected %d features, but found %d features" % (self.num_f, found_numf))
+        if hasattr(self.learner, 'feature_importances_'):
+            if len(self.learner.feature_importances_) != found_numf:
+                raise ValueError("Expected %d features, but found %d features" % (len(self.learner.feature_importances_), found_numf))
+        
         rtr = dataset.predict_scores(self.model)
         scores = [rtr[i] for i in range(len(rtr))]
         test_DF["score"] = scores
