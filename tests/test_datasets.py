@@ -6,7 +6,7 @@ class TestDatasets(BaseTestCase):
 
     def test_webtrack_gov(self):
         import pyterrier as pt
-        import requests
+        import requests, urllib
         try:
             for k in ["trec-wt-2002", "trec-wt-2003", "trec-wt-2004"]:
                 ds = pt.get_dataset(k)
@@ -22,10 +22,12 @@ class TestDatasets(BaseTestCase):
                     self.assertTrue(len(join) > 0)
         except requests.exceptions.ConnectionError:
             self.skipTest("NIST not reachable")
+        except urllib.error.URLError:
+            self.skipTest("NIST not reachable")
 
     def test_webtrack_cw09(self):
         import pyterrier as pt
-        import requests
+        import requests, urllib
         try:
             for k in ["trec-wt-2009", "trec-wt-2010", "trec-wt-2011", "trec-wt-2012"]:
                 ds = pt.get_dataset(k)
@@ -36,6 +38,8 @@ class TestDatasets(BaseTestCase):
                 join = topics.merge(qrels, on=["qid"])
                 self.assertTrue(len(join) > 0)
         except requests.exceptions.ConnectionError:
+            self.skipTest("NIST not reachable")
+        except urllib.error.URLError:
             self.skipTest("NIST not reachable")
     
     def test_vaswani_corpus_iter(self):
