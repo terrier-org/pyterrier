@@ -52,6 +52,12 @@ class TestExperiment(BaseTestCase):
             "recall" : "recall_5",
             "recall_1000" : "recall_1000"
         }
+        # what we ask for -> what we should NOT get
+        family2black = {
+            'ndcg_cut_5' : 'ndcg_cut_10',
+            'P_5' : "P_100",
+            "recall_1000" : "recall_5"
+        }
         for m in family2measure:
             df1 = pt.Experiment(res, topics, qrels, eval_metrics=[m])
             df2 = pt.Experiment(res, topics, qrels, eval_metrics=[m], baseline=0)
@@ -59,6 +65,12 @@ class TestExperiment(BaseTestCase):
             self.assertIn(family2measure[m], df1.columns)
             self.assertIn(family2measure[m], df2.columns)
             self.assertTrue(len(df3[df3["measure"] == family2measure[m]])>0)
+
+            # check that we dont get back measures that we did NOT ask for
+            if m in family2black:
+                self.assertNotIn(family2black[m], df1.columns)
+                self.assertNotIn(family2black[m], df2.columns)
+                self.assertTrue(len(df3[df3["measure"] == family2black[m]])==0)
 
     def test_differing_order(self):
         topics = pd.DataFrame([["q1", "q1"], ["q2", "q1"] ], columns=["qid", "query"])
