@@ -1,4 +1,5 @@
 
+from pyterrier.transformer import TransformerBase
 import pandas as pd
 import pyterrier as pt
 import os
@@ -9,6 +10,23 @@ import shutil
 import os
 
 class TestCache(BaseTestCase):
+
+    def test_drop_columns(self):
+        from pyterrier.transformer import TransformerBase
+        testDF = pd.DataFrame([["q1", "the bear and the wolf", 1]], columns=["qid", "query", "Bla"])
+        p = pt.apply.Bla(drop=True)
+        self.assertTrue(isinstance(p, TransformerBase))
+        rtr = p(testDF)
+        self.assertTrue("Bla" not in rtr.columns)
+
+    def test_make_columns(self):
+        from pyterrier.transformer import TransformerBase
+        testDF = pd.DataFrame([["q1", "the bear and the wolf", 1]], columns=["qid", "query", "Bla"])
+        p = pt.apply.BlaB(lambda row: row["Bla"] * 2)
+        self.assertTrue(isinstance(p, TransformerBase))
+        rtr = p(testDF)
+        self.assertTrue("BlaB" in rtr.columns)
+        self.assertEqual(rtr.iloc[0]["BlaB"], 2)
 
     def test_query_apply(self):
         stops=set(["and", "the"])
