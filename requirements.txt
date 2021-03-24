@@ -14,3 +14,4 @@ nptyping
 more_itertools
 ir_datasets>=0.2.0
 jinja2
+statsmodels
