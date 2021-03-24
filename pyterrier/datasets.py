@@ -9,6 +9,8 @@ from .io import autoopen
 from . import tqdm, HOME_DIR
 import tarfile
 
+import pyterrier
+
 STANDARD_TERRIER_INDEX_FILES = [
     "data.direct.bf",
     "data.document.fsarrayfile",
@@ -308,7 +310,7 @@ class IRDSDataset(Dataset):
         # this is only for indices where Terrier provides an index already
         raise NotImplementedError("IRDSDataset doesn't support get_index")
 
-    def get_topics(self, variant=None):
+    def get_topics(self, variant=None, tokenise_query=True):
         """
             Returns the topics, as a dataframe, ready for retrieval. 
         """
@@ -328,6 +330,14 @@ class IRDSDataset(Dataset):
             df.rename(columns={qcls._fields[1]: "query"}, inplace=True)
         else:
             print(f'There are multiple query fields available: {qcls._fields[1:]}. To use with pyterrier, provide variant or modify dataframe to add query column.')
+
+        # apply pyterrier tokenisation (otherwise the queries may not play well with batchretrieve)
+        if tokenise_query and 'query' in df:
+            import pyterrier as pt
+            tokeniser = pt.autoclass("org.terrier.indexing.tokenisation.Tokeniser").getTokeniser()
+            def pt_tokenise(text):
+                return ' '.join(tokeniser.getTokens(text))
+            df['query'] = df['query'].apply(pt_tokenise)
 
         return df
 
@@ -472,7 +482,8 @@ TREC_DEEPLEARNING_DOCS_MSMARCO_FILES = {
         { 
             "train" : ("msmarco-doctrain-qrels.tsv.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-doctrain-qrels.tsv.gz"),
             "dev" : ("msmarco-docdev-qrels.tsv.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-docdev-qrels.tsv.gz"),
-            "test" : ("2019qrels-docs.txt", "https://trec.nist.gov/data/deep/2019qrels-docs.txt")
+            "test" : ("2019qrels-docs.txt", "https://trec.nist.gov/data/deep/2019qrels-docs.txt"),
+            "test-2020" : ("2020qrels-docs.txt", "https://trec.nist.gov/data/deep/2020qrels-docs.txt")
         },
     "info_url" : "https://microsoft.github.io/msmarco/",
     "corpus_iter" : msmarco_document_generate
@@ -487,6 +498,7 @@ TREC_DEEPLEARNING_PASSAGE_MSMARCO_FILES = {
             "dev" : ("queries.dev.tsv", "queries.tar.gz#queries.dev.tsv", "singleline"),
             "eval" : ("queries.eval.tsv", "queries.tar.gz#queries.eval.tsv", "singleline"),
             "test-2019" : ("msmarco-test2019-queries.tsv.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-test2019-queries.tsv.gz", "singleline"),
+            "test-2020" : ("msmarco-test2020-queries.tsv.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-test2020-queries.tsv.gz", "singleline")
         },        
     "tars" : {
         "queries.tar.gz" : ("queries.tar.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/queries.tar.gz"),
@@ -496,7 +508,8 @@ TREC_DEEPLEARNING_PASSAGE_MSMARCO_FILES = {
         { 
             "train" : ("qrels.train.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/qrels.train.tsv"),
             "dev" : ("qrels.dev.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/qrels.dev.tsv"),
-            "test-2019" : ("2019qrels-docs.txt", "https://trec.nist.gov/data/deep/2019qrels-pass.txt")
+            "test-2019" : ("2019qrels-docs.txt", "https://trec.nist.gov/data/deep/2019qrels-pass.txt"),
+            "test-2020" : ("2020qrels-docs.txt", "https://trec.nist.gov/data/deep/2020qrels-pass.txt")
         },
     "info_url" : "https://microsoft.github.io/MSMARCO-Passage-Ranking/",
     "corpus_iter" : passage_generate
@@ -775,6 +788,7 @@ VASWANI_FILES = {
     "index":
         [(filename, VASWANI_INDEX_BASE + filename) for filename in STANDARD_TERRIER_INDEX_FILES + ["data.meta-0.fsomapfile"]],
     "info_url" : "http://ir.dcs.gla.ac.uk/resources/test_collections/npl/",
+    "corpus_iter" : lambda dataset, **kwargs : pyterrier.index.treccollection2textgen(dataset.get_corpus(), num_docs=11429, verbose=kwargs.get("verbose", False))
 }
 
 DATASET_MAP = {

@@ -103,7 +103,9 @@ A sklearn regressor can be passed directly to `pt.ltr.apply_learned_model()`::
     rf_pipe.fit(train_topics, qrels)
     pt.Experiment([bm25, rf_pipe], test_topics, qrels, ["map"], names=["BM25 Baseline", "LTR"])
 
-Note that for analysis, the feature importances identified by RandomForestRegressor can be accessed
+Note that if the feature definitions in the pipeline change, you will need to create a new instance of `rf`.
+
+For analysis purposes, the feature importances identified by RandomForestRegressor can be accessed
 through `rf.features_importances_` - see the `relevant sklearn documentation <https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html#sklearn.ensemble.RandomForestRegressor.feature_importances_>`_ for more information.
 
 Gradient Boosted Trees & LambdaMART
@@ -150,9 +152,29 @@ interface that is supported by PyTerrier by supplying `form="ltr"` kwarg to `pt.
         names=["BM25 Baseline", "LambdaMART (xgBoost)", "LambdaMART (LightGBM)" ]
     )
 
+Note that if the feature definitions in the pipeline change, you will need to create a new instance of XGBRanker (or LGBMRanker, as appropriate).
+
 In our experience, LightGBM *tends* to be more effective than xgBoost.
 
 Similar to sklearn, both XGBoost and LightGBM provide feature importances via `lmart_x.features_importances_` and `lmart_l.features_importances_`.
+
+FastRank: Coordinate Ascent
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We now support `FastRank <https://github.com/jjfiv/fastrank>`_ for learning models::
+
+    !pip install fastrank
+    import fastrank
+    train_request = fastrank.TrainRequest.coordinate_ascent()
+    params = train_request.params
+    params.init_random = True
+    params.normalize = True
+    params.seed = 1234567
+
+    ca_pipe = pipeline >> pt.ltr.apply_learned_model(train_request, form="fastrank")
+    ca_pipe.fit(train_topics, train_qrels)
+
+FastRank provides two learners: a random forest implementation (`fastrank.TrainRequest.random_forest()`) and coordinate ascent (`fastrank.TrainRequest.coordinate_ascent()`), a linear model.
 
 Working with Features
 =====================

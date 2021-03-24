@@ -2,7 +2,7 @@ numpy
 pandas
 wget
 pytrec_eval>=0.5
-tqdm>=4.57.0
+tqdm
 pyjnius~=1.3.0
 matchpy
 sklearn
