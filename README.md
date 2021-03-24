@@ -21,7 +21,7 @@ The easiest way to get started with PyTerrier is to use one of our Colab noteboo
 2. `pip install python-terrier`
 
 ### Windows
-PyTerrier is not available for Windows because [pytrec_eval](https://github.com/cvangysel/pytrec_eval) [isn't available for Windows](https://github.com/cvangysel/pytrec_eval/issues/19). If you can compile & install pytrec_eval youself, it should work fine.
+PyTerrier is not available for Windows because [pytrec_eval](https://github.com/cvangysel/pytrec_eval) [isn't build on PyPi for Windows](https://github.com/cvangysel/pytrec_eval/issues/19). If you can compile & install pytrec_eval youself, it should work fine.
 
 # Indexing
 
