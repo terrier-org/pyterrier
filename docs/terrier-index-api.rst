@@ -20,7 +20,7 @@ class that allows an Index to be obtained from the IndexRef.
 
 IndexRef is essentially a String that tells Terrier where the index is located. Tyically it is a file location, pointing to a data.properties file::
 
-    indexref pt.IndexRef.of("/path/to/data.properties")
+    indexref = pt.IndexRef.of("/path/to/data.properties")
 
 IndexRefs can also be obtained from a PyTerrier dataset::
 
