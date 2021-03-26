@@ -12,6 +12,6 @@ scipy
 requests
 nptyping
 more_itertools
-ir_datasets>=0.2.0
+ir_datasets>=0.3.2
 jinja2
 statsmodels
