@@ -11,7 +11,7 @@ Firstly, we differentiate between two forms of query rewriting:
    output dataframes contain `["qid", "query", "query_0"]` columns, where `"query"` contains the reformulated
    query, and `"query_0"` contains the previous formulation of the query.
 
- - `R -> Q`: these class of transformers rewrite a query by makiung use of an associated set of documents.
+ - `R -> Q`: these class of transformers rewrite a query by making use of an associated set of documents.
    This is typically exemplifed by pseudo-relevance feedback. Similarly the output dataframes contain 
    `["qid", "query", "query_0"]` columns.
 
@@ -29,10 +29,10 @@ each input query such that:
  - all terms are weighted by a proximity model, either Dirichlet LM or pBiL2.
 
 For example, the query `pyterrier IR platform` would become `pyterrier IR platform #1(pyterrier IR) #1(IR platform) #uw8(pyterrier IR) #uw8(IR platform) #uw12(pyterrier IR platform)`.
-This is simplified - in practice, we also (a) set the weight of the proximity terms to be low using a `#combine()`
+NB: Acutally, we have simplified the rewritten query - in practice, we also (a) set the weight of the proximity terms to be low using a `#combine()`
 operator and (b) set a proximity term weighting model.
 
-This transfomer is only compatible with BatchRetrieve, as Terrier supports the `#1` and `#uwN` complex query terms operators.
+This transfomer is only compatible with BatchRetrieve, as Terrier supports the `#1` and `#uwN` complex query terms operators. The Terrier index must have blocks (positional information) recorded in the index.
 
 .. autoclass:: pyterrier.rewrite.SequentialDependence
     :members: transform
@@ -50,7 +50,7 @@ References:
 Bo1QueryExpansion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This applies the Bo1 Divergence from Randomess query expansion model to rewrite the
+This class applies the Bo1 Divergence from Randomess query expansion model to rewrite the
 query based on the occurences of terms in the feedback documents provided for each
 query. In this way, it takes in a dataframe with columns `["qid", "query", "docno", "score", "rank"]`
 and returns a dataframe with  `["qid", "query"]`.
@@ -83,7 +83,7 @@ References:
 KLQueryExpansion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Similar to Bo1, a Divergence from Randomess query expansion model based on Kullback Leibler divergence.
+Similar to Bo1, this class deploys a Divergence from Randomess query expansion model based on Kullback Leibler divergence.
 
 .. autoclass:: pyterrier.rewrite.KLQueryExpansion
     :members: transform 

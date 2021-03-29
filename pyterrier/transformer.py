@@ -6,6 +6,7 @@ import pandas as pd
 from .model import add_ranks
 from . import tqdm
 import deprecation
+from typing import Iterable
 
 LAMBDA = lambda:0
 def is_lambda(v):
@@ -89,7 +90,7 @@ def setup_rewrites():
 
     def push_fbr_earlier(_br1, _fbr):
         #TODO copy more attributes
-        _fbr.controls["wmodel"] = _br1.controls["wmodel"]
+        _fbr.wmodel = _br1.controls["wmodel"]
         return _fbr
 
     # rewrite a BR followed by a FBR into a FBR
@@ -120,7 +121,12 @@ class TransformerBase:
         """
         pass
         
-    def transform_gen(self, input, batch_size=1):
+    
+    from typing import Iterable
+    def transform_iter(self, input: Iterable[dict]) -> pd.DataFrame:
+        return self.transform(pd.DataFrame(list(input)))
+
+    def transform_gen(self, input : pd.DataFrame, batch_size=1) -> pd.DataFrame:
         """
             Method for executing a transformer pipeline on smaller batches of queries.
             The input dataframe is grouped into batches of batch_size queries, and a generator
@@ -227,7 +233,9 @@ class TransformerBase:
         from .cache import ChestCacheTransformer
         return ChestCacheTransformer(self)
 
-        
+class IterDictIndexerBase(TransformerBase):
+    def index(self, iter : Iterable[dict], **kwargs):
+        pass
 
     
 class EstimatorBase(TransformerBase):
@@ -237,11 +245,12 @@ class EstimatorBase(TransformerBase):
     def fit(self, topics_or_res_tr, qrels_tr, topics_or_res_va, qrels_va):
         """
             Method for training the transformer.
+
             Arguments:
-            - topics_or_res_tr(DataFrame): training topics (probably with documents)
-            - qrels_tr(DataFrame): training qrels
-            - topics_or_res_va(DataFrame): validation topics (probably with documents)
-            - qrels_va(DataFrame): validation qrels
+             - topics_or_res_tr(DataFrame): training topics (usually with documents)
+             - qrels_tr(DataFrame): training qrels
+             - topics_or_res_va(DataFrame): validation topics (usually with documents)
+             - qrels_va(DataFrame): validation qrels
         """
         pass
 
@@ -739,6 +748,23 @@ class ComposedPipeline(NAryTransformerBase):
         >>> # comp = DPH_br >> lambda res : res[res["rank"] < 2]]
     """
     name = "Compose"
+
+    def index(self, iter : Iterable[dict], batch_size=100):
+        from more_itertools import ichunked
+        
+        if len(self.models) > 2:
+            #this compose could have > 2 models. we need a composite transform() on all but the last
+            prev_transformer = ComposedPipeline(self.models[0:-1])
+        else:
+            prev_transformer = self.models[0]
+        last_transformer = self.models[-1]
+        
+        def gen():
+            for batch in ichunked(iter, batch_size):
+                batch_df = prev_transformer.transform_iter(batch)
+                for row in batch_df.itertuples(index=False):
+                    yield row._asdict()
+        return last_transformer.index(gen()) 
 
     def transform(self, topics):
         for m in self.models:

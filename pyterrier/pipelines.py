@@ -41,7 +41,7 @@ def _color_cols(data, col_type,
     is_max[len(data) - list(reversed(data)).index(max_value) -  1] = colormaxlast_attr
     return is_max
 
-def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=False, dataframe=True, baseline=None, highlight=None):
+def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=False, dataframe=True, baseline=None, correction=None, correction_alpha=0.05, highlight=None, round=None):
     """
     Allows easy comparison of multiple retrieval transformer pipelines using a common set of topics, and
     identical evaluation measures computed using the same qrels. In essence, each transformer is applied on 
@@ -56,14 +56,21 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
         qrels: Either a path to a qrels file or a pandas.Dataframe with columns=['qid','docno', 'label']   
         eval_metrics(list): Which evaluation metrics to use. E.g. ['map']
         names(list): List of names for each retrieval system when presenting the results.
-            Default=None. If None: Use names of weighting models for each retrieval system.
-        perquery(bool): If true return each metric for each query, else return mean metrics. Default=False.
+            Default=None. If None: Obtains the `str()` representation of each transformer as its name.
+        perquery(bool): If true return each metric for each query, else return mean metrics across all queries. Default=False.
         dataframe(bool): If True return results as a dataframe. Else as a dictionary of dictionaries. Default=True.
         baseline(int): If set to the index of an item of the retr_system list, will calculate the number of queries 
             improved, degraded and the statistical significance (paired t-test p value) for each measure.
-            Default=None: If None, no additional columns added for each measure
-        highlight(str) : If "bold", highlights in bold the best measure value in each column; 
-            if "color" or "colour" uses green to indicate highest values
+            Default=None: If None, no additional columns will be added for each measure.
+        correction(string): Whether any multiple testing correction should be applied. E.g. 'bonferroni', 'holm', 'hs' aka 'holm-sidak'. Default is None.
+            Additional columns are added denoting whether the null hypothesis can be rejected, and the corrected p value. 
+            See `statsmodels.stats.multitest.multipletests() <https://www.statsmodels.org/dev/generated/statsmodels.stats.multitest.multipletests.html#statsmodels.stats.multitest.multipletests>`_
+            for more information about available testing correction.
+        correction_alpha(float): What alpha value for multiple testing correction Default is 0.05.
+        highlight(str): If `highlight="bold"`, highlights in bold the best measure value in each column; 
+            if `highlight="color"` or `"colour"`, then the cell with the highest metric value will have a green background.
+        round(int): How many decimal places to round each measure value to. This can be a dictionary mapping measure name to number of decimal places.
+            Default is None, which is no rounding.
 
     Returns:
         A Dataframe with each retrieval system with each metric evaluated.
@@ -96,6 +103,27 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
         if os.path.isfile(qrels):
             qrels = Utils.parse_qrels(qrels)
     from timeit import default_timer as timer
+
+    if round is not None:
+        if isinstance(round, int):
+            assert round >= 0, "round argument should be integer >= 0, not %s" % str(round)
+        elif isinstance(round, dict):
+            assert not perquery, "Sorry, per-measure rounding only support when reporting means" 
+            for k,v in round.items():
+                assert isinstance(v, int) and v >= 0, "rounding number for measure %s should be integer >= 0, not %s" % (k, str(v))
+        else:
+            raise ValueError("Argument round should be an integer or a dictionary")
+
+    if correction is not None and baseline is None:
+        raise ValueError("Requested multiple testing correction, but no baseline was specified.")
+
+    def _apply_round(measure, value):
+        import builtins
+        if round is not None and isinstance(round, int):
+            value = builtins.round(value, round)
+        if round is not None and isinstance(round, dict) and measure in round:
+            value = builtins.round(value, round[measure])
+        return value
 
     results = []
     times=[]
@@ -149,21 +177,36 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
         if perquery:
             for qid in all_qids:
                 for measurename in evalMeasuresDict[qid]:
-                    evalsRows.append([name, qid, measurename,  evalMeasuresDict[qid][measurename]])
+                    evalsRows.append([
+                        name, 
+                        qid, 
+                        measurename, 
+                        _apply_round(
+                            measurename, 
+                            evalMeasuresDict[qid][measurename]
+                        ) 
+                    ])
             evalDict[name] = evalMeasuresDict
         else:
+            import builtins
             actual_metric_names = list(evalMeasuresDict.keys())
-            evalMeasures = [evalMeasuresDict[m] for m in actual_metric_names]
+            # gather mean values, applying rounding if necessary
+            evalMeasures=[ _apply_round(m, evalMeasuresDict[m]) for m in actual_metric_names]
+
             evalsRows.append([name]+evalMeasures)
             evalDict[name] = evalMeasures
     if dataframe:
         if perquery:
-            return pd.DataFrame(evalsRows, columns=["name", "qid", "measure", "value"])
+            df = pd.DataFrame(evalsRows, columns=["name", "qid", "measure", "value"])
+            if round is not None:
+                df["value"] = df["value"].round(round)
+            return df
 
         highlight_cols = { m : "+"  for m in actual_metric_names }
         if mrt_needed:
             highlight_cols["mrt"] = "-"
 
+        p_col_names=[]
         if baseline is not None:
             assert len(evalDictsPerQ) == len(retr_systems)
             from scipy import stats
@@ -194,10 +237,24 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
                 highlight_cols["%s +" % m] = "+"
                 delta_names.append("%s -" % m)
                 highlight_cols["%s -" % m] = "-"
-                delta_names.append("%s p-value" % m)
+                pcol = "%s p-value" % m
+                delta_names.append(pcol)
+                p_col_names.append(pcol)
             actual_metric_names.extend(delta_names)
 
         df = pd.DataFrame(evalsRows, columns=["name"] + actual_metric_names)
+
+        # multiple testing correction. This adds two new columns for each measure experience statistical significance testing        
+        if baseline is not None and correction is not None:
+            import statsmodels.stats.multitest
+            for pcol in p_col_names:
+                pcol_reject = pcol.replace("p-value", "reject")
+                pcol_corrected = pcol + " corrected"                
+                reject, corrected, _, _ = statsmodels.stats.multitest.multipletests(df[pcol], alpha=correction_alpha, method=correction)
+                insert_pos = df.columns.get_loc(pcol)
+                # add extra columns, put place directly after the p-value column
+                df.insert(insert_pos+1, pcol_reject, reject)
+                df.insert(insert_pos+2, pcol_corrected, corrected)
         
         if highlight == "color" or highlight == "colour" :
             df = df.style.apply(_color_cols, axis=0, col_type=highlight_cols)

@@ -96,6 +96,17 @@ Example indexing MSMARCO Passage Ranking dataset::
     iter_indexer = pt.IterDictIndexer("./passage_index")
     indexref3 = iter_indexer.index(msmarco_generate(), meta=['docno', 'text'], meta_lengths=[20, 4096])
 
+On UNIX-based systems, you can also perform multi-threaded indexing::
+
+    iter_indexer = pt.IterDictIndexer("./passage_index_8", threads=8)
+    indexref4 = iter_indexer.index(msmarco_generate(), meta=['docno', 'text'], meta_lengths=[20, 4096])
+
+Note that the resulting index ordering with multiple threads is non-deterministic; if you need 
+deterministic behavior you must index in single-threaded mode. Furthermore, indexing can only go
+as quickly as the document iterator, so to take full advantage of multi-threaded indexing, you 
+will need to keep the iterator function light-weight. Many datasets provide a fast corpus iteration 
+function (``get_corpus_iter()``), see more information in the :ref:`datasets`.
+
 Indexing Configuration
 ======================
 
@@ -120,6 +131,6 @@ indexing configurations, and how to apply them when indexing using PyTerrier, no
 
 - *changing the tags parsed by TREC Collection* - use the relevant properties listed in the Terrier `indexing documentation <https://github.com/terrier-org/terrier-core/blob/5.x/doc/configure_indexing.md#basic-indexing-setup>`_.
 
-- *metaindex configuration*: metadata refers to the arbitrary strings associated to each document recorded in a Terrier index. These can range from the `"docno"` attribute of each document, as used to support experimentation, to other attributes such as the URL of the documents, or even the raw text of the document. Indeed, storing the raw text of each document is a trick often used when applying additional re-rankers such as BERT (see `pyterrier_bert <https://github.com/cmacdonald/pyterrier_bert>`_ for more information on integrating PyTerrier with BERT-based re-rankers). For most indexers, the `"indexer.meta.forward.keys"`, and `"indexer.meta.forward.keylens"` properties will need adjusted. If you wish to save the text of documents indexed by the Terrier TRECCollection class, you will also need to adjust the `"TaggedDocument.abstracts"`, `"TaggedDocument.abstracts.tags"`, `"TaggedDocument.abstracts.tags.casesensitive"` and `"TaggedDocument.abstracts.lengths"` properties.
+- *metaindex configuration*: metadata refers to the arbitrary strings associated to each document recorded in a Terrier index. These can range from the `"docno"` attribute of each document, as used to support experimentation, to other attributes such as the URL of the documents, or even the raw text of the document. Indeed, storing the raw text of each document is a trick often used when applying additional re-rankers such as BERT (see `pyterrier_bert <https://github.com/cmacdonald/pyterrier_bert>`_ for more information on integrating PyTerrier with BERT-based re-rankers). Indexers now expose `meta` and `meta_tags` constructor kwarg to make this easier.
 
-- *reverse metaindex configuration*: on occasion, there is a need to lookup up documents in a Terrier index based on their metadata, e.g. "docno". The default MetaIndex configuration does not support this. The property `indexer.meta.reverse.keys` can be used to set the meta index keys that suppport such reverse lookups.
+- *reverse metaindex configuration*: on occasion, there is a need to lookup up documents in a Terrier index based on their metadata, e.g. "docno". The `meta_reverse` constructor kwarg allows meta keys that support reverse lookup to be specified.

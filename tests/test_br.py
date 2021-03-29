@@ -3,7 +3,7 @@ import pyterrier as pt
 import os
 import unittest
 from .base import BaseTestCase
-
+import warnings
 
 def parse_res_file(filename):
     results = []
@@ -55,6 +55,19 @@ class TestBatchRetrieve(BaseTestCase):
         retr = pt.BatchRetrieve(indexloc) % 10
         result = retr.transform(input_set)
         self.assertEqual(10, len(result))
+
+    def test_br_empty(self):
+        indexloc = self.here + "/fixtures/index/data.properties"
+        
+        input_set = pd.DataFrame([
+                    ["q1", ""],
+                ],
+            columns=["qid", "query"])
+        retr = pt.BatchRetrieve(indexloc)
+        with warnings.catch_warnings(record=True) as w:
+            result = retr.transform(input_set)
+            assert "Skipping empty query" in str(w[-1].message)
+        self.assertEqual(0, len(result))
 
     def test_candidate_set_two_doc(self):
         if not pt.check_version("5.3"):

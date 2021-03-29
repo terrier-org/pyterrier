@@ -20,16 +20,12 @@ class TestScoring(BaseTestCase):
     def test_scoring_text(self):
         pt.logging("DEBUG")
         dataset = pt.get_dataset("vaswani")
-        indexer = pt.TRECCollectionIndexer(self.test_dir)
-        indexer.setProperties(**{
-            "TaggedDocument.abstracts":"body",
+        indexer = pt.TRECCollectionIndexer(
+            self.test_dir, 
+            meta= {'docno' : 26, 'body' : 2048},
             # The tags from which to save the text. ELSE is special tag name, which means anything not consumed by other tags.
-            "TaggedDocument.abstracts.tags":"ELSE",
-            # The max lengths of the abstracts. Abstracts will be cropped to this length. Defaults to empty.
-            "TaggedDocument.abstracts.lengths":"2048",
-            "indexer.meta.forward.keys":"docno,body",
-            "indexer.meta.forward.keylens":"26,2048"
-        })
+            meta_tags = {'body' : 'ELSE'}
+        )
         indexref = indexer.index(dataset.get_corpus())
         index = pt.IndexFactory.of(indexref)
         meta = index.getMetaIndex()

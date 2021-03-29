@@ -1,3 +1,5 @@
+.. _neural:
+
 Neural Rankers and Rerankers
 ----------------------------
 
@@ -10,74 +12,23 @@ advantage of batching to speed up GPU operations) typically require more complex
 We have separate repositories with integrations of well-known neural re-ranking plaforms 
 (`CEDR <https://github.com/Georgetown-IR-Lab/cedr>`_, `ColBERT <https://github.com/stanford-futuredata/ColBERT>`_). 
 
-Indexing and Retrieving Text in Terrier indices
-===============================================
+Indexing, Retrieval and Scoring of Text using Terrier
+=====================================================
 
 If you are using a Terrier index for your first-stage ranking, you will want to record the text
-of the documents in the MetaIndex. The following configuration demonstrates saving the title
-and remainder of the documents separately in the Terrier index MetaIndex when indexing a 
-TREC-formatted corpus::
+of the documents in the MetaIndex. More of PyTerrier's support for operating on text is documented
+in :ref:`pt.text`.
 
-    files = []  # list of filenames to be indexed
-    properties = {
-        "TaggedDocument.abstracts":"title,text",
-        # The tags from which to save the text. ELSE is special tag name, which means anything not consumed by other tags.
-        "TaggedDocument.abstracts.tags":"title,ELSE",
-        # Should the tags from which we create abstracts be case-sensitive?
-        "TaggedDocument.abstracts.tags.casesensitive":"false",
-        # The max lengths of the abstracts. Abstracts will be cropped to this length. Defaults to empty.
-        "TaggedDocument.abstracts.lengths":"256,4096",
+Available Neural Dense Retrieval and Re-ranking Integrations
+============================================================
 
-        # We also need to tell the indexer to store the abstracts generated
-        # In addition to the docno, we also need to move the 'title' and 'text' tezxt generated to the meta index
-        "indexer.meta.forward.keys":"docno,title,text",
-        # The maximum lengths for the meta index entries - we store upto 4KB of document text
-        "indexer.meta.forward.keylens":"26,256,4096",
-        # We will not be doing reverse lookups using the abstracts and so they are not listed here.
-        "indexer.meta.reverse.keys":"docno"
-    }
-    indexer = pt.TRECCollectionIndexer(INDEX_DIR, verbose=True)
-    indexer.setProperties(**properties)
-    indexref = indexer.index(files)
-    index = pt.IndexFactory.of(indexref)
-
-On the other-hand, for a TSV-formatted corpus such as MSMARCO passages, indexing is easier
-using IterDictIndexer::
-
-    def msmarco_generate():
-        dataset = pt.get_dataset(("trec-deep-learning-passages")
-        with pt.io.autoopen(dataset.get_corpus()[0], 'rt') as corpusfile:
-            for l in corpusfile:
-                docno, passage = l.split("\t")
-                yield {'docno' : docno, 'text' : passage}
-
-    iter_indexer = pt.IterDictIndexer("./passage_index")
-    indexref = iter_indexer.index(msmarco_generate(), meta=['docno', 'text'], meta_lengths=[20, 4096])
-
-
-For retrieval, the text can be easily included in the dataframe using::
-
-    DPH_br_body = pt.BatchRetrieve(
-        index, 
-        wmodel="DPH",
-        metadata=["docno", "body"])
-
-If you already have a dataframe of retrieved documents, a simple apply function can 
-be used to retrieve the text from the MetaIndex::
-
-    def _add_body_title(res):
-        res = res.copy()
-        meta = index.getMetaIndex()
-        res["body"] = res.apply(lambda row : meta.getItem("body", row["docid"]), axis=1)
-        return res
-
-    add_text = pt.apply.generic(_add_body_title)
-
-
-Available Neural Re-ranking Integrations
-========================================
-
- - The separate `pyterrier_bert <https://github.com/cmacdonald/pyterrier_bert>`_ repository includes `CEDR <https://github.com/Georgetown-IR-Lab/cedr>`_ and `ColBERT <https://github.com/stanford-futuredata/ColBERT>`_ re-ranking integrations.
+ - `OpenNIR <https://opennir.net/>`_ has integration with PyTerrier - see its `notebook examples <https://github.com/Georgetown-IR-Lab/OpenNIR/tree/master/examples>`_.
+ - `PyTerrier_ColBERT <https://github.com/terrierteam/pyterrier_colbert>`_ contains a `ColBERT <https://github.com/stanford-futuredata/ColBERT/tree/v0.2>`_ integration, including both a text-scorer and a end-to-end dense retrieval.
+ - `PyTerrier_ANCE <https://github.com/terrierteam/pyterrier_ance>`_ contains an `ANCE <https://github.com/microsoft/ANCE/>`_ integration for end-to-end dense retrieval.
+ - `PyTerrier_T5 <https://github.com/terrierteam/pyterrier_t5>`_ contains a `monoT5 <https://arxiv.org/pdf/2101.05667.pdf>`_ integration.
+ - `PyTerrier_doc2query <https://github.com/terrierteam/pyterrier_doc2query>`_ contains a `docT5query <https://github.com/castorini/docTTTTTquery>`_ integration.
+ - `PyTerrier_DeepCT <https://github.com/terrierteam/pyterrier_deepct>`_ contains a `DeepCT <https://github.com/AdeDZY/DeepCT>`_ integration.
+ - The separate `PyTerrier_BERT <https://github.com/cmacdonald/pyterrier_bert>`_ repository includes `CEDR <https://github.com/Georgetown-IR-Lab/cedr>`_ integration (including "vanilla" BERT models), as well as an earlier ColBERTPipeline integration.
  - An initial `BERT-QE <https://github.com/cmacdonald/BERT-QE>`_ integration is available.
 
 The following gives an example ranking pipeline using ColBERT for re-ranking documents in PyTerrier.
@@ -85,17 +36,13 @@ Long documents are broken up into passages using a sliding-window operation. The
 document is the maximum of any consitutent passages::
 
     from pyterrier_bert.colbert import ColBERTPipeline
-    from pyterrier_bert.passager import SlidingWindowPassager, MaxPassage
 
     pipeline = DPH_br_body >> \
-        SlidingWindowPassager() >> \
+        pt.text.sliding() >> \
         ColBERTPipeline("/path/to/checkpoint") >> \
-        MaxPassage()
+        pt.text.max_passage()
 
 Outlook
 =======
 
-We continue to work on improving the integration of neural rankers and re-rankers within PyTerrier. We foresee:
- - easier indexing of text.
- - integration of text transformations such as SlidingWindowPassager within PyTerrier.
- - first-stage dense retrieval transformers. 
+We continue to work on improving the integration of neural rankers and re-rankers within PyTerrier.

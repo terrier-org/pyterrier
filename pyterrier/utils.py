@@ -264,8 +264,9 @@ class Utils:
             if m.startswith("ndcg_cut_"):
                 req_metrics.add("ndcg_cut")
                 cutdown = True
-            # elif m.startswith("P_"):
-            #     req_metrics.add("P")
+            elif m.startswith("P_"):
+                req_metrics.add("P")
+                cutdown = True
             else:
                 req_metrics.add(m)
 
@@ -289,7 +290,10 @@ class Utils:
                     del result[q][m]
             return result
 
-        return Utils.mean_of_measures(result, metrics)
+        means = Utils.mean_of_measures(result)
+        if cutdown:
+            means = {m : means[m] for m in metrics}
+        return means
 
     @staticmethod
     def ensure(dictionary, measures, qids):
@@ -298,9 +302,6 @@ class Utils:
             if q not in dictionary:
                 dictionary[q] = { m : 0 for m in measures }
                 missing+=1
-            # for m in measures:
-            #     if m not in dictionary[q][m]:
-            #         dictionary[q][m] = 0
         return (dictionary, missing)
 
     @staticmethod
@@ -309,11 +310,12 @@ class Utils:
         measures_sum = {}
         mean_dict = {}
         if measures is None:
-            measures = next(iter(result.values()))
+            measures = list(next(iter(result.values())).keys())
+        measures_remove = ["runid"]
+        for m in measures_remove:
+            if m in measures:
+                measures.remove(m)
         measures_no_mean = set(["num_q", "num_rel", "num_ret", "num_rel_ret"])
-        if "iprec_at_recall" in measures:
-            measures = measures + ["iprec_at_recall_%0.2f" % cutoff for cutoff in np.arange(0., 1.1, 0.1) ]
-            measures.remove("iprec_at_recall")
         for val in result.values():
             for measure in measures:
                 measure_val = val[measure]

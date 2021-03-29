@@ -89,7 +89,12 @@ class SDM(TransformerBase):
             new_query = new_query[:-1]
             results.append([qid, new_query])
         new_queries = pd.DataFrame(results, columns=["qid", "query"])
-        return push_queries(queries, inplace=True).merge(new_queries, on="qid")
+        # restore any other columns, e.g. put back docs if we are re-ranking
+        return new_queries.merge(push_queries(queries, inplace=True) , on="qid")
+        #return push_queries(queries, inplace=True).merge(new_queries, on="qid")
+        #rtr = pd.DataFrame(results, columns=["qid", "query"])
+        #rtr = rtr.merge(topics_and_res.drop(columns=['query']), on="qid")
+        #return rtr
 
 class SequentialDependence(SDM):
     ''' alias for SDM '''
@@ -208,8 +213,8 @@ class Bo1QueryExpansion(DFRQueryExpansion):
         """
         Args:
             index_like: the Terrier index to use.
-            fb_terms(int): number of terms to add to the query
-            fb_docs(int): number of feedback documents to consider
+            fb_terms(int): number of terms to add to the query. Terrier's default setting is 10 expansion terms.
+            fb_docs(int): number of feedback documents to consider. Terrier's default setting is 3 feedback documents.
         """
         kwargs["qemodel"] = "Bo1"
         super().__init__(*args, **kwargs)
@@ -219,8 +224,8 @@ class KLQueryExpansion(DFRQueryExpansion):
         """
         Args:
             index_like: the Terrier index to use
-            fb_terms(int): number of terms to add to the query
-            fb_docs(int): number of feedback documents to consider
+            fb_terms(int): number of terms to add to the query. Terrier's default setting is 10 expansion terms.
+            fb_docs(int): number of feedback documents to consider. Terrier's default setting is 3 feedback documents.
         """
         kwargs["qemodel"] = "KL"
         super().__init__(*args, **kwargs)
@@ -234,8 +239,8 @@ class RM3(QueryExpansion):
         """
         Args:
             index_like: the Terrier index to use
-            fb_terms(int): number of terms to add to the query
-            fb_docs(int): number of feedback documents to consider
+            fb_terms(int): number of terms to add to the query. Terrier's default setting is 10 expansion terms.
+            fb_docs(int): number of feedback documents to consider. Terrier's default setting is 3 feedback documents.
         """
         global terrier_prf_package_loaded
 
@@ -273,8 +278,8 @@ class AxiomaticQE(QueryExpansion):
         """
         Args:
             index_like: the Terrier index to use
-            fb_terms(int): number of terms to add to the query
-            fb_docs(int): number of feedback documents to consider
+            fb_terms(int): number of terms to add to the query. Terrier's default setting is 10 expansion terms.
+            fb_docs(int): number of feedback documents to consider. Terrier's default setting is 3 feedback documents.
         """
         global terrier_prf_package_loaded
 

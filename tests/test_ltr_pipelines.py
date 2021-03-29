@@ -5,6 +5,26 @@ from .base import BaseTestCase
 
 class TestLTRPipeline(BaseTestCase):
 
+    def test_fastrank(self):
+        import fastrank
+        train_request = fastrank.TrainRequest.coordinate_ascent()
+        params = train_request.params
+        params.init_random = True
+        params.normalize = True
+        params.seed = 1234567
+
+        topics = pt.io.read_topics(self.here + "/fixtures/vaswani_npl/query_light.trec").head(5)
+        qrels = pt.io.read_qrels(self.here + "/fixtures/vaswani_npl/qrels")
+
+        pipeline = pt.FeaturesBatchRetrieve(self.here + "/fixtures/index/data.properties", ["WMODEL:PL2", "WMODEL:BM25"], controls={"wmodel" : "DPH"}) >> \
+            pt.ltr.apply_learned_model(train_request, form="fastrank")
+        
+        pipeline.fit(topics, qrels, topics, qrels)
+        pt.Utils.evaluate(
+            pipeline.transform(topics),
+            qrels
+        )
+
     def test_xgltr_pipeline(self):
         import xgboost as xgb
 
@@ -43,6 +63,25 @@ class TestLTRPipeline(BaseTestCase):
             pipeline.transform(topics),
             qrels,
         )
+
+    def test_ltr_pipeline_feature_change(self):
+        from sklearn.ensemble import RandomForestClassifier
+
+        topics = pt.io.read_topics(self.here + "/fixtures/vaswani_npl/query_light.trec").head(5)
+        qrels = pt.io.read_qrels(self.here + "/fixtures/vaswani_npl/qrels")
+
+        rf = RandomForestClassifier()
+
+        pipeline = pt.FeaturesBatchRetrieve(self.here + "/fixtures/index/data.properties", ["WMODEL:PL2", "WMODEL:BM25"], controls={"wmodel" : "DPH"}) >> \
+            pt.ltr.apply_learned_model(rf)
+        
+        pipeline.fit(topics, qrels)
+        pipeline.transform(topics)
+
+        pipeline2 = pt.FeaturesBatchRetrieve(self.here + "/fixtures/index/data.properties", ["WMODEL:PL2", "WMODEL:BM25", "WMODEL:Dl"], controls={"wmodel" : "DPH"}) >> \
+            pt.ltr.apply_learned_model(rf)
+        with self.assertRaises(ValueError):
+            pipeline2.transform(topics)
 
 if __name__ == "__main__":
     unittest.main()

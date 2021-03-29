@@ -1,3 +1,5 @@
+.. _datasets:
+
 Importing Datasets
 -----------------------
 
@@ -15,15 +17,6 @@ each defined dataset can download and provide easy access to:
 
 .. autoclass:: pyterrier.datasets.Dataset
     :members:
-
-Available Datasets
-==================
-
-The table below lists the provided datasets, detailing the attributes available for each dataset.
-In each column, True designates the presence of a single artefact of that type, while a list denotes the available variants.
-
-.. include:: ./_includes/datasets-list-inc.rst
-
 
 Examples
 ========
@@ -47,9 +40,10 @@ Indexing and then retrieval of documents from the `MSMARCO document corpus <http
     indexer = pt.TRECCollectionIndexer("./index")
     # this downloads the file msmarco-docs.trec.gz 
     indexref = indexer.index(dataset.get_corpus())
+    index = pt.IndexFactory.of(indexref)
 
     DPH_br = pt.BatchRetrieve(index, wmodel="DPH") % 100
-    BM25_br = pt.BatchRetrieve(index, wmodel="DPH") % 100
+    BM25_br = pt.BatchRetrieve(index, wmodel="BM25") % 100
     # this runs an experiment to obtain results on the TREC 2019 Deep Learning track queries and qrels
     pt.Experiment(
         [DPH_br, BM25_br], 
@@ -58,3 +52,29 @@ Indexing and then retrieval of documents from the `MSMARCO document corpus <http
         eval_metrics=["recip_rank", "ndcg_cut_10", "map"])
 
 For more details on use of MSMARCO, see `our MSMARCO leaderboard submission notebooks <https://github.com/cmacdonald/pyterrier-msmarco-document-leaderboard-runs>`_.
+
+You can also index datasets that include a corpus using IterDictIndexer and get_corpus_iter::
+
+    dataset = pt.datasets.get_dataset('irds:cord19/trec-covid')
+    indexer = pt.index.IterDictIndexer('./cord19-index')
+    indexref = indexer.index(dataset.get_corpus_iter(), fields=('title', 'abstract'))
+    index = pt.IndexFactory.of(indexref)
+
+    DPH_br = pt.BatchRetrieve(index, wmodel="DPH") % 100
+    BM25_br = pt.BatchRetrieve(index, wmodel="BM25") % 100
+    # this runs an experiment to obtain results on the TREC COVID queries and qrels
+    pt.Experiment(
+        [DPH_br, BM25_br], 
+        dataset.get_topics('title'), 
+        dataset.get_qrels(), 
+        eval_metrics=["P.5", "P.10", "ndcg_cut.10", "map"])
+
+Available Datasets
+==================
+
+The table below lists the provided datasets, detailing the attributes available for each dataset.
+In each column, True designates the presence of a single artefact of that type, while a list denotes the available variants.
+Datasets with the ``irds:`` prefix are from the `ir_datasets package <https://github.com/allenai/ir_datasets>`_; further
+documentation on these datasets can be found `here <https://ir-datasets.com/all.html>`_.
+
+.. include:: ./_includes/datasets-list-inc.rst

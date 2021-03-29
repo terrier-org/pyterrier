@@ -86,8 +86,8 @@ class BatchRetrieve(BatchRetrieveBase):
 
             Args:
                 index_location: An index-like object - An Index, an IndexRef, or a String that can be resolved to an IndexRef
-                controls(dict): A dictionary with with the control names and values
-                properties(dict): A dictionary with with the property keys and values
+                controls(dict): A dictionary with the control names and values
+                properties(dict): A dictionary with the property keys and values
                 verbose(bool): If True transform method will display progress
                 num_results(int): Number of results to retrieve. 
                 metadata(list): What metadata to retrieve
@@ -161,6 +161,10 @@ class BatchRetrieve(BatchRetrieveBase):
             rank = FIRST_RANK
             qid = str(row.qid)
             query = row.query
+            if len(query) == 0:
+                warn("Skipping empty query for qid %s" % qid)
+                continue
+
             srq = self.manager.newSearchRequest(qid, query)
             
             for control, value in self.controls.items():
@@ -372,8 +376,8 @@ class FeaturesBatchRetrieve(BatchRetrieve):
             Args:
                 index_location: An index-like object - An Index, an IndexRef, or a String that can be resolved to an IndexRef
                 features(list): List of features to use
-                controls(dict): A dictionary with with the control names and values
-                properties(dict): A dictionary with with the control names and values
+                controls(dict): A dictionary with the control names and values
+                properties(dict): A dictionary with the property keys and values
                 verbose(bool): If True transform method will display progress
                 num_results(int): Number of results to retrieve. 
         """
@@ -428,7 +432,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
             assert not scores_provided
 
             if self.wmodel is None:
-                raise ValueError("We're in retrieval mode, but wmodel is None. FeaturesBatchRetrieve requires a wmodel be set for identifying the candidate set. "
+                raise ValueError("We're in retrieval mode (input columns were "+str(queries.columns)+"), but wmodel is None. FeaturesBatchRetrieve requires a wmodel be set for identifying the candidate set. "
                     +" Hint: wmodel argument for FeaturesBatchRetrieve, e.g. FeaturesBatchRetrieve(index, features, wmodel=\"DPH\")")
 
         if queries["qid"].dtype == np.int64:
@@ -438,6 +442,9 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         for row in tqdm(queries.itertuples(), desc=str(self), total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
             qid = str(row.qid)
             query = row.query
+            if len(query) == 0:
+                warn("Skipping empty query for qid %s" % qid)
+                continue
 
             srq = self.manager.newSearchRequest(qid, query)
 
@@ -489,24 +496,11 @@ class FeaturesBatchRetrieve(BatchRetrieve):
             for i in range(fres.getResultSize()):
                 doc_features = np.array([ feature[i] for feature in feats_values])
                 meta=[ metadata_col[i] for metadata_col in metadata_list]
-                results.append( [qid, docids[i], rank, doc_features ] + meta )
+                results.append( [qid, query, docids[i], rank, doc_features ] + meta )
                 newscores.append(scores[i])
                 rank += 1
 
-        res_dt = pd.DataFrame(results, columns=["qid", "docid", "rank", "features"] + self.metadata)
-        # if scores_provided and self.wmodel is None:
-        #     # we take the scores from the input dataframe, as ScoringMatchingWithFat overwrites them
-
-        #     # prefer to join on docid
-        #     if docid_provided:
-        #         res_dt = res_dt.merge(topics[["qid", "docid", "score"]], on=["qid", "docid"], how='right')
-        #     else:
-        #         assert docno_provided
-        #         res_dt = res_dt.merge(topics[["qid", "docno", "score"]], on=["qid", "docno"], how='right')
-        # elif self.wmodel is not None:
-        #     # we use new scores obtained from Terrier
-        #     # order should be same as the results column 
-        #     res_dt["score"] = newscores
+        res_dt = pd.DataFrame(results, columns=["qid", "query", "docid", "rank", "features"] + self.metadata)
         res_dt["score"] = newscores
         return res_dt
 
@@ -519,4 +513,6 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         ]) + ")"
 
     def __str__(self):
+        if self.wmodel is None:
+            return "FBR(" + str(len(self.features)) + " features)"
         return "FBR(" + self.controls["wmodel"] + " and " + str(len(self.features)) + " features)"
