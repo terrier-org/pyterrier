@@ -90,11 +90,7 @@ class SDM(TransformerBase):
             results.append([qid, new_query])
         new_queries = pd.DataFrame(results, columns=["qid", "query"])
         # restore any other columns, e.g. put back docs if we are re-ranking
-        return new_queries.merge(push_queries(queries, inplace=True) , on="qid")
-        #return push_queries(queries, inplace=True).merge(new_queries, on="qid")
-        #rtr = pd.DataFrame(results, columns=["qid", "query"])
-        #rtr = rtr.merge(topics_and_res.drop(columns=['query']), on="qid")
-        #return rtr
+        return new_queries.merge(push_queries(topics_and_res, inplace=True) , on="qid")
 
 class SequentialDependence(SDM):
     ''' alias for SDM '''

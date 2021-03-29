@@ -50,6 +50,9 @@ class TestRewrite(BaseTestCase):
         pipe = docs >> sdm
         qids = pt.new.queries(["hello there"], qid=["q1"])  
         rtr = pipe(qids)
+        self.assertIn("query", rtr.columns)
+        self.assertIn("query_0", rtr.columns)
+        self.assertIn("docno", rtr.columns)
         print(rtr)
         self.assertEqual(2, len(rtr))
 
@@ -66,6 +69,8 @@ class TestRewrite(BaseTestCase):
         queriesIn = pd.DataFrame([["1", "compact"], ["2", "compact memories"]], columns=["qid", "query"])
         queriesOut = sdm.transform(queriesIn)
         self.assertEqual(len(queriesOut), 2)
+        self.assertIn("query", queriesOut.columns)
+        self.assertIn("query_0", queriesOut.columns)
         self.assertEqual(queriesOut.iloc[0]["query"], "compact")
 
         # check for pushed query representation        
