@@ -26,10 +26,12 @@ def read(rel_path):
         return fp.read()
 
 def get_version(rel_path):
+    import os
+    suffix = os.environ["PYTERRIER_VERSION_SUFFIX" ] if "PYTERRIER_VERSION_SUFFIX" in os.environ else ""
     for line in read(rel_path).splitlines():
         if line.startswith('__version__'):
             delim = '"' if '"' in line else "'"
-            return line.split(delim)[1]
+            return line.split(delim)[1] + suffix
     else:
         raise RuntimeError("Unable to find version string.")
 
@@ -53,11 +55,13 @@ setup(
     description="Terrier IR platform Python API",
     long_description=long_description,
     long_description_content_type="text/markdown",
+    package_data={'': ['LICENSE.txt', 'requirements.txt', 'requirements-test.txt']},
+    include_package_data=True,
     url="https://github.com/terrier-org/pyterrier",
     packages=['pyterrier'] + ['pyterrier.' + i for i in find_packages('pyterrier')],
     classifiers=[
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MPL License",
+        "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
         "Operating System :: OS Independent",
     ],
     install_requires=requirements,

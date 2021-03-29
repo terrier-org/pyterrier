@@ -9,5 +9,5 @@ class BaseTestCase(unittest.TestCase):
         if terrier_version is not None:
             print("Testing with Terrier version " + terrier_version)
         if not pt.started():
-            pt.init(version=terrier_version)
+            pt.init(version=terrier_version, logging="DEBUG")
         self.here = os.path.dirname(os.path.realpath(__file__))

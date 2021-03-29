@@ -1,12 +1,11 @@
 from jnius import autoclass, cast
 import pandas as pd
 import numpy as np
-from tqdm import tqdm
-
-from .utils import Utils
+from . import tqdm
+from warnings import warn
 from .index import Indexer
 from .transformer import TransformerBase, Symbol
-from tqdm import tqdm
+from .model import coerce_queries_dataframe, FIRST_RANK
 import deprecation
 
 # import time
@@ -24,7 +23,7 @@ def _matchop(query):
             return True
     return False
 
-def parse_index_like(index_location):
+def _parse_index_like(index_location):
     JIR = autoclass('org.terrier.querying.IndexRef')
     JI = autoclass('org.terrier.structures.Index')
 
@@ -58,17 +57,9 @@ class BatchRetrieveBase(TransformerBase, Symbol):
 class BatchRetrieve(BatchRetrieveBase):
     """
     Use this class for retrieval by Terrier
-
-    Attributes:
-        default_controls(dict): stores the default controls
-        default_properties(dict): stores the default properties
-        IndexRef: stores the index reference object
-        appSetup: stores the Terrier ApplicationSetup object
-        verbose(bool): If True transform method will display progress
-        properties(dict): Current properties
-        controls(dict): Current controls
-        num_results(int): Number of results to retrieve. 
     """
+
+    #: default_controls(dict): stores the default controls
     default_controls = {
         "terrierql": "on",
         "parsecontrols": "on",
@@ -80,6 +71,7 @@ class BatchRetrieve(BatchRetrieveBase):
         "wmodel": "DPH",
     }
 
+    #: default_properties(dict): stores the default properties
     default_properties = {
         "querying.processes": "terrierql:TerrierQLParser,parsecontrols:TerrierQLToControls,parseql:TerrierQLToMatchingQueryTerms,matchopql:MatchingOpQLParser,applypipeline:ApplyTermPipeline,localmatching:LocalManager$ApplyLocalMatching,qe:QueryExpansion,labels:org.terrier.learning.LabelDecorator,filters:LocalManager$PostFilterProcess",
         "querying.postfilters": "decorate:SimpleDecorate,site:SiteFilter,scope:Scope",
@@ -88,21 +80,21 @@ class BatchRetrieve(BatchRetrieveBase):
         "termpipelines": "Stopwords,PorterStemmer"
     }
 
-    """
-        Init method
-
-        Args:
-            index_location: An index-like object - An Index, an IndexRef, or a String that can be resolved to an IndexRef
-            controls(dict): A dictionary with with the control names and values
-            properties(dict): A dictionary with with the property keys and values
-            verbose(bool): If True transform method will display progress
-            num_results(int): Number of results to retrieve. 
-            metadata(list): What metadata to retrieve
-    """
     def __init__(self, index_location, controls=None, properties=None, metadata=["docno"],  num_results=None, wmodel=None, **kwargs):
+        """
+            Init method
+
+            Args:
+                index_location: An index-like object - An Index, an IndexRef, or a String that can be resolved to an IndexRef
+                controls(dict): A dictionary with the control names and values
+                properties(dict): A dictionary with the property keys and values
+                verbose(bool): If True transform method will display progress
+                num_results(int): Number of results to retrieve. 
+                metadata(list): What metadata to retrieve
+        """
         super().__init__(kwargs)
         
-        self.indexref = parse_index_like(index_location)
+        self.indexref = _parse_index_like(index_location)
         self.appSetup = autoclass('org.terrier.utility.ApplicationSetup')
         self.properties = _mergeDicts(BatchRetrieve.default_properties, properties)
         self.metadata = metadata
@@ -155,17 +147,20 @@ class BatchRetrieve(BatchRetrieveBase):
         Performs the retrieval
 
         Args:
-            queries: String for a single query, list of queries, or a pandas.Dataframe with columns=['qid', 'query']
+            queries: String for a single query, list of queries, or a pandas.Dataframe with columns=['qid', 'query']. For re-ranking,
+                the DataFrame may also have a 'docid' and or 'docno' column.
 
         Returns:
             pandas.Dataframe with columns=['qid', 'docno', 'rank', 'score']
         """
         results=[]
         if not isinstance(queries, pd.DataFrame):
-            queries=Utils.form_dataframe(queries)
+            warn(".transform() should be passed a dataframe. Use .search() to execute a single query.", FutureWarning, 2)
+            queries = coerce_queries_dataframe(queries)
+        
         docno_provided = "docno" in queries.columns
         docid_provided = "docid" in queries.columns
-        scores_provided = "scores" in queries.columns
+        scores_provided = "score" in queries.columns
         if docno_provided or docid_provided:
             from . import check_version
             assert check_version(5.3)
@@ -182,10 +177,14 @@ class BatchRetrieve(BatchRetrieveBase):
             queries['qid'] = queries['qid'].astype(str)
 
 
-        for row in tqdm(queries.itertuples(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
-            rank = 0
+        for row in tqdm(queries.itertuples(), desc=str(self), total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
+            rank = FIRST_RANK
             qid = str(row.qid)
             query = row.query
+            if len(query) == 0:
+                warn("Skipping empty query for qid %s" % qid)
+                continue
+
             srq = self.manager.newSearchRequest(qid, query)
             
             for control, value in self.controls.items():
@@ -204,17 +203,20 @@ class BatchRetrieve(BatchRetrieveBase):
                 srq.setControl("matchopql", "on")
 
             # this handles the case that a candidate set of documents has been set. 
+            num_expected = None
             if docno_provided or docid_provided:
                 # we use RequestContextMatching to make a ResultSet from the 
                 # documents in the candidate set. 
                 matching_config_factory = RequestContextMatching.of(srq)
                 input_query_results = input_results[input_results["qid"] == qid]
+                num_expected = len(input_query_results)
                 if docid_provided:
                     matching_config_factory.fromDocids(input_query_results["docid"].values.tolist())
                 elif docno_provided:
                     matching_config_factory.fromDocnos(input_query_results["docno"].values.tolist())
-                if scores_provided:
-                    matching_config_factory.withScores(input_query_results["scores"].values.tolist())
+                # batch retrieve is a scoring process that always overwrites the score; no need to provide scores as input
+                #if scores_provided:
+                #    matching_config_factory.withScores(input_query_results["score"].values.tolist())
                 matching_config_factory.build()
                 srq.setControl("matching", "org.terrier.matching.ScoringMatching" + "," + srq.getControl("matching"))
 
@@ -226,6 +228,8 @@ class BatchRetrieve(BatchRetrieveBase):
             if len(result) > 0 and len(set(self.metadata) & set(result.getMetaKeys())) != len(self.metadata):
                 raise KeyError("Requested metadata: %s, obtained metadata %s" % (str(self.metadata), str(result.getMetaKeys()))) 
 
+            if num_expected is not None:
+                assert(num_expected == len(result))
             # prepare the dataframe for the results of the query
             for item in result:
                 metadata_list = []
@@ -281,23 +285,24 @@ class TextIndexProcessor(TransformerBase):
         for instance query expansion based on text.
     '''
 
-    def __init__(self, innerclass, takes="queries", returns="docs", body_attr="body", background_index=None, **kwargs):
+    def __init__(self, innerclass, takes="queries", returns="docs", body_attr="body", background_index=None, verbose=False, **kwargs):
         #super().__init__(**kwargs)
         self.innerclass = innerclass
         self.takes = takes
         self.returns = returns
         self.body_attr = body_attr
         if background_index is not None:
-            self.background_indexref = parse_index_like(background_index)
+            self.background_indexref = _parse_index_like(background_index)
         else:
             self.background_indexref = None
         self.kwargs = kwargs
+        self.verbose = verbose
 
     def transform(self, topics_and_res):
         from . import DFIndexer, autoclass, IndexFactory
         from .index import IndexingType
         documents = topics_and_res[["docno", self.body_attr]].drop_duplicates(subset="docno")
-        indexref = DFIndexer(None, type=IndexingType.MEMORY).index(documents[self.body_attr], documents["docno"])
+        indexref = DFIndexer(None, type=IndexingType.MEMORY, verbose=self.verbose).index(documents[self.body_attr], documents["docno"])
         docno2docid = { docno:id for id, docno in enumerate(documents["docno"]) }
         index_docs = IndexFactory.of(indexref)
         docno2docid = {}
@@ -329,6 +334,7 @@ class TextIndexProcessor(TransformerBase):
         # and then just instantiate BR using the our new index 
         # we take all other arguments as arguments for BR
         inner = self.innerclass(index, **(self.kwargs))
+        inner.verbose = self.verbose
         inner_res = inner.transform(input)
 
         if self.returns == "docs":
@@ -346,6 +352,27 @@ class TextIndexProcessor(TransformerBase):
         return inner_res
 
 class TextScorer(TextIndexProcessor):
+    """
+        A re-ranker class, which takes the queries and the contents of documents, indexes the contents of the documents using a MemoryIndex, and performs ranking of those documents with respect to the queries.
+        Unknown kwargs are passed to BatchRetrieve.
+
+        Arguments:
+            takes(str): configuration - what is needed as input: `"queries"`, or `"docs"`.
+            returns(str): configuration - what is needed as output: `"queries"`, or `"docs"`.
+            body_attr(str): what dataframe input column contains the text of the document. Default is `"body"`.
+            wmodel(str): example of configuration passed to BatchRetrieve.
+
+        Example::
+
+            df = pd.DataFrame(
+                [
+                    ["q1", "chemical reactions", "d1", "professor protor poured the chemicals"],
+                    ["q1", "chemical reactions", "d2", "chemical brothers turned up the beats"],
+                ], columns=["qid", "query", "text"])
+            textscorer = pt.TextScorer(takes="docs", body_attr="text", wmodel="TF_IDF")
+            rtr = textscorer.transform(df)
+            #rtr will score each document for the query "chemical reactions" based on the provided document contents
+    """
 
     def __init__(self, **kwargs):
         super().__init__(BatchRetrieve, **kwargs)
@@ -353,18 +380,13 @@ class TextScorer(TextIndexProcessor):
 class FeaturesBatchRetrieve(BatchRetrieve):
     """
     Use this class for retrieval with multiple features
-
-    Attributes:
-        default_controls(dict): stores the default controls
-        default_properties(dict): stores the default properties
-        IndexRef: stores the index reference object
-        appSetup: stores the Terrier ApplicationSetup object
-        verbose(bool): If True transform method will display progress
-        properties(dict): Current properties
-        controls(dict): Current controls
     """
+
+    #: FBR_default_controls(dict): stores the default properties for a FBR
     FBR_default_controls = BatchRetrieve.default_controls.copy()
     FBR_default_controls["matching"] = "FatFeaturedScoringMatching,org.terrier.matching.daat.FatFull"
+    del FBR_default_controls["wmodel"]
+    #: FBR_default_properties(dict): stores the default properties
     FBR_default_properties = BatchRetrieve.default_properties.copy()
 
     def __init__(self, index_location, features, controls=None, properties=None, **kwargs):
@@ -374,36 +396,46 @@ class FeaturesBatchRetrieve(BatchRetrieve):
             Args:
                 index_location: An index-like object - An Index, an IndexRef, or a String that can be resolved to an IndexRef
                 features(list): List of features to use
-                controls(dict): A dictionary with with the control names and values
-                properties(dict): A dictionary with with the control names and values
+                controls(dict): A dictionary with the control names and values
+                properties(dict): A dictionary with the property keys and values
                 verbose(bool): If True transform method will display progress
                 num_results(int): Number of results to retrieve. 
         """
-        # if props==None:
-        #     importProps()
         controls = _mergeDicts(FeaturesBatchRetrieve.FBR_default_controls, controls)
         properties = _mergeDicts(FeaturesBatchRetrieve.FBR_default_properties, properties)
         self.features = features
         properties["fat.featured.scoring.matching.features"] = ";".join(features)
+
+        # record the weighting model
+        self.wmodel = None
+        if "wmodel" in kwargs:
+            self.wmodel = kwargs["wmodel"]
+        if "wmodel" in controls:
+            self.wmodel = controls["wmodel"]
+        
         super().__init__(index_location, controls, properties, **kwargs)
 
-    def transform(self, topics):
+    def transform(self, queries):
         """
         Performs the retrieval with multiple features
 
         Args:
-            topics: String for a single query, list of queries, or a pandas.Dataframe with columns=['qid', 'query']
+            queries: String for a single query, list of queries, or a pandas.Dataframe with columns=['qid', 'query']. For re-ranking,
+                the DataFrame may also have a 'docid' and or 'docno' column.
 
         Returns:
-            pandas.Dataframe with columns=['qid', 'docno', 'score', 'features']
+            pandas.DataFrame with columns=['qid', 'docno', 'score', 'features']
         """
         results = []
-        queries = Utils.form_dataframe(topics)
+        if not isinstance(queries, pd.DataFrame):
+            warn(".transform() should be passed a dataframe. Use .search() to execute a single query.", FutureWarning, 2)
+            queries = coerce_queries_dataframe(queries)
 
         docno_provided = "docno" in queries.columns
         docid_provided = "docid" in queries.columns
-        scores_provided = "scores" in queries.columns
+        scores_provided = "score" in queries.columns
         if docno_provided or docid_provided:
+            #re-ranking mode
             from . import check_version
             assert check_version(5.3)
             input_results = queries
@@ -414,12 +446,25 @@ class FeaturesBatchRetrieve(BatchRetrieve):
             queries = input_results[["qid", "query"]].dropna(axis=0, subset=["query"]).drop_duplicates()
             RequestContextMatching = autoclass("org.terrier.python.RequestContextMatching")
 
+            if not scores_provided and self.wmodel is None:
+                raise ValueError("We're in re-ranking mode, but input does not have scores, and wmodel is None")
+        else:
+            assert not scores_provided
+
+            if self.wmodel is None:
+                raise ValueError("We're in retrieval mode (input columns were "+str(queries.columns)+"), but wmodel is None. FeaturesBatchRetrieve requires a wmodel be set for identifying the candidate set. "
+                    +" Hint: wmodel argument for FeaturesBatchRetrieve, e.g. FeaturesBatchRetrieve(index, features, wmodel=\"DPH\")")
+
         if queries["qid"].dtype == np.int64:
             queries['qid'] = queries['qid'].astype(str)
 
-        for row in tqdm(queries.itertuples(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
+        newscores=[]
+        for row in tqdm(queries.itertuples(), desc=str(self), total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
             qid = str(row.qid)
             query = row.query
+            if len(query) == 0:
+                warn("Skipping empty query for qid %s" % qid)
+                continue
 
             srq = self.manager.newSearchRequest(qid, query)
 
@@ -449,7 +494,12 @@ class FeaturesBatchRetrieve(BatchRetrieve):
                 elif docno_provided:
                     matching_config_factory.fromDocnos(input_query_results["docno"].values.tolist())
                 if scores_provided:
-                    matching_config_factory.withScores(input_query_results["scores"].values.tolist())
+                    if self.wmodel is None:
+                        # we provide the scores, so dont use a weighting model, and pass the scores through Terrier
+                        matching_config_factory.withScores(input_query_results["score"].values.tolist())
+                        srq.setControl("wmodel", "Null")
+                    else:
+                        srq.setControl("wmodel", self.wmodel)
                 matching_config_factory.build()
                 srq.setControl("matching", ",".join(["FatFeaturedScoringMatching","ScoringMatchingWithFat", srq.getControl("matching")]))
             
@@ -460,27 +510,18 @@ class FeaturesBatchRetrieve(BatchRetrieve):
 
             docids=fres.getDocids()
             scores= fres.getScores()
-            metadata_list = []
-            for meta_column in self.metadata:
-                metadata_list.append(fres.getMetaItems("docno"))
-            feats_values = []            
-            for feat in feat_names:
-                feats_values.append(fres.getFeatureScores(feat))
-            rank = 0
+            metadata_list = [fres.getMetaItems(meta_column) for meta_column in self.metadata]
+            feats_values = [fres.getFeatureScores(feat) for feat in feat_names]
+            rank = FIRST_RANK
             for i in range(fres.getResultSize()):
-                
-                feats_array = []
-                for j in range(len(feats_values)):
-                    feats_array.append(feats_values[j][i])
-                feats_array = np.array(feats_array)
-                meta=[]
-                for meta_idx, meta_column in enumerate(self.metadata):
-                    meta.append( metadata_list[meta_idx][i] )
-
-                results.append( [qid, docids[i], rank ] + meta + [ scores[i], feats_array] )
+                doc_features = np.array([ feature[i] for feature in feats_values])
+                meta=[ metadata_col[i] for metadata_col in metadata_list]
+                results.append( [qid, query, docids[i], rank, doc_features ] + meta )
+                newscores.append(scores[i])
                 rank += 1
 
-        res_dt = pd.DataFrame(results, columns=["qid", "docid", "rank", "docno", "score", "features"])
+        res_dt = pd.DataFrame(results, columns=["qid", "query", "docid", "rank", "features"] + self.metadata)
+        res_dt["score"] = newscores
         return res_dt
 
     def __repr__(self):
@@ -492,6 +533,8 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         ]) + ")"
 
     def __str__(self):
+        if self.wmodel is None:
+            return "FBR(" + str(len(self.features)) + " features)"
         return "FBR(" + self.controls["wmodel"] + " and " + str(len(self.features)) + " features)"
 
     #TODO __reduce__ etc

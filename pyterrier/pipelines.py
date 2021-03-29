@@ -4,6 +4,8 @@ import pandas as pd
 import numpy as np
 from .utils import Utils
 from .transformer import TransformerBase, EstimatorBase
+from .model import add_ranks
+import deprecation
 
 def _bold_cols(data, col_type):
     if not data.name in col_type:
@@ -39,24 +41,36 @@ def _color_cols(data, col_type,
     is_max[len(data) - list(reversed(data)).index(max_value) -  1] = colormaxlast_attr
     return is_max
 
-def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=False, dataframe=True, baseline=None, highlight=None):
+def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=False, dataframe=True, baseline=None, correction=None, correction_alpha=0.05, highlight=None, round=None):
     """
-    Cornac style experiment. Combines retrieval and evaluation.
-    Allows easy comparison of multiple retrieval systems with different properties and controls.
+    Allows easy comparison of multiple retrieval transformer pipelines using a common set of topics, and
+    identical evaluation measures computed using the same qrels. In essence, each transformer is applied on 
+    the provided set of topics. Then the named trec_eval evaluation measures are computed 
+    (using `pt.Utils.evaluate()`) for each system.
 
     Args:
-        retr_systems(list): A list of BatchRetrieve objects to compare
+        retr_systems(list): A list of transformers to evaluate. If you already have the results for one 
+            (or more) of your systems, a results dataframe can also be used here. Results produced by 
+            the transformers must have "qid", "docno", "score", "rank" columns.
         topics: Either a path to a topics file or a pandas.Dataframe with columns=['qid', 'query']
         qrels: Either a path to a qrels file or a pandas.Dataframe with columns=['qid','docno', 'label']   
         eval_metrics(list): Which evaluation metrics to use. E.g. ['map']
-        names(list)=List of names for each retrieval system when presenting the results.
-            Default=None. If None: Use names of weighting models for each retrieval system.
-        perquery(bool): If true return each metric for each query, else return mean metrics. Default=False.
+        names(list): List of names for each retrieval system when presenting the results.
+            Default=None. If None: Obtains the `str()` representation of each transformer as its name.
+        perquery(bool): If true return each metric for each query, else return mean metrics across all queries. Default=False.
         dataframe(bool): If True return results as a dataframe. Else as a dictionary of dictionaries. Default=True.
-        baseline(int): If set to the index of an item of the retr_system list, will calculate the number of queries improved, degraded and the statistical significance (paired t-test p value) for each measure.
-            Default=None: If None, no additional columns added for each measure
-        highlight(str) : If "bold", highlights in bold the best measure value in each column; 
-            if "color" or "colour" uses green to indicate highest values
+        baseline(int): If set to the index of an item of the retr_system list, will calculate the number of queries 
+            improved, degraded and the statistical significance (paired t-test p value) for each measure.
+            Default=None: If None, no additional columns will be added for each measure.
+        correction(string): Whether any multiple testing correction should be applied. E.g. 'bonferroni', 'holm', 'hs' aka 'holm-sidak'. Default is None.
+            Additional columns are added denoting whether the null hypothesis can be rejected, and the corrected p value. 
+            See `statsmodels.stats.multitest.multipletests() <https://www.statsmodels.org/dev/generated/statsmodels.stats.multitest.multipletests.html#statsmodels.stats.multitest.multipletests>`_
+            for more information about available testing correction.
+        correction_alpha(float): What alpha value for multiple testing correction Default is 0.05.
+        highlight(str): If `highlight="bold"`, highlights in bold the best measure value in each column; 
+            if `highlight="color"` or `"colour"`, then the cell with the highest metric value will have a green background.
+        round(int): How many decimal places to round each measure value to. This can be a dictionary mapping measure name to number of decimal places.
+            Default is None, which is no rounding.
 
     Returns:
         A Dataframe with each retrieval system with each metric evaluated.
@@ -88,15 +102,47 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
     if isinstance(qrels, str):
         if os.path.isfile(qrels):
             qrels = Utils.parse_qrels(qrels)
+    from timeit import default_timer as timer
+
+    if round is not None:
+        if isinstance(round, int):
+            assert round >= 0, "round argument should be integer >= 0, not %s" % str(round)
+        elif isinstance(round, dict):
+            assert not perquery, "Sorry, per-measure rounding only support when reporting means" 
+            for k,v in round.items():
+                assert isinstance(v, int) and v >= 0, "rounding number for measure %s should be integer >= 0, not %s" % (k, str(v))
+        else:
+            raise ValueError("Argument round should be an integer or a dictionary")
+
+    if correction is not None and baseline is None:
+        raise ValueError("Requested multiple testing correction, but no baseline was specified.")
+
+    def _apply_round(measure, value):
+        import builtins
+        if round is not None and isinstance(round, int):
+            value = builtins.round(value, round)
+        if round is not None and isinstance(round, dict) and measure in round:
+            value = builtins.round(value, round[measure])
+        return value
 
     results = []
+    times=[]
     neednames = names is None
     if neednames:
         names = []
     elif len(names) != len(retr_systems):
         raise ValueError("names should be the same length as retr_systems")
     for system in retr_systems:
-        results.append(system.transform(topics))
+        # if its a DataFrame, use it as the results
+        if isinstance(system, pd.DataFrame):
+            results.append(system)
+            times.append(0)
+        else:
+            starttime = timer()            
+            results.append(system.transform(topics))
+            endtime = timer()
+            times.append( (endtime - starttime) * 1000.)
+            
         if neednames:
             names.append(str(system))
 
@@ -107,7 +153,11 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
     evalDict={}
     evalDictsPerQ=[]
     actual_metric_names=[]
-    for name,res in zip(names,results):
+    mrt_needed = False
+    if "mrt" in eval_metrics:
+        mrt_needed = True
+        eval_metrics.remove("mrt")
+    for name,res,time in zip(names, results, times):
         evalMeasuresDict = Utils.evaluate(res, qrels_dict, metrics=eval_metrics, perquery=perquery or baseline is not None)
         
         if perquery or baseline is not None:
@@ -121,35 +171,59 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
             evalDictsPerQ.append(evalMeasuresDict)
             evalMeasuresDict = Utils.mean_of_measures(evalMeasuresDict)
 
+        if mrt_needed:
+            evalMeasuresDict["mrt"] = time / float(len(all_qids))
+
         if perquery:
             for qid in all_qids:
                 for measurename in evalMeasuresDict[qid]:
-                    evalsRows.append([name, qid, measurename,  evalMeasuresDict[qid][measurename]])
+                    evalsRows.append([
+                        name, 
+                        qid, 
+                        measurename, 
+                        _apply_round(
+                            measurename, 
+                            evalMeasuresDict[qid][measurename]
+                        ) 
+                    ])
             evalDict[name] = evalMeasuresDict
         else:
+            import builtins
             actual_metric_names = list(evalMeasuresDict.keys())
-            evalMeasures = [evalMeasuresDict[m] for m in actual_metric_names]
+            # gather mean values, applying rounding if necessary
+            evalMeasures=[ _apply_round(m, evalMeasuresDict[m]) for m in actual_metric_names]
+
             evalsRows.append([name]+evalMeasures)
             evalDict[name] = evalMeasures
     if dataframe:
         if perquery:
-            return pd.DataFrame(evalsRows, columns=["name", "qid", "measure", "value"])
+            df = pd.DataFrame(evalsRows, columns=["name", "qid", "measure", "value"])
+            if round is not None:
+                df["value"] = df["value"].round(round)
+            return df
 
         highlight_cols = { m : "+"  for m in actual_metric_names }
+        if mrt_needed:
+            highlight_cols["mrt"] = "-"
 
+        p_col_names=[]
         if baseline is not None:
             assert len(evalDictsPerQ) == len(retr_systems)
             from scipy import stats
             baselinePerQuery={}
-            for m in actual_metric_names:
+            per_q_metrics = actual_metric_names.copy()
+            if mrt_needed:
+                per_q_metrics.remove("mrt")
+
+            for m in per_q_metrics:
                 baselinePerQuery[m] = np.array([ evalDictsPerQ[baseline][q][m] for q in evalDictsPerQ[baseline] ])
 
             for i in range(0, len(retr_systems)):
                 additionals=[]
                 if i == baseline:
-                    additionals = [None] * (3*len(actual_metric_names))
+                    additionals = [None] * (3*len(per_q_metrics))
                 else:
-                    for m in actual_metric_names:
+                    for m in per_q_metrics:
                         # we iterate through queries based on the baseline, in case run has different order
                         perQuery = np.array( [ evalDictsPerQ[i][q][m] for q in evalDictsPerQ[baseline] ])
                         delta_plus = (perQuery > baselinePerQuery[m]).sum()
@@ -158,15 +232,29 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
                         additionals.extend([delta_plus, delta_minus, p])
                 evalsRows[i].extend(additionals)
             delta_names=[]
-            for m in actual_metric_names:
+            for m in per_q_metrics:
                 delta_names.append("%s +" % m)
                 highlight_cols["%s +" % m] = "+"
                 delta_names.append("%s -" % m)
                 highlight_cols["%s -" % m] = "-"
-                delta_names.append("%s p-value" % m)
+                pcol = "%s p-value" % m
+                delta_names.append(pcol)
+                p_col_names.append(pcol)
             actual_metric_names.extend(delta_names)
 
         df = pd.DataFrame(evalsRows, columns=["name"] + actual_metric_names)
+
+        # multiple testing correction. This adds two new columns for each measure experience statistical significance testing        
+        if baseline is not None and correction is not None:
+            import statsmodels.stats.multitest
+            for pcol in p_col_names:
+                pcol_reject = pcol.replace("p-value", "reject")
+                pcol_corrected = pcol + " corrected"                
+                reject, corrected, _, _ = statsmodels.stats.multitest.multipletests(df[pcol], alpha=correction_alpha, method=correction)
+                insert_pos = df.columns.get_loc(pcol)
+                # add extra columns, put place directly after the p-value column
+                df.insert(insert_pos+1, pcol_reject, reject)
+                df.insert(insert_pos+2, pcol_corrected, corrected)
         
         if highlight == "color" or highlight == "colour" :
             df = df.style.apply(_color_cols, axis=0, col_type=highlight_cols)
@@ -176,95 +264,17 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
         return df 
     return evalDict
 
+from .ltr import RegressionTransformer, LTRTransformer
+@deprecation.deprecated(deprecated_in="0.3.0",
+                        details="Please use pt.ltr.apply_learned_model(learner, form='regression')")
+class LTR_pipeline(RegressionTransformer):
+    pass
 
-class LTR_pipeline(EstimatorBase):
-    """
-    This class simplifies the use of Scikit-learn's techniques for learning-to-rank.
-    """
-    def __init__(self, LTR, *args, fit_kwargs={}, **kwargs):
-        """
-        Init method
+@deprecation.deprecated(deprecated_in="0.3.0",
+                        details="Please use pt.ltr.apply_learned_model(learner, form='ltr')")
+class XGBoostLTR_pipeline(LTRTransformer):
+    pass
 
-        Args:
-            LTR: The model which to use for learning-to-rank. Must have a fit() and predict() methods.
-            fit_kwargs: A dictionary containing additional arguments that can be passed to LTR's fit() method.  
-        """
-        self.fit_kwargs = fit_kwargs
-        super().__init__(*args, **kwargs)
-        self.LTR = LTR
-
-    def fit(self, topics_and_results_Train, qrelsTrain, topics_and_results_Valid=None, qrelsValid=None):
-        """
-        Trains the model with the given topics.
-
-        Args:
-            topicsTrain(DataFrame): A dataframe with the topics to train the model
-        """
-        if len(topics_and_results_Train) == 0:
-            raise ValueError("No topics to fit to")
-        if 'features' not in topics_and_results_Train.columns:
-            raise ValueError("No features column retrieved")
-        train_DF = topics_and_results_Train.merge(qrelsTrain, on=['qid', 'docno'], how='left').fillna(0)
-        kwargs = self.fit_kwargs
-        self.LTR.fit(np.stack(train_DF["features"].values), train_DF["label"].values, **kwargs)
-        return self
-
-    def transform(self, test_DF):
-        """
-        Predicts the scores for the given topics.
-
-        Args:
-            topicsTest(DataFrame): A dataframe with the test topics.
-        """
-        test_DF["score"] = self.LTR.predict(np.stack(test_DF["features"].values))
-        return test_DF
-
-class XGBoostLTR_pipeline(LTR_pipeline):
-    """
-    This class simplifies the use of XGBoost's techniques for learning-to-rank.
-    """
-
-    def transform(self, topics_and_docs_Test):
-        """
-        Predicts the scores for the given topics.
-
-        Args:
-            topicsTest(DataFrame): A dataframe with the test topics.
-        """
-        test_DF = topics_and_docs_Test
-        # xgb is more sensitive about the type of the values.
-        test_DF["score"] = self.LTR.predict(np.stack(test_DF["features"].values))
-        return test_DF
-
-    def fit(self, topics_and_results_Train, qrelsTrain, topics_and_results_Valid, qrelsValid):
-        """
-        Trains the model with the given training and validation topics.
-
-        Args:
-            topics_and_results_Train(DataFrame): A dataframe with the topics and results to train the model
-            topics_and_results_Valid(DataFrame): A dataframe with the topics and results for validation
-        """
-        if len(topics_and_results_Train) == 0:
-            raise ValueError("No training results to fit to")
-        if len(topics_and_results_Valid) == 0:
-            raise ValueError("No validation results to fit to")
-
-        if 'features' not in topics_and_results_Train.columns:
-            raise ValueError("No features column retrieved in training")
-        if 'features' not in topics_and_results_Valid.columns:
-            raise ValueError("No features column retrieved in validation")
-
-        tr_res = topics_and_results_Train.merge(qrelsTrain, on=['qid', 'docno'], how='left').fillna(0)
-        va_res = topics_and_results_Valid.merge(qrelsValid, on=['qid', 'docno'], how='left').fillna(0)
-
-        kwargs = self.fit_kwargs
-        self.LTR.fit(
-            np.stack(tr_res["features"].values), tr_res["label"].values, 
-            group=tr_res.groupby(["qid"]).count()["docno"].values, # we name group here for libghtgbm compat. 
-            eval_set=[(np.stack(va_res["features"].values), va_res["label"].values)],
-            eval_group=[va_res.groupby(["qid"]).count()["docno"].values],
-            **kwargs
-        )
 
 class PerQueryMaxMinScoreTransformer(TransformerBase):
     '''

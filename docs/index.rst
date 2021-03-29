@@ -1,16 +1,44 @@
-Welcome to Pyterrier's documentation!
+Welcome to PyTerrier's documentation!
 =====================================
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 1
+   :caption: Guides
 
-   pyterrier.rst
+   installation
+   datasets
+   terrier-indexing   
+   terrier-retrieval
+   experiments
+   rewrite
+   ltr
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Explanations & Illustrations
+
+   datamodel.md
+   transformer
+   operators
+   pipeline_examples.md
+   text
+   neural
+   terrier-index-api
+   experiments/Robust04
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Other Modules
+
+   io
+   apply
+   anserini
+   new
+
 
 
 Indices and tables
 ==================
 
 * :ref:`genindex`
-* :ref:`modindex`
 * :ref:`search`

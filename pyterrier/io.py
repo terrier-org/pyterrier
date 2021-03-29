@@ -26,6 +26,25 @@ def autoopen(filename, mode='rb'):
         return bz2.open(filename, mode)
     return open(filename, mode)
 
+def find_files(dir):
+    """
+    Returns all the files present in a directory and its subdirectories
+
+    Args:
+        dir(str): The directory containing the files
+
+    Returns:
+        paths(list): A list of the paths to the files
+    """
+    import os
+    lst = []
+    files = []
+    for (dirpath, dirnames, filenames) in os.walk(dir, followlinks=True):
+        for name in filenames:
+            files.append(os.path.join(dirpath, name))
+    return sorted(files)
+
+
 def read_results(filename, format="trec", **kwargs):
     """
     Reads a file into a results dataframe.
@@ -107,7 +126,7 @@ def write_results(res, filename, format="trec", **kwargs):
     Supported Formats:
         * "trec" -- output columns are $qid Q0 $docno $rank $score $runname, space separated
         * "letor" -- This follows the LETOR and MSLR datasets, in that output columns are $label qid:$qid [$fid:$value]+ # docno=$docno
-        * "minimal": output columns are $qid $docno $rank, tab-separated.
+        * "minimal": output columns are $qid $docno $rank, tab-separated. This is used for submissions to the MSMARCO leaderboard.
     
     """
     if format is None:

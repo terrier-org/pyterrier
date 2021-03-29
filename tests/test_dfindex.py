@@ -12,12 +12,15 @@ class TestDFIndexer(BaseTestCase):
     def setUp(self):
         # Create a temporary directory
         self.test_dir = tempfile.mkdtemp()
+        print("Created " + self.test_dir)
 
     def tearDown(self):
         # Remove the directory after the test
         shutil.rmtree(self.test_dir)
+        print("Deleting " + self.test_dir)
 
     def _create_index(self, type, dfText, dfMeta):
+        print("Writing index type "+str(type)+" to " + self.test_dir)
         pd_indexer = pt.DFIndexer(self.test_dir, type=type)
         indexref = pd_indexer.index(dfText, dfMeta)
         self.assertIsNotNone(indexref)

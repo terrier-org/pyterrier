@@ -3,6 +3,7 @@ import pyterrier as pt
 import os
 import unittest
 from .base import BaseTestCase
+import warnings
 
 def parse_res_file(filename):
     results = []
@@ -21,28 +22,6 @@ def parse_query_result(filename):
     return results
 
 class TestBatchRetrieve(BaseTestCase):
-
-    def test_form_dataframe_with_string(self):
-        input = "light"
-        exp_result = pd.DataFrame([["1", "light"]], columns=['qid', 'query'])
-        result = pt.Utils.form_dataframe(input)
-        self.assertTrue(exp_result.equals(result))
-
-    def test_form_dataframe_with_list(self):
-        input = ["light", "mathematical", "electronic"]
-        exp_result = pd.DataFrame([["1", "light"], ["2", "mathematical"], ["3", "electronic"]], columns=['qid', 'query'])
-        result = pt.Utils.form_dataframe(input)
-        self.assertTrue(exp_result.equals(result))
-
-    def test_form_dataframe_throws_assertion_error(self):
-        input = ("light", "mathematical", 25)
-        self.assertRaises(AssertionError, pt.Utils.form_dataframe, input)
-
-    def test_form_dataframe_with_tuple(self):
-        input = ("light", "mathematical", "electronic")
-        exp_result = pd.DataFrame([["1", "light"], ["2", "mathematical"], ["3", "electronic"]], columns=['qid', 'query'])
-        result = pt.Utils.form_dataframe(input)
-        self.assertTrue(exp_result.equals(result))
 
     def test_candidate_set_one_doc(self):
         if not pt.check_version("5.3"):
@@ -77,6 +56,19 @@ class TestBatchRetrieve(BaseTestCase):
         result = retr.transform(input_set)
         self.assertEqual(10, len(result))
 
+    def test_br_empty(self):
+        indexloc = self.here + "/fixtures/index/data.properties"
+        
+        input_set = pd.DataFrame([
+                    ["q1", ""],
+                ],
+            columns=["qid", "query"])
+        retr = pt.BatchRetrieve(indexloc)
+        with warnings.catch_warnings(record=True) as w:
+            result = retr.transform(input_set)
+            assert "Skipping empty query" in str(w[-1].message)
+        self.assertEqual(0, len(result))
+
     def test_candidate_set_two_doc(self):
         if not pt.check_version("5.3"):
             self.skipTest("Requires Terrier 5.3")
@@ -106,7 +98,7 @@ class TestBatchRetrieve(BaseTestCase):
         jindex = pt.IndexFactory.of(jindexref)
         for indexSrc in (indexloc, jindexref, jindex):
             retr = pt.BatchRetrieve(indexSrc)
-            result = retr.transform("light")
+            result = retr.search("light")
             exp_result = parse_query_result(os.path.dirname(
                 os.path.realpath(__file__)) + "/fixtures/light_results")
             i=0

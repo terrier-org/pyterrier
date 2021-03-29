@@ -1,0 +1,1 @@
+Documentation is available from https://pyterrier.readthedocs.io/en/latest/

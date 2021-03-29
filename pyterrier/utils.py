@@ -264,8 +264,9 @@ class Utils:
             if m.startswith("ndcg_cut_"):
                 req_metrics.add("ndcg_cut")
                 cutdown = True
-            # elif m.startswith("P_"):
-            #     req_metrics.add("P")
+            elif m.startswith("P_"):
+                req_metrics.add("P")
+                cutdown = True
             else:
                 req_metrics.add(m)
 
@@ -289,7 +290,10 @@ class Utils:
                     del result[q][m]
             return result
 
-        return Utils.mean_of_measures(result, metrics)
+        means = Utils.mean_of_measures(result)
+        if cutdown:
+            means = {m : means[m] for m in metrics}
+        return means
 
     @staticmethod
     def ensure(dictionary, measures, qids):
@@ -298,9 +302,6 @@ class Utils:
             if q not in dictionary:
                 dictionary[q] = { m : 0 for m in measures }
                 missing+=1
-            # for m in measures:
-            #     if m not in dictionary[q][m]:
-            #         dictionary[q][m] = 0
         return (dictionary, missing)
 
     @staticmethod
@@ -309,11 +310,12 @@ class Utils:
         measures_sum = {}
         mean_dict = {}
         if measures is None:
-            measures = next(iter(result.values()))
+            measures = list(next(iter(result.values())).keys())
+        measures_remove = ["runid"]
+        for m in measures_remove:
+            if m in measures:
+                measures.remove(m)
         measures_no_mean = set(["num_q", "num_rel", "num_ret", "num_rel_ret"])
-        if "iprec_at_recall" in measures:
-            measures = measures + ["iprec_at_recall_%0.2f" % cutoff for cutoff in np.arange(0., 1.1, 0.1) ]
-            measures.remove("iprec_at_recall")
         for val in result.values():
             for measure in measures:
                 measure_val = val[measure]
@@ -324,32 +326,15 @@ class Utils:
 
     # create a dataframe of string of queries or a list or tuple of strings of queries
     @staticmethod
+    @deprecation.deprecated(deprecated_in="0.3.0",
+                        details="Please use pt.model.coerce_queries_dataframe_qrels(query)")
     def form_dataframe(query):
-        """
-        Convert either a string or a list of strings to a dataframe for use as topics in retrieval.
-
-        Args:
-            query: Either a string or a list of strings
-
-        Returns:
-            dataframe with columns=['qid','query']
-        """
-        if isinstance(query, pd.DataFrame):
-            return query
-        elif isinstance(query, str):
-            return pd.DataFrame([["1", query]], columns=['qid', 'query'])
-        # if queries is a list or tuple
-        elif isinstance(query, list) or isinstance(query, tuple):
-            # if the list or tuple is made of strings
-            if query != [] and isinstance(query[0], str):
-                indexed_query = []
-                for i, item in enumerate(query):
-                    # all elements must be of same type
-                    assert isinstance(item, str), f"{item} is not a string"
-                    indexed_query.append([str(i + 1), item])
-                return pd.DataFrame(indexed_query, columns=['qid', 'query'])
+        from .model import coerce_queries_dataframe
+        return coerce_queries_dataframe(query)
 
     @staticmethod
+    @deprecation.deprecated(deprecated_in="0.3.0",
+                        details="Please use pt.io.find_files(dir)")
     def get_files_in_dir(dir):
         """
         Returns all the files present in a directory and its subdirectories
@@ -362,7 +347,7 @@ class Utils:
         """
         lst = []
         files = []
-        for (dirpath, dirnames, filenames) in os.walk(dir):
+        for (dirpath, dirnames, filenames) in os.walk(dir, followlinks=True):
             for name in filenames:
                 files.append(os.path.join(dirpath, name))
         return sorted(files)

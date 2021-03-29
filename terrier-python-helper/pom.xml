@@ -5,7 +5,7 @@
 
   <groupId>org.terrier</groupId>
   <artifactId>terrier-python-helper</artifactId>
-  <version>0.0.4</version>
+  <version>0.0.5</version>
   <url>http://terrier.org</url>
   <name>terrier-python-helper</name>
   <description>Python bindings for the Terrier IR platform</description>
@@ -58,7 +58,7 @@
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>4.11</version>
+      <version>4.13.1</version>
       <scope>test</scope>
     </dependency>
 
@@ -165,7 +165,7 @@
 									<doctitle>${project.parent.Name} ${project.version} API</doctitle>
 									<use>true</use>
 									<version>true</version>
-                  <source>8</source>
+                  <source>11</source>
 									<windowtitle>${project.parent.Name} ${project.version} API</windowtitle>
 									<failOnError>false</failOnError>
 									<failOnWarnings>false</failOnWarnings>
