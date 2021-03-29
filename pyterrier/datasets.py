@@ -146,7 +146,8 @@ class RemoteDataset(Dataset):
                 raise ValueError("For %s in dataset %s, there is no variant %s. Available are: %s" % (component, name, variant, str(self.locations[component].keys())))
 
     def _get_one_file(self, component, variant=None):
-        filetype=None        
+        filetype=None
+        name=self.name
         self._check_variant(component, variant)
         location = self.locations[component][0] if variant is None else self.locations[component][variant]
 
