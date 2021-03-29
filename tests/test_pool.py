@@ -23,9 +23,7 @@ class TestPickle(BaseTestCase):
 
         #indexes can differ, so we drop from both
         res = res.sort_values(["qid", "docno"]).reset_index(drop=True)
-        print(res)
         res2 = res2.sort_values(["qid", "docno"]).reset_index(drop=True)
-        print(res2)
         self.assertEqual(len(res), len(res2))
         pd.testing.assert_frame_equal(res, res2)
 
