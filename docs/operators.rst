@@ -152,7 +152,7 @@ q1  d10   4.3   0
 q1  d01   3.9   1
 === ===== ===== ====
 
-then the application of the set intersection operator (`|`) would result in a ranking
+then the application of the set intersection operator (`&`) would result in a ranking
 only containing documents appear in both transformers:
 
 === =====
@@ -161,8 +161,7 @@ qid docno
 q1  d10  
 === =====
 
-and the application of the set union operator  (`&`) would return documents appearing
-in either retrieval:
+and the application of the set union operator  (`|`) would return documents retrieved by either transformer:
 
 === =====
 qid docno
