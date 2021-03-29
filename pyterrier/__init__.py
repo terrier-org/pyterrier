@@ -174,7 +174,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     init_args["redirect_io"] = redirect_io
     init_args["home_dir"] = home_dir
     init_args["boot_packages"] = boot_packages
-    init_args["boot_packages"] = tqdm
+    init_args["tqdm"] = tqdm
     firstInit = True
 
 def set_tqdm(type):
