@@ -27,7 +27,6 @@ IndexRef = None
 properties = None
 HOME_DIR = None
 tqdm = None
-HOME_DIR = None
 init_args ={}
 
 def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, logging='WARN', home_dir=None, boot_packages=[], tqdm=None):
