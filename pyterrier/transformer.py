@@ -120,9 +120,7 @@ class TransformerBase:
             DataFrame, and also returns one.
         """
         pass
-        
-    
-    from typing import Iterable
+
     def transform_iter(self, input: Iterable[dict]) -> pd.DataFrame:
         return self.transform(pd.DataFrame(list(input)))
 
