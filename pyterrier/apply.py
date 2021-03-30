@@ -23,9 +23,12 @@ def query(fn : Callable[..., str], *args, **kwargs) -> TransformerBase:
         The supplied function is called once for each query, and must return a string containing the new query formulation.
         Each time it is called, the function is supplied with a Panda Series representing the attributes of the query.
 
+        The previous query formulation is saved in the "query_0" column. If a later pipeline stage is intended to resort to
+        be executed on the previous query formulation, a `pt.rewrite.reset()` transformer can be applied.  
+
         Arguments:
-        - fn(Callable): the function to apply to each row
-        - verbose(bool): if set to True, a TQDM progress bar will be displayed
+            fn(Callable): the function to apply to each row. It must return a string containing the new query formulation.
+            verbose(bool): if set to True, a TQDM progress bar will be displayed
 
         Examples::
 
@@ -58,8 +61,8 @@ def doc_score(fn : Callable[..., float], *args, **kwargs) -> TransformerBase:
         Each time it is called, the function is supplied with a Panda Series representing the attributes of the query and document.
 
         Arguments:
-        - fn(Callable): the function to apply to each row
-        - verbose(bool): if set to True, a TQDM progress bar will be displayed
+            fn(Callable): the function to apply to each row
+            verbose(bool): if set to True, a TQDM progress bar will be displayed
 
         Example::
 
@@ -78,8 +81,8 @@ def doc_features(fn : Callable[..., NDArray[Any]], *args, **kwargs) -> Transform
         Each time it is called, the function is supplied with a Panda Series representing the attributes of the query and document.
 
         Arguments:
-        - fn(Callable): the function to apply to each row
-        - verbose(bool): if set to True, a TQDM progress bar will be displayed
+            fn(Callable): the function to apply to each row
+            verbose(bool): if set to True, a TQDM progress bar will be displayed
 
         Example::
 
