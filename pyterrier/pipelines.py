@@ -2,6 +2,7 @@ from warnings import warn
 import os
 import pandas as pd
 import numpy as np
+from typing import Union, Dict, List
 from .utils import Utils
 from .transformer import TransformerBase, EstimatorBase
 from .model import add_ranks
@@ -41,7 +42,58 @@ def _color_cols(data, col_type,
     is_max[len(data) - list(reversed(data)).index(max_value) -  1] = colormaxlast_attr
     return is_max
 
-def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=False, dataframe=True, baseline=None, correction=None, correction_alpha=0.05, highlight=None, round=None):
+
+def _run_and_evaluate(
+        system : Union[TransformerBase, pd.DataFrame], 
+        topics : pd.DataFrame, 
+        qrels_dict, 
+        metrics : List[str], 
+        perquery : bool = False,
+        batch_size = None):
+    
+    from timeit import default_timer as timer
+    runtime = 0
+    # if its a DataFrame, use it as the results
+    if isinstance(system, pd.DataFrame):
+        res = system
+        evalMeasuresDict = Utils.evaluate(res, qrels_dict, metrics=metrics, perquery=perquery)
+
+    elif batch_size is None:
+        #transformer, evaluate all queries at once
+            
+        starttime = timer()
+        res = system.transform(topics)
+        endtime = timer()
+        runtime =  (endtime - starttime) * 1000.
+        evalMeasuresDict = Utils.evaluate(res, qrels_dict, metrics=metrics, perquery=perquery)
+    else:
+        #transformer, evaluate queries in batches
+        assert batch_size > 0
+        starttime = timer()
+        results=[]
+        evalMeasuresDict={}
+        for res in system.transform_gen(topics, batch_size=batch_size):
+            endtime = timer()
+            runtime += (endtime - starttime) * 1000.
+            localEvalDict = Utils.evaluate(res, qrels_dict, metrics=metrics, perquery=False)
+            evalMeasuresDict.update(localEvalDict)
+            starttime = timer()
+        if not perquery:
+            evalMeasuresDict = Utils.mean_of_measures(evalMeasuresDict)
+    return (runtime, evalMeasuresDict)
+
+
+def Experiment(retr_systems, topics, qrels, eval_metrics, 
+        names=None, 
+        perquery=False, 
+        dataframe=True, 
+        batch_size=None, 
+        drop_unused=False, 
+        baseline=None, 
+        correction=None, 
+        correction_alpha=0.05, 
+        highlight=None, 
+        round=None):
     """
     Allows easy comparison of multiple retrieval transformer pipelines using a common set of topics, and
     identical evaluation measures computed using the same qrels. In essence, each transformer is applied on 
@@ -57,7 +109,11 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
         eval_metrics(list): Which evaluation metrics to use. E.g. ['map']
         names(list): List of names for each retrieval system when presenting the results.
             Default=None. If None: Obtains the `str()` representation of each transformer as its name.
-        perquery(bool): If true return each metric for each query, else return mean metrics across all queries. Default=False.
+        batch_size(int): If not None, evaluation is conducted in batches of batch_size topics. Default=None, which evaluates all topics at once. 
+            Applying a batch_size is useful if you have large numbers of topics, and/or if your pipeline requires large amounts of temporary memory
+            during a run.
+        drop_unused(bool): If True, will drop topics from the topics dataframe that have qids not appearing in the qrels dataframe. 
+        perquery(bool): If True return each metric for each query, else return mean metrics across all queries. Default=False.
         dataframe(bool): If True return results as a dataframe. Else as a dictionary of dictionaries. Default=True.
         baseline(int): If set to the index of an item of the retr_system list, will calculate the number of queries 
             improved, degraded and the statistical significance (paired t-test p value) for each measure.
@@ -102,7 +158,6 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
     if isinstance(qrels, str):
         if os.path.isfile(qrels):
             qrels = Utils.parse_qrels(qrels)
-    from timeit import default_timer as timer
 
     if round is not None:
         if isinstance(round, int):
@@ -125,26 +180,17 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
             value = builtins.round(value, round[measure])
         return value
 
-    results = []
-    times=[]
-    neednames = names is None
-    if neednames:
-        names = []
+    # drop queries not appear in the qrels
+    if drop_unused:
+        # the commented variant would drop queries not having any RELEVANT labels
+        # topics = topics.merge(qrels[qrels["label"] > 0][["qid"]].drop_duplicates())        
+        topics = topics.merge(qrels[["qid"]].drop_duplicates())
+
+    # obtain system names if not specified
+    if names is None:
+        names = [str(system) for system in retr_systems]
     elif len(names) != len(retr_systems):
         raise ValueError("names should be the same length as retr_systems")
-    for system in retr_systems:
-        # if its a DataFrame, use it as the results
-        if isinstance(system, pd.DataFrame):
-            results.append(system)
-            times.append(0)
-        else:
-            starttime = timer()            
-            results.append(system.transform(topics))
-            endtime = timer()
-            times.append( (endtime - starttime) * 1000.)
-            
-        if neednames:
-            names.append(str(system))
 
     qrels_dict = Utils.convert_qrels_to_dict(qrels)
     all_qids = topics["qid"].values
@@ -157,8 +203,10 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
     if "mrt" in eval_metrics:
         mrt_needed = True
         eval_metrics.remove("mrt")
-    for name,res,time in zip(names, results, times):
-        evalMeasuresDict = Utils.evaluate(res, qrels_dict, metrics=eval_metrics, perquery=perquery or baseline is not None)
+    
+    # run and evaluate each system
+    for name,system in zip(names, retr_systems):
+        time, evalMeasuresDict = _run_and_evaluate(system, topics, qrels_dict, eval_metrics, perquery=perquery or baseline is not None)
         
         if perquery or baseline is not None:
             # this ensures that all queries are present in various dictionaries
@@ -195,6 +243,7 @@ def Experiment(retr_systems, topics, qrels, eval_metrics, names=None, perquery=F
 
             evalsRows.append([name]+evalMeasures)
             evalDict[name] = evalMeasures
+
     if dataframe:
         if perquery:
             df = pd.DataFrame(evalsRows, columns=["name", "qid", "measure", "value"])
