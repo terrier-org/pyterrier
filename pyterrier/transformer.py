@@ -581,6 +581,8 @@ class ApplyQueryTransformer(ApplyTransformerBase):
 
             pipe = pt.apply.query(lambda row: row["query"] + " extra words") >> pt.BatchRetrieve(index)
 
+        In the resulting dataframe, the previous query for each row can be found in the query_0 column.
+
     """
     def __init__(self, fn, *args, **kwargs):
         """
@@ -591,8 +593,9 @@ class ApplyQueryTransformer(ApplyTransformerBase):
         super().__init__(fn, *args, **kwargs)
 
     def transform(self, inputRes):
+        from .model import push_queries
         fn = self.fn
-        outputRes = inputRes.copy()
+        outputRes = push_queries(inputRes.copy(), inplace=True, keep_original=True)
         if self.verbose:
             tqdm.pandas(desc="pt.apply.query", unit="d")
             outputRes["query"] = outputRes.progress_apply(fn, axis=1)
