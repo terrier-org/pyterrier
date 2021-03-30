@@ -290,7 +290,10 @@ class Utils:
                     del result[q][m]
             return result
 
-        return Utils.mean_of_measures(result)
+        means = Utils.mean_of_measures(result)
+        if cutdown:
+            means = {m : means[m] for m in metrics}
+        return means
 
     @staticmethod
     def ensure(dictionary, measures, qids):

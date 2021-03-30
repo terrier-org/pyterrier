@@ -89,6 +89,9 @@ Learning
 
 .. autofunction:: pyterrier.ltr.apply_learned_model()
 
+The resulting transformer implements EstimatorBase, in other words it has a `fit()` method, that can be trained using
+training topics and qrels, as well as (optionally) validation topics and qrels. See also :ref:`pt.transformer.estimatorbase`.
+
 SKLearn
 ~~~~~~~
 
@@ -100,8 +103,10 @@ A sklearn regressor can be passed directly to `pt.ltr.apply_learned_model()`::
     rf_pipe.fit(train_topics, qrels)
     pt.Experiment([bm25, rf_pipe], test_topics, qrels, ["map"], names=["BM25 Baseline", "LTR"])
 
-Note that for analysis, the features importances identified by RandomForestRegressor can be accessed
-through `rf.features_importances_` - see the `relevant sklearn documentation <https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html#sklearn.ensemble.RandomForestRegressor.feature_importances_>_` for more information.
+Note that if the feature definitions in the pipeline change, you will need to create a new instance of `rf`.
+
+For analysis purposes, the feature importances identified by RandomForestRegressor can be accessed
+through `rf.features_importances_` - see the `relevant sklearn documentation <https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html#sklearn.ensemble.RandomForestRegressor.feature_importances_>`_ for more information.
 
 Gradient Boosted Trees & LambdaMART
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -121,7 +126,7 @@ interface that is supported by PyTerrier by supplying `form="ltr"` kwarg to `pt.
           random_state=42)
     
     lmart_x_pipe = pipeline >> pt.ltr.apply_learned_model(lmart_x, form="ltr")
-    lmart_x_pipe.fit(train_topics, qrels)
+    lmart_x_pipe.fit(train_topics, train_qrels, validation_topics, validation_qrels)
 
     import lightgbm as lgb
     # this configures LightGBM as LambdaMART
@@ -137,13 +142,39 @@ interface that is supported by PyTerrier by supplying `form="ltr"` kwarg to `pt.
         importance_type="gain",
         num_iterations=10)
     lmart_l_pipe = pipeline >> pt.ltr.apply_learned_model(lmart_l, form="ltr")
-    lmart_l_pipe.fit(train_topics, qrels)
+    lmart_l_pipe.fit(train_topics, train_qrels, validation_topics, validation_qrels)
 
-    pt.Experiment([bm25, lmart_x_pipe, lmart_l_pipe], test_topics, qrels, ["map"], names=["BM25 Baseline", "LambdaMART (xgBoost)", "LambdaMART (LightGBM)" ])
+    pt.Experiment(
+        [bm25, lmart_x_pipe, lmart_l_pipe], 
+        test_topics, 
+        test_qrels, 
+        ["map"], 
+        names=["BM25 Baseline", "LambdaMART (xgBoost)", "LambdaMART (LightGBM)" ]
+    )
+
+Note that if the feature definitions in the pipeline change, you will need to create a new instance of XGBRanker (or LGBMRanker, as appropriate).
 
 In our experience, LightGBM *tends* to be more effective than xgBoost.
 
-Similar to sklearn, both XGBoost and LightGBM provide features importances via `lmart_x.features_importances_` and `lmart_l.features_importances_`.
+Similar to sklearn, both XGBoost and LightGBM provide feature importances via `lmart_x.features_importances_` and `lmart_l.features_importances_`.
+
+FastRank: Coordinate Ascent
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We now support `FastRank <https://github.com/jjfiv/fastrank>`_ for learning models::
+
+    !pip install fastrank
+    import fastrank
+    train_request = fastrank.TrainRequest.coordinate_ascent()
+    params = train_request.params
+    params.init_random = True
+    params.normalize = True
+    params.seed = 1234567
+
+    ca_pipe = pipeline >> pt.ltr.apply_learned_model(train_request, form="fastrank")
+    ca_pipe.fit(train_topics, train_qrels)
+
+FastRank provides two learners: a random forest implementation (`fastrank.TrainRequest.random_forest()`) and coordinate ascent (`fastrank.TrainRequest.coordinate_ascent()`), a linear model.
 
 Working with Features
 =====================
@@ -161,13 +192,13 @@ Example::
     names = []
     # learn a model for all four features
     full = pipeline >> pt.ltr.apply_learned_model(RandomForestRegressor(n_estimators=400))
-    full.fit(trainTopics, trainQrels)
+    full.fit(trainTopics, trainQrels, validTopics, validQrels)
     ranker.append(full)
     
     # learn a model for 3 features, removing one each time
     for fid in range(numf):
         ablated = pipeline >> pt.ltr.ablate_features(fid) >> pt.ltr.apply_learned_model(RandomForestRegressor(n_estimators=400))
-        ablated.fit(trainTopics, trainQrels)
+        ablated.fit(trainTopics, trainQrels, validTopics, validQrels)
         rankers.append(full)
 
     # evaluate the full (4 features) model, as well as the each model containing only 3 features)

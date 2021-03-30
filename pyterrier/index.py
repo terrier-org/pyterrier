@@ -93,7 +93,74 @@ def run_autoclass():
     StructureMerger = autoclass("org.terrier.structures.merging.StructureMerger")
     BlockStructureMerger = autoclass("org.terrier.structures.merging.BlockStructureMerger")
 
-def createAsList(files_path):
+type_to_class = {
+    'trec' : 'org.terrier.indexing.TRECCollection',
+    'trecweb' : 'org.terrier.indexing.TRECWebCollection',
+    'warc' : 'org.terrier.indexing.WARC10Collection'
+}
+
+def createCollection(files_path : List[str], coll_type : str = 'trec', props = {}):
+    if StringReader is None:
+            run_autoclass()
+    if coll_type in type_to_class:
+        collectionClzName = type_to_class[coll_type]
+    else:
+        collectionClzName = coll_type
+    collectionClzName = collectionClzName.split(",")
+    _props = HashMap()
+    for k, v in props.items():
+        _props[k] = v
+    ApplicationSetup.getProperties().putAll(_props)
+    cls_string = autoclass("java.lang.String")._class
+    cls_list = autoclass("java.util.List")._class
+    asList = createAsList(files_path)
+    colObj = autoclass("org.terrier.indexing.CollectionFactory").loadCollections(
+        collectionClzName,
+        [cls_list, cls_string, cls_string, cls_string],
+        [asList, autoclass("org.terrier.utility.TagSet").TREC_DOC_TAGS, "", ""])
+    return colObj
+
+def treccollection2textgen(
+        files : List[str], 
+        meta : List[str] = ["docno"], 
+        meta_tags : Dict[str,str] = {"text":"ELSE"}, 
+        verbose = False,
+        num_docs = None,
+        tag_text_length : int = 4096):
+
+    props = {
+        "TrecDocTags.doctag": "DOC",
+        "TrecDocTags.idtag": "DOCNO",
+        "TrecDocTags.skip": "DOCHDR",
+        "TrecDocTags.casesensitive": "false",
+        # Should the tags from which we create abstracts be case-sensitive?
+        'TaggedDocument.abstracts.tags.casesensitive':'false'
+    }
+    props['TaggedDocument.abstracts'] = ','.join(meta_tags.keys())
+    # The tags from which to save the text. ELSE is special tag name, which means anything not consumed by other tags.
+    props['TaggedDocument.abstracts.tags'] = ','.join(meta_tags.values())
+    # The max lengths of the abstracts. Abstracts will be cropped to this length. Defaults to empty.
+    props['TaggedDocument.abstracts.lengths'] = ','.join([str(tag_text_length)] * len(meta_tags) )  
+
+    collection = createCollection(files, props=props)
+    if verbose:
+        if num_docs is not None:
+            collection = TQDMSizeCollection(collection, num_docs)
+        else:
+            collection = TQDMCollection(collection)
+    while collection.nextDocument():
+        d = collection.getDocument()
+        while not d.endOfDocument():
+            d.getNextTerm()
+        rtr = {}
+        for k in meta:
+            rtr[k] = d.getProperty(k)
+        for k in meta_tags:
+            rtr[k] = d.getProperty(k)
+        yield rtr
+    
+
+def createAsList(files_path : List[str]):
     """
     Helper method to be used by child indexers to add files to Java List
     Returns:
@@ -455,10 +522,11 @@ class FlatJSONDocumentIterator(PythonJavaClass):
             return lastdoc
         return None
 
-
-class _BaseIterDictIndexer(Indexer):
+from pyterrier.transformer import IterDictIndexerBase
+class _BaseIterDictIndexer(Indexer, IterDictIndexerBase):
     def __init__(self, index_path, *args, threads=1, **kwargs):
-        super().__init__(index_path, *args, **kwargs)
+        IterDictIndexerBase.__init__(self)
+        Indexer.__init__(self, index_path, *args, **kwargs)
         self.threads = threads
 
     def _setup(self, fields, meta, meta_lengths):
@@ -607,11 +675,7 @@ IterDictIndexer.__name__ = 'IterDictIndexer' # trick sphinx into not using "alia
 
 
 class TRECCollectionIndexer(Indexer):
-    type_to_class = {
-        'trec' : 'org.terrier.indexing.TRECCollection',
-        'trecweb' : 'org.terrier.indexing.TRECWebCollection',
-        'warc' : 'org.terrier.indexing.WARC10Collection'
-    }
+
 
     """
         Use this Indexer if you wish to index a TREC formatted collection
@@ -637,12 +701,16 @@ class TRECCollectionIndexer(Indexer):
             overwrite (bool): If index already present at `index_path`, True would overwrite it, False throws an Exception. Default is False.
             type (IndexingType): the specific indexing procedure to use. Default is IndexingType.CLASSIC.
             collection (Class name, or Class instance, or one of "trec", "trecweb", "warc"). Default is "trec".
+            meta(Dict[str,int]): What metadata for each document to record in the index, and what length to reserve. Defaults to `{"docno" : 20}`.
+            meta_reverse(List[str]): What metadata shoudl we be able to resolve back to a docid. Defaults to `["docno"]`.
+            meta_tags(Dict[str,str]): For collections formed using tagged data (e.g. HTML), which tags correspond to which metadata. This is useful for recording the text of documents for use in neural rankers - see :ref:`pt.text`.
+
         """
         super().__init__(index_path, blocks=blocks, overwrite=overwrite, type=type)
         if isinstance(collection, str):
-            if collection in TRECCollectionIndexer.type_to_class:
-                collection = TRECCollectionIndexer.type_to_class[collection]
-        self.collection = collection.split(",")
+            if collection in type_to_class:
+                collection = type_to_class[collection]
+        self.collection = collection
         self.verbose = verbose
         self.meta = meta
         self.meta_reverse = meta_reverse
@@ -672,12 +740,7 @@ class TRECCollectionIndexer(Indexer):
         # Should the tags from which we create abstracts be case-sensitive
         ApplicationSetup.setProperty("TaggedDocument.abstracts.tags.casesensitive", "false")
 
-        cls_string = autoclass("java.lang.String")._class
-        cls_list = autoclass("java.util.List")._class
-        colObj = autoclass("org.terrier.indexing.CollectionFactory").loadCollections(
-            self.collection,
-            [cls_list, cls_string, cls_string, cls_string],
-            [asList, autoclass("org.terrier.utility.TagSet").TREC_DOC_TAGS, "", ""])
+        colObj = createCollection(files_path, self.collection)
         collsArray = [colObj]
         if self.verbose and isinstance(colObj, autoclass("org.terrier.indexing.MultiDocumentFileCollection")):
             colObj = cast("org.terrier.indexing.MultiDocumentFileCollection", colObj)
@@ -695,12 +758,19 @@ class TRECCollectionIndexer(Indexer):
 class FilesIndexer(Indexer):
     '''
         Use this Indexer if you wish to index a pdf, docx, txt etc files
+
+        Args:
+            index_path (str): Directory to store index. Ignored for IndexingType.MEMORY.
+            blocks (bool): Create indexer with blocks if true, else without blocks. Default is False.
+            type (IndexingType): the specific indexing procedure to use. Default is IndexingType.CLASSIC.
+            meta(Dict[str,int]): What metadata for each document to record in the index, and what length to reserve. Defaults to `{"docno" : 20, "filename" : 512}`.
+            meta_reverse(List[str]): What metadata shoudl we be able to resolve back to a docid. Defaults to `["docno"]`,
+            meta_tags(Dict[str,str]): For collections formed using tagged data (e.g. HTML), which tags correspond to which metadata. Defaults to empty. This is useful for recording the text of documents for use in neural rankers - see :ref:`pt.text`.
+
     '''
 
-    def __init__(self, index_path, *args, **kwargs):
-        super().__init__(index_path, args, kwargs)
-        self.meta=["docno", "filename"] 
-        self.meta_lengths=[20,512]
+    def __init__(self, index_path, meta={"docno" : 20, "filename" : 512}, *args, **kwargs):
+        super().__init__(index_path, *args, meta, **kwargs)
 
     def index(self, files_path):
         """

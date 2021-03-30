@@ -21,7 +21,7 @@ The easiest way to get started with PyTerrier is to use one of our Colab noteboo
 2. `pip install python-terrier`
 
 ### Windows
-PyTerrier is not available for Windows because [pytrec_eval](https://github.com/cvangysel/pytrec_eval) [isn't available for Windows](https://github.com/cvangysel/pytrec_eval/issues/19). If you can compile & install pytrec_eval youself, it should work fine.
+PyTerrier is not available for Windows because [pytrec_eval](https://github.com/cvangysel/pytrec_eval) [isn't build on PyPi for Windows](https://github.com/cvangysel/pytrec_eval/issues/19). If you can compile & install pytrec_eval youself, it should work fine.
 
 # Indexing
 
@@ -126,7 +126,7 @@ The source and binary forms of PyTerrier are subject to the following citation l
 
 By downloading and using PyTerrier, you agree to cite at the undernoted paper describing PyTerrier in any kind of material you produce where PyTerrier was used to conduct search or experimentation, whether be it a research paper, dissertation, article, poster, presentation, or documentation. By using this software, you have agreed to the citation licence.
 
-[Declarative Experimentation inInformation Retrieval using PyTerrier. Craig Macdonald and Nicola Tonellotto. In Proceedings of ICTIR 2020.](https://arxiv.org/abs/2007.14271)
+[Declarative Experimentation in Information Retrieval using PyTerrier. Craig Macdonald and Nicola Tonellotto. In Proceedings of ICTIR 2020.](https://arxiv.org/abs/2007.14271)
 
 ```bibtex
 @inproceedings{pyterrier2020ictir,

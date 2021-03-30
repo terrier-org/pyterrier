@@ -11,9 +11,7 @@ chest
 scipy
 requests
 nptyping
-tabulate
-jinja2
-sphinx_rtd_theme
 more_itertools
-myst_parser
-ir_datasets>=0.2.0
+ir_datasets>=0.3.2
+jinja2
+statsmodels

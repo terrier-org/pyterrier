@@ -69,7 +69,7 @@ Scoring query/text similarity
 
 .. autofunction:: pyterrier.text.scorer()
 
-Other text scorers are available in the form of neural re-rankers - separate to PyTerrier. See `Neural Rankers and Rerankers <neural.html>`_.
+Other text scorers are available in the form of neural re-rankers - separate to PyTerrier, see :ref:`neural`.
 
 
 Working with Passages rather than Documents

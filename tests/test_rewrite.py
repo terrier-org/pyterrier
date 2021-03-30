@@ -18,6 +18,22 @@ class TestRewrite(BaseTestCase):
         # Remove the directory after the test
         shutil.rmtree(self.test_dir)
 
+    def test_reset_with_docs(self):
+        inputDF = pt.new.ranked_documents([[1, 2], [2,0]])
+        inputDF["query"] = ["one #1", "one #1", "one two #1", "one two #1"]
+        inputDF["query_0"] = ["one", "one", "one two", "one two"]
+        outputDF = pt.rewrite.reset().transform(inputDF)
+        self.assertEqual(len(inputDF), len(outputDF))
+        self.assertTrue("query" in outputDF.columns)
+        self.assertFalse("query_0" in outputDF.columns)
+        self.assertTrue("docno" in outputDF.columns)
+        self.assertTrue("score" in outputDF.columns)
+        self.assertTrue("rank" in outputDF.columns)
+        self.assertEqual(outputDF.iloc[0]["query"], "one")
+        self.assertEqual(outputDF.iloc[1]["query"], "one")
+        self.assertEqual(outputDF.iloc[2]["query"], "one two")
+        self.assertEqual(outputDF.iloc[3]["query"], "one two")
+
     def test_sdm_freq(self):
         if not pt.check_version("5.3"):
             self.skipTest("Requires Terrier 5.3")
@@ -27,7 +43,19 @@ class TestRewrite(BaseTestCase):
         if not pt.check_version("5.3"):
             self.skipTest("Requires Terrier 5.3")
         self._sdm(False)
-    
+
+    def test_sdm_docs(self):
+        docs = pt.new.ranked_documents([[1,1]], qid=["q1"], query=["hello friend","hello friend"])
+        sdm = pt.rewrite.SDM()
+        pipe = docs >> sdm
+        qids = pt.new.queries(["hello there"], qid=["q1"])  
+        rtr = pipe(qids)
+        self.assertIn("query", rtr.columns)
+        self.assertIn("query_0", rtr.columns)
+        self.assertIn("docno", rtr.columns)
+        print(rtr)
+        self.assertEqual(2, len(rtr))
+
 
     def _sdm(self, freq):
         dataset = pt.datasets.get_dataset("vaswani")
@@ -41,11 +69,19 @@ class TestRewrite(BaseTestCase):
         queriesIn = pd.DataFrame([["1", "compact"], ["2", "compact memories"]], columns=["qid", "query"])
         queriesOut = sdm.transform(queriesIn)
         self.assertEqual(len(queriesOut), 2)
+        self.assertIn("query", queriesOut.columns)
+        self.assertIn("query_0", queriesOut.columns)
         self.assertEqual(queriesOut.iloc[0]["query"], "compact")
+
+        # check for pushed query representation        
+        self.assertTrue("query_0" in queriesOut.columns)
+        self.assertEqual(queriesOut.iloc[0]["query_0"], "compact")
+
         query2 = queriesOut.iloc[1]["query"]
         self.assertTrue("#1" in query2)
         self.assertTrue("#uw8" in query2)
         self.assertTrue("#combine" in query2)
+        self.assertEqual(queriesOut.iloc[1]["query_0"], "compact memories")
         
         br_normal = pt.BatchRetrieve(indexref)
         pipe = sdm >> br_normal
@@ -153,6 +189,8 @@ class TestRewrite(BaseTestCase):
 
             queriesOut = qe.transform(res)
             self.assertEqual(len(queriesOut), 1)
+            self.assertTrue("query_0" in queriesOut.columns)
+            self.assertEqual(queriesOut.iloc[0]["query_0"], "compact")
             query = queriesOut.iloc[0]["query"]
             self.assertTrue("compact^1.82230972" in query)
             self.assertTrue("applypipeline:off " in query)

@@ -11,6 +11,25 @@ TerrierQLToMatchingQueryTerms = pt.autoclass("org.terrier.querying.TerrierQLToMa
 QueryResultSet = pt.autoclass("org.terrier.matching.QueryResultSet")
 DependenceModelPreProcess = pt.autoclass("org.terrier.querying.DependenceModelPreProcess")
 
+def reset() -> TransformerBase:
+    """
+        Undoes a previous query rewriting operation. This results in the query formulation stored in the `"query_0"`
+        attribute being moved to the `"query"` attribute, and, if present, the `"query_1"` being moved to
+        `"query_0"` and so on. This transformation is useful if you have rewritten the query for the purposes
+        of one retrieval stage, but wish a subquent transformer to be applies on the original formulation.
+
+        Internally, this function applies `pt.model.pop_queries()`.
+
+        Example::
+
+            firststage = pt.rewrite.SDM() >> pt.BatchRetrieve(index, wmodel="DPH")
+            secondstage = pyterrier_bert.cedr.CEDRPipeline()
+            fullranker = firststage >> pt.rewrite.reset() >> secondstage
+
+    """
+    from .model import pop_queries
+    return pt.apply.generic(lambda topics: pop_queries(topics))
+
 class SDM(TransformerBase):
     '''
         Implements the sequential dependence model, which Terrier supports using its
@@ -18,6 +37,7 @@ class SDM(TransformerBase):
         the Terrier class DependenceModelPreProcess. 
 
         This transformer changes the query. It must be followed by a Terrier Retrieve() transformer.
+        The original query is saved in the `"query_0"` atribute, which can be restored using `pt.rewrite.reset()`.
     '''
 
     def __init__(self, verbose = 0, remove_stopwords = True, prox_model = None, **kwargs):
@@ -31,7 +51,8 @@ class SDM(TransformerBase):
 
     def transform(self, topics_and_res):
         results = []
-        queries = topics_and_res[["qid", "query"]].dropna(axis=0, subset=["query"]).drop_duplicates()
+        from .model import query_columns, push_queries
+        queries = topics_and_res[query_columns(topics_and_res, qid=True)].dropna(axis=0, subset=query_columns(topics_and_res, qid=False)).drop_duplicates()
 
         # instantiate the DependenceModelPreProcess, specifying a proximity model if specified
         sdm = DependenceModelPreProcess() if self.prox_model is None else DependenceModelPreProcess(self.prox_model)
@@ -67,7 +88,9 @@ class SDM(TransformerBase):
                 new_query += term + " "
             new_query = new_query[:-1]
             results.append([qid, new_query])
-        return pd.DataFrame(results, columns=["qid", "query"])
+        new_queries = pd.DataFrame(results, columns=["qid", "query"])
+        # restore any other columns, e.g. put back docs if we are re-ranking
+        return new_queries.merge(push_queries(topics_and_res, inplace=True) , on="qid")
 
 class SequentialDependence(SDM):
     ''' alias for SDM '''
@@ -75,7 +98,9 @@ class SequentialDependence(SDM):
     
 class QueryExpansion(TransformerBase):
     '''
-        A base class for applying different types of query expansion using Terrier's classes
+        A base class for applying different types of query expansion using Terrier's classes.
+        This transformer changes the query. It must be followed by a Terrier Retrieve() transformer.
+        The original query is saved in the `"query_0"` atribute, which can be restored using `pt.rewrite.reset()`.
     '''
 
     def __init__(self, index_like, fb_terms=10, fb_docs=3, qeclass="org.terrier.querying.QueryExpansion", verbose=0, properties={}, **kwargs):
@@ -136,7 +161,8 @@ class QueryExpansion(TransformerBase):
 
         results = []
 
-        queries = topics_and_res[["qid", "query"]].dropna(axis=0, subset=["query"]).drop_duplicates()
+        from .model import query_columns, push_queries
+        queries = topics_and_res[query_columns(topics_and_res, qid=True)].dropna(axis=0, subset=query_columns(topics_and_res, qid=False)).drop_duplicates()
                 
         for row in tqdm(queries.itertuples(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
             qid = row.qid
@@ -165,7 +191,8 @@ class QueryExpansion(TransformerBase):
             # remove trailing space
             new_query = new_query[:-1]
             results.append([qid, new_query])
-        return pd.DataFrame(results, columns=["qid", "query"])
+        new_queries = pd.DataFrame(results, columns=["qid", "query"])
+        return push_queries(queries, inplace=True).merge(new_queries, on="qid")
 
 class DFRQueryExpansion(QueryExpansion):
 

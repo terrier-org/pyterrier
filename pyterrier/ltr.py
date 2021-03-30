@@ -56,6 +56,7 @@ class RegressionTransformer(EstimatorBase):
         self.fit_kwargs = fit_kwargs
         super().__init__(*args, **kwargs)
         self.learner = learner
+        self.num_f = None
 
     def fit(self, topics_and_results_Train, qrelsTrain, topics_and_results_Valid=None, qrelsValid=None):
         """
@@ -71,6 +72,7 @@ class RegressionTransformer(EstimatorBase):
         train_DF = topics_and_results_Train.merge(qrelsTrain, on=['qid', 'docno'], how='left').fillna(0)
         kwargs = self.fit_kwargs
         self.learner.fit(np.stack(train_DF["features"].values), train_DF["label"].values, **kwargs)
+        self.num_f = train_DF.iloc[0].features.shape[0]
         return self
 
     def transform(self, test_DF):
@@ -81,26 +83,23 @@ class RegressionTransformer(EstimatorBase):
             topicsTest(DataFrame): A dataframe with the test topics.
         """
         test_DF = test_DF.copy()
+
+        # check for change in number of features
+        found_numf = test_DF.iloc[0].features.shape[0]
+        if self.num_f is not None:
+            if found_numf != self.num_f:
+                raise ValueError("Expected %d features, but found %d features" % (self.num_f, found_numf))
+        if hasattr(self.learner, 'feature_importances_'):
+            if len(self.learner.feature_importances_) != found_numf:
+                raise ValueError("Expected %d features, but found %d features" % (len(self.learner.feature_importances_), found_numf))
+
         test_DF["score"] = self.learner.predict(np.stack(test_DF["features"].values))
         return add_ranks(test_DF)
 
 class LTRTransformer(RegressionTransformer):
     """
-    This class simplifies the use of XGBoost's techniques for learning-to-rank.
+    This class simplifies the use of LightGBM and XGBoost for learning-to-rank.
     """
-
-    def transform(self, topics_and_docs_Test):
-        """
-        Predicts the scores for the given topics.
-
-        Args:
-            topicsTest(DataFrame): A dataframe with the test topics.
-        """
-        test_DF = topics_and_docs_Test
-        # xgb is more sensitive about the type of the values.
-        test_DF = test_DF.copy()
-        test_DF["score"] = self.learner.predict(np.stack(test_DF["features"].values))
-        return add_ranks(test_DF)
 
     def fit(self, topics_and_results_Train, qrelsTrain, topics_and_results_Valid, qrelsValid):
         """
@@ -108,11 +107,14 @@ class LTRTransformer(RegressionTransformer):
 
         Args:
             topics_and_results_Train(DataFrame): A dataframe with the topics and results to train the model
+            qrelsTrain(DataFrame): A dataframe containing the qrels for the training topics
             topics_and_results_Valid(DataFrame): A dataframe with the topics and results for validation
+            qrelsValid(DataFrame): A dataframe containing the qrels for the validation topics
+            
         """
-        if len(topics_and_results_Train) == 0:
+        if topics_and_results_Train is None or len(topics_and_results_Train) == 0:
             raise ValueError("No training results to fit to")
-        if len(topics_and_results_Valid) == 0:
+        if topics_and_results_Valid is None or len(topics_and_results_Valid) == 0:
             raise ValueError("No validation results to fit to")
 
         if 'features' not in topics_and_results_Train.columns:
@@ -126,12 +128,81 @@ class LTRTransformer(RegressionTransformer):
         kwargs = self.fit_kwargs
         self.learner.fit(
             np.stack(tr_res["features"].values), tr_res["label"].values, 
-            group=tr_res.groupby(["qid"]).count()["docno"].values, # we name group here for libghtgbm compat. 
+            group=tr_res.groupby(["qid"]).count()["docno"].values, # we name group here for lightgbm compat. 
             eval_set=[(np.stack(va_res["features"].values), va_res["label"].values)],
             eval_group=[va_res.groupby(["qid"]).count()["docno"].values],
             **kwargs
         )
+        self.num_f = tr_res.iloc[0].features.shape[0]
 
+class FastRankEstimator(EstimatorBase):
+    """
+    This class simplifies the use of FastRank's techniques for learning-to-rank.
+    """
+    def __init__(self, learner, *args, **kwargs):
+        """
+        Init method
+
+        Args:
+            LTR: The model which to use for learning-to-rank. Must have a fit() and predict() methods.
+            fit_kwargs: A dictionary containing additional arguments that can be passed to LTR's fit() method.  
+        """
+        super().__init__(*args, **kwargs)
+        self.learner = learner
+        self.model = None
+        self.num_f = None
+
+    def _make_dataset(self, test_DF, add_labels = False):
+        
+        from collections import defaultdict
+        from itertools import count
+        from fastrank import CDataset
+        qid_map = defaultdict(count().__next__)
+        features = np.stack(test_DF["features"].values).astype('float32')
+        qids = test_DF["qid"].apply(lambda qid : qid_map[qid]).values
+        if add_labels:
+            y = test_DF["label"].values
+        else:
+            y = np.zeros(len(test_DF))
+        dataset = CDataset.from_numpy(features, y, qids)
+        return dataset
+
+    def fit(self, topics_and_results_Train, qrelsTrain, topics_and_results_Valid=None, qrelsValid=None):
+        if topics_and_results_Train is None or len(topics_and_results_Train) == 0:
+            raise ValueError("No training results to fit to")
+
+        if 'features' not in topics_and_results_Train.columns:
+            raise ValueError("No features column retrieved in training")
+
+        tr_res = topics_and_results_Train.merge(qrelsTrain, on=['qid', 'docno'], how='left').fillna(0)
+        dataset = self._make_dataset(tr_res, add_labels=True)
+        self.num_f = dataset.num_features()
+        self.model = dataset.train_model(self.learner)
+
+    def transform(self, topics_and_docs_Test):
+        """
+        Predicts the scores for the given topics.
+
+        Args:
+            topicsTest(DataFrame): A dataframe with the test topics.
+        """
+        if self.model is None:
+            raise ValueError("fit() must be called first")
+        test_DF = topics_and_docs_Test.copy()
+        dataset = self._make_dataset(test_DF, add_labels=False)
+
+        # check for change in number of features
+        found_numf = dataset.num_features()
+        if self.num_f is not None and found_numf != self.num_f:
+            raise ValueError("Expected %d features, but found %d features" % (self.num_f, found_numf))
+        if hasattr(self.learner, 'feature_importances_'):
+            if len(self.learner.feature_importances_) != found_numf:
+                raise ValueError("Expected %d features, but found %d features" % (len(self.learner.feature_importances_), found_numf))
+        
+        rtr = dataset.predict_scores(self.model)
+        scores = [rtr[i] for i in range(len(rtr))]
+        test_DF["score"] = scores
+        return add_ranks(test_DF)
 
 def ablate_features(fids : FeatureList) -> TransformerBase:
     """
@@ -180,7 +251,11 @@ def apply_learned_model(learner, form : str = 'regression', **kwargs) -> Transfo
             learner: an sklearn-compatible estimator
             form(str): either 'regression' or 'ltr'        
     """
-    return LTRTransformer(learner, **kwargs) if form == 'ltr' else RegressionTransformer(learner, **kwargs)
+    if form == 'ltr':
+        return LTRTransformer(learner, **kwargs)
+    if form == 'fastrank':
+        return FastRankEstimator(learner, **kwargs)
+    return RegressionTransformer(learner, **kwargs)
 
 def score_to_feature() -> TransformerBase:
     """

@@ -17,12 +17,18 @@ Indexing, Retrieval and Scoring of Text using Terrier
 
 If you are using a Terrier index for your first-stage ranking, you will want to record the text
 of the documents in the MetaIndex. More of PyTerrier's support for operating on text is documented
-in `Working with Document Texts <text.html>`_.
+in :ref:`pt.text`.
 
-Available Neural Re-ranking Integrations
-========================================
+Available Neural Dense Retrieval and Re-ranking Integrations
+============================================================
 
- - The separate `pyterrier_bert <https://github.com/cmacdonald/pyterrier_bert>`_ repository includes `CEDR <https://github.com/Georgetown-IR-Lab/cedr>`_ and `ColBERT <https://github.com/stanford-futuredata/ColBERT>`_ re-ranking integrations.
+ - `OpenNIR <https://opennir.net/>`_ has integration with PyTerrier - see its `notebook examples <https://github.com/Georgetown-IR-Lab/OpenNIR/tree/master/examples>`_.
+ - `PyTerrier_ColBERT <https://github.com/terrierteam/pyterrier_colbert>`_ contains a `ColBERT <https://github.com/stanford-futuredata/ColBERT/tree/v0.2>`_ integration, including both a text-scorer and a end-to-end dense retrieval.
+ - `PyTerrier_ANCE <https://github.com/terrierteam/pyterrier_ance>`_ contains an `ANCE <https://github.com/microsoft/ANCE/>`_ integration for end-to-end dense retrieval.
+ - `PyTerrier_T5 <https://github.com/terrierteam/pyterrier_t5>`_ contains a `monoT5 <https://arxiv.org/pdf/2101.05667.pdf>`_ integration.
+ - `PyTerrier_doc2query <https://github.com/terrierteam/pyterrier_doc2query>`_ contains a `docT5query <https://github.com/castorini/docTTTTTquery>`_ integration.
+ - `PyTerrier_DeepCT <https://github.com/terrierteam/pyterrier_deepct>`_ contains a `DeepCT <https://github.com/AdeDZY/DeepCT>`_ integration.
+ - The separate `PyTerrier_BERT <https://github.com/cmacdonald/pyterrier_bert>`_ repository includes `CEDR <https://github.com/Georgetown-IR-Lab/cedr>`_ integration (including "vanilla" BERT models), as well as an earlier ColBERTPipeline integration.
  - An initial `BERT-QE <https://github.com/cmacdonald/BERT-QE>`_ integration is available.
 
 The following gives an example ranking pipeline using ColBERT for re-ranking documents in PyTerrier.
@@ -39,5 +45,4 @@ document is the maximum of any consitutent passages::
 Outlook
 =======
 
-We continue to work on improving the integration of neural rankers and re-rankers within PyTerrier. We foresee:
- - first-stage dense retrieval transformers. 
+We continue to work on improving the integration of neural rankers and re-rankers within PyTerrier.
