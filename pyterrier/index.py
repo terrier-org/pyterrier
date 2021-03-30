@@ -113,6 +113,8 @@ def createCollection(files_path : List[str], coll_type : str = 'trec', props = {
     ApplicationSetup.getProperties().putAll(_props)
     cls_string = autoclass("java.lang.String")._class
     cls_list = autoclass("java.util.List")._class
+    if len(files_path) == 0:
+        raise ValueError("list files_path cannot be empty")
     asList = createAsList(files_path)
     colObj = autoclass("org.terrier.indexing.CollectionFactory").loadCollections(
         collectionClzName,
