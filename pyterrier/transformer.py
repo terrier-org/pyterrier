@@ -150,7 +150,7 @@ class TransformerBase:
             batch_topics = pd.concat(batch)
             yield self.transform(batch_topics)
 
-    def search(self, query : str, qid : str = "1", sort=True):
+    def search(self, query : str, qid : str = "1", sort=True) -> pd.DataFrame:
         """
             Method for executing a transformer (pipeline) for a single query. 
             Returns a dataframe with the results for the specified query. This
@@ -182,13 +182,24 @@ class TransformerBase:
 
     def compile(self):
         """
-            Rewrites this pipeline by applying of the Matchpy rules in rewrite_rules. Pipeline
-            optimisation is discussed in the `ICTIR 2020 paper on PyTerrier <https://arxiv.org/abs/2007.14271>`_.
+        Rewrites this pipeline by applying of the Matchpy rules in rewrite_rules. Pipeline
+        optimisation is discussed in the `ICTIR 2020 paper on PyTerrier <https://arxiv.org/abs/2007.14271>`_.
         """
         if not rewrites_setup:
             setup_rewrites()
         print("Applying %d rules" % len(rewrite_rules))
         return replace_all(self, rewrite_rules)
+
+    def parallel(self, N : int, backend='joblib'):
+        """
+        Returns a parallelised version of this transformer. The underlying transformer must be "picklable".
+
+        Args:
+            N(int): how many processes/machines to parallelise this transformer over. 
+            backend(str): which multiprocessing backend to use. Only two backends are supported, 'joblib' and 'ray'. Defaults to 'joblib'.
+        """
+        from .parallel import PoolParallelTransformer
+        return PoolParallelTransformer(self, N, backend)
 
     def __call__(self, *args, **kwargs):
         """

@@ -1,6 +1,7 @@
 from .base import BaseTestCase
 import pandas as pd
-from pyterrier.model import add_ranks, FIRST_RANK, coerce_queries_dataframe
+import pyterrier as pt
+from pyterrier.model import add_ranks, FIRST_RANK, coerce_queries_dataframe, split_df
 
 class TestModel(BaseTestCase):
 
@@ -67,3 +68,25 @@ class TestModel(BaseTestCase):
         exp_result = pd.DataFrame([["1", "light"], ["2", "mathematical"], ["3", "electronic"]], columns=['qid', 'query'])
         result = coerce_queries_dataframe(input)
         self.assertTrue(exp_result.equals(result))
+
+    def test_split_Q(self):
+        df = pt.new.queries(["a", "b", "c"])
+        dfs = split_df(df, 2)
+        self.assertEqual(2, len(dfs))
+        self.assertEqual(2, len(dfs[0]))
+        self.assertEqual(1, len(dfs[1]))
+
+    def test_split_R(self):
+        df = pt.new.ranked_documents([[2,1], [2]])
+        dfs = split_df(df, 2)
+        self.assertEqual(2, len(dfs))
+        self.assertEqual(2, len(dfs[0]))
+        self.assertEqual(1, len(dfs[1]))
+
+        df = pt.new.ranked_documents([[2,1], [2,1], [2,1]])
+
+        dfs = split_df(df, 2)
+        self.assertEqual(2, len(dfs))
+        self.assertEqual(4, len(dfs[0]))
+        self.assertEqual(2, len(dfs[1]))
+        
