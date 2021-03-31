@@ -82,20 +82,20 @@ See also the [learning to rank documentation](https://pyterrier.readthedocs.io/e
 PyTerrier allows simple access to standard information retrieval test collections through its [dataset API](https://pyterrier.readthedocs.io/en/latest/datasets.html), which can download the topics, qrels, corpus or, for some test collections, a ready-made Terrier index.
 
 ```python
-topics = pt.datasets.get_dataset("trec-robust-2004").get_topics()
-qrels = pt.datasets.get_dataset("trec-robust-2004").get_qrels()
+topics = pt.get_dataset("trec-robust-2004").get_topics()
+qrels = pt.get_dataset("trec-robust-2004").get_qrels()
 pt.Experiment([BM25_br, PL2_br], topics, qrels, eval_metrics)
 ```
 
 You can index datasets that include a corpus using IterDictIndexer and get_corpus_iter:
 
 ```python
-dataset = pt.datasets.get_dataset('irds:cord19/trec-covid')
+dataset = pt.get_dataset('irds:cord19/trec-covid')
 indexer = pt.index.IterDictIndexer('./cord19-index')
 index_ref = indexer.index(dataset.get_corpus_iter(), fields=('title', 'abstract'))
 ```
 
-You can use `pt.datasets.list_datasets()` to see available test collections - if your favourite test collection is missing, [you can submit a Pull Request](https://github.com/terrier-org/pyterrier/pulls).
+You can use `pt.list_datasets()` to see available test collections - if your favourite test collection is missing, [you can submit a Pull Request](https://github.com/terrier-org/pyterrier/pulls).
 
 All datasets from the [ir_datasets package](https://github.com/allenai/ir_datasets) are available
 under the `irds:` prefix. E.g., use `pt.datasets.get_dataset("irds:medline/2004/trec-genomics-2004")`
