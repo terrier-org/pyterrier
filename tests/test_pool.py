@@ -59,7 +59,7 @@ class TestPool(BaseTestCase):
                 pd.testing.assert_frame_equal(res1, res)
 
     def test_br_joblib(self):
-        from pyterrier.parallel import _joblib_with_initializer
+        from pyterrier.parallel import _joblib_with_initializer, _pt_init
 
         vaswani = pt.datasets.get_dataset("vaswani")
         br = pt.BatchRetrieve(vaswani.get_index(), wmodel="BM25", controls={"c" : 0.75}, num_results=15)
@@ -68,7 +68,7 @@ class TestPool(BaseTestCase):
 
         from joblib import Parallel, delayed
         with Parallel(n_jobs=2) as parallel:
-            results = _joblib_with_initializer(parallel, lambda: pt.init(**pt.init_args))(delayed(br)(topics) for topics in [t,t,t])
+            results = _joblib_with_initializer(parallel, lambda: _pt_init(**pt.init_args))(delayed(br)(topics) for topics in [t,t,t])
             self.assertTrue(3, len(results))
             for res in results:
                 res = res.sort_values(["qid", "docno"])
