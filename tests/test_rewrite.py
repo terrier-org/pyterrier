@@ -45,7 +45,7 @@ class TestRewrite(BaseTestCase):
         self._sdm(False)
 
     def test_sdm_docs(self):
-        docs = pt.new.ranked_documents([[1,1]], qid=["q1"], query=["hello friend","hello friend"])
+        docs = pt.new.ranked_documents([[1,1]], qid=["q1"], query=[["hello friend","hello friend"]])
         sdm = pt.rewrite.SDM()
         pipe = docs >> sdm
         qids = pt.new.queries(["hello there"], qid=["q1"])  
