@@ -319,7 +319,7 @@ class ParallelTransformer(TransformerBase):
         from ray.util.multiprocessing import Pool
         import pyterrier as pt
         with Pool(self.self.n_jobs, lambda: pt.init(**pt.init_args)) as pool:
-            results = pool.map(lambda topics : self.parent(topics), splits):
+            results = pool.map(lambda topics : self.parent(topics), splits)
             return pd.concat(results)
 
     def transform(self, topics_and_res):
