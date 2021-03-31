@@ -47,3 +47,9 @@ class PoolParallelTransformer(TransformerBase):
         if self.backend == 'ray':
             rtr = self._transform_ray(splits)
         return rtr
+
+    def __repr__(self):
+        return "PoolParallelTransformer("+self.parent.__repr__()+")"
+
+    def __str__(self):
+        return "PoolParallelTransformer("+str(self.parent)+")"
