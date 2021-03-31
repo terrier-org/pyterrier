@@ -167,6 +167,8 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     globals()["IndexRef"] = autoclass("org.terrier.querying.IndexRef")
     globals()["IndexingType"] = IndexingType
     
+    # we save the pt.init() arguments so that other processes,
+    # started by joblib or ray can booted with same options
     init_args["version"] = version
     init_args["mem"] = mem
     init_args["packages"] = packages
