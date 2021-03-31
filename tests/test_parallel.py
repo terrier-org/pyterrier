@@ -12,7 +12,6 @@ class TestParallel(BaseTestCase):
             ["map", "mrt"]
         )
         self.assertEqual(df.iloc[0]["map"], df.iloc[1]["map"])
-        self.assertTrue(df.iloc[0]["mrt"] > df.iloc[1]["mrt"])
 
     def test_parallel_joblib_ops(self):
         dataset = pt.get_dataset("vaswani")
