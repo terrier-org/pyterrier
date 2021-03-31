@@ -47,13 +47,14 @@ class TestPool(BaseTestCase):
                 pd.testing.assert_frame_equal(res1, res)
 
     def test_br_ray(self):
+        from pyterrier.parallel import _pt_init
         self.skipTest("disabling ray")
         vaswani = pt.datasets.get_dataset("vaswani")
         br = pt.BatchRetrieve(vaswani.get_index(), wmodel="BM25", controls={"c" : 0.75}, num_results=15)
         t = vaswani.get_topics().head()
         res1 = br(t).sort_values(["qid", "docno"])
         from ray.util.multiprocessing import Pool
-        with Pool(4, lambda: pt.init(**pt.init_args)) as pool:
+        with Pool(4, lambda: _pt_init(pt.init_args)) as pool:
             for res in pool.map(lambda topics : br(topics), [t, t, t]):
                 res = res.sort_values(["qid", "docno"])
                 pd.testing.assert_frame_equal(res1, res)
@@ -68,7 +69,7 @@ class TestPool(BaseTestCase):
 
         from joblib import Parallel, delayed
         with Parallel(n_jobs=2) as parallel:
-            results = _joblib_with_initializer(parallel, lambda: _pt_init(**pt.init_args))(delayed(br)(topics) for topics in [t,t,t])
+            results = _joblib_with_initializer(parallel, lambda: _pt_init(pt.init_args))(delayed(br)(topics) for topics in [t,t,t])
             self.assertTrue(3, len(results))
             for res in results:
                 res = res.sort_values(["qid", "docno"])
