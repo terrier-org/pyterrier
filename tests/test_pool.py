@@ -59,17 +59,7 @@ class TestPool(BaseTestCase):
                 pd.testing.assert_frame_equal(res1, res)
 
     def test_br_joblib(self):
-        #see https://stackoverflow.com/a/55566003
-        def with_initializer(p, f_init):
-            # Overwrite initializer hook in the Loky ProcessPoolExecutor
-            # https://github.com/tomMoral/loky/blob/f4739e123acb711781e46581d5ed31ed8201c7a9/loky/process_executor.py#L850
-            hasattr(p._backend, '_workers') or p.__enter__()
-            origin_init = p._backend._workers._initializer
-            def new_init():
-                origin_init()
-                f_init()
-            p._backend._workers._initializer = new_init if callable(origin_init) else f_init
-            return p
+        from pyterrier.parallel import _joblib_with_initializer
 
         vaswani = pt.datasets.get_dataset("vaswani")
         br = pt.BatchRetrieve(vaswani.get_index(), wmodel="BM25", controls={"c" : 0.75}, num_results=15)
@@ -78,7 +68,7 @@ class TestPool(BaseTestCase):
 
         from joblib import Parallel, delayed
         with Parallel(n_jobs=2) as parallel:
-            results = with_initializer(parallel, lambda: pt.init(**pt.init_args))(delayed(br)(topics) for topics in [t,t,t])
+            results = _joblib_with_initializer(parallel, lambda: pt.init(**pt.init_args))(delayed(br)(topics) for topics in [t,t,t])
             self.assertTrue(3, len(results))
             for res in results:
                 res = res.sort_values(["qid", "docno"])

@@ -4,6 +4,21 @@ import pyterrier as pt
 
 SUPPORTED_BACKENDS=["joblib", "ray"]
 
+#see https://stackoverflow.com/a/55566003
+def _joblib_with_initializer(p, f_init):
+    # Overwrite initializer hook in the Loky ProcessPoolExecutor
+    # https://github.com/tomMoral/loky/blob/f4739e123acb711781e46581d5ed31ed8201c7a9/loky/process_executor.py#L850
+    hasattr(p._backend, '_workers') or p.__enter__()
+    if hasattr(p, 'with_initializer'):
+        return p
+    origin_init = p._backend._workers._initializer
+    def new_init():
+        origin_init()
+        f_init()
+    p.with_initializer=True
+    p._backend._workers._initializer = new_init if callable(origin_init) else f_init
+    return p
+
 def _check_ray():
     try:
         import ray
@@ -25,20 +40,9 @@ class PoolParallelTransformer(TransformerBase):
             _check_ray()
 
     def _transform_joblib(self, splits):
-        def with_initializer(p, f_init):
-            # Overwrite initializer hook in the Loky ProcessPoolExecutor
-            # https://github.com/tomMoral/loky/blob/f4739e123acb711781e46581d5ed31ed8201c7a9/loky/process_executor.py#L850
-            hasattr(p._backend, '_workers') or p.__enter__()
-            origin_init = p._backend._workers._initializer
-            def new_init():
-                origin_init()
-                f_init()
-            p._backend._workers._initializer = new_init if callable(origin_init) else f_init
-            return p
-       
         from joblib import Parallel, delayed
         with Parallel(n_jobs=self.n_jobs) as parallel:
-            results = with_initializer(parallel, lambda: pt.init(**pt.init_args))(delayed(self.parent)(topics) for topics in splits)
+            results = _joblib_with_initializer(parallel, lambda: pt.init(**pt.init_args))(delayed(self.parent)(topics) for topics in splits)
             return pd.concat(results)
         
     def _transform_ray(self, splits):
