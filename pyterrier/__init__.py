@@ -1,4 +1,4 @@
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 import os
 from .bootstrap import _logging, setup_terrier, setup_jnius
@@ -123,7 +123,11 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     globals()["cast"] = cast
     globals()["ApplicationSetup"] = ApplicationSetup
 
-    for sub_module_name in ['anserini', 'apply', 'cache', 'index', 'io', 'model', 'new', 'ltr', 'pipelines', 'rewrite', 'text', 'transformer']:
+    # apply is an object, not a module, as it also has __get_attr__() implemented
+    from .apply import _apply
+    globals()['apply'] = _apply()
+
+    for sub_module_name in ['anserini', 'cache', 'index', 'io', 'model', 'new', 'ltr', 'pipelines', 'rewrite', 'text', 'transformer']:
         globals()[sub_module_name] = importlib.import_module('.' + sub_module_name, package='pyterrier') 
 
     # append the python helpers
@@ -170,6 +174,8 @@ def set_tqdm(type):
         view progress by using the verbose=True kwarg to many classes, such as BatchRetrieve.
 
         The `tqdm <https://tqdm.github.io/>`_ progress bar can be made prettier when using appropriately configured Jupyter notebook setups.
+        We use this automatically when Google Colab is detected.
+
         Allowable options for type are:
 
          - `'tqdm'`: corresponds to the standard text progresss bar, ala `from tqdm import tqdm`.
@@ -177,8 +183,15 @@ def set_tqdm(type):
          - `'auto'`: allows tqdm to decide on the progress bar type, ala `from tqdm.auto import tqdm`. Note that this works fine on Google Colab, but not on Jupyter unless the `ipywidgets have been installed <https://ipywidgets.readthedocs.io/en/stable/user_install.html>`_.
     """
     global tqdm
+
+    import sys
+    if type is None:
+        if 'google.colab' in sys.modules:
+            type = 'notebook'
+        else:
+            type = 'tqdm'
     
-    if type is None or type == 'tqdm':
+    if type == 'tqdm':
         from tqdm import tqdm as bartype
         tqdm = bartype
     elif type == 'notebook':
