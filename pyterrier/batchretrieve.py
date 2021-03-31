@@ -415,6 +415,31 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         
         super().__init__(index_location, controls, properties, **kwargs)
 
+    def __reduce__(self):
+        return (
+            self.__class__,
+            (self.indexref, self.features),
+            self.__getstate__()
+        )
+
+    def __getstate__(self): 
+        return  {
+                'controls' : self.controls, 
+                'properties' : self.properties, 
+                'metadata' : self.metadata,
+                'features' : self.features,
+                'wmodel' : self.wmodel
+                }
+
+    def __setstate__(self, d): 
+        self.controls = d["controls"]
+        self.metadata = d["metadata"]
+        self.features = d["features"]
+        self.wmodel = d["wmodel"]
+        self.properties.update(d["properties"])
+        for key,value in d["properties"].items():
+            self.appSetup.setProperty(key, str(value))
+
     def transform(self, queries):
         """
         Performs the retrieval with multiple features
@@ -536,5 +561,3 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         if self.wmodel is None:
             return "FBR(" + str(len(self.features)) + " features)"
         return "FBR(" + self.controls["wmodel"] + " and " + str(len(self.features)) + " features)"
-
-    #TODO __reduce__ etc

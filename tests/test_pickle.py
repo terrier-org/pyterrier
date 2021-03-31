@@ -82,6 +82,14 @@ class TestPickle(BaseTestCase):
         self._fix_joblib()
         self._br(joblib)
 
+    def test_fbr_pickle(self):
+        self._fbr(pickle)
+
+    def test_fbr_joblib(self):
+        import joblib
+        self._fix_joblib()
+        self._fbr(joblib)
+
     def _br(self, pickler):
         vaswani = pt.datasets.get_dataset("vaswani")
         br = pt.BatchRetrieve(vaswani.get_index(), wmodel="BM25", controls={"c" : 0.75}, num_results=15)
@@ -93,6 +101,24 @@ class TestPickle(BaseTestCase):
         self.assertEqual(br.controls, br2.controls)
         self.assertEqual(br.properties, br2.properties)
         self.assertEqual(br.metadata, br2.metadata)
+
+        self.assertEqual(repr(br), repr(br2))
+        res2 = br2(q)
+        
+        pd.testing.assert_frame_equal(res1, res2)
+
+    def _fbr(self, pickler):
+        vaswani = pt.datasets.get_dataset("vaswani")
+        br = pt.FeaturesBatchRetrieve(vaswani.get_index(), wmodel="BM25", features=["WMODEL:DPH"], controls={"c" : 0.75}, num_results=15)
+        q  = pd.DataFrame([["q1", "chemical"]], columns=["qid", "query"])
+        res1 = br(q)
+        br2 = pickler.loads(pickler.dumps(br))
+
+        self.assertEqual("BM25", br2.controls["wmodel"])
+        self.assertEqual(br.controls, br2.controls)
+        self.assertEqual(br.properties, br2.properties)
+        self.assertEqual(br.metadata, br2.metadata)
+        self.assertEqual(br.features, br2.features)
 
         self.assertEqual(repr(br), repr(br2))
         res2 = br2(q)
