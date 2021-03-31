@@ -4,6 +4,14 @@ import pyterrier as pt
 
 SUPPORTED_BACKENDS=["joblib", "ray"]
 
+def _check_ray():
+    try:
+        import ray
+    except:
+        raise NotImplemented("ray is not installed. Run pip install ray")
+    if not ray.is_initialized():
+        raise ValueError("ray needs to be initialised. Run ray.init() first")
+
 class PoolParallelTransformer(TransformerBase):
 
     def __init__(self, parent, n_jobs, backend='joblib', **kwargs):
@@ -13,6 +21,8 @@ class PoolParallelTransformer(TransformerBase):
         self.backend = backend
         if self.backend not in SUPPORTED_BACKENDS:
             raise ValueError("Backend of %s unknown, only %s supported." % str(SUPPORTED_BACKENDS))
+        if self.backend == 'ray':
+            _check_ray()
 
     def _transform_joblib(self, splits):
         def with_initializer(p, f_init):
