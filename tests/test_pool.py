@@ -3,7 +3,7 @@ import pandas as pd
 import pickle
 import pyterrier as pt
 import datetime
-class TestPickle(BaseTestCase):
+class TestPool(BaseTestCase):
 
     def test_br_parallel(self):
         vaswani = pt.datasets.get_dataset("vaswani")
