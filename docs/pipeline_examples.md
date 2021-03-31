@@ -31,9 +31,9 @@ pt.BatchRetrieve(indexref, wmodel="BM25") >> \
 ```
 
 The QueryExpansion() object has the following constructor parameters:
- - fb_docs - number of feedback documents to examine
- - fb_terms - number of feedback terms to add to the query
- - index_like - which index you are using to obtain the contents of the documents. This should match the preceeding BatchRetrieve. 
+ - `index_like` - which index you are using to obtain the contents of the documents. This should match the preceeding BatchRetrieve. 
+ - `fb_docs` - number of feedback documents to examine
+ - `fb_terms` - number of feedback terms to add to the query
 
 Note that different indexes can be used to achieve query expansion using an external collection (sometimes called collection enrichment or external feedback).  For example, to expand queries using Wikipedia as an external resource, in order to get higher quality query re-weighted queries, would look like this:
 
@@ -102,7 +102,7 @@ params = {'objective': 'rank:ndcg',
           'verbose': 2,
           'random_state': 42 
          }
-lambdamart = pt.pipelines.XGBoostLTR_pipeline(xgb.sklearn.XGBRanker(**params))
+lambdamart = pt.ltr.apply_learned_model(xgb.sklearn.XGBRanker(**params), form='ltr')
 final_pipe = all_features >> lambdamart
 final_pipe.fit(tr_topics, tr_qrels, va_topics, va_qrels)
 

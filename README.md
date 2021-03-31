@@ -21,7 +21,7 @@ The easiest way to get started with PyTerrier is to use one of our Colab noteboo
 2. `pip install python-terrier`
 
 ### Windows
-PyTerrier is not available for Windows because [pytrec_eval](https://github.com/cvangysel/pytrec_eval) [isn't build on PyPi for Windows](https://github.com/cvangysel/pytrec_eval/issues/19). If you can compile & install pytrec_eval youself, it should work fine.
+PyTerrier is not yet available for Windows because [pytrec_eval](https://github.com/cvangysel/pytrec_eval) [doesnt have a Windows build on PyPi](https://github.com/cvangysel/pytrec_eval/issues/19). If you can compile & install pytrec_eval youself, it should work fine.
 
 # Indexing
 
@@ -82,20 +82,20 @@ See also the [learning to rank documentation](https://pyterrier.readthedocs.io/e
 PyTerrier allows simple access to standard information retrieval test collections through its [dataset API](https://pyterrier.readthedocs.io/en/latest/datasets.html), which can download the topics, qrels, corpus or, for some test collections, a ready-made Terrier index.
 
 ```python
-topics = pt.datasets.get_dataset("trec-robust-2004").get_topics()
-qrels = pt.datasets.get_dataset("trec-robust-2004").get_qrels()
+topics = pt.get_dataset("trec-robust-2004").get_topics()
+qrels = pt.get_dataset("trec-robust-2004").get_qrels()
 pt.Experiment([BM25_br, PL2_br], topics, qrels, eval_metrics)
 ```
 
 You can index datasets that include a corpus using IterDictIndexer and get_corpus_iter:
 
 ```python
-dataset = pt.datasets.get_dataset('irds:cord19/trec-covid')
+dataset = pt.get_dataset('irds:cord19/trec-covid')
 indexer = pt.index.IterDictIndexer('./cord19-index')
 index_ref = indexer.index(dataset.get_corpus_iter(), fields=('title', 'abstract'))
 ```
 
-You can use `pt.datasets.list_datasets()` to see available test collections - if your favourite test collection is missing, [you can submit a Pull Request](https://github.com/terrier-org/pyterrier/pulls).
+You can use `pt.list_datasets()` to see available test collections - if your favourite test collection is missing, [you can submit a Pull Request](https://github.com/terrier-org/pyterrier/pulls).
 
 All datasets from the [ir_datasets package](https://github.com/allenai/ir_datasets) are available
 under the `irds:` prefix. E.g., use `pt.datasets.get_dataset("irds:medline/2004/trec-genomics-2004")`
@@ -126,7 +126,7 @@ The source and binary forms of PyTerrier are subject to the following citation l
 
 By downloading and using PyTerrier, you agree to cite at the undernoted paper describing PyTerrier in any kind of material you produce where PyTerrier was used to conduct search or experimentation, whether be it a research paper, dissertation, article, poster, presentation, or documentation. By using this software, you have agreed to the citation licence.
 
-[Declarative Experimentation inInformation Retrieval using PyTerrier. Craig Macdonald and Nicola Tonellotto. In Proceedings of ICTIR 2020.](https://arxiv.org/abs/2007.14271)
+[Declarative Experimentation in Information Retrieval using PyTerrier. Craig Macdonald and Nicola Tonellotto. In Proceedings of ICTIR 2020.](https://arxiv.org/abs/2007.14271)
 
 ```bibtex
 @inproceedings{pyterrier2020ictir,

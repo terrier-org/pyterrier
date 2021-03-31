@@ -364,7 +364,6 @@ class SlidingWindowPassager(TransformerBase):
                     newRow['docno'] = row['docno'] + "%p" + str(i)
                     newRow[self.text_attr] = ' '.join(passage)
                     if self.prepend_title:
-                        newRow.drop(labels=[self.title_attr], inplace=True)
                         newRow[self.text_attr] = str(row[self.title_attr]) + self.join + newRow[self.text_attr]
                         del(newRow[self.title_attr])
                     rows.append(newRow)

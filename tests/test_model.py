@@ -1,9 +1,66 @@
 from .base import BaseTestCase
 import pandas as pd
-import pyterrier as pt
 from pyterrier.model import add_ranks, FIRST_RANK, coerce_queries_dataframe, split_df
-
+import pyterrier as pt
 class TestModel(BaseTestCase):
+
+    def test_query_cols(self):
+        df = pt.new.queries(["q1", "q2"])
+        self.assertEqual(2, len(df))
+        df2 = pt.model.push_queries(df, keep_original=True)
+        query_cols = pt.model.query_columns(df2)
+        for col in ["qid", "query", "query_0"]:
+            self.assertTrue(col in query_cols)
+
+        df3 = pt.new.ranked_documents([[1]], query=[["hello"]])
+        query_cols = pt.model.query_columns(df3)
+        for col in ["qid", "query"]:
+            self.assertTrue(col in query_cols)
+        for col in ["docno", "score", "rank"]:
+            self.assertFalse(col in query_cols)
+
+    def test_push_query(self):
+        df = pt.new.queries(["q1", "q2"])
+        self.assertEqual(2, len(df))
+
+        df2 = pt.model.push_queries(df, keep_original=False)
+        self.assertTrue("query_0" in df2.columns)
+        self.assertFalse("query" in df2.columns)
+        self.assertEqual("q1", df2.iloc[0]["query_0"])
+        self.assertEqual("q2", df2.iloc[1]["query_0"])
+
+        df2 = pt.model.push_queries(df, keep_original=True)
+        for col in ["query", "query_0"]:
+            self.assertTrue(col in df2.columns)
+            self.assertEqual("q1", df2.iloc[0][col])
+            self.assertEqual("q2", df2.iloc[1][col])
+        
+        df3 = pt.model.push_queries(df2, keep_original=True)
+        for col in ["query", "query_0", "query_1"]:
+            self.assertTrue(col in df3.columns)
+            self.assertEqual("q1", df3.iloc[0][col])
+            self.assertEqual("q2", df3.iloc[1][col])
+    
+    def test_pop_query(self):
+        df = pt.new.queries(["q1", "q2"])
+        self.assertEqual(2, len(df))
+
+        df2 = pt.model.push_queries(df, keep_original=False)
+        self.assertTrue("query_0" in df2.columns)
+        self.assertFalse("query" in df2.columns)
+        df2["query"] = ["a", "b"]
+        self.assertTrue("query" in df2.columns)
+        self.assertEqual("q1", df2.iloc[0]["query_0"])
+        self.assertEqual("q2", df2.iloc[1]["query_0"])
+
+        df3 = pt.model.pop_queries(df2)
+        self.assertFalse("query_1" in df3.columns)
+        self.assertTrue("query" in df3.columns)
+        # check that we dont have duplicated query column
+        self.assertEqual(2, len(df3.columns))
+        self.assertEqual("q1", df3.iloc[0]["query"])
+        self.assertEqual("q2", df3.iloc[1]["query"])
+
 
     def test_rank_zero_query(self):
         df = pd.DataFrame([], columns=["qid", "docno", "score"])
