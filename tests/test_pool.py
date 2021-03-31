@@ -15,7 +15,7 @@ class TestPool(BaseTestCase):
         
         b = datetime.datetime.now()
         
-        res2 = pt.pipelines.ParallelTransformer(br, 3)(t)
+        res2 = pt.parallel.PoolParallelTransformer(br, 3)(t)
         c = datetime.datetime.now()
         
         print("Sequential: %d" % ((b-a).total_seconds()) )
