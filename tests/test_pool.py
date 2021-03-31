@@ -47,6 +47,7 @@ class TestPool(BaseTestCase):
                 pd.testing.assert_frame_equal(res1, res)
 
     def test_br_ray(self):
+        self.skipTest("disabling ray")
         vaswani = pt.datasets.get_dataset("vaswani")
         br = pt.BatchRetrieve(vaswani.get_index(), wmodel="BM25", controls={"c" : 0.75}, num_results=15)
         t = vaswani.get_topics().head()
