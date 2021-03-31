@@ -19,6 +19,14 @@ def _joblib_with_initializer(p, f_init):
     p._backend._workers._initializer = new_init if callable(origin_init) else f_init
     return p
 
+def _pt_init(args):
+    import pyterrier as pt
+    if not pt.started():
+        pt.init(**args)
+    else:
+        from warnings import warn
+        warn("Avoiding reinit of PyTerrier")
+
 def _check_ray():
     try:
         import ray
@@ -42,7 +50,7 @@ class PoolParallelTransformer(TransformerBase):
     def _transform_joblib(self, splits):
         from joblib import Parallel, delayed
         with Parallel(n_jobs=self.n_jobs) as parallel:
-            results = _joblib_with_initializer(parallel, lambda: pt.init(**pt.init_args))(delayed(self.parent)(topics) for topics in splits)
+            results = _joblib_with_initializer(parallel, lambda: _pt_init(pt.init_args))(delayed(self.parent)(topics) for topics in splits)
             return pd.concat(results)
         
     def _transform_ray(self, splits):
