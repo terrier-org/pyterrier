@@ -54,7 +54,7 @@ def empty_R() -> pd.DataFrame:
 
 def ranked_documents(
         scores : Sequence[Sequence[float]], 
-        qid : Sequence[Sequence[float]] = None, 
+        qid : Sequence[str] = None, 
         docno=None, 
         **others) -> pd.DataFrame:
     """
@@ -63,7 +63,7 @@ def ranked_documents(
 
         Arguments:
             scores: The scores of the retrieved documents. Must be a list of lists.
-            qid: Corresponding query ids.  Must have same length as the first dimension of scores.
+            qid: Corresponding query ids. Must have same length as the first dimension of scores.
                 If omitted, documents, qids are computed as strings starting from "1"
             docno: Corresponding docnos.  Must have same length as the first dimension of scores 
                 and each 2nd dimension must be the same as the number of documents retrieved.
@@ -88,7 +88,7 @@ def ranked_documents(
             R5 = pt.new.ranked_documents([[1]], qid=["q100"], docno=[["d20"]])
 
     """
-    
+    from itertools import chain
     import numpy as np
     if len(scores) == 0:
         return empty_R()
@@ -99,21 +99,24 @@ def ranked_documents(
             qid = list(map(str, range(1, len(scores)+1)))
         else:
             assert len(qid) == len(scores)
-        qid = np.array([ [q] * len(score_array) for q, score_array in zip(qid, scores) ] ).flatten()
-
+        qid = list(chain.from_iterable([ [q] * len(score_array) for q, score_array in zip(qid, scores) ]))
+        
         if docno is None:
             docno = [ list(map(lambda i: "d%d" % i, range(1, len(score_array)+1) ) ) for score_array in scores ]
         else:
             assert len(docno) == len(scores)
-        docno = np.array( docno ).flatten()
-         
-
-        scores = np.array(scores).flatten()
-        construct = {"qid" : qid, "docno" : docno, "score" : scores}
+        
+        from itertools import chain
+        rtr = pd.DataFrame(list(chain.from_iterable(scores)), columns=["score"]) 
+        
+        rtr["docno"] = list(chain.from_iterable(docno))
+        rtr["qid"] = qid
+        #construct = {"qid" : qid, "docno" : docno, "score" : scores}
         for k, v in others.items():
-            assert len(v) == len(scores), "kwarg %s had length %d but was expected to have length %d" % (k, len(v), len(scores))
-            construct[k] = np.array( v ).flatten()
-        rtr = pd.DataFrame(construct)        
+            rtr[k] = list(chain.from_iterable(v))
+            #assert len(v) == len(scores), "kwarg %s had length %d but was expected to have length %d" % (k, len(v), len(scores))
+            #construct[k] = np.array( v ).flatten()
+        #rtr = pd.DataFrame(construct)        
     else:
         raise ValueError("We assume multiple documents, for now")
     return add_ranks(rtr)
