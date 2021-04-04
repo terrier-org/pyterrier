@@ -11,6 +11,8 @@ TerrierQLToMatchingQueryTerms = pt.autoclass("org.terrier.querying.TerrierQLToMa
 QueryResultSet = pt.autoclass("org.terrier.matching.QueryResultSet")
 DependenceModelPreProcess = pt.autoclass("org.terrier.querying.DependenceModelPreProcess")
 
+
+
 _terrier_prf_package_loaded = False
 _terrier_prf_message = 'terrier-prf jar not found: you should start PyTerrier with '\
     + 'pt.init(boot_packages=["com.github.terrierteam:terrier-prf:-SNAPSHOT"])'
@@ -245,7 +247,20 @@ class KLQueryExpansion(DFRQueryExpansion):
 
 class RM3(QueryExpansion):
     '''
-        Performs query expansion using RM3 relevance models
+        Performs query expansion using RM3 relevance models. RM3 relies on an external Terrier plugin, 
+        `terrier-prf <https://github.com/terrierteam/terrier-prf/>`_. You should start PyTerrier with 
+        `pt.init(boot_packages=["com.github.terrierteam:terrier-prf:-SNAPSHOT"])`.
+
+        Example:: 
+
+            bm25 = pt.BatchRetrieve(index, wmodel="BM25")
+            rm3_pipe = bm25 >> pt.rewrite.RM3(index) >> bm25
+            pt.Experiment([bm25, rm3_pipe],
+                        dataset.get_topics(),
+                        dataset.get_qrels(),
+                        ["map"]
+                        )
+ 
     '''
     def __init__(self, *args, fb_terms=10, fb_docs=3, fb_lambda=0.6, **kwargs):
         """
@@ -271,7 +286,9 @@ class RM3(QueryExpansion):
 
 class AxiomaticQE(QueryExpansion):
     '''
-        Performs query expansion using axiomatic query expansion
+        Performs query expansion using axiomatic query expansion. This class relies on an external Terrier plugin, 
+        `terrier-prf <https://github.com/terrierteam/terrier-prf/>`_. You should start PyTerrier with 
+        `pt.init(boot_packages=["com.github.terrierteam:terrier-prf:-SNAPSHOT"])`.
     '''
     def __init__(self, *args, fb_terms=10, fb_docs=3, **kwargs):
         """
