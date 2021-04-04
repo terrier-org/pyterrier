@@ -11,6 +11,22 @@ TerrierQLToMatchingQueryTerms = pt.autoclass("org.terrier.querying.TerrierQLToMa
 QueryResultSet = pt.autoclass("org.terrier.matching.QueryResultSet")
 DependenceModelPreProcess = pt.autoclass("org.terrier.querying.DependenceModelPreProcess")
 
+_terrier_prf_package_loaded = False
+_terrier_prf_message = 'terrier-prf jar not found: you should start PyTerrier with '\
+    + 'pt.init(boot_packages=["com.github.terrierteam:terrier-prf:-SNAPSHOT"])'
+
+def _check_terrier_prf():
+    import jnius_config
+    global _terrier_prf_package_loaded
+    if _terrier_prf_package_loaded:
+        return
+    
+    for j in jnius_config.get_classpath():
+        if "terrier-prf" in j:
+            _terrier_prf_package_loaded = True
+            break
+    assert _terrier_prf_package_loaded, _terrier_prf_message
+
 def reset() -> TransformerBase:
     """
         Undoes a previous query rewriting operation. This results in the query formulation stored in the `"query_0"`
@@ -226,7 +242,7 @@ class KLQueryExpansion(DFRQueryExpansion):
         kwargs["qemodel"] = "KL"
         super().__init__(*args, **kwargs)
 
-terrier_prf_package_loaded = False
+
 class RM3(QueryExpansion):
     '''
         Performs query expansion using RM3 relevance models
@@ -238,20 +254,7 @@ class RM3(QueryExpansion):
             fb_terms(int): number of terms to add to the query. Terrier's default setting is 10 expansion terms.
             fb_docs(int): number of feedback documents to consider. Terrier's default setting is 3 feedback documents.
         """
-        global terrier_prf_package_loaded
-
-        #if not terrier_prf_package_loaded:
-        #    pt.extend_classpath("org.terrier:terrier-prf")
-        #    terrier_prf_package_loaded = True
-        #rm = pt.ApplicationSetup.getClass("org.terrier.querying.RM3").newInstance()
-        import jnius_config
-        prf_found = False
-        for j in jnius_config.get_classpath():
-            if "terrier-prf" in j:
-                prf_found = True
-                break
-        assert prf_found, 'terrier-prf jar not found: you should start Pyterrier with '\
-            + 'pt.init(boot_packages=["org.terrier:terrier-prf:0.0.1-SNAPSHOT"])'
+        _check_terrier_prf()
         rm = pt.autoclass("org.terrier.querying.RM3")()
         self.fb_lambda = fb_lambda
         kwargs["qeclass"] = rm
@@ -277,20 +280,7 @@ class AxiomaticQE(QueryExpansion):
             fb_terms(int): number of terms to add to the query. Terrier's default setting is 10 expansion terms.
             fb_docs(int): number of feedback documents to consider. Terrier's default setting is 3 feedback documents.
         """
-        global terrier_prf_package_loaded
-
-        #if not terrier_prf_package_loaded:
-        #    pt.extend_classpath("org.terrier:terrier-prf")
-        #    terrier_prf_package_loaded = True
-        #rm = pt.ApplicationSetup.getClass("org.terrier.querying.RM3").newInstance()
-        import jnius_config
-        prf_found = False
-        for j in jnius_config.get_classpath():
-            if "terrier-prf" in j:
-                prf_found = True
-                break
-        assert prf_found, 'terrier-prf jar not found: you should start Pyterrier with '\
-            + 'pt.init(boot_packages=["org.terrier:terrier-prf:0.0.1-SNAPSHOT"])'
+        _check_terrier_prf()
         rm = pt.autoclass("org.terrier.querying.AxiomaticQE")()
         self.fb_terms = fb_terms
         self.fb_docs = fb_docs
