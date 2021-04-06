@@ -18,6 +18,61 @@ class TestRewrite(BaseTestCase):
         # Remove the directory after the test
         shutil.rmtree(self.test_dir)
 
+    def test_save_docs(self):
+        inputDF = pt.new.ranked_documents([[1, 2], [2,0]], query=[["a", "a"], ["b", "b"]])
+        savedDF = pt.rewrite.save_docs()(inputDF)
+        self.assertEqual(2, len(savedDF))
+        self.assertIn("saved_docs_0", savedDF.columns)
+
+        savedQueryDF = pt.apply.query(lambda row: row["query"] + " 1")(savedDF)
+        self.assertIn("saved_docs_0", savedQueryDF.columns)
+        self.assertIn("qid", savedQueryDF.columns)
+        self.assertIn("query", savedQueryDF.columns)
+        self.assertIn("query_0", savedQueryDF.columns)
+        
+        self.assertEqual(2, len(savedQueryDF))
+        restoredDf = pt.rewrite.reset_docs()(savedQueryDF)
+        self.assertEqual(4, len(restoredDf))
+        self.assertIn("qid", restoredDf.columns)
+        self.assertIn("docno", restoredDf.columns)
+        self.assertIn("score", restoredDf.columns)
+        self.assertIn("query", restoredDf.columns)
+    
+    def test_save_docs_SDM(self):
+        inputDF = pt.new.ranked_documents([[1, 2], [2,0]], query=[["a a", "a a"], ["b b", "b b"]])
+        savedDF = pt.rewrite.save_docs()(inputDF)
+        self.assertEqual(2, len(savedDF))
+        self.assertIn("saved_docs_0", savedDF.columns)
+
+        savedQueryDF = pt.rewrite.SDM()(savedDF)
+        self.assertIn("saved_docs_0", savedQueryDF.columns)
+        self.assertIn("qid", savedQueryDF.columns)
+        self.assertIn("query", savedQueryDF.columns)
+        self.assertIn("query_0", savedQueryDF.columns)
+        
+        self.assertEqual(2, len(savedQueryDF))
+        restoredDf = pt.rewrite.reset_docs()(savedQueryDF)
+        self.assertEqual(4, len(restoredDf))
+        self.assertIn("qid", restoredDf.columns)
+        self.assertIn("docno", restoredDf.columns)
+        self.assertIn("score", restoredDf.columns)
+        self.assertIn("query", restoredDf.columns)
+
+    def test_save_docs_QE(self):
+        index = pt.get_dataset("vaswani").get_index()
+        dph = pt.BatchRetrieve(index, wmodel="DPH")
+        pipe = dph \
+            >> pt.rewrite.save_docs() \
+            >> pt.BatchRetrieve(index, wmodel="BM25") \
+            >> pt.rewrite.Bo1QueryExpansion(index) \
+            >> pt.rewrite.reset_docs() \
+            >> dph
+        rtr1 = dph.search("chemical reactions")        
+        rtr2 = pipe.search("chemical reactions")
+        # Bo1 should be applied as a re-ranker, hence the
+        # number of docs in rtr1 and rtr2 should be equal
+        self.assertEqual(len(rtr1), len(rtr2))
+
     def test_reset_with_docs(self):
         inputDF = pt.new.ranked_documents([[1, 2], [2,0]])
         inputDF["query"] = ["one #1", "one #1", "one two #1", "one two #1"]

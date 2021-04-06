@@ -29,10 +29,21 @@ def add_ranks(rtr : pd.DataFrame) -> pd.DataFrame:
         rtr.sort_values(["qid", "rank"], ascending=[True,True], inplace=True)
     return rtr
 
+def document_columns(df : pd.DataFrame) -> Sequence[str]:
+    """
+        Given a dataframe, returns the names of all columns that contain attributes that are 
+        concerned with a document, or the relationship between a document and a query.
+
+        It is defined as the complement of query_columns().
+    """
+    return list(df.columns.difference(query_columns(df, qid=False)))
+
 def query_columns(df : pd.DataFrame, qid=True) -> Sequence[str]:
     """
         Given a dataframe, returns the names of all columns that contain the current query or
-        previous generations of the query (as performed by `push_queries()`).
+        previous generations of the query (as performed by `push_queries()`). 
+
+        Any saved_docs_0 column is also included.
 
         Arguments:
             df: Dataframe of queries to consider
@@ -48,6 +59,10 @@ def query_columns(df : pd.DataFrame, qid=True) -> Sequence[str]:
     query_col_re = re.compile('^query_[\\d]+')
     for c in columns:
         if query_col_re.search(c):
+            rtr.append(c)
+    saved_docs_col_re = re.compile('^saved_docs_[\\d]+')
+    for c in columns:
+        if saved_docs_col_re.search(c):
             rtr.append(c)
     return rtr
 
@@ -118,6 +133,10 @@ def pop_queries(df: pd.DataFrame, inplace:bool=False):
     df = df.rename(columns=rename_cols)
     return df
     
+def ranked_documents_to_queries(topics_and_res : pd.DataFrame):
+    return topics_and_res[query_columns(topics_and_res, qid=True)].groupby(["qid"]).first().reset_index()
+
+
 def coerce_queries_dataframe(query):
     """
     Convert either a string or a list of strings to a dataframe for use as topics in retrieval.

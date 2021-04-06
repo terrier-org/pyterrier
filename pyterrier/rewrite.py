@@ -51,8 +51,8 @@ class SDM(TransformerBase):
 
     def transform(self, topics_and_res):
         results = []
-        from .model import query_columns, push_queries
-        queries = topics_and_res[query_columns(topics_and_res, qid=True)].dropna(axis=0, subset=query_columns(topics_and_res, qid=False)).drop_duplicates()
+        from .model import ranked_documents_to_queries, push_queries
+        queries = ranked_documents_to_queries(topics_and_res)
 
         # instantiate the DependenceModelPreProcess, specifying a proximity model if specified
         sdm = DependenceModelPreProcess() if self.prox_model is None else DependenceModelPreProcess(self.prox_model)
@@ -161,8 +161,9 @@ class QueryExpansion(TransformerBase):
 
         results = []
 
-        from .model import query_columns, push_queries
-        queries = topics_and_res[query_columns(topics_and_res, qid=True)].dropna(axis=0, subset=query_columns(topics_and_res, qid=False)).drop_duplicates()
+        from .model import push_queries, ranked_documents_to_queries
+        queries = ranked_documents_to_queries(topics_and_res)
+        #queries = topics_and_res[query_columns(topics_and_res, qid=True)].dropna(axis=0, subset=query_columns(topics_and_res, qid=False)).drop_duplicates()
                 
         for row in tqdm(queries.itertuples(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
             qid = row.qid
@@ -302,3 +303,40 @@ class AxiomaticQE(QueryExpansion):
         self.qe.fbDocs = self.fb_docs
         return super().transform(queries_and_docs)
 
+def save_docs() -> TransformerBase:
+    return _SaveDocs()
+    
+def reset_docs() -> TransformerBase:
+    return _ResetDocs()
+
+class _SaveDocs(TransformerBase):
+
+    def transform(self, topics_and_res: pd.DataFrame) -> pd.DataFrame:
+        from .model import document_columns, query_columns
+        if "saved_docs_0" in topics_and_res:
+            raise ValueError("Cannot apply pt.rewrite.save_docs() more than once")
+        doc_cols = document_columns(topics_and_res)
+        query_cols = query_columns(topics_and_res)
+        rtr =  []
+        for qid, groupDf in topics_and_res.groupby("qid"):
+            documentsDF = groupDf[doc_cols]
+            queryDf = groupDf[query_cols].iloc[0]
+            queryDict = queryDf.to_dict()
+            queryDict["saved_docs_0"] = documentsDF.to_dict(orient='records')
+            rtr.append(queryDict)
+        return pd.DataFrame(rtr)
+
+class _ResetDocs(TransformerBase):
+
+    def transform(self, topics_with_saved_docs : pd.DataFrame) -> pd.DataFrame:
+        from .model import query_columns
+        query_cols = query_columns(topics_with_saved_docs)
+        rtr = []
+        for row in topics_with_saved_docs.itertuples():
+            docsdf = pd.DataFrame.from_records(row.saved_docs_0)
+            docsdf["qid"] = row.qid
+            querydf = pd.DataFrame(data=[row])
+            querydf.drop("saved_docs_0", axis=1, inplace=True)
+            finaldf = querydf.merge(docsdf, on="qid")
+            rtr.append(finaldf)
+        return pd.concat(rtr)
