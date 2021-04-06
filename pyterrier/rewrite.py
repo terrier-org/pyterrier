@@ -5,11 +5,30 @@ from .batchretrieve import _parse_index_like
 from .transformer import TransformerBase, Symbol
 from . import tqdm
 from warnings import warn
+from typing import List
 
 TerrierQLParser = pt.autoclass("org.terrier.querying.TerrierQLParser")()
 TerrierQLToMatchingQueryTerms = pt.autoclass("org.terrier.querying.TerrierQLToMatchingQueryTerms")()
 QueryResultSet = pt.autoclass("org.terrier.matching.QueryResultSet")
 DependenceModelPreProcess = pt.autoclass("org.terrier.querying.DependenceModelPreProcess")
+
+
+
+_terrier_prf_package_loaded = False
+_terrier_prf_message = 'terrier-prf jar not found: you should start PyTerrier with '\
+    + 'pt.init(boot_packages=["com.github.terrierteam:terrier-prf:-SNAPSHOT"])'
+
+def _check_terrier_prf():
+    import jnius_config
+    global _terrier_prf_package_loaded
+    if _terrier_prf_package_loaded:
+        return
+    
+    for j in jnius_config.get_classpath():
+        if "terrier-prf" in j:
+            _terrier_prf_package_loaded = True
+            break
+    assert _terrier_prf_package_loaded, _terrier_prf_message
 
 def reset() -> TransformerBase:
     """
@@ -227,10 +246,22 @@ class KLQueryExpansion(DFRQueryExpansion):
         kwargs["qemodel"] = "KL"
         super().__init__(*args, **kwargs)
 
-terrier_prf_package_loaded = False
 class RM3(QueryExpansion):
     '''
-        Performs query expansion using RM3 relevance models
+        Performs query expansion using RM3 relevance models. RM3 relies on an external Terrier plugin, 
+        `terrier-prf <https://github.com/terrierteam/terrier-prf/>`_. You should start PyTerrier with 
+        `pt.init(boot_packages=["com.github.terrierteam:terrier-prf:-SNAPSHOT"])`.
+
+        Example:: 
+
+            bm25 = pt.BatchRetrieve(index, wmodel="BM25")
+            rm3_pipe = bm25 >> pt.rewrite.RM3(index) >> bm25
+            pt.Experiment([bm25, rm3_pipe],
+                        dataset.get_topics(),
+                        dataset.get_qrels(),
+                        ["map"]
+                        )
+ 
     '''
     def __init__(self, *args, fb_terms=10, fb_docs=3, fb_lambda=0.6, **kwargs):
         """
@@ -239,20 +270,7 @@ class RM3(QueryExpansion):
             fb_terms(int): number of terms to add to the query. Terrier's default setting is 10 expansion terms.
             fb_docs(int): number of feedback documents to consider. Terrier's default setting is 3 feedback documents.
         """
-        global terrier_prf_package_loaded
-
-        #if not terrier_prf_package_loaded:
-        #    pt.extend_classpath("org.terrier:terrier-prf")
-        #    terrier_prf_package_loaded = True
-        #rm = pt.ApplicationSetup.getClass("org.terrier.querying.RM3").newInstance()
-        import jnius_config
-        prf_found = False
-        for j in jnius_config.get_classpath():
-            if "terrier-prf" in j:
-                prf_found = True
-                break
-        assert prf_found, 'terrier-prf jar not found: you should start Pyterrier with '\
-            + 'pt.init(boot_packages=["org.terrier:terrier-prf:0.0.1-SNAPSHOT"])'
+        _check_terrier_prf()
         rm = pt.autoclass("org.terrier.querying.RM3")()
         self.fb_lambda = fb_lambda
         kwargs["qeclass"] = rm
@@ -269,7 +287,9 @@ class RM3(QueryExpansion):
 
 class AxiomaticQE(QueryExpansion):
     '''
-        Performs query expansion using axiomatic query expansion
+        Performs query expansion using axiomatic query expansion. This class relies on an external Terrier plugin, 
+        `terrier-prf <https://github.com/terrierteam/terrier-prf/>`_. You should start PyTerrier with 
+        `pt.init(boot_packages=["com.github.terrierteam:terrier-prf:-SNAPSHOT"])`.
     '''
     def __init__(self, *args, fb_terms=10, fb_docs=3, **kwargs):
         """
@@ -278,20 +298,7 @@ class AxiomaticQE(QueryExpansion):
             fb_terms(int): number of terms to add to the query. Terrier's default setting is 10 expansion terms.
             fb_docs(int): number of feedback documents to consider. Terrier's default setting is 3 feedback documents.
         """
-        global terrier_prf_package_loaded
-
-        #if not terrier_prf_package_loaded:
-        #    pt.extend_classpath("org.terrier:terrier-prf")
-        #    terrier_prf_package_loaded = True
-        #rm = pt.ApplicationSetup.getClass("org.terrier.querying.RM3").newInstance()
-        import jnius_config
-        prf_found = False
-        for j in jnius_config.get_classpath():
-            if "terrier-prf" in j:
-                prf_found = True
-                break
-        assert prf_found, 'terrier-prf jar not found: you should start Pyterrier with '\
-            + 'pt.init(boot_packages=["org.terrier:terrier-prf:0.0.1-SNAPSHOT"])'
+        _check_terrier_prf()
         rm = pt.autoclass("org.terrier.querying.AxiomaticQE")()
         self.fb_terms = fb_terms
         self.fb_docs = fb_docs
@@ -340,3 +347,65 @@ class _ResetDocs(TransformerBase):
             finaldf = querydf.merge(docsdf, on="qid")
             rtr.append(finaldf)
         return pd.concat(rtr)
+def linear(weightCurrent : float, weightPrevious : float, format="terrierql", **kwargs) -> TransformerBase:
+    """
+    Applied to make a linear combination of the current and previous query formulation. The implementation
+    is tied to the underlying query language used by the retrieval/re-ranker transformers. Two of Terrier's
+    query language formats are supported by the `format` kwarg, namely `"terrierql"` and `"matchoptql"`. 
+    Their exact respective formats are `detailed in the Terrier documentation <https://github.com/terrier-org/terrier-core/blob/5.x/doc/querylanguage.md>`_.
+
+    Args:
+        weightCurrent(float): weight to apply to the current query formulation.
+        weightPrevious(float): weight to apply to the previous query formulation.
+        format(str): which query language to use to rewrite the queries, one of "terrierql" or "matchopql".
+
+    Example::
+
+        pipeTQL = pt.apply.query(lambda row: "az") >> pt.rewrite.linear(0.75, 0.25, format="terrierql")
+        pipeMQL = pt.apply.query(lambda row: "az") >> pt.rewrite.linear(0.75, 0.25, format="matchopql")
+        pipeT.search("a")
+        pipeM.search("a")
+
+    Example outputs of `pipeTQL` and `pipeMQL` corresponding to the query "a" above:
+
+    - Terrier QL output: `"(az)^0.750000 (a)^0.250000"`
+    - MatchOp QL output: `"#combine:0:0.750000:1:0.250000(#combine(az) #combine(a))"`
+
+    """
+    return _LinearRewriteMix([weightCurrent, weightPrevious], format, **kwargs)
+
+class _LinearRewriteMix(TransformerBase):
+
+    def __init__(self, weights : List[float], format : str = 'terrierql', **kwargs):
+        super().__init__(**kwargs)
+        self.weights = weights
+        self.format = format
+        if format not in ["terrierql", "matchopql"]:
+            raise ValueError("Format must be one of 'terrierql', 'matchopql'")
+
+    def _terrierql(self, row):
+        return "(%s)^%f (%s)^%f" % (
+            row["query_0"],
+            self.weights[0],
+            row["query_1"],
+            self.weights[1])
+    
+    def _matchopql(self, row):
+        return "#combine:0:%f:1:%f(#combine(%s) #combine(%s))" % (
+            self.weights[0],
+            self.weights[1],
+            row["query_0"],
+            row["query_1"])
+
+    def transform(self, topics_and_res):
+        from .model import push_queries
+        
+        fn = None
+        if self.format == "terrierql":
+            fn = self._terrierql
+        elif self.format == "matchopql":
+            fn = self._matchopql
+
+        newDF = push_queries(topics_and_res)
+        newDF["query"] = newDF.apply(fn, axis=1)
+        return newDF

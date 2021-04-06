@@ -10,6 +10,7 @@ deprecation
 chest
 scipy
 requests
+joblib
 nptyping
 more_itertools
 ir_datasets>=0.3.2

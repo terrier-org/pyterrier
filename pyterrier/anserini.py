@@ -19,7 +19,7 @@ def _init_anserini():
         if "anserini" in j:
             anserini_found = True
             break
-    assert anserini_found, 'Anserini jar not found: you should start Pyterrier with '\
+    assert anserini_found, 'Anserini jar not found: you should start PyTerrier, e.g. with '\
         + 'pt.init(boot_packages=["io.anserini:anserini:0.9.2:fatjar"])'
     jnius_config.set_classpath = lambda x: x
     anserini_monkey = True
@@ -67,6 +67,25 @@ class AnseriniBatchRetrieve(BatchRetrieveBase):
         self.searcher = pysearch.SimpleSearcher(index_location)
         self.wmodel = wmodel
         self._setsimilarty(wmodel)
+
+    def __reduce__(self):
+        return (
+            self.__class__,
+            (self.index_location, self.k, self.wmodel),
+            self.__getstate__()
+        )
+
+    def __getstate__(self): 
+        return  {
+                'k' : self.k, 
+                'wmodel' : self.wmodel, 
+                'index_location' : self.index_location,
+                }
+
+    def __setstate__(self, d): 
+        self.k = d["k"]
+        self.wmodel = d["wmodel"]
+        self.index_location = d["index_location"]
 
     def _setsimilarty(self, wmodel):
         #commented lines are for anserini > 0.9.2

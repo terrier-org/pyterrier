@@ -27,6 +27,7 @@ IndexRef = None
 properties = None
 tqdm = None
 HOME_DIR = None
+init_args ={}
 
 def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, logging='WARN', home_dir=None, boot_packages=[], tqdm=None):
     """
@@ -143,6 +144,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     if redirect_io:
         # this ensures that the python stdout/stderr and the Java are matched
         redirect_stdouterr()
+    init_args["logging"] = logging
     _logging(logging)
     setup_jnius()
 
@@ -164,7 +166,17 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     globals()["IndexFactory"] = autoclass("org.terrier.structures.IndexFactory")
     globals()["IndexRef"] = autoclass("org.terrier.querying.IndexRef")
     globals()["IndexingType"] = IndexingType
-
+    
+    # we save the pt.init() arguments so that other processes,
+    # started by joblib or ray can booted with same options
+    init_args["version"] = version
+    init_args["mem"] = mem
+    init_args["packages"] = packages
+    init_args["jvm_opts"] = jvm_opts
+    init_args["redirect_io"] = redirect_io
+    init_args["home_dir"] = home_dir
+    init_args["boot_packages"] = boot_packages
+    init_args["tqdm"] = tqdm
     firstInit = True
 
 def set_tqdm(type):

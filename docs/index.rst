@@ -24,6 +24,7 @@ Welcome to PyTerrier's documentation!
    text
    neural
    terrier-index-api
+   parallel
    experiments/Robust04
 
 .. toctree::

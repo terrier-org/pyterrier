@@ -1,0 +1,77 @@
+from .transformer import TransformerBase
+import pandas as pd
+import pyterrier as pt
+
+SUPPORTED_BACKENDS=["joblib", "ray"]
+
+#see https://stackoverflow.com/a/55566003
+def _joblib_with_initializer(p, f_init):
+    # Overwrite initializer hook in the Loky ProcessPoolExecutor
+    # https://github.com/tomMoral/loky/blob/f4739e123acb711781e46581d5ed31ed8201c7a9/loky/process_executor.py#L850
+    hasattr(p._backend, '_workers') or p.__enter__()
+    if hasattr(p, 'with_initializer'):
+        return p
+    origin_init = p._backend._workers._initializer
+    def new_init():
+        origin_init()
+        f_init()
+    p.with_initializer=True
+    p._backend._workers._initializer = new_init if callable(origin_init) else f_init
+    return p
+
+def _pt_init(args):
+    import pyterrier as pt
+    if not pt.started():
+        pt.init(**args)
+    else:
+        from warnings import warn
+        warn("Avoiding reinit of PyTerrier")
+
+def _check_ray():
+    try:
+        import ray
+    except:
+        raise NotImplemented("ray is not installed. Run pip install ray")
+    if not ray.is_initialized():
+        raise ValueError("ray needs to be initialised. Run ray.init() first")
+
+class PoolParallelTransformer(TransformerBase):
+
+    def __init__(self, parent, n_jobs, backend='joblib', **kwargs):
+        super().__init__(**kwargs)
+        self.parent = parent
+        self.n_jobs = n_jobs
+        self.backend = backend
+        if self.backend not in SUPPORTED_BACKENDS:
+            raise ValueError("Backend of %s unknown, only %s supported." % str(SUPPORTED_BACKENDS))
+        if self.backend == 'ray':
+            _check_ray()
+
+    def _transform_joblib(self, splits):
+        from joblib import Parallel, delayed
+        with Parallel(n_jobs=self.n_jobs) as parallel:
+            results = _joblib_with_initializer(parallel, lambda: _pt_init(pt.init_args))(delayed(self.parent)(topics) for topics in splits)
+            return pd.concat(results)
+        
+    def _transform_ray(self, splits):
+        from ray.util.multiprocessing import Pool
+        with Pool(self.n_jobs, lambda: pt.init(**pt.init_args)) as pool:
+            results = pool.map(lambda topics : self.parent(topics), splits)
+            return pd.concat(results)
+
+    def transform(self, topics_and_res):
+        from .model import split_df
+        splits = split_df(topics_and_res, self.n_jobs)
+        
+        rtr = None
+        if self.backend == 'joblib':
+            rtr =  self._transform_joblib(splits)
+        if self.backend == 'ray':
+            rtr = self._transform_ray(splits)
+        return rtr
+
+    def __repr__(self):
+        return "PoolParallelTransformer("+self.parent.__repr__()+")"
+
+    def __str__(self):
+        return "PoolParallelTransformer("+str(self.parent)+")"
