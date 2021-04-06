@@ -311,9 +311,18 @@ class AxiomaticQE(QueryExpansion):
         return super().transform(queries_and_docs)
 
 def save_docs() -> TransformerBase:
+    """
+    Saves the current retrieved documents for each query into the column `"saved_docs_0"`,
+    thereby converting the retrieved documents dataframe into one of queries.
+
+    This process can be undone later by using a `pt.rewrite.reset_docs()` transformer.
+    """
     return _SaveDocs()
     
 def reset_docs() -> TransformerBase:
+    """
+    Applies a transformer that undoes a `pt.rewrite.save_docs()` transformer.
+    """
     return _ResetDocs()
 
 class _SaveDocs(TransformerBase):
@@ -347,6 +356,7 @@ class _ResetDocs(TransformerBase):
             finaldf = querydf.merge(docsdf, on="qid")
             rtr.append(finaldf)
         return pd.concat(rtr)
+
 def linear(weightCurrent : float, weightPrevious : float, format="terrierql", **kwargs) -> TransformerBase:
     """
     Applied to make a linear combination of the current and previous query formulation. The implementation

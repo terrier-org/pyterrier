@@ -117,9 +117,6 @@ Combining Query Formulations
 
 .. autofunction:: pyterrier.rewrite.linear
 
-
-
-
 Resetting the Query Formulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -127,6 +124,51 @@ The application of any query rewriting operation, including the apply transforme
 that includes the *input* formulation of the query in the `query_0` column, and the new reformulation in the `query` column. The
 previous query reformulation can be obtained by inclusion of a reset transformer in the pipeline.
 
-.. autofunction:: pyterrier.rewrite.reset
+.. autofunction:: pyterrier.rewrite.reset()
 
 
+Stashing the Documents
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Sometimes you want to apply a query rewriting function as a re-ranker, but your rewriting function uses a different document ranking.
+In this case, you can use `pt.rewrite.save_docs()` to stash the documents.
+
+.. autofunction:: pyterrier.rewrite.save_docs()
+
+.. autofunction:: pyterrier.rewrite.reset_docs()
+
+Example: Collection Enrichment as a re-ranker::
+
+    # index: the corpus you are ranking
+    # wiki_index: index of Wikipedia, used for enrichment
+
+    dph = pt.BatchRetrieve(index)
+    Pipe = dph 
+        >> pt.rewrite.save_docs()          
+        >> pt.BatchRetrieve(wiki_index)
+        >> pt.rewrite.RM3(wiki_index)
+        >> pt.rewrite.reset_docs()
+        >> dph
+
+In general, collection enrichment describes conducting a PRF query expansion process on an external corpus (often Wikipedia), 
+before applying the reformulated query to the main corpus. Collection enrichment can be used for improving a first pass 
+retrieval (`pt.BatchRetrieve(wiki_index) >> pt.rewrite.RM3(wiki_index) >> pt.BatchRetrieve(main_index)`). Instead, the particular 
+example shown above applies collection enrichment as a re-ranker.
+
+Summary of dataframe types:
+
++--------------+------------------+--------------------------------------+
+|output of     |dataframe contents|actual columns                        |
++==============+==================+======================================+
+|  dph         | R                |qid, query, docno, score              |
++--------------+------------------+--------------------------------------+
+|save_docs     |Q + "saved_docs_0"|qid, query, saved_docs_0              |
++--------------+------------------+--------------------------------------+
+|BatchRetrieve |R + "saved_docs_0"|qid, query, docno, score, saved_docs_0|
++--------------+------------------+--------------------------------------+
+|RM3           |Q + "saved_docs_0"|qid, query, query_0, saved_docs_0     |
++--------------+------------------+--------------------------------------+
+|restore_docs  |R                 |qid, query, docno, score, query_0     |
++--------------+------------------+--------------------------------------+
+|dph           |R                 |qid, query, docno, score, query_0     |
++--------------+------------------+--------------------------------------+
