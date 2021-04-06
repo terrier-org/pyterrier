@@ -1,5 +1,5 @@
 import pandas as pd
-from typing import Sequence
+from typing import List, Sequence
 
 # This file has useful methods for using the Pyterrier Pandas datamodel
 
@@ -144,3 +144,45 @@ def coerce_queries_dataframe(query):
             return pd.DataFrame(indexed_query, columns=['qid', 'query'])
     # catch-all when we dont recognise the type
     raise ValueError("Could not coerce %s (type %s) into a DataFrame of queries" % (str(query), str(type(query))))
+
+
+def split_df(df : pd.DataFrame, N) -> List[pd.DataFrame]:
+    """
+    splits a dataframe into N different chunks. Splitting will be sensitive to the primary datatype
+    of the dataframe (Q,R,D).
+    """
+    type = None
+    if "qid" in df.columns:
+        if "docno" in df.columns:
+            type = "R"
+        else:
+            type = "Q"
+    elif "docno" in df.columns:
+        type = "D"
+    else:
+        raise ValueError("Dataframe is not of type D,Q,R")
+    
+    from math import ceil
+
+    def chunks(df, n):
+        """Yield successive n-sized chunks from df."""
+        for i in range(0, len(df), n):
+            yield df.iloc[ i: min(len(df),i + n)]
+    
+    if type == "Q" or type == "D":         
+        splits = list( chunks(df, ceil(len(df)/N)))
+        return splits
+
+    rtr = []
+    grouper = df.groupby("qid")
+    this_group = []
+    chunk_size = ceil(len(grouper)/N)
+    for qid, group in grouper:
+        this_group.append(group)
+        if len(this_group) == chunk_size:
+            rtr.append(pd.concat(this_group))
+            this_group = []
+    if len(this_group) > 0:
+        rtr.append(pd.concat(this_group))
+    return rtr
+    

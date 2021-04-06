@@ -258,6 +258,8 @@ class Utils:
             qrels_dic = Utils.convert_qrels_to_dict(qrels)
         else:
             qrels_dic = qrels
+        if len(batch_retrieve_results_dict) == 0:
+            raise ValueError("No results for evaluation")
         req_metrics = set()
         cutdown = False
         for m in metrics:
@@ -271,7 +273,7 @@ class Utils:
                 req_metrics.add(m)
 
         evaluator = pytrec_eval.RelevanceEvaluator(qrels_dic, req_metrics)
-
+        
         result = evaluator.evaluate(batch_retrieve_results_dict)
         if perquery:
             if not cutdown:
@@ -306,7 +308,8 @@ class Utils:
 
     @staticmethod
     def mean_of_measures(result, measures=None):
-        import numpy as np
+        if len(result) == 0:
+            raise ValueError("No measures received - perhaps qrels and topics had no results in common")
         measures_sum = {}
         mean_dict = {}
         if measures is None:
