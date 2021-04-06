@@ -98,6 +98,11 @@ RM3
 .. autoclass:: pyterrier.rewrite.RM3
     :members: transform 
 
+References:
+ - Nasreen Abdul-Jaleel, James Allan, W Bruce Croft, Fernando Diaz, Leah Larkey, Xiaoyan Li, Mark D Smucker, and Courtney Wade. UMass at TREC 2004:
+ Novelty and HARD. In Proceedings of TREC 2004.
+   
+
 AxiomaticQE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
