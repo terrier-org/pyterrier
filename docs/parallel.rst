@@ -6,7 +6,7 @@ With large datasets, retrieval can sometimes take some time. To address this, Py
 Each Transformer has a `.parallel()` method, which parallelises the transformer.  Two backends are supported:
 
  - `'joblib'` - uses multiple processes on your current machine. Resources such as indices will be opened multiple times on your machine. Joblib is the default backend for parallelisation in PyTerrier.
- - `'ray'` - uses multiple processes on your machine or on other machines in the same cluster. Large indices will be reopened on each machine.
+ - `'ray'` - uses multiple processes on your machine or on other machines in the same cluster, orchestrated in a `Ray <https://ray.io>`_ cluster. Large indices will be reopened on each machine.
 
 Parallelisation occurs by partitioning dataframes and separating them across different processes. Partitioning depends on the type
 of the input dataframe:
@@ -14,6 +14,8 @@ of the input dataframe:
  - queries: partitioned by qid
  - documents: partitioned by docno
  - ranked documents: partitioned by qid
+
+NB: Parallelisation is an experimental features. Please let us know what works or what doesnt work using the `PyTerrier issue tracker <https://github.com/terrier-org/pyterrier/issues>`_.
 
 Parallelisation using Joblib
 ============================
@@ -51,7 +53,7 @@ may not be possible to pickle. Some standard PyTerrier transformers have additio
 Pure python transformers, such as `pt.text.sliding()` are picklable. However, parallelising only `pt.text.sliding()` may not produce
 efficiency gains, due to the overheads of shuffling data back and forward. 
 
-Entire transformer pipelines (i.e. combined using operators) can be pickled and parallelised. In general, you should only parallelise 
+Entire transformer pipelines (i.e. combined using operators) can be pickled and parallelised. In general, you should parallelise 
 the most inefficient component of your process, while also minimising the amount of data being transferred between processes. For instance,
 consider the following pipeline::
 
@@ -67,9 +69,10 @@ following semantically equivalent pipelines, we expect `parallel_pipe0`  and `pa
 
 
 There are of course overheads on paralllelisation - for instance, the Terrier index has to be loaded for *each* separate process, 
-so your machine(s) require enough memory. 
+so your machine(s) require enough memory. Shared resources such as GPU cards will need careful consideration - adding multiple processes
+accesssing the same resources will not increase speed and may add problems instead.
 
-Finally, we do not recommend parallelisation in resource constrained containerised environments such as Google Colab.
+Finally, we do not recommend parallelisation in resource-constrained containerised environments such as Google Colab.
 
 If you find PyTerrier transformers that do not parallelise and you think it should, please `raise an issue on the PyTerrier github repository <https://github.com/terrier-org/pyterrier/issues>`_.
 
@@ -77,4 +80,3 @@ Outlook
 =======
 
 We expect to integate parallelisation at different parts of the PyTerrier platform, such as for conducting a gridsearch. Moreover, we hope that proper integration of multi-threaded retrieval in pt.BatchRetrieve() (while requires upstream improvements in the underlying Terrier platform) will reduce the need for this form of parallelisation.
- 
