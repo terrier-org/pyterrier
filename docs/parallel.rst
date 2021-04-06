@@ -22,7 +22,7 @@ Parallelisation using Joblib
 
 A transformer pipeline can be parallelised by using the .parallel() transformer method::
 
-    dph = pt.BatchRetrieve(index, wmodel="DPH")
+    dph = pt.BatchRetrieve(index, wmodel='DPH')
     dph_fast = dph.parallel(2)
 
 In this way, any set of queries passed to dph_fast will be separated into two partitions, based on qid, and executed on dph.
@@ -36,8 +36,8 @@ a similar way as for joblib::
 
     import ray
     ray.init() #configure Ray as per your cluster setup
-    dph = pt.BatchRetrieve(index, wmodel="DPH")
-    dph_fast = dph.parallel(2, backend='ray)
+    dph = pt.BatchRetrieve(index, wmodel='DPH')
+    dph_fast = dph.parallel(2, backend='ray')
 
 In particular, `ray.init()` must have been called before calling `.parallel()`.
 
