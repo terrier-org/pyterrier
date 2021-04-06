@@ -309,7 +309,7 @@ class AxiomaticQE(QueryExpansion):
         self.qe.fbDocs = self.fb_docs
         return super().transform(queries_and_docs)
 
-def linear(weightNew : float, weightOrig : float, format="terrierql", **kwargs) -> TransformerBase:
+def linear(weightCurrent : float, weightPrevious : float, format="terrierql", **kwargs) -> TransformerBase:
     """
     Applied to make a linear combination of the current and previous query formulation. The implementation
     is tied to the underlying query language used by the retrieval/re-ranker transformers. Two of Terrier's
@@ -317,8 +317,8 @@ def linear(weightNew : float, weightOrig : float, format="terrierql", **kwargs) 
     Their exact respective formats are `detailed in the Terrier documentation <https://github.com/terrier-org/terrier-core/blob/5.x/doc/querylanguage.md>`_.
 
     Args:
-        weightNew(float): weight to apply to the current query formulation.
-        weightOrig(float): weight to apply to the previous query formulation.
+        weightCurrent(float): weight to apply to the current query formulation.
+        weightPrevious(float): weight to apply to the previous query formulation.
         format(str): which query language to use to rewrite the queries, one of "terrierql" or "matchopql".
 
     Example::
@@ -328,12 +328,13 @@ def linear(weightNew : float, weightOrig : float, format="terrierql", **kwargs) 
         pipeT.search("a")
         pipeM.search("a")
 
-    Example outputs:
-        Terrier QL output: `"(az)^0.750000 (a)^0.250000"`
-        MatchOp QL output: `"#combine:0:0.750000:1:0.250000(#combine(az) #combine(a))"`
+    Example outputs of `pipeTQL` and `pipeMQL` corresponding to the query "a" above:
+
+    - Terrier QL output: `"(az)^0.750000 (a)^0.250000"`
+    - MatchOp QL output: `"#combine:0:0.750000:1:0.250000(#combine(az) #combine(a))"`
 
     """
-    return _LinearRewriteMix([weightNew, weightOrig], format, **kwargs)
+    return _LinearRewriteMix([weightCurrent, weightPrevious], format, **kwargs)
 
 class _LinearRewriteMix(TransformerBase):
 
