@@ -76,5 +76,5 @@ If you find PyTerrier transformers that do not parallelise and you think it shou
 Outlook
 =======
 
-We expect to integate parallelisation at different parts of the PyTerrier platform, such as for conducting a gridearch. Moreover, we hope that proper integration of multi-threaded retrieval in pt.BatchRetrieve() (while requires upstream improvements in the underlying Terrier platform) will reduce the need for this form of parallelisation.
+We expect to integate parallelisation at different parts of the PyTerrier platform, such as for conducting a gridsearch. Moreover, we hope that proper integration of multi-threaded retrieval in pt.BatchRetrieve() (while requires upstream improvements in the underlying Terrier platform) will reduce the need for this form of parallelisation.
  
