@@ -164,6 +164,27 @@ class TestRewrite(BaseTestCase):
 
     #     self.assertAlmostEqual(map_qe, map_pipe, places=4)
 
+    def test_linear_terrierql(self):
+        pipe = pt.apply.query(lambda row: "az") >> pt.rewrite.linear(0.75, 0.25)
+        self.assertEqual(pipe[1].weights[0], 0.75)
+        self.assertEqual(pipe[1].weights[1], 0.25)
+        dfIn = pt.new.queries(["a"])
+        dfOut = pipe(dfIn)
+        self.assertEqual(1, len(dfIn))
+        self.assertEqual("az", dfOut.iloc[0]["query_0"])
+        self.assertEqual("a", dfOut.iloc[0]["query_1"])
+        self.assertEqual("(az)^0.750000 (a)^0.250000", dfOut.iloc[0]["query"])
+
+    def test_linear_matchopql(self):
+        pipe = pt.apply.query(lambda row: "az") >> pt.rewrite.linear(0.75, 0.25, format="matchopql")
+        self.assertEqual(pipe[1].weights[0], 0.75)
+        self.assertEqual(pipe[1].weights[1], 0.25)
+        dfIn = pt.new.queries(["a"])
+        dfOut = pipe(dfIn)
+        self.assertEqual(1, len(dfIn))
+        self.assertEqual("az", dfOut.iloc[0]["query_0"])
+        self.assertEqual("a", dfOut.iloc[0]["query_1"])
+        self.assertEqual("#combine:0:0.750000:1:0.250000(#combine(az) #combine(a))", dfOut.iloc[0]["query"])
 
     def test_qe(self):
         if not pt.check_version("5.3"):

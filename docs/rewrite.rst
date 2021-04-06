@@ -110,9 +110,16 @@ References:
  - Peilin Yang and Jimmy Lin, Reproducing and Generalizing Semantic Term Matching in Axiomatic Information Retrieval. In 
     Proceedings of ECIR 2019.
 
-Resetting the Query Formulation
+Combining Query Formulations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. autofunction:: pyterrier.rewrite.linear
+
+
+
+
+Resetting the Query Formulation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The application of any query rewriting operation, including the apply transformer, `pt.apply.query()`, will return a dataframe
 that includes the *input* formulation of the query in the `query_0` column, and the new reformulation in the `query` column. The

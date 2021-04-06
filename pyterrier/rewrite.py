@@ -5,6 +5,7 @@ from .batchretrieve import _parse_index_like
 from .transformer import TransformerBase, Symbol
 from . import tqdm
 from warnings import warn
+from typing import List
 
 TerrierQLParser = pt.autoclass("org.terrier.querying.TerrierQLParser")()
 TerrierQLToMatchingQueryTerms = pt.autoclass("org.terrier.querying.TerrierQLToMatchingQueryTerms")()
@@ -244,7 +245,6 @@ class KLQueryExpansion(DFRQueryExpansion):
         kwargs["qemodel"] = "KL"
         super().__init__(*args, **kwargs)
 
-
 class RM3(QueryExpansion):
     '''
         Performs query expansion using RM3 relevance models. RM3 relies on an external Terrier plugin, 
@@ -309,3 +309,64 @@ class AxiomaticQE(QueryExpansion):
         self.qe.fbDocs = self.fb_docs
         return super().transform(queries_and_docs)
 
+def linear(weightNew : float, weightOrig : float, format="terrierql", **kwargs) -> TransformerBase:
+    """
+    Applied to make a linear combination of the current and previous query formulation. The implementation
+    is tied to the underlying query language used by the retrieval/re-ranker transformers. Two of Terrier's
+    query language formats are supported by the `format` kwarg, namely `"terrierql"` and `"matchoptql"`. 
+    Their exact respective formats are `detailed in the Terrier documentation <https://github.com/terrier-org/terrier-core/blob/5.x/doc/querylanguage.md>`_.
+
+    Args:
+        weightNew(float): weight to apply to the current query formulation.
+        weightOrig(float): weight to apply to the previous query formulation.
+        format(str): which query language to use to rewrite the queries, one of "terrierql" or "matchopql".
+
+    Example::
+
+        pipeTQL = pt.apply.query(lambda row: "az") >> pt.rewrite.linear(0.75, 0.25, format="terrierql")
+        pipeMQL = pt.apply.query(lambda row: "az") >> pt.rewrite.linear(0.75, 0.25, format="matchopql")
+        pipeT.search("a")
+        pipeM.search("a")
+
+    Example outputs:
+        Terrier QL output: `"(az)^0.750000 (a)^0.250000"`
+        MatchOp QL output: `"#combine:0:0.750000:1:0.250000(#combine(az) #combine(a))"`
+
+    """
+    return _LinearRewriteMix([weightNew, weightOrig], format, **kwargs)
+
+class _LinearRewriteMix(TransformerBase):
+
+    def __init__(self, weights : List[float], format : str = 'terrierql', **kwargs):
+        super().__init__(**kwargs)
+        self.weights = weights
+        self.format = format
+        if format not in ["terrierql", "matchopql"]:
+            raise ValueError("Format must be one of 'terrierql', 'matchopql'")
+
+    def _terrierql(self, row):
+        return "(%s)^%f (%s)^%f" % (
+            row["query_0"],
+            self.weights[0],
+            row["query_1"],
+            self.weights[1])
+    
+    def _matchopql(self, row):
+        return "#combine:0:%f:1:%f(#combine(%s) #combine(%s))" % (
+            self.weights[0],
+            self.weights[1],
+            row["query_0"],
+            row["query_1"])
+
+    def transform(self, topics_and_res):
+        from .model import push_queries
+        
+        fn = None
+        if self.format == "terrierql":
+            fn = self._terrierql
+        elif self.format == "matchopql":
+            fn = self._matchopql
+
+        newDF = push_queries(topics_and_res)
+        newDF["query"] = newDF.apply(fn, axis=1)
+        return newDF
