@@ -57,13 +57,13 @@ There is a worked example in the [experiment notebook](examples/notebooks/experi
 
 # Pipelines
 
-Pyterrier makes it easy to develop complex retrieval pipelines using Python operators such as `>>` to chain different retrieval components. Each retrieval approach is a [transformer](https://pyterrier.readthedocs.io/en/latest/transformer.html), having one key method, `transform()`, which takes a single Pandas dataframe as input, and returns another dataframe. Two examples might encapsulate applying the sequential dependence model, or a query expansion process:
+PyTerrier makes it easy to develop complex retrieval pipelines using Python operators such as `>>` to chain different retrieval components. Each retrieval approach is a [transformer](https://pyterrier.readthedocs.io/en/latest/transformer.html), having one key method, `transform()`, which takes a single Pandas dataframe as input, and returns another dataframe. Two examples might encapsulate applying the sequential dependence model, or a query expansion process:
 ```python
 sdm_bm25 = pt.rewrite.SDM() >> pt.BatchRetrieve(indexref, wmodel="BM25")
 bo1_qe = BM25_br >> pt.rewrite.Bo1QueryExpansion() >> BM25_br
 ```
 
-There is documentation on [transformer operators](https://pyterrier.readthedocs.io/en/latest/operators.html) as well as  [example pipelines](https://pyterrier.readthedocs.io/en/latest/pipeline_examples.html) show other common use cases. For more information, see the [PyTerrier data model](https://pyterrier.readthedocs.io/en/latest/datamodel.html).
+There is documentation on [transformer operators](https://pyterrier.readthedocs.io/en/latest/operators.html) as well as [example pipelines](https://pyterrier.readthedocs.io/en/latest/pipeline_examples.html) show other common use cases. For more information, see the [PyTerrier data model](https://pyterrier.readthedocs.io/en/latest/datamodel.html).
 
 # Learning to Rank
 
@@ -91,7 +91,7 @@ You can index datasets that include a corpus using IterDictIndexer and get_corpu
 
 ```python
 dataset = pt.get_dataset('irds:cord19/trec-covid')
-indexer = pt.index.IterDictIndexer('./cord19-index')
+indexer = pt.IterDictIndexer('./cord19-index')
 index_ref = indexer.index(dataset.get_corpus_iter(), fields=('title', 'abstract'))
 ```
 
