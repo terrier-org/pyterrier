@@ -129,6 +129,10 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
         self.assertTrue(len(result) > 0)
         self.assertEqual(result.iloc[0]["features"].size, 1)
 
+        input = pd.DataFrame([["1", "Stability", "u1"]], columns=['qid', 'query', 'username'])
+        result = retr.transform(input)
+        self.assertIn("username", result.columns)
+
         retrBasic = pt.BatchRetrieve(indexref)
         if "matching" in retrBasic.controls:
             self.assertNotEqual(retrBasic.controls["matching"], "FatFeaturedScoringMatching,org.terrier.matching.daat.FatFull")

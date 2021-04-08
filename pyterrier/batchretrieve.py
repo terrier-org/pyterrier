@@ -239,8 +239,9 @@ class BatchRetrieve(BatchRetrieveBase):
                 rank += 1
                 results.append(res)
         res_dt = pd.DataFrame(results, columns=['qid', 'docid' ] + self.metadata + ['rank', 'score'])
-        # ensure to return the query
-        res_dt = res_dt.merge(queries[["qid", "query"]], on=["qid"])
+        # ensure to return the query and any other input columns
+        input_cols = queries.columns[ (queries.columns == "qid") | (~queries.columns.isin(res_dt.columns))]
+        res_dt = res_dt.merge(queries[input_cols], on=["qid"])
         return res_dt
         
     def __repr__(self):
@@ -547,6 +548,9 @@ class FeaturesBatchRetrieve(BatchRetrieve):
 
         res_dt = pd.DataFrame(results, columns=["qid", "query", "docid", "rank", "features"] + self.metadata)
         res_dt["score"] = newscores
+        # ensure to return the query and any other input columns
+        input_cols = queries.columns[ (queries.columns == "qid") | (~queries.columns.isin(res_dt.columns))]
+        res_dt = res_dt.merge(queries[input_cols], on=["qid"])
         return res_dt
 
     def __repr__(self):

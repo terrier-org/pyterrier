@@ -92,6 +92,33 @@ class TestRewrite(BaseTestCase):
         # number of docs in rtr1 and rtr2 should be equal
         self.assertEqual(len(rtr1), len(rtr2))
 
+        # check columns are passed through where we expect
+        pipeP3 = dph \
+            >> pt.rewrite.stash_results() \
+            >> pt.BatchRetrieve(index, wmodel="BM25")
+        res3 = pipeP3.search("chemical reactions")
+        self.assertIn("stashed_docs_0", res3.columns)
+        pipeP4 = dph \
+            >> pt.rewrite.stash_results() \
+            >> pt.BatchRetrieve(index, wmodel="BM25") \
+            >> pt.rewrite.Bo1QueryExpansion(index)
+        res4 = pipeP3.search("chemical reactions")
+        self.assertIn("stashed_docs_0", res4.columns)
+    
+    def test_save_docs_QE(self):
+        index = pt.get_dataset("vaswani").get_index()
+        dph = pt.BatchRetrieve(index, wmodel="DPH")
+        pipe = dph \
+            >> pt.rewrite.stash_results(clear=False) \
+            >> pt.rewrite.Bo1QueryExpansion(index) \
+            >> pt.rewrite.reset_results() \
+            >> dph
+        rtr1 = dph.search("chemical reactions")        
+        rtr2 = pipe.search("chemical reactions")
+        # Bo1 should be applied as a re-ranker, hence the
+        # number of docs in rtr1 and rtr2 should be equal
+        self.assertEqual(len(rtr1), len(rtr2))
+
     def test_reset_with_docs(self):
         inputDF = pt.new.ranked_documents([[1, 2], [2,0]])
         inputDF["query"] = ["one #1", "one #1", "one two #1", "one two #1"]
