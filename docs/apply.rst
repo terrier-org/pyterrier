@@ -15,26 +15,34 @@ model, as well as the appropriate apply method to use in each case. In general,
 if there is a one-to-one mapping between the input and the output, then the specific
 pt.apply methods should be used (i.e. `query()`, `doc_score()`, `.doc_features()`).
 If the cardinality of the dataframe changes through applying the transformer, 
-then `generic()` must be applied.
+then `generic()` or `by_query()` must be applied.
+
+In particular, through the use of `pt.apply.doc_score()`, any reranking method that can be expressed
+as a function of the text of the query and the text of the doucment can used as a reranker
+in a PyTerrier pipeline.
 
 Each apply method takes as input a function (e.g. a function name, or a lambda expression). 
 Objects that are passed to the function vary in terms of the type of the input dataframe 
 (queries or ranked documents), and also vary in terms of what should be returned by the 
 function.
 
-+-------+---------+-------------+------------------+---------------------------+----------------------+------------------+
-+ Input | Output  | Cardinality | Example          | Example apply             | Input type           | Return type      |
-+=======+=========+=============+==================+===========================+======================+==================+
-|   Q   |    Q    |   1 to 1    | Query rewriting  | `pt.apply.query()`        | row of one query     |  str             |
-+-------+---------+-------------+------------------+---------------------------+----------------------+------------------+
-| Q x D |  Q x D  |   1 to 1    | Re-ranking       | `pt.apply.doc_score()`    | row of one document  | float            |
-+-------+---------+-------------+------------------+---------------------------+----------------------+------------------+
-| Q x D |  Q x Df |   1 to 1    | Feature scoring  | `pt.apply.doc_features()` | row of one document  | numpy array      |
-+-------+---------+-------------+------------------+---------------------------+----------------------+------------------+
-| Q x D |    Q    |   N to 1    | Query expansion  | `pt.apply.generic()`      | entire dataframe     | entire dataframe |
-+-------+---------+-------------+------------------+---------------------------+----------------------+------------------+
-|   Q   |  Q x D  |   1 to N    | Retrieval        | `pt.apply.generic()`      | entire dataframe     | entire dataframe |
-+-------+---------+-------------+------------------+---------------------------+----------------------+------------------+
++-------+---------+-------------+------------------+---------------------------+----------------------+-----------------------+
++ Input | Output  | Cardinality | Example          | Example apply             | Function Input type  | Function Return type  |
++=======+=========+=============+==================+===========================+======================+=======================+
+|   Q   |    Q    |   1 to 1    | Query rewriting  | `pt.apply.query()`        | row of one query     |  str                  |
++-------+---------+-------------+------------------+---------------------------+----------------------+-----------------------+
+| Q x D |  Q x D  |   1 to 1    | Re-ranking       | `pt.apply.doc_score()`    | row of one document  | float                 |
++-------+---------+-------------+------------------+---------------------------+----------------------+-----------------------+
+| Q x D |  Q x Df |   1 to 1    | Feature scoring  | `pt.apply.doc_features()` | row of one document  | numpy array           |
++-------+---------+-------------+------------------+---------------------------+----------------------+-----------------------+
+| Q x D |    Q    |   N to 1    | Query expansion  | `pt.apply.generic()`      | entire dataframe     | entire dataframe      |
++       |         |             |                  +---------------------------+----------------------+-----------------------+
+|       |         |             |                  | `pt.apply.by_query()`     | dataframe for 1 query| dataframe for 1 query |
++-------+---------+-------------+------------------+---------------------------+----------------------+-----------------------+
+|   Q   |  Q x D  |   1 to N    | Retrieval        | `pt.apply.generic()`      | entire dataframe     | entire dataframe      |
++       |         |             |                  +---------------------------+----------------------+-----------------------+
+|       |         |             |                  | `pt.apply.by_query()`     | dataframe for 1 query| dataframe for 1 query |
++-------+---------+-------------+------------------+---------------------------+----------------------+-----------------------+
 
 In each case, the result from calling a pyterrier.apply method is another PyTerrier transformer 
 (i.e. extends TransformerBase), which can be used for experimentation or combined with other 
