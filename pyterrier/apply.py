@@ -1,4 +1,4 @@
-from typing import Callable, Any
+from typing import Callable, Any, Dict
 from .transformer import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyGenericTransformer, TransformerBase
 from nptyping import NDArray
 import numpy as np
@@ -54,7 +54,7 @@ def query(fn : Callable[..., str], *args, **kwargs) -> TransformerBase:
 
 def doc_score(fn : Callable[..., float], *args, **kwargs) -> TransformerBase:
     """
-        Create a transformer that takes as input query document pairs, and applies a supplied function to compute a new score.
+        Create a transformer that takes as input a ranked documents dataframe, and applies a supplied function to compute a new score.
         Ranks are automatically computed.
 
         The supplied function is called once for each document, and must return a float containing the new score for that document.
@@ -75,7 +75,7 @@ def doc_score(fn : Callable[..., float], *args, **kwargs) -> TransformerBase:
 
 def doc_features(fn : Callable[..., NDArray[Any]], *args, **kwargs) -> TransformerBase:
     """
-        Create a transformer that takes as input a query, and applies a supplied function to compute feature scores. 
+        Create a transformer that takes as input a ranked documents dataframe, and applies the supplied function to each document to compute feature scores. 
 
         The supplied function is called once for each document, must each time return a 1D numpy array.
         Each time it is called, the function is supplied with a Panda Series representing the attributes of the query and document.
@@ -102,11 +102,18 @@ def doc_features(fn : Callable[..., NDArray[Any]], *args, **kwargs) -> Transform
     """
     return ApplyDocFeatureTransformer(fn, *args, **kwargs)
 
-def by_query(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> TransformerBase:
+def rename(columns : Dict[str,str], *args, **kwargs):
     """
-        As `pt.apply.generic()` except that fn receives a dataframe for one query at at time.
+        Creates a transformer that renames columns in a dataframe. 
+
+        Args:
+            columns(dict): A dictionary mapping from old column name to new column name 
+
+        Example::
+            
+            pipe = pt.BatchRetrieve(index, metadata=["docno", "body"]) >> pt.apply.rename({'body':'text'})
     """
-    return ApplyForEachQuery(fn, *args, **kwargs)
+    return ApplyGenericTransformer(lambda df: df.rename(columns=columns), *args, **kwargs)
 
 def generic(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> TransformerBase:
     """
@@ -117,7 +124,7 @@ def generic(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> Tra
         for instance updating the rank column if the scores are amended.
 
         Arguments:
-        - fn(Callable): the function to apply to each row
+            fn(Callable): the function to apply to each row
 
         Example::
 
@@ -129,12 +136,19 @@ def generic(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> Tra
     """
     return ApplyGenericTransformer(fn, *args, **kwargs)
 
+def by_query(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> TransformerBase:
+    """
+        As `pt.apply.generic()` except that fn receives a dataframe for one query at at time, rather than all results at once.
+    """
+    return ApplyForEachQuery(fn, *args, **kwargs)
+
 class _apply:
 
     def __init__(self):
         _bind(self, lambda self, fn, *args, **kwargs : query(fn, *args, **kwargs), as_name='query')
         _bind(self, lambda self, fn, *args, **kwargs : doc_score(fn, *args, **kwargs), as_name='doc_score')
         _bind(self, lambda self, fn, *args, **kwargs : doc_features(fn, *args, **kwargs), as_name='doc_features')
+        _bind(self, lambda self, fn, *args, **kwargs : rename(fn, *args, **kwargs), as_name='rename')
         _bind(self, lambda self, fn, *args, **kwargs : by_query(fn, *args, **kwargs), as_name='by_query')
         _bind(self, lambda self, fn, *args, **kwargs : generic(fn, *args, **kwargs), as_name='generic')
     

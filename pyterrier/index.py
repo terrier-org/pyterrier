@@ -162,6 +162,22 @@ def treccollection2textgen(
         yield rtr
     
 
+def _TaggedDocumentSetup(meta, meta_tags):
+
+    abstract_tags=meta_tags.values()
+    abstract_names=meta_tags.keys()
+    abstract_lengths=[str(meta[name]) for name in abstract_names]
+
+    ApplicationSetup.setProperty("TaggedDocument.abstracts", ",".join(abstract_names))
+    # The tags from which to save the text. ELSE is special tag name, which means anything not consumed by other tags.
+    ApplicationSetup.setProperty("TaggedDocument.abstracts.tags", ",".join(abstract_tags))
+    # The max lengths of the abstracts. Abstracts will be cropped to this length. Defaults to empty.
+    ApplicationSetup.setProperty("TaggedDocument.abstracts.lengths", ",".join(abstract_lengths))
+    # Should the tags from which we create abstracts be case-sensitive
+    ApplicationSetup.setProperty("TaggedDocument.abstracts.tags.casesensitive", "false")
+
+
+
 def createAsList(files_path : List[str]):
     """
     Helper method to be used by child indexers to add files to Java List
@@ -730,17 +746,7 @@ class TRECCollectionIndexer(Indexer):
         index = self.createIndexer()
         asList = createAsList(files_path)
 
-        abstract_tags=self.meta_tags.values()
-        abstract_names=self.meta_tags.keys()
-        abstract_lengths=[str(self.meta[name]) for name in abstract_names]
-
-        ApplicationSetup.setProperty("TaggedDocument.abstracts", ",".join(abstract_names))
-        # The tags from which to save the text. ELSE is special tag name, which means anything not consumed by other tags.
-        ApplicationSetup.setProperty("TaggedDocument.abstracts.tags", ",".join(abstract_tags))
-        # The max lengths of the abstracts. Abstracts will be cropped to this length. Defaults to empty.
-        ApplicationSetup.setProperty("TaggedDocument.abstracts.lengths", ",".join(abstract_lengths))
-        # Should the tags from which we create abstracts be case-sensitive
-        ApplicationSetup.setProperty("TaggedDocument.abstracts.tags.casesensitive", "false")
+        _TaggedDocumentSetup(self.meta, self.meta_tags)
 
         colObj = createCollection(files_path, self.collection)
         collsArray = [colObj]
@@ -771,8 +777,11 @@ class FilesIndexer(Indexer):
 
     '''
 
-    def __init__(self, index_path, meta={"docno" : 20, "filename" : 512}, *args, **kwargs):
-        super().__init__(index_path, *args, meta, **kwargs)
+    def __init__(self, index_path, *args, meta={"docno" : 20, "filename" : 512}, meta_reverse=["docno"], meta_tags={}, **kwargs):
+        super().__init__(index_path, *args, **kwargs)
+        self.meta = meta
+        self.meta_reverse = meta_reverse
+        self.meta_tags = meta_tags
 
     def index(self, files_path):
         """
@@ -784,6 +793,8 @@ class FilesIndexer(Indexer):
         self.checkIndexExists()
         index = self.createIndexer()
         asList = createAsList(files_path)
+        _TaggedDocumentSetup(self.meta, self.meta_tags)
+        
         simpleColl = SimpleFileCollection(asList, False)
         index.index([simpleColl])
         global lastdoc

@@ -28,6 +28,15 @@ class TestCache(BaseTestCase):
         self.assertTrue("BlaB" in rtr.columns)
         self.assertEqual(rtr.iloc[0]["BlaB"], 2)
 
+    def test_rename_columns(self):
+        from pyterrier.transformer import TransformerBase
+        testDF = pd.DataFrame([["q1", "the bear and the wolf", 1]], columns=["qid", "query", "Bla"])
+        p = pt.apply.rename({'Bla' : "Bla2"})
+        self.assertTrue(isinstance(p, TransformerBase))
+        rtr = p(testDF)
+        self.assertTrue("Bla2" in rtr.columns)
+        self.assertFalse("Bla" in rtr.columns)
+
     def test_query_apply(self):
         stops=set(["and", "the"])
         origquery="the bear and the wolf"
