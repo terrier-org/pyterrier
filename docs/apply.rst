@@ -66,3 +66,16 @@ Apply Methods
 .. automodule:: pyterrier.apply
     :members:
 
+Making New Columns and Dropping Columns
+=======================================
+
+Its also possible to construct a transformer that makes a new column on a row-wise basis by directly naming the new column in pt.apply.
+
+For instance, if the column you are creating is called rank_2, it might be created as follows::
+
+    pipe = pt.BatchRetrieve(index) >> pt.apply.rank_2(lambda row: row["rank"] * 2)
+
+To create a transformer that drops a column, you can instead pass `drop=True` as a kwarg::
+
+    pipe = pt.BatchRetrieve(index, metadata=["docno", "text"] >> pt.text.scorer() >> pt.apply.text(drop=True)
+
