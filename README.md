@@ -65,6 +65,19 @@ bo1_qe = BM25_br >> pt.rewrite.Bo1QueryExpansion() >> BM25_br
 
 There is documentation on [transformer operators](https://pyterrier.readthedocs.io/en/latest/operators.html) as well as [example pipelines](https://pyterrier.readthedocs.io/en/latest/pipeline_examples.html) show other common use cases. For more information, see the [PyTerrier data model](https://pyterrier.readthedocs.io/en/latest/datamodel.html).
 
+# Neural Reranking and Dense Retrieval
+
+PyTerrier has additional plugins for BERT (through OpenNIR), T5, ColBERT, ANCE, DeepCT and doc2query.
+
+ - OpenNIR: [[Github](https://github.com/Georgetown-IR-Lab/OpenNIR)] [[Documentation](https://opennir.net/)]
+ - PyTerrier_ANCE: [[Github](https://github.com/terrierteam/pyterrier_ance)] - dense retrieval
+ - PyTerrier_ColBERT: [[Github](https://github.com/terrierteam/pyterrier_colbert)] - dense retrieval and/or neural reranking
+ - PyTerrier_T5: [[Github](https://github.com/terrierteam/pyterrier_t5)] - neural reranking
+ - PyTerrier_doc2query: [[Github](https://github.com/terrierteam/pyterrier_doc2query)] - neural augmented indexing
+ - PyTerrier_DeepCT: [[Github](https://github.com/terrierteam/pyterrier_deepct)] - neural augmented indexing
+
+You can see examples of how to use these, including notebooks that run on Google Colab, in the contents of our [ECIR 2021 tutorial](https://github.com/terrier-org/ecir2021tutorial).
+
 # Learning to Rank
 
 Complex learning to rank pipelines, including for learning-to-rank, can be constructed using PyTerrier's operator language. For example, to combine two features and make them available for learning, we can use the `**` operator.
