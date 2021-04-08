@@ -131,7 +131,8 @@ Stashing the Documents
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Sometimes you want to apply a query rewriting function as a re-ranker, but your rewriting function uses a different document ranking.
-In this case, you can use `pt.rewrite.stash_results()` to stash the documents.
+In this case, you can use `pt.rewrite.stash_results()` to stash the documents, so they can be recovered and re-ranked later using your
+rewritten query formulation.
 
 .. autofunction:: pyterrier.rewrite.stash_results()
 
@@ -139,8 +140,8 @@ In this case, you can use `pt.rewrite.stash_results()` to stash the documents.
 
 Example: Query Expansion as a re-ranker
 
-Some papers advocate for the use of query expansion (PRF) as a re-ranker. This can be attained in PyTerrier through use of
-`stash_results()` and `reset_results()`::
+Some papers `advocate <https://dl.acm.org/doi/10.1145/2808194.2809491>`_ for the use of query expansion (PRF) as a re-ranker. 
+This can be attained in PyTerrier through use of `stash_results()` and `reset_results()`::
 
     # index: the corpus you are ranking
 
@@ -151,6 +152,7 @@ Some papers advocate for the use of query expansion (PRF) as a re-ranker. This c
         >> pt.rewrite.reset_results()
         >> dph
 
+
 Summary of dataframe types:
 
 +--------------+--------------------+------------------------------------------+
@@ -158,15 +160,17 @@ Summary of dataframe types:
 +==============+====================+==========================================+
 |  dph         | R                  |qid, query, docno, score                  |
 +--------------+--------------------+------------------------------------------+
-|save_docs     |R + "stashed_docs_0"|qid, query, docno, score, stashed_docs_0  |
+|stash_results |R + "stashed_docs_0"|qid, query, docno, score, stashed_docs_0  |
 +--------------+--------------------+------------------------------------------+
 |RM3           |Q + "stashed_docs_0"|qid, query, query_0, stashed_docs_0       |
 +--------------+--------------------+------------------------------------------+
-|restore_docs  |R                   |qid, query, docno, score, query_0         |
+|reset_results |R                   |qid, query, docno, score, query_0         |
 +--------------+--------------------+------------------------------------------+
 |dph           |R                   |qid, query, docno, score, query_0         |
 +--------------+--------------------+------------------------------------------+
         
+Indeed, as we need RM3 to have the initial ranking of documents as input, we use `clear=False` as the kwarg
+to stash_results().
 
 Example: Collection Enrichment as a re-ranker::
 
@@ -186,6 +190,7 @@ before applying the reformulated query to the main corpus. Collection enrichment
 retrieval (`pt.BatchRetrieve(wiki_index) >> pt.rewrite.RM3(wiki_index) >> pt.BatchRetrieve(main_index)`). Instead, the particular 
 example shown above applies collection enrichment as a re-ranker.
 
+
 Summary of dataframe types:
 
 +--------------+------------------+----------------------------------------+
@@ -193,13 +198,16 @@ Summary of dataframe types:
 +==============+==================+========================================+
 |  dph         | R                |qid, query, docno, score                |
 +--------------+------------------+----------------------------------------+
-|save_docs     |Q + "saved_docs_0"|qid, query, saved_docs_0                |
+|stash_results |Q + "saved_docs_0"|qid, query, saved_docs_0                |
 +--------------+------------------+----------------------------------------+
 |BatchRetrieve |R + "saved_docs_0"|qid, query, docno, score, stashed_docs_0|
 +--------------+------------------+----------------------------------------+
 |RM3           |Q + "saved_docs_0"|qid, query, query_0, stashed_docs_0     |
 +--------------+------------------+----------------------------------------+
-|restore_docs  |R                 |qid, query, docno, score, query_0       |
+|reset_results |R                 |qid, query, docno, score, query_0       |
 +--------------+------------------+----------------------------------------+
 |dph           |R                 |qid, query, docno, score, query_0       |
 +--------------+------------------+----------------------------------------+
+
+In this example, we have a BatchRetrieve instance executed on the wiki_index before RM3, so we clear the
+document ranking columns when using stash_results().
