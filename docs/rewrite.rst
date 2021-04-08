@@ -131,11 +131,42 @@ Stashing the Documents
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Sometimes you want to apply a query rewriting function as a re-ranker, but your rewriting function uses a different document ranking.
-In this case, you can use `pt.rewrite.save_docs()` to stash the documents.
+In this case, you can use `pt.rewrite.stash_results()` to stash the documents.
 
-.. autofunction:: pyterrier.rewrite.save_docs()
+.. autofunction:: pyterrier.rewrite.stash_results()
 
-.. autofunction:: pyterrier.rewrite.reset_docs()
+.. autofunction:: pyterrier.rewrite.reset_results()
+
+Example: Query Expansion as a re-ranker
+
+Some papers advocate for the use of query expansion (PRF) as a re-ranker. This can be attained in PyTerrier through use of
+`stash_results()` and `reset_results()`::
+
+    # index: the corpus you are ranking
+
+    dph = pt.BatchRetrieve(index)
+    Pipe = dph 
+        >> pt.rewrite.stash_results(clear=False)
+        >> pt.rewrite.RM3(index)
+        >> pt.rewrite.reset_results()
+        >> dph
+
+Summary of dataframe types:
+
++--------------+--------------------+------------------------------------------+
+|output of     |dataframe contents  |actual columns                            |
++==============+====================+==========================================+
+|  dph         | R                  |qid, query, docno, score                  |
++--------------+--------------------+------------------------------------------+
+|save_docs     |R + "stashed_docs_0"|qid, query, docno, score, stashed_docs_0  |
++--------------+--------------------+------------------------------------------+
+|RM3           |Q + "stashed_docs_0"|qid, query, query_0, stashed_docs_0       |
++--------------+--------------------+------------------------------------------+
+|restore_docs  |R                   |qid, query, docno, score, query_0         |
++--------------+--------------------+------------------------------------------+
+|dph           |R                   |qid, query, docno, score, query_0         |
++--------------+--------------------+------------------------------------------+
+        
 
 Example: Collection Enrichment as a re-ranker::
 
@@ -157,18 +188,18 @@ example shown above applies collection enrichment as a re-ranker.
 
 Summary of dataframe types:
 
-+--------------+------------------+--------------------------------------+
-|output of     |dataframe contents|actual columns                        |
-+==============+==================+======================================+
-|  dph         | R                |qid, query, docno, score              |
-+--------------+------------------+--------------------------------------+
-|save_docs     |Q + "saved_docs_0"|qid, query, saved_docs_0              |
-+--------------+------------------+--------------------------------------+
-|BatchRetrieve |R + "saved_docs_0"|qid, query, docno, score, saved_docs_0|
-+--------------+------------------+--------------------------------------+
-|RM3           |Q + "saved_docs_0"|qid, query, query_0, saved_docs_0     |
-+--------------+------------------+--------------------------------------+
-|restore_docs  |R                 |qid, query, docno, score, query_0     |
-+--------------+------------------+--------------------------------------+
-|dph           |R                 |qid, query, docno, score, query_0     |
-+--------------+------------------+--------------------------------------+
++--------------+------------------+----------------------------------------+
+|output of     |dataframe contents|actual columns                          |
++==============+==================+========================================+
+|  dph         | R                |qid, query, docno, score                |
++--------------+------------------+----------------------------------------+
+|save_docs     |Q + "saved_docs_0"|qid, query, saved_docs_0                |
++--------------+------------------+----------------------------------------+
+|BatchRetrieve |R + "saved_docs_0"|qid, query, docno, score, stashed_docs_0|
++--------------+------------------+----------------------------------------+
+|RM3           |Q + "saved_docs_0"|qid, query, query_0, stashed_docs_0     |
++--------------+------------------+----------------------------------------+
+|restore_docs  |R                 |qid, query, docno, score, query_0       |
++--------------+------------------+----------------------------------------+
+|dph           |R                 |qid, query, docno, score, query_0       |
++--------------+------------------+----------------------------------------+

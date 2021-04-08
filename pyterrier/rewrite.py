@@ -310,49 +310,71 @@ class AxiomaticQE(QueryExpansion):
         self.qe.fbDocs = self.fb_docs
         return super().transform(queries_and_docs)
 
-def save_docs() -> TransformerBase:
+def stash_results(clear=True) -> TransformerBase:
     """
-    Saves the current retrieved documents for each query into the column `"saved_docs_0"`,
-    thereby converting the retrieved documents dataframe into one of queries.
+    Stashes (saves) the current retrieved documents for each query into the column `"stashed_docs_0"`.
+    This means that they can be restored later by using `pt.rewrite.reset_results()`.
+    thereby converting a retrieved documents dataframe into one of queries.
 
-    This process can be undone later by using a `pt.rewrite.reset_docs()` transformer.
+    Args: 
+    clear(bool): whether to drop the document and retrieved document related columns. Defaults to True.
+
     """
-    return _SaveDocs()
+    return _StashResults(clear)
     
-def reset_docs() -> TransformerBase:
+def reset_results() -> TransformerBase:
     """
-    Applies a transformer that undoes a `pt.rewrite.save_docs()` transformer.
+    Applies a transformer that undoes a `pt.rewrite.stash_results()` transformer, thereby restoring the
+    ranked documents.
     """
-    return _ResetDocs()
+    return _ResetResults()
 
-class _SaveDocs(TransformerBase):
+class _StashResults(TransformerBase):
+
+    def __init__(self, clear, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.clear = clear
 
     def transform(self, topics_and_res: pd.DataFrame) -> pd.DataFrame:
         from .model import document_columns, query_columns
-        if "saved_docs_0" in topics_and_res:
-            raise ValueError("Cannot apply pt.rewrite.save_docs() more than once")
+        if "stashed_docs_0" in topics_and_res.columns:
+            raise ValueError("Cannot apply pt.rewrite.stash_results() more than once")
         doc_cols = document_columns(topics_and_res)
-        query_cols = query_columns(topics_and_res)
+        
         rtr =  []
-        for qid, groupDf in topics_and_res.groupby("qid"):
-            documentsDF = groupDf[doc_cols]
-            queryDf = groupDf[query_cols].iloc[0]
-            queryDict = queryDf.to_dict()
-            queryDict["saved_docs_0"] = documentsDF.to_dict(orient='records')
-            rtr.append(queryDict)
-        return pd.DataFrame(rtr)
+        if self.clear:
+            query_cols = query_columns(topics_and_res)            
+            for qid, groupDf in topics_and_res.groupby("qid"):
+                documentsDF = groupDf[doc_cols]
+                queryDf = groupDf[query_cols].iloc[0]
+                queryDict = queryDf.to_dict()
+                queryDict["stashed_docs_0"] = documentsDF.to_dict(orient='records')
+                rtr.append(queryDict)
+            return pd.DataFrame(rtr)
+        else:
+            for qid, groupDf in topics_and_res.groupby("qid"):
+                groupDf = groupDf.reset_index().copy()
+                documentsDF = groupDf[doc_cols]
+                docsDict = documentsDF.to_dict(orient='records')
+                groupDf["stashed_docs_0"] = None
+                for i in range(len(groupDf)):
+                    groupDf.at[i, "stashed_docs_0"] = docsDict
+                rtr.append(groupDf)
+            return pd.concat(rtr)        
 
-class _ResetDocs(TransformerBase):
+class _ResetResults(TransformerBase):
 
     def transform(self, topics_with_saved_docs : pd.DataFrame) -> pd.DataFrame:
+        if not "stashed_docs_0" in topics_with_saved_docs.columns:
+            raise ValueError("Cannot apply pt.rewrite.reset_results() without pt.rewrite.stash_results() - column stashed_docs_0 not found")
         from .model import query_columns
         query_cols = query_columns(topics_with_saved_docs)
         rtr = []
         for row in topics_with_saved_docs.itertuples():
-            docsdf = pd.DataFrame.from_records(row.saved_docs_0)
+            docsdf = pd.DataFrame.from_records(row.stashed_docs_0)
             docsdf["qid"] = row.qid
             querydf = pd.DataFrame(data=[row])
-            querydf.drop("saved_docs_0", axis=1, inplace=True)
+            querydf.drop("stashed_docs_0", axis=1, inplace=True)
             finaldf = querydf.merge(docsdf, on="qid")
             rtr.append(finaldf)
         return pd.concat(rtr)
