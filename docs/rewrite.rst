@@ -131,8 +131,8 @@ Stashing the Documents
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Sometimes you want to apply a query rewriting function as a re-ranker, but your rewriting function uses a different document ranking.
-In this case, you can use `pt.rewrite.stash_results()` to stash the documents, so they can be recovered and re-ranked later using your
-rewritten query formulation.
+In this case, you can use `pt.rewrite.stash_results()` to stash the retrieved documents for each query, so they can be recovered and 
+re-ranked later using your rewritten query formulation.
 
 .. autofunction:: pyterrier.rewrite.stash_results()
 
