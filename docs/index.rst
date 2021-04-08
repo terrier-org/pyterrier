@@ -36,7 +36,16 @@ Welcome to PyTerrier's documentation!
    anserini
    new
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Other PyTerrier plugins
 
+   OpenNIR <https://opennir.net/>
+   PyTerrier_T5 <https://github.com/terrierteam/pyterrier_t5>
+   PyTerrier_ColBERT <https://github.com/terrierteam/pyterrier_colbert>
+   PyTerrier_ANCE <https://github.com/terrierteam/pyterrier_ance>
+   PyTerrier_doc2query <https://github.com/terrierteam/pyterrier_doc2query>
+   PyTerrier_DeepCT <https://github.com/terrierteam/pyterrier_deepct>
 
 Indices and tables
 ==================
