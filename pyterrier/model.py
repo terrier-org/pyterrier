@@ -60,7 +60,7 @@ def query_columns(df : pd.DataFrame, qid=True) -> Sequence[str]:
     for c in columns:
         if query_col_re.search(c):
             rtr.append(c)
-    saved_docs_col_re = re.compile('^stashed_docs_[\\d]+')
+    saved_docs_col_re = re.compile('^stashed_results_[\\d]+')
     for c in columns:
         if saved_docs_col_re.search(c):
             rtr.append(c)

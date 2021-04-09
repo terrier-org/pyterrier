@@ -155,19 +155,19 @@ This can be attained in PyTerrier through use of `stash_results()` and `reset_re
 
 Summary of dataframe types:
 
-+--------------+--------------------+------------------------------------------+
-|output of     |dataframe contents  |actual columns                            |
-+==============+====================+==========================================+
-|  dph         | R                  |qid, query, docno, score                  |
-+--------------+--------------------+------------------------------------------+
-|stash_results |R + "stashed_docs_0"|qid, query, docno, score, stashed_docs_0  |
-+--------------+--------------------+------------------------------------------+
-|RM3           |Q + "stashed_docs_0"|qid, query, query_0, stashed_docs_0       |
-+--------------+--------------------+------------------------------------------+
-|reset_results |R                   |qid, query, docno, score, query_0         |
-+--------------+--------------------+------------------------------------------+
-|dph           |R                   |qid, query, docno, score, query_0         |
-+--------------+--------------------+------------------------------------------+
++--------------+------------------------+---------------------------------------------+
+|output of     |dataframe contents      |actual columns                               |
++==============+========================+=============================================+
+|  dph         | R                      |qid, query, docno, score                     |
++--------------+------------------------+---------------------------------------------+
+|stash_results |R + "stashed_results_0" |qid, query, docno, score, stashed_results_0  |
++--------------+--------------------+-------------------------------------------------+
+|RM3           |Q + "stashed_results_0" |qid, query, query_0, stashed_results_0       |
++--------------+------------------------+---------------------------------------------+
+|reset_results |R                       |qid, query, docno, score, query_0            |
++--------------+------------------------+---------------------------------------------+
+|dph           |R                       |qid, query, docno, score, query_0            |
++--------------+------------------------+---------------------------------------------+
         
 Indeed, as we need RM3 to have the initial ranking of documents as input, we use `clear=False` as the kwarg
 to stash_results().
@@ -179,10 +179,10 @@ Example: Collection Enrichment as a re-ranker::
 
     dph = pt.BatchRetrieve(index)
     Pipe = dph 
-        >> pt.rewrite.save_docs()          
+        >> pt.rewrite.stash_results()          
         >> pt.BatchRetrieve(wiki_index)
         >> pt.rewrite.RM3(wiki_index)
-        >> pt.rewrite.reset_docs()
+        >> pt.rewrite.reset_results()
         >> dph
 
 In general, collection enrichment describes conducting a PRF query expansion process on an external corpus (often Wikipedia), 
@@ -193,21 +193,21 @@ example shown above applies collection enrichment as a re-ranker.
 
 Summary of dataframe types:
 
-+--------------+------------------+----------------------------------------+
-|output of     |dataframe contents|actual columns                          |
-+==============+==================+========================================+
-|  dph         | R                |qid, query, docno, score                |
-+--------------+------------------+----------------------------------------+
-|stash_results |Q + "saved_docs_0"|qid, query, saved_docs_0                |
-+--------------+------------------+----------------------------------------+
-|BatchRetrieve |R + "saved_docs_0"|qid, query, docno, score, stashed_docs_0|
-+--------------+------------------+----------------------------------------+
-|RM3           |Q + "saved_docs_0"|qid, query, query_0, stashed_docs_0     |
-+--------------+------------------+----------------------------------------+
-|reset_results |R                 |qid, query, docno, score, query_0       |
-+--------------+------------------+----------------------------------------+
-|dph           |R                 |qid, query, docno, score, query_0       |
-+--------------+------------------+----------------------------------------+
++--------------+-----------------------+-------------------------------------------+
+|output of     |dataframe contents     |actual columns                             |
++==============+=======================+===========================================+
+|  dph         | R                     |qid, query, docno, score                   |
++--------------+-----------------------+-------------------------------------------+
+|stash_results |Q + "stashed_results_0"|qid, query, saved_docs_0                   |
++--------------+-----------------------+-------------------------------------------+
+|BatchRetrieve |R + "stashed_results_0"|qid, query, docno, score, stashed_results_0|
++--------------+-----------------------+-------------------------------------------+
+|RM3           |Q + "stashed_results_0"|qid, query, query_0, stashed_results_0     |
++--------------+-----------------------+-------------------------------------------+
+|reset_results |R                      |qid, query, docno, score, query_0          |
++--------------+-----------------------+-------------------------------------------+
+|dph           |R                      |qid, query, docno, score, query_0          |
++--------------+-----------------------+-------------------------------------------+
 
 In this example, we have a BatchRetrieve instance executed on the wiki_index before RM3, so we clear the
-document ranking columns when using stash_results().
+document ranking columns when using `stash_results()`.

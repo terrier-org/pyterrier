@@ -8,9 +8,9 @@ class TestModel(BaseTestCase):
         df1 = pt.new.ranked_documents([[1, 2], [2,0]], query=[["a a", "a a"], ["b b", "b b"]])
         df2 = pt.model.ranked_documents_to_queries(df1)
         self.assertEqual(set(['qid', 'query']), set(df2.columns))
-        df1 = pt.new.ranked_documents([[1, 2], [2,0]], query=[["a a", "a a"], ["b b", "b b"]], stashed_docs_0=[[1,1],[1,1,]])
+        df1 = pt.new.ranked_documents([[1, 2], [2,0]], query=[["a a", "a a"], ["b b", "b b"]], stashed_results_0=[[1,1],[1,1,]])
         df2 = pt.model.ranked_documents_to_queries(df1)
-        self.assertEqual(set(['qid', 'query', 'stashed_docs_0']), set(df2.columns))        
+        self.assertEqual(set(['qid', 'query', 'stashed_results_0']), set(df2.columns))        
 
     def test_doc_cols(self):
         df = pt.new.queries(["q1", "q2"])

@@ -22,17 +22,17 @@ class TestRewrite(BaseTestCase):
         inputDF = pt.new.ranked_documents([[1, 2], [2,0]], query=[["a", "a"], ["b", "b"]])
         savedDF = pt.rewrite.stash_results(clear=False)(inputDF)
         self.assertEqual(4, len(savedDF))
-        self.assertIn("stashed_docs_0", savedDF.columns)
+        self.assertIn("stashed_results_0", savedDF.columns)
         self.assertIn("qid", savedDF.columns)
         self.assertIn("docno", savedDF.columns)
         self.assertIn("score", savedDF.columns)
         self.assertIn("query", savedDF.columns)
 
-        stasheddocs_q1 = savedDF.iloc[0]["stashed_docs_0"]
+        stasheddocs_q1 = savedDF.iloc[0]["stashed_results_0"]
         self.assertEqual(2, len(stasheddocs_q1))
         self.assertEqual(savedDF.iloc[0]["qid"], stasheddocs_q1[0]["qid"])
 
-        stasheddocs_q2 = savedDF.iloc[3]["stashed_docs_0"]
+        stasheddocs_q2 = savedDF.iloc[3]["stashed_results_0"]
         self.assertEqual(2, len(stasheddocs_q2))
         self.assertEqual(savedDF.iloc[3]["qid"], stasheddocs_q2[0]["qid"])
 
@@ -41,10 +41,10 @@ class TestRewrite(BaseTestCase):
         inputDF = pt.new.ranked_documents([[1, 2], [2,0]], query=[["a", "a"], ["b", "b"]])
         savedDF = pt.rewrite.stash_results()(inputDF)
         self.assertEqual(2, len(savedDF))
-        self.assertIn("stashed_docs_0", savedDF.columns)
+        self.assertIn("stashed_results_0", savedDF.columns)
 
         savedQueryDF = pt.apply.query(lambda row: row["query"] + " 1")(savedDF)
-        self.assertIn("stashed_docs_0", savedQueryDF.columns)
+        self.assertIn("stashed_results_0", savedQueryDF.columns)
         self.assertIn("qid", savedQueryDF.columns)
         self.assertIn("query", savedQueryDF.columns)
         self.assertIn("query_0", savedQueryDF.columns)
@@ -61,10 +61,10 @@ class TestRewrite(BaseTestCase):
         inputDF = pt.new.ranked_documents([[1, 2], [2,0]], query=[["a a", "a a"], ["b b", "b b"]])
         savedDF = pt.rewrite.stash_results()(inputDF)
         self.assertEqual(2, len(savedDF))
-        self.assertIn("stashed_docs_0", savedDF.columns)
+        self.assertIn("stashed_results_0", savedDF.columns)
 
         savedQueryDF = pt.rewrite.SDM()(savedDF)
-        self.assertIn("stashed_docs_0", savedQueryDF.columns)
+        self.assertIn("stashed_results_0", savedQueryDF.columns)
         self.assertIn("qid", savedQueryDF.columns)
         self.assertIn("query", savedQueryDF.columns)
         self.assertIn("query_0", savedQueryDF.columns)
@@ -97,13 +97,13 @@ class TestRewrite(BaseTestCase):
             >> pt.rewrite.stash_results() \
             >> pt.BatchRetrieve(index, wmodel="BM25")
         res3 = pipeP3.search("chemical reactions")
-        self.assertIn("stashed_docs_0", res3.columns)
+        self.assertIn("stashed_results_0", res3.columns)
         pipeP4 = dph \
             >> pt.rewrite.stash_results() \
             >> pt.BatchRetrieve(index, wmodel="BM25") \
             >> pt.rewrite.Bo1QueryExpansion(index)
         res4 = pipeP3.search("chemical reactions")
-        self.assertIn("stashed_docs_0", res4.columns)
+        self.assertIn("stashed_results_0", res4.columns)
     
     def test_save_docs_QE(self):
         index = pt.get_dataset("vaswani").get_index()

@@ -312,7 +312,7 @@ class AxiomaticQE(QueryExpansion):
 
 def stash_results(clear=True) -> TransformerBase:
     """
-    Stashes (saves) the current retrieved documents for each query into the column `"stashed_docs_0"`.
+    Stashes (saves) the current retrieved documents for each query into the column `"stashed_results_0"`.
     This means that they can be restored later by using `pt.rewrite.reset_results()`.
     thereby converting a retrieved documents dataframe into one of queries.
 
@@ -337,7 +337,7 @@ class _StashResults(TransformerBase):
 
     def transform(self, topics_and_res: pd.DataFrame) -> pd.DataFrame:
         from .model import document_columns, query_columns
-        if "stashed_docs_0" in topics_and_res.columns:
+        if "stashed_results_0" in topics_and_res.columns:
             raise ValueError("Cannot apply pt.rewrite.stash_results() more than once")
         doc_cols = document_columns(topics_and_res)
         
@@ -348,7 +348,7 @@ class _StashResults(TransformerBase):
                 documentsDF = groupDf[doc_cols]
                 queryDf = groupDf[query_cols].iloc[0]
                 queryDict = queryDf.to_dict()
-                queryDict["stashed_docs_0"] = documentsDF.to_dict(orient='records')
+                queryDict["stashed_results_0"] = documentsDF.to_dict(orient='records')
                 rtr.append(queryDict)
             return pd.DataFrame(rtr)
         else:
@@ -356,25 +356,25 @@ class _StashResults(TransformerBase):
                 groupDf = groupDf.reset_index().copy()
                 documentsDF = groupDf[doc_cols]
                 docsDict = documentsDF.to_dict(orient='records')
-                groupDf["stashed_docs_0"] = None
+                groupDf["stashed_results_0"] = None
                 for i in range(len(groupDf)):
-                    groupDf.at[i, "stashed_docs_0"] = docsDict
+                    groupDf.at[i, "stashed_results_0"] = docsDict
                 rtr.append(groupDf)
             return pd.concat(rtr)        
 
 class _ResetResults(TransformerBase):
 
     def transform(self, topics_with_saved_docs : pd.DataFrame) -> pd.DataFrame:
-        if not "stashed_docs_0" in topics_with_saved_docs.columns:
-            raise ValueError("Cannot apply pt.rewrite.reset_results() without pt.rewrite.stash_results() - column stashed_docs_0 not found")
+        if not "stashed_results_0" in topics_with_saved_docs.columns:
+            raise ValueError("Cannot apply pt.rewrite.reset_results() without pt.rewrite.stash_results() - column stashed_results_0 not found")
         from .model import query_columns
         query_cols = query_columns(topics_with_saved_docs)
         rtr = []
         for row in topics_with_saved_docs.itertuples():
-            docsdf = pd.DataFrame.from_records(row.stashed_docs_0)
+            docsdf = pd.DataFrame.from_records(row.stashed_results_0)
             docsdf["qid"] = row.qid
             querydf = pd.DataFrame(data=[row])
-            querydf.drop("stashed_docs_0", axis=1, inplace=True)
+            querydf.drop("stashed_results_0", axis=1, inplace=True)
             finaldf = querydf.merge(docsdf, on="qid")
             rtr.append(finaldf)
         return pd.concat(rtr)
