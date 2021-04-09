@@ -342,9 +342,12 @@ class TextIndexProcessor(TransformerBase):
             # as this is a new index, docids are not meaningful externally, so lets drop them
             inner_res.drop(columns=['docid'], inplace=True)
 
+            topics_columns = topics_and_res.columns[(topics_and_res.columns.isin(["qid", "docno"])) | (~topics_and_res.columns.isin(inner_res.columns))]
             if len(inner_res) < len(topics_and_res):
-                inner_res = topics_and_res[["qid", "docno"]].merge(inner_res, on=["qid", "docno"], how="left")
+                inner_res = topics_and_res[topics_columns].merge(inner_res, on=["qid", "docno"], how="left")
                 inner_res["score"] = inner_res["score"].fillna(value=0)
+            else:
+                inner_res = topics_and_res[ topics_columns ].merge(inner_res, on=["qid", "docno"])
         elif self.returns == "queries":
             if len(inner_res) < len(topics):
                 inner_res = topics.merge(on=["qid"], how="left")

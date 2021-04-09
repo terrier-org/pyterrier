@@ -65,6 +65,7 @@ class TestScoring(BaseTestCase):
         rtr = scorer(input)
         self.assertEqual(1, len(rtr))
         self.assertTrue("score" in rtr.columns)
+        self.assertTrue("body" in rtr.columns)
         self.assertEqual(0, rtr.iloc[0]["score"])
 
     def test_scoring_manual(self):
@@ -74,6 +75,7 @@ class TestScoring(BaseTestCase):
         rtr = scorer(input)
         self.assertEqual(1, len(rtr))
         self.assertTrue("score" in rtr.columns)
+        self.assertTrue("body" in rtr.columns)
         self.assertEqual(2, rtr.iloc[0]["score"])
 
         scorer = TextScorer(wmodel="org.terrier.python.TestModel$TFOverN")
