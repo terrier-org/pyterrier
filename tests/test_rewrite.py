@@ -18,6 +18,107 @@ class TestRewrite(BaseTestCase):
         # Remove the directory after the test
         shutil.rmtree(self.test_dir)
 
+    def test_stash_results_noclear(self):
+        inputDF = pt.new.ranked_documents([[1, 2], [2,0]], query=[["a", "a"], ["b", "b"]])
+        savedDF = pt.rewrite.stash_results(clear=False)(inputDF)
+        self.assertEqual(4, len(savedDF))
+        self.assertIn("stashed_results_0", savedDF.columns)
+        self.assertIn("qid", savedDF.columns)
+        self.assertIn("docno", savedDF.columns)
+        self.assertIn("score", savedDF.columns)
+        self.assertIn("query", savedDF.columns)
+
+        stasheddocs_q1 = savedDF.iloc[0]["stashed_results_0"]
+        self.assertEqual(2, len(stasheddocs_q1))
+        self.assertEqual(savedDF.iloc[0]["qid"], stasheddocs_q1[0]["qid"])
+
+        stasheddocs_q2 = savedDF.iloc[3]["stashed_results_0"]
+        self.assertEqual(2, len(stasheddocs_q2))
+        self.assertEqual(savedDF.iloc[3]["qid"], stasheddocs_q2[0]["qid"])
+
+
+    def test_stash_results(self):
+        inputDF = pt.new.ranked_documents([[1, 2], [2,0]], query=[["a", "a"], ["b", "b"]])
+        savedDF = pt.rewrite.stash_results()(inputDF)
+        self.assertEqual(2, len(savedDF))
+        self.assertIn("stashed_results_0", savedDF.columns)
+
+        savedQueryDF = pt.apply.query(lambda row: row["query"] + " 1")(savedDF)
+        self.assertIn("stashed_results_0", savedQueryDF.columns)
+        self.assertIn("qid", savedQueryDF.columns)
+        self.assertIn("query", savedQueryDF.columns)
+        self.assertIn("query_0", savedQueryDF.columns)
+        
+        self.assertEqual(2, len(savedQueryDF))
+        restoredDf = pt.rewrite.reset_results()(savedQueryDF)
+        self.assertEqual(4, len(restoredDf))
+        self.assertIn("qid", restoredDf.columns)
+        self.assertIn("docno", restoredDf.columns)
+        self.assertIn("score", restoredDf.columns)
+        self.assertIn("query", restoredDf.columns)
+    
+    def test_stash_results_SDM(self):
+        inputDF = pt.new.ranked_documents([[1, 2], [2,0]], query=[["a a", "a a"], ["b b", "b b"]])
+        savedDF = pt.rewrite.stash_results()(inputDF)
+        self.assertEqual(2, len(savedDF))
+        self.assertIn("stashed_results_0", savedDF.columns)
+
+        savedQueryDF = pt.rewrite.SDM()(savedDF)
+        self.assertIn("stashed_results_0", savedQueryDF.columns)
+        self.assertIn("qid", savedQueryDF.columns)
+        self.assertIn("query", savedQueryDF.columns)
+        self.assertIn("query_0", savedQueryDF.columns)
+        
+        self.assertEqual(2, len(savedQueryDF))
+        restoredDf = pt.rewrite.reset_results()(savedQueryDF)
+        self.assertEqual(4, len(restoredDf))
+        self.assertIn("qid", restoredDf.columns)
+        self.assertIn("docno", restoredDf.columns)
+        self.assertIn("score", restoredDf.columns)
+        self.assertIn("query", restoredDf.columns)
+
+    def test_save_docs_CE(self):
+        index = pt.get_dataset("vaswani").get_index()
+        dph = pt.BatchRetrieve(index, wmodel="DPH")
+        pipe = dph \
+            >> pt.rewrite.stash_results() \
+            >> pt.BatchRetrieve(index, wmodel="BM25") \
+            >> pt.rewrite.Bo1QueryExpansion(index) \
+            >> pt.rewrite.reset_results() \
+            >> dph
+        rtr1 = dph.search("chemical reactions")        
+        rtr2 = pipe.search("chemical reactions")
+        # Bo1 should be applied as a re-ranker, hence the
+        # number of docs in rtr1 and rtr2 should be equal
+        self.assertEqual(len(rtr1), len(rtr2))
+
+        # check columns are passed through where we expect
+        pipeP3 = dph \
+            >> pt.rewrite.stash_results() \
+            >> pt.BatchRetrieve(index, wmodel="BM25")
+        res3 = pipeP3.search("chemical reactions")
+        self.assertIn("stashed_results_0", res3.columns)
+        pipeP4 = dph \
+            >> pt.rewrite.stash_results() \
+            >> pt.BatchRetrieve(index, wmodel="BM25") \
+            >> pt.rewrite.Bo1QueryExpansion(index)
+        res4 = pipeP3.search("chemical reactions")
+        self.assertIn("stashed_results_0", res4.columns)
+    
+    def test_save_docs_QE(self):
+        index = pt.get_dataset("vaswani").get_index()
+        dph = pt.BatchRetrieve(index, wmodel="DPH")
+        pipe = dph \
+            >> pt.rewrite.stash_results(clear=False) \
+            >> pt.rewrite.Bo1QueryExpansion(index) \
+            >> pt.rewrite.reset_results() \
+            >> dph
+        rtr1 = dph.search("chemical reactions")        
+        rtr2 = pipe.search("chemical reactions")
+        # Bo1 should be applied as a re-ranker, hence the
+        # number of docs in rtr1 and rtr2 should be equal
+        self.assertEqual(len(rtr1), len(rtr2))
+
     def test_reset_with_docs(self):
         inputDF = pt.new.ranked_documents([[1, 2], [2,0]])
         inputDF["query"] = ["one #1", "one #1", "one two #1", "one two #1"]

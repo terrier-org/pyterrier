@@ -70,8 +70,8 @@ class SDM(TransformerBase):
 
     def transform(self, topics_and_res):
         results = []
-        from .model import query_columns, push_queries
-        queries = topics_and_res[query_columns(topics_and_res, qid=True)].dropna(axis=0, subset=query_columns(topics_and_res, qid=False)).drop_duplicates()
+        from .model import ranked_documents_to_queries, push_queries
+        queries = ranked_documents_to_queries(topics_and_res)
 
         # instantiate the DependenceModelPreProcess, specifying a proximity model if specified
         sdm = DependenceModelPreProcess() if self.prox_model is None else DependenceModelPreProcess(self.prox_model)
@@ -180,8 +180,9 @@ class QueryExpansion(TransformerBase):
 
         results = []
 
-        from .model import query_columns, push_queries
-        queries = topics_and_res[query_columns(topics_and_res, qid=True)].dropna(axis=0, subset=query_columns(topics_and_res, qid=False)).drop_duplicates()
+        from .model import push_queries, ranked_documents_to_queries
+        queries = ranked_documents_to_queries(topics_and_res)
+        #queries = topics_and_res[query_columns(topics_and_res, qid=True)].dropna(axis=0, subset=query_columns(topics_and_res, qid=False)).drop_duplicates()
                 
         for row in tqdm(queries.itertuples(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
             qid = row.qid
@@ -308,6 +309,75 @@ class AxiomaticQE(QueryExpansion):
         self.qe.fbTerms = self.fb_terms
         self.qe.fbDocs = self.fb_docs
         return super().transform(queries_and_docs)
+
+def stash_results(clear=True) -> TransformerBase:
+    """
+    Stashes (saves) the current retrieved documents for each query into the column `"stashed_results_0"`.
+    This means that they can be restored later by using `pt.rewrite.reset_results()`.
+    thereby converting a retrieved documents dataframe into one of queries.
+
+    Args: 
+    clear(bool): whether to drop the document and retrieved document related columns. Defaults to True.
+
+    """
+    return _StashResults(clear)
+    
+def reset_results() -> TransformerBase:
+    """
+    Applies a transformer that undoes a `pt.rewrite.stash_results()` transformer, thereby restoring the
+    ranked documents.
+    """
+    return _ResetResults()
+
+class _StashResults(TransformerBase):
+
+    def __init__(self, clear, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.clear = clear
+
+    def transform(self, topics_and_res: pd.DataFrame) -> pd.DataFrame:
+        from .model import document_columns, query_columns
+        if "stashed_results_0" in topics_and_res.columns:
+            raise ValueError("Cannot apply pt.rewrite.stash_results() more than once")
+        doc_cols = document_columns(topics_and_res)
+        
+        rtr =  []
+        if self.clear:
+            query_cols = query_columns(topics_and_res)            
+            for qid, groupDf in topics_and_res.groupby("qid"):
+                documentsDF = groupDf[doc_cols]
+                queryDf = groupDf[query_cols].iloc[0]
+                queryDict = queryDf.to_dict()
+                queryDict["stashed_results_0"] = documentsDF.to_dict(orient='records')
+                rtr.append(queryDict)
+            return pd.DataFrame(rtr)
+        else:
+            for qid, groupDf in topics_and_res.groupby("qid"):
+                groupDf = groupDf.reset_index().copy()
+                documentsDF = groupDf[doc_cols]
+                docsDict = documentsDF.to_dict(orient='records')
+                groupDf["stashed_results_0"] = None
+                for i in range(len(groupDf)):
+                    groupDf.at[i, "stashed_results_0"] = docsDict
+                rtr.append(groupDf)
+            return pd.concat(rtr)        
+
+class _ResetResults(TransformerBase):
+
+    def transform(self, topics_with_saved_docs : pd.DataFrame) -> pd.DataFrame:
+        if not "stashed_results_0" in topics_with_saved_docs.columns:
+            raise ValueError("Cannot apply pt.rewrite.reset_results() without pt.rewrite.stash_results() - column stashed_results_0 not found")
+        from .model import query_columns
+        query_cols = query_columns(topics_with_saved_docs)
+        rtr = []
+        for row in topics_with_saved_docs.itertuples():
+            docsdf = pd.DataFrame.from_records(row.stashed_results_0)
+            docsdf["qid"] = row.qid
+            querydf = pd.DataFrame(data=[row])
+            querydf.drop("stashed_results_0", axis=1, inplace=True)
+            finaldf = querydf.merge(docsdf, on="qid")
+            rtr.append(finaldf)
+        return pd.concat(rtr)
 
 def linear(weightCurrent : float, weightPrevious : float, format="terrierql", **kwargs) -> TransformerBase:
     """

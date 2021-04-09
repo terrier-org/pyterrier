@@ -56,6 +56,17 @@ class TestBatchRetrieve(BaseTestCase):
         result = retr.transform(input_set)
         self.assertEqual(10, len(result))
 
+    def test_br_col_passthrough(self):
+        indexloc = self.here + "/fixtures/index/data.properties"
+        
+        input_set = pd.DataFrame([
+                    ["q1", "chemical", "u1"],
+                ],
+            columns=["qid", "query", "username"])
+        retr = pt.BatchRetrieve(indexloc) % 10
+        result = retr.transform(input_set)
+        self.assertIn("username", result.columns)
+
     def test_br_empty(self):
         indexloc = self.here + "/fixtures/index/data.properties"
         

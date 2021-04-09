@@ -4,6 +4,22 @@ from pyterrier.model import add_ranks, FIRST_RANK, coerce_queries_dataframe, spl
 import pyterrier as pt
 class TestModel(BaseTestCase):
 
+    def test_R_to_Q(self):
+        df1 = pt.new.ranked_documents([[1, 2], [2,0]], query=[["a a", "a a"], ["b b", "b b"]])
+        df2 = pt.model.ranked_documents_to_queries(df1)
+        self.assertEqual(set(['qid', 'query']), set(df2.columns))
+        df1 = pt.new.ranked_documents([[1, 2], [2,0]], query=[["a a", "a a"], ["b b", "b b"]], stashed_results_0=[[1,1],[1,1,]])
+        df2 = pt.model.ranked_documents_to_queries(df1)
+        self.assertEqual(set(['qid', 'query', 'stashed_results_0']), set(df2.columns))        
+
+    def test_doc_cols(self):
+        df = pt.new.queries(["q1", "q2"])
+        self.assertListEqual(['qid'], pt.model.document_columns(df))
+        df2 = pt.new.ranked_documents([[1]], query=[["hello"]])
+        self.assertEqual(set(['qid', 'docno', 'rank', 'score']), set(pt.model.document_columns(df2)))
+        df2 = pt.new.ranked_documents([[1]], text=[["a"]], query=[["hello"]])
+        self.assertEqual(set(['qid', 'docno', 'rank', 'score', "text"]), set(pt.model.document_columns(df2)))
+
     def test_query_cols(self):
         df = pt.new.queries(["q1", "q2"])
         self.assertEqual(2, len(df))
