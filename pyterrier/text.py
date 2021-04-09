@@ -386,7 +386,7 @@ class SlidingWindowPassager(TransformerBase):
             return pd.DataFrame(columns=['qid', 'query', 'docno', self.text_attr, 'score', 'rank'])
     
         from pyterrier import tqdm
-        with tqdm('passsaging', total=len(df), ncols=80, desc='passaging', leave=False) as pbar:
+        with tqdm('passsaging', total=len(df), desc='passaging', leave=False) as pbar:
             for index, row in df.iterrows():
                 pbar.update(1)
                 qid = row['qid']
