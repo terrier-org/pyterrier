@@ -127,10 +127,8 @@ def write_results(res, filename, format="trec", **kwargs):
         * "minimal": output columns are $qid $docno $rank, tab-separated. This is used for submissions to the MSMARCO leaderboard.
     
     """
-    if format is None:
-        format = "trec" 
     if not format in SUPPORTED_RESULTS_FORMATS:
-        raise ValueError("Format %s not known, supported types are %s" % str(SUPPORTED_RESULTS_FORMATS.keys()))
+        raise ValueError("Format %s not known, supported types are %s" % (format, str(SUPPORTED_RESULTS_FORMATS.keys())))
     # convert generators to results 
     res = coerce_dataframe(res)
     return SUPPORTED_RESULTS_FORMATS[format][1](res, filename, **kwargs)
