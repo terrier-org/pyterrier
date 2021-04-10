@@ -57,10 +57,8 @@ def read_results(filename, format="trec", **kwargs):
     Returns:
         dataframe with usual qid, docno, score columns etc
     """
-    if format is None:
-        format = "trec"
     if not format in SUPPORTED_RESULTS_FORMATS:
-        raise ValueError("Format %s not known, supported types are %s" % str(SUPPORTED_RESULTS_FORMATS.keys()))
+        raise ValueError("Format %s not known, supported types are %s" % (format, str(SUPPORTED_RESULTS_FORMATS.keys())))
     return SUPPORTED_RESULTS_FORMATS[format][0](filename, **kwargs)
 
 def _read_results_letor(filename, labels=False):
