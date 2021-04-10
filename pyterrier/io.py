@@ -170,10 +170,8 @@ def read_topics(filename, format="trec", **kwargs):
         * "trecxml" -- a more modern XML formatted topics file. Delimited by topic tags, each having nunber tags. query, question and narrative tags are parsed by default. Control using tags kwarg.
         * "singeline" -- one query per line, preceeded by a space or colon. Tokenised by default, use tokenise=False kwargs to prevent tokenisation.
     """
-    if format is None:
-        format = "trec"
     if not format in SUPPORTED_TOPICS_FORMATS:
-        raise ValueError("Format %s not known, supported types are %s" % str(SUPPORTED_TOPICS_FORMATS.keys()))
+        raise ValueError("Format %s not known, supported types are %s" % (format, str(SUPPORTED_RESULTS_FORMATS.keys())))
     return SUPPORTED_TOPICS_FORMATS[format](filename, **kwargs)
 
 def _read_topics_trec(file_path, doc_tag="TOP", id_tag="NUM", whitelist=["TITLE"], blacklist=["DESC","NARR"]):
