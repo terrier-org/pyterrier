@@ -226,7 +226,8 @@ class BatchRetrieve(BatchRetrieveBase):
 
             # check we got all of the expected metadata (if the resultset has a size at all)
             if len(result) > 0 and len(set(self.metadata) & set(result.getMetaKeys())) != len(self.metadata):
-                raise KeyError("Requested metadata: %s, obtained metadata %s" % (str(self.metadata), str(result.getMetaKeys()))) 
+                raise KeyError("Mismatch between requested and available metadata in %s. Requested metadata: %s, available metadata %s" % 
+                    (str(self.indexref), str(self.metadata), str(result.getMetaKeys()))) 
 
             if num_expected is not None:
                 assert(num_expected == len(result))
