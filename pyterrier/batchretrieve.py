@@ -255,16 +255,6 @@ class BatchRetrieve(BatchRetrieveBase):
     def __str__(self):
         return "BR(" + self.controls["wmodel"] + ")"
 
-    @deprecation.deprecated(deprecated_in="0.3.0",
-                        details="Please use pt.io.write_results(res, path, format='trec')")
-    def saveResult(self, result, path, run_name=None):
-        if run_name is None:
-            run_name = self.controls["wmodel"]
-        res_copy = result.copy()[["qid", "docno", "rank", "score"]]
-        res_copy.insert(1, "Q0", "Q0")
-        res_copy.insert(5, "run_name", run_name)
-        res_copy.to_csv(path, sep=" ", header=False, index=False)
-
     def setControls(self, controls):
         for key, value in controls.items():
             self.controls[key] = value
