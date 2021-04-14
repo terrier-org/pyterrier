@@ -341,6 +341,7 @@ def GridSearch(
     """
     
     grid_outcomes = GridScan(pipeline, params, topics, qrels, [metric], jobs, backend, verbose, batch_size)
+    assert len(grid_outcomes) > 0, "GridScan returned 0 rows"
     max_measure = grid_outcomes[0][1][metric]
     max_setting = grid_outcomes[0][0]
     for setting, measures in grid_outcomes:
@@ -407,6 +408,7 @@ def GridScan(
     
     keys,values = zip(*candi_dict.items())
     combinations = list(itertools.product(*values))
+    assert len(combinations) > 0, "No combinations selected"
 
     # use this for repeated evaluation
     qrels_dict = Utils.convert_qrels_to_dict(qrels)
@@ -440,11 +442,18 @@ def GridScan(
     else:
         import itertools
         import more_itertools
-        all_inputs = [(keys, values) for values in combinations]
-        batched_inputs = more_itertools.chunked(all_inputs, int(len(combinations)/jobs))
         from .parallel import parallel_lambda
+        all_inputs = [(keys, values) for values in combinations]
+
+        # how many jobs to distribute this to
+        num_batches = int(len(combinations)/jobs) if len(combinations) >= jobs else len(combinations)
+
+        # built the batches to distribute
+        batched_inputs = list(more_itertools.chunked(all_inputs, num_batches))
+        assert len(batched_inputs) > 0, "No inputs identified for parallel_lambda"
         eval_list = parallel_lambda(_evaluate_several_settings, batched_inputs, jobs, backend=backend)
         eval_list =  list(itertools.chain(*eval_list))
+        assert len(eval_list) > 0, "parallel_lambda returned 0 rows" 
     
     # eval_list has the form [ 
     #   ( [(BR, 'wmodel', 'BM25'), (BR, 'c', 0.2)]  ,   {"map" : 0.2654} )

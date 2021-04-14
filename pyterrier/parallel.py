@@ -52,7 +52,9 @@ def _parallel_lambda_ray(function, inputs, jobs):
 def _parallel_lambda_joblib(function, inputs, jobs):
     from joblib import Parallel, delayed
     with Parallel(n_jobs=jobs) as parallel:
-        return _joblib_with_initializer(parallel, lambda: _pt_init(pt.init_args))(delayed(function)(input) for input in inputs)
+        parallel_mp = _joblib_with_initializer(parallel, lambda: _pt_init(pt.init_args))
+        return parallel_mp(
+            delayed(function)(input) for input in inputs)
         
 
 class PoolParallelTransformer(TransformerBase):

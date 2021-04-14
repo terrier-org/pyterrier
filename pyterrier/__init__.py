@@ -14,6 +14,7 @@ io = None
 ltr = None
 model = None
 new = None
+parallel = None
 pipelines = None
 rewrite = None
 text = None
@@ -128,7 +129,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     from .apply import _apply
     globals()['apply'] = _apply()
 
-    for sub_module_name in ['anserini', 'cache', 'index', 'io', 'model', 'new', 'ltr', 'pipelines', 'rewrite', 'text', 'transformer']:
+    for sub_module_name in ['anserini', 'cache', 'index', 'io', 'model', 'new', 'ltr', 'parallel', 'pipelines', 'rewrite', 'text', 'transformer']:
         globals()[sub_module_name] = importlib.import_module('.' + sub_module_name, package='pyterrier') 
 
     # append the python helpers
