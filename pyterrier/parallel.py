@@ -35,6 +35,26 @@ def _check_ray():
     if not ray.is_initialized():
         raise ValueError("ray needs to be initialised. Run ray.init() first")
 
+
+def parallel_lambda(function, inputs, jobs, backend='joblib'):
+    if backend not in SUPPORTED_BACKENDS:
+        raise ValueError("Backend of %s unknown, only %s supported." % str(SUPPORTED_BACKENDS))
+    if backend == 'ray':
+        return _parallel_lambda_ray(function, inputs, jobs)
+    if backend == 'joblib':
+        return _parallel_lambda_joblib(function, inputs, jobs)
+
+def _parallel_lambda_ray(function, inputs, jobs):
+    from ray.util.multiprocessing import Pool
+    with Pool(jobs, lambda: pt.init(**pt.init_args)) as pool:
+        return pool.map(function, inputs)
+
+def _parallel_lambda_joblib(function, inputs, jobs):
+    from joblib import Parallel, delayed
+    with Parallel(n_jobs=jobs) as parallel:
+        return _joblib_with_initializer(parallel, lambda: _pt_init(pt.init_args))(delayed(function)(input) for input in inputs)
+        
+
 class PoolParallelTransformer(TransformerBase):
 
     def __init__(self, parent, n_jobs, backend='joblib', **kwargs):

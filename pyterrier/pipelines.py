@@ -390,6 +390,10 @@ def GridScan(
     import itertools
     from . import Utils, tqdm
 
+    if verbose and jobs > 1:
+        from warnings import warn
+        warn("Cannot provide progress on parallel job")
+
     # Store the all parameter names and candidate values into a dictionary, keyed by a tuple of the transformer and the parameter name
     # such as {(BatchRetrieve, 'wmodel'): ['BM25', 'PL2'], (BatchRetrieve, 'c'): [0.1, 0.2, 0.3], (Bla, 'lr'): [0.001, 0.01, 0.1]}
     candi_dict = { (tran, param_name) : params[tran][param_name] for tran in params for param_name in params[tran]}
@@ -407,12 +411,11 @@ def GridScan(
     # use this for repeated evaluation
     qrels_dict = Utils.convert_qrels_to_dict(qrels)
 
-    def _evaluate_setting(keys, values):
+    def _evaluate_one_setting(keys, values):
         #'params' is every combination of candidates
-        params = dict(zip(keys, v))
+        params = dict(zip(keys, values))
         parameter_list = []
-        print(params)
-
+        
         # Set the parameter value in the corresponding transformer of the pipeline
         for (tran, param_name), value in params.items():
             tran.set_parameter(param_name, value)
@@ -425,11 +428,23 @@ def GridScan(
         eval_scores = Utils.evaluate(res, qrels, metrics=metrics, perquery=False)
         return parameter_list, eval_scores
 
+    def _evaluate_several_settings(inputs : List[Tuple]):
+        return [_evaluate_one_setting(k,v) for k, v in inputs]
+
     eval_list = []
     #for each combination of parameter values
-    for v in tqdm(combinations, total=len(combinations), desc="GridScan", mininterval=0.3) if verbose else combinations:
-        parameter_list, eval_scores = _evaluate_setting(keys, v)
-        eval_list.append( (parameter_list, eval_scores) )
+    if jobs == 1:
+        for v in tqdm(combinations, total=len(combinations), desc="GridScan", mininterval=0.3) if verbose else combinations:
+            parameter_list, eval_scores = _evaluate_one_setting(keys, v)
+            eval_list.append( (parameter_list, eval_scores) )
+    else:
+        import itertools
+        import more_itertools
+        all_inputs = [(keys, values) for values in combinations]
+        batched_inputs = more_itertools.chunked(all_inputs, int(len(combinations)/jobs))
+        from .parallel import parallel_lambda
+        eval_list = parallel_lambda(_evaluate_several_settings, batched_inputs, jobs, backend=backend)
+        eval_list =  list(itertools.chain(*eval_list))
     
     # eval_list has the form [ 
     #   ( [(BR, 'wmodel', 'BM25'), (BR, 'c', 0.2)]  ,   {"map" : 0.2654} )

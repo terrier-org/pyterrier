@@ -50,6 +50,20 @@ class TestGrid(BaseTestCase):
         self.assertEqual(6, len(rtr))
         print(rtr)
 
+    def test_gridscan_joblib2(self):
+        dataset = pt.get_dataset("vaswani")
+        pipe = pt.BatchRetrieve(dataset.get_index(), wmodel="PL2", controls={'c' : 1})
+        self.assertEqual(1, pipe.get_parameter('c'))
+        rtr = pt.pipelines.GridScan(
+            pipe, 
+            {pipe : {'c' : [0.1, 1, 5, 10, 20, 100]}}, 
+            dataset.get_topics().head(5),
+            dataset.get_qrels(),
+            jobs=2
+        )
+        self.assertEqual(6, len(rtr))
+        print(rtr)
+
     def test_gridsearch(self):
         dataset = pt.get_dataset("vaswani")
         pipe = pt.BatchRetrieve(dataset.get_index(), wmodel="PL2", controls={'c' : 1})
