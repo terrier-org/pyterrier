@@ -2,7 +2,7 @@ from warnings import warn
 import os
 import pandas as pd
 import numpy as np
-from typing import Union, Dict, List
+from typing import Union, Dict, List, Tuple
 from .utils import Utils
 from .transformer import TransformerBase, EstimatorBase
 from .model import add_ranks
@@ -312,6 +312,130 @@ def Experiment(retr_systems, topics, qrels, eval_metrics,
             
         return df 
     return evalDict
+
+TRANSFORMER_PARAMETER_VALUE_TYPE = Union[str,float,int,str]
+GRID_SCAN_PARAM_SETTING = Tuple[
+            TransformerBase, 
+            str, 
+            TRANSFORMER_PARAMETER_VALUE_TYPE
+        ]
+GRID_SEARCH_RETURN_TYPE_SETTING = Tuple[
+    float, 
+    List[GRID_SCAN_PARAM_SETTING]
+]
+
+def GridSearch(
+        pipeline : TransformerBase,
+        params : Dict[TransformerBase,Dict[str,List[TRANSFORMER_PARAMETER_VALUE_TYPE]]],
+        topics : pd.DataFrame,
+        qrels : pd.DataFrame,
+        metric : str = "map",
+        jobs : int = 1,
+        backend='joblib',
+        verbose: bool = False,
+        batch_size = None,
+        return_type : str = "opt_pipeline"
+    ) -> Union[TransformerBase,GRID_SEARCH_RETURN_TYPE_SETTING]:
+    """
+    GridSearch. Essentially, an argmax GridScan() 
+    """
+    
+    grid_outcomes = GridScan(pipeline, params, topics, qrels, [metric], jobs, backend, verbose, batch_size)
+    max_measure = grid_outcomes[0][1][metric]
+    max_setting = grid_outcomes[0][0]
+    for setting, measures in grid_outcomes:
+        if measures[metric] > max_measure:
+            max_measure = measures[metric]
+            max_setting = setting
+    print("Best %s is %f" % (metric, max_measure))
+    print("Best setting is %s" % str(["%s %s=%s" % (str(t), k, v) for t, k, v in max_setting]))
+
+    if return_type == "opt_pipeline":
+        for tran, param, value in max_setting:
+            tran.set_parameter(param, value)
+        return tran
+    if return_type == "best_setting":
+        return max_measure, max_setting
+
+def GridScan(
+        pipeline : TransformerBase,
+        params : Dict[TransformerBase,Dict[str,List[TRANSFORMER_PARAMETER_VALUE_TYPE]]],
+        topics : pd.DataFrame,
+        qrels : pd.DataFrame,
+        metrics : List[str] = ["map"],
+        jobs : int = 1,
+        backend='joblib',
+        verbose: bool = False,
+        batch_size = None
+    ) -> List [ Tuple [ List[ GRID_SCAN_PARAM_SETTING ] , Dict[str,float]  ]  ]:
+    """
+    GridScan applies a set of named parameters on a given pipeline and evaluates the outcome. The topics and qrels 
+    must be specified. The trec_eval measure names can be optionally specified.
+    The transformers being tuned, and their respective parameters are named in the param_dict. The parameter being
+    varied must be changable using the :func:`set_parameter()` method. This means instance variables,
+    as well as controls in the case of BatchRetrieve.
+
+    Args:
+        - pipeline(TransformerBase): a transformer or pipeline
+        - params(dict): a two-level dictionary, mapping transformer id to param name to a list of values
+        - topics(DataFrame): topics to tune upon
+        - qrels(DataFrame): qrels to tune upon       
+        - metrics(List[str]): name of the metrics to report for each setting. Defaults to ["map"].
+        - verbose(bool): whether to display progress bars or not 
+    Returns:
+        - A dataframe showing the best settings
+    Raises:
+        - ValueError: if a specified transformer does not have such a parameter    
+    """
+    import itertools
+    from . import Utils, tqdm
+
+    # Store the all parameter names and candidate values into a dictionary, keyed by a tuple of the transformer and the parameter name
+    # such as {(BatchRetrieve, 'wmodel'): ['BM25', 'PL2'], (BatchRetrieve, 'c'): [0.1, 0.2, 0.3], (Bla, 'lr'): [0.001, 0.01, 0.1]}
+    candi_dict = { (tran, param_name) : params[tran][param_name] for tran in params for param_name in params[tran]}
+    if len(candi_dict) == 0:
+        raise ValueError("No parameters specified to optimise")
+    for tran, param in candi_dict:
+        try:
+            tran.get_parameter(param)
+        except Exception as e:
+            raise ValueError("Transformer %s does not expose a parameter named %s" % (str(tran), param))
+    
+    keys,values = zip(*candi_dict.items())
+    combinations = list(itertools.product(*values))
+
+    # use this for repeated evaluation
+    qrels_dict = Utils.convert_qrels_to_dict(qrels)
+
+    def _evaluate_setting(keys, values):
+        #'params' is every combination of candidates
+        params = dict(zip(keys, v))
+        parameter_list = []
+        print(params)
+
+        # Set the parameter value in the corresponding transformer of the pipeline
+        for (tran, param_name), value in params.items():
+            tran.set_parameter(param_name, value)
+            # such as (BatchRetrieve, 'wmodel', 'BM25')
+            parameter_list.append( (tran, param_name, value) )
+            
+        _run_and_evaluate(pipeline, topics, qrels_dict, metrics, perquery=False, batch_size=batch_size)
+        # using topics and evaluation
+        res = pipeline.transform(topics)
+        eval_scores = Utils.evaluate(res, qrels, metrics=metrics, perquery=False)
+        return parameter_list, eval_scores
+
+    eval_list = []
+    #for each combination of parameter values
+    for v in tqdm(combinations, total=len(combinations), desc="GridScan", mininterval=0.3) if verbose else combinations:
+        parameter_list, eval_scores = _evaluate_setting(keys, v)
+        eval_list.append( (parameter_list, eval_scores) )
+    
+    # eval_list has the form [ 
+    #   ( [(BR, 'wmodel', 'BM25'), (BR, 'c', 0.2)]  ,   {"map" : 0.2654} )
+    # ]
+    # ie, a list of possible settings, combined with measure values    
+    return eval_list
 
 from .ltr import RegressionTransformer, LTRTransformer
 @deprecation.deprecated(deprecated_in="0.3.0",

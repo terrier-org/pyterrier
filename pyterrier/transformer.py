@@ -109,6 +109,7 @@ class Scalar(Symbol):
         self.value = value
 
 class TransformerBase:
+    name = "TransformerBase"
     """
         Base class for all transformers. Implements the various operators >> + * | & 
         as well as the compile() for rewriting complex pipelines into more simples ones.
@@ -199,6 +200,27 @@ class TransformerBase:
         from .parallel import PoolParallelTransformer
         return PoolParallelTransformer(self, N, backend)
 
+    # Get and set specific parameter value by parameter's name
+    def get_parameter(self, name : str):
+        """
+            Gets the current value of a particular key of the transformer's configuration state
+        """
+        if hasattr(self, name):
+            return getattr(self, name)
+        else:
+            raise ValueError(("Invalid parameter name %s for transformer %s. " + 
+                      "Check the list of available parameters") %(str(name), str(self)))
+
+    def set_parameter(self, name : str, value):
+        """
+            Adjusts this transformer's configuration state, by setting the value for specific parameter
+        """
+        if hasattr(self, name):
+            setattr(self, name, value)
+        else:
+            raise ValueError(('Invalid parameter name %s for transformer %s. '+
+                    'Check the list of available parameters') %(name, str(self)))
+
     def __call__(self, *args, **kwargs):
         """
             Sets up a default method for every transformer, which is aliased to transform(). 
@@ -241,6 +263,9 @@ class TransformerBase:
     def __invert__(self):
         from .cache import ChestCacheTransformer
         return ChestCacheTransformer(self)
+
+    def __hash__(self):
+        return hash(repr(self))
 
 class IterDictIndexerBase(TransformerBase):
     def index(self, iter : Iterable[dict], **kwargs):

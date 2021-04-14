@@ -121,6 +121,23 @@ class BatchRetrieve(BatchRetrieveBase):
         MF = autoclass('org.terrier.querying.ManagerFactory')
         self.manager = MF._from_(self.indexref)
     
+    def get_parameter(self, name : str):
+        print(name)
+        if name in self.controls:
+            return self.controls[name]
+        elif name in self.properties:
+            return self.properties[name]
+        else:
+            return super().get_parameter(name)
+
+    def set_parameter(self, name : str, value):
+        if name in self.controls:
+            self.controls[name] = value
+        elif name in self.properties:
+            self.properties[name] = value
+        else:
+            super().set_parameter(name,value)
+
     def __reduce__(self):
         return (
             self.__class__,
