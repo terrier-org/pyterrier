@@ -122,7 +122,6 @@ class BatchRetrieve(BatchRetrieveBase):
         self.manager = MF._from_(self.indexref)
     
     def get_parameter(self, name : str):
-        print(name)
         if name in self.controls:
             return self.controls[name]
         elif name in self.properties:
