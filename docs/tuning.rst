@@ -7,8 +7,11 @@ two functions which helps to achieve this:
 
  - `pt.GridScan()` exhaustively evaluates all possibile parameters settings and computes evaluation measures.
  - `pt.GridSearch()` applies GridScan, and determines the most effective parameter setting for a given evaluation measure.
+ - `pt.KFoldGridSearch()` applies GridScan on different folds, determines the most effective parameter setting for a given 
+    evaluation measure on the training topics for each fold. The results on the test topics are returned.
 
-Both functions are designed to have an API very similar to pt.Experiment().
+
+All of these functions are designed to have an API very similar to pt.Experiment().
 
 Pre-requisites
 ==============
@@ -20,11 +23,10 @@ GridScan makes several assumption:
 Note that transformers implemented using pt.apply functions cannot address the second requirement, as any parameters are captured 
 naturally within the closure, and not as instances attributes of the transformer.
 
-API
-===
+Scanning and Searching API
+==========================
 
 .. autofunction:: pyterrier.GridScan()
-
 
 .. autofunction:: pyterrier.GridSearch()
 
@@ -72,10 +74,15 @@ A full tuning of BM25 and RM3 can be achieved as thus::
     pipe_qe = pt.GridSearch(pipe_qe, param_map, train_topics, train_qrels)
     pt.Experiment([pipe_qe], test_topics, test_qrels, ["map"])
 
+Using Multiple Folds
+====================
+
+.. autofunction:: pyterrier.KFoldGridSearch()
+
 Parallelisation
 ===============
 
-GridScan and GridSearch can be accelerated using parallelisation to conduct evalutions of different parameter
+GridScan, GridSearch and KFoldGridSearch can all be accelerated using parallelisation to conduct evalutions of different parameter
 settings in parallel. Both accept `jobs` and `backend` kwargs, which define the number of backend processes to
 conduct, and the parallelisation backend. For instance::
 

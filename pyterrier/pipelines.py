@@ -355,6 +355,22 @@ def KFoldGridSearch(
     The state of the transformers in the pipeline is restored after the KFoldGridSearch has
     been executed.
 
+    Args:
+        - pipeline(TransformerBase): a transformer or pipeline to tune
+        - params(dict): a two-level dictionary, mapping transformer to param name to a list of values
+        - topics_list(List[DataFrame]): a *list* of topics dataframes to tune upon
+        - qrels(DataFrame or List[DataFrame]): qrels to tune upon. A single dataframe, or a list for each fold.       
+        - metric(str): name of the metric on which to determine the most effective setting. Defaults to "map".
+        - batch_size(int): If not None, evaluation is conducted in batches of batch_size topics. Default=None, which evaluates all topics at once. 
+            Applying a batch_size is useful if you have large numbers of topics, and/or if your pipeline requires large amounts of temporary memory
+            during a run. Default is None.
+        - jobs(int): Number of parallel jobs to run. Default is 1, which means sequentially.
+        - backend(str): Parallelisation backend to use. Defaults to "joblib". 
+        - verbose(bool): whether to display progress bars or not
+
+    Returns:
+    A tuple containing, firstly, the results of pipeline on the test topics after tuning, and secondly, a list of the best parameter settings for each fold.
+
     Consider tuning PL2 where folds of queries are pre-determined::
 
         pl2 = pt.BatchRetrieve(index, wmodel="PL2", controls={'c' : 1})
