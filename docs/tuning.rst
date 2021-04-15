@@ -7,9 +7,8 @@ two functions which helps to achieve this:
 
  - `pt.GridScan()` exhaustively evaluates all possibile parameters settings and computes evaluation measures.
  - `pt.GridSearch()` applies GridScan, and determines the most effective parameter setting for a given evaluation measure.
- - `pt.KFoldGridSearch()` applies GridScan on different folds, determines the most effective parameter setting for a given 
-    evaluation measure on the training topics for each fold. The results on the test topics are returned.
-
+ - `pt.KFoldGridSearch()` applies GridSearch on different folds, in order to determine the most effective parameter setting for a given 
+   evaluation measure on the training topics for each fold. The results on the test topics are returned.
 
 All of these functions are designed to have an API very similar to pt.Experiment().
 
