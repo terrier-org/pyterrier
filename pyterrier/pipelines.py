@@ -403,9 +403,10 @@ def KFoldGridSearch(
             params,
             train_topics,
             train_qrels,
-            "map",
+            metric,
             jobs=jobs,
             backend=backend,
+            verbose=verbose,
             batch_size=batch_size,
             return_type="both")
         results.append(optPipe.transform(test_topics))
@@ -451,7 +452,18 @@ def GridSearch(
     # save state
     initial_state = _save_state(params)
 
-    grid_outcomes = GridScan(pipeline, params, topics, qrels, [metric], jobs, backend, verbose, batch_size, dataframe=False)
+    grid_outcomes = GridScan(
+        pipeline, 
+        params, 
+        topics, 
+        qrels, 
+        [metric], 
+        jobs, 
+        backend, 
+        verbose, 
+        batch_size, 
+        dataframe=False)
+
     assert len(grid_outcomes) > 0, "GridScan returned 0 rows"
     max_measure = grid_outcomes[0][1][metric]
     max_setting = grid_outcomes[0][0]
