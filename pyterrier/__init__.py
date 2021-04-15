@@ -14,6 +14,7 @@ io = None
 ltr = None
 model = None
 new = None
+parallel = None
 pipelines = None
 rewrite = None
 text = None
@@ -117,7 +118,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     from .utils import Utils
     from .datasets import get_dataset, list_datasets
     from .index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, FlatJSONDocumentIterator, IndexingType
-    from .pipelines import LTR_pipeline, XGBoostLTR_pipeline, Experiment
+    from .pipelines import LTR_pipeline, XGBoostLTR_pipeline, Experiment, GridScan, GridSearch, KFoldGridSearch
 
     # Make imports global
     globals()["autoclass"] = autoclass
@@ -128,7 +129,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     from .apply import _apply
     globals()['apply'] = _apply()
 
-    for sub_module_name in ['anserini', 'cache', 'index', 'io', 'model', 'new', 'ltr', 'pipelines', 'rewrite', 'text', 'transformer']:
+    for sub_module_name in ['anserini', 'cache', 'index', 'io', 'model', 'new', 'ltr', 'parallel', 'pipelines', 'rewrite', 'text', 'transformer']:
         globals()[sub_module_name] = importlib.import_module('.' + sub_module_name, package='pyterrier') 
 
     # append the python helpers
@@ -166,6 +167,10 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     globals()["IndexFactory"] = autoclass("org.terrier.structures.IndexFactory")
     globals()["IndexRef"] = autoclass("org.terrier.querying.IndexRef")
     globals()["IndexingType"] = IndexingType
+    globals()["GridScan"] = GridScan
+    globals()["GridSearch"] = GridSearch
+    globals()["KFoldGridSearch"] = KFoldGridSearch
+    
     
     # we save the pt.init() arguments so that other processes,
     # started by joblib or ray can booted with same options

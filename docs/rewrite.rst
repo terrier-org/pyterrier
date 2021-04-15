@@ -161,7 +161,7 @@ Summary of dataframe types:
 |  dph         | R                      |qid, query, docno, score                     |
 +--------------+------------------------+---------------------------------------------+
 |stash_results |R + "stashed_results_0" |qid, query, docno, score, stashed_results_0  |
-+--------------+--------------------+-------------------------------------------------+
++--------------+------------------------+---------------------------------------------+
 |RM3           |Q + "stashed_results_0" |qid, query, query_0, stashed_results_0       |
 +--------------+------------------------+---------------------------------------------+
 |reset_results |R                       |qid, query, docno, score, query_0            |
