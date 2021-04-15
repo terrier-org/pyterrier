@@ -203,7 +203,8 @@ class TransformerBase:
     # Get and set specific parameter value by parameter's name
     def get_parameter(self, name : str):
         """
-            Gets the current value of a particular key of the transformer's configuration state
+            Gets the current value of a particular key of the transformer's configuration state.
+            By default, this examines the attributes of the transformer object, using hasattr() and setattr().
         """
         if hasattr(self, name):
             return getattr(self, name)
@@ -213,7 +214,8 @@ class TransformerBase:
 
     def set_parameter(self, name : str, value):
         """
-            Adjusts this transformer's configuration state, by setting the value for specific parameter
+            Adjusts this transformer's configuration state, by setting the value for specific parameter.
+            By default, this examines the attributes of the transformer object, using hasattr() and setattr().
         """
         if hasattr(self, name):
             setattr(self, name, value)
