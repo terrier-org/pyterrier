@@ -337,10 +337,27 @@ def GridSearch(
         return_type : str = "opt_pipeline"
     ) -> Union[TransformerBase,GRID_SEARCH_RETURN_TYPE_SETTING]:
     """
-    GridSearch. Essentially, an argmax GridScan() 
+    GridSearch is essentially, an argmax GridScan(), i.e. it returns an instance of the pipeline to tune
+    with the best parameter settings among params, that were found that were obtained using the specified
+    topics and qrels, and for the specified measure.
+
+    Args:
+        - pipeline(TransformerBase): a transformer or pipeline to tune
+        - params(dict): a two-level dictionary, mapping transformer to param name to a list of values
+        - topics(DataFrame): topics to tune upon
+        - qrels(DataFrame): qrels to tune upon       
+        - metric(str): name of the metric on which to determine the most effective setting. Defaults to "map".
+        - batch_size(int): If not None, evaluation is conducted in batches of batch_size topics. Default=None, which evaluates all topics at once. 
+            Applying a batch_size is useful if you have large numbers of topics, and/or if your pipeline requires large amounts of temporary memory
+            during a run. Default is None.
+        - jobs(int): Number of parallel jobs to run. Default is 1, which means sequentially.
+        - backend(str): Parallelisation backend to use. Defaults to "joblib". 
+        - verbose(bool): whether to display progress bars or not
+        - return_type(str): whether to return the same transformer with optimal pipeline setting, or a setting of the
+            higher metric value, and the resulting transformers and settings.
     """
     
-    grid_outcomes = GridScan(pipeline, params, topics, qrels, [metric], jobs, backend, verbose, batch_size)
+    grid_outcomes = GridScan(pipeline, params, topics, qrels, [metric], jobs, backend, verbose, batch_size, dataframe=False)
     assert len(grid_outcomes) > 0, "GridScan returned 0 rows"
     max_measure = grid_outcomes[0][1][metric]
     max_setting = grid_outcomes[0][0]
@@ -354,7 +371,7 @@ def GridSearch(
     if return_type == "opt_pipeline":
         for tran, param, value in max_setting:
             tran.set_parameter(param, value)
-        return tran
+        return pipeline
     if return_type == "best_setting":
         return max_measure, max_setting
 
@@ -367,8 +384,9 @@ def GridScan(
         jobs : int = 1,
         backend='joblib',
         verbose: bool = False,
-        batch_size = None
-    ) -> List [ Tuple [ List[ GRID_SCAN_PARAM_SETTING ] , Dict[str,float]  ]  ]:
+        batch_size = None,
+        dataframe = True,
+    ) -> Union[pd.DataFrame, List [ Tuple [ List[ GRID_SCAN_PARAM_SETTING ] , Dict[str,float]  ]  ] ]:
     """
     GridScan applies a set of named parameters on a given pipeline and evaluates the outcome. The topics and qrels 
     must be specified. The trec_eval measure names can be optionally specified.
@@ -378,15 +396,40 @@ def GridScan(
 
     Args:
         - pipeline(TransformerBase): a transformer or pipeline
-        - params(dict): a two-level dictionary, mapping transformer id to param name to a list of values
+        - params(dict): a two-level dictionary, mapping transformer to param name to a list of values
         - topics(DataFrame): topics to tune upon
         - qrels(DataFrame): qrels to tune upon       
         - metrics(List[str]): name of the metrics to report for each setting. Defaults to ["map"].
-        - verbose(bool): whether to display progress bars or not 
+        - batch_size(int): If not None, evaluation is conducted in batches of batch_size topics. Default=None, which evaluates all topics at once. 
+            Applying a batch_size is useful if you have large numbers of topics, and/or if your pipeline requires large amounts of temporary memory
+            during a run. Default is None.
+        - jobs(int): Number of parallel jobs to run. Default is 1, which means sequentially.
+        - backend(str): Parallelisation backend to use. Defaults to "joblib". 
+        - verbose(bool): whether to display progress bars or not
+        - dataframe(bool): return a dataframe or a list
     Returns:
-        - A dataframe showing the best settings
+        - A dataframe showing the effectiveness of all evaluated settings, if dataframe=True
+        - A list of settings and resulting evaluation measures, if dataframe=False
     Raises:
-        - ValueError: if a specified transformer does not have such a parameter    
+        - ValueError: if a specified transformer does not have such a parameter
+
+    Example::
+
+        # graph how PL2's c parameter affects MAP
+        pl2 = pt.BatchRetrieve(index, wmodel="PL2", controls={'c' : 1})
+        rtr = pt.pipelines.GridSearch(
+            pl2, 
+            {pl2 : {'c' : [0.1, 1, 5, 10, 20, 100]}}, 
+            topics,
+            qrels,
+            ["map"]
+        )
+        import matplotlib.pyplot as plt
+        plt.plot(rtr["tran_0_c"], rtr["map"])
+        plt.xlabel("PL2's c value")
+        plt.ylabel("MAP")
+        plt.show()
+
     """
     import itertools
     from . import Utils, tqdm
@@ -455,11 +498,28 @@ def GridScan(
         eval_list =  list(itertools.chain(*eval_list))
         assert len(eval_list) > 0, "parallel_lambda returned 0 rows" 
     
-    # eval_list has the form [ 
+    # resulting eval_list has the form [ 
     #   ( [(BR, 'wmodel', 'BM25'), (BR, 'c', 0.2)]  ,   {"map" : 0.2654} )
     # ]
     # ie, a list of possible settings, combined with measure values    
-    return eval_list
+    if not dataframe:
+        return eval_list
+
+    rtr=[]
+    for setting, measures in eval_list:
+        row={}
+        for i, (tran, param, value) in enumerate(setting):
+            row["tran_%d" % i]  = tran
+            row["tran_%d_%s" % (i,param) ]  = value
+        row.update(measures)
+        rtr.append(row)
+    # resulting dataframe looks like:
+    #    tran_0  tran_0_c       map
+    #0  BR(PL2)     0.1  0.104820
+    #1  BR(PL2)     1.0  0.189274
+    #2  BR(PL2)     5.0  0.230838
+    return pd.DataFrame(rtr)
+            
 
 from .ltr import RegressionTransformer, LTRTransformer
 @deprecation.deprecated(deprecated_in="0.3.0",

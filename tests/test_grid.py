@@ -12,13 +12,14 @@ class TestGrid(BaseTestCase):
         bo1 = pt.rewrite.Bo1QueryExpansion(index)
         pipe = PL2 >> bo1 >> PL2                
 
-        rtr = pt.pipelines.GridScan(
+        rtr = pt.GridScan(
             pipe, 
             {
                 PL2 : {'c' : [0.1, 1]},
                 bo1 : {'fb_terms' : [2,4]}}, 
             dataset.get_topics().head(2),
-            dataset.get_qrels()
+            dataset.get_qrels(),
+            dataframe=False
         )
         self.assertEqual(4, len(rtr))
         print(rtr)
@@ -28,38 +29,56 @@ class TestGrid(BaseTestCase):
         pipe = pt.BatchRetrieve(dataset.get_index(), wmodel="PL2", controls={'c' : 1})
         self.assertEqual(1, pipe.get_parameter('c'))
         self.assertEqual("PL2", pipe.get_parameter('wmodel'))
-        rtr = pt.pipelines.GridScan(
+        rtr = pt.GridScan(
             pipe, 
             {pipe : {'c' : [0.1, 1], 'wmodel' : ["PL2", "BM25"]}}, 
             dataset.get_topics().head(2),
-            dataset.get_qrels()
+            dataset.get_qrels(),
+            dataframe=False
         )
         self.assertEqual(4, len(rtr))
         print(rtr)
 
-    def test_gridscan(self):
+    def test_gridscan_1param(self):
         dataset = pt.get_dataset("vaswani")
         pipe = pt.BatchRetrieve(dataset.get_index(), wmodel="PL2", controls={'c' : 1})
         self.assertEqual(1, pipe.get_parameter('c'))
-        rtr = pt.pipelines.GridScan(
+        rtr = pt.GridScan(
             pipe, 
             {pipe : {'c' : [0.1, 1, 5, 10, 20, 100]}}, 
             dataset.get_topics().head(5),
-            dataset.get_qrels()
+            dataset.get_qrels(),
+            dataframe=False
         )
         self.assertEqual(6, len(rtr))
+        print(rtr)
+    
+    def test_gridscan_1param_df(self):
+        dataset = pt.get_dataset("vaswani")
+        pipe = pt.BatchRetrieve(dataset.get_index(), wmodel="PL2", controls={'c' : 1})
+        self.assertEqual(1, pipe.get_parameter('c'))
+        rtr = pt.GridScan(
+            pipe, 
+            {pipe : {'c' : [0.1, 1, 5, 10, 20, 100]}}, 
+            dataset.get_topics().head(5),
+            dataset.get_qrels(),
+            dataframe=True,
+        )
+        self.assertEqual(6, len(rtr))
+        self.assertTrue(isinstance(rtr, pd.DataFrame))
         print(rtr)
 
     def test_gridscan_joblib2(self):
         dataset = pt.get_dataset("vaswani")
         pipe = pt.BatchRetrieve(dataset.get_index(), wmodel="PL2", controls={'c' : 1})
         self.assertEqual(1, pipe.get_parameter('c'))
-        rtr = pt.pipelines.GridScan(
+        rtr = pt.GridScan(
             pipe, 
             {pipe : {'c' : [0.1, 1, 5, 10, 20, 100]}}, 
             dataset.get_topics().head(5),
             dataset.get_qrels(),
-            jobs=2
+            jobs=2,
+            dataframe=False
         )
         self.assertEqual(6, len(rtr))
         print(rtr)

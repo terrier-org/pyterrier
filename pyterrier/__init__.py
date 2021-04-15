@@ -118,7 +118,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     from .utils import Utils
     from .datasets import get_dataset, list_datasets
     from .index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, FlatJSONDocumentIterator, IndexingType
-    from .pipelines import LTR_pipeline, XGBoostLTR_pipeline, Experiment
+    from .pipelines import LTR_pipeline, XGBoostLTR_pipeline, Experiment, GridScan, GridSearch
 
     # Make imports global
     globals()["autoclass"] = autoclass
@@ -167,6 +167,9 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     globals()["IndexFactory"] = autoclass("org.terrier.structures.IndexFactory")
     globals()["IndexRef"] = autoclass("org.terrier.querying.IndexRef")
     globals()["IndexingType"] = IndexingType
+    globals()["GridScan"] = GridScan
+    globals()["GridSearch"] = GridSearch
+    
     
     # we save the pt.init() arguments so that other processes,
     # started by joblib or ray can booted with same options
