@@ -324,6 +324,98 @@ GRID_SEARCH_RETURN_TYPE_SETTING = Tuple[
     List[GRID_SCAN_PARAM_SETTING]
 ]
 
+def _save_state(param_dict):
+    rtr = []
+    for tran, param_set in param_dict.items():
+        for param_name in param_set:
+            rtr.append((tran, param_name, tran.get_parameter(param_name)))
+    return rtr
+
+def _restore_state(param_state):
+    for (tran, param_name, param_value) in param_state:
+        tran.set_parameter(param_name, param_value)
+
+
+def KFoldGridSearch( 
+        pipeline : TransformerBase,
+        params : Dict[TransformerBase,Dict[str,List[TRANSFORMER_PARAMETER_VALUE_TYPE]]],
+        topics_list : List[pd.DataFrame],
+        qrels : Union[pd.DataFrame,List[pd.DataFrame]],
+        metric : str = "map",
+        jobs : int = 1,
+        backend='joblib',
+        verbose: bool = False,
+        batch_size = None) -> Tuple[pd.DataFrame, GRID_SEARCH_RETURN_TYPE_SETTING]:
+    """
+    Applies a GridSearch using different folds. It returns the *results* of the 
+    tuned transformer pipeline on the test topics. The number of topics dataframes passed
+    to topics_list defines the number of folds. For each fold, all but one of the dataframes
+    is used as training, and the remainder used for testing. 
+
+    The state of the transformers in the pipeline is restored after the KFoldGridSearch has
+    been executed.
+
+    Consider tuning PL2 where folds of queries are pre-determined::
+
+        pl2 = pt.BatchRetrieve(index, wmodel="PL2", controls={'c' : 1})
+        tuned_pl2, _ = pt.pipelines.KFoldGridSearch(
+            pl2, 
+            {pl2 : {'c' : [0.1, 1, 5, 10, 20, 100]}}, 
+            [topicsf1, topicsf2],
+            qrels,
+            ["map"]
+        )
+        pt.Experiment([pl2, tuned_pl2], all_topics, qrels, ["map"])
+
+    As 2 splits are defined, PL2 is first tuned on topicsf1 and tested on topicsf2, then 
+    trained on topicsf2 and tested on topicsf1. The results dataframe of PL2 after tuning of the c
+    parameter are returned by the KFoldGridSearch, and can be used directly in a pt.Experiment().
+    """
+    
+    import pandas as pd
+    num_folds = len(topics_list)
+    if isinstance(qrels, pd.DataFrame):
+        qrels = [qrels] * num_folds    
+    
+    FOLDS=list(range(0, num_folds))
+    results=[]
+    settings=[]
+
+    # save state
+    initial_state = _save_state(params)
+
+    for fold in FOLDS:
+        print("Fold %d" % (fold+1))
+
+        train_indx = FOLDS.copy()
+        train_indx.remove(fold)
+        train_topics = pd.concat([topics_list[offset] for offset in train_indx])
+        train_qrels = pd.concat([qrels[offset] for offset in train_indx])
+        test_topics = topics_list[fold]
+        #test_qrels arent needed
+        #test_qrels = qrels[fold]
+        
+        # safety - give the GridSearch a stable initial setting
+        _restore_state(initial_state)
+
+        optPipe, max_measure, max_setting = GridSearch(
+            pipeline,
+            params,
+            train_topics,
+            train_qrels,
+            "map",
+            jobs=jobs,
+            backend=backend,
+            batch_size=batch_size,
+            return_type="both")
+        results.append(optPipe.transform(test_topics))
+        settings.append(max_setting)
+    
+    # restore state
+    _restore_state(initial_state)
+    
+    return (pd.concat(results), settings)
+
 def GridSearch(
         pipeline : TransformerBase,
         params : Dict[TransformerBase,Dict[str,List[TRANSFORMER_PARAMETER_VALUE_TYPE]]],
@@ -353,10 +445,12 @@ def GridSearch(
         - jobs(int): Number of parallel jobs to run. Default is 1, which means sequentially.
         - backend(str): Parallelisation backend to use. Defaults to "joblib". 
         - verbose(bool): whether to display progress bars or not
-        - return_type(str): whether to return the same transformer with optimal pipeline setting, or a setting of the
+        - return_type(str): whether to return the same transformer with optimal pipeline setting, and/or a setting of the
             higher metric value, and the resulting transformers and settings.
     """
-    
+    # save state
+    initial_state = _save_state(params)
+
     grid_outcomes = GridScan(pipeline, params, topics, qrels, [metric], jobs, backend, verbose, batch_size, dataframe=False)
     assert len(grid_outcomes) > 0, "GridScan returned 0 rows"
     max_measure = grid_outcomes[0][1][metric]
@@ -373,7 +467,13 @@ def GridSearch(
             tran.set_parameter(param, value)
         return pipeline
     if return_type == "best_setting":
+        _restore_state(initial_state)
         return max_measure, max_setting
+    if return_type == "both":
+        for tran, param, value in max_setting:
+            tran.set_parameter(param, value)
+        return (pipeline, max_measure, max_setting)
+
 
 def GridScan(
         pipeline : TransformerBase,
@@ -440,7 +540,11 @@ def GridScan(
 
     # Store the all parameter names and candidate values into a dictionary, keyed by a tuple of the transformer and the parameter name
     # such as {(BatchRetrieve, 'wmodel'): ['BM25', 'PL2'], (BatchRetrieve, 'c'): [0.1, 0.2, 0.3], (Bla, 'lr'): [0.001, 0.01, 0.1]}
-    candi_dict = { (tran, param_name) : params[tran][param_name] for tran in params for param_name in params[tran]}
+    candi_dict={}
+    for tran, param_set in params.items():
+        for param_name, values in param_set.items():
+            candi_dict[ (tran, param_name) ] = values
+    #candi_dict = { : params[tran][param_name] for tran in params for param_name in params[tran]}
     if len(candi_dict) == 0:
         raise ValueError("No parameters specified to optimise")
     for tran, param in candi_dict:

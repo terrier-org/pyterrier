@@ -22,7 +22,7 @@ class TestGrid(BaseTestCase):
             dataframe=False
         )
         self.assertEqual(4, len(rtr))
-        print(rtr)
+        #print(rtr)
 
     def test_gridscan_2params(self):
         dataset = pt.get_dataset("vaswani")
@@ -37,7 +37,7 @@ class TestGrid(BaseTestCase):
             dataframe=False
         )
         self.assertEqual(4, len(rtr))
-        print(rtr)
+        #print(rtr)
 
     def test_gridscan_1param(self):
         dataset = pt.get_dataset("vaswani")
@@ -51,7 +51,7 @@ class TestGrid(BaseTestCase):
             dataframe=False
         )
         self.assertEqual(6, len(rtr))
-        print(rtr)
+        #print(rtr)
     
     def test_gridscan_1param_df(self):
         dataset = pt.get_dataset("vaswani")
@@ -66,7 +66,7 @@ class TestGrid(BaseTestCase):
         )
         self.assertEqual(6, len(rtr))
         self.assertTrue(isinstance(rtr, pd.DataFrame))
-        print(rtr)
+        #print(rtr)
 
     def test_gridscan_joblib2(self):
         dataset = pt.get_dataset("vaswani")
@@ -81,7 +81,7 @@ class TestGrid(BaseTestCase):
             dataframe=False
         )
         self.assertEqual(6, len(rtr))
-        print(rtr)
+        #print(rtr)
 
     def test_gridsearch(self):
         dataset = pt.get_dataset("vaswani")
@@ -93,3 +93,24 @@ class TestGrid(BaseTestCase):
             dataset.get_qrels()
         )
         self.assertEqual(100, rtr.get_parameter("c"))
+
+    def test_kfoldgridsearch(self):
+        import pandas as pd
+        dataset = pt.get_dataset("vaswani")
+        topics = dataset.get_topics().head(10)
+        topics_part = [
+            topics.iloc[0:1],
+            topics.iloc[2:3],
+            topics.iloc[4:5],
+            topics.iloc[6:7],
+            topics.iloc[8:9]           
+        ]
+        pipe = pt.BatchRetrieve(dataset.get_index(), wmodel="PL2", controls={'c' : 1})
+        rtrDf, rtrSettings = pt.KFoldGridSearch(
+            pipe, 
+            {pipe : {'c' : [0.1, 1, 5, 10, 20, 100]}},
+            topics_part,
+            dataset.get_qrels()
+        )
+        self.assertTrue(isinstance(rtrDf, pd.DataFrame))
+        #print(rtrSettings)
