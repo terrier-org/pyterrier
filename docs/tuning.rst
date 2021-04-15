@@ -15,15 +15,15 @@ All of these functions are designed to have an API very similar to pt.Experiment
 Pre-requisites
 ==============
 
-GridScan makes several assumption:
+GridScan makes several assumptions:
  - the parameters that you wish to tune are available as instance attributes within the transformers, or that the transformer responds suitably to `set_parameter()`. 
  - changing the relevant parameters has an impact upon subsequent calls to `transform()`.
 
 Note that transformers implemented using pt.apply functions cannot address the second requirement, as any parameters are captured 
 naturally within the closure, and not as instances attributes of the transformer.
 
-Scanning and Searching API
-==========================
+Parameter Scanning and Searching API
+====================================
 
 .. autofunction:: pyterrier.GridScan()
 
