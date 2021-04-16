@@ -374,7 +374,7 @@ def KFoldGridSearch(
     Consider tuning PL2 where folds of queries are pre-determined::
 
         pl2 = pt.BatchRetrieve(index, wmodel="PL2", controls={'c' : 1})
-        tuned_pl2, _ = pt.pipelines.KFoldGridSearch(
+        tuned_pl2, _ = pt.KFoldGridSearch(
             pl2, 
             {pl2 : {'c' : [0.1, 1, 5, 10, 20, 100]}}, 
             [topicsf1, topicsf2],
@@ -545,7 +545,7 @@ def GridScan(
 
         # graph how PL2's c parameter affects MAP
         pl2 = pt.BatchRetrieve(index, wmodel="PL2", controls={'c' : 1})
-        rtr = pt.pipelines.GridSearch(
+        rtr = pt.GridSearch(
             pl2, 
             {pl2 : {'c' : [0.1, 1, 5, 10, 20, 100]}}, 
             topics,
