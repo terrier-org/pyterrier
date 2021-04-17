@@ -7,6 +7,8 @@ from .index import Indexer
 from .transformer import TransformerBase, Symbol
 from .model import coerce_queries_dataframe, FIRST_RANK
 import deprecation
+import concurrent
+from concurrent.futures import ThreadPoolExecutor
 
 # import time
 
@@ -98,6 +100,7 @@ class BatchRetrieve(BatchRetrieveBase):
         self.appSetup = autoclass('org.terrier.utility.ApplicationSetup')
         self.properties = _mergeDicts(BatchRetrieve.default_properties, properties)
         self.metadata = metadata
+        self.threads = 1
 
         if props is None:
             importProps()
@@ -119,6 +122,7 @@ class BatchRetrieve(BatchRetrieveBase):
 
 
         MF = autoclass('org.terrier.querying.ManagerFactory')
+        self.RequestContextMatching = autoclass("org.terrier.python.RequestContextMatching")
         self.manager = MF._from_(self.indexref)
     
     def get_parameter(self, name : str):
@@ -158,6 +162,74 @@ class BatchRetrieve(BatchRetrieveBase):
         for key,value in d["properties"].items():
             self.appSetup.setProperty(key, str(value))
 
+    def _retrieve_one(self, query_tuple, input_results=None, docno_provided=False, docid_provided=False, scores_provided=False):
+        rank = FIRST_RANK
+        qid = str(row.qid)
+        query = row.query
+        if len(query) == 0:
+            warn("Skipping empty query for qid %s" % qid)
+            return []
+
+        srq = self.manager.newSearchRequest(qid, query)
+        
+        for control, value in self.controls.items():
+            srq.setControl(control, str(value))
+
+        # this is needed until terrier-core issue #106 lands
+        if "applypipeline:off" in query:
+            srq.setControl("applypipeline", "off")
+            srq.setOriginalQuery(query.replace("applypipeline:off", ""))
+
+        # transparently detect matchop queries
+        if _matchop(query):
+            srq.setControl("terrierql", "off")
+            srq.setControl("parsecontrols", "off")
+            srq.setControl("parseql", "off")
+            srq.setControl("matchopql", "on")
+
+        # this handles the case that a candidate set of documents has been set. 
+        num_expected = None
+        if docno_provided or docid_provided:
+            # we use RequestContextMatching to make a ResultSet from the 
+            # documents in the candidate set. 
+            matching_config_factory = RequestContextMatching.of(srq)
+            input_query_results = input_results[input_results["qid"] == qid]
+            num_expected = len(input_query_results)
+            if docid_provided:
+                matching_config_factory.fromDocids(input_query_results["docid"].values.tolist())
+            elif docno_provided:
+                matching_config_factory.fromDocnos(input_query_results["docno"].values.tolist())
+            # batch retrieve is a scoring process that always overwrites the score; no need to provide scores as input
+            #if scores_provided:
+            #    matching_config_factory.withScores(input_query_results["score"].values.tolist())
+            matching_config_factory.build()
+            srq.setControl("matching", "org.terrier.matching.ScoringMatching" + "," + srq.getControl("matching"))
+
+        # now ask Terrier to run the request
+        self.manager.runSearchRequest(srq)
+        result = srq.getResults()
+
+        # check we got all of the expected metadata (if the resultset has a size at all)
+        if len(result) > 0 and len(set(self.metadata) & set(result.getMetaKeys())) != len(self.metadata):
+            raise KeyError("Mismatch between requested and available metadata in %s. Requested metadata: %s, available metadata %s" % 
+                (str(self.indexref), str(self.metadata), str(result.getMetaKeys()))) 
+
+        if num_expected is not None:
+            assert(num_expected == len(result))
+        
+        rtr_rows=[]
+        # prepare the dataframe for the results of the query
+        for item in result:
+            metadata_list = []
+            for meta_column in self.metadata:
+                metadata_list.append(item.getMetadata(meta_column))
+            res = [qid, item.getDocid()] + metadata_list + [rank, item.getScore()]
+            rank += 1
+            rtr_rows.append(res)
+
+        return rtr_rows
+
+
     def transform(self, queries):
         """
         Performs the retrieval
@@ -177,6 +249,7 @@ class BatchRetrieve(BatchRetrieveBase):
         docno_provided = "docno" in queries.columns
         docid_provided = "docid" in queries.columns
         scores_provided = "score" in queries.columns
+        input_results = None
         if docno_provided or docid_provided:
             from . import check_version
             assert check_version(5.3)
@@ -186,75 +259,24 @@ class BatchRetrieve(BatchRetrieveBase):
             # Hence as long as one row has the query for each qid, 
             # the rest can be None
             queries = input_results[["qid", "query"]].dropna(axis=0, subset=["query"]).drop_duplicates()
-            RequestContextMatching = autoclass("org.terrier.python.RequestContextMatching")
-
+            
         # make sure queries are a String
         if queries["qid"].dtype == np.int64:
             queries['qid'] = queries['qid'].astype(str)
 
+        if self.threads > 1:
+            with ThreadPoolExecutor(max_workers=self.threads) as executor:
+                # create a future for each query, and submit to Terrier
+                future_results = {executor.submit(self._retrieve_one, row, input_results, docno_provided=docno_provided, docid_provided=docid_provided, scores_provided=scores_provided) : row.qid for row in queries.itertuples()}                
+                # as these futures complete, wait and add their results
+                for future in tqdm( concurrent.futures.as_completed(future_results), desc=str(self), total=queries.shape[0], unit="q") if self.verbose else concurrent.futures.as_completed(future_results):
+                    res = future.result()
+                    results.extend(res)
+        else:
+            for row in tqdm(queries.itertuples(), desc=str(self), total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
+                res = self._retrieve_one(row, input_results, docno_provided=docno_provided, docid_provided=docid_provided, scores_provided=scores_provided)
+                results.extend(res)
 
-        for row in tqdm(queries.itertuples(), desc=str(self), total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
-            rank = FIRST_RANK
-            qid = str(row.qid)
-            query = row.query
-            if len(query) == 0:
-                warn("Skipping empty query for qid %s" % qid)
-                continue
-
-            srq = self.manager.newSearchRequest(qid, query)
-            
-            for control, value in self.controls.items():
-                srq.setControl(control, str(value))
-
-            # this is needed until terrier-core issue #106 lands
-            if "applypipeline:off" in query:
-                srq.setControl("applypipeline", "off")
-                srq.setOriginalQuery(query.replace("applypipeline:off", ""))
-
-            # transparently detect matchop queries
-            if _matchop(query):
-                srq.setControl("terrierql", "off")
-                srq.setControl("parsecontrols", "off")
-                srq.setControl("parseql", "off")
-                srq.setControl("matchopql", "on")
-
-            # this handles the case that a candidate set of documents has been set. 
-            num_expected = None
-            if docno_provided or docid_provided:
-                # we use RequestContextMatching to make a ResultSet from the 
-                # documents in the candidate set. 
-                matching_config_factory = RequestContextMatching.of(srq)
-                input_query_results = input_results[input_results["qid"] == qid]
-                num_expected = len(input_query_results)
-                if docid_provided:
-                    matching_config_factory.fromDocids(input_query_results["docid"].values.tolist())
-                elif docno_provided:
-                    matching_config_factory.fromDocnos(input_query_results["docno"].values.tolist())
-                # batch retrieve is a scoring process that always overwrites the score; no need to provide scores as input
-                #if scores_provided:
-                #    matching_config_factory.withScores(input_query_results["score"].values.tolist())
-                matching_config_factory.build()
-                srq.setControl("matching", "org.terrier.matching.ScoringMatching" + "," + srq.getControl("matching"))
-
-            # now ask Terrier to run the request
-            self.manager.runSearchRequest(srq)
-            result = srq.getResults()
-
-            # check we got all of the expected metadata (if the resultset has a size at all)
-            if len(result) > 0 and len(set(self.metadata) & set(result.getMetaKeys())) != len(self.metadata):
-                raise KeyError("Mismatch between requested and available metadata in %s. Requested metadata: %s, available metadata %s" % 
-                    (str(self.indexref), str(self.metadata), str(result.getMetaKeys()))) 
-
-            if num_expected is not None:
-                assert(num_expected == len(result))
-            # prepare the dataframe for the results of the query
-            for item in result:
-                metadata_list = []
-                for meta_column in self.metadata:
-                    metadata_list.append(item.getMetadata(meta_column))
-                res = [qid, item.getDocid()] + metadata_list + [rank, item.getScore()]
-                rank += 1
-                results.append(res)
         res_dt = pd.DataFrame(results, columns=['qid', 'docid' ] + self.metadata + ['rank', 'score'])
         # ensure to return the query and any other input columns
         input_cols = queries.columns[ (queries.columns == "qid") | (~queries.columns.isin(res_dt.columns))]

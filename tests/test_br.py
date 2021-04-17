@@ -151,5 +151,13 @@ class TestBatchRetrieve(BaseTestCase):
         result = retr.transform(input)
         self.assertEqual(len(result), 10)
 
+    def test_threading(self):
+        JIR = pt.autoclass('org.terrier.querying.IndexRef')
+        indexref = JIR.of("concurrent:" + self.here+"/fixtures/index/data.properties")
+        retr = pt.BatchRetrieve(indexref)
+        retr.threads = 5
+        topics = pt.get_dataset("vaswani").get_topics()
+        result = retr.transform(topics)
+
 if __name__ == "__main__":
     unittest.main()
