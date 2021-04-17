@@ -95,12 +95,13 @@ class BatchRetrieve(BatchRetrieveBase):
                 metadata(list): What metadata to retrieve
         """
         super().__init__(kwargs)
-        
+        from . import autoclass
         self.indexref = _parse_index_like(index_location)
         self.appSetup = autoclass('org.terrier.utility.ApplicationSetup')
         self.properties = _mergeDicts(BatchRetrieve.default_properties, properties)
         self.metadata = metadata
-        self.threads = 1
+        self.threads = 1        
+        self.RequestContextMatching = autoclass("org.terrier.python.RequestContextMatching")
 
         if props is None:
             importProps()
@@ -162,7 +163,7 @@ class BatchRetrieve(BatchRetrieveBase):
         for key,value in d["properties"].items():
             self.appSetup.setProperty(key, str(value))
 
-    def _retrieve_one(self, query_tuple, input_results=None, docno_provided=False, docid_provided=False, scores_provided=False):
+    def _retrieve_one(self, row, input_results=None, docno_provided=False, docid_provided=False, scores_provided=False):
         rank = FIRST_RANK
         qid = str(row.qid)
         query = row.query
@@ -192,7 +193,7 @@ class BatchRetrieve(BatchRetrieveBase):
         if docno_provided or docid_provided:
             # we use RequestContextMatching to make a ResultSet from the 
             # documents in the candidate set. 
-            matching_config_factory = RequestContextMatching.of(srq)
+            matching_config_factory = self.RequestContextMatching.of(srq)
             input_query_results = input_results[input_results["qid"] == qid]
             num_expected = len(input_query_results)
             if docid_provided:
