@@ -159,3 +159,4 @@ By downloading and using PyTerrier, you agree to cite at the undernoted paper de
  - Arthur Câmara, Delft University
  - Alberto Ueda, Federal University of Minas Gerais
  - Sean MacAvaney, Georgetown University
+ - Chentao Xu, University of Glasgow
