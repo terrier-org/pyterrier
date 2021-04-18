@@ -170,3 +170,29 @@ Often used measures, including the name that must be used, are:
 
 
 See also a `list of common TREC eval measures <http://www.rafaelglater.com/en/post/learn-how-to-use-trec_eval-to-evaluate-your-information-retrieval-system>`_.
+
+Evaluation Measures Objects
+===========================
+
+
+.. autofunction:: pyterrier.measures.AP
+
+.. autofunction:: pyterrier.measures.P
+
+.. autofunction:: pyterrier.measures.nDCG
+
+.. autofunction:: pyterrier.measures.RR
+
+.. autofunction:: pyterrier.measures.Judged
+
+.. autofunction:: pyterrier.measures.Rprec
+
+.. autofunction:: pyterrier.measures.R
+
+.. autofunction:: pyterrier.measures.Bpref
+
+.. autofunction:: pyterrier.measures.ERR
+
+.. autofunction:: pyterrier.measures.RBP
+
+
