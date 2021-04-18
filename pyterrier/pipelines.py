@@ -1,12 +1,17 @@
+from collections import defaultdict
 from warnings import warn
 import os
 import pandas as pd
 import numpy as np
-from typing import Union, Dict, List, Tuple
+from typing import Union, Dict, List, Tuple, Sequence
 from .utils import Utils
 from .transformer import TransformerBase, EstimatorBase
 from .model import add_ranks
 import deprecation
+import ir_measures
+from ir_measures.measures import BaseMeasure 
+MEASURE_TYPE=Union[str,BaseMeasure]
+MEASURES_TYPE=Sequence[MEASURE_TYPE]
 
 def _bold_cols(data, col_type):
     if not data.name in col_type:
@@ -42,21 +47,91 @@ def _color_cols(data, col_type,
     is_max[len(data) - list(reversed(data)).index(max_value) -  1] = colormaxlast_attr
     return is_max
 
+_measure_nicknames = {
+    "map" : ir_measures.AP,
+    "recip_rank" : ir_measures.RR,
+    "ndcg" : ir_measures.nDCG
+}
+_measure_prefix = {
+    "ndcg_cut_" : ir_measures.nDCG,
+    "P_" : ir_measures.P
+}
+_irmeasures_columns = {
+    'qid' : 'query_id',
+    'docno' : 'doc_id'
+}
+
+def _convert_measures(metrics : MEASURES_TYPE) -> Sequence[BaseMeasure]:
+    rtr = []
+    rev_mapping = {}
+    for m in metrics:
+        if isinstance(m, BaseMeasure):
+            rtr.append(m)
+            continue
+        if m in _measure_nicknames:
+            metric = _measure_nicknames[m]
+            rtr.append(metric)
+            rev_mapping[metric] = m
+            continue
+        assert isinstance(m, str)
+        for prefix, measure in _measure_prefix.items():
+            found = False
+            if m.startswith(prefix):
+                suffix = int(m.replace(prefix, ""))
+                metric = measure@suffix
+                rtr.append(metric)
+                rev_mapping[metric] = m
+                found = True
+                break
+        if not found:
+            raise KeyError("Could not convert measure %s" % m)
+    assert len(rtr) > 0
+    return rtr, rev_mapping
+
+#list(iter_calc([ir_measures.AP], qrels, run))
+#[Metric(query_id='Q0', measure=AP, value=1.0), Metric(query_id='Q1', measure=AP, value=1.0)]
+def _ir_measures_to_dict(seq : Sequence, rev_mapping : Dict[BaseMeasure,str], perquery=True):
+    from collections import defaultdict
+    if perquery:
+        # qid -> measure -> value
+        rtr=defaultdict(dict)
+        for m in seq:
+            metric = m.measure
+            metric = rev_mapping.get(metric, str(metric))
+            rtr[m.query_id][metric] = m.value
+        return rtr
+    # measure -> value
+    rtr = defaultdict(float)
+    count=0
+    for m in seq:
+        metric = m.measure
+        metric = rev_mapping.get(metric, str(metric))
+        rtr[metric] += m.value
+        count += 1
+    for m in rtr:
+        rtr[m] = rtr[m] / count
+    #print(rtr)
+    return rtr
 
 def _run_and_evaluate(
         system : Union[TransformerBase, pd.DataFrame], 
         topics : pd.DataFrame, 
         qrels_dict, 
-        metrics : List[str], 
+        metrics : MEASURES_TYPE, 
         perquery : bool = False,
         batch_size = None):
     
+    metrics, rev_mapping = _convert_measures(metrics)
     from timeit import default_timer as timer
     runtime = 0
     # if its a DataFrame, use it as the results
     if isinstance(system, pd.DataFrame):
         res = system
-        evalMeasuresDict = Utils.evaluate(res, qrels_dict, metrics=metrics, perquery=perquery)
+        evalMeasuresDict = _ir_measures_to_dict(
+            ir_measures.iter_calc(metrics, qrels_dict, res.rename(columns=_irmeasures_columns)), 
+            rev_mapping,
+            perquery)
+        #evalMeasuresDict = Utils.evaluate(res, qrels_dict, metrics=metrics, perquery=perquery)
 
     elif batch_size is None:
         #transformer, evaluate all queries at once
@@ -65,7 +140,11 @@ def _run_and_evaluate(
         res = system.transform(topics)
         endtime = timer()
         runtime =  (endtime - starttime) * 1000.
-        evalMeasuresDict = Utils.evaluate(res, qrels_dict, metrics=metrics, perquery=perquery)
+        evalMeasuresDict = _ir_measures_to_dict(
+            ir_measures.iter_calc(metrics, qrels_dict, res.rename(columns=_irmeasures_columns)), 
+            rev_mapping,
+            perquery)
+        #evalMeasuresDict = Utils.evaluate(res, qrels_dict, metrics=metrics, perquery=perquery)
     else:
         #transformer, evaluate queries in batches
         assert batch_size > 0
@@ -75,7 +154,11 @@ def _run_and_evaluate(
         for res in system.transform_gen(topics, batch_size=batch_size):
             endtime = timer()
             runtime += (endtime - starttime) * 1000.
-            localEvalDict = Utils.evaluate(res, qrels_dict, metrics=metrics, perquery=False)
+            localEvalDict = _ir_measures_to_dict(
+                ir_measures.iter_calc(metrics, qrels_dict, res.rename(columns=_irmeasures_columns)),
+                rev_mapping,
+                False)
+            #Utils.evaluate(res, qrels_dict, metrics=metrics, perquery=False)
             evalMeasuresDict.update(localEvalDict)
             starttime = timer()
         if not perquery:
@@ -83,17 +166,20 @@ def _run_and_evaluate(
     return (runtime, evalMeasuresDict)
 
 
-def Experiment(retr_systems, topics, qrels, eval_metrics, 
+def Experiment(retr_systems, 
+        topics, 
+        qrels, 
+        eval_metrics : MEASURES_TYPE, 
         names=None, 
-        perquery=False, 
-        dataframe=True, 
-        batch_size=None, 
-        drop_unused=False, 
-        baseline=None, 
+        perquery : bool = False, 
+        dataframe : bool = True, 
+        batch_size: int = None, 
+        drop_unused : bool = False, 
+        baseline: int = None, 
         correction=None, 
-        correction_alpha=0.05, 
-        highlight=None, 
-        round=None):
+        correction_alpha : float = 0.05, 
+        highlight : str =None, 
+        round: int= None):
     """
     Allows easy comparison of multiple retrieval transformer pipelines using a common set of topics, and
     identical evaluation measures computed using the same qrels. In essence, each transformer is applied on 
@@ -341,7 +427,7 @@ def KFoldGridSearch(
         params : Dict[TransformerBase,Dict[str,List[TRANSFORMER_PARAMETER_VALUE_TYPE]]],
         topics_list : List[pd.DataFrame],
         qrels : Union[pd.DataFrame,List[pd.DataFrame]],
-        metric : str = "map",
+        metric : MEASURE_TYPE = "map",
         jobs : int = 1,
         backend='joblib',
         verbose: bool = False,
@@ -438,7 +524,7 @@ def GridSearch(
         params : Dict[TransformerBase,Dict[str,List[TRANSFORMER_PARAMETER_VALUE_TYPE]]],
         topics : pd.DataFrame,
         qrels : pd.DataFrame,
-        metric : str = "map",
+        metric : MEASURE_TYPE = "map",
         jobs : int = 1,
         backend='joblib',
         verbose: bool = False,
@@ -508,7 +594,7 @@ def GridScan(
         params : Dict[TransformerBase,Dict[str,List[TRANSFORMER_PARAMETER_VALUE_TYPE]]],
         topics : pd.DataFrame,
         qrels : pd.DataFrame,
-        metrics : List[str] = ["map"],
+        metrics : MEASURES_TYPE = ["map"],
         jobs : int = 1,
         backend='joblib',
         verbose: bool = False,
