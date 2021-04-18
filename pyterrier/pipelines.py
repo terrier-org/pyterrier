@@ -90,7 +90,11 @@ def _convert_measures(metrics : MEASURES_TYPE) -> Sequence[BaseMeasure]:
 
 #list(iter_calc([ir_measures.AP], qrels, run))
 #[Metric(query_id='Q0', measure=AP, value=1.0), Metric(query_id='Q1', measure=AP, value=1.0)]
-def _ir_measures_to_dict(seq : Sequence, rev_mapping : Dict[BaseMeasure,str], perquery=True):
+def _ir_measures_to_dict(
+        seq : Sequence, 
+        rev_mapping : Dict[BaseMeasure,str], 
+        num_q : int,
+        perquery : bool = True):
     from collections import defaultdict
     if perquery:
         # qid -> measure -> value
@@ -109,7 +113,7 @@ def _ir_measures_to_dict(seq : Sequence, rev_mapping : Dict[BaseMeasure,str], pe
         rtr[metric] += m.value
         count += 1
     for m in rtr:
-        rtr[m] = rtr[m] / count
+        rtr[m] = rtr[m] / num_q
     #print(rtr)
     return rtr
 
@@ -124,12 +128,14 @@ def _run_and_evaluate(
     metrics, rev_mapping = _convert_measures(metrics)
     from timeit import default_timer as timer
     runtime = 0
+    num_q = len(qrels_dict)
     # if its a DataFrame, use it as the results
     if isinstance(system, pd.DataFrame):
         res = system
         evalMeasuresDict = _ir_measures_to_dict(
             ir_measures.iter_calc(metrics, qrels_dict, res.rename(columns=_irmeasures_columns)), 
             rev_mapping,
+            num_q,
             perquery)
         #evalMeasuresDict = Utils.evaluate(res, qrels_dict, metrics=metrics, perquery=perquery)
 
@@ -143,6 +149,7 @@ def _run_and_evaluate(
         evalMeasuresDict = _ir_measures_to_dict(
             ir_measures.iter_calc(metrics, qrels_dict, res.rename(columns=_irmeasures_columns)), 
             rev_mapping,
+            num_q,
             perquery)
         #evalMeasuresDict = Utils.evaluate(res, qrels_dict, metrics=metrics, perquery=perquery)
     else:
@@ -157,6 +164,7 @@ def _run_and_evaluate(
             localEvalDict = _ir_measures_to_dict(
                 ir_measures.iter_calc(metrics, qrels_dict, res.rename(columns=_irmeasures_columns)),
                 rev_mapping,
+                num_q,
                 False)
             #Utils.evaluate(res, qrels_dict, metrics=metrics, perquery=False)
             evalMeasuresDict.update(localEvalDict)

@@ -307,7 +307,7 @@ class Utils:
         return (dictionary, missing)
 
     @staticmethod
-    def mean_of_measures(result, measures=None):
+    def mean_of_measures(result, measures=None, num_q = None):
         if len(result) == 0:
             raise ValueError("No measures received - perhaps qrels and topics had no results in common")
         measures_sum = {}
@@ -323,8 +323,10 @@ class Utils:
             for measure in measures:
                 measure_val = val[measure]
                 measures_sum[measure] = measures_sum.get(measure, 0.0) + measure_val
+        if num_q is None:
+            num_q = len(result.values())
         for measure, value in measures_sum.items():
-            mean_dict[measure] = value / (1 if measure in measures_no_mean else len(result.values()) )
+            mean_dict[measure] = value / (1 if measure in measures_no_mean else num_q)
         return mean_dict
 
     # create a dataframe of string of queries or a list or tuple of strings of queries

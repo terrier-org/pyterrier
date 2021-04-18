@@ -7,6 +7,47 @@ from .base import BaseTestCase
 
 class TestExperiment(BaseTestCase):
 
+    def test_irm_APrel2(self):
+        topics = pd.DataFrame([["q1", "q1"], ["q2", "q1"] ], columns=["qid", "query"])
+        res1 = pd.DataFrame([["q1", "d1", 1.0], ["q2", "d1", 2.0] ], columns=["qid", "docno", "score"])
+        qrels = pd.DataFrame([["q1", "d1", 1], ["q2", "d1", 2] ], columns=["qid", "docno", "label"])
+        df = pt.Experiment(
+                [res1],
+                topics,
+                qrels,
+                [
+                    pt.measures.AP(rel=2),
+                ])
+        self.assertEqual(0.5, df.iloc[0]["AP(rel=2)"])
+        df = pt.Experiment(
+                [res1],
+                topics,
+                qrels,
+                [
+                    pt.measures.AP,
+                    pt.measures.AP(rel=2),
+                    pt.measures.P(rel=2)@1
+                ])
+        self.assertEqual(1, df.iloc[0]["AP"])
+        self.assertEqual(0.5, df.iloc[0]["AP(rel=2)"])
+        self.assertEqual(0.5, df.iloc[0]["P(rel=2)@1"])
+        df = pt.Experiment(
+                [res1],
+                topics,
+                qrels,
+                [
+                    pt.measures.AP,
+                    pt.measures.AP(rel=2),
+                    pt.measures.P(rel=2)@1
+                ],
+                perquery=True)
+        self.assertEqual(1, df[(df.measure == "AP") & (df.qid == "q1")].value.iloc[0])
+        self.assertEqual(1, df[(df.measure == "AP") & (df.qid == "q2")].value.iloc[0])
+        self.assertEqual(0, df[(df.measure == "AP(rel=2)") & (df.qid == "q1")].value.iloc[0])
+        self.assertEqual(1, df[(df.measure == "AP(rel=2)") & (df.qid == "q2")].value.iloc[0])
+        self.assertEqual(0, df[(df.measure == "P(rel=2)@1") & (df.qid == "q1")].value.iloc[0])
+        self.assertEqual(1, df[(df.measure == "P(rel=2)@1") & (df.qid == "q2")].value.iloc[0])
+
     def test_differing_queries(self):
         topics = pd.DataFrame([["q1", "q1"], ["q2", "q1"] ], columns=["qid", "query"])
         res1 = pd.DataFrame([["q1", "d1", 1.0]], columns=["qid", "docno", "score"])
