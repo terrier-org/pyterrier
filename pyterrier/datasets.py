@@ -497,7 +497,7 @@ TREC_DEEPLEARNING_PASSAGE_MSMARCO_FILES = {
         { 
             "train" : ("queries.train.tsv", "queries.tar.gz#queries.train.tsv", "singleline"),
             "dev" : ("queries.dev.tsv", "queries.tar.gz#queries.dev.tsv", "singleline"),
-            "dev.small" : ("queries.dev.small.tsv", "collectionandqueries.tar.gz#queries.small.dev.tsv", "singleline"),
+            "dev.small" : ("queries.dev.small.tsv", "collectionandqueries.tar.gz#queries.dev.small.tsv", "singleline"),
             "eval" : ("queries.eval.tsv", "queries.tar.gz#queries.eval.tsv", "singleline"),
             "eval.small" : ("queries.eval.small.tsv", "collectionandqueries.tar.gz#queries.eval.small.tsv", "singleline"),
             "test-2019" : ("msmarco-test2019-queries.tsv.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-test2019-queries.tsv.gz", "singleline"),
