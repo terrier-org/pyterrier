@@ -242,7 +242,8 @@ class BatchRetrieve(BatchRetrieveBase):
 
             # check we got all of the expected metadata (if the resultset has a size at all)
             if len(result) > 0 and len(set(self.metadata) & set(result.getMetaKeys())) != len(self.metadata):
-                raise KeyError("Requested metadata: %s, obtained metadata %s" % (str(self.metadata), str(result.getMetaKeys()))) 
+                raise KeyError("Mismatch between requested and available metadata in %s. Requested metadata: %s, available metadata %s" % 
+                    (str(self.indexref), str(self.metadata), str(result.getMetaKeys()))) 
 
             if num_expected is not None:
                 assert(num_expected == len(result))
@@ -269,16 +270,6 @@ class BatchRetrieve(BatchRetrieveBase):
 
     def __str__(self):
         return "BR(" + self.controls["wmodel"] + ")"
-
-    @deprecation.deprecated(deprecated_in="0.3.0",
-                        details="Please use pt.io.write_results(res, path, format='trec')")
-    def saveResult(self, result, path, run_name=None):
-        if run_name is None:
-            run_name = self.controls["wmodel"]
-        res_copy = result.copy()[["qid", "docno", "rank", "score"]]
-        res_copy.insert(1, "Q0", "Q0")
-        res_copy.insert(5, "run_name", run_name)
-        res_copy.to_csv(path, sep=" ", header=False, index=False)
 
     def setControls(self, controls):
         for key, value in controls.items():
