@@ -497,20 +497,24 @@ TREC_DEEPLEARNING_PASSAGE_MSMARCO_FILES = {
         { 
             "train" : ("queries.train.tsv", "queries.tar.gz#queries.train.tsv", "singleline"),
             "dev" : ("queries.dev.tsv", "queries.tar.gz#queries.dev.tsv", "singleline"),
+            "dev.small" : ("queries.dev.small.tsv", "collectionandqueries.tar.gz#queries.small.dev.tsv", "singleline"),
             "eval" : ("queries.eval.tsv", "queries.tar.gz#queries.eval.tsv", "singleline"),
+            "eval.small" : ("queries.eval.small.tsv", "collectionandqueries.tar.gz#queries.eval.small.tsv", "singleline"),
             "test-2019" : ("msmarco-test2019-queries.tsv.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-test2019-queries.tsv.gz", "singleline"),
             "test-2020" : ("msmarco-test2020-queries.tsv.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-test2020-queries.tsv.gz", "singleline")
         },        
     "tars" : {
         "queries.tar.gz" : ("queries.tar.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/queries.tar.gz"),
-        "collection.tar.gz" : ("collection.tar.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/collection.tar.gz")
+        "collection.tar.gz" : ("collection.tar.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/collection.tar.gz"),
+        "collectionandqueries.tar.gz" : ("collectionandqueries.tar.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/collectionandqueries.tar.gz")
     },
     "qrels" : 
         { 
             "train" : ("qrels.train.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/qrels.train.tsv"),
             "dev" : ("qrels.dev.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/qrels.dev.tsv"),
             "test-2019" : ("2019qrels-docs.txt", "https://trec.nist.gov/data/deep/2019qrels-pass.txt"),
-            "test-2020" : ("2020qrels-docs.txt", "https://trec.nist.gov/data/deep/2020qrels-pass.txt")
+            "test-2020" : ("2020qrels-docs.txt", "https://trec.nist.gov/data/deep/2020qrels-pass.txt"),
+            "dev.small" : ("qrels.dev.small.tsv", "collectionandqueries.tar.gz#qrels.dev.small.tsv"),
         },
     "info_url" : "https://microsoft.github.io/MSMARCO-Passage-Ranking/",
     "corpus_iter" : passage_generate
