@@ -137,13 +137,13 @@ class RemoteDataset(Dataset):
             raise ValueError("No %s in dataset %s" % (component, name))
         if variant is None:
             if not isinstance(self.locations[component], list):
-                raise ValueError("For %s in dataset %s, you must specify a variant=. Available are: %s" % (component, name, str(self.locations[component].keys())))
+                raise ValueError("For %s in dataset %s, you must specify a variant. Available are: %s" % (component, name, str(list(self.locations[component].keys()))))
             location = self.locations[component][0]
         else:
             if isinstance(self.locations[component], list):
                 raise ValueError("For %s in dataset %s, there are no variants, but you specified %s" % (component, name, variant))
             if not variant in self.locations[component]:
-                raise ValueError("For %s in dataset %s, there is no variant %s. Available are: %s" % (component, name, variant, str(self.locations[component].keys())))
+                raise ValueError("For %s in dataset %s, there is no variant %s. Available are: %s" % (component, name, variant, str(list(self.locations[component].keys()))))
 
     def _get_one_file(self, component, variant=None):
         filetype=None
