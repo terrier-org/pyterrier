@@ -75,7 +75,7 @@ def _run_and_evaluate(
         for res in system.transform_gen(topics, batch_size=batch_size):
             endtime = timer()
             runtime += (endtime - starttime) * 1000.
-            localEvalDict = Utils.evaluate(res, qrels_dict, metrics=metrics, perquery=False)
+            localEvalDict = Utils.evaluate(res, qrels_dict, metrics=metrics, perquery=True)
             evalMeasuresDict.update(localEvalDict)
             starttime = timer()
         if not perquery:
