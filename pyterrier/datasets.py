@@ -164,20 +164,21 @@ class RemoteDataset(Dataset):
         URL = location[1]
         if len(location) > 2:
             filetype = location[2]
-        if "#" in URL:
+
+        if not os.path.exists(self.corpus_home):
+            os.makedirs(self.corpus_home)
+        
+        local = os.path.join(self.corpus_home, local)
+        if "#" in URL and not os.path.exists(local):
             tarname, intarfile = URL.split("#")
             assert not "/" in intarfile
             assert ".tar" in tarname or ".tgz" in tarname
             localtarfile, _ = self._get_one_file("tars", tarname)
             tarobj = tarfile.open(localtarfile, "r")
             tarobj.extract(intarfile, path=self.corpus_home)
-            local = os.path.join(self.corpus_home, local)
             os.rename(os.path.join(self.corpus_home, intarfile), local)
-            return (local, filetype)
-
-        if not os.path.exists(self.corpus_home):
-            os.makedirs(self.corpus_home)
-        local = os.path.join(self.corpus_home, local)
+            return (local, filetype)        
+        
         if not os.path.exists(local):
             try:
                 print("Downloading %s %s to %s" % (self.name, component, local))
