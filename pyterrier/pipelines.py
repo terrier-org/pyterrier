@@ -206,7 +206,7 @@ def Experiment(retr_systems, topics, qrels, eval_metrics,
     
     # run and evaluate each system
     for name,system in zip(names, retr_systems):
-        time, evalMeasuresDict = _run_and_evaluate(system, topics, qrels_dict, eval_metrics, perquery=perquery or baseline is not None)
+        time, evalMeasuresDict = _run_and_evaluate(system, topics, qrels_dict, eval_metrics, perquery=perquery or baseline is not None, batch_size=batch_size)
         
         if perquery or baseline is not None:
             # this ensures that all queries are present in various dictionaries
