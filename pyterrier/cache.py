@@ -66,9 +66,11 @@ class ChestCacheTransformer(TransformerBase):
         A transformer that cache the results of the consituent (inner) transformer. 
         This is instantiated using the `~` operator on any transformer.
 
-        Caching is unqiue based on the configuration of the pipeline, as read by executing
-        retr() on the pipeline. Caching lookup is based on the qid, so any change in query
+        Caching is based on the configuration of the pipeline, as read by executing
+        repr() on the pipeline. Caching lookup is by default based on the qid, so any change in query
         _formulation_ will not be reflected in a cache's results.
+
+        Caching lookup can be changed by altering the `on` attribute in the cache object.
 
         Example Usage::
 
@@ -90,12 +92,12 @@ class ChestCacheTransformer(TransformerBase):
         In the above example, we use the `~` operator on the first pass retrieval using BM25, but not on the 2nd pass retrieval, 
         as the query formulation will differ during the second pass.
 
-        Caching is not supported for re-ranking transformers.        
+        
     """
 
     def __init__(self, inner, **kwargs):
         super().__init__(**kwargs)
-        on="qid"
+        self.on=["qid"]
         self.inner = inner
         self.disable = False
         if CACHE_DIR is None:
@@ -106,7 +108,7 @@ class ChestCacheTransformer(TransformerBase):
         # unambiguous
         trepr = repr(self.inner)
         if "object at 0x" in trepr:
-            warn("Cannot cache pipeline %s has a component has not overridden __repr__" % trepr)
+            warn("Cannot cache pipeline %s, as it has a component has not overridden __repr__" % trepr)
             self.disable = True
             
         uid = hashlib.md5( bytes(trepr, "utf-8") ).hexdigest()
@@ -122,6 +124,7 @@ class ChestCacheTransformer(TransformerBase):
         )
         self.hits = 0
         self.requests = 0
+        self.debug = False
 
     def stats(self):
         return self.hits / self.requests if self.requests > 0 else 0
@@ -143,37 +146,52 @@ class ChestCacheTransformer(TransformerBase):
     def transform(self, input_res):
         if self.disable:
             return self.inner.transform(input_res)
-        if "docid" in input_res.columns or "docno" in input_res.columns:
-            raise ValueError("Caching of %s for re-ranking is not supported. Caching currently only supports input dataframes with queries as inputs and cannot be used for re-rankers." % self.inner.__repr__())
+        for col in self.on:
+            if col not in input_res.columns:
+                raise ValueError("Caching on %s, but did not find column %s among input columns %s"
+                    % (str(self.on)), col, str(input_res.columns))
+        for col in ["docno", "docid"]:
+            if col in input_res.columns and not col in self.on:
+                raise ValueError(("Caching on=%s, but found column %s among input columns %s. Probably you want" + 
+                    "to update the on attribute for the cache transformer")
+                    % (str(self.on)), col, str(input_res.columns))
         return self._transform_qid(input_res)
 
     def _transform_qid(self, input_res):
+        # output dataframes to /return/
         rtr = []
+        # input rows to execute on the inner transformer
         todo=[]
         
-        # We cannot remove this iterrows() without knowing how to take named tuples into a dataframe
-        for index, row in input_res.iterrows():
-            qid = str(row["qid"])
+        for row in input_res.itertuples(index=False):
+            # we calculate what we will key this cache on
+            key = ''.join([getattr(row, k) for k in self.on])
+            qid = str(row.qid)
             self.requests += 1
             try:
-                df = self.chest.get(qid, None)
+                df = self.chest.get(key, None)
             except:
                 # occasionally we have file not founds, 
                 # lets remove from the cache and continue
-                del self.chest[qid]
+                del self.chest[key]
                 df = None
             if df is None:
-                todo.append(row.to_frame().T)
+                if self.debug:
+                    print("%s cache miss for key %s" % (self, key))
+                todo.append(row)
             else:
+                if self.debug:
+                    print("%s cache hit for key %s" % (self, key))
                 self.hits += 1
                 rtr.append(df)
         if len(todo) > 0:
-            todo_df = pd.concat(todo)
+            todo_df = pd.DataFrame(todo)
             todo_res = self.inner.transform(todo_df)
-            for row in todo_df.itertuples():
-                qid = row.qid
-                this_query_res = todo_res[todo_res["qid"] == qid]
-                self.chest[qid] = this_query_res
-                rtr.append(this_query_res)
+            for key_vals, group in todo_res.groupby(self.on):
+                key = ''.join(key_vals)
+                self.chest[key] = group
+                if self.debug:
+                    print("%s caching %d results for key %s" % (self, len(group), key))
+            rtr.append(todo_res)
         self.chest.flush()
         return pd.concat(rtr)

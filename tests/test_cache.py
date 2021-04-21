@@ -16,6 +16,31 @@ class TestCache(BaseTestCase):
         import shutil
         shutil.rmtree(self.test_dir)
 
+    def test_cache_reranker(self):
+        pt.cache.CACHE_DIR = self.test_dir
+        class MyT(pt.transformer.TransformerBase):
+            def transform(self, docs):
+                docs = docs.copy()
+                docs["score"] = docs.apply(lambda doc_row: len(doc_row["text"]), axis=1)
+                return pt.model.add_ranks(docs)
+            def __repr__(self):
+                return "MyT"
+        p = MyT()
+        testDF = pd.DataFrame([["q1", "hello", "d1", "aa"]], columns=["qid", "query", "docno", "text"])
+        rtr = p(testDF)
+        
+        cached = ~p
+        cached.on = ["qid", "text"]
+        #cached.debug = True
+        rtr2 = cached(testDF)
+        self.assertTrue(rtr.equals(rtr2))
+        rtr3 = cached(testDF)
+        #print(rtr)
+        #print(rtr3)
+        self.assertTrue(rtr.equals(rtr3))
+        self.assertEqual(cached.requests, 2)
+        self.assertEqual(cached.hits, 1)
+
     def test_cache_br(self):
         pt.cache.CACHE_DIR = self.test_dir
         import pandas as pd
