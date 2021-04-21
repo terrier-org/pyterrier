@@ -125,6 +125,7 @@ class ChestCacheTransformer(TransformerBase):
         self.hits = 0
         self.requests = 0
         self.debug = False
+        self.verbose = False
 
     def stats(self):
         return self.hits / self.requests if self.requests > 0 else 0
@@ -150,7 +151,7 @@ class ChestCacheTransformer(TransformerBase):
             if col not in input_res.columns:
                 raise ValueError("Caching on %s, but did not find column %s among input columns %s"
                     % (str(self.on)), col, str(input_res.columns))
-        for col in ["docno", "docid"]:
+        for col in ["docno"]:
             if col in input_res.columns and not col in self.on:
                 raise ValueError(("Caching on=%s, but found column %s among input columns %s. Probably you want" + 
                     "to update the on attribute for the cache transformer")
@@ -162,8 +163,13 @@ class ChestCacheTransformer(TransformerBase):
         rtr = []
         # input rows to execute on the inner transformer
         todo=[]
-        
-        for row in input_res.itertuples(index=False):
+        import pyterrier as pt
+        iter = input_res.itertuples(index=False)
+        for row in pt.tqdm(
+                iter,
+                desc="%s lookups" % self, 
+                unit='row', 
+                total=len(input_res)) if self.verbose else iter:
             # we calculate what we will key this cache on
             key = ''.join([getattr(row, k) for k in self.on])
             qid = str(row.qid)

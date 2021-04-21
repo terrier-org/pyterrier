@@ -7,6 +7,18 @@ import tempfile
 import shutil
 import os
 
+def compare(df1, df2):
+    df1 = df1.sort_values(["qid", "rank"])
+    df2 = df2.sort_values(["qid", "rank"])
+    import numpy as np
+    for i, (rowA, rowB) in enumerate( zip(df1.itertuples(), df2.itertuples())):
+        for col in ["qid", "query", "docno", "score", "rank"]:
+            assert getattr(rowA, col) ==  getattr(rowB, col), (i,col, rowA, rowB)
+        if hasattr(rowA, "features") or hasattr(rowB, "features"):
+            assert np.array_equal(getattr(rowA, "features"),  getattr(rowB, "features"), (i,"features", rowA, rowB))
+    return True
+
+
 class TestCache(BaseTestCase):
 
     def setUp(self):
@@ -15,6 +27,38 @@ class TestCache(BaseTestCase):
     def tearDown(self):
         import shutil
         shutil.rmtree(self.test_dir)
+
+    def test_complex(self):
+        pt.cache.CACHE_DIR = self.test_dir
+        dataset = pt.get_dataset("vaswani")
+        index = dataset.get_index()
+        firstpassUB = pt.BatchRetrieve(index, wmodel="PL2")
+        features = [
+            "SAMPLE", #ie PL2
+            "WMODEL:BM25",
+        ]
+        stdfeatures = pt.FeaturesBatchRetrieve(index, features)
+        stage12 = firstpassUB >> stdfeatures
+        CfirstpassUB = ~firstpassUB
+        Cstdfeatures = ~stdfeatures
+        Cstdfeatures.on=['qid', 'docno']
+        Cstage12 = CfirstpassUB >> Cstdfeatures
+        COstage12 = ~stage12
+
+        num_topics = 5
+        test_topics = dataset.get_topics().head(num_topics)
+
+        #res0 is the ground truth
+        res0 = stage12(test_topics)
+        Cstage12(test_topics)
+        res1 = Cstage12(test_topics).reset_index(drop=True)
+        self.assertEqual(num_topics, Cstage12[0].hits)
+        COstage12(test_topics)
+        res2 = COstage12(test_topics)
+        self.assertEqual(num_topics, COstage12.hits)
+
+        self.assertTrue(compare(res1, res0))
+        self.assertTrue(compare(res2, res0))
 
     def test_cache_reranker(self):
         pt.cache.CACHE_DIR = self.test_dir
