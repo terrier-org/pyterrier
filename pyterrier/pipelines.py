@@ -2,11 +2,14 @@ from warnings import warn
 import os
 import pandas as pd
 import numpy as np
-from typing import Union, Dict, List, Tuple
+from typing import Callable, Union, Dict, List, Tuple, Sequence, Any
 from .utils import Utils
 from .transformer import TransformerBase, EstimatorBase
 from .model import add_ranks
 import deprecation
+
+
+SYSTEM_OR_RESULTS_TYPE = Union[TransformerBase, pd.DataFrame]
 
 def _bold_cols(data, col_type):
     if not data.name in col_type:
@@ -44,7 +47,7 @@ def _color_cols(data, col_type,
 
 
 def _run_and_evaluate(
-        system : Union[TransformerBase, pd.DataFrame], 
+        system : SYSTEM_OR_RESULTS_TYPE, 
         topics : pd.DataFrame, 
         qrels_dict, 
         metrics : List[str], 
@@ -82,18 +85,25 @@ def _run_and_evaluate(
             evalMeasuresDict = Utils.mean_of_measures(evalMeasuresDict)
     return (runtime, evalMeasuresDict)
 
+NUMERIC_TYPE = Union[float,int,complex]
+TEST_FN_TYPE = Callable[ [Sequence[NUMERIC_TYPE],Sequence[NUMERIC_TYPE]], Tuple[Any,NUMERIC_TYPE] ]
 
-def Experiment(retr_systems, topics, qrels, eval_metrics, 
-        names=None, 
-        perquery=False, 
-        dataframe=True, 
-        batch_size=None, 
-        drop_unused=False, 
-        baseline=None, 
-        correction=None, 
-        correction_alpha=0.05, 
-        highlight=None, 
-        round=None):
+def Experiment(
+        retr_systems : Sequence[SYSTEM_OR_RESULTS_TYPE],
+        topics : pd.DataFrame,
+        qrels : pd.DataFrame,
+        eval_metrics : List[str],
+        names : Sequence[str] = None,
+        perquery : bool = False,
+        dataframe : bool =True,
+        batch_size : int = None,
+        drop_unused : bool = False,
+        baseline : int = None,
+        test : Union[str,TEST_FN_TYPE] = "t",
+        correction : str = None,
+        correction_alpha : float = 0.05,
+        highlight : str = None,
+        round : Union[int,Dict[str,int]] = None):
     """
     Allows easy comparison of multiple retrieval transformer pipelines using a common set of topics, and
     identical evaluation measures computed using the same qrels. In essence, each transformer is applied on 
@@ -118,6 +128,9 @@ def Experiment(retr_systems, topics, qrels, eval_metrics,
         baseline(int): If set to the index of an item of the retr_system list, will calculate the number of queries 
             improved, degraded and the statistical significance (paired t-test p value) for each measure.
             Default=None: If None, no additional columns will be added for each measure.
+        test(string): Which significance testing approach to apply. Defaults to "t". Alternatives are "wilcoxon" - not typically used for IR experiments. A Callable can also be passed - it should
+            follow the specification of `scipy.stats.ttest_rel() <https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.ttest_rel.html>`_, 
+            i.e. it expect two arrays of numbers, and return an array or tuple, of which the second value will be placed in the p-value column.
         correction(string): Whether any multiple testing correction should be applied. E.g. 'bonferroni', 'holm', 'hs' aka 'holm-sidak'. Default is None.
             Additional columns are added denoting whether the null hypothesis can be rejected, and the corrected p value. 
             See `statsmodels.stats.multitest.multipletests() <https://www.statsmodels.org/dev/generated/statsmodels.stats.multitest.multipletests.html#statsmodels.stats.multitest.multipletests>`_
@@ -125,7 +138,7 @@ def Experiment(retr_systems, topics, qrels, eval_metrics,
         correction_alpha(float): What alpha value for multiple testing correction Default is 0.05.
         highlight(str): If `highlight="bold"`, highlights in bold the best measure value in each column; 
             if `highlight="color"` or `"colour"`, then the cell with the highest metric value will have a green background.
-        round(int): How many decimal places to round each measure value to. This can be a dictionary mapping measure name to number of decimal places.
+        round(int): How many decimal places to round each measure value to. This can also be a dictionary mapping measure name to number of decimal places.
             Default is None, which is no rounding.
 
     Returns:
@@ -186,6 +199,12 @@ def Experiment(retr_systems, topics, qrels, eval_metrics,
         # topics = topics.merge(qrels[qrels["label"] > 0][["qid"]].drop_duplicates())        
         topics = topics.merge(qrels[["qid"]].drop_duplicates())
 
+    from scipy import stats
+    if test == "t":
+        test = stats.ttest_rel
+    if test == "wilcoxon":
+        test = stats.wilcoxon
+    
     # obtain system names if not specified
     if names is None:
         names = [str(system) for system in retr_systems]
@@ -258,7 +277,6 @@ def Experiment(retr_systems, topics, qrels, eval_metrics,
         p_col_names=[]
         if baseline is not None:
             assert len(evalDictsPerQ) == len(retr_systems)
-            from scipy import stats
             baselinePerQuery={}
             per_q_metrics = actual_metric_names.copy()
             if mrt_needed:
@@ -277,7 +295,7 @@ def Experiment(retr_systems, topics, qrels, eval_metrics,
                         perQuery = np.array( [ evalDictsPerQ[i][q][m] for q in evalDictsPerQ[baseline] ])
                         delta_plus = (perQuery > baselinePerQuery[m]).sum()
                         delta_minus = (perQuery < baselinePerQuery[m]).sum()
-                        p = stats.ttest_rel(perQuery, baselinePerQuery[m])[1]
+                        p = test(perQuery, baselinePerQuery[m])[1]
                         additionals.extend([delta_plus, delta_minus, p])
                 evalsRows[i].extend(additionals)
             delta_names=[]

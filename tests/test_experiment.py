@@ -141,11 +141,16 @@ class TestExperiment(BaseTestCase):
         rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"], perquery=True, dataframe=False, round=2)
         print(rtr)
 
-    def test_baseline(self):
+    def test_baseline_and_tests(self):
         dataset = pt.get_dataset("vaswani")
+        numt=10
+        res1 = pt.BatchRetrieve(dataset.get_index(), wmodel="BM25")(dataset.get_topics().head(numt))
+        res2 = pt.BatchRetrieve(dataset.get_index(), wmodel="DPH")(dataset.get_topics().head(numt))
+
+        # t-test
         df = pt.Experiment(
-            [pt.BatchRetrieve(dataset.get_index(), wmodel="BM25"), pt.BatchRetrieve(dataset.get_index(), wmodel="DPH")], 
-            dataset.get_topics().head(10), 
+            [res1, res2], 
+            dataset.get_topics().head(numt), 
             dataset.get_qrels(),
             eval_metrics=["map", "ndcg"], 
             baseline=0)
@@ -153,11 +158,67 @@ class TestExperiment(BaseTestCase):
         self.assertTrue("map -" in df.columns)
         self.assertTrue("map p-value" in df.columns)
 
-    def test_baseline_corrected(self):
+        # wilcoxon signed-rank test
+        df = pt.Experiment(
+            [res1, res2], 
+            dataset.get_topics().head(numt), 
+            dataset.get_qrels(),
+            eval_metrics=["map", "ndcg"], 
+            test='wilcoxon', 
+            baseline=0)
+        self.assertTrue("map +" in df.columns)
+        self.assertTrue("map -" in df.columns)
+        self.assertTrue("map p-value" in df.columns)
+
+
+        # user-specified TOST
+        # TOST will omit warnings here, due to low numbers of topics
+        import statsmodels.stats.weightstats
+        fn = lambda X,Y: (0, statsmodels.stats.weightstats.ttost_ind(X, Y, -0.01, 0.01)[0])
+        
+        #This filter doesnt work
+        with warnings.catch_warnings(record=True) as w:
+            warnings.filterwarnings("always")
+            df = pt.Experiment(
+                [res1, res2], 
+                dataset.get_topics().head(numt), 
+                dataset.get_qrels(),
+                eval_metrics=["map", "ndcg"], 
+                test=fn,
+                baseline=0)
+            print(w)
+        self.assertTrue("map +" in df.columns)
+        self.assertTrue("map -" in df.columns)
+        self.assertTrue("map p-value" in df.columns)
+        
+
+    def test_baseline_correction_userdefined_test(self):
         dataset = pt.get_dataset("vaswani")
+        res1 = pt.BatchRetrieve(dataset.get_index(), wmodel="BM25")(dataset.get_topics().head(10))
+        res2 = pt.BatchRetrieve(dataset.get_index(), wmodel="DPH")(dataset.get_topics().head(10))
+        # TOST will omit warnings here, due to low numbers of topics
+        import statsmodels.stats.weightstats
+        fn = lambda X,Y: (0, statsmodels.stats.weightstats.ttost_ind(X, Y, -0.01, 0.01)[0])
         for corr in ['hs', 'bonferroni', 'holm-sidak']:            
             df = pt.Experiment(
-                [pt.BatchRetrieve(dataset.get_index(), wmodel="BM25"), pt.BatchRetrieve(dataset.get_index(), wmodel="DPH")], 
+                [res1, res2], 
+                dataset.get_topics().head(10), 
+                dataset.get_qrels(),
+                eval_metrics=["map", "ndcg"], 
+                baseline=0, correction='hs', test=fn)
+            self.assertTrue("map +" in df.columns)
+            self.assertTrue("map -" in df.columns)
+            self.assertTrue("map p-value" in df.columns)
+            self.assertTrue("map p-value corrected" in df.columns)
+            self.assertTrue("map reject" in df.columns)
+
+    def test_baseline_corrected(self):
+        dataset = pt.get_dataset("vaswani")
+        res1 = pt.BatchRetrieve(dataset.get_index(), wmodel="BM25")(dataset.get_topics().head(10))
+        res2 = pt.BatchRetrieve(dataset.get_index(), wmodel="DPH")(dataset.get_topics().head(10))
+        for corr in ['hs', 'bonferroni', 'holm-sidak']:            
+            df = pt.Experiment(
+                [res1, res2], 
                 dataset.get_topics().head(10), 
                 dataset.get_qrels(),
                 eval_metrics=["map", "ndcg"], 
