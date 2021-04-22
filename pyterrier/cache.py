@@ -5,11 +5,13 @@ from . import HOME_DIR
 import os
 from os import path
 CACHE_DIR = None
+DEFAULT_CACHE_STORE = "shelve" #or "chest"
 import pandas as pd
 import pickle
 from functools import partial
 import datetime
 from warnings import warn
+from typing import List
 
 DEFINITION_FILE = ".transformer"
 
@@ -46,11 +48,18 @@ def list_cache():
         if path.exists(def_file):
             with open(def_file, "r") as f:
                 elem["transformer"] = f.readline()
-        elem["size"] = sum(d.stat().st_size for d in os.scandir(dir) if d.is_file())
-        elem["size_str"] = sizeof_fmt(elem["size"])
-        elem["queries"] = len(os.listdir(dir)) -2 #subtract .keys and DEFINITION_FILE
-        elem["lastmodified"] = path.getmtime(dir)
+        shelve_file = path.join(dir, "shelve.db")
+        if path.exists(shelve_file):
+            elem["size"] = path.getsize(shelve_file)
+            elem["lastmodified"] = path.getmtime(shelve_file)            
+        else:
+            #we assume it is a chest
+            elem["size"] = sum(d.stat().st_size for d in os.scandir(dir) if d.is_file())
+            elem["queries"] = len(os.listdir(dir)) -2 #subtract .keys and DEFINITION_FILE
+            elem["lastmodified"] = path.getmtime(dir)
+        
         elem["lastmodified_str"] = datetime.datetime.fromtimestamp(elem["lastmodified"]).strftime('%Y-%m-%dT%H:%M:%S')
+        elem["size_str"] = sizeof_fmt(elem["size"])
         rtr[dirname] = elem
     return rtr
 
@@ -61,7 +70,8 @@ def clear_cache():
     import shutil
     shutil.rmtree(CACHE_DIR)
 
-class ChestCacheTransformer(TransformerBase):
+
+class GenericCacheTransformer(TransformerBase):
     """
         A transformer that cache the results of the consituent (inner) transformer. 
         This is instantiated using the `~` operator on any transformer.
@@ -95,15 +105,15 @@ class ChestCacheTransformer(TransformerBase):
         
     """
 
-    def __init__(self, inner, **kwargs):
+    def __init__(self, inner, on=["qid"], verbose=False, debug=False, **kwargs):
         super().__init__(**kwargs)
-        self.on=["qid"]
+        self.on = on
         self.inner = inner
         self.disable = False
         self.hits = 0
         self.requests = 0
-        self.debug = False
-        self.verbose = False
+        self.debug = debug
+        self.verbose = verbose
 
         if CACHE_DIR is None:
             init()
@@ -111,25 +121,23 @@ class ChestCacheTransformer(TransformerBase):
         # we take the md5 of the __repr__ of the pipeline to make a unique identifier for the pipeline
         # all different pipelines should return unique __repr_() values, as these are intended to be
         # unambiguous
-        trepr = repr(self.inner)
-        if "object at 0x" in trepr:
-            warn("Cannot cache pipeline %s across PyTerrier sessions, as it has a transient component, which has not overridden __repr__()" % trepr)
+        self.trepr = repr(self.inner)
+        if "object at 0x" in self.trepr:
+            warn("Cannot cache pipeline %s across PyTerrier sessions, as it has a transient component, which has not overridden __repr__()" % self.trepr)
             #return
             #self.disable = True
             
-        uid = hashlib.md5( bytes(trepr, "utf-8") ).hexdigest()
-        destdir = path.join(CACHE_DIR, uid)
-        os.makedirs(destdir, exist_ok=True)
-        definition_file=path.join(destdir, DEFINITION_FILE)
-        if not path.exists(definition_file):
-            with open(definition_file, "w") as f:
-                f.write(trepr)
-        self.chest = Chest(path=destdir, 
-            dump=lambda data, filename: pd.DataFrame.to_pickle(data, filename) if isinstance(data, pd.DataFrame) else pickle.dump(data, filename, protocol=1),
-            load=lambda filehandle: pickle.load(filehandle) if ".keys" in filehandle.name else pd.read_pickle(filehandle)
-        )
-        
+        uid = hashlib.md5( bytes(self.trepr, "utf-8") ).hexdigest()
+        self.destdir = path.join(CACHE_DIR, uid)
+        os.makedirs(self.destdir, exist_ok=True)
 
+        definition_file=path.join(self.destdir, DEFINITION_FILE)
+        if not path.exists(definition_file):
+            if self.debug:
+                print("Creating new cache store at %s for %s" % (self.destdir, self.trepr))
+            with open(definition_file, "w") as f:
+                f.write(self.trepr)
+                
     def stats(self):
         return self.hits / self.requests if self.requests > 0 else 0
 
@@ -143,9 +151,18 @@ class ChestCacheTransformer(TransformerBase):
     def __str__(self):
         return "Cache("+str(self.inner)+")"
 
+    def __del__(self):
+        self.close()
+
     @property
     def NOCACHE(self):
         return self.inner
+
+    def flush(self):
+        self.chest.flush()
+
+    def close(self):
+        pass
 
     def transform(self, input_res):
         if self.disable:
@@ -201,5 +218,61 @@ class ChestCacheTransformer(TransformerBase):
                 if self.debug:
                     print("%s caching %d results for key %s" % (self, len(group), key))
             rtr.append(todo_res)
-        self.chest.flush()
+        self.flush()
         return pd.concat(rtr)
+
+
+class ChestCacheTransformer(GenericCacheTransformer):
+    """
+        A cache transformer based on `chest <https://github.com/blaze/chest>`_.
+    """
+    def __init__(self, inner, **kwargs):
+        super().__init__(inner, **kwargs)
+
+        self.chest = Chest(path=self.destdir, 
+            dump=lambda data, filename: pd.DataFrame.to_pickle(data, filename) if isinstance(data, pd.DataFrame) else pickle.dump(data, filename, protocol=1),
+            load=lambda filehandle: pickle.load(filehandle) if ".keys" in filehandle.name else pd.read_pickle(filehandle)
+        )
+
+class ShelveCacheTransformer(GenericCacheTransformer):
+    """
+        A cache transformer based on Python's `shelve <https://docs.python.org/3/library/shelve.html>`_ library. Compares to the 
+        chest-based cache, this transformer MUST be closed before cached instances can be seen by other instances. 
+    """
+    def __init__(self, inner, **kwargs):
+        super().__init__(inner, **kwargs)
+        filename = os.path.join(self.destdir, "shelve")
+        import shelve
+        if os.path.exists(filename) and os.path.getsize(filename) == 0:
+            warn("Cache file exists but has 0 size - perhaps a previous transformer cache should have been closed")
+        self.chest = shelve.open(filename)  
+    
+    def flush(self):
+        self.chest.sync()
+
+    def close(self):
+        self.chest.close()
+
+CACHE_STORES={
+    "shelve" : ShelveCacheTransformer,
+    "chest" : ChestCacheTransformer    
+}
+
+def of(
+        inner : TransformerBase, 
+        on : List[str] = ["qid"], 
+        store : str= DEFAULT_CACHE_STORE, **kwargs
+        ) -> GenericCacheTransformer:
+    """
+    Returns a transformer that caches the inner transformer.
+    Arguments:
+        inner(TransformerBase): which transformer should be cached
+        on(List[str]): which attributes to use as keys when caching
+        store(str): name of a cache type, either "shelve" or "chest". Defaults to "shelve".
+    """
+    if not store in CACHE_STORES:
+        raise ValueError("cache store type %s unknown, known types %s" % (store, list(CACHE_STORES.keys())))
+    clz = CACHE_STORES[store]
+    return clz(inner, on=on, **kwargs)
+    
+    

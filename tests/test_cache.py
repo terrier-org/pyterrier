@@ -91,10 +91,11 @@ class TestCache(BaseTestCase):
         queries = pd.DataFrame([["q1", "chemical"]], columns=["qid", "query"])
         br = pt.BatchRetrieve(pt.get_dataset("vaswani").get_index())
         cache = ~br
-        self.assertEqual(0, len(cache.chest._keys))
+        self.assertEqual(0, len(cache.chest.keys()))
         cache(queries)
         cache(queries)
         self.assertEqual(0.5, cache.stats())
+        cache.close()
 
         #lets see if another cache of the same object would see the same cache entries.
         cache2 = ~br
@@ -110,10 +111,11 @@ class TestCache(BaseTestCase):
         br1 = pt.BatchRetrieve(pt.get_dataset("vaswani").get_index(), wmodel="TF_IDF")
         br2 = pt.BatchRetrieve(pt.get_dataset("vaswani").get_index(), wmodel="BM25")
         cache = ~ (br1 >> br2)
-        self.assertEqual(0, len(cache.chest._keys))
+        self.assertEqual(0, len(cache.chest.keys()))
         cache(queries)
         cache(queries)
         self.assertEqual(0.5, cache.stats())
+        del(cache)
 
         #lets see if another cache of the same object would see the same cache entries.
         cache2 = ~(br1 >> br2)
@@ -129,21 +131,27 @@ class TestCache(BaseTestCase):
         br1 = pt.BatchRetrieve(pt.get_dataset("vaswani").get_index(), wmodel="TF_IDF")
         br2 = pt.BatchRetrieve(pt.get_dataset("vaswani").get_index(), wmodel="BM25")
         cache = ~ (~br1 >> br2)
-        self.assertEqual(0, len(cache.chest._keys))
+        self.assertEqual(0, len(cache.chest.keys()))
         cache(queries)
         cache(queries)
         self.assertEqual(0.5, cache.stats())
 
+        #this is required for shelve
+        cache.close()
+
         #lets see if another cache of the same object would see the same cache entries.
         cache2 = ~(~br1 >> br2)
+        cache2.debug = True
+        #print("found keys in cache 2")
+        #print(cache2.chest.keys())
         cache2(queries)
+        #print(cache2.hits)
         self.assertEqual(1, cache2.stats())
         
         # check that the cache report works
         all_report = pt.cache.list_cache()
         self.assertTrue(len(all_report) > 0)
         report = list(all_report.values())[0]
-        self.assertEqual(1, report["queries"])
         self.assertTrue("transformer" in report)
         self.assertTrue("size" in report)
         self.assertTrue("lastmodified" in report)
