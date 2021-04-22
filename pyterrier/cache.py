@@ -100,6 +100,11 @@ class ChestCacheTransformer(TransformerBase):
         self.on=["qid"]
         self.inner = inner
         self.disable = False
+        self.hits = 0
+        self.requests = 0
+        self.debug = False
+        self.verbose = False
+
         if CACHE_DIR is None:
             init()
 
@@ -108,8 +113,9 @@ class ChestCacheTransformer(TransformerBase):
         # unambiguous
         trepr = repr(self.inner)
         if "object at 0x" in trepr:
-            warn("Cannot cache pipeline %s, as it has a component has not overridden __repr__" % trepr)
-            self.disable = True
+            warn("Cannot cache pipeline %s across PyTerrier sessions, as it has a transient component, which has not overridden __repr__()" % trepr)
+            #return
+            #self.disable = True
             
         uid = hashlib.md5( bytes(trepr, "utf-8") ).hexdigest()
         destdir = path.join(CACHE_DIR, uid)
@@ -122,10 +128,7 @@ class ChestCacheTransformer(TransformerBase):
             dump=lambda data, filename: pd.DataFrame.to_pickle(data, filename) if isinstance(data, pd.DataFrame) else pickle.dump(data, filename, protocol=1),
             load=lambda filehandle: pickle.load(filehandle) if ".keys" in filehandle.name else pd.read_pickle(filehandle)
         )
-        self.hits = 0
-        self.requests = 0
-        self.debug = False
-        self.verbose = False
+        
 
     def stats(self):
         return self.hits / self.requests if self.requests > 0 else 0
@@ -152,10 +155,9 @@ class ChestCacheTransformer(TransformerBase):
                 raise ValueError("Caching on %s, but did not find column %s among input columns %s"
                     % (str(self.on)), col, str(input_res.columns))
         for col in ["docno"]:
-            if col in input_res.columns and not col in self.on:
-                raise ValueError(("Caching on=%s, but found column %s among input columns %s. Probably you want" + 
+            if col in input_res.columns and not col in self.on and len(self.on) == 1:
+                warn(("Caching on=%s, but found column %s among input columns %s. You may want " % (str(self.on)), col, str(input_res.columns) ) +
                     "to update the on attribute for the cache transformer")
-                    % (str(self.on)), col, str(input_res.columns))
         return self._transform_qid(input_res)
 
     def _transform_qid(self, input_res):
