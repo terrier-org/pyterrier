@@ -177,7 +177,7 @@ Evaluation Measures Objects
 Using the `ir_measures <https://github.com/terrierteam/ir_measures>`_ Python package, PyTerrier supports evaluation measure objects. These make it easier to 
 express measure configurations such as rank cutoffs::
 
-    from pt.measures import *
+    from pyterrier.measures import *
     pt.Experiment(
         [tfidf, bm25],
         dataset.get_topics(),
@@ -185,10 +185,12 @@ express measure configurations such as rank cutoffs::
         eval_metrics=[AP, RR, nDCG@5],
     )
 
-In particular, the TREC Deep Learning track passage ranking task, requires NDCG@10, NDCG@100 (using graded labels), as well as MRR@10 and MAP using binary labels 
+NB: We have to use `from pyterrier.measures import *`, as `from pt.measures import *` wont work.
+
+More specifically, lets consider the TREC Deep Learning track passage ranking task, which requires NDC\G@10, NDCG\@100 (using graded labels), as well as MRR@10 and MAP using binary labels 
 (where relevant is grade 2 and above). The necessary incantation of `pt.Experiment()` looks like::
 
-    from pt.measures import *
+    ffrom pyterrier.measures import *
     dataset = pt.get_dataset("trec-deep-learning-passages")
     pt.Experiment(
         [tfidf, bm25],
@@ -209,6 +211,8 @@ The available evaluation measure objects are listed below.
 
 .. autofunction:: pyterrier.measures.Judged
 
+.. autofunction:: pyterrier.measures.NumRet
+
 .. autofunction:: pyterrier.measures.Rprec
 
 .. autofunction:: pyterrier.measures.R
@@ -216,7 +220,4 @@ The available evaluation measure objects are listed below.
 .. autofunction:: pyterrier.measures.Bpref
 
 .. autofunction:: pyterrier.measures.ERR
-
-.. autofunction:: pyterrier.measures.RBP
-
 
