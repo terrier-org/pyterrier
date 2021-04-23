@@ -508,7 +508,7 @@ def GridScan(
         params : Dict[TransformerBase,Dict[str,List[TRANSFORMER_PARAMETER_VALUE_TYPE]]],
         topics : pd.DataFrame,
         qrels : pd.DataFrame,
-        metrics : List[str] = ["map"],
+        metrics : Union[str,List[str]] = ["map"],
         jobs : int = 1,
         backend='joblib',
         verbose: bool = False,
@@ -565,6 +565,8 @@ def GridScan(
     if verbose and jobs > 1:
         from warnings import warn
         warn("Cannot provide progress on parallel job")
+    if isinstance(metrics, str):
+        metrics = [metrics]
 
     # Store the all parameter names and candidate values into a dictionary, keyed by a tuple of the transformer and the parameter name
     # such as {(BatchRetrieve, 'wmodel'): ['BM25', 'PL2'], (BatchRetrieve, 'c'): [0.1, 0.2, 0.3], (Bla, 'lr'): [0.001, 0.01, 0.1]}
