@@ -152,9 +152,14 @@ class TestExperiment(BaseTestCase):
     def test_batching(self):
         vaswani = pt.datasets.get_dataset("vaswani")
         br = pt.BatchRetrieve(vaswani.get_index())
-        rtr1 = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg", "num_q"])
-        rtr2 = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg", "num_q"], batch_size=2)
+        rtr1 = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg", "num_q", "mrt"])
+        rtr2 = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg", "num_q", "mrt"], batch_size=2)
+        self.assertTrue("mrt" in rtr1.columns)
+        self.assertTrue("mrt" in rtr2.columns)
+        rtr1.drop(columns=["mrt"], inplace=True)
+        rtr2.drop(columns=["mrt"], inplace=True)
         pd.testing.assert_frame_equal(rtr1, rtr2)
+        
         rtr1 = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg", "num_q"], perquery=True)
         rtr2 = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg", "num_q"], batch_size=2, perquery=True)
         pd.testing.assert_frame_equal(rtr1, rtr2)

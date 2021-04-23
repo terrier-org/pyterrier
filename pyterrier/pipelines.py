@@ -114,7 +114,6 @@ def _ir_measures_to_dict(
         count += 1
     for m in rtr:
         rtr[m] = rtr[m] / num_q
-    #print(rtr)
     return rtr
 
 def _run_and_evaluate(
@@ -137,7 +136,6 @@ def _run_and_evaluate(
             rev_mapping,
             num_q,
             perquery)
-        #evalMeasuresDict = Utils.evaluate(res, qrels_dict, metrics=metrics, perquery=perquery)
 
     elif batch_size is None:
         #transformer, evaluate all queries at once
@@ -151,7 +149,6 @@ def _run_and_evaluate(
             rev_mapping,
             num_q,
             perquery)
-        #evalMeasuresDict = Utils.evaluate(res, qrels_dict, metrics=metrics, perquery=perquery)
     else:
         #transformer, evaluate queries in batches
         assert batch_size > 0
@@ -165,8 +162,7 @@ def _run_and_evaluate(
                 ir_measures.iter_calc(metrics, qrels_dict, res.rename(columns=_irmeasures_columns)),
                 rev_mapping,
                 num_q,
-                False)
-            #Utils.evaluate(res, qrels_dict, metrics=metrics, perquery=False)
+                True)
             evalMeasuresDict.update(localEvalDict)
             starttime = timer()
         if not perquery:
@@ -300,7 +296,7 @@ def Experiment(retr_systems,
     
     # run and evaluate each system
     for name,system in zip(names, retr_systems):
-        time, evalMeasuresDict = _run_and_evaluate(system, topics, qrels_dict, eval_metrics, perquery=perquery or baseline is not None)
+        time, evalMeasuresDict = _run_and_evaluate(system, topics, qrels_dict, eval_metrics, perquery=perquery or baseline is not None, batch_size=batch_size)
         
         if perquery or baseline is not None:
             # this ensures that all queries are present in various dictionaries
@@ -602,7 +598,7 @@ def GridScan(
         params : Dict[TransformerBase,Dict[str,List[TRANSFORMER_PARAMETER_VALUE_TYPE]]],
         topics : pd.DataFrame,
         qrels : pd.DataFrame,
-        metrics : MEASURES_TYPE = ["map"],
+        metrics : Union[MEASURE_TYPE,MEASURES_TYPE] = ["map"],
         jobs : int = 1,
         backend='joblib',
         verbose: bool = False,
@@ -659,6 +655,8 @@ def GridScan(
     if verbose and jobs > 1:
         from warnings import warn
         warn("Cannot provide progress on parallel job")
+    if isinstance(metrics, str):
+        metrics = [metrics]
 
     # Store the all parameter names and candidate values into a dictionary, keyed by a tuple of the transformer and the parameter name
     # such as {(BatchRetrieve, 'wmodel'): ['BM25', 'PL2'], (BatchRetrieve, 'c'): [0.1, 0.2, 0.3], (Bla, 'lr'): [0.001, 0.01, 0.1]}

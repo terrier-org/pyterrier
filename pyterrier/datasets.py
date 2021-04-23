@@ -137,13 +137,13 @@ class RemoteDataset(Dataset):
             raise ValueError("No %s in dataset %s" % (component, name))
         if variant is None:
             if not isinstance(self.locations[component], list):
-                raise ValueError("For %s in dataset %s, you must specify a variant=. Available are: %s" % (component, name, str(self.locations[component].keys())))
+                raise ValueError("For %s in dataset %s, you must specify a variant. Available are: %s" % (component, name, str(list(self.locations[component].keys()))))
             location = self.locations[component][0]
         else:
             if isinstance(self.locations[component], list):
                 raise ValueError("For %s in dataset %s, there are no variants, but you specified %s" % (component, name, variant))
             if not variant in self.locations[component]:
-                raise ValueError("For %s in dataset %s, there is no variant %s. Available are: %s" % (component, name, variant, str(self.locations[component].keys())))
+                raise ValueError("For %s in dataset %s, there is no variant %s. Available are: %s" % (component, name, variant, str(list(self.locations[component].keys()))))
 
     def _get_one_file(self, component, variant=None):
         filetype=None
@@ -164,20 +164,21 @@ class RemoteDataset(Dataset):
         URL = location[1]
         if len(location) > 2:
             filetype = location[2]
-        if "#" in URL:
+
+        if not os.path.exists(self.corpus_home):
+            os.makedirs(self.corpus_home)
+        
+        local = os.path.join(self.corpus_home, local)
+        if "#" in URL and not os.path.exists(local):
             tarname, intarfile = URL.split("#")
             assert not "/" in intarfile
             assert ".tar" in tarname or ".tgz" in tarname
             localtarfile, _ = self._get_one_file("tars", tarname)
             tarobj = tarfile.open(localtarfile, "r")
             tarobj.extract(intarfile, path=self.corpus_home)
-            local = os.path.join(self.corpus_home, local)
             os.rename(os.path.join(self.corpus_home, intarfile), local)
-            return (local, filetype)
-
-        if not os.path.exists(self.corpus_home):
-            os.makedirs(self.corpus_home)
-        local = os.path.join(self.corpus_home, local)
+            return (local, filetype)        
+        
         if not os.path.exists(local):
             try:
                 print("Downloading %s %s to %s" % (self.name, component, local))
@@ -497,20 +498,24 @@ TREC_DEEPLEARNING_PASSAGE_MSMARCO_FILES = {
         { 
             "train" : ("queries.train.tsv", "queries.tar.gz#queries.train.tsv", "singleline"),
             "dev" : ("queries.dev.tsv", "queries.tar.gz#queries.dev.tsv", "singleline"),
+            "dev.small" : ("queries.dev.small.tsv", "collectionandqueries.tar.gz#queries.dev.small.tsv", "singleline"),
             "eval" : ("queries.eval.tsv", "queries.tar.gz#queries.eval.tsv", "singleline"),
+            "eval.small" : ("queries.eval.small.tsv", "collectionandqueries.tar.gz#queries.eval.small.tsv", "singleline"),
             "test-2019" : ("msmarco-test2019-queries.tsv.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-test2019-queries.tsv.gz", "singleline"),
             "test-2020" : ("msmarco-test2020-queries.tsv.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-test2020-queries.tsv.gz", "singleline")
         },        
     "tars" : {
         "queries.tar.gz" : ("queries.tar.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/queries.tar.gz"),
-        "collection.tar.gz" : ("collection.tar.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/collection.tar.gz")
+        "collection.tar.gz" : ("collection.tar.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/collection.tar.gz"),
+        "collectionandqueries.tar.gz" : ("collectionandqueries.tar.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/collectionandqueries.tar.gz")
     },
     "qrels" : 
         { 
             "train" : ("qrels.train.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/qrels.train.tsv"),
             "dev" : ("qrels.dev.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/qrels.dev.tsv"),
             "test-2019" : ("2019qrels-docs.txt", "https://trec.nist.gov/data/deep/2019qrels-pass.txt"),
-            "test-2020" : ("2020qrels-docs.txt", "https://trec.nist.gov/data/deep/2020qrels-pass.txt")
+            "test-2020" : ("2020qrels-docs.txt", "https://trec.nist.gov/data/deep/2020qrels-pass.txt"),
+            "dev.small" : ("qrels.dev.small.tsv", "collectionandqueries.tar.gz#qrels.dev.small.tsv"),
         },
     "info_url" : "https://microsoft.github.io/MSMARCO-Passage-Ranking/",
     "corpus_iter" : passage_generate

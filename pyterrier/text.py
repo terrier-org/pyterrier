@@ -255,36 +255,36 @@ class DePassager(TransformerBase):
         self.agg = agg
 
     def transform(self, topics_and_res):
-        scoredict=defaultdict(lambda: defaultdict(dict))
-        lastqid=None
-        qids=[]
-        for i, row in topics_and_res.iterrows():
-            qid = row["qid"]
-            if qid != lastqid:
-                qids.append(qid)
-                lastqid = qid
-                
-            docno, passage = row["docno"].split("%p")
-            scoredict[qid][docno][int(passage)] = row["score"]
-        rows=[]
-        for qid in qids:
-            for docno in scoredict[qid]:
-                if self.agg == 'first':
-                    first_passage_id = min( scoredict[qid][docno].keys() )
-                    score = scoredict[qid][docno][first_passage_id]
-                if self.agg == 'max':
-                    score = max( scoredict[qid][docno].values() )
-                if self.agg == 'mean':
-                    score = sum( scoredict[qid][docno].values() ) / len(scoredict[qid][docno])
-                if self.agg == "kmaxavg":
-                    values = np.fromiter(scoredict[qid][docno].values(), dtype=float)
-                    K = self.K
-                    score = np.argpartition( values , -K)[-K:].mean() if len(values) > K else values.mean()    
-                rows.append([qid, docno, score])
-        rtr = pd.DataFrame(rows, columns=["qid", "docno", "score"])
-        # add the queries back
-        queries = topics_and_res[["qid", "query"]].dropna(axis=0, subset=["query"]).drop_duplicates()
-        rtr = rtr.merge(queries, on=["qid"])
+        topics_and_res = topics_and_res.copy()
+        topics_and_res[["olddocno", "pid"]] = topics_and_res.docno.str.split("%p", expand=True)
+        if self.agg == 'max':
+            groups = topics_and_res.groupby(['qid', 'olddocno'])
+            group_max_idx = groups['score'].idxmax()
+            rtr = topics_and_res.loc[group_max_idx, :]
+            rtr = rtr.drop(columns=['docno', 'pid']).rename(columns={"olddocno" : "docno"})
+        
+        if self.agg == 'first':
+            #could this be done by just selectin pid = 0?
+            topics_and_res.pid = topics_and_res.pid.astype(int)
+            rtr = topics_and_res[topics_and_res.pid == 0].rename(columns={"olddocno" : "docno"})
+            
+            groups = topics_and_res.groupby(['qid', 'olddocno'])
+            group_first_idx = groups['pid'].idxmin()
+            rtr = topics_and_res.loc[group_first_idx, ]
+            rtr = rtr.drop(columns=['docno', 'pid']).rename(columns={"olddocno" : "docno"})
+
+        if self.agg == 'mean':
+            rtr = topics_and_res.groupby(['qid', 'olddocno']).mean()['score'].reset_index().rename(columns={'olddocno' : 'docno'})
+            from .model import query_columns
+            #add query columns back
+            rtr = rtr.merge(topics_and_res[query_columns(topics_and_res)].drop_duplicates(), on='qid')
+
+        if self.agg == 'kmaxavg':
+            rtr = topics_and_res.groupby(['qid', 'olddocno'])['score'].apply(lambda ser: ser.nlargest(2).mean()).reset_index().rename(columns={'olddocno' : 'docno'})
+            from .model import query_columns
+            #add query columns back
+            rtr = rtr.merge(topics_and_res[query_columns(topics_and_res)].drop_duplicates(), on='qid')
+
         rtr = add_ranks(rtr)
         return rtr
 
