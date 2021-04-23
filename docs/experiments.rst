@@ -174,8 +174,8 @@ See also a `list of common TREC eval measures <http://www.rafaelglater.com/en/po
 Evaluation Measures Objects
 ===========================
 
-Using the `ir_measures <>`_ Python package, PyTerrier supports evaluation measure objects. These make it easier to express constraints such as rank cutoff and
-minimum relevance labels::
+Using the `ir_measures <https://github.com/terrierteam/ir_measures>`_ Python package, PyTerrier supports evaluation measure objects. These make it easier to 
+express measure configurations such as rank cutoffs::
 
     from pt.measures import *
     pt.Experiment(
@@ -185,14 +185,15 @@ minimum relevance labels::
         eval_metrics=[AP, RR, nDCG@5],
     )
 
-For instance, the TREC Deep Learning track, requires NDCG@10, NDCG@100 (using graded labels), as well as MRR@10 and MAP using binary labels (where relevant 
-is grade 2 and above). The necessary incantation of pt.Experiment() looks like::
+In particular, the TREC Deep Learning track passage ranking task, requires NDCG@10, NDCG@100 (using graded labels), as well as MRR@10 and MAP using binary labels 
+(where relevant is grade 2 and above). The necessary incantation of `pt.Experiment()` looks like::
 
     from pt.measures import *
+    dataset = pt.get_dataset("trec-deep-learning-passages")
     pt.Experiment(
         [tfidf, bm25],
-        dataset.get_topics(),
-        dataset.get_qrels(),
+        dataset.get_topics("test-2019"),
+        dataset.get_qrels("test-2019"),
         eval_metrics=[RR(rel=2), nDCG@10, nDCG@100, AP(rel=2)],
     )
 
