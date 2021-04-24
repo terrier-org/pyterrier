@@ -16,4 +16,4 @@ more_itertools
 ir_datasets>=0.3.2
 jinja2
 statsmodels
-ir_measures>=0.1.0
+ir_measures>=0.1.1
