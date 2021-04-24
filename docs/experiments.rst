@@ -201,23 +201,34 @@ More specifically, lets consider the TREC Deep Learning track passage ranking ta
 
 The available evaluation measure objects are listed below.
 
-.. autofunction:: pyterrier.measures.AP
 
 .. autofunction:: pyterrier.measures.P
 
-.. autofunction:: pyterrier.measures.nDCG
+.. autofunction:: pyterrier.measures.R
+
+.. autofunction:: pyterrier.measures.AP
 
 .. autofunction:: pyterrier.measures.RR
 
+.. autofunction:: pyterrier.measures.nDCG
+
+.. autofunction:: pyterrier.measures.ERR
+
+.. autofunction:: pyterrier.measures.Success
+
 .. autofunction:: pyterrier.measures.Judged
+
+.. autofunction:: pyterrier.measures.NumQ
 
 .. autofunction:: pyterrier.measures.NumRet
 
-.. autofunction:: pyterrier.measures.Rprec
+.. autofunction:: pyterrier.measures.NumRelRet
 
-.. autofunction:: pyterrier.measures.R
+.. autofunction:: pyterrier.measures.NumRel
+
+.. autofunction:: pyterrier.measures.Rprec
 
 .. autofunction:: pyterrier.measures.Bpref
 
-.. autofunction:: pyterrier.measures.ERR
+.. autofunction:: pyterrier.measures.infAP
 
