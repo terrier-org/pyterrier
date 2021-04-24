@@ -89,7 +89,7 @@ class TestExperiment(BaseTestCase):
             'P' : "P@5",
             'P_5' : "P_5",
             "iprec_at_recall" : "IPrec@0.0",
-            "official" : "MAP",
+            "official" : "AP",
             "set" : "SetP",
             "recall" : "R@5",
             "recall_1000" : "recall_1000"
