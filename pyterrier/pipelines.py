@@ -65,29 +65,24 @@ _irmeasures_columns = {
 }
 
 def _convert_measures(metrics : MEASURES_TYPE) -> Sequence[BaseMeasure]:
+    from ir_measures import convert_trec_name
     rtr = []
     rev_mapping = {}
     for m in metrics:
         if isinstance(m, BaseMeasure):
             rtr.append(m)
             continue
-        if m in _measure_nicknames:
-            metric = _measure_nicknames[m]
-            rtr.append(metric)
-            rev_mapping[metric] = m
-            continue
-        assert isinstance(m, str)
-        for prefix, measure in _measure_prefix.items():
-            found = False
-            if m.startswith(prefix):
-                suffix = int(m.replace(prefix, ""))
-                metric = measure@suffix
+        if isinstance(m, str):
+            measures = convert_trec_name(m)
+            if len(measures) == 1:
+                metric = measures[0]
                 rtr.append(metric)
                 rev_mapping[metric] = m
-                found = True
-                break
-        if not found:
-            raise KeyError("Could not convert measure %s" % m)
+            elif len(measures) > 1:
+                #m is family nickname, e.g. 'official;
+                rtr.extend(measures)
+            else:
+                raise KeyError("Could not convert measure %s" % m)
     assert len(rtr) > 0
     return rtr, rev_mapping
 
@@ -309,7 +304,7 @@ def Experiment(
     if "mrt" in eval_metrics:
         mrt_needed = True
         eval_metrics.remove("mrt")
-    
+
     # run and evaluate each system
     for name,system in zip(names, retr_systems):
         time, evalMeasuresDict = _run_and_evaluate(system, topics, qrels_dict, eval_metrics, perquery=perquery or baseline is not None, batch_size=batch_size)

@@ -28,6 +28,7 @@ class TestExperiment(BaseTestCase):
                     pt.measures.AP(rel=2),
                     pt.measures.P(rel=2)@1
                 ])
+        print(df.columns)
         self.assertEqual(1, df.iloc[0]["AP"])
         self.assertEqual(0.5, df.iloc[0]["AP(rel=2)"])
         self.assertEqual(0.5, df.iloc[0]["P(rel=2)@1"])
@@ -85,9 +86,9 @@ class TestExperiment(BaseTestCase):
         # what we ask for -> what we should get as a metric
         family2measure = {
             'ndcg_cut_5' : 'ndcg_cut_5',
-            'P' : "P_5",
+            'P' : "P@5",
             'P_5' : "P_5",
-            "iprec_at_recall" : "iprec_at_recall_0.50",
+            "iprec_at_recall" : "IPrec@0.0",
             "official" : "gm_map",
             "set" : "set_recall",
             "recall" : "recall_5",
