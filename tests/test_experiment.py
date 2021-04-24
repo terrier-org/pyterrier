@@ -89,9 +89,9 @@ class TestExperiment(BaseTestCase):
             'P' : "P@5",
             'P_5' : "P_5",
             "iprec_at_recall" : "IPrec@0.0",
-            "official" : "gm_map",
-            "set" : "set_recall",
-            "recall" : "recall_5",
+            "official" : "MAP",
+            "set" : "SetP",
+            "recall" : "R@5",
             "recall_1000" : "recall_1000"
         }
         # what we ask for -> what we should NOT get
