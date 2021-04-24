@@ -16,4 +16,4 @@ more_itertools
 ir_datasets>=0.3.2
 jinja2
 statsmodels
-git+https://github.com/terrierteam/ir_measures.git#egg=ir_measures
+ir_measures>=0.1.0
