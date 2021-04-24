@@ -90,6 +90,7 @@ def _convert_measures(metrics : MEASURES_TYPE) -> Sequence[BaseMeasure]:
 #[Metric(query_id='Q0', measure=AP, value=1.0), Metric(query_id='Q1', measure=AP, value=1.0)]
 def _ir_measures_to_dict(
         seq : Sequence, 
+        metrics: Sequence[BaseMeasure],
         rev_mapping : Dict[BaseMeasure,str], 
         num_q : int,
         perquery : bool = True):
@@ -103,15 +104,13 @@ def _ir_measures_to_dict(
             rtr[m.query_id][metric] = m.value
         return rtr
     # measure -> value
-    rtr = defaultdict(float)
-    count=0
+    rtr = {rev_mapping.get(m, str(m)): m.aggregator() for m in metrics}
     for m in seq:
         metric = m.measure
         metric = rev_mapping.get(metric, str(metric))
-        rtr[metric] += m.value
-        count += 1
+        rtr[metric].add(m.value)
     for m in rtr:
-        rtr[m] = rtr[m] / num_q
+        rtr[m] = rtr[m].result()
     return rtr
 
 def _run_and_evaluate(
@@ -131,6 +130,7 @@ def _run_and_evaluate(
         res = system
         evalMeasuresDict = _ir_measures_to_dict(
             ir_measures.iter_calc(metrics, qrels_dict, res.rename(columns=_irmeasures_columns)), 
+            metrics,
             rev_mapping,
             num_q,
             perquery)
@@ -144,6 +144,7 @@ def _run_and_evaluate(
         runtime =  (endtime - starttime) * 1000.
         evalMeasuresDict = _ir_measures_to_dict(
             ir_measures.iter_calc(metrics, qrels_dict, res.rename(columns=_irmeasures_columns)), 
+            metrics,
             rev_mapping,
             num_q,
             perquery)
@@ -158,13 +159,19 @@ def _run_and_evaluate(
             runtime += (endtime - starttime) * 1000.
             localEvalDict = _ir_measures_to_dict(
                 ir_measures.iter_calc(metrics, qrels_dict, res.rename(columns=_irmeasures_columns)),
+                metrics,
                 rev_mapping,
                 num_q,
                 True)
             evalMeasuresDict.update(localEvalDict)
             starttime = timer()
         if not perquery:
-            evalMeasuresDict = Utils.mean_of_measures(evalMeasuresDict)
+            aggregators = {rev_mapping.get(m, str(m)): m.aggregator() for m in metrics}
+            for q in evalMeasuresDict:
+                for metric in metrics:
+                    s_metric = rev_mapping.get(metric, str(metric))
+                    aggregators[s_metric].add(evalMeasuresDict[q][s_metric])
+            evalMeasuresDict = {m: agg.result() for m, agg in aggregators.items()}
     return (runtime, evalMeasuresDict)
 
 NUMERIC_TYPE = Union[float,int,complex]
