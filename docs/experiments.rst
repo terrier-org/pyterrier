@@ -187,7 +187,7 @@ express measure configurations such as rank cutoffs::
 
 NB: We have to use `from pyterrier.measures import *`, as `from pt.measures import *` wont work.
 
-More specifically, lets consider the TREC Deep Learning track passage ranking task, which requires NDC\G@10, NDCG\@100 (using graded labels), as well as MRR@10 and MAP using binary labels 
+More specifically, lets consider the TREC Deep Learning track passage ranking task, which requires NDCG\@10, NDCG\@100 (using graded labels), as well as MRR\@10 and MAP using binary labels 
 (where relevant is grade 2 and above). The necessary incantation of `pt.Experiment()` looks like::
 
     ffrom pyterrier.measures import *
