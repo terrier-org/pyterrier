@@ -190,7 +190,7 @@ NB: We have to use `from pyterrier.measures import *`, as `from pt.measures impo
 More specifically, lets consider the TREC Deep Learning track passage ranking task, which requires NDCG\@10, NDCG\@100 (using graded labels), as well as MRR\@10 and MAP using binary labels 
 (where relevant is grade 2 and above). The necessary incantation of `pt.Experiment()` looks like::
 
-    ffrom pyterrier.measures import *
+    from pyterrier.measures import *
     dataset = pt.get_dataset("trec-deep-learning-passages")
     pt.Experiment(
         [tfidf, bm25],
