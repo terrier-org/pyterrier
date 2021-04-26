@@ -184,8 +184,7 @@ class TestExperiment(BaseTestCase):
         vaswani = pt.datasets.get_dataset("vaswani")
         br = pt.BatchRetrieve(vaswani.get_index())
         rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"], perquery=True, round=2)
-        self.assertEqual(str(rtr.iloc[0]["map"]), "0.36")
-        
+        self.assertEqual(str(rtr.iloc[0]["value"]), "0.36")
 
     def test_baseline_and_tests(self):
         dataset = pt.get_dataset("vaswani")
