@@ -146,9 +146,15 @@ class TestExperiment(BaseTestCase):
             assert "Signature" in str(w[-1].message)
 
     def test_one_row_round(self):
+        import pyterrier as pt
         vaswani = pt.datasets.get_dataset("vaswani")
         br = pt.BatchRetrieve(vaswani.get_index())
-        rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg", "num_q"], round=2)
+        rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg", "num_q", pt.measures.NDCG@5], round=2)
+        self.assertEqual(str(rtr.iloc[0]["map"]), "0.31")
+        self.assertEqual(str(rtr.iloc[0]["nDCG@5"]), "0.46")
+
+        rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg", "num_q", pt.measures.NDCG@5], round={"nDCG@5" : 1})
+        self.assertEqual(str(rtr.iloc[0]["nDCG@5"]), "0.5")
 
     def test_batching(self):
         vaswani = pt.datasets.get_dataset("vaswani")
@@ -178,10 +184,8 @@ class TestExperiment(BaseTestCase):
         vaswani = pt.datasets.get_dataset("vaswani")
         br = pt.BatchRetrieve(vaswani.get_index())
         rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"], perquery=True, round=2)
-        print(rtr)
-
-        rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"], perquery=True, dataframe=False, round=2)
-        print(rtr)
+        self.assertEqual(str(rtr.iloc[0]["map"]), "0.36")
+        
 
     def test_baseline_and_tests(self):
         dataset = pt.get_dataset("vaswani")
