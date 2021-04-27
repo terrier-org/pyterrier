@@ -21,6 +21,10 @@ Steps to reproduce the behavior:
 **Expected behavior**
 A clear and concise description of what you expected to happen.
 
+**Documentation and Issues**
+ - [ ] I have checked the [PyTerrier documentation](https://pyterrier.readthedocs.io/en/latest/) for relevant content
+ - [ ] I have checked for previous relevant [PyTerrier issues](https://github.com/terrier-org/pyterrier/issues)
+
 **Screenshots**
 If applicable, add screenshots to help explain your problem.
 
