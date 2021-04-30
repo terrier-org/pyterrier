@@ -50,15 +50,6 @@ def _color_cols(data, col_type,
     is_max[len(data) - list(reversed(data)).index(max_value) -  1] = colormaxlast_attr
     return is_max
 
-_measure_nicknames = {
-    "map" : ir_measures.AP,
-    "recip_rank" : ir_measures.RR,
-    "ndcg" : ir_measures.nDCG
-}
-_measure_prefix = {
-    "ndcg_cut_" : ir_measures.nDCG,
-    "P_" : ir_measures.P
-}
 _irmeasures_columns = {
     'qid' : 'query_id',
     'docno' : 'doc_id'
