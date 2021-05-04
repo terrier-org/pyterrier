@@ -65,14 +65,14 @@ jobs:
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         #flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
         
-   - name: test-windows
+    - name: test-windows
       if: matrix.os == 'windows-latest'
       run: |
         $env:PATH +=";$env:JAVA_HOME\jre\bin\server\;$env:JAVA_HOME\jre\bin\client\;$env:JAVA_HOME\bin\server\"
         pip install --timeout=120 .
         pip install pytest
-        pytest
-        
+        pytest tests/test_flash.py
+
     - name: Test with pytest
       if: matrix.os != 'windows-latest'
       env:
