@@ -1,7 +1,6 @@
 numpy
 pandas
 wget
-pytrec_eval>=0.5
 tqdm
 pyjnius~=1.3.0
 matchpy
@@ -16,4 +15,4 @@ more_itertools
 ir_datasets>=0.3.2
 jinja2
 statsmodels
-ir_measures>=0.1.1
+ir_measures>=0.1.3
