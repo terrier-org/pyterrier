@@ -2,7 +2,17 @@ from .base import BaseTestCase
 import pyterrier as pt
 class TestParallel(BaseTestCase):
 
+    def skip_windows(self):
+        if TestParallel.is_windows():
+            self.skipTest("Test disabled on Windows")
+
+    @staticmethod
+    def is_windows() -> bool:
+        import platform
+        return platform.system() == 'Windows'
+
     def test_parallel_joblib_experiment(self):
+        self.skip_windows()
         dataset = pt.get_dataset("vaswani")
         br = pt.BatchRetrieve(dataset.get_index())
         df = pt.Experiment(
@@ -14,6 +24,7 @@ class TestParallel(BaseTestCase):
         self.assertEqual(df.iloc[0]["map"], df.iloc[1]["map"])
 
     def test_parallel_joblib_ops(self):
+        self.skip_windows()
         dataset = pt.get_dataset("vaswani")
         topics = dataset.get_topics().head(3)
         dph = pt.BatchRetrieve(dataset.get_index())
