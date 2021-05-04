@@ -16,7 +16,10 @@ class TestRewrite(BaseTestCase):
 
     def tearDown(self):
         # Remove the directory after the test
-        shutil.rmtree(self.test_dir)
+        try:
+            shutil.rmtree(self.test_dir)
+        except:
+            pass
 
     def test_stash_results_noclear(self):
         inputDF = pt.new.ranked_documents([[1, 2], [2,0]], query=[["a", "a"], ["b", "b"]])

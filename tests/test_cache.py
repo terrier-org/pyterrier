@@ -14,7 +14,10 @@ class TestCache(BaseTestCase):
 
     def tearDown(self):
         import shutil
-        shutil.rmtree(self.test_dir)
+        try:
+            shutil.rmtree(self.test_dir)
+        except:
+            pass
 
     def test_cache_br(self):
         pt.cache.CACHE_DIR = self.test_dir

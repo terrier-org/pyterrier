@@ -17,8 +17,11 @@ class TestIterDictIndexer(BaseTestCase):
 
     def tearDown(self):
         # Remove the directory after the test
-        shutil.rmtree(self.test_dir)
         print("Deleting " + self.test_dir)
+        try:
+            shutil.rmtree(self.test_dir)
+        except:
+            pass
         
 
     def _create_index(self, it, fields, meta, type, indexer):
@@ -71,6 +74,7 @@ class TestIterDictIndexer(BaseTestCase):
                 else:
                     self.assertEqual(1, post.frequency)
                     self.assertEqual(1, post.fieldFrequencies[0])
+                index.close()
             # reset index directory for next run
             shutil.rmtree(self.test_dir)
             os.mkdir(self.test_dir)

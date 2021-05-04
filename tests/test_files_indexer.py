@@ -44,5 +44,8 @@ class TestFilesIndexer(BaseTestCase):
 
     def tearDown(self):
         # Remove the directory after the test
-        shutil.rmtree(self.test_dir)
         print("Deleting " + self.test_dir)
+        try:
+            shutil.rmtree(self.test_dir)
+        except:
+            pass

@@ -14,7 +14,10 @@ class TestUtils(BaseTestCase):
 
     def tearDown(self):
         # Remove the directory after the test
-        shutil.rmtree(self.test_dir)
+        try:
+            shutil.rmtree(self.test_dir)
+        except:
+            pass
 
     def test_convert_df_to_pytrec_eval_float(self):
         input = pd.DataFrame([["1", "1", 12.5], ["1", "7", 4.3], ["2", "12", 8.5]], columns=["qid", "docno", "score"])

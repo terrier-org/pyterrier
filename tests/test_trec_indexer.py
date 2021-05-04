@@ -24,8 +24,11 @@ class TestTRECIndexer(unittest.TestCase):
 
     def tearDown(self):
         # Remove the directory after the test
-        shutil.rmtree(self.test_dir)
         print("Deleting " + self.test_dir)
+        try:
+            shutil.rmtree(self.test_dir)
+        except:
+            pass
 
     def test_TREC_indexing_pbar(self):
         print("Writing index to " + self.test_dir)

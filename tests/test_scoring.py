@@ -15,7 +15,10 @@ class TestScoring(BaseTestCase):
 
     def tearDown(self):
         # Remove the directory after the test
-        shutil.rmtree(self.test_dir)
+        try:
+            shutil.rmtree(self.test_dir)
+        except:
+            pass
 
     def test_scoring_text(self):
         pt.logging("DEBUG")

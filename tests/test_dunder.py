@@ -12,7 +12,10 @@ class TestDunder(BaseTestCase):
 
     def tearDown(self):
         import shutil
-        shutil.rmtree(self.test_dir)
+        try:
+            shutil.rmtree(self.test_dir)
+        except:
+            pass
 
     def test_dunders(self):
         import pandas as pd

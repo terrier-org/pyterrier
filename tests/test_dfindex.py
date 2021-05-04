@@ -16,8 +16,11 @@ class TestDFIndexer(BaseTestCase):
 
     def tearDown(self):
         # Remove the directory after the test
-        shutil.rmtree(self.test_dir)
         print("Deleting " + self.test_dir)
+        try:
+            shutil.rmtree(self.test_dir)
+        except:
+            pass
 
     def _create_index(self, type, dfText, dfMeta):
         print("Writing index type "+str(type)+" to " + self.test_dir)
