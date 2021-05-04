@@ -16,7 +16,7 @@ jobs:
       matrix:
         python-version: [3.6, 3.8]
         java: [11, 13]
-        os: ['windows-latest'] #'ubuntu-latest', 'macOs-latest',
+        os: ['windows-latest'] # 'ubuntu-latest', 'macOs-latest',
         architecture: ['x64']
         terrier: ['snapshot'] #'5.3', '5.4-SNAPSHOT', 
 #        exclude:
