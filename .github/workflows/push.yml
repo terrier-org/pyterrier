@@ -16,7 +16,7 @@ jobs:
       matrix:
         python-version: [3.6, 3.8]
         java: [11, 13]
-        os: ['ubuntu-latest', 'macOs-latest', 'windows-latest']
+        os: ['windows-latest'] #'ubuntu-latest', 'macOs-latest',
         architecture: ['x64']
         terrier: ['snapshot'] #'5.3', '5.4-SNAPSHOT', 
 #        exclude:
@@ -65,7 +65,16 @@ jobs:
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         #flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
         
+   - name: test-windows
+      if: matrix.os == 'windows-latest'
+      run: |
+        $env:PATH +=";$env:JAVA_HOME\jre\bin\server\;$env:JAVA_HOME\jre\bin\client\;$env:JAVA_HOME\bin\server\"
+        pip install --timeout=120 .
+        pip install pytest
+        pytest
+        
     - name: Test with pytest
+      if: matrix.os != 'windows-latest'
       env:
         TERRIER_VERSION: ${{ matrix.terrier }}
       run: |
