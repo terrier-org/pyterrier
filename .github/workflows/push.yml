@@ -71,7 +71,8 @@ jobs:
         $env:PATH +=";$env:JAVA_HOME\jre\bin\server\;$env:JAVA_HOME\jre\bin\client\;$env:JAVA_HOME\bin\server\"
         pip install --timeout=120 .
         pip install pytest
-        pytest tests/test_flash.py
+        pytest -p no:faulthandler tests/test_flash.py
+        # https://github.com/pytest-dev/pytest/issues/7634
 
     - name: Test with pytest
       if: matrix.os != 'windows-latest'
