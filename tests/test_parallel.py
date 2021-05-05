@@ -2,15 +2,6 @@ from .base import BaseTestCase
 import pyterrier as pt
 class TestParallel(BaseTestCase):
 
-    def skip_windows(self):
-        if TestParallel.is_windows():
-            self.skipTest("Test disabled on Windows")
-
-    @staticmethod
-    def is_windows() -> bool:
-        import platform
-        return platform.system() == 'Windows'
-
     def test_parallel_joblib_experiment(self):
         self.skip_windows()
         dataset = pt.get_dataset("vaswani")

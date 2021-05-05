@@ -2,22 +2,11 @@ import pandas as pd
 import pyterrier as pt
 import unittest
 import os
-from .base import BaseTestCase
+from .base import TempDirTestCase
 import shutil
 import tempfile
 
-class TestUtils(BaseTestCase):
-
-    def setUp(self):
-        # Create a temporary directory
-        self.test_dir = tempfile.mkdtemp()
-
-    def tearDown(self):
-        # Remove the directory after the test
-        try:
-            shutil.rmtree(self.test_dir)
-        except:
-            pass
+class TestUtils(TempDirTestCase):
 
     def test_convert_df_to_pytrec_eval_float(self):
         input = pd.DataFrame([["1", "1", 12.5], ["1", "7", 4.3], ["2", "12", 8.5]], columns=["qid", "docno", "score"])

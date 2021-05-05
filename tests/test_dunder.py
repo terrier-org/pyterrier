@@ -1,21 +1,10 @@
 import unittest
 import pyterrier as pt
 import tempfile
-from .base import BaseTestCase
+from .base import TempDirTestCase
 
-class TestDunder(BaseTestCase):
+class TestDunder(TempDirTestCase):
 
-    def setUp(self):
-        # Create a temporary directory
-        self.test_dir = tempfile.mkdtemp()
-        print(str(self.test_dir))
-
-    def tearDown(self):
-        import shutil
-        try:
-            shutil.rmtree(self.test_dir)
-        except:
-            pass
 
     def test_dunders(self):
         import pandas as pd

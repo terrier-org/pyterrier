@@ -6,20 +6,9 @@ import shutil
 import tempfile
 import pyterrier.transformer as ptt;
 from matchpy import *
-from .base import BaseTestCase
+from .base import TempDirTestCase
 
-class TestRewrite(BaseTestCase):
-
-    def setUp(self):
-        # Create a temporary directory
-        self.test_dir = tempfile.mkdtemp()
-
-    def tearDown(self):
-        # Remove the directory after the test
-        try:
-            shutil.rmtree(self.test_dir)
-        except:
-            pass
+class TestRewrite(TempDirTestCase):
 
     def test_stash_results_noclear(self):
         inputDF = pt.new.ranked_documents([[1, 2], [2,0]], query=[["a", "a"], ["b", "b"]])

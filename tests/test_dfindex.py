@@ -5,22 +5,10 @@ import tempfile
 import shutil
 import os
 
-from .base import BaseTestCase
+from .base import TempDirTestCase
 
-class TestDFIndexer(BaseTestCase):
+class TestDFIndexer(TempDirTestCase):
 
-    def setUp(self):
-        # Create a temporary directory
-        self.test_dir = tempfile.mkdtemp()
-        print("Created " + self.test_dir)
-
-    def tearDown(self):
-        # Remove the directory after the test
-        print("Deleting " + self.test_dir)
-        try:
-            shutil.rmtree(self.test_dir)
-        except:
-            pass
 
     def _create_index(self, type, dfText, dfMeta):
         print("Writing index type "+str(type)+" to " + self.test_dir)
