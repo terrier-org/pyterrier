@@ -24,6 +24,7 @@ class TestIrDatasetsIntegration(BaseTestCase):
                 indexref = indexer.index(dataset.get_corpus_iter(), fields=('text',))
                 index = pt.IndexFactory.of(indexref)
                 self.assertEqual(index.lexicon['bit'].frequency, 33)
+                index.close()
 
     def test_antique(self):
         dataset = pt.datasets.get_dataset('irds:antique/test')
