@@ -16,7 +16,7 @@ jobs:
       matrix:
         python-version: [3.6, 3.8]
         java: [11, 13]
-        os: ['windows-latest'] # 'ubuntu-latest', 'macOs-latest',
+        os: ['ubuntu-latest', 'macOs-latest', 'windows-latest'] # 
         architecture: ['x64']
         terrier: ['snapshot'] #'5.3', '5.4-SNAPSHOT', 
 #        exclude:
@@ -56,6 +56,9 @@ jobs:
         pip install --upgrade git+https://github.com/kivy/pyjnius.git#egg=pyjnius
         pip install -r requirements.txt
         pip install -r requirements-test.txt
+        #install this software
+        pip install --timeout=120 .
+        pip install pytest
 
     - name: Lint with flake8
       run: |
@@ -65,21 +68,15 @@ jobs:
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         #flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-    - name: test-windows
-      if: matrix.os == 'windows-latest'
-      run: |
-        $env:PATH +=";$env:JAVA_HOME\jre\bin\server\;$env:JAVA_HOME\jre\bin\client\;$env:JAVA_HOME\bin\server\"
-        pip install --timeout=120 .
-        pip install pytest
-        pytest -p no:faulthandler tests/test_flash.py
-        # https://github.com/pytest-dev/pytest/issues/7634
-
-    - name: Test with pytest
-      if: matrix.os != 'windows-latest'
+    - name: Flash unit tests
       env:
         TERRIER_VERSION: ${{ matrix.terrier }}
       run: |
-        #install this software
-        pip install --timeout=120 .
-        pip install pytest
-        pytest
+        pytest -p no:faulthandler tests/test_flash.py
+        # Hide underlying Jnius problem by disabling faulthandler: https://github.com/pytest-dev/pytest/issues/7634
+
+    - name: All unit tests
+      env:
+        TERRIER_VERSION: ${{ matrix.terrier }}
+      run: |
+        pytest -p no:faulthandler
