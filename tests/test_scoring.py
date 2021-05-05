@@ -2,23 +2,12 @@ import pandas as pd
 import numpy as np
 import unittest
 import pyterrier as pt
-from .base import BaseTestCase
+from .base import TempDirTestCase
 import tempfile
 import shutil
 import os
 
-class TestScoring(BaseTestCase):
-
-    def setUp(self):
-        # Create a temporary directory
-        self.test_dir = tempfile.mkdtemp()
-
-    def tearDown(self):
-        # Remove the directory after the test
-        try:
-            shutil.rmtree(self.test_dir)
-        except:
-            pass
+class TestScoring(TempDirTestCase):
 
     def test_scoring_text(self):
         pt.logging("DEBUG")

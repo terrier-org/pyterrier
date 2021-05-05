@@ -3,24 +3,11 @@ import pyterrier as pt
 import os
 import unittest
 import warnings
-from .base import BaseTestCase
+from .base import TempDirTestCase
 import tempfile
 import shutil
 
-class TestFlash(BaseTestCase):
-
-    def setUp(self):
-        # Create a temporary directory
-        self.test_dir = tempfile.mkdtemp()
-        print("Created " + self.test_dir)
-
-    def tearDown(self):
-        # Remove the directory after the test
-        print("Deleting " + self.test_dir)
-        try:
-            shutil.rmtree(self.test_dir)
-        except:
-            pass
+class TestFlash(TempDirTestCase):
 
     def test_one_row_round(self):
         import pyterrier as pt
