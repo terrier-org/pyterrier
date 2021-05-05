@@ -37,6 +37,7 @@ def _check_ray():
 
 
 def parallel_lambda(function, inputs, jobs, backend='joblib'):
+    from .bootstrap import is_windows
     if is_windows():
         raise ValueError("No support for parallelisation on Windows")
     if backend not in SUPPORTED_BACKENDS:
@@ -66,7 +67,7 @@ class PoolParallelTransformer(TransformerBase):
         self.parent = parent
         self.n_jobs = n_jobs
         self.backend = backend
-        from .bootstrap import is_windows:
+        from .bootstrap import is_windows
         if is_windows():
             raise ValueError("No support for parallelisation on Windows")
         if self.backend not in SUPPORTED_BACKENDS:
