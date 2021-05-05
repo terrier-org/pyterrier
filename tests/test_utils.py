@@ -47,7 +47,7 @@ class TestUtils(TempDirTestCase):
             self.assertAlmostEqual(result[str(i + 1)]["map"], item, places=4)
 
         result = pt.Utils.evaluate(input_res, input_qrels, metrics=["iprec_at_recall"])
-        self.assertTrue("iprec_at_recall_0.10" in result)
+        self.assertTrue("IPrec@0.1" in result)
     
     def test_evaluate_ndcg_cut(self):
         input_qrels = pd.DataFrame([["1", "12", 1], ["1", "26", 1], ["1", "5", 1], ["1", "6", 1], ["2", "12", 1], ["2", "13", 1], ["2", "7", 1], ["2", "17", 1]], columns=["qid", "docno", "label"])

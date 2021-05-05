@@ -55,7 +55,7 @@ _irmeasures_columns = {
     'docno' : 'doc_id'
 }
 
-def _convert_measures(metrics : MEASURES_TYPE) -> Sequence[BaseMeasure]:
+def _convert_measures(metrics : MEASURES_TYPE) -> Tuple[Sequence[BaseMeasure], Dict[BaseMeasure,str]]:
     from ir_measures import convert_trec_name
     rtr = []
     rev_mapping = {}
