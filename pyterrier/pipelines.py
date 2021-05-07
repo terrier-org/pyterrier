@@ -107,20 +107,21 @@ def _ir_measures_to_dict(
 def _run_and_evaluate(
         system : SYSTEM_OR_RESULTS_TYPE, 
         topics : pd.DataFrame, 
-        qrels_dict, 
+        qrels: pd.DataFrame, 
         metrics : MEASURES_TYPE, 
         perquery : bool = False,
         batch_size = None):
     
     metrics, rev_mapping = _convert_measures(metrics)
+    qrels = qrels.rename(columns={'qid': 'query_id', 'docno': 'doc_id', 'label': 'relevance'})
     from timeit import default_timer as timer
     runtime = 0
-    num_q = len(qrels_dict)
+    num_q = qrels['query_id'].nunique()
     # if its a DataFrame, use it as the results
     if isinstance(system, pd.DataFrame):
         res = system
         evalMeasuresDict = _ir_measures_to_dict(
-            ir_measures.iter_calc(metrics, qrels_dict, res.rename(columns=_irmeasures_columns)), 
+            ir_measures.iter_calc(metrics, qrels, res.rename(columns=_irmeasures_columns)), 
             metrics,
             rev_mapping,
             num_q,
@@ -134,7 +135,7 @@ def _run_and_evaluate(
         endtime = timer()
         runtime =  (endtime - starttime) * 1000.
         evalMeasuresDict = _ir_measures_to_dict(
-            ir_measures.iter_calc(metrics, qrels_dict, res.rename(columns=_irmeasures_columns)), 
+            ir_measures.iter_calc(metrics, qrels, res.rename(columns=_irmeasures_columns)), 
             metrics,
             rev_mapping,
             num_q,
@@ -149,7 +150,7 @@ def _run_and_evaluate(
             endtime = timer()
             runtime += (endtime - starttime) * 1000.
             localEvalDict = _ir_measures_to_dict(
-                ir_measures.iter_calc(metrics, qrels_dict, res.rename(columns=_irmeasures_columns)),
+                ir_measures.iter_calc(metrics, qrels, res.rename(columns=_irmeasures_columns)),
                 metrics,
                 rev_mapping,
                 num_q,
@@ -291,7 +292,6 @@ def Experiment(
     elif len(names) != len(retr_systems):
         raise ValueError("names should be the same length as retr_systems")
 
-    qrels_dict = Utils.convert_qrels_to_dict(qrels)
     all_qids = topics["qid"].values
 
     evalsRows=[]
@@ -305,7 +305,7 @@ def Experiment(
 
     # run and evaluate each system
     for name,system in zip(names, retr_systems):
-        time, evalMeasuresDict = _run_and_evaluate(system, topics, qrels_dict, eval_metrics, perquery=perquery or baseline is not None, batch_size=batch_size)
+        time, evalMeasuresDict = _run_and_evaluate(system, topics, qrels, eval_metrics, perquery=perquery or baseline is not None, batch_size=batch_size)
         
         if perquery or baseline is not None:
             # this ensures that all queries are present in various dictionaries
@@ -685,9 +685,6 @@ def GridScan(
     combinations = list(itertools.product(*values))
     assert len(combinations) > 0, "No combinations selected"
 
-    # use this for repeated evaluation
-    qrels_dict = Utils.convert_qrels_to_dict(qrels)
-
     def _evaluate_one_setting(keys, values):
         #'params' is every combination of candidates
         params = dict(zip(keys, values))
@@ -699,7 +696,7 @@ def GridScan(
             # such as (BatchRetrieve, 'wmodel', 'BM25')
             parameter_list.append( (tran, param_name, value) )
             
-        _run_and_evaluate(pipeline, topics, qrels_dict, metrics, perquery=False, batch_size=batch_size)
+        _run_and_evaluate(pipeline, topics, qrels, metrics, perquery=False, batch_size=batch_size)
         # using topics and evaluation
         res = pipeline.transform(topics)
         eval_scores = Utils.evaluate(res, qrels, metrics=metrics, perquery=False)
