@@ -221,6 +221,26 @@ class Utils:
         return(run_dict_pytrec_eval)
 
     @staticmethod
+    def convert_qrels_to_dataframe(qrels_dict) -> pd.DataFrame:
+        """
+        Convert a qrels dataframe to dictionary for use in pytrec_eval
+
+        Args:
+            qrels_dict(Dict[str, Dict[str, int]]): The qrels to convert
+
+        Returns:
+            pd.DataFrame: {qid:{docno:label,},}
+        """
+        result = {'qid': [], 'docno': [], 'label': []}
+        for qid in qrels_dict:
+            for docno, label in qrels_dict[qid]:
+                result['qid'].append(qid)
+                result['docno'].append(docno)
+                result['label'].append(label)
+
+        return pd.DataFrame(result)
+
+    @staticmethod
     def convert_res_to_dict(df):
         """
         Convert a result dataframe to dictionary for use in pytrec_eval
@@ -256,14 +276,14 @@ class Utils:
             batch_retrieve_results_dict = res
 
         if isinstance(qrels, pd.DataFrame):
-            qrels_dic = Utils.convert_qrels_to_dict(qrels)
+            qrels_df = qrels
         else:
-            qrels_dic = qrels
+            qrels_df = Utils.convert_qrels_to_dataframe(qrels)
         if len(batch_retrieve_results_dict) == 0:
             raise ValueError("No results for evaluation")
 
         from .pipelines import _run_and_evaluate
-        _, rtr = _run_and_evaluate(res, None, qrels_dic, metrics, perquery=perquery)
+        _, rtr = _run_and_evaluate(res, None, qrels_df, metrics, perquery=perquery)
         return rtr
 
     @staticmethod
