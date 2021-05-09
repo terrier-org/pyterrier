@@ -223,13 +223,13 @@ class Utils:
     @staticmethod
     def convert_qrels_to_dataframe(qrels_dict) -> pd.DataFrame:
         """
-        Convert a qrels dataframe to dictionary for use in pytrec_eval
+        Convert a qrels dictionary to a dataframe
 
         Args:
-            qrels_dict(Dict[str, Dict[str, int]]): The qrels to convert
+            qrels_dict(Dict[str, Dict[str, int]]): {qid:{docno:label,},}
 
         Returns:
-            pd.DataFrame: {qid:{docno:label,},}
+            pd.DataFrame: columns=['qid', 'docno', 'label']
         """
         result = {'qid': [], 'docno': [], 'label': []}
         for qid in qrels_dict:
