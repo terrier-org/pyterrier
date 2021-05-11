@@ -696,10 +696,7 @@ def GridScan(
             # such as (BatchRetrieve, 'wmodel', 'BM25')
             parameter_list.append( (tran, param_name, value) )
             
-        _run_and_evaluate(pipeline, topics, qrels, metrics, perquery=False, batch_size=batch_size)
-        # using topics and evaluation
-        res = pipeline.transform(topics)
-        eval_scores = Utils.evaluate(res, qrels, metrics=metrics, perquery=False)
+        time, eval_scores = _run_and_evaluate(pipeline, topics, qrels, metrics, perquery=False, batch_size=batch_size)
         return parameter_list, eval_scores
 
     def _evaluate_several_settings(inputs : List[Tuple]):
