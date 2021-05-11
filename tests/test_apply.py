@@ -18,15 +18,17 @@ class TestCache(BaseTestCase):
         self.assertTrue(isinstance(p, TransformerBase))
         rtr = p(testDF)
         self.assertTrue("Bla" not in rtr.columns)
+        self.assertSetEqual( set(rtr.columns), set( p.validate(testDF) ) )
 
     def test_make_columns(self):
         from pyterrier.transformer import TransformerBase
         testDF = pd.DataFrame([["q1", "the bear and the wolf", 1]], columns=["qid", "query", "Bla"])
-        p = pt.apply.BlaB(lambda row: row["Bla"] * 2)
+        p = pt.apply.BlaB(lambda row: row["Bla"] * 2, input=['Bla'])
         self.assertTrue(isinstance(p, TransformerBase))
         rtr = p(testDF)
         self.assertTrue("BlaB" in rtr.columns)
         self.assertEqual(rtr.iloc[0]["BlaB"], 2)
+        self.assertSetEqual( set(rtr.columns), set( p.validate(testDF) ))
 
     def test_rename_columns(self):
         from pyterrier.transformer import TransformerBase
@@ -36,6 +38,7 @@ class TestCache(BaseTestCase):
         rtr = p(testDF)
         self.assertTrue("Bla2" in rtr.columns)
         self.assertFalse("Bla" in rtr.columns)
+        self.assertSetEqual( set(rtr.columns), set( p.validate(testDF)) ) 
 
     def test_query_apply(self):
         stops=set(["and", "the"])
@@ -45,9 +48,10 @@ class TestCache(BaseTestCase):
             )
         testDF = pd.DataFrame([["q1", origquery]], columns=["qid", "query"])
         rtr = p(testDF)
-        print(rtr)
+        #print(rtr)
         self.assertEqual(rtr.iloc[0]["query"], "bear wolf")
         self.assertEqual(rtr.iloc[0]["query_0"], origquery)
+        self.assertSetEqual( set(rtr.columns), set( p.validate(testDF) ) )
 
     def test_by_query_apply(self):
         inputDf = pt.new.ranked_documents([[1], [2]], qid=["1", "2"])
@@ -55,8 +59,9 @@ class TestCache(BaseTestCase):
             res = res.copy()
             res["score"] = res["score"] + int(res.iloc[0]["qid"])
             return res
-        p = pt.apply.by_query(_inc_score)
+        p = pt.apply.by_query(_inc_score, input=["qid", "score"], output=[...])
         outputDf = p(inputDf)
+        self.assertSetEqual( set(outputDf.columns), set( p.validate(inputDf) ) )
         self.assertEqual(outputDf.iloc[0]["qid"], "1")
         self.assertEqual(outputDf.iloc[0]["score"], 2)
         self.assertEqual(outputDf.iloc[1]["qid"], "2")
@@ -68,6 +73,7 @@ class TestCache(BaseTestCase):
         rtr = p(testDF)
         self.assertEqual(rtr.iloc[0]["score"], 2.0)
         self.assertEqual(rtr.iloc[0]["rank"], pt.model.FIRST_RANK)
+        self.assertSetEqual( set(rtr.columns), set( p.validate(testDF) ) )
 
     def test_docfeatures_apply(self):
         import numpy as np
@@ -75,5 +81,6 @@ class TestCache(BaseTestCase):
         testDF = pd.DataFrame([["q1", "hello", "d1", "aa"]], columns=["qid", "query", "docno", "text"])
         rtr = p(testDF)
         self.assertTrue(np.array_equal(rtr.iloc[0]["features"], np.array([0,1])))
+        self.assertSetEqual( set(rtr.columns), set( p.validate(testDF) ) )
 
 

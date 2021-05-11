@@ -1,10 +1,29 @@
 import pandas as pd
-from typing import List, Sequence
+from typing import List, Sequence, Union
 
 # This file has useful methods for using the Pyterrier Pandas datamodel
 
 # the first rank SHOULD be 0, see the standard "Welcome to TREC email"
 FIRST_RANK = 0
+
+# Standard data types that transformers provide and require
+QUERIES = ["qid", "query"]
+QUERIES_ = QUERIES + [...]
+
+DOCS = ["docno"]
+DOCS_ = DOCS + [...]
+
+RETRIEVED_DOCS = ["qid", "docno"]
+RETRIEVED_DOCS_ = RETRIEVED_DOCS + [...]
+
+RANKED_DOCS = RETRIEVED_DOCS + ["score", "rank"]
+RANKED_DOCS_ = RANKED_DOCS + [...]
+
+RETRIEVED_DOCS_FEATURES = RETRIEVED_DOCS + ["features"]
+RETRIEVED_DOCS_FEATURES_ = RETRIEVED_DOCS_FEATURES + [...]
+
+RANKED_DOCS_FEATURES = RANKED_DOCS + ["features"]
+RANKED_DOCS_FEATURES_ = RANKED_DOCS_ + ["features"]
 
 # set to True to ensure that the resulting dataframe is correctly /ordered/
 # as well as having correct ranks assigned
@@ -66,7 +85,7 @@ def query_columns(df : pd.DataFrame, qid=True) -> Sequence[str]:
             rtr.append(c)
     return rtr
 
-def _last_query(df : pd.DataFrame) -> int:
+def _last_query(input : Union[ pd.DataFrame, Sequence[str] ]) -> int:
     """
         Returns the index of the last query column.
         Given a dataframe, returns:
@@ -78,7 +97,13 @@ def _last_query(df : pd.DataFrame) -> int:
         
     """
     last = -1
-    columns = set(df.columns)
+    if isinstance(input, pd.DataFrame):
+        columns = set(input.columns)
+    elif isinstance(input, list):
+        columns = set(input)
+    else:
+        columns = input
+    
     while True:
         if not "query_%d" % (last+1) in columns:
             break

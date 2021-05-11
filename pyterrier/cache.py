@@ -94,7 +94,7 @@ class ChestCacheTransformer(TransformerBase):
     """
 
     def __init__(self, inner, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(family='noop', **kwargs)
         on="qid"
         self.inner = inner
         self.disable = False

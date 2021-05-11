@@ -51,7 +51,7 @@ class BatchRetrieveBase(TransformerBase, Symbol):
         verbose(bool): If True transform method will display progress
     """
     def __init__(self, verbose=0, **kwargs):
-        super().__init__(kwargs)
+        super().__init__(**kwargs)
         self.verbose = verbose
 
 class BatchRetrieve(BatchRetrieveBase):
@@ -92,7 +92,8 @@ class BatchRetrieve(BatchRetrieveBase):
                 num_results(int): Number of results to retrieve. 
                 metadata(list): What metadata to retrieve
         """
-        super().__init__(kwargs)
+        output = ["qid", "query", "docid", "rank", "score"] + metadata
+        super().__init__(family='retrieval', output=output, **kwargs)
         
         self.indexref = _parse_index_like(index_location)
         self.appSetup = autoclass('org.terrier.utility.ApplicationSetup')

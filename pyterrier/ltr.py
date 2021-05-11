@@ -2,7 +2,7 @@
 
 from .transformer import TransformerBase, EstimatorBase
 from .apply import doc_score, doc_features
-from .model import add_ranks
+from .model import add_ranks, RETRIEVED_DOCS_FEATURES, RETRIEVED_DOCS_FEATURES_
 from typing import Sequence, Union
 import numpy as np
 
@@ -11,7 +11,8 @@ FeatureList = Union[Sequence[int], int]
 
 class AblateFeatures(TransformerBase):
     
-    def __init__(self, fids: FeatureList):
+    def __init__(self, fids: FeatureList, **kwargs):
+        super().__init__(input=RETRIEVED_DOCS_FEATURES, output=RETRIEVED_DOCS_FEATURES_, **kwargs)
         self.fids = fids if isinstance(fids, list) else [fids]
         self.null = 0
         
@@ -30,7 +31,8 @@ class AblateFeatures(TransformerBase):
 
 class KeepFeatures(TransformerBase):
     
-    def __init__(self, fids : FeatureList):
+    def __init__(self, fids : FeatureList, **kwargs):
+        super().__init__(input=RETRIEVED_DOCS_FEATURES, output=RETRIEVED_DOCS_FEATURES_, **kwargs)
         self.fids = fids if isinstance(fids, list) else [fids]
         self.null = 0
         
@@ -54,7 +56,7 @@ class RegressionTransformer(EstimatorBase):
             fit_kwargs: A dictionary containing additional arguments that can be passed to LTR's fit() method.  
         """
         self.fit_kwargs = fit_kwargs
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, family='ltr_scorer', **kwargs)
         self.learner = learner
         self.num_f = None
 

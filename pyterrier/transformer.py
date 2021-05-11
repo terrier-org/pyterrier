@@ -1,12 +1,22 @@
 
 import types
 from matchpy import ReplacementRule, Wildcard, Symbol, Operation, Arity, replace_all, Pattern, CustomConstraint
+from .validation import PipelineError, ValidationError, TRANSFORMER_FAMILY, TYPE_SAFETY_LEVEL, COLUMN_TYPE, COLUMNS_TYPE
+
 from warnings import warn
 import pandas as pd
-from .model import add_ranks
+from .model import QUERIES, RANKED_DOCS, RANKED_DOCS_, RETRIEVED_DOCS, RETRIEVED_DOCS_, RETRIEVED_DOCS_FEATURES, RETRIEVED_DOCS_FEATURES_, _last_query, add_ranks
 from . import tqdm
 import deprecation
-from typing import Iterable
+from typing import Iterable, List, Sequence, Callable, Union
+from enum import Enum
+
+class Family():
+    QUERY_REWRITE = 'queryrewrite'
+    RETRIEVAL = 'retrieval'
+    QUERY_EXPANSION = 'queryexpansion'
+    RERANKING = 'reranking'
+    FEATURE_SCORING = 'featurescoring'
 
 LAMBDA = lambda:0
 def is_lambda(v):
@@ -110,10 +120,52 @@ class Scalar(Symbol):
 
 class TransformerBase:
     name = "TransformerBase"
+    #is_constant=True
     """
         Base class for all transformers. Implements the various operators >> + * | & 
         as well as the compile() for rewriting complex pipelines into more simples ones.
     """
+
+    def __init__(self, family : str = None, input : COLUMNS_TYPE = None, output : COLUMNS_TYPE = None, **kwargs):
+        """
+            When initialising a transformer we can pass in certain value in order to allow for type checking and
+            pipeline validation
+            Arguments:
+             - family(str): For common transformers, the family can be passed as a constant, allowing for the default
+                    data transformer family types defined in validation.py to be used
+             - input([str]): The list of columns a transformer needs for its transform method to work
+             - output([str]): The list of columns that a transformer will always output from its transform method
+        """
+
+        self.input = None
+        self.output = None
+        # If family is defined, then we can obtain the minimal input and output from default family mapping
+        if family:
+            self.input = TRANSFORMER_FAMILY[family]['input']
+            self.output = TRANSFORMER_FAMILY[family]['output']
+
+        # setting input or output override the family setting
+        if input is not None:
+            self.input = input
+        if output is not None:
+            self.output = output
+
+        # error or warn, as appropriate
+        def _raise(msg):
+            if TYPE_SAFETY_LEVEL == 1:
+                warn(msg)
+            elif TYPE_SAFETY_LEVEL > 1:
+                raise TypeError(msg)
+
+        # Use type safety level to judge how strictly we need input/output to be defined
+        if self.input is None:
+            try:
+                selfname = repr(self)
+            except:
+                selfname = self.__class__.__name__
+            _raise("No family specified, and minimal input not defined for transformer " + selfname)
+        if self.output is None:
+            _raise("No family specified and output not defined for transformer " + selfname)
 
     def transform(self, topics_or_res):
         """
@@ -178,6 +230,47 @@ class TransformerBase:
         if "qid" in rtr.columns and "rank" in rtr.columns:
             rtr = rtr.sort_values(["qid", "rank"], ascending=[True,True])
         return rtr
+
+
+    def _calculate_output(self, inputs : Sequence[COLUMN_TYPE]):
+        '''
+            Method for calculating the output columns of a transformer
+            We have 3 possible cases:
+             - output is a function - The output columns must be calculated using the input columns
+             - output is a list - The output columns are this predefined list
+             - output is a list containing ... - The output columns contains at least these columns, along with any other columns in the input
+        '''
+
+        if isinstance(self.output, types.FunctionType):
+            output = self.output(inputs)
+        else:
+            output = self.output.copy()
+            if Ellipsis in output:
+                output.remove(Ellipsis)
+                output = list(set(inputs) | set(output))
+        return output
+
+    def validate(self, inputs : Union[ List[str], pd.DataFrame]):
+        '''
+            Default method implementation to validate transformer types. Checks that the input dataframe to the
+            transformer has the required attributes, and returns the attributes that will be provided if applicable
+        '''
+        if type(inputs) == str:
+            # If we are given a str, we treat it as a query
+            inputs = ["qid", "query"]
+        elif isinstance(inputs, pd.DataFrame):
+            inputs = inputs.columns.tolist()
+
+        # If we cannot validate a transformer because it's type is not set, then we warn the user
+        if self.input is None or self.output is None:
+            raise ValidationError(self, inputs)
+
+        # We are validating that the set of input columns is a superset of the set of minimal input columns
+        # i.e. all required columns are present
+        if set(inputs).issuperset(set(self.input)):
+            return self._calculate_output(inputs)
+        else:
+            raise TypeError("Could not validate transformer %s with given input %s", (str(self), str(inputs)))
 
     def compile(self):
         """
@@ -297,12 +390,13 @@ class IdentityTransformer(TransformerBase, Operation):
     arity = Arity.nullary
 
     def __init__(self, *args, **kwargs):
-        super(IdentityTransformer, self).__init__(*args, **kwargs)
-    
+        Operation.__init__(self, operands=[])
+        TransformerBase.__init__(self, input=[], output=[...], **kwargs)
+        
     def transform(self, topics):
         return topics
 
-class SourceTransformer(TransformerBase, Operation):
+class SourceTransformer(TransformerBase):
     """
     A Transformer that can be used when results have been saved in a dataframe.
     It will select results on qid.
@@ -312,9 +406,10 @@ class SourceTransformer(TransformerBase, Operation):
     arity = Arity.nullary
 
     def __init__(self, rtr, **kwargs):
-        super().__init__(operands=[], **kwargs)
+        #Operation.__init__(self, operands=[])
+        TransformerBase.__init__(self, input=[], output=rtr.columns.tolist(), **kwargs)
         self.operands=[]
-        self.df = rtr[0]
+        self.df = rtr#[0]
         self.df_contains_query = "query" in self.df.columns
         assert "qid" in self.df.columns
     
@@ -327,7 +422,7 @@ class SourceTransformer(TransformerBase, Operation):
         rtr = topics[columns].merge(self.df, on="qid")
         return rtr
 
-class UniformTransformer(TransformerBase, Operation):
+class UniformTransformer(TransformerBase):
     """
         A transformer that returns the same dataframe every time transform()
         is called. This class is useful for testing. 
@@ -335,13 +430,32 @@ class UniformTransformer(TransformerBase, Operation):
     arity = Arity.nullary
 
     def __init__(self, rtr, **kwargs):
-        super().__init__(operands=[], **kwargs)
+        #Operation.__init__(self, operands=[])
+        TransformerBase.__init__(self, input=[], output=rtr.columns.tolist(), **kwargs)
         self.operands=[]
-        self.rtr = rtr[0]
+        self.rtr = rtr#[0]
     
     def transform(self, topics):
         rtr = self.rtr.copy()
         return rtr
+
+class UnaryTransformerBase(TransformerBase):
+    def __init__(self, parent, operand_output=None, **kwargs):
+        TransformerBase.__init__(self, input=[], output=[...], **kwargs)
+        self.parent = parent
+        self.operand_output = operand_output
+
+    def validate(self, inputs):
+        # validate left component
+        try:
+            left_output = self.parent.validate(inputs)
+        except TypeError:
+            raise PipelineError(self.left, inputs)
+        if self.operand_output and not set(self.operand_output).issubset(left_output):
+            raise PipelineError(self, left_output, self.operand)
+
+        return self._calculate_output(left_output)
+
 
 class BinaryTransformerBase(TransformerBase,Operation):
     """
@@ -349,11 +463,38 @@ class BinaryTransformerBase(TransformerBase,Operation):
     """
     arity = Arity.binary
 
-    def __init__(self, operands, **kwargs):
-        assert 2 == len(operands)
-        super().__init__(operands=operands,  **kwargs)
+    def __init__(self, operands, operand_output=None, **kwargs):
+        assert 2 == len(operands)        
+        Operation.__init__(self, operands=operands)
+        TransformerBase.__init__(self, **kwargs)
         self.left = operands[0]
         self.right = operands[1]
+        self.operand_output = operand_output
+
+    def validate(self, inputs):
+        # validate left component
+        try:
+            left_output = self.left.validate(inputs)
+        except TypeError:
+            raise PipelineError(self.left, inputs)
+        if self.operand_output and not set(self.operand_output).issubset(left_output):
+            raise PipelineError(self, left_output, self.left)
+
+        right_output=[]
+        # validate right component
+        if not isinstance(self.right, int) and not isinstance(self.right, float) and not isinstance(self.right, Scalar):
+            try:
+                right_output = self.right.validate(inputs)
+            except TypeError:
+                raise PipelineError(self.right, inputs)
+            if self.operand_output and not set(self.operand_output).issubset(right_output):
+                raise PipelineError(self, right_output, self.right)
+
+        return self._calculate_output(left_output, right_output)
+
+    def _calculate_output(self, left_cols, right_cols):
+        pass
+
 
 class NAryTransformerBase(TransformerBase,Operation):
     """
@@ -361,9 +502,11 @@ class NAryTransformerBase(TransformerBase,Operation):
     """
     arity = Arity.polyadic
 
-    def __init__(self, operands, **kwargs):
-        super().__init__(operands=operands, **kwargs)
+    def __init__(self, operands, operand_output=[], **kwargs):
+        Operation.__init__(self, operands=operands)
+        TransformerBase.__init__(self, **kwargs)        
         models = operands
+        self.operand_output = operand_output
         self.models = list( map(lambda x : get_transformer(x), models) )
 
     def __getitem__(self, number):
@@ -378,6 +521,24 @@ class NAryTransformerBase(TransformerBase,Operation):
         """
         return len(self.models)
 
+    def validate(self, inputs):
+        # validate each component
+        op_outputs=[]
+        for m in self.models:
+            op_out = None
+            try:
+                op_out = m.validate(inputs)
+            except TypeError:
+                raise PipelineError(m, inputs)
+            if self.operand_output and not set(self.operand_output).issubset(op_out):
+                raise PipelineError(self, op_out, m)
+            op_outputs.append(op_out)
+
+        return self._calculate_output(op_outputs)
+
+    def _calculate_output(self, op_output_cols):
+        pass
+
 class SetUnionTransformer(BinaryTransformerBase):
     """      
         This operator makes a retrieval set that includes documents that occur in the union (either) of both retrieval sets. 
@@ -388,6 +549,9 @@ class SetUnionTransformer(BinaryTransformerBase):
         In case of duplicated both containing (qid, docno), only the first occurrence will be used.
     """
     name = "Union"
+
+    def __init__(self, operands, **kwargs):
+        super().__init__(operands, operand_output=RETRIEVED_DOCS, output=RETRIEVED_DOCS, **kwargs)
 
     def transform(self, topics):
         res1 = self.left.transform(topics)
@@ -403,6 +567,13 @@ class SetUnionTransformer(BinaryTransformerBase):
         rtr.drop(columns=["score", "rank"], inplace=True, errors='ignore')
         return rtr
 
+    def _calculate_output(self, left_cols, right_cols):
+        rtr = (set(left_cols) | set(right_cols))
+        rtr.discard("rank")
+        rtr.discard("score")
+        return list(rtr)
+        
+
 class SetIntersectionTransformer(BinaryTransformerBase):
     """
         This operator makes a retrieval set that only includes documents that occur in the intersection of both retrieval sets. 
@@ -413,6 +584,9 @@ class SetIntersectionTransformer(BinaryTransformerBase):
         For columns other than (qid, docno), only the left value will be used.
     """
     name = "Intersect"
+
+    def __init__(self, operands, **kwargs):
+        super().__init__(operands, operand_output=RETRIEVED_DOCS, output=RETRIEVED_DOCS_, **kwargs)
     
     def transform(self, topics):
         res1 = self.left.transform(topics)
@@ -423,12 +597,18 @@ class SetIntersectionTransformer(BinaryTransformerBase):
         rtr.drop(columns=["score", "rank"], inplace=True, errors='ignore')
         return rtr
 
+    def _calculate_output(self, left_cols, right_cols):
+        SetUnionTransformer._calculate_output(self, left_cols, right_cols)
+
 class CombSumTransformer(BinaryTransformerBase):
     """
         Adds the scores of documents from two different retrieval transformers.
         Documents not present in one transformer are given a score of 0.
     """
     name = "Sum"
+
+    def __init__(self, operands, **kwargs):
+        super().__init__(operands=operands, **kwargs, operand_output=RANKED_DOCS, output=RANKED_DOCS_)
 
     def transform(self, topics_and_res):
         res1 = self.left.transform(topics_and_res)
@@ -442,9 +622,16 @@ class CombSumTransformer(BinaryTransformerBase):
         merged = add_ranks(merged)
         return merged
 
+    def _calculate_output(self, left_output_cols, right_output_cols):
+        assert set(left_output_cols) == set(right_output_cols), (left_output_cols, right_output_cols)
+        return left_output_cols
+
 class ConcatenateTransformer(BinaryTransformerBase):
     name = "Concat"
     epsilon = 0.0001
+
+    def __init__(self, operands, **kwargs):
+        super().__init__(operands=operands, **kwargs, operand_output=RANKED_DOCS, output=RANKED_DOCS_)
 
     def transform(self, topics_and_res):
         import pandas as pd
@@ -479,6 +666,10 @@ class ConcatenateTransformer(BinaryTransformerBase):
         rtr = add_ranks(rtr)
         return rtr
 
+    def _calculate_output(self, left_output_cols, right_output_cols):
+        assert set(left_output_cols) == set(right_output_cols), (left_output_cols, right_output_cols)
+        return left_output_cols
+
 class ScalarProductTransformer(BinaryTransformerBase):
     """
         Multiplies the retrieval score by a scalar
@@ -487,7 +678,7 @@ class ScalarProductTransformer(BinaryTransformerBase):
     name = "ScalarProd"
 
     def __init__(self, operands, **kwargs):
-        super().__init__(operands, **kwargs)
+        super().__init__(operands, operand_output=RANKED_DOCS, output=lambda input : input, **kwargs)
         self.transformer = operands[0]
         self.scalar = operands[1]
 
@@ -495,6 +686,9 @@ class ScalarProductTransformer(BinaryTransformerBase):
         res = self.transformer.transform(topics_and_res)
         res["score"] = self.scalar * res["score"]
         return res
+    
+    def _calculate_output(self, left_output_cols, right_output_cols):
+        return TransformerBase._calculate_output(self, left_output_cols)
 
 class RankCutoffTransformer(BinaryTransformerBase):
     """
@@ -505,7 +699,7 @@ class RankCutoffTransformer(BinaryTransformerBase):
 
     def __init__(self, operands, **kwargs):
         operands = [operands[0], Scalar(str(operands[1]), operands[1])] if isinstance(operands[1], int) else operands
-        super().__init__(operands, **kwargs)
+        super().__init__(operands, operand_output=RANKED_DOCS, output=RANKED_DOCS_, **kwargs)
         self.transformer = operands[0]
         self.cutoff = operands[1]
         if self.cutoff.value % 10 == 9:
@@ -519,7 +713,10 @@ class RankCutoffTransformer(BinaryTransformerBase):
         # this assumes that the minimum rank cutoff is model.FIRST_RANK, i.e. 0
         res = res[res["rank"] < self.cutoff.value]
         return res
-    
+
+    def _calculate_output(self, left_output_cols, right_output_cols):
+        return left_output_cols
+
 class ApplyTransformerBase(TransformerBase):
     """
         A base class for Apply*Transformers
@@ -561,7 +758,7 @@ class ApplyDocumentScoringTransformer(ApplyTransformerBase):
             Arguments:
              - fn (Callable): Takes as input a panda Series for a row representing that document, and returns the new float doument score 
         """
-        super().__init__(fn, *args, **kwargs)
+        super().__init__(fn, *args, input=RETRIEVED_DOCS, output=RANKED_DOCS_, **kwargs)
     
     def transform(self, inputRes):
         fn = self.fn
@@ -591,7 +788,7 @@ class ApplyDocFeatureTransformer(ApplyTransformerBase):
             Arguments:
              - fn (Callable): Takes as input a panda Series for a row representing that document, and returns a new numpy array representing the features of that document
         """
-        super().__init__(fn, *args, **kwargs)
+        super().__init__(fn, *args, input=RETRIEVED_DOCS, output=RETRIEVED_DOCS_FEATURES_, **kwargs)
 
     def transform(self, inputRes):
         fn = self.fn
@@ -628,7 +825,12 @@ class ApplyQueryTransformer(ApplyTransformerBase):
              - fn (Callable): Takes as input a panda Series for a row representing a query, and returns the new string query 
              - verbose (bool): Display a tqdm progress bar for this transformer
         """
-        super().__init__(fn, *args, **kwargs)
+        super().__init__(fn, 
+            *args, 
+            input = QUERIES,
+            output = lambda input : input + [ "query_%d" % (_last_query(input)+1) ],
+            **kwargs
+            )
 
     def transform(self, inputRes):
         from .model import push_queries
@@ -673,7 +875,7 @@ class ApplyGenericTransformer(ApplyTransformerBase):
         return fn(inputRes)
 
 @deprecation.deprecated(deprecated_in="0.3.0",
-                        details="Please use pt.ApplyGenericTransformer")
+                        details="Please use pt.apply.ApplyGenericTransformer")
 class LambdaPipeline(ApplyGenericTransformer):
     pass
 
@@ -688,6 +890,9 @@ class FeatureUnionPipeline(NAryTransformerBase):
             pipe = cands >> (pl2f ** bm25f)
     """
     name = "FUnion"
+
+    def __init__(self, operands, **kwargs):
+        super().__init__(operands=operands, input=[], operand_output=RETRIEVED_DOCS, output=RETRIEVED_DOCS_FEATURES, **kwargs)
 
     def transform(self, inputRes):
         if not "docno" in inputRes.columns and "docid" in inputRes.columns:
@@ -770,6 +975,12 @@ class FeatureUnionPipeline(NAryTransformerBase):
         assert not "features_y" in final_DF.columns 
         return final_DF
 
+    def _calculate_output(self, op_output_cols):
+        first = op_output_cols[0]
+        for i, cols in enumerate(op_output_cols):
+            assert set(first) == set(cols), "columns from operand %d returned columns %s, but we expected %s " % (i, str(cols), str(first))
+        return op_output_cols[0]
+
 class ComposedPipeline(NAryTransformerBase):
     """ 
         This class allows pipeline components to be chained together using the "then" operator.
@@ -800,7 +1011,34 @@ class ComposedPipeline(NAryTransformerBase):
                 batch_df = prev_transformer.transform_iter(batch)
                 for row in batch_df.itertuples(index=False):
                     yield row._asdict()
-        return last_transformer.index(gen()) 
+        return last_transformer.index(gen())
+
+    def validate(self, inputs):
+        # We validate the first transformer in the pipeline
+        try:
+            next_input = self.models[0].validate(inputs)
+        except TypeError:
+            raise PipelineError(self.models[0], inputs)
+
+        # In the case where the first transformer of an nary transformer must return a certain type, regardless of
+        # further transformers
+        if self.input:
+            #print("%s had required inputs %s" % (repr(self), self.input))
+            try:
+                super().validate(next_input)
+            except TypeError:
+                raise PipelineError(self, next_input, self.models[0])
+        #print("after %s next_input is %s" % (repr(self.models[0]), str(next_input)))
+
+        
+        # We can then validate the other transformer in pipeline, with using the previous transformer output
+        for i in range(len(self)-1):
+            try:
+                next_input = self.models[i+1].validate(next_input)
+            except TypeError:
+                raise PipelineError(self.models[i+1], next_input, self.models[i])
+
+        return next_input
 
     def transform(self, topics):
         for m in self.models:

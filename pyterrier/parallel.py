@@ -1,4 +1,4 @@
-from .transformer import TransformerBase
+from .transformer import UnaryTransformerBase
 import pandas as pd
 import pyterrier as pt
 
@@ -60,11 +60,10 @@ def _parallel_lambda_joblib(function, inputs, jobs):
             delayed(function)(input) for input in inputs)
         
 
-class PoolParallelTransformer(TransformerBase):
+class PoolParallelTransformer(UnaryTransformerBase):
 
     def __init__(self, parent, n_jobs, backend='joblib', **kwargs):
-        super().__init__(**kwargs)
-        self.parent = parent
+        super().__init__(parent, **kwargs)
         self.n_jobs = n_jobs
         self.backend = backend
         from .bootstrap import is_windows

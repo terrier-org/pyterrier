@@ -51,8 +51,8 @@ class TestExperiment(BaseTestCase):
 
     def test_differing_queries(self):
         topics = pd.DataFrame([["q1", "q1"], ["q2", "q1"] ], columns=["qid", "query"])
-        res1 = pd.DataFrame([["q1", "d1", 1.0]], columns=["qid", "docno", "score"])
-        res2 = pd.DataFrame([["q1", "d1", 1.0], ["q2", "d1", 2.0] ], columns=["qid", "docno", "score"])
+        res1 = pd.DataFrame([["q1", "d1", 1.0, 0]], columns=["qid", "docno", "score", "rank"])
+        res2 = pd.DataFrame([["q1", "d1", 1.0, 0], ["q2", "d1", 2.0, 0] ], columns=["qid", "docno", "score", "rank"])
         qrels = pd.DataFrame([["q1", "d1", 1], ["q2", "d1", 1] ], columns=["qid", "docno", "label"])
         from pyterrier.transformer import UniformTransformer
         with warnings.catch_warnings(record=True) as w:
@@ -116,8 +116,8 @@ class TestExperiment(BaseTestCase):
 
     def test_differing_order(self):
         topics = pd.DataFrame([["q1", "q1"], ["q2", "q1"] ], columns=["qid", "query"])
-        res1 = pd.DataFrame([ ["q2", "d1", 2.0], ["q1", "d1", 1.0],], columns=["qid", "docno", "score"])
-        res2 = pd.DataFrame([["q1", "d1", 1.0], ["q2", "d1", 2.0] ], columns=["qid", "docno", "score"])
+        res1 = pd.DataFrame([ ["q2", "d1", 2.0, 0], ["q1", "d1", 1.0, 1],], columns=["qid", "docno", "score", "rank"])
+        res2 = pd.DataFrame([["q1", "d1", 1.0, 1], ["q2", "d1", 2.0, 0] ], columns=["qid", "docno", "score", "rank"])
         qrels = pd.DataFrame([["q1", "d1", 1], ["q2", "d3", 1] ], columns=["qid", "docno", "label"])
         from pyterrier.transformer import UniformTransformer
         measures = pt.Experiment(

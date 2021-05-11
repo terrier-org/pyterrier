@@ -28,6 +28,11 @@ class TestParallel(BaseTestCase):
             pt.apply.query(lambda row: row["query"] + " chemical") >> dph
         ]:
             res1 = pipe(topics)
-            res2 = pipe.parallel(3)(topics)
+            ppipe = pipe.parallel(3)
+            print(ppipe.input)
+            print(ppipe.output)            
+            self.assertSetEqual( set( ppipe.validate(topics) ), set( pipe.validate(topics) ) , pipe ) 
+            self.assertSetEqual( set( ppipe.validate(topics) ), set(res1.columns.tolist()) , pipe ) 
+            res2 = ppipe(topics)
             self.assertEqual(len(res1), len(res2))
             

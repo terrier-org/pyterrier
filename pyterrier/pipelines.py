@@ -184,7 +184,8 @@ def Experiment(
         correction : str = None,
         correction_alpha : float = 0.05,
         highlight : str = None,
-        round : Union[int,Dict[str,int]] = None):
+        round : Union[int,Dict[str,int]] = None,
+        validate : Union[bool,str] = True):
     """
     Allows easy comparison of multiple retrieval transformer pipelines using a common set of topics, and
     identical evaluation measures computed using the same qrels. In essence, each transformer is applied on 
@@ -221,6 +222,8 @@ def Experiment(
             if `highlight="color"` or `"colour"`, then the cell with the highest metric value will have a green background.
         round(int): How many decimal places to round each measure value to. This can also be a dictionary mapping measure name to number of decimal places.
             Default is None, which is no rounding.
+        validate(bool/str) : Define how strictly we validate given transformers in retr_systems.
+            if False do not validate, if "WARN" validate and print warning, if True validate and throw PipelineError. Default="WARN"
 
     Returns:
         A Dataframe with each retrieval system with each metric evaluated.
@@ -294,6 +297,18 @@ def Experiment(
 
     all_qids = topics["qid"].values
 
+    # validation
+    if validate:
+        for i, (name, system) in enumerate(zip(names, retr_systems)):
+            if not isinstance(system, pd.DataFrame):
+                # We first validate to make sure constructed pipelines are valid
+                output = system.validate(topics)
+                from .model import RANKED_DOCS
+                # We then check that all columns are present for experimentation
+                difference = set(RANKED_DOCS).difference(set(output))
+                if difference != set():
+                    raise TypeError("For transformer %d (%s), expected %s, recieved %s, missing %s" % (i, name, str(RANKED_DOCS), str(output), str(difference) ))
+
     evalsRows=[]
     evalDict={}
     evalDictsPerQ=[]
@@ -335,7 +350,6 @@ def Experiment(
                     ])
             evalDict[name] = evalMeasuresDict
         else:
-            import builtins
             actual_metric_names = list(evalMeasuresDict.keys())
             # gather mean values, applying rounding if necessary
             evalMeasures=[ _apply_round(m, evalMeasuresDict[m]) for m in actual_metric_names]
@@ -763,6 +777,8 @@ class PerQueryMaxMinScoreTransformer(TransformerBase):
     '''
     applies per-query maxmin scaling on the input scores
     '''
+    def __init__(self, **kwargs):
+        super().__init__(family='reranking')
     
     def transform(self, topics_and_res):
         from sklearn.preprocessing import minmax_scale

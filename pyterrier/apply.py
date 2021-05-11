@@ -113,7 +113,12 @@ def rename(columns : Dict[str,str], *args, **kwargs):
             
             pipe = pt.BatchRetrieve(index, metadata=["docno", "body"]) >> pt.apply.rename({'body':'text'})
     """
-    return ApplyGenericTransformer(lambda df: df.rename(columns=columns), *args, **kwargs)
+    return ApplyGenericTransformer(
+        lambda df: df.rename(columns=columns), 
+        *args,
+        input=columns.keys(), 
+        output=lambda input: [ columns.get(x, x) for x in input],
+        **kwargs)
 
 def generic(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> TransformerBase:
     """
@@ -158,7 +163,12 @@ class _apply:
 
 def generic_apply(name, *args, drop=False, **kwargs) -> TransformerBase:
     if drop:
-        return ApplyGenericTransformer(lambda df : df.drop(name, axis=1), *args, **kwargs) 
+        return ApplyGenericTransformer(
+            lambda df : df.drop(name, axis=1), 
+            *args,
+            input=[name],
+            output = lambda input: [ x for x in input if not x == name],
+            **kwargs)
     
     if len(args) == 0:
         raise ValueError("Must specify a fn, e.g. a lambda")
@@ -168,4 +178,7 @@ def generic_apply(name, *args, drop=False, **kwargs) -> TransformerBase:
     def _new_column(df):
         df[name] = df.apply(fn, axis=1)
         return df
-    return ApplyGenericTransformer(_new_column, *args, **kwargs)
+    return ApplyGenericTransformer(_new_column, 
+        *args,
+        output=lambda input: input + [name],
+        **kwargs)
