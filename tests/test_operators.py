@@ -3,13 +3,9 @@ import unittest
 import pyterrier as pt
 import warnings
 from matchpy import *
+from .base import BaseTestCase
 
-class TestOperators(unittest.TestCase):
-
-    def __init__(self, *args, **kwargs):
-        super(TestOperators, self).__init__(*args, **kwargs)
-        if not pt.started():
-            pt.init()
+class TestOperators(BaseTestCase):
 
     def test_then_dataframe(self):
         #this test is we can have DataFrame >> SOMETHINGELSE

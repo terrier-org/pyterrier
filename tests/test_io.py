@@ -2,19 +2,12 @@ import pandas as pd
 import pyterrier as pt
 import unittest
 import os
-from .base import BaseTestCase
+from .base import TempDirTestCase
 import shutil
 import tempfile
 
-class TestUtils(BaseTestCase):
+class TestUtils(TempDirTestCase):
 
-    def setUp(self):
-        # Create a temporary directory
-        self.test_dir = tempfile.mkdtemp()
-
-    def tearDown(self):
-        # Remove the directory after the test
-        shutil.rmtree(self.test_dir)
 
     def test_save_trec(self):
         res = pd.DataFrame([["1", "d1", 5.3, 1]], columns=['qid', 'docno', 'score', 'rank'])

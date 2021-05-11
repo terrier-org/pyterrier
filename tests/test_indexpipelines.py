@@ -1,22 +1,12 @@
 import pyterrier as pt
 import tempfile
 import unittest
-from .base import BaseTestCase
+from .base import TempDirTestCase
 import os
 import pandas as pd
 import shutil
 
-class TestIndexPipelines(BaseTestCase):
-
-    def setUp(self):
-        # Create a temporary directory
-        self.test_dir = tempfile.mkdtemp()
-        print("Created " + self.test_dir)
-
-    def tearDown(self):
-        # Remove the directory after the test
-        shutil.rmtree(self.test_dir)
-        print("Deleting " + self.test_dir)
+class TestIndexPipelines(TempDirTestCase):
 
     def test_add_dup(self):
         def _first(df):
