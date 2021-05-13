@@ -4,7 +4,7 @@ Terrier Indexing
 PyTerrier has a number of useful classes for creating Terrier indices, which can be used for retrieval, query expansion, etc.
 There are four indexer classes:
 
- - You can create an index from TREC-formatted files, from a TREC test collectoin, using TRECCollectionIndexer.
+ - You can create an index from TREC-formatted files, from a TREC test collection, using TRECCollectionIndexer.
  - For indexing TXT, PDF, Microsoft Word files, etc files you can use FilesIndexer.
  - For indexing Pandas Dataframe you can use DFIndexer.
  - For any abitrary iterable dictionaries, you can use IterDictIndexer.
