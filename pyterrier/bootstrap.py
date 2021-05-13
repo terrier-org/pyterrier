@@ -113,6 +113,10 @@ def setup_terrier(file_path, terrier_version=None, helper_version=None, boot_pac
 
     return classpath
 
+def is_windows() -> bool:
+    import platform
+    return platform.system() == 'Windows'
+
 def is_binary(f):
     import io
     return isinstance(f, (io.RawIOBase, io.BufferedIOBase))

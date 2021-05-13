@@ -6,19 +6,9 @@ import tempfile
 import shutil
 import os
 
-from .base import BaseTestCase
+from .base import TempDirTestCase, BaseTestCase
 
-class TestIterDictIndexer(BaseTestCase):
-
-    def setUp(self):
-        # Create a temporary directory
-        self.test_dir = tempfile.mkdtemp()
-        print("Created " + self.test_dir)
-
-    def tearDown(self):
-        # Remove the directory after the test
-        shutil.rmtree(self.test_dir)
-        print("Deleting " + self.test_dir)
+class TestIterDictIndexer(TempDirTestCase):
         
 
     def _create_index(self, it, fields, meta, type, indexer):
@@ -35,6 +25,8 @@ class TestIterDictIndexer(BaseTestCase):
             pt.index._IterDictIndexer_fifo(self.test_dir, type=index_type, threads=4),
             pt.index._IterDictIndexer_nofifo(self.test_dir, type=index_type),
         ]
+        if BaseTestCase.is_windows():
+           indexers = [indexers[-1]] 
         for indexer in indexers:
             with self.subTest(indexer=indexer):
                 it = (
@@ -71,6 +63,7 @@ class TestIterDictIndexer(BaseTestCase):
                 else:
                     self.assertEqual(1, post.frequency)
                     self.assertEqual(1, post.fieldFrequencies[0])
+                index.close()
             # reset index directory for next run
             shutil.rmtree(self.test_dir)
             os.mkdir(self.test_dir)

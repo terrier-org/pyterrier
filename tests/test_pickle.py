@@ -1,4 +1,4 @@
-from .base import BaseTestCase
+from .base import TempDirTestCase
 import pandas as pd
 import pickle
 import pyterrier as pt
@@ -6,15 +6,7 @@ import tempfile, shutil
 from os import path
 import os
 
-class TestPickle(BaseTestCase):
-
-    def setUp(self):
-        # Create a temporary directory
-        self.test_dir = tempfile.mkdtemp()
-
-    def tearDown(self):
-        # Remove the directory after the test
-        shutil.rmtree(self.test_dir)
+class TestPickle(TempDirTestCase):
 
     def _fix_joblib(self):
         import joblib

@@ -16,7 +16,7 @@ TREC-formatted corpus::
 
     files = []  # list of filenames to be indexed
     indexer = pt.TRECCollectionIndexer(INDEX_DIR, 
-        # record that we save additional document metadata called 'textæ
+        # record that we save additional document metadata called 'text'
         meta= {'docno' : 26, 'text' : 2048},
         # The tags from which to save the text. ELSE is special tag name, which means anything not consumed by other tags.
         meta_tags = {'text' : 'ELSE'}
@@ -28,7 +28,7 @@ On the other-hand, for a TSV-formatted corpus such as MSMARCO passages, indexing
 using IterDictIndexer::
 
     def msmarco_generate():
-        dataset = pt.get_dataset(("trec-deep-learning-passages")
+        dataset = pt.get_dataset("trec-deep-learning-passages")
         with pt.io.autoopen(dataset.get_corpus()[0], 'rt') as corpusfile:
             for l in corpusfile:
                 docno, passage = l.split("\t")

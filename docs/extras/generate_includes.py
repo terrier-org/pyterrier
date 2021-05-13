@@ -35,6 +35,7 @@ def dataset_include():
         f.write(table)
 
 def experiment_includes():
+    print("Regenerating experiments includes - to skip, use QUICK=1 make html")
     dataset = pt.get_dataset("vaswani")
     # vaswani dataset provides an index, topics and qrels
 

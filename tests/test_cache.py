@@ -2,19 +2,12 @@ import pandas as pd
 import pyterrier as pt
 import os
 import unittest
-from .base import BaseTestCase
+from .base import TempDirTestCase
 import tempfile
 import shutil
 import os
 
-class TestCache(BaseTestCase):
-
-    def setUp(self):
-        self.test_dir = tempfile.mkdtemp()
-
-    def tearDown(self):
-        import shutil
-        shutil.rmtree(self.test_dir)
+class TestCache(TempDirTestCase):
 
     def test_cache_br(self):
         pt.cache.CACHE_DIR = self.test_dir

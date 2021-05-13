@@ -50,8 +50,8 @@ def read_results(filename, format="trec", **kwargs):
     Reads a file into a results dataframe.
 
     Parameters:
-        filename (str): The filename of the file to be read. Compressed files are handled automatically.
-        format (str): The format of the results file: one of "trec", "letor", "minimal". Default is "trec"
+        filename (str): The filename of the file to be read. Compressed files are handled automatically. A URL is also supported for the "trec" format.
+        format (str): The format of the results file: one of "trec", "letor". Default is "trec".
         **kwargs (dict): Other arguments for the internal method
     
     Returns:
@@ -155,10 +155,10 @@ def _write_results_letor(res, filename, qrels=None, default_label=0):
 
 def read_topics(filename, format="trec", **kwargs):
     """
-    Reads a file containing topics 
+    Reads a file containing topics.
 
     Parameters:
-        filename(str): The filename of the topics file
+        filename(str): The filename of the topics file. A URL is supported for the "trec" and "singleline" formats.
         format(str): One of "trec", "trecxml" or "singleline". Default is "trec" 
 
     Returns:
@@ -225,7 +225,7 @@ def _read_topics_trecxml(filename, tags=["query", "question", "narrative"], toke
 
 def _read_topics_singleline(filepath, tokenise=True):
     """
-    Parse a file containing topics, one per line
+    Parse a file containing topics, one per line. This function uses Terrier, so supports reading direct from URLs.
 
     Args:
         file_path(str): The path to the topics file
@@ -249,7 +249,7 @@ def read_qrels(file_path):
     Reads a file containing qrels (relevance assessments)
 
     Parameters:
-        file_path(str): The path to the qrels file
+        file_path(str): The path to the qrels file.  A URL is also supported.
 
     Returns:
         pandas.Dataframe with columns=['qid','docno', 'label']

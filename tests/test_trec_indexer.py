@@ -4,28 +4,9 @@ import unittest
 import os
 import shutil
 import tempfile
+from .base import TempDirTestCase
 
-
-class TestTRECIndexer(unittest.TestCase):
-
-    def __init__(self, *args, **kwargs):
-        super(TestTRECIndexer, self).__init__(*args, **kwargs)
-        if not pt.started():
-            #pt.init(logging="DEBUG")
-            pt.init()
-        # else:
-        #     pt.setup_logging("DEBUG")
-        self.here = os.path.dirname(os.path.realpath(__file__))
-
-    def setUp(self):
-        # Create a temporary directory
-        self.test_dir = tempfile.mkdtemp()
-        print("Created " + self.test_dir)
-
-    def tearDown(self):
-        # Remove the directory after the test
-        shutil.rmtree(self.test_dir)
-        print("Deleting " + self.test_dir)
+class TestTRECIndexer(TempDirTestCase):
 
     def test_TREC_indexing_pbar(self):
         print("Writing index to " + self.test_dir)

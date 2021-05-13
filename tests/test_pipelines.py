@@ -1,16 +1,10 @@
 import pandas as pd
 import unittest
 import pyterrier as pt
-
+from .base import BaseTestCase
 from matchpy import *
 
-class TestOperators(unittest.TestCase):
-
-    def __init__(self, *args, **kwargs):
-        super(TestOperators, self).__init__(*args, **kwargs)
-        if not pt.started():
-            pt.init()
-
+class TestOperators(BaseTestCase):
 
     def test_maxmin_normalisation(self):
         import pyterrier.transformer as ptt;

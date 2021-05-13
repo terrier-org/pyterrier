@@ -69,6 +69,7 @@ class TestGrid(BaseTestCase):
         #print(rtr)
 
     def test_gridscan_joblib2(self):
+        self.skip_windows()
         dataset = pt.get_dataset("vaswani")
         pipe = pt.BatchRetrieve(dataset.get_index(), wmodel="PL2", controls={'c' : 1})
         self.assertEqual(1, pipe.get_parameter('c'))
