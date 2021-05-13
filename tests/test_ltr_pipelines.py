@@ -6,7 +6,10 @@ from .base import BaseTestCase
 class TestLTRPipeline(BaseTestCase):
 
     def test_fastrank(self):
-        import fastrank
+        try:
+            import fastrank
+        except:
+            self.skipTest("Fastrank not installed")
         train_request = fastrank.TrainRequest.coordinate_ascent()
         params = train_request.params
         params.init_random = True
@@ -26,7 +29,10 @@ class TestLTRPipeline(BaseTestCase):
         )
 
     def test_xgltr_pipeline(self):
-        import xgboost as xgb
+        try:
+            import xgboost as xgb
+        except:
+            self.skipTest("xgboost not installed")
 
         xgparams = {
             'objective': 'rank:ndcg',

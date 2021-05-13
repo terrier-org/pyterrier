@@ -1,12 +1,12 @@
 
-from .base import BaseTestCase
+from .base import TempDirTestCase
 import warnings
 import tempfile
 import shutil
 import os
 import pyterrier as pt
 
-class TestFilesIndexer(BaseTestCase):
+class TestFilesIndexer(TempDirTestCase):
 
     def test_2_docs(self):
         files = pt.io.find_files(os.path.join(self.here, "fixtures", "sample_docs"))
@@ -51,13 +51,3 @@ class TestFilesIndexer(BaseTestCase):
         # test bodies have been recorded in metaindex
         self.assertEqual("test body", index.getMetaIndex().getItem("body", html_pos))
         self.assertEqual("empty text document",index.getMetaIndex().getItem("body", txt_pos))
-
-    def setUp(self):
-        # Create a temporary directory
-        self.test_dir = tempfile.mkdtemp()
-        print("Created " + self.test_dir)
-
-    def tearDown(self):
-        # Remove the directory after the test
-        shutil.rmtree(self.test_dir)
-        print("Deleting " + self.test_dir)

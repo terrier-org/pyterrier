@@ -1,7 +1,7 @@
 __version__ = "0.5.0"
 
 import os
-from .bootstrap import _logging, setup_terrier, setup_jnius
+from .bootstrap import _logging, setup_terrier, setup_jnius, is_windows
 
 import importlib
 
@@ -12,6 +12,7 @@ cache = None
 index = None
 io = None
 ltr = None
+measures = None
 model = None
 new = None
 parallel = None
@@ -88,6 +89,12 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     # get the initial classpath for the JVM
     classpathTrJars = setup_terrier(HOME_DIR, version, boot_packages=boot_packages)
     
+    if is_windows():
+        if "JAVA_HOME" in os.environ:
+            java_home =  os.environ["JAVA_HOME"]
+            fix = '%s\\jre\\bin\\server\\;%s\\jre\\bin\\client\\;%s\\bin\\server\\' % (java_home, java_home, java_home)
+            os.environ["PATH"] = os.environ["PATH"] + ";" + fix
+
     # Import pyjnius and other classes
     import jnius_config
     for jar in classpathTrJars:
@@ -129,7 +136,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     from .apply import _apply
     globals()['apply'] = _apply()
 
-    for sub_module_name in ['anserini', 'cache', 'index', 'io', 'model', 'new', 'ltr', 'parallel', 'pipelines', 'rewrite', 'text', 'transformer']:
+    for sub_module_name in ['anserini', 'cache', 'index', 'io', 'measures', 'model', 'new', 'ltr', 'parallel', 'pipelines', 'rewrite', 'text', 'transformer']:
         globals()[sub_module_name] = importlib.import_module('.' + sub_module_name, package='pyterrier') 
 
     # append the python helpers

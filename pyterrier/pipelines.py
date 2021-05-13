@@ -1,3 +1,4 @@
+from collections import defaultdict
 from warnings import warn
 import os
 import pandas as pd
@@ -7,6 +8,10 @@ from .utils import Utils
 from .transformer import TransformerBase, EstimatorBase
 from .model import add_ranks
 import deprecation
+import ir_measures
+from ir_measures.measures import BaseMeasure 
+MEASURE_TYPE=Union[str,BaseMeasure]
+MEASURES_TYPE=Sequence[MEASURE_TYPE]
 
 
 SYSTEM_OR_RESULTS_TYPE = Union[TransformerBase, pd.DataFrame]
@@ -45,21 +50,82 @@ def _color_cols(data, col_type,
     is_max[len(data) - list(reversed(data)).index(max_value) -  1] = colormaxlast_attr
     return is_max
 
+_irmeasures_columns = {
+    'qid' : 'query_id',
+    'docno' : 'doc_id'
+}
+
+def _convert_measures(metrics : MEASURES_TYPE) -> Tuple[Sequence[BaseMeasure], Dict[BaseMeasure,str]]:
+    from ir_measures import convert_trec_name
+    rtr = []
+    rev_mapping = {}
+    for m in metrics:
+        if isinstance(m, BaseMeasure):
+            rtr.append(m)
+            continue
+        if isinstance(m, str):
+            measures = convert_trec_name(m)
+            if len(measures) == 1:
+                metric = measures[0]
+                rtr.append(metric)
+                rev_mapping[metric] = m
+            elif len(measures) > 1:
+                #m is family nickname, e.g. 'official;
+                rtr.extend(measures)
+            else:
+                raise KeyError("Could not convert measure %s" % m)
+    assert len(rtr) > 0
+    return rtr, rev_mapping
+
+#list(iter_calc([ir_measures.AP], qrels, run))
+#[Metric(query_id='Q0', measure=AP, value=1.0), Metric(query_id='Q1', measure=AP, value=1.0)]
+def _ir_measures_to_dict(
+        seq : Sequence, 
+        metrics: Sequence[BaseMeasure],
+        rev_mapping : Dict[BaseMeasure,str], 
+        num_q : int,
+        perquery : bool = True):
+    from collections import defaultdict
+    if perquery:
+        # qid -> measure -> value
+        rtr=defaultdict(dict)
+        for m in seq:
+            metric = m.measure
+            metric = rev_mapping.get(metric, str(metric))
+            rtr[m.query_id][metric] = m.value
+        return rtr
+    # measure -> value
+    rtr = {rev_mapping.get(m, str(m)): m.aggregator() for m in metrics}
+    for m in seq:
+        metric = m.measure
+        metric = rev_mapping.get(metric, str(metric))
+        rtr[metric].add(m.value)
+    for m in rtr:
+        rtr[m] = rtr[m].result()
+    return rtr
 
 def _run_and_evaluate(
         system : SYSTEM_OR_RESULTS_TYPE, 
         topics : pd.DataFrame, 
-        qrels_dict, 
-        metrics : List[str], 
+        qrels: pd.DataFrame, 
+        metrics : MEASURES_TYPE, 
         perquery : bool = False,
         batch_size = None):
     
+    metrics, rev_mapping = _convert_measures(metrics)
+    qrels = qrels.rename(columns={'qid': 'query_id', 'docno': 'doc_id', 'label': 'relevance'})
     from timeit import default_timer as timer
     runtime = 0
+    num_q = qrels['query_id'].nunique()
     # if its a DataFrame, use it as the results
     if isinstance(system, pd.DataFrame):
         res = system
-        evalMeasuresDict = Utils.evaluate(res, qrels_dict, metrics=metrics, perquery=perquery)
+        evalMeasuresDict = _ir_measures_to_dict(
+            ir_measures.iter_calc(metrics, qrels, res.rename(columns=_irmeasures_columns)), 
+            metrics,
+            rev_mapping,
+            num_q,
+            perquery)
 
     elif batch_size is None:
         #transformer, evaluate all queries at once
@@ -68,7 +134,12 @@ def _run_and_evaluate(
         res = system.transform(topics)
         endtime = timer()
         runtime =  (endtime - starttime) * 1000.
-        evalMeasuresDict = Utils.evaluate(res, qrels_dict, metrics=metrics, perquery=perquery)
+        evalMeasuresDict = _ir_measures_to_dict(
+            ir_measures.iter_calc(metrics, qrels, res.rename(columns=_irmeasures_columns)), 
+            metrics,
+            rev_mapping,
+            num_q,
+            perquery)
     else:
         #transformer, evaluate queries in batches
         assert batch_size > 0
@@ -78,11 +149,21 @@ def _run_and_evaluate(
         for res in system.transform_gen(topics, batch_size=batch_size):
             endtime = timer()
             runtime += (endtime - starttime) * 1000.
-            localEvalDict = Utils.evaluate(res, qrels_dict, metrics=metrics, perquery=True)
+            localEvalDict = _ir_measures_to_dict(
+                ir_measures.iter_calc(metrics, qrels, res.rename(columns=_irmeasures_columns)),
+                metrics,
+                rev_mapping,
+                num_q,
+                True)
             evalMeasuresDict.update(localEvalDict)
             starttime = timer()
         if not perquery:
-            evalMeasuresDict = Utils.mean_of_measures(evalMeasuresDict)
+            aggregators = {rev_mapping.get(m, str(m)): m.aggregator() for m in metrics}
+            for q in evalMeasuresDict:
+                for metric in metrics:
+                    s_metric = rev_mapping.get(metric, str(metric))
+                    aggregators[s_metric].add(evalMeasuresDict[q][s_metric])
+            evalMeasuresDict = {m: agg.result() for m, agg in aggregators.items()}
     return (runtime, evalMeasuresDict)
 
 NUMERIC_TYPE = Union[float,int,complex]
@@ -92,7 +173,7 @@ def Experiment(
         retr_systems : Sequence[SYSTEM_OR_RESULTS_TYPE],
         topics : pd.DataFrame,
         qrels : pd.DataFrame,
-        eval_metrics : List[str],
+        eval_metrics : MEASURES_TYPE,
         names : Sequence[str] = None,
         perquery : bool = False,
         dataframe : bool =True,
@@ -211,7 +292,6 @@ def Experiment(
     elif len(names) != len(retr_systems):
         raise ValueError("names should be the same length as retr_systems")
 
-    qrels_dict = Utils.convert_qrels_to_dict(qrels)
     all_qids = topics["qid"].values
 
     evalsRows=[]
@@ -222,10 +302,10 @@ def Experiment(
     if "mrt" in eval_metrics:
         mrt_needed = True
         eval_metrics.remove("mrt")
-    
+
     # run and evaluate each system
     for name,system in zip(names, retr_systems):
-        time, evalMeasuresDict = _run_and_evaluate(system, topics, qrels_dict, eval_metrics, perquery=perquery or baseline is not None, batch_size=batch_size)
+        time, evalMeasuresDict = _run_and_evaluate(system, topics, qrels, eval_metrics, perquery=perquery or baseline is not None, batch_size=batch_size)
         
         if perquery or baseline is not None:
             # this ensures that all queries are present in various dictionaries
@@ -359,7 +439,7 @@ def KFoldGridSearch(
         params : Dict[TransformerBase,Dict[str,List[TRANSFORMER_PARAMETER_VALUE_TYPE]]],
         topics_list : List[pd.DataFrame],
         qrels : Union[pd.DataFrame,List[pd.DataFrame]],
-        metric : str = "map",
+        metric : MEASURE_TYPE = "map",
         jobs : int = 1,
         backend='joblib',
         verbose: bool = False,
@@ -456,7 +536,7 @@ def GridSearch(
         params : Dict[TransformerBase,Dict[str,List[TRANSFORMER_PARAMETER_VALUE_TYPE]]],
         topics : pd.DataFrame,
         qrels : pd.DataFrame,
-        metric : str = "map",
+        metric : MEASURE_TYPE = "map",
         jobs : int = 1,
         backend='joblib',
         verbose: bool = False,
@@ -526,7 +606,7 @@ def GridScan(
         params : Dict[TransformerBase,Dict[str,List[TRANSFORMER_PARAMETER_VALUE_TYPE]]],
         topics : pd.DataFrame,
         qrels : pd.DataFrame,
-        metrics : Union[str,List[str]] = ["map"],
+        metrics : Union[MEASURE_TYPE,MEASURES_TYPE] = ["map"],
         jobs : int = 1,
         backend='joblib',
         verbose: bool = False,
@@ -605,9 +685,6 @@ def GridScan(
     combinations = list(itertools.product(*values))
     assert len(combinations) > 0, "No combinations selected"
 
-    # use this for repeated evaluation
-    qrels_dict = Utils.convert_qrels_to_dict(qrels)
-
     def _evaluate_one_setting(keys, values):
         #'params' is every combination of candidates
         params = dict(zip(keys, values))
@@ -619,10 +696,7 @@ def GridScan(
             # such as (BatchRetrieve, 'wmodel', 'BM25')
             parameter_list.append( (tran, param_name, value) )
             
-        _run_and_evaluate(pipeline, topics, qrels_dict, metrics, perquery=False, batch_size=batch_size)
-        # using topics and evaluation
-        res = pipeline.transform(topics)
-        eval_scores = Utils.evaluate(res, qrels, metrics=metrics, perquery=False)
+        time, eval_scores = _run_and_evaluate(pipeline, topics, qrels, metrics, perquery=False, batch_size=batch_size)
         return parameter_list, eval_scores
 
     def _evaluate_several_settings(inputs : List[Tuple]):

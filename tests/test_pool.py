@@ -6,6 +6,7 @@ import datetime
 class TestPool(BaseTestCase):
 
     def test_br_parallel(self):
+        self.skip_windows()
         vaswani = pt.datasets.get_dataset("vaswani")
         br = pt.BatchRetrieve(vaswani.get_index()) %2
         t = vaswani.get_topics()
@@ -60,6 +61,7 @@ class TestPool(BaseTestCase):
                 pd.testing.assert_frame_equal(res1, res)
 
     def test_br_joblib(self):
+        self.skip_windows()
         from pyterrier.parallel import _joblib_with_initializer, _pt_init
 
         vaswani = pt.datasets.get_dataset("vaswani")
