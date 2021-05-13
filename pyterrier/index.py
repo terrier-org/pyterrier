@@ -162,7 +162,13 @@ def treccollection2textgen(
         yield rtr
     
 
-def _TaggedDocumentSetup(meta, meta_tags):
+def _TaggedDocumentSetup(
+        meta : Dict[str,int],  #mapping from meta-key to length
+        meta_tags : Dict[str,str] #mapping from meta-key to tag
+    ):
+    """
+    Property setup for TaggedDocument etc to generate abstracts
+    """
 
     abstract_tags=meta_tags.values()
     abstract_names=meta_tags.keys()
@@ -175,6 +181,31 @@ def _TaggedDocumentSetup(meta, meta_tags):
     ApplicationSetup.setProperty("TaggedDocument.abstracts.lengths", ",".join(abstract_lengths))
     # Should the tags from which we create abstracts be case-sensitive
     ApplicationSetup.setProperty("TaggedDocument.abstracts.tags.casesensitive", "false")
+
+
+def _FileDocumentSetup(   
+        meta : Dict[str,int],  #mapping from meta-key to length
+        meta_tags : Dict[str,str] #mapping from meta-key to tag
+    ):
+    """
+    Property setup for FileDocument etc to generate abstracts
+    """
+
+    meta_name_for_abstract = None
+    for k, v in meta_tags.items():
+        if v == 'ELSE':
+            meta_name_for_abstract = k
+    if meta_name_for_abstract is None:
+        return
+    
+    if meta_name_for_abstract not in meta:
+        raise ValueError("You need to specify a meta length for " + meta_name_for_abstract)
+
+    abstract_length = meta[meta_name_for_abstract]
+
+    ApplicationSetup.setProperty("FileDocument.abstract", meta_name_for_abstract)
+    ApplicationSetup.setProperty("FileDocument.abstract.length", str(abstract_length))
+
 
 
 
@@ -794,6 +825,7 @@ class FilesIndexer(Indexer):
         index = self.createIndexer()
         asList = createAsList(files_path)
         _TaggedDocumentSetup(self.meta, self.meta_tags)
+        _FileDocumentSetup(self.meta, self.meta_tags)
         
         simpleColl = SimpleFileCollection(asList, False)
         index.index([simpleColl])

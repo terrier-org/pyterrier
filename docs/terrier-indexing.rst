@@ -4,7 +4,7 @@ Terrier Indexing
 PyTerrier has a number of useful classes for creating Terrier indices, which can be used for retrieval, query expansion, etc.
 There are four indexer classes:
 
- - You can create an index from TREC-formatted files, from a TREC test collectoin, using TRECCollectionIndexer.
+ - You can create an index from TREC-formatted files, from a TREC test collection, using TRECCollectionIndexer.
  - For indexing TXT, PDF, Microsoft Word files, etc files you can use FilesIndexer.
  - For indexing Pandas Dataframe you can use DFIndexer.
  - For any abitrary iterable dictionaries, you can use IterDictIndexer.
@@ -123,11 +123,11 @@ indexing configurations, and how to apply them when indexing using PyTerrier, no
  See the `org.terrier.terms <http://terrier.org/docs/current/javadoc/org/terrier/terms/package-summary.html>`_ package for a list of 
  the available term pipeline objects provided by Terrier.
 
-- *tokenisation*: Similarly, tokenisation is controlled by the `"tokeniser"` property. `EnglishTokeniser <http://terrier.org/docs/current/javadoc/org/terrier/indexing/tokenisation/EnglishTokeniser.html>`_ is the  default tokeniser. Other tokenisers are listed in  `org.terrier.indexing.tokenisation <http://terrier.org/docs/current/javadoc/org/terrier/indexing/tokenisation/package-summary.html>`_ package. For instance, use `indexer.setProperty("tokeniser", "UTFTokeniser")` when indexing non-English text.
+- *languages and tokenisation*: Similarly, the choice of tokeniser is controlled by the `"tokeniser"` property. `EnglishTokeniser <http://terrier.org/docs/current/javadoc/org/terrier/indexing/tokenisation/EnglishTokeniser.html>`_ is the  default tokeniser. Other tokenisers are listed in  `org.terrier.indexing.tokenisation <http://terrier.org/docs/current/javadoc/org/terrier/indexing/tokenisation/package-summary.html>`_ package. For instance, use `indexer.setProperty("tokeniser", "UTFTokeniser")` when indexing non-English text.
 
 - *positions (aka blocks)* - all indexers expose a `blocks` boolean constructor argument to allow position information to be recoreded in the index. Defaults to False, i.e. positions are not recorded.
 
-- *fields* - fields refers to storing the frequency of a terms occurrence in different parts of a document, e.g. title vs body vs anchor text In the IterDictIndexer, Fields are set in the `index()` method; otherwise the `"FieldTags.process"` property must be set. See the Terrier `indexing documentation on fields <https://github.com/terrier-org/terrier-core/blob/5.x/doc/configure_indexing.md#fields>`_ for more information. 
+- *fields* - fields refers to storing the frequency of a terms occurrence in different parts of a document, e.g. title vs body vs anchor text In the IterDictIndexer, fields are set in the `index()` method; otherwise the `"FieldTags.process"` property must be set. See the Terrier `indexing documentation on fields <https://github.com/terrier-org/terrier-core/blob/5.x/doc/configure_indexing.md#fields>`_ for more information. 
 
 - *changing the tags parsed by TREC Collection* - use the relevant properties listed in the Terrier `indexing documentation <https://github.com/terrier-org/terrier-core/blob/5.x/doc/configure_indexing.md#basic-indexing-setup>`_.
 
