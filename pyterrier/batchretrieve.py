@@ -75,7 +75,7 @@ class BatchRetrieve(BatchRetrieveBase):
 
     #: default_properties(dict): stores the default properties
     default_properties = {
-        "querying.processes": "terrierql:TerrierQLParser,parsecontrols:TerrierQLToControls,parseql:TerrierQLToMatchingQueryTerms,matchopql:MatchingOpQLParser,applypipeline:ApplyTermPipeline,localmatching:LocalManager$ApplyLocalMatching,qe:QueryExpansion,labels:org.terrier.learning.LabelDecorator,filters:LocalManager$PostFilterProcess",
+        "querying.processes": "terrierql:TerrierQLParser,parsecontrols:TerrierQLToControls,parseql:TerrierQLToMatchingQueryTerms,matchopql:MatchingOpQLParser,applypipeline:ApplyTermPipeline,localmatching:LocalManager$ApplyLocalMatching,qe:QueryExpansion,labels:org.terrier.learning.LabelDecorator,filters:LocalManager$PostFilterProcess,decorate:SimpleDecorateProcess",
         "querying.postfilters": "decorate:SimpleDecorate,site:SiteFilter,scope:Scope",
         "querying.default.controls": "wmodel:DPH,parsecontrols:on,parseql:on,applypipeline:on,terrierql:on,localmatching:on,filters:on,decorate:on",
         "querying.allowed.controls": "scope,qe,qemodel,start,end,site,scope,applypipeline",
@@ -187,6 +187,9 @@ class BatchRetrieve(BatchRetrieveBase):
             srq.setControl("parsecontrols", "off")
             srq.setControl("parseql", "off")
             srq.setControl("matchopql", "on")
+
+        #ask decorate only to grab what we need
+        srq.setControl("decorate", ",".join(self.metadata))
 
         # this handles the case that a candidate set of documents has been set. 
         num_expected = None
