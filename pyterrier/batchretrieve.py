@@ -81,7 +81,7 @@ class BatchRetrieve(BatchRetrieveBase):
 
     #: default_properties(dict): stores the default properties
     default_properties = {
-        "querying.processes": "terrierql:TerrierQLParser,parsecontrols:TerrierQLToControls,parseql:TerrierQLToMatchingQueryTerms,matchopql:MatchingOpQLParser,applypipeline:ApplyTermPipeline,localmatching:LocalManager$ApplyLocalMatching,qe:QueryExpansion,labels:org.terrier.learning.LabelDecorator,filters:LocalManager$PostFilterProcess,decorate:SimpleDecorateProcess",
+        "querying.processes": "terrierql:TerrierQLParser,parsecontrols:TerrierQLToControls,parseql:TerrierQLToMatchingQueryTerms,matchopql:MatchingOpQLParser,applypipeline:ApplyTermPipeline,localmatching:LocalManager$ApplyLocalMatching,qe:QueryExpansion,labels:org.terrier.learning.LabelDecorator,filters:LocalManager$PostFilterProcess",
         "querying.postfilters": "decorate:SimpleDecorate,site:SiteFilter,scope:Scope",
         "querying.default.controls": "wmodel:DPH,parsecontrols:on,parseql:on,applypipeline:on,terrierql:on,localmatching:on,filters:on,decorate:on",
         "querying.allowed.controls": "scope,qe,qemodel,start,end,site,scope,applypipeline",
@@ -105,6 +105,8 @@ class BatchRetrieve(BatchRetrieveBase):
         self.indexref = _parse_index_like(index_location)
         self.appSetup = autoclass('org.terrier.utility.ApplicationSetup')
         self.properties = _mergeDicts(BatchRetrieve.default_properties, properties)
+        if check_version(5.5) and "SimpleDecorateProcess" not in self.properties["querying.processes"]:
+            self.properties["querying.processes"] += ",decorate:SimpleDecorateProcess"
         self.metadata = metadata
         self.threads = threads
         self.RequestContextMatching = autoclass("org.terrier.python.RequestContextMatching")
@@ -288,10 +290,10 @@ class BatchRetrieve(BatchRetrieveBase):
             with ThreadPoolExecutor(max_workers=self.threads) as executor:
                 
                 # we must detatch jnius to prevent thread leaks through JNI
-                from jnius import detatch
+                from jnius import detach
                 def _one_row(*args, **kwargs):
                     rtr = self._retrieve_one(*args, **kwargs)
-                    detatch()
+                    detach()
                     return rtr
                 
                 # create a future for each query, and submit to Terrier

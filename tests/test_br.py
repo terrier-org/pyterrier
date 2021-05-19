@@ -152,12 +152,24 @@ class TestBatchRetrieve(BaseTestCase):
         self.assertEqual(len(result), 10)
 
     def test_threading(self):
+        if not pt.check_version("5.5"):
+            self.skipTest("Requires Terrier 5.5")
+
+        topics = pt.get_dataset("vaswani").get_topics().head(10)
+
         JIR = pt.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of("concurrent:" + self.here+"/fixtures/index/data.properties")
         retr = pt.BatchRetrieve(indexref)
         retr.threads = 5
-        topics = pt.get_dataset("vaswani").get_topics()
         result = retr.transform(topics)
+
+        #this should upgrade the indexref to be concurrent
+        JIR = pt.autoclass('org.terrier.querying.IndexRef')
+        indexref = JIR.of(self.here+"/fixtures/index/data.properties")
+        retr = pt.BatchRetrieve(indexref)
+        retr.threads = 5
+        result = retr.transform(topics)
+
 
 if __name__ == "__main__":
     unittest.main()
