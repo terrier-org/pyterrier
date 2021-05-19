@@ -1,7 +1,7 @@
 from jnius import autoclass, cast
 import pandas as pd
 import numpy as np
-from . import tqdm
+from . import tqdm, check_version
 from warnings import warn
 from .index import Indexer
 from .transformer import TransformerBase, Symbol
@@ -24,6 +24,12 @@ def _matchop(query):
         if m in query:
             return True
     return False
+
+def _mergeDicts(defaults, settings):
+    KV = defaults.copy()
+    if settings is not None and len(settings) > 0:
+        KV.update(settings)
+    return KV
 
 def _parse_index_like(index_location):
     JIR = autoclass('org.terrier.querying.IndexRef')
@@ -82,7 +88,7 @@ class BatchRetrieve(BatchRetrieveBase):
         "termpipelines": "Stopwords,PorterStemmer"
     }
 
-    def __init__(self, index_location, controls=None, properties=None, metadata=["docno"],  num_results=None, wmodel=None, **kwargs):
+    def __init__(self, index_location, controls=None, properties=None, metadata=["docno"],  num_results=None, wmodel=None, threads=1, **kwargs):
         """
             Init method
 
@@ -100,7 +106,7 @@ class BatchRetrieve(BatchRetrieveBase):
         self.appSetup = autoclass('org.terrier.utility.ApplicationSetup')
         self.properties = _mergeDicts(BatchRetrieve.default_properties, properties)
         self.metadata = metadata
-        self.threads = 1        
+        self.threads = threads
         self.RequestContextMatching = autoclass("org.terrier.python.RequestContextMatching")
 
         if props is None:
@@ -112,10 +118,20 @@ class BatchRetrieve(BatchRetrieveBase):
         if wmodel is not None:
             self.controls["wmodel"] = wmodel
 
+        if self.threads > 1:
+            warn("Multi-threaded retrieval is experimental, YMMV.")
+            assert check_version(5.5), "Terrier 5.5 is required for multi-threaded retrieval"
+
+            # we need to see if our indexref is concurrent. if not, we upgrade it using ConcurrentIndexLoader
+            # this will upgrade the underlying index too.
+            concurrentIL = autoclass("org.terrier.structures.ConcurrentIndexLoader")
+            if not concurrentIL.isConcurrent(self.indexref):
+                warn("Upgrading indexref %s to be concurrent" % self.indexref)
+                self.indexref = concurrentIL.makeConcurrent(self.indexref)
+
         if num_results is not None:
             if num_results > 0:
                 self.controls["end"] = str(num_results -1)
-                #self.appSetup.setProperty("matching.retrieved_set_size", str(num_results))
             elif num_results == 0:
                 del self.controls["end"]
             else: 
@@ -255,7 +271,6 @@ class BatchRetrieve(BatchRetrieveBase):
         scores_provided = "score" in queries.columns
         input_results = None
         if docno_provided or docid_provided:
-            from . import check_version
             assert check_version(5.3)
             input_results = queries
 
@@ -269,15 +284,34 @@ class BatchRetrieve(BatchRetrieveBase):
             queries['qid'] = queries['qid'].astype(str)
 
         if self.threads > 1:
+            
             with ThreadPoolExecutor(max_workers=self.threads) as executor:
+                
+                # we must detatch jnius to prevent thread leaks through JNI
+                from jnius import detatch
+                def _one_row(*args, **kwargs):
+                    rtr = self._retrieve_one(*args, **kwargs)
+                    detatch()
+                    return rtr
+                
                 # create a future for each query, and submit to Terrier
-                future_results = {executor.submit(self._retrieve_one, row, input_results, docno_provided=docno_provided, docid_provided=docid_provided, scores_provided=scores_provided) : row.qid for row in queries.itertuples()}                
+                future_results = {
+                    executor.submit(_one_row, row, input_results, docno_provided=docno_provided, docid_provided=docid_provided, scores_provided=scores_provided) : row.qid 
+                    for row in queries.itertuples()}                
+                
                 # as these futures complete, wait and add their results
-                for future in tqdm( concurrent.futures.as_completed(future_results), desc=str(self), total=queries.shape[0], unit="q") if self.verbose else concurrent.futures.as_completed(future_results):
+                iter = concurrent.futures.as_completed(future_results)
+                if self.verbose:
+                    iter = tqdm(iter, desc=str(self), total=queries.shape[0], unit="q")
+                
+                for future in iter:
                     res = future.result()
                     results.extend(res)
         else:
-            for row in tqdm(queries.itertuples(), desc=str(self), total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
+            iter = queries.itertuples()
+            if self.verbose:
+                iter = tqdm(iter, desc=str(self), total=queries.shape[0], unit="q")
+            for row in iter:
                 res = self._retrieve_one(row, input_results, docno_provided=docno_provided, docid_provided=docid_provided, scores_provided=scores_provided)
                 results.extend(res)
 
@@ -304,11 +338,7 @@ class BatchRetrieve(BatchRetrieveBase):
     def setControl(self, control, value):
         self.controls[control] = value
 
-def _mergeDicts(defaults, settings):
-    KV = defaults.copy()
-    if settings is not None and len(settings) > 0:
-        KV.update(settings)
-    return KV
+
 
 class TextIndexProcessor(TransformerBase):
     '''
@@ -426,7 +456,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
     #: FBR_default_properties(dict): stores the default properties
     FBR_default_properties = BatchRetrieve.default_properties.copy()
 
-    def __init__(self, index_location, features, controls=None, properties=None, **kwargs):
+    def __init__(self, index_location, features, controls=None, properties=None, threads=1, **kwargs):
         """
             Init method
 
@@ -449,6 +479,8 @@ class FeaturesBatchRetrieve(BatchRetrieve):
             self.wmodel = kwargs["wmodel"]
         if "wmodel" in controls:
             self.wmodel = controls["wmodel"]
+        if threads > 1:
+            raise ValueError("Multi-threaded retrieval not yet supported by FeaturesBatchRetrieve")
         
         super().__init__(index_location, controls, properties, **kwargs)
 
