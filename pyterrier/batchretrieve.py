@@ -127,9 +127,8 @@ class BatchRetrieve(BatchRetrieveBase):
 
             # we need to see if our indexref is concurrent. if not, we upgrade it using ConcurrentIndexLoader
             # this will upgrade the underlying index too.
-            print("**************** %s %r" % ( str(self.indexref), self.concurrentIL.isConcurrent(self.indexref)))
             if not self.concurrentIL.isConcurrent(self.indexref):
-                warn("Upgrading indexref %s to be concurrent" % self.indexref)
+                warn("Upgrading indexref %s to be concurrent" % self.indexref.toString())
                 self.indexref = self.concurrentIL.makeConcurrent(self.indexref)
 
         if num_results is not None:
