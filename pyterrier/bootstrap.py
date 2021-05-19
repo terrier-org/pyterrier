@@ -36,7 +36,16 @@ def setup_jnius():
 
     protocol_map["org.terrier.structures.postings.IterablePosting"] = {
         '__iter__': lambda self: self,
-        '__next__': lambda self: _iterableposting_next(self)
+        '__next__': lambda self: _iterableposting_next(self),
+        '__str__': lambda self: self.toString()
+    }
+
+    protocol_map["org.terrier.structures.CollectionStatistics"] = {
+        '__str__': lambda self: self.toString()
+    }
+
+    protocol_map["org.terrier.structures.LexiconEntry"] = {
+        '__str__': lambda self: self.toString()
     }
 
     def _lexicon_getitem(self, term):
