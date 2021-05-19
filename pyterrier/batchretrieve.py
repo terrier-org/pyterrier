@@ -105,6 +105,7 @@ class BatchRetrieve(BatchRetrieveBase):
         self.indexref = _parse_index_like(index_location)
         self.appSetup = autoclass('org.terrier.utility.ApplicationSetup')
         self.properties = _mergeDicts(BatchRetrieve.default_properties, properties)
+        self.concurrentIL = autoclass("org.terrier.structures.ConcurrentIndexLoader")
         if check_version(5.5) and "SimpleDecorateProcess" not in self.properties["querying.processes"]:
             self.properties["querying.processes"] += ",decorate:SimpleDecorateProcess"
         self.metadata = metadata
@@ -126,10 +127,10 @@ class BatchRetrieve(BatchRetrieveBase):
 
             # we need to see if our indexref is concurrent. if not, we upgrade it using ConcurrentIndexLoader
             # this will upgrade the underlying index too.
-            concurrentIL = autoclass("org.terrier.structures.ConcurrentIndexLoader")
-            if not concurrentIL.isConcurrent(self.indexref):
+            print("**************** %s %r" % ( str(self.indexref), self.concurrentIL.isConcurrent(self.indexref)))
+            if not self.concurrentIL.isConcurrent(self.indexref):
                 warn("Upgrading indexref %s to be concurrent" % self.indexref)
-                self.indexref = concurrentIL.makeConcurrent(self.indexref)
+                self.indexref = self.concurrentIL.makeConcurrent(self.indexref)
 
         if num_results is not None:
             if num_results > 0:
@@ -286,6 +287,9 @@ class BatchRetrieve(BatchRetrieveBase):
             queries['qid'] = queries['qid'].astype(str)
 
         if self.threads > 1:
+
+            if not self.concurrentIL.isConcurrent(self.indexref):
+                raise ValueError("Threads must be set >1 in constructor and/or concurrent indexref used")
             
             with ThreadPoolExecutor(max_workers=self.threads) as executor:
                 
