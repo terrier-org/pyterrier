@@ -163,6 +163,12 @@ class TestBatchRetrieve(BaseTestCase):
         retr.threads = 5
         result = retr.transform(topics)
 
+    def test_threading_selfupgrade(self):
+        if not pt.check_version("5.5"):
+            self.skipTest("Requires Terrier 5.5")
+
+        topics = pt.get_dataset("vaswani").get_topics().head(10)
+
         #this should upgrade the indexref to be concurrent
         JIR = pt.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of(self.here+"/fixtures/index/data.properties")
