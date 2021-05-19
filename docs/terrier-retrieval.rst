@@ -69,8 +69,8 @@ Common properties:
 
     # when we introduce an unstemmed BatchRetrieve, we ensure to explicitly set the termpipelines
     # for the other BatchRetrieve as well
-    bm25s_unstemmed = pt.BatchRetrieve(index, wmodel="BM25", properties={"termpipelines" : ""})
-    bm25s_stemmed = pt.BatchRetrieve(index, wmodel="BM25", properties={"termpipelines" : "Stopwords,PorterStemmer"})
+    bm25s_unstemmed = pt.BatchRetrieve(indexUS, wmodel="BM25", properties={"termpipelines" : ""})
+    bm25s_stemmed = pt.BatchRetrieve(indexSS, wmodel="BM25", properties={"termpipelines" : "Stopwords,PorterStemmer"})
     
 
 
