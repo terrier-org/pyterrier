@@ -6,7 +6,7 @@ import pandas as pd
 from .model import add_ranks
 from . import tqdm
 import deprecation
-from typing import Iterable
+from typing import Iterable, List
 
 LAMBDA = lambda:0
 def is_lambda(v):
@@ -151,24 +151,24 @@ class TransformerBase:
 
     def search(self, query : str, qid : str = "1", sort=True) -> pd.DataFrame:
         """
-            Method for executing a transformer (pipeline) for a single query. 
-            Returns a dataframe with the results for the specified query. This
-            is a utility method, and most uses are expected to use the transform()
-            method passing a dataframe.
+        Method for executing a transformer (pipeline) for a single query. 
+        Returns a dataframe with the results for the specified query. This
+        is a utility method, and most uses are expected to use the transform()
+        method passing a dataframe.
 
-            Arguments:
-             - query(str): String form of the query to run
-             - qid(str): the query id to associate to this request. defaults to 1.
-             - sort(bool): ensures the results are sorted by descending rank (defaults to True)
+        Arguments:
+            - query(str): String form of the query to run
+            - qid(str): the query id to associate to this request. defaults to 1.
+            - sort(bool): ensures the results are sorted by descending rank (defaults to True)
 
-            Example::
+        Example::
 
-                bm25 = pt.BatchRetrieve(index, wmodel="BM25")
-                res = bm25.search("example query")
+            bm25 = pt.BatchRetrieve(index, wmodel="BM25")
+            res = bm25.search("example query")
 
-                # is equivalent to
-                queryDf = pd.DataFrame([["1", "example query"]], columns=["qid", "query"])
-                res = bm25.transform(queryDf)
+            # is equivalent to
+            queryDf = pd.DataFrame([["1", "example query"]], columns=["qid", "query"])
+            res = bm25.transform(queryDf)
             
             
         """
@@ -178,6 +178,17 @@ class TransformerBase:
         if "qid" in rtr.columns and "rank" in rtr.columns:
             rtr = rtr.sort_values(["qid", "rank"], ascending=[True,True])
         return rtr
+
+    def cache(self, on : List[str] = ['qid'], **kwargs):
+        """
+        Provides an instance of this pipeline that caches results.
+
+        Arguments:
+            - on(List[str]): List of attributes that define the key to cache on.
+            - store(str): ensures the results are sorted by descending rank (defaults to True). Either "shelve" or "chest" are supported. Defaults to "shelve".
+        """
+        from .cache import of
+        return of(self, on, **kwargs)
 
     def compile(self):
         """
@@ -263,8 +274,7 @@ class TransformerBase:
         return ConcatenateTransformer(self, right)
 
     def __invert__(self):
-        from .cache import ChestCacheTransformer
-        return ChestCacheTransformer(self)
+        return self.cache()
 
     def __hash__(self):
         return hash(repr(self))
