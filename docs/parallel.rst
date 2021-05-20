@@ -19,6 +19,8 @@ of the input dataframe:
 
 NB: Parallelisation is an experimental features. Please let us know what works or what doesnt work using the `PyTerrier issue tracker <https://github.com/terrier-org/pyterrier/issues>`_.
 
+NBB: Parallelisation is known not to work on Windows, and hence is disabled.
+
 Parallelisation using Joblib
 ============================
 

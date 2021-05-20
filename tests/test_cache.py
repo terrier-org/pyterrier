@@ -2,7 +2,7 @@ import pandas as pd
 import pyterrier as pt
 import os
 import unittest
-from .base import BaseTestCase
+from .base import TempDirTestCase
 import tempfile
 import shutil
 import os
@@ -18,15 +18,7 @@ def compare(df1, df2):
             assert np.array_equal(getattr(rowA, "features"),  getattr(rowB, "features"), (i,"features", rowA, rowB))
     return True
 
-
-class TestCache(BaseTestCase):
-
-    def setUp(self):
-        self.test_dir = tempfile.mkdtemp()
-
-    def tearDown(self):
-        import shutil
-        shutil.rmtree(self.test_dir)
+class TestCache(TempDirTestCase):
 
     def test_complex(self):
         pt.cache.CACHE_DIR = self.test_dir

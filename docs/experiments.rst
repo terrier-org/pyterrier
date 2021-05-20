@@ -170,3 +170,65 @@ Often used measures, including the name that must be used, are:
 
 
 See also a `list of common TREC eval measures <http://www.rafaelglater.com/en/post/learn-how-to-use-trec_eval-to-evaluate-your-information-retrieval-system>`_.
+
+Evaluation Measures Objects
+===========================
+
+Using the `ir_measures <https://github.com/terrierteam/ir_measures>`_ Python package, PyTerrier supports evaluation measure objects. These make it easier to 
+express measure configurations such as rank cutoffs::
+
+    from pyterrier.measures import *
+    pt.Experiment(
+        [tfidf, bm25],
+        dataset.get_topics(),
+        dataset.get_qrels(),
+        eval_metrics=[AP, RR, nDCG@5],
+    )
+
+NB: We have to use `from pyterrier.measures import *`, as `from pt.measures import *` wont work.
+
+More specifically, lets consider the TREC Deep Learning track passage ranking task, which requires NDCG\@10, NDCG\@100 (using graded labels), as well as MRR\@10 and MAP using binary labels 
+(where relevant is grade 2 and above). The necessary incantation of `pt.Experiment()` looks like::
+
+    from pyterrier.measures import *
+    dataset = pt.get_dataset("trec-deep-learning-passages")
+    pt.Experiment(
+        [tfidf, bm25],
+        dataset.get_topics("test-2019"),
+        dataset.get_qrels("test-2019"),
+        eval_metrics=[RR(rel=2), nDCG@10, nDCG@100, AP(rel=2)],
+    )
+
+The available evaluation measure objects are listed below.
+
+
+.. autofunction:: pyterrier.measures.P
+
+.. autofunction:: pyterrier.measures.R
+
+.. autofunction:: pyterrier.measures.AP
+
+.. autofunction:: pyterrier.measures.RR
+
+.. autofunction:: pyterrier.measures.nDCG
+
+.. autofunction:: pyterrier.measures.ERR
+
+.. autofunction:: pyterrier.measures.Success
+
+.. autofunction:: pyterrier.measures.Judged
+
+.. autofunction:: pyterrier.measures.NumQ
+
+.. autofunction:: pyterrier.measures.NumRet
+
+.. autofunction:: pyterrier.measures.NumRelRet
+
+.. autofunction:: pyterrier.measures.NumRel
+
+.. autofunction:: pyterrier.measures.Rprec
+
+.. autofunction:: pyterrier.measures.Bpref
+
+.. autofunction:: pyterrier.measures.infAP
+

@@ -7,6 +7,48 @@ from .base import BaseTestCase
 
 class TestExperiment(BaseTestCase):
 
+    def test_irm_APrel2(self):
+        topics = pd.DataFrame([["q1", "q1"], ["q2", "q1"] ], columns=["qid", "query"])
+        res1 = pd.DataFrame([["q1", "d1", 1.0], ["q2", "d1", 2.0] ], columns=["qid", "docno", "score"])
+        qrels = pd.DataFrame([["q1", "d1", 1], ["q2", "d1", 2] ], columns=["qid", "docno", "label"])
+        df = pt.Experiment(
+                [res1],
+                topics,
+                qrels,
+                [
+                    pt.measures.AP(rel=2),
+                ])
+        self.assertEqual(0.5, df.iloc[0]["AP(rel=2)"])
+        df = pt.Experiment(
+                [res1],
+                topics,
+                qrels,
+                [
+                    pt.measures.AP,
+                    pt.measures.AP(rel=2),
+                    pt.measures.P(rel=2)@1
+                ])
+        print(df.columns)
+        self.assertEqual(1, df.iloc[0]["AP"])
+        self.assertEqual(0.5, df.iloc[0]["AP(rel=2)"])
+        self.assertEqual(0.5, df.iloc[0]["P(rel=2)@1"])
+        df = pt.Experiment(
+                [res1],
+                topics,
+                qrels,
+                [
+                    pt.measures.AP,
+                    pt.measures.AP(rel=2),
+                    pt.measures.P(rel=2)@1
+                ],
+                perquery=True)
+        self.assertEqual(1, df[(df.measure == "AP") & (df.qid == "q1")].value.iloc[0])
+        self.assertEqual(1, df[(df.measure == "AP") & (df.qid == "q2")].value.iloc[0])
+        self.assertEqual(0, df[(df.measure == "AP(rel=2)") & (df.qid == "q1")].value.iloc[0])
+        self.assertEqual(1, df[(df.measure == "AP(rel=2)") & (df.qid == "q2")].value.iloc[0])
+        self.assertEqual(0, df[(df.measure == "P(rel=2)@1") & (df.qid == "q1")].value.iloc[0])
+        self.assertEqual(1, df[(df.measure == "P(rel=2)@1") & (df.qid == "q2")].value.iloc[0])
+
     def test_differing_queries(self):
         topics = pd.DataFrame([["q1", "q1"], ["q2", "q1"] ], columns=["qid", "query"])
         res1 = pd.DataFrame([["q1", "d1", 1.0]], columns=["qid", "docno", "score"])
@@ -44,12 +86,12 @@ class TestExperiment(BaseTestCase):
         # what we ask for -> what we should get as a metric
         family2measure = {
             'ndcg_cut_5' : 'ndcg_cut_5',
-            'P' : "P_5",
+            'P' : "P@5",
             'P_5' : "P_5",
-            "iprec_at_recall" : "iprec_at_recall_0.50",
-            "official" : "gm_map",
-            "set" : "set_recall",
-            "recall" : "recall_5",
+            "iprec_at_recall" : "IPrec@0.0",
+            "official" : "AP",
+            "set" : "SetP",
+            "recall" : "R@5",
             "recall_1000" : "recall_1000"
         }
         # what we ask for -> what we should NOT get
@@ -104,9 +146,15 @@ class TestExperiment(BaseTestCase):
             assert "Signature" in str(w[-1].message)
 
     def test_one_row_round(self):
+        import pyterrier as pt
         vaswani = pt.datasets.get_dataset("vaswani")
         br = pt.BatchRetrieve(vaswani.get_index())
-        rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg", "num_q"], round=2)
+        rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg", "num_q", pt.measures.NDCG@5], round=2)
+        self.assertEqual(str(rtr.iloc[0]["map"]), "0.31")
+        self.assertEqual(str(rtr.iloc[0]["nDCG@5"]), "0.46")
+
+        rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg", "num_q", pt.measures.NDCG@5], round={"nDCG@5" : 1})
+        self.assertEqual(str(rtr.iloc[0]["nDCG@5"]), "0.5")
 
     def test_batching(self):
         vaswani = pt.datasets.get_dataset("vaswani")
@@ -136,16 +184,18 @@ class TestExperiment(BaseTestCase):
         vaswani = pt.datasets.get_dataset("vaswani")
         br = pt.BatchRetrieve(vaswani.get_index())
         rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"], perquery=True, round=2)
-        print(rtr)
+        self.assertEqual(str(rtr.iloc[0]["value"]), "0.36")
 
-        rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"], perquery=True, dataframe=False, round=2)
-        print(rtr)
-
-    def test_baseline(self):
+    def test_baseline_and_tests(self):
         dataset = pt.get_dataset("vaswani")
+        numt=10
+        res1 = pt.BatchRetrieve(dataset.get_index(), wmodel="BM25")(dataset.get_topics().head(numt))
+        res2 = pt.BatchRetrieve(dataset.get_index(), wmodel="DPH")(dataset.get_topics().head(numt))
+
+        # t-test
         df = pt.Experiment(
-            [pt.BatchRetrieve(dataset.get_index(), wmodel="BM25"), pt.BatchRetrieve(dataset.get_index(), wmodel="DPH")], 
-            dataset.get_topics().head(10), 
+            [res1, res2], 
+            dataset.get_topics().head(numt), 
             dataset.get_qrels(),
             eval_metrics=["map", "ndcg"], 
             baseline=0)
@@ -153,11 +203,67 @@ class TestExperiment(BaseTestCase):
         self.assertTrue("map -" in df.columns)
         self.assertTrue("map p-value" in df.columns)
 
-    def test_baseline_corrected(self):
+        # wilcoxon signed-rank test
+        df = pt.Experiment(
+            [res1, res2], 
+            dataset.get_topics().head(numt), 
+            dataset.get_qrels(),
+            eval_metrics=["map", "ndcg"], 
+            test='wilcoxon', 
+            baseline=0)
+        self.assertTrue("map +" in df.columns)
+        self.assertTrue("map -" in df.columns)
+        self.assertTrue("map p-value" in df.columns)
+
+
+        # user-specified TOST
+        # TOST will omit warnings here, due to low numbers of topics
+        import statsmodels.stats.weightstats
+        fn = lambda X,Y: (0, statsmodels.stats.weightstats.ttost_ind(X, Y, -0.01, 0.01)[0])
+        
+        #This filter doesnt work
+        with warnings.catch_warnings(record=True) as w:
+            warnings.filterwarnings("always")
+            df = pt.Experiment(
+                [res1, res2], 
+                dataset.get_topics().head(numt), 
+                dataset.get_qrels(),
+                eval_metrics=["map", "ndcg"], 
+                test=fn,
+                baseline=0)
+            print(w)
+        self.assertTrue("map +" in df.columns)
+        self.assertTrue("map -" in df.columns)
+        self.assertTrue("map p-value" in df.columns)
+        
+
+    def test_baseline_correction_userdefined_test(self):
         dataset = pt.get_dataset("vaswani")
+        res1 = pt.BatchRetrieve(dataset.get_index(), wmodel="BM25")(dataset.get_topics().head(10))
+        res2 = pt.BatchRetrieve(dataset.get_index(), wmodel="DPH")(dataset.get_topics().head(10))
+        # TOST will omit warnings here, due to low numbers of topics
+        import statsmodels.stats.weightstats
+        fn = lambda X,Y: (0, statsmodels.stats.weightstats.ttost_ind(X, Y, -0.01, 0.01)[0])
         for corr in ['hs', 'bonferroni', 'holm-sidak']:            
             df = pt.Experiment(
-                [pt.BatchRetrieve(dataset.get_index(), wmodel="BM25"), pt.BatchRetrieve(dataset.get_index(), wmodel="DPH")], 
+                [res1, res2], 
+                dataset.get_topics().head(10), 
+                dataset.get_qrels(),
+                eval_metrics=["map", "ndcg"], 
+                baseline=0, correction='hs', test=fn)
+            self.assertTrue("map +" in df.columns)
+            self.assertTrue("map -" in df.columns)
+            self.assertTrue("map p-value" in df.columns)
+            self.assertTrue("map p-value corrected" in df.columns)
+            self.assertTrue("map reject" in df.columns)
+
+    def test_baseline_corrected(self):
+        dataset = pt.get_dataset("vaswani")
+        res1 = pt.BatchRetrieve(dataset.get_index(), wmodel="BM25")(dataset.get_topics().head(10))
+        res2 = pt.BatchRetrieve(dataset.get_index(), wmodel="DPH")(dataset.get_topics().head(10))
+        for corr in ['hs', 'bonferroni', 'holm-sidak']:            
+            df = pt.Experiment(
+                [res1, res2], 
                 dataset.get_topics().head(10), 
                 dataset.get_qrels(),
                 eval_metrics=["map", "ndcg"], 

@@ -17,7 +17,10 @@ class TestMaven(unittest.TestCase):
 
     def tearDown(self):
         # Remove the directory after the test
-        shutil.rmtree(self.test_dir)
+        try:
+            shutil.rmtree(self.test_dir)
+        except:
+            pass
 
     def testVersion(self):
         ver = mavenresolver.latest_version_num("org.terrier", "terrier-core")

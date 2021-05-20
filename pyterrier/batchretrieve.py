@@ -1,12 +1,14 @@
 from jnius import autoclass, cast
 import pandas as pd
 import numpy as np
-from . import tqdm
+from . import tqdm, check_version
 from warnings import warn
 from .index import Indexer
 from .transformer import TransformerBase, Symbol
 from .model import coerce_queries_dataframe, FIRST_RANK
 import deprecation
+import concurrent
+from concurrent.futures import ThreadPoolExecutor
 
 # import time
 
@@ -22,6 +24,12 @@ def _matchop(query):
         if m in query:
             return True
     return False
+
+def _mergeDicts(defaults, settings):
+    KV = defaults.copy()
+    if settings is not None and len(settings) > 0:
+        KV.update(settings)
+    return KV
 
 def _parse_index_like(index_location):
     JIR = autoclass('org.terrier.querying.IndexRef')
@@ -80,7 +88,7 @@ class BatchRetrieve(BatchRetrieveBase):
         "termpipelines": "Stopwords,PorterStemmer"
     }
 
-    def __init__(self, index_location, controls=None, properties=None, metadata=["docno"],  num_results=None, wmodel=None, **kwargs):
+    def __init__(self, index_location, controls=None, properties=None, metadata=["docno"],  num_results=None, wmodel=None, threads=1, **kwargs):
         """
             Init method
 
@@ -93,11 +101,16 @@ class BatchRetrieve(BatchRetrieveBase):
                 metadata(list): What metadata to retrieve
         """
         super().__init__(kwargs)
-        
+        from . import autoclass
         self.indexref = _parse_index_like(index_location)
         self.appSetup = autoclass('org.terrier.utility.ApplicationSetup')
         self.properties = _mergeDicts(BatchRetrieve.default_properties, properties)
+        self.concurrentIL = autoclass("org.terrier.structures.ConcurrentIndexLoader")
+        if check_version(5.5) and "SimpleDecorateProcess" not in self.properties["querying.processes"]:
+            self.properties["querying.processes"] += ",decorate:SimpleDecorateProcess"
         self.metadata = metadata
+        self.threads = threads
+        self.RequestContextMatching = autoclass("org.terrier.python.RequestContextMatching")
 
         if props is None:
             importProps()
@@ -108,10 +121,19 @@ class BatchRetrieve(BatchRetrieveBase):
         if wmodel is not None:
             self.controls["wmodel"] = wmodel
 
+        if self.threads > 1:
+            warn("Multi-threaded retrieval is experimental, YMMV.")
+            assert check_version(5.5), "Terrier 5.5 is required for multi-threaded retrieval"
+
+            # we need to see if our indexref is concurrent. if not, we upgrade it using ConcurrentIndexLoader
+            # this will upgrade the underlying index too.
+            if not self.concurrentIL.isConcurrent(self.indexref):
+                warn("Upgrading indexref %s to be concurrent" % self.indexref.toString())
+                self.indexref = self.concurrentIL.makeConcurrent(self.indexref)
+
         if num_results is not None:
             if num_results > 0:
                 self.controls["end"] = str(num_results -1)
-                #self.appSetup.setProperty("matching.retrieved_set_size", str(num_results))
             elif num_results == 0:
                 del self.controls["end"]
             else: 
@@ -119,6 +141,7 @@ class BatchRetrieve(BatchRetrieveBase):
 
 
         MF = autoclass('org.terrier.querying.ManagerFactory')
+        self.RequestContextMatching = autoclass("org.terrier.python.RequestContextMatching")
         self.manager = MF._from_(self.indexref)
     
     def get_parameter(self, name : str):
@@ -158,6 +181,77 @@ class BatchRetrieve(BatchRetrieveBase):
         for key,value in d["properties"].items():
             self.appSetup.setProperty(key, str(value))
 
+    def _retrieve_one(self, row, input_results=None, docno_provided=False, docid_provided=False, scores_provided=False):
+        rank = FIRST_RANK
+        qid = str(row.qid)
+        query = row.query
+        if len(query) == 0:
+            warn("Skipping empty query for qid %s" % qid)
+            return []
+
+        srq = self.manager.newSearchRequest(qid, query)
+        
+        for control, value in self.controls.items():
+            srq.setControl(control, str(value))
+
+        # this is needed until terrier-core issue #106 lands
+        if "applypipeline:off" in query:
+            srq.setControl("applypipeline", "off")
+            srq.setOriginalQuery(query.replace("applypipeline:off", ""))
+
+        # transparently detect matchop queries
+        if _matchop(query):
+            srq.setControl("terrierql", "off")
+            srq.setControl("parsecontrols", "off")
+            srq.setControl("parseql", "off")
+            srq.setControl("matchopql", "on")
+
+        #ask decorate only to grab what we need
+        srq.setControl("decorate", ",".join(self.metadata))
+
+        # this handles the case that a candidate set of documents has been set. 
+        num_expected = None
+        if docno_provided or docid_provided:
+            # we use RequestContextMatching to make a ResultSet from the 
+            # documents in the candidate set. 
+            matching_config_factory = self.RequestContextMatching.of(srq)
+            input_query_results = input_results[input_results["qid"] == qid]
+            num_expected = len(input_query_results)
+            if docid_provided:
+                matching_config_factory.fromDocids(input_query_results["docid"].values.tolist())
+            elif docno_provided:
+                matching_config_factory.fromDocnos(input_query_results["docno"].values.tolist())
+            # batch retrieve is a scoring process that always overwrites the score; no need to provide scores as input
+            #if scores_provided:
+            #    matching_config_factory.withScores(input_query_results["score"].values.tolist())
+            matching_config_factory.build()
+            srq.setControl("matching", "org.terrier.matching.ScoringMatching" + "," + srq.getControl("matching"))
+
+        # now ask Terrier to run the request
+        self.manager.runSearchRequest(srq)
+        result = srq.getResults()
+
+        # check we got all of the expected metadata (if the resultset has a size at all)
+        if len(result) > 0 and len(set(self.metadata) & set(result.getMetaKeys())) != len(self.metadata):
+            raise KeyError("Mismatch between requested and available metadata in %s. Requested metadata: %s, available metadata %s" % 
+                (str(self.indexref), str(self.metadata), str(result.getMetaKeys()))) 
+
+        if num_expected is not None:
+            assert(num_expected == len(result))
+        
+        rtr_rows=[]
+        # prepare the dataframe for the results of the query
+        for item in result:
+            metadata_list = []
+            for meta_column in self.metadata:
+                metadata_list.append(item.getMetadata(meta_column))
+            res = [qid, item.getDocid()] + metadata_list + [rank, item.getScore()]
+            rank += 1
+            rtr_rows.append(res)
+
+        return rtr_rows
+
+
     def transform(self, queries):
         """
         Performs the retrieval
@@ -177,8 +271,8 @@ class BatchRetrieve(BatchRetrieveBase):
         docno_provided = "docno" in queries.columns
         docid_provided = "docid" in queries.columns
         scores_provided = "score" in queries.columns
+        input_results = None
         if docno_provided or docid_provided:
-            from . import check_version
             assert check_version(5.3)
             input_results = queries
 
@@ -186,75 +280,46 @@ class BatchRetrieve(BatchRetrieveBase):
             # Hence as long as one row has the query for each qid, 
             # the rest can be None
             queries = input_results[["qid", "query"]].dropna(axis=0, subset=["query"]).drop_duplicates()
-            RequestContextMatching = autoclass("org.terrier.python.RequestContextMatching")
-
+            
         # make sure queries are a String
         if queries["qid"].dtype == np.int64:
             queries['qid'] = queries['qid'].astype(str)
 
+        if self.threads > 1:
 
-        for row in tqdm(queries.itertuples(), desc=str(self), total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
-            rank = FIRST_RANK
-            qid = str(row.qid)
-            query = row.query
-            if len(query) == 0:
-                warn("Skipping empty query for qid %s" % qid)
-                continue
-
-            srq = self.manager.newSearchRequest(qid, query)
+            if not self.concurrentIL.isConcurrent(self.indexref):
+                raise ValueError("Threads must be set >1 in constructor and/or concurrent indexref used")
             
-            for control, value in self.controls.items():
-                srq.setControl(control, str(value))
+            with ThreadPoolExecutor(max_workers=self.threads) as executor:
+                
+                # we must detatch jnius to prevent thread leaks through JNI
+                from jnius import detach
+                def _one_row(*args, **kwargs):
+                    rtr = self._retrieve_one(*args, **kwargs)
+                    detach()
+                    return rtr
+                
+                # create a future for each query, and submit to Terrier
+                future_results = {
+                    executor.submit(_one_row, row, input_results, docno_provided=docno_provided, docid_provided=docid_provided, scores_provided=scores_provided) : row.qid 
+                    for row in queries.itertuples()}                
+                
+                # as these futures complete, wait and add their results
+                iter = concurrent.futures.as_completed(future_results)
+                if self.verbose:
+                    iter = tqdm(iter, desc=str(self), total=queries.shape[0], unit="q")
+                
+                for future in iter:
+                    res = future.result()
+                    results.extend(res)
+        else:
+            iter = queries.itertuples()
+            if self.verbose:
+                iter = tqdm(iter, desc=str(self), total=queries.shape[0], unit="q")
+            for row in iter:
+                res = self._retrieve_one(row, input_results, docno_provided=docno_provided, docid_provided=docid_provided, scores_provided=scores_provided)
+                results.extend(res)
 
-            # this is needed until terrier-core issue #106 lands
-            if "applypipeline:off" in query:
-                srq.setControl("applypipeline", "off")
-                srq.setOriginalQuery(query.replace("applypipeline:off", ""))
-
-            # transparently detect matchop queries
-            if _matchop(query):
-                srq.setControl("terrierql", "off")
-                srq.setControl("parsecontrols", "off")
-                srq.setControl("parseql", "off")
-                srq.setControl("matchopql", "on")
-
-            # this handles the case that a candidate set of documents has been set. 
-            num_expected = None
-            if docno_provided or docid_provided:
-                # we use RequestContextMatching to make a ResultSet from the 
-                # documents in the candidate set. 
-                matching_config_factory = RequestContextMatching.of(srq)
-                input_query_results = input_results[input_results["qid"] == qid]
-                num_expected = len(input_query_results)
-                if docid_provided:
-                    matching_config_factory.fromDocids(input_query_results["docid"].values.tolist())
-                elif docno_provided:
-                    matching_config_factory.fromDocnos(input_query_results["docno"].values.tolist())
-                # batch retrieve is a scoring process that always overwrites the score; no need to provide scores as input
-                #if scores_provided:
-                #    matching_config_factory.withScores(input_query_results["score"].values.tolist())
-                matching_config_factory.build()
-                srq.setControl("matching", "org.terrier.matching.ScoringMatching" + "," + srq.getControl("matching"))
-
-            # now ask Terrier to run the request
-            self.manager.runSearchRequest(srq)
-            result = srq.getResults()
-
-            # check we got all of the expected metadata (if the resultset has a size at all)
-            if len(result) > 0 and len(set(self.metadata) & set(result.getMetaKeys())) != len(self.metadata):
-                raise KeyError("Mismatch between requested and available metadata in %s. Requested metadata: %s, available metadata %s" % 
-                    (str(self.indexref), str(self.metadata), str(result.getMetaKeys()))) 
-
-            if num_expected is not None:
-                assert(num_expected == len(result))
-            # prepare the dataframe for the results of the query
-            for item in result:
-                metadata_list = []
-                for meta_column in self.metadata:
-                    metadata_list.append(item.getMetadata(meta_column))
-                res = [qid, item.getDocid()] + metadata_list + [rank, item.getScore()]
-                rank += 1
-                results.append(res)
         res_dt = pd.DataFrame(results, columns=['qid', 'docid' ] + self.metadata + ['rank', 'score'])
         # ensure to return the query and any other input columns
         input_cols = queries.columns[ (queries.columns == "qid") | (~queries.columns.isin(res_dt.columns))]
@@ -278,11 +343,7 @@ class BatchRetrieve(BatchRetrieveBase):
     def setControl(self, control, value):
         self.controls[control] = value
 
-def _mergeDicts(defaults, settings):
-    KV = defaults.copy()
-    if settings is not None and len(settings) > 0:
-        KV.update(settings)
-    return KV
+
 
 class TextIndexProcessor(TransformerBase):
     '''
@@ -400,7 +461,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
     #: FBR_default_properties(dict): stores the default properties
     FBR_default_properties = BatchRetrieve.default_properties.copy()
 
-    def __init__(self, index_location, features, controls=None, properties=None, **kwargs):
+    def __init__(self, index_location, features, controls=None, properties=None, threads=1, **kwargs):
         """
             Init method
 
@@ -423,6 +484,8 @@ class FeaturesBatchRetrieve(BatchRetrieve):
             self.wmodel = kwargs["wmodel"]
         if "wmodel" in controls:
             self.wmodel = controls["wmodel"]
+        if threads > 1:
+            raise ValueError("Multi-threaded retrieval not yet supported by FeaturesBatchRetrieve")
         
         super().__init__(index_location, controls, properties, **kwargs)
 
