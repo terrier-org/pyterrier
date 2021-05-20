@@ -21,7 +21,7 @@ def compare(df1, df2):
 class TestCache(TempDirTestCase):
 
     def test_complex(self):
-        pt.cache.CACHE_DIR = self.test_dir
+        pt.cache.CACHE_DIR = self.test_dir + "/test_complex"
         dataset = pt.get_dataset("vaswani")
         index = dataset.get_index()
         firstpassUB = pt.BatchRetrieve(index, wmodel="PL2")
@@ -53,7 +53,7 @@ class TestCache(TempDirTestCase):
         self.assertTrue(compare(res2, res0))
 
     def test_cache_reranker(self):
-        pt.cache.CACHE_DIR = self.test_dir
+        pt.cache.CACHE_DIR = self.test_dir + "/test_cache_reranker"
         class MyT(pt.transformer.TransformerBase):
             def transform(self, docs):
                 docs = docs.copy()
@@ -78,7 +78,7 @@ class TestCache(TempDirTestCase):
         self.assertEqual(cached.hits, 1)
 
     def test_cache_br(self):
-        pt.cache.CACHE_DIR = self.test_dir
+        pt.cache.CACHE_DIR = self.test_dir + "/test_cache_br"
         import pandas as pd
         queries = pd.DataFrame([["q1", "chemical"]], columns=["qid", "query"])
         br = pt.BatchRetrieve(pt.get_dataset("vaswani").get_index())
@@ -97,7 +97,7 @@ class TestCache(TempDirTestCase):
         pt.cache.CACHE_DIR = None
 
     def test_cache_compose(self):
-        pt.cache.CACHE_DIR = self.test_dir
+        pt.cache.CACHE_DIR = self.test_dir + "/test_cache_compose"
         import pandas as pd
         queries = pd.DataFrame([["q1", "chemical"]], columns=["qid", "query"])
         br1 = pt.BatchRetrieve(pt.get_dataset("vaswani").get_index(), wmodel="TF_IDF")
@@ -117,7 +117,7 @@ class TestCache(TempDirTestCase):
         pt.cache.CACHE_DIR = None
 
     def test_cache_compose_cache(self):
-        pt.cache.CACHE_DIR = self.test_dir
+        pt.cache.CACHE_DIR = self.test_dir + "/test_cache_compose_cache"
         import pandas as pd
         queries = pd.DataFrame([["q1", "chemical"]], columns=["qid", "query"])
         br1 = pt.BatchRetrieve(pt.get_dataset("vaswani").get_index(), wmodel="TF_IDF")
