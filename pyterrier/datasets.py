@@ -844,6 +844,12 @@ def get_dataset(name, **kwargs):
     """
         Get a dataset by name
     """
+    # Some datasets in ir_datasets are built on-the-fly (e.g., clirmatrix).
+    # Handle this by allocating it on demand here.
+    if name not in DATASET_MAP and name.startswith('irds:'):
+        # remove irds: prefix
+        ds_id = name[len('irds:'):]
+        DATASET_MAP[name] = IRDSDataset(ds_id)
     rtr = DATASET_MAP[name]
     rtr._configure(**kwargs)
     return rtr
