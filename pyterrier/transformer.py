@@ -494,6 +494,8 @@ class ScalarProductTransformer(BinaryTransformerBase):
     def transform(self, topics_and_res):
         res = self.transformer.transform(topics_and_res)
         res["score"] = self.scalar * res["score"]
+        if self.scalar < 0:
+            res = add_ranks(res)
         return res
 
 class RankCutoffTransformer(BinaryTransformerBase):

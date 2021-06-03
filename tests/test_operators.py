@@ -102,6 +102,7 @@ class TestOperators(BaseTestCase):
 
 
     def test_mul(self):
+
         import pyterrier.transformer as ptt
         mock = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))
         for comb in [mock * 10, 10 * mock]:
@@ -110,6 +111,21 @@ class TestOperators(BaseTestCase):
             self.assertEqual("q1", rtr.iloc[0]["qid"])
             self.assertEqual("doc1", rtr.iloc[0]["docno"])
             self.assertEqual(50, rtr.iloc[0]["score"])
+
+        import pyterrier.transformer as ptt
+        from pyterrier.model import add_ranks
+        mock = ptt.UniformTransformer(add_ranks(pd.DataFrame([["q1", "doc1", 5], ["q1", "doc2", 10]], columns=["qid", "docno", "score"])))
+        rtr = mock.search("bla", qid="q1")
+        self.assertEqual(2, len(rtr))
+        self.assertEqual("q1", rtr.iloc[0]["qid"])
+        self.assertEqual("doc2", rtr.iloc[0]["docno"])
+        self.assertEqual(pt.model.FIRST_RANK, rtr.iloc[0]["rank"])
+
+        rtr = (-1 * mock).search("bla", qid="q1")
+        self.assertEqual(2, len(rtr))
+        self.assertEqual("q1", rtr.iloc[0]["qid"])
+        self.assertEqual("doc1", rtr.iloc[0]["docno"])
+        self.assertEqual(pt.model.FIRST_RANK, rtr.iloc[0]["rank"])
     
     def test_plus(self):
         import pyterrier.transformer as ptt
