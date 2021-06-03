@@ -35,13 +35,13 @@ def query(fn : Callable[..., str], *args, **kwargs) -> TransformerBase:
             # this will remove pre-defined stopwords from the query
             stops=set(["and", "the"])
 
-            # a naieve function to remove stopwords
+            # a naieve function to remove stopwords - takes a Pandas series in, returns a string
             def _remove_stops(q):
                 terms = q["query"].split(" ")
                 terms = [t for t in terms if not t in stops ]
                 return " ".join(terms)
 
-            # a query rewriting transformer applying _remove_stops
+            # a query rewriting transformer that applies the _remove_stops to each row
             p1 = pt.apply.query(_remove_stops) >> pt.BatchRetrieve(index, wmodel="DPH")
 
             # an equivalent query rewriting transformer using an anonymous lambda function
