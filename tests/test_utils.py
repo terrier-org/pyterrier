@@ -47,7 +47,10 @@ class TestUtils(TempDirTestCase):
             self.assertAlmostEqual(result[str(i + 1)]["map"], item, places=4)
 
         result = pt.Utils.evaluate(input_res, input_qrels, metrics=["iprec_at_recall"])
-        self.assertTrue("IPrec@0.1" in result)
+        self.assertTrue(all(m in result for m in ['iprec_at_recall_0.00', 'iprec_at_recall_0.10', 'iprec_at_recall_0.20', 'iprec_at_recall_0.30', 'iprec_at_recall_0.40', 'iprec_at_recall_0.50', 'iprec_at_recall_0.60', 'iprec_at_recall_0.70', 'iprec_at_recall_0.80', 'iprec_at_recall_0.90', 'iprec_at_recall_1.00']))
+
+        result = pt.Utils.evaluate(input_res, input_qrels, metrics=["official"])
+        self.assertTrue('P@5' in result)
     
     def test_evaluate_ndcg_cut(self):
         input_qrels = pd.DataFrame([["1", "12", 1], ["1", "26", 1], ["1", "5", 1], ["1", "6", 1], ["2", "12", 1], ["2", "13", 1], ["2", "7", 1], ["2", "17", 1]], columns=["qid", "docno", "label"])

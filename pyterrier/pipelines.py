@@ -69,6 +69,12 @@ def _convert_measures(metrics : MEASURES_TYPE) -> Tuple[Sequence[BaseMeasure], D
                 metric = measures[0]
                 rtr.append(metric)
                 rev_mapping[metric] = m
+            elif m == 'iprec_at_recall':
+                # special handling for iprec_at_recall family to match trec_eval names
+                assert len(measures) == 11
+                rtr.extend(measures)
+                for m in measures:
+                    rev_mapping[m] = f'iprec_at_recall_{m["recall"]:.2f}'
             elif len(measures) > 1:
                 #m is family nickname, e.g. 'official;
                 rtr.extend(measures)
