@@ -160,7 +160,7 @@ Often used measures, including the name that must be used, are:
  - Number of retrieved documents (`num_ret`) - not averaged.
  - Number of relevant documents (`num_rel`) - not averaged.
  - Number of relevant documents retrieved (`num_rel_ret`) - not averaged.
- - Interpolated recall precision curves (`iprec_at_recall`). This is family of measures, so requesting `iprec_at_recall` will output measurements for `iprec_at_recall_0.00`, `iprec_at_recall_0.10`, etc.
+ - Interpolated recall precision curves (`iprec_at_recall`). This is family of measures, so requesting `iprec_at_recall` will output measurements for `IPrec@0.00`, `IPrec@0.10`, etc.
  - Precision at rank cutoff (e.g. `P_5`).
  - Recall (`recall`) will generate recall at different cutoffs, such as `recall_5`, etc.).
  - Mean response time (`mrt`) will report the average number of milliseconds to conduct a query (this is calculated by `pt.Experiment()` directly, not pytrec_eval).
