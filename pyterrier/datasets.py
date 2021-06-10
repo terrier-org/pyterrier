@@ -4,6 +4,7 @@ import os
 import pandas as pd
 from .transformer import is_lambda
 import types
+from typing import Union, Tuple, Iterator, Dict, Any
 import requests
 from .io import autoopen
 from . import tqdm, HOME_DIR
@@ -52,13 +53,13 @@ class Dataset():
         """
         pass
 
-    def get_corpus_iter(self, verbose=True):
+    def get_corpus_iter(self, verbose=True) -> Iterator[Dict[str,Any]]:
         """
             Returns an iter of dicts for this collection. If verbose=True, a tqdm pbar shows the progress over this iterator.
         """
         pass
 
-    def get_corpus_lang(self):
+    def get_corpus_lang(self) -> Union[str,None]:
         """
             Returns the ISO 639-1 language code for the corpus, or None for multiple/other/unknown
         """
@@ -70,23 +71,32 @@ class Dataset():
         """
         pass
 
-    def get_topics(self, variant=None):
+    def get_topics(self, variant=None) -> pd.DataFrame:
         """
             Returns the topics, as a dataframe, ready for retrieval. 
         """
         pass
 
-    def get_topics_lang(self):
+    def get_topics_lang(self) -> Union[str,None]:
         """
             Returns the ISO 639-1 language code for the topics, or None for multiple/other/unknown
         """
         return None
 
-    def get_qrels(self, variant=None):
+    def get_qrels(self, variant=None) -> pd.DataFrame:
         """ 
             Returns the qrels, as a dataframe, ready for evaluation.
         """
         pass
+
+    def get_topicsqrels(self, variant=None) -> Tuple[pd.DataFrame,pd.DataFrame]:
+        """
+            Returns both the topics and qrels in a tuple. This is useful for pt.Experiment().
+        """
+        return (
+            self.get_topics(variant=variant),
+            self.get_qrels(variant=variant)
+        )
 
     def info_url(self):
         """
