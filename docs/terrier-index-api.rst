@@ -44,7 +44,7 @@ Whats in an Index
 An index has several data structures:
 
  - the `CollectionStatistics <http://terrier.org/docs/current/javadoc/org/terrier/structures/CollectionStatistics.html>`_ - the salient global statistics of the index.
- - the `Lexicon <http://terrier.org/docs/current/javadoc/org/terrier/structures/Lexicon.html>`_ - the vocabulary of the index, including statistics of the terms, and a pointer into the inverted index.
+ - the `Lexicon <http://terrier.org/docs/current/javadoc/org/terrier/structures/Lexicon.html>`_ -  consists of an entry for each unique term in the index, which contains the corresponding statistics of each term (frequency etc), and a pointer to the inverted index posting list for that term.
  - the inverted index (a `PostingIndex <http://terrier.org/docs/current/javadoc/org/terrier/structures/PostingIndex.html>`_) - contains the posting list for each term, detailing the frequency in which a term appears in that document .
  - the `DocumentIndex <http://terrier.org/docs/current/javadoc/org/terrier/structures/DocumentIndex.html>`_ - contains the length of the document (and other field lengths).
  - the `MetaIndex <http://terrier.org/docs/current/javadoc/org/terrier/structures/MetaIndex.html>`_ - contains document metadata, such as the docno, and optionally the raw text and the URL of each document.
@@ -52,11 +52,23 @@ An index has several data structures:
 
 Each of these objects is available from the Index using a get method, e.g. `index.getCollectionStatistics()`. For instance, we can easily view the CollectionStatistics::
 
-    print(index.getCollectionStatistics().toString())
+    print(index.getCollectionStatistics())
+    Number of documents: 11429
+    Number of terms: 7756
+    Number of postings: 224573
+    Number of fields: 0
+    Number of tokens: 271581
+    Field names: []
+    Positions:   false
+
+In this example, the indexed collection had 11429 documents, which contained 271581 word occurrences. 7756 unique words were identified. The total number of postings in the inverted index is 224573.
+This index did not record fields during indexing (which can be useful for models such as BM25F). Similarly, positions, which are used for phrasal queries or proximity models were not recorded.
 
 We can check what metadata is recorded::
 
     print(index.getMetaIndex().getKeys())
+
+Usually, this will respond with `['docno']` - indeed docno is by convention the unique identifier for each document.
 
 NB: Terrier's Index API is just that, an API of interfaces and abstract classes - depending on the indexing configuration, the exact implementation you will receive will differ.
 
