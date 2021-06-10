@@ -77,5 +77,8 @@ class TestDatasets(BaseTestCase):
         self.assertIsNotNone(topics)
         self.assertEqual(len(topics), 93)
 
+        # test the newer get_topicsqrels
+        pt.Experiment([pt.BatchRetrieve(dataset.get_index())], *dataset.get_topicsqrels(), ["map"])
+
 if __name__ == "__main__":
     unittest.main()
