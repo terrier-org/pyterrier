@@ -27,6 +27,10 @@ For instance, to create a re-ranking pipeline that re-scores the top 100 BM25 do
     pl2 = pt.BatchRetrieve(index, wmodel="PL2")
     pipeline = (bm25 % 100) >> pl2
 
+By default, PyTerrier is configured for indexing and retrieval in English. See
+`our notebook <https://github.com/terrier-org/pyterrier/blob/master/examples/notebooks/non_en_retrieval.ipynb>`_
+(`colab <https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/non_en_retrieval.ipynb>`_)
+for details on how to configure PyTerrier in other languages.
 
 BatchRetrieve
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
