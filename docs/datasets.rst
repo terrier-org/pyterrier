@@ -16,7 +16,7 @@ each defined dataset can download and provide easy access to:
 .. autofunction:: pyterrier.datasets.get_dataset()
 
 .. autoclass:: pyterrier.datasets.Dataset
-    :members:
+    :members: get_corpus, get_corpus_iter, get_corpus_lang, get_index, get_topics, get_qrels, info_url
 
 Examples
 ========
