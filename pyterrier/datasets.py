@@ -623,12 +623,14 @@ TREC_WT_2004_FILES = {
         },
     "topics_map" : [("04.topic-map.official.txt", [
         "https://trec.nist.gov/data/web/04.topic-map.official.txt",
-        "http://mirror.ir-datasets.com/79737768b3be1aa07b14691aa54802c5"
+        "http://mirror.ir-datasets.com/79737768b3be1aa07b14691aa54802c5",
+        "https://www.dcs.gla.ac.uk/~craigm/04.topic-map.official.txt"
         ] )],
     "topics_prefixed" : { 
         "all" : ("Web2004.query.stream.trecformat.txt", [
                 "https://trec.nist.gov/data/web/Web2004.query.stream.trecformat.txt",
-                "https://mirror.ir-datasets.com/10821f7a000b8bec058097ede39570be"], 
+                "https://mirror.ir-datasets.com/10821f7a000b8bec058097ede39570be",
+                "https://www.dcs.gla.ac.uk/~craigm/Web2004.query.stream.trecformat.txt"], 
             "trec")
     },
     "qrels" : 
@@ -638,7 +640,8 @@ TREC_WT_2004_FILES = {
             "np" : filter_on_qid_type,
             "all" : ("04.qrels.web.mixed.txt", [
                 "https://trec.nist.gov/data/web/04.qrels.web.mixed.txt",
-                "https://mirror.ir-datasets.com/93daa0e4b4190c84e30d2cce78a0f674"])
+                "https://mirror.ir-datasets.com/93daa0e4b4190c84e30d2cce78a0f674",
+                "https://www.dcs.gla.ac.uk/~craigm/04.qrels.web.mixed.txt"])
         },
     "info_url" : "https://trec.nist.gov/data/t13.web.html",
 }
