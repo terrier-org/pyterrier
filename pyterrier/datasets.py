@@ -12,6 +12,7 @@ import tarfile
 
 import pyterrier
 
+TERRIER_DATA_BASE="http://data.terrier.org/indices/"
 STANDARD_TERRIER_INDEX_FILES = [
     "data.direct.bf",
     "data.document.fsarrayfile",
@@ -201,7 +202,10 @@ class RemoteDataset(Dataset):
         return (local, filetype)
 
     def _get_all_files(self, component, variant=None, **kwargs):
-        localDir = os.path.join(self.corpus_home, component)
+        if variant is None:
+            localDir = os.path.join(self.corpus_home, component)
+        else:
+            localDir = os.path.join(self.corpus_home, component, variant)
         if not os.path.exists(localDir):
             os.makedirs(localDir)
             print("Downloading %s %s to %s" % (self.name, component, localDir))
@@ -504,6 +508,14 @@ TREC_DEEPLEARNING_DOCS_MSMARCO_FILES = {
 TREC_DEEPLEARNING_PASSAGE_MSMARCO_FILES = {
     "corpus" : 
         [("collection.tsv", "collection.tar.gz#collection.tsv")],
+    "index": {
+        "terrier_stemmed" : [(filename, TERRIER_DATA_BASE + "/msmarco_passage/terrier_stemmed/latest/" + filename) for filename in STANDARD_TERRIER_INDEX_FILES],
+        "terrier_unstemmed" : [(filename, TERRIER_DATA_BASE + "/msmarco_passage/terrier_unstemmed/latest/" + filename) for filename in STANDARD_TERRIER_INDEX_FILES],
+        "terrier_stemmed_text" : [(filename, TERRIER_DATA_BASE + "/msmarco_passage/terrier_stemmed_text/latest/" + filename) for filename in STANDARD_TERRIER_INDEX_FILES],
+        "terrier_unstemmed_text" : [(filename, TERRIER_DATA_BASE + "/msmarco_passage/terrier_unstemmed_text/latest/" + filename) for filename in STANDARD_TERRIER_INDEX_FILES],
+        "terrier_stemmed_deepct" : [(filename, TERRIER_DATA_BASE + "/msmarco_passage/terrier_stemmed_deepct/latest/" + filename) for filename in STANDARD_TERRIER_INDEX_FILES],
+        "terrier_stemmed_docT5query" : [(filename, TERRIER_DATA_BASE + "/msmarco_passage/terrier_stemmed_docT5query/latest/" + filename) for filename in STANDARD_TERRIER_INDEX_FILES],
+    },
     "topics" :
         { 
             "train" : ("queries.train.tsv", "queries.tar.gz#queries.train.tsv", "singleline"),
@@ -849,6 +861,8 @@ import ir_datasets
 for ds_id in ir_datasets.registry:
     DATASET_MAP[f'irds:{ds_id}'] = IRDSDataset(ds_id)
 
+DATASET_MAP['msmarco_document'] = DATASET_MAP["trec-deep-learning-docs"]
+DATASET_MAP['msmarco_passage'] = DATASET_MAP["trec-deep-learning-passages"]
 
 def get_dataset(name, **kwargs):
     """
