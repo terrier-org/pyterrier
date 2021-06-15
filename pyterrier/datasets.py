@@ -213,6 +213,8 @@ class RemoteDataset(Dataset):
         if self.user is not None:
             kwargs["auth"]=(self.user, self.password)
         file_list = self.locations[component] if variant is None else self.locations[component][variant]
+        #TODO fix error here viz variants, no variants etc.
+        #print(file_list)
         for (local, URL) in file_list:
             local = os.path.join(localDir, local)
             if not os.path.exists(local):
@@ -813,8 +815,12 @@ VASWANI_FILES = {
         [("query-text.trec", VASWANI_CORPUS_BASE + "query-text.trec")],
     "qrels":
         [("qrels", VASWANI_CORPUS_BASE + "qrels")],
-    "index":
-        [(filename, VASWANI_INDEX_BASE + filename) for filename in STANDARD_TERRIER_INDEX_FILES + ["data.meta-0.fsomapfile"]],
+    "index": {
+        "terrier_stemmed" : [(filename, TERRIER_DATA_BASE + "/vaswani/terrier_stemmed/latest/" + filename) for filename in STANDARD_TERRIER_INDEX_FILES],
+        "terrier_unstemmed" : [(filename, TERRIER_DATA_BASE + "/vaswani/terrier_unstemmed/latest/" + filename) for filename in STANDARD_TERRIER_INDEX_FILES],
+        "terrier_stemmed_text" : [(filename, TERRIER_DATA_BASE + "/vaswani/terrier_stemmed_text/latest/" + filename) for filename in STANDARD_TERRIER_INDEX_FILES],
+    },
+        #[(filename, VASWANI_INDEX_BASE + filename) for filename in STANDARD_TERRIER_INDEX_FILES + ["data.meta-0.fsomapfile"]],
     "info_url" : "http://ir.dcs.gla.ac.uk/resources/test_collections/npl/",
     "corpus_iter" : lambda dataset, **kwargs : pyterrier.index.treccollection2textgen(dataset.get_corpus(), num_docs=11429, verbose=kwargs.get("verbose", False))
 }
