@@ -568,6 +568,9 @@ def GridSearch(
     # save state
     initial_state = _save_state(params)
 
+    if isinstance(metric, list):
+        raise KeyError("GridSearch can only maximise ONE metric, but you passed a list (%s)." % str(metric))
+
     grid_outcomes = GridScan(
         pipeline, 
         params, 
@@ -645,7 +648,7 @@ def GridScan(
 
         # graph how PL2's c parameter affects MAP
         pl2 = pt.BatchRetrieve(index, wmodel="PL2", controls={'c' : 1})
-        rtr = pt.GridSearch(
+        rtr = pt.GridScan(
             pl2, 
             {pl2 : {'c' : [0.1, 1, 5, 10, 20, 100]}}, 
             topics,
