@@ -122,6 +122,8 @@ def _run_and_evaluate(
     # if its a DataFrame, use it as the results
     if isinstance(system, pd.DataFrame):
         res = system
+        if len(res) == 0:
+            raise ValueError("%d topics, but no results in dataframe" % len(topics))
         evalMeasuresDict = _ir_measures_to_dict(
             ir_measures.iter_calc(metrics, qrels, res.rename(columns=_irmeasures_columns)), 
             metrics,
@@ -136,6 +138,10 @@ def _run_and_evaluate(
         res = system.transform(topics)
         endtime = timer()
         runtime =  (endtime - starttime) * 1000.
+
+        if len(res) == 0:
+            raise ValueError("%d topics, but no results received from %s" % (len(topics), str(system)) )
+
         evalMeasuresDict = _ir_measures_to_dict(
             ir_measures.iter_calc(metrics, qrels, res.rename(columns=_irmeasures_columns)), 
             metrics,
@@ -148,7 +154,9 @@ def _run_and_evaluate(
         starttime = timer()
         results=[]
         evalMeasuresDict={}
-        for res in system.transform_gen(topics, batch_size=batch_size):
+        for i, res in enumerate( system.transform_gen(topics, batch_size=batch_size)):
+            if len(res) == 0:
+                raise ValueError("batch of %d topics, but no results received in batch %d from %s" % (batch_size, i, str(system) ) )
             endtime = timer()
             runtime += (endtime - starttime) * 1000.
             localEvalDict = _ir_measures_to_dict(

@@ -75,6 +75,20 @@ class TestExperiment(BaseTestCase):
         pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], highlight="color")
         pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], baseline=0, highlight="color")
 
+    def test_empty(self):
+        df1 = pt.new.ranked_documents([[1]]).head(0)
+        t1 = pt.transformer.SourceTransformer(df1)
+
+        topics = pt.datasets.get_dataset("vaswani").get_topics().head(10)
+        qrels =  pt.datasets.get_dataset("vaswani").get_qrels()
+        with self.assertRaises(ValueError):
+            pt.Experiment([df1], topics, qrels, eval_metrics=["map", "mrt"])
+        with self.assertRaises(ValueError):
+            pt.Experiment([t1], topics, qrels, eval_metrics=["map", "mrt"])
+        with self.assertRaises(ValueError):
+            pt.Experiment([t1], topics, qrels, eval_metrics=["map", "mrt"], batch_size=2)
+        
+
     def test_various_metrics(self):
         topics = pt.datasets.get_dataset("vaswani").get_topics().head(10)
         res = [
@@ -189,7 +203,7 @@ class TestExperiment(BaseTestCase):
     def test_bad_measure(self):
         vaswani = pt.datasets.get_dataset("vaswani")
         br = pt.BatchRetrieve(vaswani.get_index())
-        with self.assertRaises(KeyError) as context:
+        with self.assertRaises(KeyError):
             pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), [map])
 
     def test_baseline_and_tests(self):
