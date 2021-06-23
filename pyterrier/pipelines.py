@@ -63,7 +63,7 @@ def _convert_measures(metrics : MEASURES_TYPE) -> Tuple[Sequence[BaseMeasure], D
         if isinstance(m, BaseMeasure):
             rtr.append(m)
             continue
-        if isinstance(m, str):
+        elif isinstance(m, str):
             measures = convert_trec_name(m)
             if len(measures) == 1:
                 metric = measures[0]
@@ -74,7 +74,9 @@ def _convert_measures(metrics : MEASURES_TYPE) -> Tuple[Sequence[BaseMeasure], D
                 rtr.extend(measures)
             else:
                 raise KeyError("Could not convert measure %s" % m)
-    assert len(rtr) > 0
+        else:
+            raise KeyError("Unknown measure %s of type %s" % (str(m), str(type(m))))
+    assert len(rtr) > 0, "No measures were found in %s" % (str(metrics))
     return rtr, rev_mapping
 
 #list(iter_calc([ir_measures.AP], qrels, run))

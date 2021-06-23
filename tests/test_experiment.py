@@ -186,6 +186,12 @@ class TestExperiment(BaseTestCase):
         rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"], perquery=True, round=2)
         self.assertEqual(str(rtr.iloc[0]["value"]), "0.36")
 
+    def test_bad_measure(self):
+        vaswani = pt.datasets.get_dataset("vaswani")
+        br = pt.BatchRetrieve(vaswani.get_index())
+        with self.assertRaises(KeyError) as context:
+            pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), [map])
+
     def test_baseline_and_tests(self):
         dataset = pt.get_dataset("vaswani")
         numt=10
