@@ -16,7 +16,7 @@ class TestDunder(TempDirTestCase):
             i12.getCollectionStatistics().getNumberOfDocuments(), 
             i1.getCollectionStatistics().getNumberOfDocuments()
             + i2.getCollectionStatistics().getNumberOfDocuments())
-        self.assertEqual( len(i1), i1.index.getCollectionStatistics().getNumberOfDocuments() )
+        self.assertEqual( len(i1), i1.getCollectionStatistics().getNumberOfDocuments() )
         self.assertEqual( len(i12), len(i1) + len(i2) )
             
         self.assertTrue(i12.hasIndexStructure("inverted"))
