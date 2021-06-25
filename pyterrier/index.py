@@ -17,7 +17,7 @@ import select
 import math
 from warnings import warn
 from collections import deque
-from typing import List, Dict
+from typing import List, Dict, Union
 
 StringReader = None
 HashMap = None
@@ -209,7 +209,7 @@ def _FileDocumentSetup(
 
 
 
-def createAsList(files_path : List[str]):
+def createAsList(files_path : Union[str, List[str]]):
     """
     Helper method to be used by child indexers to add files to Java List
     Returns:
@@ -219,6 +219,8 @@ def createAsList(files_path : List[str]):
         asList = Arrays.asList(files_path)
     elif isinstance(files_path, list):
         asList = Arrays.asList(*files_path)
+    else:
+        raise ValueError(f"{files_path}: {type(files_path)} must be a List[str] or str")
     return asList
 
 # Using enum class create enumerations
