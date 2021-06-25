@@ -19,6 +19,8 @@ the available operators:
 `~`          Cache transformer result              
 ============ =================================
 
+NB: These operators retain their default Python operator precedence - that may not be aligned with your expectations
+in a PyTerrier context (e.g. `&` is higher than `>>`). 
 
 Then (`>>`)
 -------------------
@@ -121,8 +123,8 @@ q1  d12   2     2
 
 NB: Any documents not present in one  of the constituent rankings will contribute a score of 0 to the final score of that document.
 
-Set Intersection and Intersection (`&`, `|`)
---------------------------------------------
+Set Intersection and Union (`&`, `|`)
+-------------------------------------
 
 The set that only includes documents that occur in the intersection (`&`)
 and union (`|`) of both retrieval sets. Scores and ranks are not returned - hence,
