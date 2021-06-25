@@ -768,7 +768,7 @@ class TRECCollectionIndexer(Indexer):
         self.meta_tags = meta_tags
     
 
-    def index(self, files_path):
+    def index(self, files_path : Union[str,List[str]]):
         """
         Index the specified TREC formatted files
 
@@ -816,7 +816,7 @@ class FilesIndexer(Indexer):
         self.meta_reverse = meta_reverse
         self.meta_tags = meta_tags
 
-    def index(self, files_path):
+    def index(self, files_path : Union[str,List[str]]):
         """
         Index the specified files.
 
