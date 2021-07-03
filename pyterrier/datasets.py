@@ -277,7 +277,9 @@ class RemoteDataset(Dataset):
             return None
         if type(self.locations[component]) == type([]):
             return True
-        return list(self.locations[component].keys())
+        if isinstance(self.locations[component], dict):
+            return list(self.locations[component].keys())
+        return True
 
     def get_corpus(self, **kwargs):
         import pyterrier as pt
