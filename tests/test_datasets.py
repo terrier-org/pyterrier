@@ -51,6 +51,12 @@ class TestDatasets(BaseTestCase):
         doc = next(iter)
         self.assertEqual(doc["docno"], "1")
         self.assertTrue(doc["text"].startswith("compact memories have flexible capacities"))
+
+    def test_vaswani_from_dataset(self):
+        import pyterrier as pt
+        dataset = pt.datasets.get_dataset("vaswani")
+        br = pt.BatchRetrieve.from_dataset(dataset)
+        br.search("chemical reactions")
         
     def test_vaswani(self):
         import pyterrier as pt

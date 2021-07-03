@@ -11,8 +11,7 @@ from .model import coerce_queries_dataframe, FIRST_RANK
 import deprecation
 import concurrent
 from concurrent.futures import ThreadPoolExecutor
-
-# import time
+from functools import partial
 
 def importProps():
     from . import properties as props
@@ -64,40 +63,48 @@ class BatchRetrieveBase(TransformerBase, Symbol):
         super().__init__(kwargs)
         self.verbose = verbose
 
+def _from_dataset(dataset : Union[str,Dataset], 
+            clz,
+            variant : str = None, 
+            version='latest',            
+            **kwargs):
+
+    from . import get_dataset
+    from .io import autoopen
+    import os
+    import json
+    
+    if isinstance(dataset, str):
+        dataset = get_dataset(dataset)
+    if version != "latest":
+        raise ValueError("index versioning not yet supported")
+    indexref = dataset.get_index(variant)
+
+    classname = clz.__name__
+    # now look for, e.g., BatchRetrieve.args.json file, which will define the args for BatchRetrieve, e.g. stemming
+    indexdir = indexref #os.path.dirname(indexref.toString())
+    argsfile = os.path.join(indexdir, classname + ".args.json")
+    if os.path.exists(argsfile):
+        with autoopen(argsfile, "rt") as f:
+            args = json.load(f)
+            # anything specified in kwargs of this methods overrides the .args.json file
+            for k,v in kwargs.items():
+                args[k] = v
+            kwargs = args
+    return clz(indexref, **kwargs)   
+                
 class BatchRetrieve(BatchRetrieveBase):
     """
     Use this class for retrieval by Terrier
     """
 
-    @staticmethod
-    def from_dataset(
-            dataset : Union[str,Dataset], 
+    #from_dataset = staticmethod(partial(_from_dataset, clz=BatchRetrieve))
+    @staticmethod 
+    def from_dataset(dataset : Union[str,Dataset], 
             variant : str = None, 
-            version='latest', 
+            version='latest',            
             **kwargs):
-
-        from . import get_dataset
-        from .io import autoopen
-        import os
-        import json
-        
-        if isinstance(dataset, str):
-            dataset = get_dataset(dataset)
-        if version != "latest":
-            raise ValueError("index versioning not yet supported")
-        indexref = dataset.get_index(variant)
-
-        # now look for a BatchRetrieve.args.json file, which will define the args for BatchRetrieve, e.g. stemming
-        indexdir = os.path.dirname(indexref.toString())
-        argsfile = os.path.join(indexdir, "BatchRetrieve.args.json")
-        if os.path.exists(argsfile):
-            with autoopen(argsfile, "rt") as f:
-                args = json.load(f)
-                # anything specified in kwargs of this methos overrides the .args.json file
-                for k,v in kwargs.items():
-                    args[k] = v
-                kwargs = args
-        return BatchRetrieve(indexref, **kwargs)
+        return _from_dataset(dataset, variant=variant, version=version, clz=BatchRetrieve, **kwargs)
 
     #: default_controls(dict): stores the default controls
     default_controls = {
@@ -545,6 +552,13 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         self.properties.update(d["properties"])
         for key,value in d["properties"].items():
             self.appSetup.setProperty(key, str(value))
+
+    @staticmethod 
+    def from_dataset(dataset : Union[str,Dataset], 
+            variant : str = None, 
+            version='latest',            
+            **kwargs):
+        return _from_dataset(dataset, variant=variant, version=version, clz=FeaturesBatchRetrieve, **kwargs)
 
     def transform(self, queries):
         """
