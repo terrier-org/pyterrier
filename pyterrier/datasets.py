@@ -237,7 +237,7 @@ class RemoteDataset(Dataset):
             for f in file_list:
                 if len(f) > 2:
                     total += f[3]
-            if total != -1
+            if total != -1:
                 total += 1
             return total
 
