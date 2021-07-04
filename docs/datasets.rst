@@ -22,11 +22,11 @@ Examples
 ========
 
 Many of the PyTerrier unit tests are based on the `Vaswani NPL test collection <http://ir.dcs.gla.ac.uk/resources/test_collections/npl/>`_, a corpus of scientific abstract from ~11,000 documents.
-PyTerrier provides a ready-made index. This allows experiments to be easily conducted::
+PyTerrier provides a ready-made index on the `Terrier Data Repository <http://data.terrier.org/>`_. This allows experiments to be easily conducted::
 
     dataset = pt.get_dataset("vaswani")
-    bm25 = pt.BatchRetrieve(dataset.get_index(), wmodel="BM25")
-    dph = pt.BatchRetrieve(dataset.get_index(), wmodel="DPH")
+    bm25 = pt.BatchRetrieve.from_dataset(dataset, "terrier_stemmed", wmodel="BM25")
+    dph = pt.BatchRetrieve.from_dataset(dataset, "terrier_stemmed", wmodel="DPH")
     pt.Experiment(
         [bm25, dph],
         dataset.get_topics(),

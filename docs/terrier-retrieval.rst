@@ -32,7 +32,7 @@ BatchRetrieve
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: pyterrier.BatchRetrieve
-    :members: transform 
+    :members: transform, from_dataset
 
 
 
