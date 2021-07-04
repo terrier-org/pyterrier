@@ -306,7 +306,7 @@ class RemoteDataset(Dataset):
 
     def get_corpus(self, **kwargs):
         import pyterrier as pt
-        return pt.io.find_files(self._get_all_files("corpus", **kwargs))
+        return list(filter(lambda f : not f.endswith(".complete"), pt.io.find_files(self._get_all_files("corpus", **kwargs))))
 
     def get_corpus_iter(self, **kwargs):
         if not "corpus_iter" in self.locations:
