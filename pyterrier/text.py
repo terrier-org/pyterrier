@@ -28,9 +28,9 @@ def get_text(
 
     Example::
 
-        pipe = pt.BatchRetrieve(index, wmodel="DPH") \ 
-            >> pt.text.get_text(index) \ 
-            >> pt.text.scorer(wmodel="DPH")
+        pipe = ( pt.BatchRetrieve(index, wmodel="DPH")
+            >> pt.text.get_text(index)
+            >> pt.text.scorer(wmodel="DPH") )
 
     """
     import pyterrier as pt
@@ -173,10 +173,10 @@ def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='ti
     
     Example::
     
-        pipe = pt.BatchRetrieve(index, wmodel="DPH", metadata=["docno", "body"]) \ 
-            >> pt.text.sliding(length=128, stride=64, prepend_attr=None) \ 
-            >> pt.text.scorer(wmodel="DPH") \ 
-            >> pt.text.max_passage()
+        pipe = ( pt.BatchRetrieve(index, wmodel="DPH", metadata=["docno", "body"]) 
+            >> pt.text.sliding(length=128, stride=64, prepend_attr=None) 
+            >> pt.text.scorer(wmodel="DPH") 
+            >> pt.text.max_passage() )
         
     """
 

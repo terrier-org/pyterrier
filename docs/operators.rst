@@ -123,8 +123,14 @@ q1  d12   2     2
 
 NB: Any documents not present in one  of the constituent rankings will contribute a score of 0 to the final score of that document.
 
+**Precedence and Associativity**
+
+The `+` and `*` operators retain their classical precendence among Pythons operators. This means that the intended semantics
+of an expression of linear combinations and scalar factors are clear - indeed, `*` binds higher than `+`, so `2* br_DPH + br_BM25`
+is interpreted as `(2* br_DPH) + br_BM25`.
+
 Set Intersection and Union (`&`, `|`)
--------------------------------------
+--------------------------------------------
 
 The set that only includes documents that occur in the intersection (`&`)
 and union (`|`) of both retrieval sets. Scores and ranks are not returned - hence,
@@ -283,7 +289,7 @@ The Python would have looked like::
     final_res["features"] = np.stack(final_res["features_x"], final_res["features_y"])
 
 
-Instead, we use `**` to denote feature-union::
+Instead, we use `**` to denote feature union::
 
     sample_br = BatchRetrieve(index, "DPH")
     BM25F_br = BatchRetrieve(index, "BM25F")
@@ -317,7 +323,28 @@ qid docno score rank features
 q1  d10   4.3   0    [4.9, 13.0]
 === ===== ===== ==== ===========
 
-More information can be found in the learning-to-rank documentation (:ref:`pyterrier.ltr`).
+More examples of feature union can be found in the learning-to-rank documentation (:ref:`pyterrier.ltr`).
+
+**Precedence and Associativity**
+
+Feature union is associative, so in the following examples, `x1`, `x2` and `x3` have identical semantics::
+
+    x1 = sample_br >> ( BM25F_br ** PL2F_br ** urllen)
+    x2 =  sample_br >> ( (BM25F_br ** PL2F_br) ** urllen)
+    x3 =  sample_br >> ( BM25F_br ** (PL2F_br ** urllen))
+
+Pipelines `x1`, `x2` and `x3` are all pipelines that create **identical** document rankings with three features, 
+in the precise order BM25F, PL2F and urllength. 
+
+Note that `>>` has higher operator precendence in Python than `**`. For this reason, feature unions usually need to be
+expressed in parentheses. In this way the semantics of pipelines `a`, `b` and `c` in the example below
+are not identical, and indeed, `a` is parsed like `b`, while `c` is almost always the desired outcome::
+
+    # a is parsed in the same way as b, when the likely desired parse was c
+    a = sample_br >> BM25F_br ** PL2F_br
+    b = (sample_br >> BM25F_br) ** PL2F_br)
+    c = sample_br >> ( BM25F_br ** PL2F_br)
+    
 
 Caching (`~`)
 -------------

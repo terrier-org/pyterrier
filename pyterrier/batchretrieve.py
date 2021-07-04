@@ -99,11 +99,32 @@ class BatchRetrieve(BatchRetrieveBase):
     """
 
     #from_dataset = staticmethod(partial(_from_dataset, clz=BatchRetrieve))
-    @staticmethod 
+    @staticmethod
     def from_dataset(dataset : Union[str,Dataset], 
             variant : str = None, 
             version='latest',            
             **kwargs):
+        """
+        Instantiates a BatchRetrieve object from a pre-built index access via a dataset.
+        Pre-built indices are ofen provided via the `Terrier Data Repository <http://data.terrier.org/>`_.
+
+        Examples::
+
+            dataset = pt.get_dataset("vaswani")
+            bm25 = pt.BatchRetrieve.from_dataset(dataset, "terrier_stemmed", wmodel="BM25")
+            #or
+            bm25 = pt.BatchRetrieve.from_dataset("vaswani", "terrier_stemmed", wmodel="BM25")
+
+        **Index Variants**:
+
+        There are a number of standard index names.
+         - `terrier_stemmed` - a classical index, removing Terrier's standard stopwords, and applying Porter's English stemmer
+         - `terrier_stemmed_positions` - as per `terrier_stemmed`, but also containing position information
+         - `terrier_unstemmed` - a classical index, without applying stopword removal or stemming
+         - `terrier_stemmed_text` - as per `terrier_stemmed`, but also containing the raw text of the documents
+         - `terrier_unstemmed_text` - as per `terrier_stemmed`, but also containing the raw text of the documents
+
+        """
         return _from_dataset(dataset, variant=variant, version=version, clz=BatchRetrieve, **kwargs)
 
     #: default_controls(dict): stores the default controls

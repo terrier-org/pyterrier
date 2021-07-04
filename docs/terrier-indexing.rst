@@ -18,7 +18,7 @@ Index Types
 ===========
 
 .. autoclass:: pyterrier.index.IndexingType
-   :inherited-members: CLASSIC SINGLEPASS MEMORY
+   :inherited-members: CLASSIC, SINGLEPASS, MEMORY
 
 Indexer Classes
 ===============
