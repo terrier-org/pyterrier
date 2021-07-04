@@ -13,6 +13,8 @@ each defined dataset can download and provide easy access to:
 
 .. autofunction:: pyterrier.datasets.list_datasets()
 
+.. autofunction:: pyterrier.datasets.find_datasets()
+
 .. autofunction:: pyterrier.datasets.get_dataset()
 
 .. autoclass:: pyterrier.datasets.Dataset

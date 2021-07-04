@@ -230,6 +230,26 @@ class RemoteDataset(Dataset):
             os.makedirs(localDir)
             print("Downloading %s %s to %s" % (self.name, component, localDir))
         
+
+        # check for how much space is required and available space
+        def _totalsize(file_list):
+            total = -1
+            for f in file_list:
+                if len(f) > 2:
+                    total += f[3]
+            if total != -1
+                total += 1
+            return total
+
+        totalsize = _totalsize(file_list)
+        if totalsize > 0:
+            import shutil
+            total, used, free = shutil.disk_usage(localDir)
+            if free < totalsize:
+                raise ValueError("Insufficient freedisk space at %s to download index" % localDir)
+            if totalsize > 2 * 2**30:
+                warn("Downloading index of > 2GB.")
+
         for fileentry in file_list:
             local = fileentry[0]
             URL = fileentry[1]
@@ -980,6 +1000,13 @@ def datasets():
         Lists all the names of the datasets
     """
     return DATASET_MAP.keys()
+
+def find_datasets(query, en_only=True):
+    """
+    A grep-like method to help identify datasets. Filters the output of list_datasets() based on the name containing the query
+    """
+    datasets = list_datasets(en_only=en_only)
+    return datasets[datasets['dataset'].str.contains(query)]
 
 def list_datasets(en_only=True):
     """

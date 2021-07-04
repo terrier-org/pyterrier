@@ -123,7 +123,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
 
     from .batchretrieve import BatchRetrieve, FeaturesBatchRetrieve
     from .utils import Utils
-    from .datasets import get_dataset, list_datasets
+    from .datasets import get_dataset, find_datasets, list_datasets
     from .index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, FlatJSONDocumentIterator, IndexingType
     from .pipelines import LTR_pipeline, XGBoostLTR_pipeline, Experiment, GridScan, GridSearch, KFoldGridSearch
 
@@ -158,6 +158,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
 
     globals()["get_dataset"] = get_dataset
     globals()["list_datasets"] = list_datasets
+    globals()["find_datasets"] = find_datasets
     globals()["Experiment"] = Experiment
     globals()["BatchRetrieve"] = BatchRetrieve
     globals()["Indexer"] = Indexer
