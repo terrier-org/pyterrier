@@ -59,7 +59,7 @@ public class ParallelIndexer {
                 } catch (ReflectiveOperationException ex) {
                     throw new RuntimeException(ex); // Thrown if indexerClass is not for an Indexer class
                 }
-                index.setExternalParalllism(threadCount);
+                indexer.setExternalParalllism(threadCount);
                 indexer.index(new Collection[] {collection});
                 return thisPrefix;
             }   
