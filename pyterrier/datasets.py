@@ -342,7 +342,8 @@ class IRDSDataset(Dataset):
         return self._irds_ref
 
     def get_corpus(self):
-        raise NotImplementedError("IRDSDataset doesn't support get_corpus; use get_corpus_iter instead")
+        raise NotImplementedError("IRDSDataset doesn't support get_corpus; use get_corpus_iter instead. If you "
+                                  "are indexing, get_corpus_iter should be used in conjunction with IterDictIndexer.")
 
     def get_corpus_iter(self, verbose=True):
         ds = self.irds_ref()

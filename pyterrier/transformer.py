@@ -420,7 +420,18 @@ class SetIntersectionTransformer(BinaryTransformerBase):
         
         on_cols = ["qid", "docno"]
         rtr = res1.merge(res2, on=on_cols, suffixes=('','_y'))
-        rtr.drop(columns=["score", "rank"], inplace=True, errors='ignore')
+        rtr.drop(columns=["score", "rank", "score_y", "rank_y", "query_y"], inplace=True, errors='ignore')
+        for col in rtr.columns:
+            if not '_y' in col:
+                continue
+            new_name = col.replace('_y', '')
+            if new_name in rtr.columns:
+                # duplicated column, drop
+                rtr.drop(columns=[col], inplace=True)
+                continue
+            # column only from RHS, keep, but rename by removing '_y' suffix
+            rtr.rename(columns={col:new_name}, inplace=True)
+
         return rtr
 
 class CombSumTransformer(BinaryTransformerBase):

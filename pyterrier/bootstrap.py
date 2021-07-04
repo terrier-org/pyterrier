@@ -73,6 +73,28 @@ def setup_jnius():
         '__getstate__' : lambda self : None,
     }
 
+    def _index_add(self, other):
+        from . import autoclass
+        fields_1 = self.getCollectionStatistics().getNumberOfFields()
+        fields_2 = self.getCollectionStatistics().getNumberOfFields()
+        if fields_1 != fields_2:
+            raise ValueError("Cannot document-wise merge indices with different numbers of fields (%d vs %d)" % (fields_1, fields_2))
+        blocks_1 = self.getCollectionStatistics().hasPositions()
+        blocks_2 = other.getCollectionStatistics().hasPositions()
+        if blocks_1 != blocks_2:
+            raise ValueError("Cannot document-wise merge indices with and without positions (%r vs %r)" % (blocks_1, blocks_2))
+        multiindex_cls = autoclass("org.terrier.realtime.multi.MultiIndex")
+        return multiindex_cls([self, other], blocks_1, fields_1 > 0)
+
+    protocol_map["org.terrier.structures.Index"] = {
+        # this means that len(index) returns the number of documents in the index
+        '__len__': lambda self: self.getCollectionStatistics().getNumberOfDocuments(),
+
+        # document-wise composition of indices: adding more documents to an index, by merging two indices with 
+        # different numbers of documents. This implemented by the overloading the `+` Python operator
+        '__add__': _index_add
+    }
+
 def setup_terrier(file_path, terrier_version=None, helper_version=None, boot_packages=[]):
     """
     Download Terrier's jar file for the given version at the given file_path
