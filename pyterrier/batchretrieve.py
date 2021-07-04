@@ -11,7 +11,6 @@ from .model import coerce_queries_dataframe, FIRST_RANK
 import deprecation
 import concurrent
 from concurrent.futures import ThreadPoolExecutor
-from functools import partial
 
 def importProps():
     from . import properties as props
@@ -88,8 +87,7 @@ def _from_dataset(dataset : Union[str,Dataset],
         with autoopen(argsfile, "rt") as f:
             args = json.load(f)
             # anything specified in kwargs of this methods overrides the .args.json file
-            for k,v in kwargs.items():
-                args[k] = v
+            args.update(kwargs)
             kwargs = args
     return clz(indexref, **kwargs)   
                 
@@ -98,8 +96,7 @@ class BatchRetrieve(BatchRetrieveBase):
     Use this class for retrieval by Terrier
     """
 
-    #from_dataset = staticmethod(partial(_from_dataset, clz=BatchRetrieve))
-    @staticmethod
+        @staticmethod
     def from_dataset(dataset : Union[str,Dataset], 
             variant : str = None, 
             version='latest',            
