@@ -19,6 +19,8 @@ the available operators:
 `~`          Cache transformer result              
 ============ =================================
 
+NB: These operators retain their default Python operator precedence - that may not be aligned with your expectations
+in a PyTerrier context (e.g. `&` is higher than `>>`). 
 
 Then (`>>`)
 -------------------
@@ -127,7 +129,7 @@ The `+` and `*` operators retain their classical precendence among Pythons opera
 of an expression of linear combinations and scalar factors are clear - indeed, `*` binds higher than `+`, so `2* br_DPH + br_BM25`
 is interpreted as `(2* br_DPH) + br_BM25`.
 
-Set Intersection and Intersection (`&`, `|`)
+Set Intersection and Union (`&`, `|`)
 --------------------------------------------
 
 The set that only includes documents that occur in the intersection (`&`)
