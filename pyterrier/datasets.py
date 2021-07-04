@@ -6,7 +6,7 @@ from .transformer import is_lambda
 import types
 from typing import Union, Tuple, Iterator, Dict, Any
 import requests
-from .io import autoopen
+from .io import autoopen, touch
 from . import tqdm, HOME_DIR
 import tarfile
 from warnings import warn
@@ -292,7 +292,7 @@ class RemoteDataset(Dataset):
                             raise ValueError("Failed download of %s to %s (expected %d bytes, found %d)" % (URL, local, expectedlength, length ))
 
         # finally, touch a file signifying that download has been completed
-        pt.io.touch(os.path.join(localDir, ".complete"))
+        touch(os.path.join(localDir, ".complete"))
         return localDir
 
     def _describe_component(self, component):
