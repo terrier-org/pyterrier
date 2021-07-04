@@ -598,6 +598,7 @@ class _BaseIterDictIndexer(Indexer, IterDictIndexerBase):
         else: 
             if meta_lengths is None:
                 # the ramifications of setting all lengths to a large value is an overhead in memory usage during decompression
+                # also increased reverse lookup file if reverse meta lookups are enabled.
                 meta_lengths = ['512'] * len(meta)
             self.meta = { k:v for k,v in zip( meta, meta_lengths)}
 
