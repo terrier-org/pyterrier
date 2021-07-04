@@ -96,7 +96,7 @@ class BatchRetrieve(BatchRetrieveBase):
     Use this class for retrieval by Terrier
     """
 
-        @staticmethod
+    @staticmethod
     def from_dataset(dataset : Union[str,Dataset], 
             variant : str = None, 
             version='latest',            
