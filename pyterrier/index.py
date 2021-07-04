@@ -248,7 +248,7 @@ class Indexer:
             "trec.collection.class": "TRECCollection",
     }
 
-    def __init__(self, index_path, *args, blocks=False, overwrite=False, verbose=False, type=IndexingType.CLASSIC, **kwargs):
+    def __init__(self, index_path, *args, blocks=False, overwrite=False, verbose=False, meta_reverse=["docno"], type=IndexingType.CLASSIC, **kwargs):
         """
         Init method
 
@@ -275,6 +275,7 @@ class Indexer:
         self.setProperties(**self.default_properties)
         self.overwrite = overwrite
         self.verbose = verbose
+        self.meta_reverse = meta_reverse
 
     def setProperty(self, k, v):
         """
