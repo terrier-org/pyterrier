@@ -218,7 +218,8 @@ class RemoteDataset(Dataset):
         if is_lambda(location) or isinstance(location, types.FunctionType):
             # functions are expensive to call, normally another HTTP is needed.
             # just assume we have everthing we need if we have the local directory already
-            if direxists:
+            # and it contains a .complete file.
+            if direxists and os.path.exists(os.path.join(localDir, ".complete")):
                 return localDir
 
             # call the function, and get the file list
@@ -236,7 +237,7 @@ class RemoteDataset(Dataset):
             total = -1
             for f in file_list:
                 if len(f) > 2:
-                    total += f[3]
+                    total += f[2]
             if total != -1:
                 total += 1
             return total
@@ -289,7 +290,9 @@ class RemoteDataset(Dataset):
                         length = os.stat(local).st_size
                         if expectedlength != length:
                             raise ValueError("Failed download of %s to %s (expected %d bytes, found %d)" % (URL, local, expectedlength, length ))
-        
+
+        # finally, touch a file signifying that download has been completed
+        pt.io.touch(os.path.join(localDir, ".complete"))
         return localDir
 
     def _describe_component(self, component):
