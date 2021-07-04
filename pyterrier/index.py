@@ -342,6 +342,7 @@ class Indexer:
         """
         self.properties['indexer.meta.forward.keys'] = ','.join(self.meta.keys())
         self.properties['indexer.meta.forward.keylens'] = ','.join([str(l) for l in self.meta.values()])
+        self.properties['indexer.meta.reverse.keys'] = ','.join(self.meta_reverse)
         ApplicationSetup.getProperties().putAll(self.properties)
         if self.type is IndexingType.SINGLEPASS:
             if self.blocks:
