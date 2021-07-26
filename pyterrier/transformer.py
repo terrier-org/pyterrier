@@ -552,7 +552,10 @@ class ApplyForEachQuery(ApplyTransformerBase):
         self.add_ranks = add_ranks
     
     def transform(self, res):
-        rtr = pd.concat(self.fn(group) for qid, group in res.groupby("qid"))
+        it = res.groupby("qid")
+        if self.verbose:
+            it = tqdm(it, unit='query')
+        rtr = pd.concat(self.fn(group) for qid, group in it)
         if self.add_ranks:
             rtr = add_ranks(rtr)
         return rtr
