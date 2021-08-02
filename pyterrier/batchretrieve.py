@@ -6,7 +6,7 @@ from . import tqdm, check_version
 from warnings import warn
 from .index import Indexer
 from .datasets import Dataset
-from .transformer import TransformerBase, Symbol
+from .transformer import TransformerBase, Symbol, is_lambda
 from .model import coerce_queries_dataframe, FIRST_RANK
 import deprecation
 import concurrent
@@ -24,6 +24,23 @@ def _matchop(query):
         if m in query:
             return True
     return False
+
+def _function2wmodel(function):
+    from . import autoclass
+    from jnius import PythonJavaClass, java_method
+
+    class PythonWmodelFunction(PythonJavaClass):
+        __javainterfaces__ = ['org/terrier/python/CallableWeightingModel$Callback']
+
+        def __init__(self, fn):
+            super(PythonWmodelFunction, self).__init__()
+            self.fn = fn
+            
+        @java_method('(DLorg/terrier/structures/postings/Posting;Lorg/terrier/structures/EntryStatistics;Lorg/terrier/structures/CollectionStatistics;)D', name='score')
+        def score(self, keyFreq, posting, entryStats, collStats):
+            return self.fn(keyFreq, posting, entryStats, collStats)
+
+    return autoclass("org.terrier.python.CallableWeightingModel")( PythonWmodelFunction(function) )
 
 def _mergeDicts(defaults, settings):
     KV = defaults.copy()
@@ -138,7 +155,7 @@ class BatchRetrieve(BatchRetrieveBase):
 
     #: default_properties(dict): stores the default properties
     default_properties = {
-        "querying.processes": "terrierql:TerrierQLParser,parsecontrols:TerrierQLToControls,parseql:TerrierQLToMatchingQueryTerms,matchopql:MatchingOpQLParser,applypipeline:ApplyTermPipeline,localmatching:LocalManager$ApplyLocalMatching,qe:QueryExpansion,labels:org.terrier.learning.LabelDecorator,filters:LocalManager$PostFilterProcess",
+        "querying.processes": "terrierql:TerrierQLParser,parsecontrols:TerrierQLToControls,parseql:TerrierQLToMatchingQueryTerms,matchopql:MatchingOpQLParser,applypipeline:ApplyTermPipeline,context_wmodel:org.terrier.python.WmodelFromContextProcess,localmatching:LocalManager$ApplyLocalMatching,qe:QueryExpansion,labels:org.terrier.learning.LabelDecorator,filters:LocalManager$PostFilterProcess",
         "querying.postfilters": "decorate:SimpleDecorate,site:SiteFilter,scope:Scope",
         "querying.default.controls": "wmodel:DPH,parsecontrols:on,parseql:on,applypipeline:on,terrierql:on,localmatching:on,filters:on,decorate:on",
         "querying.allowed.controls": "scope,qe,qemodel,start,end,site,scope,applypipeline",
@@ -168,6 +185,7 @@ class BatchRetrieve(BatchRetrieveBase):
         self.metadata = metadata
         self.threads = threads
         self.RequestContextMatching = autoclass("org.terrier.python.RequestContextMatching")
+        self.search_context = {}
 
         if props is None:
             importProps()
@@ -176,8 +194,18 @@ class BatchRetrieve(BatchRetrieveBase):
         
         self.controls = _mergeDicts(BatchRetrieve.default_controls, controls)
         if wmodel is not None:
-            self.controls["wmodel"] = wmodel
-
+            from .transformer import is_lambda, is_function
+            if isinstance(wmodel, str):
+                self.controls["wmodel"] = wmodel
+            elif is_lambda(wmodel) or is_function(wmodel):
+                self.search_context['context_wmodel'] = _function2wmodel(wmodel)
+                self.controls['context_wmodel'] = 'on'
+            elif isinstance(wmodel, autoclass("org.terrier.matching.models.WeightingModel")):
+                self.search_context['context_wmodel'] = wmodel
+                self.controls['context_wmodel'] = 'on'
+            else:
+                raise ValueError("Unknown parameter type passed for wmodel argument: %s" % str(wmodel))
+                  
         if self.threads > 1:
             warn("Multi-threaded retrieval is experimental, YMMV.")
             assert check_version(5.5), "Terrier 5.5 is required for multi-threaded retrieval"
@@ -250,6 +278,9 @@ class BatchRetrieve(BatchRetrieveBase):
         
         for control, value in self.controls.items():
             srq.setControl(control, str(value))
+
+        for key, value in self.search_context.items():
+            srq.setContextObject(key, value)
 
         # this is needed until terrier-core issue #106 lands
         if "applypipeline:off" in query:
@@ -560,6 +591,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
                 'metadata' : self.metadata,
                 'features' : self.features,
                 'wmodel' : self.wmodel
+                #TODO consider the context state?
                 }
 
     def __setstate__(self, d): 
@@ -570,6 +602,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         self.properties.update(d["properties"])
         for key,value in d["properties"].items():
             self.appSetup.setProperty(key, str(value))
+        #TODO consider the context state?
 
     @staticmethod 
     def from_dataset(dataset : Union[str,Dataset], 
