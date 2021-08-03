@@ -5,6 +5,17 @@ from .base import TempDirTestCase
 
 class TestDunder(TempDirTestCase):
 
+    def test_wmodel_dunders(self):
+        wmodel = pt.autoclass("org.terrier.matching.models.BM25")()
+        wmodel.__reduce__()
+        wmodel.__getstate__()
+        rtr = wmodel.__reduce__()
+        pt.cast("org.terrier.matching.models.BM25", rtr[0](*rtr[1]))
+        import dill as pickle
+        #check the byte array is picklable
+        print(rtr[1][0])
+        pickle.dumps(rtr[1][0])
+        pickle.dumps(wmodel)
 
     def test_index_dunders(self):
         indexref = pt.datasets.get_dataset("vaswani").get_index()

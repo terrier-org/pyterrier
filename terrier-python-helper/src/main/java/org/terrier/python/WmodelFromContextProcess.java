@@ -15,7 +15,6 @@ public class WmodelFromContextProcess implements Process {
 
     public void process​(Manager manager, Request rq) {
         Object _wmodel = rq.getContextObject​("context_wmodel");
-        System.out.println(_wmodel.getClass().getName());
         if (_wmodel == null) {
             throw new IllegalStateException("WmodelFromContextProcess invoked, but no context object found under key 'context_wmodel'");
         }

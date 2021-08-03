@@ -40,6 +40,25 @@ def _function2wmodel(function):
         def score(self, keyFreq, posting, entryStats, collStats):
             return self.fn(keyFreq, posting, entryStats, collStats)
 
+        @java_method('(Ljava/io/ObjectOutput;)V')
+        def writeExternal(self, oos):
+            import dill as pickle
+            byterep = pickle.dumps(self.fn)
+            oos.write(len(byterep))
+            oos.write(byterep)            
+
+        @java_method('(Ljava/io/ObjectInput;)V')
+        def readExternal(self, ois):
+            import dill as pickle
+            num_bytes = ois.read()
+            byterep = bytearray(num_bytes)
+            ois.read(byterep)
+            self.fn = pickle.loads(byterep)
+
+        # @java_method('()V')
+        # def readObjectNoData():
+        #     pass
+
     return autoclass("org.terrier.python.CallableWeightingModel")( PythonWmodelFunction(function) )
 
 def _mergeDicts(defaults, settings):
@@ -254,6 +273,7 @@ class BatchRetrieve(BatchRetrieveBase):
 
     def __getstate__(self): 
         return  {
+                'context' : self.search_context,
                 'controls' : self.controls, 
                 'properties' : self.properties, 
                 'metadata' : self.metadata,
@@ -262,6 +282,7 @@ class BatchRetrieve(BatchRetrieveBase):
     def __setstate__(self, d): 
         self.controls = d["controls"]
         self.metadata = d["metadata"]
+        self.search_context = d["context"]
         self.properties.update(d["properties"])
         for key,value in d["properties"].items():
             self.appSetup.setProperty(key, str(value))

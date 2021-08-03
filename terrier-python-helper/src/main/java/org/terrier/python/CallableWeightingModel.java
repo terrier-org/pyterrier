@@ -3,19 +3,26 @@ import org.terrier.matching.models.WeightingModel;
 import org.terrier.structures.postings.Posting;
 import org.terrier.structures.EntryStatistics;
 import org.terrier.structures.CollectionStatistics;
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectStreamException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 
 /** A weighting model class that includes a Callback interface that can be implemented in Python.
  */
 public class CallableWeightingModel extends WeightingModel {
 
-    public static interface Callback {
+    public static interface Callback extends Externalizable {
         public double score(double keyFrequency, Posting posting, EntryStatistics entryStats, CollectionStatistics collStats);
         public default double score1(Posting posting, EntryStatistics entryStats, CollectionStatistics collStats) {
             return score(1.0d, posting, entryStats, collStats);
         }
     }
 
-    final Callback scoringClass;
+    Callback scoringClass;
+
+    private CallableWeightingModel() {}
 
     public CallableWeightingModel(Callback _scoringClass) {
         scoringClass = _scoringClass;
@@ -35,4 +42,12 @@ public class CallableWeightingModel extends WeightingModel {
     public String getInfo() {
         return this.getClass().getSimpleName();
     }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+        scoringClass.writeExternal(out);
+    }
+    private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+        scoringClass.readExternal(in);
+    }
+    private void readObjectNoData() throws ObjectStreamException {}
 }

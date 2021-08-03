@@ -23,6 +23,11 @@ def new_indexref(s):
     from . import IndexRef
     return IndexRef.of(s)
 
+def new_wmodel(bytes):
+    from . import autoclass
+    serUtils = autoclass("org.terrier.python.Serialization")
+    return serUtils.deserialize(bytes, autoclass("org.terrier.utility.ApplicationSetup").getClass("org.terrier.matching.models.WeightingModel") )
+
 def setup_jnius():
     from jnius import protocol_map # , autoclass
 
@@ -70,6 +75,23 @@ def setup_jnius():
 
     protocol_map["org.terrier.querying.IndexRef"] = {
         '__reduce__' : index_ref_reduce,
+        '__getstate__' : lambda self : None,
+    }
+
+
+    # handles the pickling of WeightingModel classes, which are themselves usually Serializable in Java
+    def wmodel_reduce(self):
+        from . import autoclass
+        serUtils = autoclass("org.terrier.python.Serialization")
+        serialized = bytes(serUtils.serialize(self))
+        return (
+            new_wmodel,
+            (serialized, ),
+            None
+        )
+
+    protocol_map["org.terrier.matching.models.WeightingModel"] = {
+        '__reduce__' : wmodel_reduce,
         '__getstate__' : lambda self : None,
     }
 

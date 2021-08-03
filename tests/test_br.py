@@ -193,6 +193,11 @@ class TestBatchRetrieve(BaseTestCase):
         retr = pt.BatchRetrieve(indexref, threads=5)
         result = retr.transform(topics)
 
+        #check that use of a callback model works under threading
+        Tf = lambda keyFreq, posting, entryStats, collStats: posting.getFrequency()
+        retr = pt.BatchRetrieve(indexref, threads=5, wmodel=Tf)
+        result = retr.transform(topics)
+
     def test_threading_selfupgrade(self):
         if not pt.check_version("5.5"):
             self.skipTest("Requires Terrier 5.5")
