@@ -626,6 +626,13 @@ class FeaturesBatchRetrieve(BatchRetrieve):
             **kwargs):
         return _from_dataset(dataset, variant=variant, version=version, clz=FeaturesBatchRetrieve, **kwargs)
 
+    @staticmethod 
+    def from_dataset(dataset : Union[str,Dataset], 
+            variant : str = None, 
+            version='latest',            
+            **kwargs):
+        return _from_dataset(dataset, variant=variant, version=version, clz=FeaturesBatchRetrieve, **kwargs)
+
     def transform(self, queries):
         """
         Performs the retrieval with multiple features

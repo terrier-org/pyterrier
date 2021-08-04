@@ -248,7 +248,7 @@ class Indexer:
             "trec.collection.class": "TRECCollection",
     }
 
-    def __init__(self, index_path, *args, blocks=False, overwrite=False, verbose=False, type=IndexingType.CLASSIC, **kwargs):
+    def __init__(self, index_path, *args, blocks=False, overwrite=False, verbose=False, meta_reverse=["docno"], type=IndexingType.CLASSIC, **kwargs):
         """
         Init method
 
@@ -275,6 +275,7 @@ class Indexer:
         self.setProperties(**self.default_properties)
         self.overwrite = overwrite
         self.verbose = verbose
+        self.meta_reverse = meta_reverse
 
     def setProperty(self, k, v):
         """
@@ -598,6 +599,7 @@ class _BaseIterDictIndexer(Indexer, IterDictIndexerBase):
         else: 
             if meta_lengths is None:
                 # the ramifications of setting all lengths to a large value is an overhead in memory usage during decompression
+                # also increased reverse lookup file if reverse meta lookups are enabled.
                 meta_lengths = ['512'] * len(meta)
             self.meta = { k:v for k,v in zip( meta, meta_lengths)}
 
