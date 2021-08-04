@@ -69,8 +69,18 @@ class TestPickle(TempDirTestCase):
     def test_br_pickle(self):
         self._br(pickle)
 
+    def test_br_dill_callback(self):
+        import dill
+        self._br(dill, wmodel=lambda keyFreq, posting, entryStats, collStats: posting.getFrequency())
+
     def test_br_pickle_callback(self):
+        import pickle
         self._br(pickle, wmodel=lambda keyFreq, posting, entryStats, collStats: posting.getFrequency())
+
+    def test_br_joblib_callback(self):
+        import joblib
+        self._fix_joblib()
+        self._br(joblib, wmodel=lambda keyFreq, posting, entryStats, collStats: posting.getFrequency())
 
     def test_br_pickle_straightwmodel(self):
         self._br(pickle, wmodel=pt.autoclass("org.terrier.matching.models.BM25")())

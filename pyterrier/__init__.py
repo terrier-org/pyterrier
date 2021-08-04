@@ -87,7 +87,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
             os.mkdir(HOME_DIR)
 
     # get the initial classpath for the JVM
-    classpathTrJars = setup_terrier(HOME_DIR, version, boot_packages=boot_packages)
+    classpathTrJars = setup_terrier(HOME_DIR, version, boot_packages=boot_packages, helper_version="0.0.6")
     
     if is_windows():
         if "JAVA_HOME" in os.environ:

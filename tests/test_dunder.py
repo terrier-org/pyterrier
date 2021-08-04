@@ -5,7 +5,46 @@ from .base import TempDirTestCase
 
 class TestDunder(TempDirTestCase):
 
+    def test_callable_wmodel_dunders(self):
+        testPosting = pt.autoclass("org.terrier.structures.postings.BasicPostingImpl")(0,1)
+
+        from pyterrier.batchretrieve import _function2wmodel
+        lambdafn = lambda keyFreq, posting, entryStats, collStats: posting.getFrequency()
+        callback, wmodel = _function2wmodel(lambdafn)
+        
+        from pyterrier.bootstrap import javabytebuffer2array
+        byterep = javabytebuffer2array(wmodel.scoringClass.serializeFn())
+        import dill as pickle
+        fn = pickle.loads(byterep)
+        self.assertEqual(
+            lambdafn(1, testPosting, None, None),
+            fn(1, testPosting, None, None),
+            )
+
+        wmodel.__getstate__()
+        rtr = wmodel.__reduce__()
+        
+        import dill as pickle
+        #check the byte array is picklable
+        pickle.dumps(rtr[1][0])
+        #check object is picklable
+        pickle.dumps(wmodel)
+        #check can be unpickled too
+        wmodel2 = pickle.loads(pickle.dumps(wmodel))
+
+        score1 = wmodel.score(testPosting)
+        score2 = wmodel2.score(testPosting)
+        self.assertEqual(score1, score2)
+
+        #check newly unpickled can still be pickled
+        pickle.dumps(wmodel2)
+        wmodel3 = pickle.loads(pickle.dumps(wmodel2))
+        score3 = wmodel3.score(testPosting)
+        self.assertEqual(score1, score3)
+
+
     def test_wmodel_dunders(self):
+
         wmodel = pt.autoclass("org.terrier.matching.models.BM25")()
         wmodel.__reduce__()
         wmodel.__getstate__()

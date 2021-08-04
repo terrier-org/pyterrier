@@ -5,7 +5,7 @@ from . import mavenresolver
 stdout_ref = None
 stderr_ref = None
 TERRIER_PKG = "org.terrier"
-
+SAVED_FNS=[]
 
 @deprecation.deprecated(deprecated_in="0.1.3",
                         # remove_id="",
@@ -27,6 +27,23 @@ def new_wmodel(bytes):
     from . import autoclass
     serUtils = autoclass("org.terrier.python.Serialization")
     return serUtils.deserialize(bytes, autoclass("org.terrier.utility.ApplicationSetup").getClass("org.terrier.matching.models.WeightingModel") )
+
+def new_callable_wmodel(byterep):
+    import dill as pickle
+    fn = pickle.loads(byterep)
+    #we need to prevent these functions from being GCd.
+    global SAVED_FNS
+    SAVED_FNS.append(fn)
+    from .batchretrieve import _function2wmodel
+    callback, wmodel = _function2wmodel(fn)
+    SAVED_FNS.append(callback)
+    #print("Stored lambda fn  %s and callback in SAVED_FNS, now %d stored" % (str(fn), len(SAVED_FNS)))
+    return wmodel
+
+def javabytebuffer2array(buffer):
+    def unsign(signed):
+        return signed + 256 if signed < 0 else signed
+    return bytearray([ unsign(buffer.get(offset)) for offset in range(buffer.capacity()) ])
 
 def setup_jnius():
     from jnius import protocol_map # , autoclass
@@ -92,6 +109,22 @@ def setup_jnius():
 
     protocol_map["org.terrier.matching.models.WeightingModel"] = {
         '__reduce__' : wmodel_reduce,
+        '__getstate__' : lambda self : None,
+    }
+
+    def callable_wmodel_reduce(self):
+        from . import autoclass
+        # get bytebuffer representation of lambda
+        # convert bytebyffer to python bytearray
+        bytesrep = javabytebuffer2array(self.scoringClass.serializeFn())
+        return (
+            new_callable_wmodel,
+            (bytesrep, ),
+            None
+        )
+
+    protocol_map["org.terrier.python.CallableWeightingModel"] = {
+        '__reduce__' : callable_wmodel_reduce,
         '__getstate__' : lambda self : None,
     }
 

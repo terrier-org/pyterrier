@@ -40,26 +40,16 @@ def _function2wmodel(function):
         def score(self, keyFreq, posting, entryStats, collStats):
             return self.fn(keyFreq, posting, entryStats, collStats)
 
-        @java_method('(Ljava/io/ObjectOutput;)V')
-        def writeExternal(self, oos):
+        @java_method('()Ljava/nio/ByteBuffer;')
+        def serializeFn(self):
             import dill as pickle
             byterep = pickle.dumps(self.fn)
-            oos.write(len(byterep))
-            oos.write(byterep)            
+            byterep = autoclass("java.nio.ByteBuffer").wrap(byterep)
+            return byterep
 
-        @java_method('(Ljava/io/ObjectInput;)V')
-        def readExternal(self, ois):
-            import dill as pickle
-            num_bytes = ois.read()
-            byterep = bytearray(num_bytes)
-            ois.read(byterep)
-            self.fn = pickle.loads(byterep)
-
-        # @java_method('()V')
-        # def readObjectNoData():
-        #     pass
-
-    return autoclass("org.terrier.python.CallableWeightingModel")( PythonWmodelFunction(function) )
+    callback = PythonWmodelFunction(function)
+    wmodel = autoclass("org.terrier.python.CallableWeightingModel")( callback )
+    return callback, wmodel
 
 def _mergeDicts(defaults, settings):
     KV = defaults.copy()
@@ -217,7 +207,10 @@ class BatchRetrieve(BatchRetrieveBase):
             if isinstance(wmodel, str):
                 self.controls["wmodel"] = wmodel
             elif is_lambda(wmodel) or is_function(wmodel):
-                self.search_context['context_wmodel'] = _function2wmodel(wmodel)
+                callback, wmodelinstance = _function2wmodel(wmodel)
+                #save the callback instance in this object to prevent being GCd by Python
+                self._callback = callback
+                self.search_context['context_wmodel'] = wmodelinstance
                 self.controls['context_wmodel'] = 'on'
             elif isinstance(wmodel, autoclass("org.terrier.matching.models.WeightingModel")):
                 self.search_context['context_wmodel'] = wmodel
@@ -590,6 +583,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         # record the weighting model
         self.wmodel = None
         if "wmodel" in kwargs:
+            assert isinstance(kwargs["wmodel"], str), "Non-string weighting models not yet supported by FBR"
             self.wmodel = kwargs["wmodel"]
         if "wmodel" in controls:
             self.wmodel = controls["wmodel"]
