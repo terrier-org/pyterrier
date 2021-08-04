@@ -15,6 +15,9 @@ class TestDunder(TempDirTestCase):
         from pyterrier.bootstrap import javabytebuffer2array
         byterep = javabytebuffer2array(wmodel.scoringClass.serializeFn())
         import dill as pickle
+        from dill import extend
+        #see https://github.com/SeldonIO/alibi/issues/447#issuecomment-881552005
+        extend(use_dill=False)    
         fn = pickle.loads(byterep)
         self.assertEqual(
             lambdafn(1, testPosting, None, None),
@@ -24,7 +27,6 @@ class TestDunder(TempDirTestCase):
         wmodel.__getstate__()
         rtr = wmodel.__reduce__()
         
-        import dill as pickle
         #check the byte array is picklable
         pickle.dumps(rtr[1][0])
         #check object is picklable
@@ -50,7 +52,8 @@ class TestDunder(TempDirTestCase):
         wmodel.__getstate__()
         rtr = wmodel.__reduce__()
         pt.cast("org.terrier.matching.models.BM25", rtr[0](*rtr[1]))
-        import dill as pickle
+        import pickle
+        #import dill as pickle
         #check the byte array is picklable
         print(rtr[1][0])
         pickle.dumps(rtr[1][0])

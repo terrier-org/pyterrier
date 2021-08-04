@@ -43,6 +43,9 @@ def _function2wmodel(function):
         @java_method('()Ljava/nio/ByteBuffer;')
         def serializeFn(self):
             import dill as pickle
+            #see https://github.com/SeldonIO/alibi/issues/447#issuecomment-881552005
+            from dill import extend
+            extend(use_dill=False)
             byterep = pickle.dumps(self.fn)
             byterep = autoclass("java.nio.ByteBuffer").wrap(byterep)
             return byterep

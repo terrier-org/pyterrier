@@ -30,6 +30,9 @@ def new_wmodel(bytes):
 
 def new_callable_wmodel(byterep):
     import dill as pickle
+    from dill import extend
+    #see https://github.com/SeldonIO/alibi/issues/447#issuecomment-881552005
+    extend(use_dill=False)            
     fn = pickle.loads(byterep)
     #we need to prevent these functions from being GCd.
     global SAVED_FNS
