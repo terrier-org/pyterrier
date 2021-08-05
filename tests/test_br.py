@@ -173,9 +173,8 @@ class TestBatchRetrieve(BaseTestCase):
         
 
     def test_num_python_wmodel(self):
-        JIR = pt.autoclass('org.terrier.querying.IndexRef')
+        indexref = self.here+"/fixtures/index/data.properties"
         Tf = lambda keyFreq, posting, entryStats, collStats: posting.getFrequency()
-        indexref = JIR.of(self.here+"/fixtures/index/data.properties")
         retr = pt.BatchRetrieve(indexref, wmodel=Tf)
         input=pd.DataFrame([["1", "Stability"]],columns=['qid','query'])
         result = retr.transform(input)
