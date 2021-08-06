@@ -642,18 +642,35 @@ MSMARCO_PASSAGE_FILES = {
 MSMARCOv2_DOC_FILES = {
     "info_url" : "https://microsoft.github.io/msmarco/TREC-Deep-Learning.html",
     "topics" : {
-        "train" : ("docv2_train_queries.tsv" "https://msmarco.blob.core.windows.net/msmarcoranking/docv2_train_queries.tsv", "singleline"),
+        "train" : ("docv2_train_queries.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/docv2_train_queries.tsv", "singleline"),
         "dev1"  :("docv2_dev_queries.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/docv2_dev_queries.tsv", "singleline"),
         "dev2"  :("docv2_dev2_queries.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/docv2_dev2_queries.tsv", "singleline"),
         "valid1" : ("msmarco-test2019-queries.tsv.gz" , "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-test2019-queries.tsv.gz", "singleline"),
-        "valid2" : ("msmarco-test2020-queries.tsv.gz" , "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-test2020-queries.tsv.gz", "singleline")
+        "valid2" : ("msmarco-test2020-queries.tsv.gz" , "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-test2020-queries.tsv.gz", "singleline"),
+        "trec_2021" : ("2021_queries.tsv" , "https://msmarco.blob.core.windows.net/msmarcoranking/2021_queries.tsv", "singleline"),
     },
     "qrels" : {
-        "train" : ("docv2_train_qrels.tsv" "https://msmarco.blob.core.windows.net/msmarcoranking/docv2_train_qrels.tsv"),
+        "train" : ("docv2_train_qrels.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/docv2_train_qrels.tsv"),
         "dev1"  :("docv2_dev_qrels.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/docv2_dev_qrels.tsv"),
         "dev2"  :("docv2_dev2_qrels.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/docv2_dev2_qrels.tsv"),
         "valid1" : ("docv2_trec2019_qrels.txt.gz" , "https://msmarco.blob.core.windows.net/msmarcoranking/docv2_trec2019_qrels.txt.gz"),
         "valid2" : ("docv2_trec2020_qrels.txt.gz" , "https://msmarco.blob.core.windows.net/msmarcoranking/docv2_trec2020_qrels.txt.gz")
+    },
+    "index" : _datarepo_index,
+}
+
+MSMARCOv2_PASSAGE_FILES = {
+    "info_url" : "https://microsoft.github.io/msmarco/TREC-Deep-Learning.html",
+    "topics" : {
+        "train" : ("passv2_train_queries.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/passv2_train_queries.tsv", "singleline"),
+        "dev1"  : ("passv2_dev_queries.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/passv2_dev_queries.tsv", "singleline"),
+        "dev2"  : ("passv2_dev2_queries.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/passv2_dev2_queries.tsv", "singleline"),
+        "trec_2021" : ("2021_queries.tsv" , "https://msmarco.blob.core.windows.net/msmarcoranking/2021_queries.tsv", "singleline"),
+    },
+    "qrels" : {
+        "train" : ("passv2_train_qrels.tsv" "https://msmarco.blob.core.windows.net/msmarcoranking/passv2_train_qrels.tsv"),
+        "dev1"  : ("passv2_dev_qrels.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/passv2_dev_qrels.tsv"),
+        "dev2"  : ("passv2_dev2_qrels.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/passv2_dev2_qrels.tsv"),
     },
     "index" : _datarepo_index,
 }
@@ -945,6 +962,7 @@ DATASET_MAP = {
     "msmarco_document" : RemoteDataset("msmarco_document", MSMARCO_DOC_FILES),
     "msmarcov2_document" : RemoteDataset("msmarcov2_document", MSMARCOv2_DOC_FILES),
     "msmarco_passage" : RemoteDataset("msmarco_passage", MSMARCO_PASSAGE_FILES),
+    "msmarcov2_passage" : RemoteDataset("msmarcov2_passage", MSMARCOv2_PASSAGE_FILES),
     "trec-robust-2004" : RemoteDataset("trec-robust-2004", TREC_ROBUST_04_FILES),
     "trec-robust-2005" : RemoteDataset("trec-robust-2005", TREC_ROBUST_05_FILES),
     "trec-terabyte" : RemoteDataset("trec-terabyte", TREC_TB_FILES),
