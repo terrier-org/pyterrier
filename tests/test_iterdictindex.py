@@ -165,7 +165,10 @@ class TestIterDictIndexer(TempDirTestCase):
         indexref = indexer.index(it)
         index = pt.IndexFactory.of(indexref)
         index = pt.cast("org.terrier.structures.IndexOnDisk", index)
+        #restore setting after test
+        pt.ApplicationSetup.setProperty("termpipelines", "Stopwords,PorterStemmer")
         self.assertEqual("", index.getIndexProperty("termpipelines", "bla"))
+        
 
 if __name__ == "__main__":
     unittest.main()
