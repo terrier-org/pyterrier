@@ -133,6 +133,7 @@ class RemoteDataset(Dataset):
             URLs = [URLs]
         
         finalattempt=len(URLs)-1
+        error = None
         for i, url in enumerate(URLs):            
             try:
                 r = requests.get(url, allow_redirects=True, stream=True, **kwargs)
@@ -150,8 +151,11 @@ class RemoteDataset(Dataset):
                         bar.update(size)
                     break
             except Exception as e:
+                if error is not None:
+                    e.__cause__ = error # chain errors to show all if fails
+                error = e
                 if i == finalattempt:
-                    raise e
+                    raise error
                 else:
                     warn("Problem fetching %s, resorting to next mirror" % url)
             
