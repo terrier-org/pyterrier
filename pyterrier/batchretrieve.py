@@ -1,16 +1,16 @@
 from jnius import autoclass, cast
+from typing import Union
 import pandas as pd
 import numpy as np
 from . import tqdm, check_version
 from warnings import warn
 from .index import Indexer
+from .datasets import Dataset
 from .transformer import TransformerBase, Symbol
 from .model import coerce_queries_dataframe, FIRST_RANK
 import deprecation
 import concurrent
 from concurrent.futures import ThreadPoolExecutor
-
-# import time
 
 def importProps():
     from . import properties as props
@@ -62,10 +62,67 @@ class BatchRetrieveBase(TransformerBase, Symbol):
         super().__init__(kwargs)
         self.verbose = verbose
 
+def _from_dataset(dataset : Union[str,Dataset], 
+            clz,
+            variant : str = None, 
+            version='latest',            
+            **kwargs):
+
+    from . import get_dataset
+    from .io import autoopen
+    import os
+    import json
+    
+    if isinstance(dataset, str):
+        dataset = get_dataset(dataset)
+    if version != "latest":
+        raise ValueError("index versioning not yet supported")
+    indexref = dataset.get_index(variant)
+
+    classname = clz.__name__
+    # now look for, e.g., BatchRetrieve.args.json file, which will define the args for BatchRetrieve, e.g. stemming
+    indexdir = indexref #os.path.dirname(indexref.toString())
+    argsfile = os.path.join(indexdir, classname + ".args.json")
+    if os.path.exists(argsfile):
+        with autoopen(argsfile, "rt") as f:
+            args = json.load(f)
+            # anything specified in kwargs of this methods overrides the .args.json file
+            args.update(kwargs)
+            kwargs = args
+    return clz(indexref, **kwargs)   
+                
 class BatchRetrieve(BatchRetrieveBase):
     """
     Use this class for retrieval by Terrier
     """
+
+    @staticmethod
+    def from_dataset(dataset : Union[str,Dataset], 
+            variant : str = None, 
+            version='latest',            
+            **kwargs):
+        """
+        Instantiates a BatchRetrieve object from a pre-built index access via a dataset.
+        Pre-built indices are ofen provided via the `Terrier Data Repository <http://data.terrier.org/>`_.
+
+        Examples::
+
+            dataset = pt.get_dataset("vaswani")
+            bm25 = pt.BatchRetrieve.from_dataset(dataset, "terrier_stemmed", wmodel="BM25")
+            #or
+            bm25 = pt.BatchRetrieve.from_dataset("vaswani", "terrier_stemmed", wmodel="BM25")
+
+        **Index Variants**:
+
+        There are a number of standard index names.
+         - `terrier_stemmed` - a classical index, removing Terrier's standard stopwords, and applying Porter's English stemmer
+         - `terrier_stemmed_positions` - as per `terrier_stemmed`, but also containing position information
+         - `terrier_unstemmed` - a classical index, without applying stopword removal or stemming
+         - `terrier_stemmed_text` - as per `terrier_stemmed`, but also containing the raw text of the documents
+         - `terrier_unstemmed_text` - as per `terrier_stemmed`, but also containing the raw text of the documents
+
+        """
+        return _from_dataset(dataset, variant=variant, version=version, clz=BatchRetrieve, **kwargs)
 
     #: default_controls(dict): stores the default controls
     default_controls = {
@@ -513,6 +570,13 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         self.properties.update(d["properties"])
         for key,value in d["properties"].items():
             self.appSetup.setProperty(key, str(value))
+
+    @staticmethod 
+    def from_dataset(dataset : Union[str,Dataset], 
+            variant : str = None, 
+            version='latest',            
+            **kwargs):
+        return _from_dataset(dataset, variant=variant, version=version, clz=FeaturesBatchRetrieve, **kwargs)
 
     def transform(self, queries):
         """

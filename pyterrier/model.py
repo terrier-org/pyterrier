@@ -24,7 +24,7 @@ def add_ranks(rtr : pd.DataFrame) -> pd.DataFrame:
         return rtr
 
     # -1 assures that first rank will be FIRST_RANK
-    rtr["rank"] = rtr.groupby("qid", sort=False).rank(ascending=False, method="first")["score"].astype(int) -1 + FIRST_RANK
+    rtr["rank"] = rtr.groupby("qid", sort=False)["score"].rank(ascending=False, method="first").astype(int) -1 + FIRST_RANK
     if STRICT_SORT:
         rtr.sort_values(["qid", "rank"], ascending=[True,True], inplace=True)
     return rtr
