@@ -138,7 +138,7 @@ class RemoteDataset(Dataset):
                 r = requests.get(url, allow_redirects=True, stream=True, **kwargs)
                 r.raise_for_status()
                 total = int(r.headers.get('content-length', 0))
-                with open(filename, 'wb') as file, tqdm(
+                with pt.io.finialized_open(filename, 'b') as file, tqdm(
                         desc=basename,
                         total=total,
                         unit='iB',

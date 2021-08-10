@@ -1,4 +1,5 @@
 import pandas as pd
+from contextlib import contextmanager
 
 
 def coerce_dataframe(obj):
@@ -43,6 +44,21 @@ def find_files(dir):
         for name in filenames:
             files.append(os.path.join(dirpath, name))
     return sorted(files)
+
+@contextmanager
+def finialized_open(path, mode):
+    assert mode in ('b', 't') # must supply either binary or text mode
+    # adapted from <https://github.com/allenai/ir_datasets/blob/master/ir_datasets/util/__init__.py#L34>
+    try:
+        with open(f'{path}.tmp', f'x{mode}') as f: # open in exclusive write mode (raises error if already exists)
+            yield f
+        os.replace(f'{path}.tmp', path) # on success, move temp file to original path
+    except:
+        try:
+            os.remove(f'{path}.tmp')
+        except:
+            pass # edge case: removing temp file failed. Ignore and just raise orig error
+        raise
 
 
 def read_results(filename, format="trec", **kwargs):
