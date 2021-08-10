@@ -47,7 +47,18 @@ parameter dictionary can be constructed by refering to the instance of transform
         train_qrels, 
         "map")
 
-Terrier's BM25 also responds to controls named `"bm25.k_1"` and  `"bm25.k_3"`.
+Terrier's BM25 also responds to controls named `"bm25.k_1"` and  `"bm25.k_3"`, such that all three controls can be tuned concurrently::
+
+    BM25 = pt.BatchRetrieve(index, wmodel="BM25", controls={"c" : 0.75, "bm25.k_1": 0.75, "bm25.k_3": 0.75})
+    pt.GridSearch(
+        BM25,  
+        {BM25: {"c" : [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1 ],
+                "bm25.k_1": [0.3, 0.6, 0.9, 1.2, 1.4, 1.6, 2],
+                "bm25.k_3": [0.5, 2, 4, 6, 8, 10, 12, 14, 20]
+        }}
+        train_topics, 
+        train_qrels, 
+        "map")
 
 Tuning BM25 and RM3
 ~~~~~~~~~~~~~~~~~~~

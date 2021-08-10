@@ -26,6 +26,18 @@ class TestTRECIndexer(TempDirTestCase):
         self.assertEqual(11429, index.getCollectionStatistics().getNumberOfDocuments())
         self.assertTrue(os.path.isfile(self.test_dir + '/data.direct.bf'))
 
+    def test_TREC_indexing_revmeta(self):
+        print("Writing index to " + self.test_dir)
+        indexer = pt.TRECCollectionIndexer(self.test_dir, meta_reverse=['docno'])
+        indexRef = indexer.index(pt.io.find_files(self.here + "/fixtures/vaswani_npl/corpus/"))
+        self.assertIsNotNone(indexRef)
+        index = pt.IndexFactory.of(indexRef)
+        self.assertEqual(11429, index.getCollectionStatistics().getNumberOfDocuments())
+        self.assertTrue(os.path.isfile(self.test_dir + '/data.direct.bf'))
+        meta = index.getMetaIndex()
+        self.assertTrue('docno' in meta.getReverseKeys())
+        self.assertEqual( meta.getDocument("docno", meta.getItem("docno", 2)), 2) 
+
     def test_TREC_indexing_text(self):
         print("Writing index to " + self.test_dir)
         indexer = pt.TRECCollectionIndexer(
@@ -58,3 +70,14 @@ class TestTRECIndexer(TempDirTestCase):
         self.assertIsNotNone(indexRef)
         index = pt.IndexFactory.of(indexRef)
         self.assertEqual(11429, index.getCollectionStatistics().getNumberOfDocuments())
+
+    def test_TREC_indexing_bad_files_type(self):
+        print("Writing index to " + self.test_dir)
+        indexer = pt.TRECCollectionIndexer(self.test_dir)
+        with self.assertRaises(ValueError):
+            indexRef = indexer.index(5)
+    
+        indexer = pt.TRECCollectionIndexer(self.test_dir)
+        with self.assertRaises(ValueError):
+            indexRef = indexer.index(pt.get_dataset("vaswani").get_corpus_iter())
+    
