@@ -16,3 +16,4 @@ ir_datasets>=0.3.2
 jinja2
 statsmodels
 ir_measures==0.1.4
+dill

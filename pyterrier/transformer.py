@@ -11,7 +11,10 @@ from typing import Iterable
 LAMBDA = lambda:0
 def is_lambda(v):
     return isinstance(v, type(LAMBDA)) and v.__name__ == LAMBDA.__name__
-       
+
+def is_function(v):
+    return isinstance(v, types.FunctionType)
+
 def is_transformer(v):
     if isinstance(v, TransformerBase):
         return True
@@ -29,7 +32,7 @@ def get_transformer(v):
         return v
     if is_lambda(v):
         return ApplyGenericTransformer(v)
-    if isinstance(v, types.FunctionType):
+    if is_function(v):
         return ApplyGenericTransformer(v)
     if isinstance(v, pd.DataFrame):
         return SourceTransformer(v)

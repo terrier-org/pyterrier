@@ -158,6 +158,27 @@ class TestBatchRetrieve(BaseTestCase):
         result = retr.search("results")
         self.assertEqual(len(result), 1001)
 
+    def test_num_manual_wmodel(self):
+        JIR = pt.autoclass('org.terrier.querying.IndexRef')
+        Tf = pt.autoclass("org.terrier.matching.models.Tf")()
+        indexref = JIR.of(self.here+"/fixtures/index/data.properties")
+        from jnius import JavaException
+        try:
+            retr = pt.BatchRetrieve(indexref, wmodel=Tf)
+            input=pd.DataFrame([["1", "Stability"]],columns=['qid','query'])
+            result = retr.transform(input)
+        except JavaException as ja:
+            print(ja.stacktrace)
+            raise ja
+        
+
+    def test_num_python_wmodel(self):
+        indexref = self.here+"/fixtures/index/data.properties"
+        Tf = lambda keyFreq, posting, entryStats, collStats: posting.getFrequency()
+        retr = pt.BatchRetrieve(indexref, wmodel=Tf)
+        input=pd.DataFrame([["1", "Stability"]],columns=['qid','query'])
+        result = retr.transform(input)
+
     def test_threading_manualref(self):
         
         if not pt.check_version("5.5"):
@@ -169,6 +190,11 @@ class TestBatchRetrieve(BaseTestCase):
         JIR = pt.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of("concurrent:" + self.here+"/fixtures/index/data.properties")
         retr = pt.BatchRetrieve(indexref, threads=5)
+        result = retr.transform(topics)
+
+        #check that use of a callback model works under threading
+        Tf = lambda keyFreq, posting, entryStats, collStats: posting.getFrequency()
+        retr = pt.BatchRetrieve(indexref, threads=5, wmodel=Tf)
         result = retr.transform(topics)
 
     def test_threading_selfupgrade(self):
