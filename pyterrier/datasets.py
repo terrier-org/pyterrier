@@ -127,6 +127,7 @@ class RemoteDataset(Dataset):
 
     @staticmethod
     def download(URLs : Union[str,List[str]], filename : str, **kwargs):
+        import pyterrier as pt
         basename = os.path.basename(filename)
 
         if isinstance(URLs, str):
