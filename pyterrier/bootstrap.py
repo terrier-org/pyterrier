@@ -44,6 +44,7 @@ def new_callable_wmodel(byterep):
     return wmodel
 
 def javabytebuffer2array(buffer):
+    assert buffer is not None
     def unsign(signed):
         return signed + 256 if signed < 0 else signed
     return bytearray([ unsign(buffer.get(offset)) for offset in range(buffer.capacity()) ])
