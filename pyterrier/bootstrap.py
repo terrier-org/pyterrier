@@ -5,7 +5,7 @@ from . import mavenresolver
 stdout_ref = None
 stderr_ref = None
 TERRIER_PKG = "org.terrier"
-
+SAVED_FNS=[]
 
 @deprecation.deprecated(deprecated_in="0.1.3",
                         # remove_id="",
@@ -22,6 +22,32 @@ _logging = logging
 def new_indexref(s):
     from . import IndexRef
     return IndexRef.of(s)
+
+def new_wmodel(bytes):
+    from . import autoclass
+    serUtils = autoclass("org.terrier.python.Serialization")
+    return serUtils.deserialize(bytes, autoclass("org.terrier.utility.ApplicationSetup").getClass("org.terrier.matching.models.WeightingModel") )
+
+def new_callable_wmodel(byterep):
+    import dill as pickle
+    from dill import extend
+    #see https://github.com/SeldonIO/alibi/issues/447#issuecomment-881552005
+    extend(use_dill=False)            
+    fn = pickle.loads(byterep)
+    #we need to prevent these functions from being GCd.
+    global SAVED_FNS
+    SAVED_FNS.append(fn)
+    from .batchretrieve import _function2wmodel
+    callback, wmodel = _function2wmodel(fn)
+    SAVED_FNS.append(callback)
+    #print("Stored lambda fn  %s and callback in SAVED_FNS, now %d stored" % (str(fn), len(SAVED_FNS)))
+    return wmodel
+
+def javabytebuffer2array(buffer):
+    assert buffer is not None
+    def unsign(signed):
+        return signed + 256 if signed < 0 else signed
+    return bytearray([ unsign(buffer.get(offset)) for offset in range(buffer.capacity()) ])
 
 def setup_jnius():
     from jnius import protocol_map # , autoclass
@@ -70,6 +96,39 @@ def setup_jnius():
 
     protocol_map["org.terrier.querying.IndexRef"] = {
         '__reduce__' : index_ref_reduce,
+        '__getstate__' : lambda self : None,
+    }
+
+
+    # handles the pickling of WeightingModel classes, which are themselves usually Serializable in Java
+    def wmodel_reduce(self):
+        from . import autoclass
+        serUtils = autoclass("org.terrier.python.Serialization")
+        serialized = bytes(serUtils.serialize(self))
+        return (
+            new_wmodel,
+            (serialized, ),
+            None
+        )
+
+    protocol_map["org.terrier.matching.models.WeightingModel"] = {
+        '__reduce__' : wmodel_reduce,
+        '__getstate__' : lambda self : None,
+    }
+
+    def callable_wmodel_reduce(self):
+        from . import autoclass
+        # get bytebuffer representation of lambda
+        # convert bytebyffer to python bytearray
+        bytesrep = javabytebuffer2array(self.scoringClass.serializeFn())
+        return (
+            new_callable_wmodel,
+            (bytesrep, ),
+            None
+        )
+
+    protocol_map["org.terrier.python.CallableWeightingModel"] = {
+        '__reduce__' : callable_wmodel_reduce,
         '__getstate__' : lambda self : None,
     }
 

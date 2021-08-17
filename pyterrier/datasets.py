@@ -530,6 +530,9 @@ def _datarepo_index(self, component, variant=None, version='latest', **kwargs):
     rtr = []
     import re
     for linenum, line in enumerate(file):
+        # skip comments
+        if line.startswith("#"):
+            continue
         try:
             (length, filename) = re.split(r"\s+", line.strip(), 2)
             rtr.append((filename, urlprefix+filename, int(length)))
