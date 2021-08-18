@@ -11,7 +11,10 @@ from typing import Iterable
 LAMBDA = lambda:0
 def is_lambda(v):
     return isinstance(v, type(LAMBDA)) and v.__name__ == LAMBDA.__name__
-       
+
+def is_function(v):
+    return isinstance(v, types.FunctionType)
+
 def is_transformer(v):
     if isinstance(v, TransformerBase):
         return True
@@ -29,7 +32,7 @@ def get_transformer(v):
         return v
     if is_lambda(v):
         return ApplyGenericTransformer(v)
-    if isinstance(v, types.FunctionType):
+    if is_function(v):
         return ApplyGenericTransformer(v)
     if isinstance(v, pd.DataFrame):
         return SourceTransformer(v)
@@ -420,7 +423,18 @@ class SetIntersectionTransformer(BinaryTransformerBase):
         
         on_cols = ["qid", "docno"]
         rtr = res1.merge(res2, on=on_cols, suffixes=('','_y'))
-        rtr.drop(columns=["score", "rank"], inplace=True, errors='ignore')
+        rtr.drop(columns=["score", "rank", "score_y", "rank_y", "query_y"], inplace=True, errors='ignore')
+        for col in rtr.columns:
+            if not '_y' in col:
+                continue
+            new_name = col.replace('_y', '')
+            if new_name in rtr.columns:
+                # duplicated column, drop
+                rtr.drop(columns=[col], inplace=True)
+                continue
+            # column only from RHS, keep, but rename by removing '_y' suffix
+            rtr.rename(columns={col:new_name}, inplace=True)
+
         return rtr
 
 class CombSumTransformer(BinaryTransformerBase):
@@ -494,6 +508,8 @@ class ScalarProductTransformer(BinaryTransformerBase):
     def transform(self, topics_and_res):
         res = self.transformer.transform(topics_and_res)
         res["score"] = self.scalar * res["score"]
+        if self.scalar < 0:
+            res = add_ranks(res)
         return res
 
 class RankCutoffTransformer(BinaryTransformerBase):
@@ -539,7 +555,10 @@ class ApplyForEachQuery(ApplyTransformerBase):
         self.add_ranks = add_ranks
     
     def transform(self, res):
-        rtr = pd.concat(self.fn(group) for qid, group in res.groupby("qid"))
+        it = res.groupby("qid")
+        if self.verbose:
+            it = tqdm(it, unit='query')
+        rtr = pd.concat(self.fn(group) for qid, group in it)
         if self.add_ranks:
             rtr = add_ranks(rtr)
         return rtr

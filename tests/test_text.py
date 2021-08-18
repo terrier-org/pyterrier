@@ -19,10 +19,11 @@ class TestText(BaseTestCase):
 
     def test_fetch_text_docno(self):
         dfinput = pd.DataFrame([["q1", "a query", "1"]], columns=["qid", "query", "docno"])
-        #indexref, str, Index
+        #directory, indexref, str, Index
         for indexlike in [
             pt.get_dataset("vaswani").get_index(), 
-            pt.get_dataset("vaswani").get_index().toString(),
+            pt.IndexRef.of(pt.get_dataset("vaswani").get_index()),
+            pt.IndexRef.of(pt.get_dataset("vaswani").get_index()).toString(),
             pt.IndexFactory.of(pt.get_dataset("vaswani").get_index())
         ]:
             textT = pt.text.get_text(indexlike, "docno")
@@ -33,10 +34,11 @@ class TestText(BaseTestCase):
         
     def test_fetch_text_docid(self):
         dfinput = pd.DataFrame([["q1", "a query", 1]], columns=["qid", "query", "docid"])
-        #indexref, str, Index
+        #directory, indexref, str, Index
         for indexlike in [
             pt.get_dataset("vaswani").get_index(), 
-            pt.get_dataset("vaswani").get_index().toString(),
+            pt.IndexRef.of(pt.get_dataset("vaswani").get_index()),
+            pt.IndexRef.of(pt.get_dataset("vaswani").get_index()).toString(),
             pt.IndexFactory.of(pt.get_dataset("vaswani").get_index())
         ]:
             textT = pt.text.get_text(indexlike, "docno")

@@ -35,19 +35,25 @@ def query(fn : Callable[..., str], *args, **kwargs) -> TransformerBase:
             # this will remove pre-defined stopwords from the query
             stops=set(["and", "the"])
 
-            # a naieve function to remove stopwords
+            # a naieve function to remove stopwords - takes as input a Pandas Series, and returns a string
             def _remove_stops(q):
                 terms = q["query"].split(" ")
                 terms = [t for t in terms if not t in stops ]
                 return " ".join(terms)
 
-            # a query rewriting transformer applying _remove_stops
+            # a query rewriting transformer that applies the _remove_stops to each row of an input dataframe
             p1 = pt.apply.query(_remove_stops) >> pt.BatchRetrieve(index, wmodel="DPH")
 
             # an equivalent query rewriting transformer using an anonymous lambda function
             p2 = pt.apply.query(
                     lambda q :  " ".join([t for t in q["query"].split(" ") if t not in stops ])
                 ) >> pt.BatchRetrieve(index, wmodel="DPH")
+
+        In both of the example pipelines above (`p1` and `p2`), the exact topics are not known until the pipeline is invoked, e.g.
+        by using `p1.transform(topics)` on a topics dataframe, or within a `pt.Experiment()`. When the pipeline 
+        is invoked, the specified function (`_remove_stops` in the case of `p1`) is called for **each** row of the 
+        input datatrame (becoming the `q` function argument).
+            
 
     """
     return ApplyQueryTransformer(fn, *args, **kwargs)

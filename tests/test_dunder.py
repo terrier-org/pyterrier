@@ -5,6 +5,77 @@ from .base import TempDirTestCase
 
 class TestDunder(TempDirTestCase):
 
+    def test_callable_wmodel_dunders(self):
+        testPosting = pt.autoclass("org.terrier.structures.postings.BasicPostingImpl")(0,1)
+
+        from pyterrier.batchretrieve import _function2wmodel
+        lambdafn = lambda keyFreq, posting, entryStats, collStats: posting.getFrequency()
+        callback, wmodel = _function2wmodel(lambdafn)
+        
+        from pyterrier.bootstrap import javabytebuffer2array
+        byterep = javabytebuffer2array(wmodel.scoringClass.serializeFn())
+        import dill as pickle
+        from dill import extend
+        #see https://github.com/SeldonIO/alibi/issues/447#issuecomment-881552005
+        extend(use_dill=False)    
+        fn = pickle.loads(byterep)
+        self.assertEqual(
+            lambdafn(1, testPosting, None, None),
+            fn(1, testPosting, None, None),
+            )
+
+        wmodel.__getstate__()
+        rtr = wmodel.__reduce__()
+        
+        #check the byte array is picklable
+        pickle.dumps(rtr[1][0])
+        #check object is picklable
+        pickle.dumps(wmodel)
+        #check can be unpickled too
+        wmodel2 = pickle.loads(pickle.dumps(wmodel))
+
+        score1 = wmodel.score(testPosting)
+        score2 = wmodel2.score(testPosting)
+        self.assertEqual(score1, score2)
+
+        #check newly unpickled can still be pickled
+        pickle.dumps(wmodel2)
+        wmodel3 = pickle.loads(pickle.dumps(wmodel2))
+        score3 = wmodel3.score(testPosting)
+        self.assertEqual(score1, score3)
+
+
+    def test_wmodel_dunders(self):
+
+        wmodel = pt.autoclass("org.terrier.matching.models.BM25")()
+        wmodel.__reduce__()
+        wmodel.__getstate__()
+        rtr = wmodel.__reduce__()
+        pt.cast("org.terrier.matching.models.BM25", rtr[0](*rtr[1]))
+        import pickle
+        #import dill as pickle
+        #check the byte array is picklable
+        print(rtr[1][0])
+        pickle.dumps(rtr[1][0])
+        pickle.dumps(wmodel)
+
+    def test_index_dunders(self):
+        indexref = pt.datasets.get_dataset("vaswani").get_index()
+        i1 = pt.IndexFactory.of(indexref)
+        i2 = pt.IndexFactory.of(indexref)
+        i12 = i1 + i2
+        self.assertIsNotNone(i12)
+        self.assertEqual(
+            i12.getCollectionStatistics().getNumberOfDocuments(), 
+            i1.getCollectionStatistics().getNumberOfDocuments()
+            + i2.getCollectionStatistics().getNumberOfDocuments())
+        self.assertEqual( len(i1), i1.getCollectionStatistics().getNumberOfDocuments() )
+        self.assertEqual( len(i12), len(i1) + len(i2) )
+            
+        self.assertTrue(i12.hasIndexStructure("inverted"))
+        self.assertTrue(i12.hasIndexStructure("lexicon"))
+        self.assertTrue(i12.hasIndexStructure("document"))
+        self.assertTrue(i12.hasIndexStructure("meta"))
 
     def test_dunders(self):
         import pandas as pd

@@ -89,7 +89,7 @@ to use these directly but they are documented for completeness.
 +--------+------------------+---------------------------+
 | `%`    | rank-cutoff      | RankCutoffTransformer     |
 +--------+------------------+---------------------------+
-| `%`    | feature-union    | FeatureUnionPipeline      |
+| `**`   | feature-union    | FeatureUnionPipeline      |
 +--------+------------------+---------------------------+
 | `^`    | concatenate      | ConcatenateTransformer    |
 +--------+------------------+---------------------------+

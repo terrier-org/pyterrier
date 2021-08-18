@@ -93,6 +93,24 @@ class TestModel(BaseTestCase):
         # trec_eval instead breaks ties on ascending docno
         self.assertEqual(df.iloc[1]["rank"], FIRST_RANK+1)
 
+    def test_rank_one_query_neg(self):
+        df = pd.DataFrame([["q1", "doc1", -4], ["q1", "doc2", -5]], columns=["qid", "docno", "score"])
+        df = add_ranks(df)
+        df = df.sort_values("rank", ascending=True)
+        self.assertTrue("rank" in df.columns)
+        # check that first item is rank 1
+        self.assertEqual(df.iloc[0]["rank"], FIRST_RANK)
+        self.assertEqual(df.iloc[0]["docno"], "doc1")
+
+        df = pd.DataFrame([["q1", "doc2", -5], ["q1", "doc1", -4]], columns=["qid", "docno", "score"])
+        df = add_ranks(df)
+        df = df.sort_values("rank", ascending=True)
+        self.assertTrue("rank" in df.columns)
+        # check that first item is rank 1
+        self.assertEqual(df.iloc[0]["rank"], FIRST_RANK)
+        self.assertEqual(df.iloc[0]["docno"], "doc1")
+        
+
     def test_rank_one_query_sort(self):
         import pyterrier as pt
         sort_status = pt.model.STRICT_SORT

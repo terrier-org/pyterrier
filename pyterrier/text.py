@@ -28,9 +28,9 @@ def get_text(
 
     Example::
 
-        pipe = pt.BatchRetrieve(index, wmodel="DPH") \ 
-            >> pt.text.get_text(index) \ 
-            >> pt.text.scorer(wmodel="DPH")
+        pipe = ( pt.BatchRetrieve(index, wmodel="DPH")
+            >> pt.text.get_text(index)
+            >> pt.text.scorer(wmodel="DPH") )
 
     """
     import pyterrier as pt
@@ -165,7 +165,7 @@ def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='ti
     Parameters:
         - text_attr(str): what is the name of the dataframe attribute containing the main text of the document to be split into passages.
             Default is 'body'.
-        - length(int): how many tokes in each passage. Default is 150.
+        - length(int): how many tokens in each passage. Default is 150.
         - stride(int): how many tokens to advance each passage by. Default is 75.
         - prepend_attr(str): whether another document attribute, such as the title of the document, to each passage, following [Dai2019]. Defaults to 'title'. 
         - title_attr(str): what is the name of the dataframe attribute containing the title the document to be split into passages.
@@ -173,10 +173,10 @@ def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='ti
     
     Example::
     
-        pipe = pt.BatchRetrieve(index, wmodel="DPH", metadata=["docno", "body"]) \ 
-            >> pt.text.sliding(length=128, stride=64, prepend_attr=None) \ 
-            >> pt.text.scorer(wmodel="DPH") \ 
-            >> pt.text.max_passage()
+        pipe = ( pt.BatchRetrieve(index, wmodel="DPH", metadata=["docno", "body"]) 
+            >> pt.text.sliding(length=128, stride=64, prepend_attr=None) 
+            >> pt.text.scorer(wmodel="DPH") 
+            >> pt.text.max_passage() )
         
     """
 

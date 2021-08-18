@@ -150,5 +150,25 @@ class TestIterDictIndexer(TempDirTestCase):
         from pyterrier.index import IndexingType
         self._make_check_index(3, IndexingType.SINGLEPASS, fields=['text', 'title'])
 
+    def test_check_stemmer(self):
+        it = [
+            {'docno': '1', 'url': 'url1', 'text': 'He ran out of money, so he had to stop playing', 'title': 'Woes of playing poker'},
+            {'docno': '2', 'url': 'url2', 'text': 'The waves were crashing on the shore; it was a', 'title': 'Lovely sight'},
+            {'docno': '3', 'url': 'url3', 'text': 'The body may perhaps compensates for the loss', 'title': 'Best of Viktor Prowoll'},
+        ]
+        props={}
+        props["termpipelines"] = ""
+        
+        indexer = pt.IterDictIndexer(self.test_dir)
+        for k,v in props.items():
+            indexer.setProperty(k, v)
+        indexref = indexer.index(it)
+        index = pt.IndexFactory.of(indexref)
+        index = pt.cast("org.terrier.structures.IndexOnDisk", index)
+        #restore setting after test
+        pt.ApplicationSetup.setProperty("termpipelines", "Stopwords,PorterStemmer")
+        self.assertEqual("", index.getIndexProperty("termpipelines", "bla"))
+        
+
 if __name__ == "__main__":
     unittest.main()
