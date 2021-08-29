@@ -172,6 +172,6 @@ def generic_apply(name, *args, drop=False, **kwargs) -> TransformerBase:
     fn = args[0]
     args=[]
     def _new_column(df):
-        df[name] = df.apply(fn, axis=1)
+        df[name] = df.apply(fn, axis=1, result_type='reduce')
         return df
     return ApplyGenericTransformer(_new_column, *args, **kwargs)

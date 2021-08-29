@@ -27,6 +27,9 @@ class TestCache(BaseTestCase):
         rtr = p(testDF)
         self.assertTrue("BlaB" in rtr.columns)
         self.assertEqual(rtr.iloc[0]["BlaB"], 2)
+        emptyQs = pt.new.empty_Q()
+        rtr = p(emptyQs)
+        self.assertTrue("BlaB" in rtr.columns)
 
     def test_rename_columns(self):
         from pyterrier.transformer import TransformerBase
