@@ -4,6 +4,11 @@ import pyterrier as pt
 
 class TestModel(BaseTestCase):
 
+    def test_empty(self):
+        df = pt.new.empty_Q()
+        self.assertTrue("qid" in df.columns)
+        self.assertTrue("query" in df.columns)
+
     def test_newR1(self):
         df = pt.new.ranked_documents([[1]])
         self.assertEqual(1, len(df))

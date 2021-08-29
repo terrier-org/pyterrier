@@ -8,7 +8,7 @@ def empty_Q() -> pd.DataFrame:
     """
         Returns an empty dataframe with columns `["qid", "query"]`.
     """
-    return pd.DataFrame([[]], columns=["qid", "query"])
+    return pd.DataFrame(columns=["qid", "query"])
 
 def queries(queries : Union[str, Sequence[str]], qid : Union[str, Sequence[str]] = None, **others) -> pd.DataFrame:
     """
