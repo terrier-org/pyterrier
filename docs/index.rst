@@ -36,6 +36,7 @@ Welcome to PyTerrier's documentation!
    apply
    anserini
    new
+   debug
 
 .. toctree::
    :maxdepth: 1
