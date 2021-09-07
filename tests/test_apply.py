@@ -55,6 +55,8 @@ class TestCache(BaseTestCase):
     def test_by_query_apply(self):
         inputDf = pt.new.ranked_documents([[1], [2]], qid=["1", "2"])
         def _inc_score(res):
+            if len(res) == 0:
+                return res
             res = res.copy()
             res["score"] = res["score"] + int(res.iloc[0]["qid"])
             return res
@@ -64,6 +66,8 @@ class TestCache(BaseTestCase):
         self.assertEqual(outputDf.iloc[0]["score"], 2)
         self.assertEqual(outputDf.iloc[1]["qid"], "2")
         self.assertEqual(outputDf.iloc[1]["score"], 4)
+
+        outputDfEmpty = p(inputDf.head(0))
 
     def test_docscore_apply(self):
         p = pt.apply.doc_score(lambda doc_row: len(doc_row["text"]))
