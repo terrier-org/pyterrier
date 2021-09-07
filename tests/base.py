@@ -15,6 +15,9 @@ class BaseTestCase(unittest.TestCase):
         if not pt.started():
             pt.init(version=terrier_version, logging="DEBUG")
         self.here = os.path.dirname(os.path.realpath(__file__))
+        assert "version" in pt.init_args
+        assert pt.init_args["version"] == terrier_version
+
 
     def skip_windows(self):
         if BaseTestCase.is_windows():

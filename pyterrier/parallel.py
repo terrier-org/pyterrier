@@ -5,13 +5,17 @@ import pyterrier as pt
 SUPPORTED_BACKENDS=["joblib", "ray"]
 
 #see https://stackoverflow.com/a/55566003
-def _joblib_with_initializer(p, f_init):
+def _joblib_with_initializer(p, _f_init, args=None):
     # Overwrite initializer hook in the Loky ProcessPoolExecutor
     # https://github.com/tomMoral/loky/blob/f4739e123acb711781e46581d5ed31ed8201c7a9/loky/process_executor.py#L850
     hasattr(p._backend, '_workers') or p.__enter__()
     if hasattr(p, 'with_initializer'):
         return p
     origin_init = p._backend._workers._initializer
+    if args is None:
+        f_init = _f_init
+    else:
+        f_init = lambda: _f_init(args)
     def new_init():
         origin_init()
         f_init()
@@ -49,13 +53,13 @@ def parallel_lambda(function, inputs, jobs, backend='joblib'):
 
 def _parallel_lambda_ray(function, inputs, jobs):
     from ray.util.multiprocessing import Pool
-    with Pool(jobs, lambda: pt.init(**pt.init_args)) as pool:
+    with Pool(jobs, lambda args: pt.init(**args), pt.init_args) as pool:
         return pool.map(function, inputs)
 
 def _parallel_lambda_joblib(function, inputs, jobs):
     from joblib import Parallel, delayed
     with Parallel(n_jobs=jobs) as parallel:
-        parallel_mp = _joblib_with_initializer(parallel, lambda: _pt_init(pt.init_args))
+        parallel_mp = _joblib_with_initializer(parallel, _pt_init, pt.init_args)
         return parallel_mp(
             delayed(function)(input) for input in inputs)
         
@@ -78,12 +82,12 @@ class PoolParallelTransformer(TransformerBase):
     def _transform_joblib(self, splits):
         from joblib import Parallel, delayed
         with Parallel(n_jobs=self.n_jobs) as parallel:
-            results = _joblib_with_initializer(parallel, lambda: _pt_init(pt.init_args))(delayed(self.parent)(topics) for topics in splits)
+            results = _joblib_with_initializer(parallel, _pt_init, pt.init_args)(delayed(self.parent)(topics) for topics in splits)
             return pd.concat(results)
         
     def _transform_ray(self, splits):
         from ray.util.multiprocessing import Pool
-        with Pool(self.n_jobs, lambda: pt.init(**pt.init_args)) as pool:
+        with Pool(self.n_jobs, lambda args: pt.init(**args), pt.init_args) as pool:
             results = pool.map(lambda topics : self.parent(topics), splits)
             return pd.concat(results)
 
