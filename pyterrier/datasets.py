@@ -129,18 +129,20 @@ class RemoteDataset(Dataset):
 
     @staticmethod
     def download(URLs : Union[str,List[str]], filename : str, **kwargs):
+        import pyterrier as pt
         basename = os.path.basename(filename)
 
         if isinstance(URLs, str):
             URLs = [URLs]
         
         finalattempt=len(URLs)-1
+        error = None
         for i, url in enumerate(URLs):            
             try:
                 r = requests.get(url, allow_redirects=True, stream=True, **kwargs)
                 r.raise_for_status()
                 total = int(r.headers.get('content-length', 0))
-                with open(filename, 'wb') as file, tqdm(
+                with pt.io.finalized_open(filename, 'b') as file, tqdm(
                         desc=basename,
                         total=total,
                         unit='iB',
@@ -152,8 +154,11 @@ class RemoteDataset(Dataset):
                         bar.update(size)
                     break
             except Exception as e:
+                if error is not None:
+                    e.__cause__ = error # chain errors to show all if fails
+                error = e
                 if i == finalattempt:
-                    raise e
+                    raise error
                 else:
                     warn("Problem fetching %s, resorting to next mirror" % url)
             
