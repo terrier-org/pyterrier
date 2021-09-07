@@ -26,7 +26,7 @@ def _joblib_with_initializer(p, _f_init, args=None):
 def _pt_init(args):
     import pyterrier as pt
     if not pt.started():
-        pt.init(**args)
+        pt.init(no_download=True, **args)
     else:
         from warnings import warn
         warn("Avoiding reinit of PyTerrier")
@@ -87,7 +87,7 @@ class PoolParallelTransformer(TransformerBase):
         
     def _transform_ray(self, splits):
         from ray.util.multiprocessing import Pool
-        with Pool(self.n_jobs, lambda args: pt.init(**args), pt.init_args) as pool:
+        with Pool(self.n_jobs, _pt_init, pt.init_args) as pool:
             results = pool.map(lambda topics : self.parent(topics), splits)
             return pd.concat(results)
 
