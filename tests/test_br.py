@@ -209,6 +209,28 @@ class TestBatchRetrieve(BaseTestCase):
         retr = pt.BatchRetrieve(indexref, threads=5)
         result = retr.transform(topics)
 
+    def test_terrier_retrieve_alias(self):
+        # based off test_candidate_set_one_doc
+        if not pt.check_version("5.3"):
+            self.skipTest("Requires Terrier 5.3")
+        indexloc = self.here + "/fixtures/index/data.properties"
+        # docid 50 == docno 51
+        input_set = pd.DataFrame([["q1", "light", 50]], columns=["qid", "query", "docid"])
+        retr = pt.TerrierRetrieve(indexloc)
+
+        # this test the implementation of __call__() redirecting to transform()
+        for result in [retr.transform(input_set), retr(input_set)]:
+            result = retr.transform(input_set)
+            self.assertTrue("qid" in result.columns)
+            self.assertTrue("docno" in result.columns)
+            self.assertTrue("score" in result.columns)
+            self.assertTrue("rank" in result.columns)
+            self.assertEqual(1, len(result))
+            row = result.iloc[0]
+            self.assertEqual("q1", row["qid"])
+            self.assertEqual("51", row["docno"])
+            self.assertEqual(pt.model.FIRST_RANK, row["rank"])
+            self.assertTrue(row["score"] > 0)
 
 
 if __name__ == "__main__":
