@@ -32,7 +32,7 @@ tqdm = None
 HOME_DIR = None
 init_args ={}
 
-def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, logging='WARN', home_dir=None, boot_packages=[], tqdm=None):
+def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, logging='WARN', home_dir=None, boot_packages=[], tqdm=None, no_download=False):
     """
     Function necessary to be called before Terrier classes and methods can be used.
     Loads the Terrier .jar file and imports classes. Also finds the correct version of Terrier to download if no version is specified.
@@ -88,7 +88,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
             os.mkdir(HOME_DIR)
 
     # get the initial classpath for the JVM
-    classpathTrJars = setup_terrier(HOME_DIR, version, boot_packages=boot_packages)
+    classpathTrJars = setup_terrier(HOME_DIR, version, boot_packages=boot_packages, force_download=not no_download)
     
     if is_windows():
         if "JAVA_HOME" in os.environ:
