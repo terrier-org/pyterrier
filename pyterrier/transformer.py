@@ -555,10 +555,16 @@ class ApplyForEachQuery(ApplyTransformerBase):
         self.add_ranks = add_ranks
     
     def transform(self, res):
+        if len(res) == 0:
+            return self.fn(res)
         it = res.groupby("qid")
         if self.verbose:
             it = tqdm(it, unit='query')
-        rtr = pd.concat(self.fn(group) for qid, group in it)
+        try:
+            dfs = [self.fn(group) for qid, group in it]
+            rtr = pd.concat(dfs)
+        except Exception as a:
+            raise Exception("Problem applying %s" % self.fn) from a
         if self.add_ranks:
             rtr = add_ranks(rtr)
         return rtr
