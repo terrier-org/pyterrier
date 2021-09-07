@@ -31,7 +31,7 @@ BatchRetrieve
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: pyterrier.BatchRetrieve
-    :members: transform 
+    :members: transform, from_dataset
 
 
 
@@ -117,3 +117,33 @@ By default, PyTerrier is configured for indexing and retrieval in English. See
 `our notebook <https://github.com/terrier-org/pyterrier/blob/master/examples/notebooks/non_en_retrieval.ipynb>`_
 (`colab <https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/non_en_retrieval.ipynb>`_)
 for details on how to configure PyTerrier in other languages.
+
+Custom Weighting Models
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Normally, weighting models are specified as a string class names. Terrier then loads the Java class of that name (it will search
+the `org.terrier.matching.models package <http://terrier.org/docs/current/javadoc/org/terrier/matching/models/package-summary.html>`_ 
+unless the class name is fully qualified (e.g. `"com.example.MyTF"`).
+
+If you have your own Java weighting model instance (which extends the 
+`WeightingModel abstract class <http://terrier.org/docs/current/javadoc/org/terrier/matching/models/WeightingModel.html>`_, 
+you can load it and pass it directly to BatchRetrieve::
+
+    mymodel = pt.autoclass("com.example.MyTF")()
+    retr = pt.BatchRetrieve(indexref, wmodel=mymodel)
+
+More usefully, it is possible to express a weighting model entirely in Python, as a function or a lambda expression, that can be
+used by Terrier for scoring. In this example, we create a Terrier BatchRetrieve instance that scores based solely on term frequency::
+
+    Tf = lambda keyFreq, posting, entryStats, collStats: posting.getFrequency()
+    retr = pt.BatchRetrieve(indexref, wmodel=Tf)
+
+All functions passed must accept 4 arguments, as follows:
+
+ - keyFrequency(float): the weight of the term in the query, usually 1 except during PRF.
+ - posting(`Posting <http://terrier.org/docs/current/javadoc/org/terrier/structures/postings/Posting.html>`_): access to the information about the occurrence of the term in the current document (frequency, document length etc).
+ - entryStats(`EntryStatistics <http://terrier.org/docs/current/javadoc/org/terrier/structures/EntryStatistics.html>`_): access to the information about the occurrence of the term in the whole index (document frequency, etc.).
+ - collStats(`CollectionStatistics <http://terrier.org/docs/current/javadoc/org/terrier/structures/CollectionStatistics.html>`_): access to the information about the index as a whole (number of documents, etc).
+
+Note that due to the overheads of continually traversing the JNI boundary, using a Python function for scoring has a marked efficiency overhead. This is probably too slow for retrieval using most indices of any significant size,
+but allows simple explanation of weighting models and exploratory weighting model development.

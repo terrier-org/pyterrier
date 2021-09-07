@@ -17,12 +17,32 @@ class TestText(BaseTestCase):
         self.assertEqual(1.0, dfOut.iloc[0].score)
         self.assertEqual(1.0, dfOut.iloc[1].score)
 
+    def test_scorer_rerank(self):
+        #checks that the rank attribute is updated.
+        dfIn = pd.DataFrame(
+            [
+                ["q1", "chemical reactions", "d1", 1.0, 0, "professor protor poured the chemicals"],
+                ["q1", "chemical reactions", "d2", 0.9, 1, "chemical chemical chemical brothers turned up the beats"],
+            ], columns=["qid", "query", "docno", "score", "rank", "text"])
+        dfOut = pt.text.scorer(body_attr="text", wmodel="Tf").transform(dfIn)
+        self.assertTrue("rank" in dfOut.columns)
+        self.assertTrue("score" in dfOut.columns)
+        self.assertEqual("d1", dfOut.iloc[0].docno)
+        self.assertEqual(1.0, dfOut.iloc[0].score)
+        self.assertEqual(3.0, dfOut.iloc[1].score)
+        self.assertEqual(0, dfOut.iloc[1]["rank"])
+        self.assertEqual(1, dfOut.iloc[0]["rank"])
+        print(dfOut)
+
+
+
     def test_fetch_text_docno(self):
         dfinput = pd.DataFrame([["q1", "a query", "1"]], columns=["qid", "query", "docno"])
-        #indexref, str, Index
+        #directory, indexref, str, Index
         for indexlike in [
             pt.get_dataset("vaswani").get_index(), 
-            pt.get_dataset("vaswani").get_index().toString(),
+            pt.IndexRef.of(pt.get_dataset("vaswani").get_index()),
+            pt.IndexRef.of(pt.get_dataset("vaswani").get_index()).toString(),
             pt.IndexFactory.of(pt.get_dataset("vaswani").get_index())
         ]:
             textT = pt.text.get_text(indexlike, "docno")
@@ -33,10 +53,11 @@ class TestText(BaseTestCase):
         
     def test_fetch_text_docid(self):
         dfinput = pd.DataFrame([["q1", "a query", 1]], columns=["qid", "query", "docid"])
-        #indexref, str, Index
+        #directory, indexref, str, Index
         for indexlike in [
             pt.get_dataset("vaswani").get_index(), 
-            pt.get_dataset("vaswani").get_index().toString(),
+            pt.IndexRef.of(pt.get_dataset("vaswani").get_index()),
+            pt.IndexRef.of(pt.get_dataset("vaswani").get_index()).toString(),
             pt.IndexFactory.of(pt.get_dataset("vaswani").get_index())
         ]:
             textT = pt.text.get_text(indexlike, "docno")

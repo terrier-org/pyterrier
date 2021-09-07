@@ -63,7 +63,7 @@ def _convert_measures(metrics : MEASURES_TYPE) -> Tuple[Sequence[BaseMeasure], D
         if isinstance(m, BaseMeasure):
             rtr.append(m)
             continue
-        if isinstance(m, str):
+        elif isinstance(m, str):
             measures = convert_trec_name(m)
             if len(measures) == 1:
                 metric = measures[0]
@@ -74,7 +74,9 @@ def _convert_measures(metrics : MEASURES_TYPE) -> Tuple[Sequence[BaseMeasure], D
                 rtr.extend(measures)
             else:
                 raise KeyError("Could not convert measure %s" % m)
-    assert len(rtr) > 0
+        else:
+            raise KeyError("Unknown measure %s of type %s" % (str(m), str(type(m))))
+    assert len(rtr) > 0, "No measures were found in %s" % (str(metrics))
     return rtr, rev_mapping
 
 #list(iter_calc([ir_measures.AP], qrels, run))
@@ -120,6 +122,8 @@ def _run_and_evaluate(
     # if its a DataFrame, use it as the results
     if isinstance(system, pd.DataFrame):
         res = system
+        if len(res) == 0:
+            raise ValueError("%d topics, but no results in dataframe" % len(topics))
         evalMeasuresDict = _ir_measures_to_dict(
             ir_measures.iter_calc(metrics, qrels, res.rename(columns=_irmeasures_columns)), 
             metrics,
@@ -134,6 +138,10 @@ def _run_and_evaluate(
         res = system.transform(topics)
         endtime = timer()
         runtime =  (endtime - starttime) * 1000.
+
+        if len(res) == 0:
+            raise ValueError("%d topics, but no results received from %s" % (len(topics), str(system)) )
+
         evalMeasuresDict = _ir_measures_to_dict(
             ir_measures.iter_calc(metrics, qrels, res.rename(columns=_irmeasures_columns)), 
             metrics,
@@ -146,7 +154,9 @@ def _run_and_evaluate(
         starttime = timer()
         results=[]
         evalMeasuresDict={}
-        for res in system.transform_gen(topics, batch_size=batch_size):
+        for i, res in enumerate( system.transform_gen(topics, batch_size=batch_size)):
+            if len(res) == 0:
+                raise ValueError("batch of %d topics, but no results received in batch %d from %s" % (batch_size, i, str(system) ) )
             endtime = timer()
             runtime += (endtime - starttime) * 1000.
             localEvalDict = _ir_measures_to_dict(
@@ -454,17 +464,17 @@ def KFoldGridSearch(
     been executed.
 
     Args:
-        - pipeline(TransformerBase): a transformer or pipeline to tune
-        - params(dict): a two-level dictionary, mapping transformer to param name to a list of values
-        - topics_list(List[DataFrame]): a *list* of topics dataframes to tune upon
-        - qrels(DataFrame or List[DataFrame]): qrels to tune upon. A single dataframe, or a list for each fold.       
-        - metric(str): name of the metric on which to determine the most effective setting. Defaults to "map".
-        - batch_size(int): If not None, evaluation is conducted in batches of batch_size topics. Default=None, which evaluates all topics at once. 
+        pipeline(TransformerBase): a transformer or pipeline to tune
+        params(dict): a two-level dictionary, mapping transformer to param name to a list of values
+        topics_list(List[DataFrame]): a *list* of topics dataframes to tune upon
+        qrels(DataFrame or List[DataFrame]): qrels to tune upon. A single dataframe, or a list for each fold.       
+        metric(str): name of the metric on which to determine the most effective setting. Defaults to "map".
+        batch_size(int): If not None, evaluation is conducted in batches of batch_size topics. Default=None, which evaluates all topics at once. 
             Applying a batch_size is useful if you have large numbers of topics, and/or if your pipeline requires large amounts of temporary memory
             during a run. Default is None.
-        - jobs(int): Number of parallel jobs to run. Default is 1, which means sequentially.
-        - backend(str): Parallelisation backend to use. Defaults to "joblib". 
-        - verbose(bool): whether to display progress bars or not
+        jobs(int): Number of parallel jobs to run. Default is 1, which means sequentially.
+        backend(str): Parallelisation backend to use. Defaults to "joblib". 
+        verbose(bool): whether to display progress bars or not
 
     Returns:
     A tuple containing, firstly, the results of pipeline on the test topics after tuning, and secondly, a list of the best parameter settings for each fold.
@@ -549,22 +559,25 @@ def GridSearch(
     topics and qrels, and for the specified measure.
 
     Args:
-        - pipeline(TransformerBase): a transformer or pipeline to tune
-        - params(dict): a two-level dictionary, mapping transformer to param name to a list of values
-        - topics(DataFrame): topics to tune upon
-        - qrels(DataFrame): qrels to tune upon       
-        - metric(str): name of the metric on which to determine the most effective setting. Defaults to "map".
-        - batch_size(int): If not None, evaluation is conducted in batches of batch_size topics. Default=None, which evaluates all topics at once. 
+        pipeline(TransformerBase): a transformer or pipeline to tune
+        params(dict): a two-level dictionary, mapping transformer to param name to a list of values
+        topics(DataFrame): topics to tune upon
+        qrels(DataFrame): qrels to tune upon       
+        metric(str): name of the metric on which to determine the most effective setting. Defaults to "map".
+        batch_size(int): If not None, evaluation is conducted in batches of batch_size topics. Default=None, which evaluates all topics at once. 
             Applying a batch_size is useful if you have large numbers of topics, and/or if your pipeline requires large amounts of temporary memory
             during a run. Default is None.
-        - jobs(int): Number of parallel jobs to run. Default is 1, which means sequentially.
-        - backend(str): Parallelisation backend to use. Defaults to "joblib". 
-        - verbose(bool): whether to display progress bars or not
-        - return_type(str): whether to return the same transformer with optimal pipeline setting, and/or a setting of the
+        jobs(int): Number of parallel jobs to run. Default is 1, which means sequentially.
+        backend(str): Parallelisation backend to use. Defaults to "joblib". 
+        verbose(bool): whether to display progress bars or not
+        return_type(str): whether to return the same transformer with optimal pipeline setting, and/or a setting of the
             higher metric value, and the resulting transformers and settings.
     """
     # save state
     initial_state = _save_state(params)
+
+    if isinstance(metric, list):
+        raise KeyError("GridSearch can only maximise ONE metric, but you passed a list (%s)." % str(metric))
 
     grid_outcomes = GridScan(
         pipeline, 
@@ -621,29 +634,29 @@ def GridScan(
     as well as controls in the case of BatchRetrieve.
 
     Args:
-        - pipeline(TransformerBase): a transformer or pipeline
-        - params(dict): a two-level dictionary, mapping transformer to param name to a list of values
-        - topics(DataFrame): topics to tune upon
-        - qrels(DataFrame): qrels to tune upon       
-        - metrics(List[str]): name of the metrics to report for each setting. Defaults to ["map"].
-        - batch_size(int): If not None, evaluation is conducted in batches of batch_size topics. Default=None, which evaluates all topics at once. 
+        pipeline(TransformerBase): a transformer or pipeline
+        params(dict): a two-level dictionary, mapping transformer to param name to a list of values
+        topics(DataFrame): topics to tune upon
+        qrels(DataFrame): qrels to tune upon       
+        metrics(List[str]): name of the metrics to report for each setting. Defaults to ["map"].
+        batch_size(int): If not None, evaluation is conducted in batches of batch_size topics. Default=None, which evaluates all topics at once. 
             Applying a batch_size is useful if you have large numbers of topics, and/or if your pipeline requires large amounts of temporary memory
             during a run. Default is None.
-        - jobs(int): Number of parallel jobs to run. Default is 1, which means sequentially.
-        - backend(str): Parallelisation backend to use. Defaults to "joblib". 
-        - verbose(bool): whether to display progress bars or not
-        - dataframe(bool): return a dataframe or a list
+        jobs(int): Number of parallel jobs to run. Default is 1, which means sequentially.
+        backend(str): Parallelisation backend to use. Defaults to "joblib". 
+        verbose(bool): whether to display progress bars or not
+        dataframe(bool): return a dataframe or a list
     Returns:
-        - A dataframe showing the effectiveness of all evaluated settings, if dataframe=True
-        - A list of settings and resulting evaluation measures, if dataframe=False
+        A dataframe showing the effectiveness of all evaluated settings, if dataframe=True
+        A list of settings and resulting evaluation measures, if dataframe=False
     Raises:
-        - ValueError: if a specified transformer does not have such a parameter
+        ValueError: if a specified transformer does not have such a parameter
 
     Example::
 
         # graph how PL2's c parameter affects MAP
         pl2 = pt.BatchRetrieve(index, wmodel="PL2", controls={'c' : 1})
-        rtr = pt.GridSearch(
+        rtr = pt.GridScan(
             pl2, 
             {pl2 : {'c' : [0.1, 1, 5, 10, 20, 100]}}, 
             topics,

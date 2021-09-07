@@ -9,6 +9,7 @@ import importlib
 anserini = None
 apply = None
 cache = None
+debug = None
 index = None
 io = None
 ltr = None
@@ -123,7 +124,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
 
     from .batchretrieve import BatchRetrieve, FeaturesBatchRetrieve
     from .utils import Utils
-    from .datasets import get_dataset, list_datasets
+    from .datasets import get_dataset, find_datasets, list_datasets
     from .index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, FlatJSONDocumentIterator, IndexingType
     from .pipelines import LTR_pipeline, XGBoostLTR_pipeline, Experiment, GridScan, GridSearch, KFoldGridSearch
 
@@ -136,7 +137,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     from .apply import _apply
     globals()['apply'] = _apply()
 
-    for sub_module_name in ['anserini', 'cache', 'index', 'io', 'measures', 'model', 'new', 'ltr', 'parallel', 'pipelines', 'rewrite', 'text', 'transformer']:
+    for sub_module_name in ['anserini', 'cache', 'debug', 'index', 'io', 'measures', 'model', 'new', 'ltr', 'parallel', 'pipelines', 'rewrite', 'text', 'transformer']:
         globals()[sub_module_name] = importlib.import_module('.' + sub_module_name, package='pyterrier') 
 
     # append the python helpers
@@ -158,6 +159,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
 
     globals()["get_dataset"] = get_dataset
     globals()["list_datasets"] = list_datasets
+    globals()["find_datasets"] = find_datasets
     globals()["Experiment"] = Experiment
     globals()["BatchRetrieve"] = BatchRetrieve
     globals()["Indexer"] = Indexer

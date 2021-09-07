@@ -4,6 +4,11 @@ from .base import BaseTestCase
 
 class TestDatasets(BaseTestCase):
 
+    def test_list_datasets(self):
+        df = pt.list_datasets()
+        self.assertIsNotNone(df)
+        self.assertTrue(len(df) > 2)
+
     def test_webtrack_gov(self):
         import pyterrier as pt
         import requests, urllib
@@ -51,6 +56,12 @@ class TestDatasets(BaseTestCase):
         doc = next(iter)
         self.assertEqual(doc["docno"], "1")
         self.assertTrue(doc["text"].startswith("compact memories have flexible capacities"))
+
+    def test_vaswani_from_dataset(self):
+        import pyterrier as pt
+        dataset = pt.datasets.get_dataset("vaswani")
+        br = pt.BatchRetrieve.from_dataset(dataset)
+        br.search("chemical reactions")
         
     def test_vaswani(self):
         import pyterrier as pt

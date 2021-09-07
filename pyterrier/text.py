@@ -20,17 +20,17 @@ def get_text(
     or an IRDSDataset docstore.
 
     Arguments:
-        - indexlike: a Terrier index or IRDSDataset to retrieve the metadata from
-        - metakeys(list(str) or str): a list of strings of the metadata keys to retrieve from the index. Defaults to ["body"]
-        - by_query(bool): whether the entire dataframe should be progressed at once, rather than one query at a time. 
+        indexlike: a Terrier index or IRDSDataset to retrieve the metadata from
+        metadata(list(str) or str): a list of strings of the metadata keys to retrieve from the index. Defaults to ["body"]
+        by_query(bool): whether the entire dataframe should be progressed at once, rather than one query at a time. 
             Defaults to false, which means that all document metadata will be fetched at once.
-        - verbose(bool): whether to print a tqdm progress bar. Defaults to false. Has no effect when by_query=False
+        verbose(bool): whether to print a tqdm progress bar. Defaults to false. Has no effect when by_query=False
 
     Example::
 
-        pipe = pt.BatchRetrieve(index, wmodel="DPH") \ 
-            >> pt.text.get_text(index) \ 
-            >> pt.text.scorer(wmodel="DPH")
+        pipe = ( pt.BatchRetrieve(index, wmodel="DPH")
+            >> pt.text.get_text(index)
+            >> pt.text.scorer(wmodel="DPH") )
 
     """
     import pyterrier as pt
@@ -160,23 +160,23 @@ def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='ti
     by aggregation functions, such as `max_passage()`.
 
     For the puposes of obtaining passages of a given length, tokenisation is perfomed simply by splitting on one-or-more spaces, i.e. based 
-    on the Python regular expression `re.compile(r"\s+")`.
+    on the Python regular expression ``re.compile(r"\s+")``.
 
     Parameters:
-        - text_attr(str): what is the name of the dataframe attribute containing the main text of the document to be split into passages.
+        text_attr(str): what is the name of the dataframe attribute containing the main text of the document to be split into passages.
             Default is 'body'.
-        - length(int): how many tokens in each passage. Default is 150.
-        - stride(int): how many tokens to advance each passage by. Default is 75.
-        - prepend_attr(str): whether another document attribute, such as the title of the document, to each passage, following [Dai2019]. Defaults to 'title'. 
-        - title_attr(str): what is the name of the dataframe attribute containing the title the document to be split into passages.
+        length(int): how many tokens in each passage. Default is 150.
+        stride(int): how many tokens to advance each passage by. Default is 75.
+        prepend_attr(str): whether another document attribute, such as the title of the document, to each passage, following [Dai2019]. Defaults to 'title'. 
+        title_attr(str): what is the name of the dataframe attribute containing the title the document to be split into passages.
             Default is 'title'. Only used if prepend_title is set to True.
     
     Example::
     
-        pipe = pt.BatchRetrieve(index, wmodel="DPH", metadata=["docno", "body"]) \ 
-            >> pt.text.sliding(length=128, stride=64, prepend_attr=None) \ 
-            >> pt.text.scorer(wmodel="DPH") \ 
-            >> pt.text.max_passage()
+        pipe = ( pt.BatchRetrieve(index, wmodel="DPH", metadata=["docno", "body"]) 
+            >> pt.text.sliding(length=128, stride=64, prepend_attr=None) 
+            >> pt.text.scorer(wmodel="DPH") 
+            >> pt.text.max_passage() )
         
     """
 

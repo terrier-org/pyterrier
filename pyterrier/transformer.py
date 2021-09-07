@@ -6,12 +6,15 @@ import pandas as pd
 from .model import add_ranks
 from . import tqdm
 import deprecation
-from typing import Iterable
+from typing import Iterable, Iterator
 
 LAMBDA = lambda:0
 def is_lambda(v):
     return isinstance(v, type(LAMBDA)) and v.__name__ == LAMBDA.__name__
-       
+
+def is_function(v):
+    return isinstance(v, types.FunctionType)
+
 def is_transformer(v):
     if isinstance(v, TransformerBase):
         return True
@@ -29,7 +32,7 @@ def get_transformer(v):
         return v
     if is_lambda(v):
         return ApplyGenericTransformer(v)
-    if isinstance(v, types.FunctionType):
+    if is_function(v):
         return ApplyGenericTransformer(v)
     if isinstance(v, pd.DataFrame):
         return SourceTransformer(v)
@@ -125,11 +128,16 @@ class TransformerBase:
     def transform_iter(self, input: Iterable[dict]) -> pd.DataFrame:
         return self.transform(pd.DataFrame(list(input)))
 
-    def transform_gen(self, input : pd.DataFrame, batch_size=1) -> pd.DataFrame:
+    def transform_gen(self, input : pd.DataFrame, batch_size=1) -> Iterator[pd.DataFrame]:
         """
             Method for executing a transformer pipeline on smaller batches of queries.
             The input dataframe is grouped into batches of batch_size queries, and a generator
             returned, such that transform() is only executed for a smaller batch at a time. 
+
+            Arguments:
+                input(DataFrame): a dataframe to process
+                batch_size(int): how many input instances to execute in each batch. Defaults to 1.
+            
         """
         docno_provided = "docno" in input.columns
         docid_provided = "docid" in input.columns
@@ -157,9 +165,9 @@ class TransformerBase:
             method passing a dataframe.
 
             Arguments:
-             - query(str): String form of the query to run
-             - qid(str): the query id to associate to this request. defaults to 1.
-             - sort(bool): ensures the results are sorted by descending rank (defaults to True)
+                query(str): String form of the query to run
+                qid(str): the query id to associate to this request. defaults to 1.
+                sort(bool): ensures the results are sorted by descending rank (defaults to True)
 
             Example::
 
@@ -283,10 +291,10 @@ class EstimatorBase(TransformerBase):
             Method for training the transformer.
 
             Arguments:
-             - topics_or_res_tr(DataFrame): training topics (usually with documents)
-             - qrels_tr(DataFrame): training qrels
-             - topics_or_res_va(DataFrame): validation topics (usually with documents)
-             - qrels_va(DataFrame): validation qrels
+                topics_or_res_tr(DataFrame): training topics (usually with documents)
+                qrels_tr(DataFrame): training qrels
+                topics_or_res_va(DataFrame): validation topics (usually with documents)
+                qrels_va(DataFrame): validation qrels
         """
         pass
 
@@ -420,7 +428,18 @@ class SetIntersectionTransformer(BinaryTransformerBase):
         
         on_cols = ["qid", "docno"]
         rtr = res1.merge(res2, on=on_cols, suffixes=('','_y'))
-        rtr.drop(columns=["score", "rank"], inplace=True, errors='ignore')
+        rtr.drop(columns=["score", "rank", "score_y", "rank_y", "query_y"], inplace=True, errors='ignore')
+        for col in rtr.columns:
+            if not '_y' in col:
+                continue
+            new_name = col.replace('_y', '')
+            if new_name in rtr.columns:
+                # duplicated column, drop
+                rtr.drop(columns=[col], inplace=True)
+                continue
+            # column only from RHS, keep, but rename by removing '_y' suffix
+            rtr.rename(columns={col:new_name}, inplace=True)
+
         return rtr
 
 class CombSumTransformer(BinaryTransformerBase):
@@ -541,7 +560,16 @@ class ApplyForEachQuery(ApplyTransformerBase):
         self.add_ranks = add_ranks
     
     def transform(self, res):
-        rtr = pd.concat(self.fn(group) for qid, group in res.groupby("qid"))
+        if len(res) == 0:
+            return self.fn(res)
+        it = res.groupby("qid")
+        if self.verbose:
+            it = tqdm(it, unit='query')
+        try:
+            dfs = [self.fn(group) for qid, group in it]
+            rtr = pd.concat(dfs)
+        except Exception as a:
+            raise Exception("Problem applying %s" % self.fn) from a
         if self.add_ranks:
             rtr = add_ranks(rtr)
         return rtr

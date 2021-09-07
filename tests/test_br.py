@@ -56,6 +56,25 @@ class TestBatchRetrieve(BaseTestCase):
         result = retr.transform(input_set)
         self.assertEqual(10, len(result))
 
+    def test_br_cutoff_stability(self):
+        indexloc = self.here + "/fixtures/index/data.properties"
+        input_set = pd.DataFrame([
+                    ["q1", "chemical"],
+                ],
+            columns=["qid", "query"])
+        br_cut_3 = pt.BatchRetrieve(indexloc, wmodel='Tf') % 3
+        br_3 = pt.BatchRetrieve(indexloc, wmodel='Tf', num_results=3)
+        #br = pt.BatchRetrieve(indexloc, wmodel='Tf')
+        #print(br.transform(input_set))
+
+        result_cut = br_cut_3.transform(input_set)
+        result_tr = br_3.transform(input_set)
+        print("Rank cutoff operator")
+        print(result_cut.docno)
+        print("terrier cutoff")
+        print(result_tr.docno)        
+        pd.testing.assert_series_equal(result_cut.docno, result_tr.docno)
+    
     def test_br_col_passthrough(self):
         indexloc = self.here + "/fixtures/index/data.properties"
         
@@ -158,6 +177,27 @@ class TestBatchRetrieve(BaseTestCase):
         result = retr.search("results")
         self.assertEqual(len(result), 1001)
 
+    def test_num_manual_wmodel(self):
+        JIR = pt.autoclass('org.terrier.querying.IndexRef')
+        Tf = pt.autoclass("org.terrier.matching.models.Tf")()
+        indexref = JIR.of(self.here+"/fixtures/index/data.properties")
+        from jnius import JavaException
+        try:
+            retr = pt.BatchRetrieve(indexref, wmodel=Tf)
+            input=pd.DataFrame([["1", "Stability"]],columns=['qid','query'])
+            result = retr.transform(input)
+        except JavaException as ja:
+            print(ja.stacktrace)
+            raise ja
+        
+
+    def test_num_python_wmodel(self):
+        indexref = self.here+"/fixtures/index/data.properties"
+        Tf = lambda keyFreq, posting, entryStats, collStats: posting.getFrequency()
+        retr = pt.BatchRetrieve(indexref, wmodel=Tf)
+        input=pd.DataFrame([["1", "Stability"]],columns=['qid','query'])
+        result = retr.transform(input)
+
     def test_threading_manualref(self):
         
         if not pt.check_version("5.5"):
@@ -169,6 +209,11 @@ class TestBatchRetrieve(BaseTestCase):
         JIR = pt.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of("concurrent:" + self.here+"/fixtures/index/data.properties")
         retr = pt.BatchRetrieve(indexref, threads=5)
+        result = retr.transform(topics)
+
+        #check that use of a callback model works under threading
+        Tf = lambda keyFreq, posting, entryStats, collStats: posting.getFrequency()
+        retr = pt.BatchRetrieve(indexref, threads=5, wmodel=Tf)
         result = retr.transform(topics)
 
     def test_threading_selfupgrade(self):

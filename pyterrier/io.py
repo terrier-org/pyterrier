@@ -44,6 +44,16 @@ def find_files(dir):
             files.append(os.path.join(dirpath, name))
     return sorted(files)
 
+def touch(fname, mode=0o666, dir_fd=None, **kwargs):
+    """
+    Eqiuvalent to touch command on linux.
+    Implementation from https://stackoverflow.com/a/1160227
+    """
+    import os
+    flags = os.O_CREAT | os.O_APPEND
+    with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
+        os.utime(f.fileno() if os.utime in os.supports_fd else fname,
+            dir_fd=None if os.supports_fd else dir_fd, **kwargs)
 
 def read_results(filename, format="trec", **kwargs):
     """

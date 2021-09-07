@@ -1,16 +1,16 @@
 from jnius import autoclass, cast
+from typing import Union
 import pandas as pd
 import numpy as np
 from . import tqdm, check_version
 from warnings import warn
 from .index import Indexer
-from .transformer import TransformerBase, Symbol
+from .datasets import Dataset
+from .transformer import TransformerBase, Symbol, is_lambda
 from .model import coerce_queries_dataframe, FIRST_RANK
 import deprecation
 import concurrent
 from concurrent.futures import ThreadPoolExecutor
-
-# import time
 
 def importProps():
     from . import properties as props
@@ -24,6 +24,35 @@ def _matchop(query):
         if m in query:
             return True
     return False
+
+def _function2wmodel(function):
+    from . import autoclass
+    from jnius import PythonJavaClass, java_method
+
+    class PythonWmodelFunction(PythonJavaClass):
+        __javainterfaces__ = ['org/terrier/python/CallableWeightingModel$Callback']
+
+        def __init__(self, fn):
+            super(PythonWmodelFunction, self).__init__()
+            self.fn = fn
+            
+        @java_method('(DLorg/terrier/structures/postings/Posting;Lorg/terrier/structures/EntryStatistics;Lorg/terrier/structures/CollectionStatistics;)D', name='score')
+        def score(self, keyFreq, posting, entryStats, collStats):
+            return self.fn(keyFreq, posting, entryStats, collStats)
+
+        @java_method('()Ljava/nio/ByteBuffer;')
+        def serializeFn(self):
+            import dill as pickle
+            #see https://github.com/SeldonIO/alibi/issues/447#issuecomment-881552005
+            from dill import extend
+            extend(use_dill=False)
+            byterep = pickle.dumps(self.fn)
+            byterep = autoclass("java.nio.ByteBuffer").wrap(byterep)
+            return byterep
+
+    callback = PythonWmodelFunction(function)
+    wmodel = autoclass("org.terrier.python.CallableWeightingModel")( callback )
+    return callback, wmodel
 
 def _mergeDicts(defaults, settings):
     KV = defaults.copy()
@@ -62,10 +91,67 @@ class BatchRetrieveBase(TransformerBase, Symbol):
         super().__init__(kwargs)
         self.verbose = verbose
 
+def _from_dataset(dataset : Union[str,Dataset], 
+            clz,
+            variant : str = None, 
+            version='latest',            
+            **kwargs):
+
+    from . import get_dataset
+    from .io import autoopen
+    import os
+    import json
+    
+    if isinstance(dataset, str):
+        dataset = get_dataset(dataset)
+    if version != "latest":
+        raise ValueError("index versioning not yet supported")
+    indexref = dataset.get_index(variant)
+
+    classname = clz.__name__
+    # now look for, e.g., BatchRetrieve.args.json file, which will define the args for BatchRetrieve, e.g. stemming
+    indexdir = indexref #os.path.dirname(indexref.toString())
+    argsfile = os.path.join(indexdir, classname + ".args.json")
+    if os.path.exists(argsfile):
+        with autoopen(argsfile, "rt") as f:
+            args = json.load(f)
+            # anything specified in kwargs of this methods overrides the .args.json file
+            args.update(kwargs)
+            kwargs = args
+    return clz(indexref, **kwargs)   
+                
 class BatchRetrieve(BatchRetrieveBase):
     """
     Use this class for retrieval by Terrier
     """
+
+    @staticmethod
+    def from_dataset(dataset : Union[str,Dataset], 
+            variant : str = None, 
+            version='latest',            
+            **kwargs):
+        """
+        Instantiates a BatchRetrieve object from a pre-built index access via a dataset.
+        Pre-built indices are ofen provided via the `Terrier Data Repository <http://data.terrier.org/>`_.
+
+        Examples::
+
+            dataset = pt.get_dataset("vaswani")
+            bm25 = pt.BatchRetrieve.from_dataset(dataset, "terrier_stemmed", wmodel="BM25")
+            #or
+            bm25 = pt.BatchRetrieve.from_dataset("vaswani", "terrier_stemmed", wmodel="BM25")
+
+        **Index Variants**:
+
+        There are a number of standard index names.
+         - `terrier_stemmed` - a classical index, removing Terrier's standard stopwords, and applying Porter's English stemmer
+         - `terrier_stemmed_positions` - as per `terrier_stemmed`, but also containing position information
+         - `terrier_unstemmed` - a classical index, without applying stopword removal or stemming
+         - `terrier_stemmed_text` - as per `terrier_stemmed`, but also containing the raw text of the documents
+         - `terrier_unstemmed_text` - as per `terrier_stemmed`, but also containing the raw text of the documents
+
+        """
+        return _from_dataset(dataset, variant=variant, version=version, clz=BatchRetrieve, **kwargs)
 
     #: default_controls(dict): stores the default controls
     default_controls = {
@@ -81,7 +167,7 @@ class BatchRetrieve(BatchRetrieveBase):
 
     #: default_properties(dict): stores the default properties
     default_properties = {
-        "querying.processes": "terrierql:TerrierQLParser,parsecontrols:TerrierQLToControls,parseql:TerrierQLToMatchingQueryTerms,matchopql:MatchingOpQLParser,applypipeline:ApplyTermPipeline,localmatching:LocalManager$ApplyLocalMatching,qe:QueryExpansion,labels:org.terrier.learning.LabelDecorator,filters:LocalManager$PostFilterProcess",
+        "querying.processes": "terrierql:TerrierQLParser,parsecontrols:TerrierQLToControls,parseql:TerrierQLToMatchingQueryTerms,matchopql:MatchingOpQLParser,applypipeline:ApplyTermPipeline,context_wmodel:org.terrier.python.WmodelFromContextProcess,localmatching:LocalManager$ApplyLocalMatching,qe:QueryExpansion,labels:org.terrier.learning.LabelDecorator,filters:LocalManager$PostFilterProcess",
         "querying.postfilters": "decorate:SimpleDecorate,site:SiteFilter,scope:Scope",
         "querying.default.controls": "wmodel:DPH,parsecontrols:on,parseql:on,applypipeline:on,terrierql:on,localmatching:on,filters:on,decorate:on",
         "querying.allowed.controls": "scope,qe,qemodel,start,end,site,scope,applypipeline",
@@ -111,6 +197,7 @@ class BatchRetrieve(BatchRetrieveBase):
         self.metadata = metadata
         self.threads = threads
         self.RequestContextMatching = autoclass("org.terrier.python.RequestContextMatching")
+        self.search_context = {}
 
         if props is None:
             importProps()
@@ -119,8 +206,21 @@ class BatchRetrieve(BatchRetrieveBase):
         
         self.controls = _mergeDicts(BatchRetrieve.default_controls, controls)
         if wmodel is not None:
-            self.controls["wmodel"] = wmodel
-
+            from .transformer import is_lambda, is_function
+            if isinstance(wmodel, str):
+                self.controls["wmodel"] = wmodel
+            elif is_lambda(wmodel) or is_function(wmodel):
+                callback, wmodelinstance = _function2wmodel(wmodel)
+                #save the callback instance in this object to prevent being GCd by Python
+                self._callback = callback
+                self.search_context['context_wmodel'] = wmodelinstance
+                self.controls['context_wmodel'] = 'on'
+            elif isinstance(wmodel, autoclass("org.terrier.matching.models.WeightingModel")):
+                self.search_context['context_wmodel'] = wmodel
+                self.controls['context_wmodel'] = 'on'
+            else:
+                raise ValueError("Unknown parameter type passed for wmodel argument: %s" % str(wmodel))
+                  
         if self.threads > 1:
             warn("Multi-threaded retrieval is experimental, YMMV.")
             assert check_version(5.5), "Terrier 5.5 is required for multi-threaded retrieval"
@@ -169,6 +269,7 @@ class BatchRetrieve(BatchRetrieveBase):
 
     def __getstate__(self): 
         return  {
+                'context' : self.search_context,
                 'controls' : self.controls, 
                 'properties' : self.properties, 
                 'metadata' : self.metadata,
@@ -177,6 +278,7 @@ class BatchRetrieve(BatchRetrieveBase):
     def __setstate__(self, d): 
         self.controls = d["controls"]
         self.metadata = d["metadata"]
+        self.search_context = d["context"]
         self.properties.update(d["properties"])
         for key,value in d["properties"].items():
             self.appSetup.setProperty(key, str(value))
@@ -193,6 +295,9 @@ class BatchRetrieve(BatchRetrieveBase):
         
         for control, value in self.controls.items():
             srq.setControl(control, str(value))
+
+        for key, value in self.search_context.items():
+            srq.setContextObject(key, value)
 
         # this is needed until terrier-core issue #106 lands
         if "applypipeline:off" in query:
@@ -481,6 +586,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         # record the weighting model
         self.wmodel = None
         if "wmodel" in kwargs:
+            assert isinstance(kwargs["wmodel"], str), "Non-string weighting models not yet supported by FBR"
             self.wmodel = kwargs["wmodel"]
         if "wmodel" in controls:
             self.wmodel = controls["wmodel"]
@@ -503,6 +609,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
                 'metadata' : self.metadata,
                 'features' : self.features,
                 'wmodel' : self.wmodel
+                #TODO consider the context state?
                 }
 
     def __setstate__(self, d): 
@@ -513,6 +620,21 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         self.properties.update(d["properties"])
         for key,value in d["properties"].items():
             self.appSetup.setProperty(key, str(value))
+        #TODO consider the context state?
+
+    @staticmethod 
+    def from_dataset(dataset : Union[str,Dataset], 
+            variant : str = None, 
+            version='latest',            
+            **kwargs):
+        return _from_dataset(dataset, variant=variant, version=version, clz=FeaturesBatchRetrieve, **kwargs)
+
+    @staticmethod 
+    def from_dataset(dataset : Union[str,Dataset], 
+            variant : str = None, 
+            version='latest',            
+            **kwargs):
+        return _from_dataset(dataset, variant=variant, version=version, clz=FeaturesBatchRetrieve, **kwargs)
 
     def transform(self, queries):
         """

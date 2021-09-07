@@ -17,7 +17,7 @@ import select
 import math
 from warnings import warn
 from collections import deque
-from typing import List, Dict
+from typing import List, Dict, Union
 
 StringReader = None
 HashMap = None
@@ -209,7 +209,7 @@ def _FileDocumentSetup(
 
 
 
-def createAsList(files_path : List[str]):
+def createAsList(files_path : Union[str, List[str]]):
     """
     Helper method to be used by child indexers to add files to Java List
     Returns:
@@ -219,6 +219,8 @@ def createAsList(files_path : List[str]):
         asList = Arrays.asList(files_path)
     elif isinstance(files_path, list):
         asList = Arrays.asList(*files_path)
+    else:
+        raise ValueError(f"{files_path}: {type(files_path)} must be a List[str] or str")
     return asList
 
 # Using enum class create enumerations
@@ -246,7 +248,7 @@ class Indexer:
             "trec.collection.class": "TRECCollection",
     }
 
-    def __init__(self, index_path, *args, blocks=False, overwrite=False, verbose=False, type=IndexingType.CLASSIC, **kwargs):
+    def __init__(self, index_path, *args, blocks=False, overwrite=False, verbose=False, meta_reverse=["docno"], type=IndexingType.CLASSIC, **kwargs):
         """
         Init method
 
@@ -273,6 +275,7 @@ class Indexer:
         self.setProperties(**self.default_properties)
         self.overwrite = overwrite
         self.verbose = verbose
+        self.meta_reverse = meta_reverse
 
     def setProperty(self, k, v):
         """
@@ -340,6 +343,7 @@ class Indexer:
         """
         self.properties['indexer.meta.forward.keys'] = ','.join(self.meta.keys())
         self.properties['indexer.meta.forward.keylens'] = ','.join([str(l) for l in self.meta.values()])
+        self.properties['indexer.meta.reverse.keys'] = ','.join(self.meta_reverse)
         ApplicationSetup.getProperties().putAll(self.properties)
         if self.type is IndexingType.SINGLEPASS:
             if self.blocks:
@@ -573,10 +577,11 @@ class FlatJSONDocumentIterator(PythonJavaClass):
 
 from pyterrier.transformer import IterDictIndexerBase
 class _BaseIterDictIndexer(Indexer, IterDictIndexerBase):
-    def __init__(self, index_path, *args, threads=1, **kwargs):
+    def __init__(self, index_path, *args, meta_reverse=['docno'], threads=1, **kwargs):
         IterDictIndexerBase.__init__(self)
         Indexer.__init__(self, index_path, *args, **kwargs)
         self.threads = threads
+        self.meta_reverse = meta_reverse
 
     def _setup(self, fields, meta, meta_lengths):
         """
@@ -594,6 +599,7 @@ class _BaseIterDictIndexer(Indexer, IterDictIndexerBase):
         else: 
             if meta_lengths is None:
                 # the ramifications of setting all lengths to a large value is an overhead in memory usage during decompression
+                # also increased reverse lookup file if reverse meta lookups are enabled.
                 meta_lengths = ['512'] * len(meta)
             self.meta = { k:v for k,v in zip( meta, meta_lengths)}
 
@@ -766,7 +772,7 @@ class TRECCollectionIndexer(Indexer):
         self.meta_tags = meta_tags
     
 
-    def index(self, files_path):
+    def index(self, files_path : Union[str,List[str]]):
         """
         Index the specified TREC formatted files
 
@@ -814,7 +820,7 @@ class FilesIndexer(Indexer):
         self.meta_reverse = meta_reverse
         self.meta_tags = meta_tags
 
-    def index(self, files_path):
+    def index(self, files_path : Union[str,List[str]]):
         """
         Index the specified files.
 
