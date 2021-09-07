@@ -56,6 +56,25 @@ class TestBatchRetrieve(BaseTestCase):
         result = retr.transform(input_set)
         self.assertEqual(10, len(result))
 
+    def test_br_cutoff_stability(self):
+        indexloc = self.here + "/fixtures/index/data.properties"
+        input_set = pd.DataFrame([
+                    ["q1", "chemical"],
+                ],
+            columns=["qid", "query"])
+        br_cut_3 = pt.BatchRetrieve(indexloc, wmodel='Tf') % 3
+        br_3 = pt.BatchRetrieve(indexloc, wmodel='Tf', num_results=3)
+        #br = pt.BatchRetrieve(indexloc, wmodel='Tf')
+        #print(br.transform(input_set))
+
+        result_cut = br_cut_3.transform(input_set)
+        result_tr = br_3.transform(input_set)
+        print("Rank cutoff operator")
+        print(result_cut.docno)
+        print("terrier cutoff")
+        print(result_tr.docno)        
+        pd.testing.assert_series_equal(result_cut.docno, result_tr.docno)
+    
     def test_br_col_passthrough(self):
         indexloc = self.here + "/fixtures/index/data.properties"
         
