@@ -4,7 +4,8 @@ import os
 import pandas as pd
 from .transformer import is_lambda
 import types
-from typing import Union, Tuple, Iterator, Dict, Any
+from typing import Union, Tuple, Iterator, Dict, Any, List
+from warnings import warn
 import requests
 from .io import autoopen, touch
 from . import tqdm, HOME_DIR
@@ -127,21 +128,40 @@ class RemoteDataset(Dataset):
             self.password = kwargs['password']
 
     @staticmethod
-    def download(URL, filename, **kwargs):
+    def download(URLs : Union[str,List[str]], filename : str, **kwargs):
+        import pyterrier as pt
         basename = os.path.basename(filename)
-        r = requests.get(URL, allow_redirects=True, stream=True, **kwargs)
-        r.raise_for_status()
-        total = int(r.headers.get('content-length', 0))
-        with open(filename, 'wb') as file, tqdm(
-                desc=basename,
-                total=total,
-                unit='iB',
-                unit_scale=True,
-                unit_divisor=1024,
-        ) as bar:
-            for data in r.iter_content(chunk_size=1024):
-                size = file.write(data)
-                bar.update(size)
+
+        if isinstance(URLs, str):
+            URLs = [URLs]
+        
+        finalattempt=len(URLs)-1
+        error = None
+        for i, url in enumerate(URLs):            
+            try:
+                r = requests.get(url, allow_redirects=True, stream=True, **kwargs)
+                r.raise_for_status()
+                total = int(r.headers.get('content-length', 0))
+                with pt.io.finalized_open(filename, 'b') as file, tqdm(
+                        desc=basename,
+                        total=total,
+                        unit='iB',
+                        unit_scale=True,
+                        unit_divisor=1024,
+                ) as bar:
+                    for data in r.iter_content(chunk_size=1024):
+                        size = file.write(data)
+                        bar.update(size)
+                    break
+            except Exception as e:
+                if error is not None:
+                    e.__cause__ = error # chain errors to show all if fails
+                error = e
+                if i == finalattempt:
+                    raise error
+                else:
+                    warn("Problem fetching %s, resorting to next mirror" % url)
+            
 
     def _check_variant(self, component, variant=None):
         name=self.name
@@ -181,8 +201,9 @@ class RemoteDataset(Dataset):
             os.makedirs(self.corpus_home)
         
         local = os.path.join(self.corpus_home, local)
-        if "#" in URL and not os.path.exists(local):
-            tarname, intarfile = URL.split("#")
+        actualURL = URL if isinstance(URL, str) else URL[0]
+        if "#" in actualURL and not os.path.exists(local):
+            tarname, intarfile = actualURL.split("#")
             assert not "/" in intarfile
             assert ".tar" in tarname or ".tgz" in tarname
             localtarfile, _ = self._get_one_file("tars", tarname)
@@ -735,7 +756,8 @@ def filter_on_qid_type(self, component, variant):
         data = self.get_topics("all")
     elif component == "qrels":
         data = self.get_qrels("all")
-    qid2type = pd.read_csv("https://trec.nist.gov/data/web/04.topic-map.official.txt", names=["qid", "type"], sep=" ")
+    qid2type_file = self._get_one_file("topics_map")[0]
+    qid2type = pd.read_csv(qid2type_file, names=["qid", "type"], sep=" ")
     qid2type["qid"] = qid2type.apply(lambda row: row["qid"].split("-")[1], axis=1)
     rtr = data.merge(qid2type[qid2type["type"] == variant], on=["qid"])
     if len(rtr) == 0:
@@ -751,16 +773,27 @@ TREC_WT_2004_FILES = {
             "hp": filter_on_qid_type,
             "td": filter_on_qid_type,
         },
-    "topics_prefixed" : 
-        { 
-            "all" : ("Web2004.query.stream.trecformat.txt", "https://trec.nist.gov/data/web/Web2004.query.stream.trecformat.txt", "trec")
-        },
+    "topics_map" : [("04.topic-map.official.txt", [
+        "https://trec.nist.gov/data/web/04.topic-map.official.txt",
+        "http://mirror.ir-datasets.com/79737768b3be1aa07b14691aa54802c5",
+        "https://www.dcs.gla.ac.uk/~craigm/04.topic-map.official.txt"
+        ] )],
+    "topics_prefixed" : { 
+        "all" : ("Web2004.query.stream.trecformat.txt", [
+                "https://trec.nist.gov/data/web/Web2004.query.stream.trecformat.txt",
+                "https://mirror.ir-datasets.com/10821f7a000b8bec058097ede39570be",
+                "https://www.dcs.gla.ac.uk/~craigm/Web2004.query.stream.trecformat.txt"], 
+            "trec")
+    },
     "qrels" : 
         {
             "hp" : filter_on_qid_type,
             "td" : filter_on_qid_type,
             "np" : filter_on_qid_type,
-            "all" : ("04.qrels.web.mixed.txt", "https://trec.nist.gov/data/web/04.qrels.web.mixed.txt")
+            "all" : ("04.qrels.web.mixed.txt", [
+                "https://trec.nist.gov/data/web/04.qrels.web.mixed.txt",
+                "https://mirror.ir-datasets.com/93daa0e4b4190c84e30d2cce78a0f674",
+                "https://www.dcs.gla.ac.uk/~craigm/04.qrels.web.mixed.txt"])
         },
     "info_url" : "https://trec.nist.gov/data/t13.web.html",
 }

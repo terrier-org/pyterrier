@@ -1,4 +1,6 @@
+import os
 import pandas as pd
+from contextlib import contextmanager
 
 
 def coerce_dataframe(obj):
@@ -44,6 +46,74 @@ def find_files(dir):
             files.append(os.path.join(dirpath, name))
     return sorted(files)
 
+
+@contextmanager
+def _finalized_open_base(path, mode, open_fn):
+    assert mode in ('b', 't') # must supply either binary or text mode
+    path_tmp = '{}.tmp{}'.format(*os.path.splitext(path)) # add tmp before extension (needed for autoopen)
+    # adapted from <https://github.com/allenai/ir_datasets/blob/master/ir_datasets/util/__init__.py#L34>
+    try:
+        with open_fn(path_tmp, f'x{mode}') as f: # open in exclusive write mode (raises error if already exists)
+            yield f
+        os.replace(path_tmp, path) # on success, move temp file to original path
+    except:
+        try:
+            os.remove(path_tmp)
+        except:
+            pass # edge case: removing temp file failed. Ignore and just raise orig error
+        raise
+
+
+def finalized_open(path: str, mode: str):
+    """
+    Opens a file for writing, but reverts it if there was an error in the process.
+
+    Args:
+        path(str): Path of file to open
+        mode(str): Either t or b, for text or binary mode
+
+    Example:
+        Returns a contextmanager that provides a file object, so should be used in a "with" statement. E.g.::
+
+            with pt.io.finalized_open("file.txt", "t") as f:
+                f.write("some text")
+            # file.txt exists with contents "some text"
+
+        If there is an error when writing, the file is reverted::
+
+            with pt.io.finalized_open("file.txt", "t") as f:
+                f.write("some other text")
+                raise Exception("an error")
+            # file.txt remains unchanged (if existed, contents unchanged; if didn't exist, still doesn't)
+    """
+    return _finalized_open_base(path, mode, open)
+
+
+def finalized_autoopen(path: str, mode: str):
+    """
+    Opens a file for writing with ``autoopen``, but reverts it if there was an error in the process.
+
+    Args:
+        path(str): Path of file to open
+        mode(str): Either t or b, for text or binary mode
+
+    Example:
+        Returns a contextmanager that provides a file object, so should be used in a "with" statement. E.g.::
+
+            with pt.io.finalized_autoopen("file.gz", "t") as f:
+                f.write("some text")
+            # file.gz exists with contents "some text"
+
+        If there is an error when writing, the file is reverted::
+
+            with pt.io.finalized_autoopen("file.gz", "t") as f:
+                f.write("some other text")
+                raise Exception("an error")
+            # file.gz remains unchanged (if existed, contents unchanged; if didn't exist, still doesn't)
+    """
+    return _finalized_open_base(path, mode, autoopen)
+
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     """
     Eqiuvalent to touch command on linux.
@@ -54,6 +124,7 @@ def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
         os.utime(f.fileno() if os.utime in os.supports_fd else fname,
             dir_fd=None if os.supports_fd else dir_fd, **kwargs)
+
 
 def read_results(filename, format="trec", **kwargs):
     """
