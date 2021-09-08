@@ -303,7 +303,7 @@ def qbs(
 
         psgres[["olddocno", "pid"]] = psgres.docno.str.split("%p", expand=True)
 
-        newdf = psgres.groupby(['qid', 'olddocno'])[text_attr].agg('...'.join).reset_index().rename(columns={text_attr : summary_attr, 'olddocno' : 'docno'})
+        newdf = psgres.groupby(['qid', 'olddocno'])[text_attr].agg(joinstr.join).reset_index().rename(columns={text_attr : summary_attr, 'olddocno' : 'docno'})
         
         return docres.merge(newdf, on=['qid', 'docno'], how='left')
     return pt.apply.generic(_qbsjoin)   
