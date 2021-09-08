@@ -280,8 +280,7 @@ def qbs(
     """
     import pyterrier as pt
     tsp = (
-        pt.apply.query(lambda row: row['query'].replace('"', ""))
-        >> pt.apply.rename({'qid' : 'oldqid'}) 
+        pt.apply.rename({'qid' : 'oldqid'}) 
         >> pt.apply.qid(lambda row: row['oldqid'] + '-' + row['docno']) 
         >> ( text_scorer_pipe % num_psgs )
         >> pt.apply.qid(drop=True)
