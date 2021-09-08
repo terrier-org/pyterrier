@@ -174,10 +174,10 @@ Finally, the output of the `kmaxavg_passage(2)` transformer would be:
 +-------+---------+--------+--------+
 
 
-Query-biased Summarisation
-==========================
+Query-biased Summarisation (Snippets)
+=====================================
 
-.. autofunction:: pyterrier.text.qbs()
+.. autofunction:: pyterrier.text.snippets()
 
 References
 ==========

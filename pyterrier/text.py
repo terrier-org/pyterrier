@@ -247,14 +247,14 @@ def slidingWindow(sequence : list, winSize : int, step : int) -> list:
     """
     return [x for x in list(more_itertools.windowed(sequence,n=winSize, step=step)) if x[-1] is not None]
 
-def qbs(
+def snippets(
         text_scorer_pipe : TransformerBase, 
         text_attr : str = "text", 
         summary_attr : str = "summary", 
         num_psgs : int = 5, 
         joinstr : str ='...') -> TransformerBase:
     """
-    Applies query-biased summarisation, by applying the specified text scoring pipeline.
+    Applies query-biased summarisation (snippet), by applying the specified text scoring pipeline.
 
     Arguments:
      - text_scorer_pipe(TransformerBase): the pipeline for scoring passages in response to the query. Normally this applies passaging.
@@ -275,7 +275,7 @@ def qbs(
         )
         
         # use psg_scorer for performing query-biased summarisation on docs retrieved by br 
-        retr_pipe = br >> pt.text.qbs(psg_scorer)
+        retr_pipe = br >> pt.text.snippet(psg_scorer)
 
     """
     import pyterrier as pt
