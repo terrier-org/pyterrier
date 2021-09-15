@@ -66,10 +66,9 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
      * Otherwise the local (`~/.mvn`) and MavenCentral repositories are searched for the jar file at the given version.
     In this way, the default setting is to download the latest release of Terrier from MavenCentral. The user is also able to use a locally installed copy in their private Maven repository, or track the latest build of Terrier from Jitpack.
     
-    If your running enviroment is offline. you can download the "terrier-assemblies-{your version}-jar-with-dependencies.jar" and "terrier-python-helper-{your helper version}.jar"
-    and put them in the default path "~/.pyterrier". 
-    Then you should set them in init function. For example:
-    pt.init(version = 5.5, helper_version = "0.0.6")
+    If you wish to run PyTerrier in an offline enviroment, you should ensure that the "terrier-assemblies-{your version}-jar-with-dependencies.jar" and "terrier-python-helper-{your helper version}.jar"
+    are in the  "~/.pyterrier" (if they are not present, they will be downloaded the first time). Then you should set their versions when calling ``init()`` function. For example:
+    ``pt.init(version = 5.5, helper_version = "0.0.6")``.
     """
     set_tqdm(tqdm)
 
