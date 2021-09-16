@@ -3,6 +3,8 @@ import pyterrier as pt
 import os
 import unittest
 import warnings
+import math
+from pyterrier.measures import *
 from .base import BaseTestCase
 
 class TestExperiment(BaseTestCase):
@@ -50,19 +52,67 @@ class TestExperiment(BaseTestCase):
         self.assertEqual(1, df[(df.measure == "P(rel=2)@1") & (df.qid == "q2")].value.iloc[0])
 
     def test_differing_queries(self):
-        topics = pd.DataFrame([["q1", "q1"], ["q2", "q1"] ], columns=["qid", "query"])
-        res1 = pd.DataFrame([["q1", "d1", 1.0]], columns=["qid", "docno", "score"])
-        res2 = pd.DataFrame([["q1", "d1", 1.0], ["q2", "d1", 2.0] ], columns=["qid", "docno", "score"])
-        qrels = pd.DataFrame([["q1", "d1", 1], ["q2", "d1", 1] ], columns=["qid", "docno", "label"])
-        from pyterrier.transformer import UniformTransformer
-        with warnings.catch_warnings(record=True) as w:
-            pt.Experiment(
-                [UniformTransformer(res1), UniformTransformer(res2)],
-                topics,
-                qrels,
-                ["map"],
-                baseline=0)
-            self.assertTrue("missing" in str(w[-1].message))
+        dataset = pt.get_dataset("vaswani")
+        bm25 = pt.BatchRetrieve(dataset.get_index(), wmodel="BM25")
+        qrels = pd.DataFrame({
+            'qid':   ["1",     "1",    "2"],
+            'docno': ["10703", "1056", "9374"],
+            'label': [1,       1,      1],
+        })
+        topics = pd.DataFrame({
+            'qid':   ["1",        "2",         "3"],
+            'query': ["chemical", "reactions", "reaction"]
+        })
+        test_cases = [
+            # perfect topic/qrel overlap, drop_unused and filter_qrels have no effect
+            (['1', '2'], ['1', '2'], True,  True,   {'1': 1.0, '2': 0.5}),
+            (['1', '2'], ['1', '2'], True,  False,  {'1': 1.0, '2': 0.5}),
+            (['1', '2'], ['1', '2'], False, True,   {'1': 1.0, '2': 0.5}),
+            (['1', '2'], ['1', '2'], False, False,  {'1': 1.0, '2': 0.5}),
+            # qid=2 missing from topics; qid=2 should only be included if filter_qrels=False, drop_unused has no effect
+            (['1', '2'], ['1'], True,  True,   {'1': 1.0}),
+            (['1', '2'], ['1'], True,  False,  {'1': 1.0, '2': 0.}),
+            (['1', '2'], ['1'], False, True,   {'1': 1.0}),
+            (['1', '2'], ['1'], False, False,  {'1': 1.0, '2': 0.}),
+            # qid=2 missing from qrels; qid=2 should never be included in the results, '2' should be NaN if drop_unused=False
+            (['1'], ['1', '2'], True,  True,   {'1': 1.0}),
+            (['1'], ['1', '2'], True,  False,  {'1': 1.0}),
+            (['1'], ['1', '2'], False, True,   {'1': 1.0, '2': float('NaN')}),
+            (['1'], ['1', '2'], False, False,  {'1': 1.0, '2': float('NaN')}),
+            # qid=3 missing from qrels and qid=1 is missing from the topics; qid=1 should only be included if filter_qrels=False
+            (['1', '2'], ['2', '3'], True,  True,   {'2': 0.5}),
+            (['1', '2'], ['2', '3'], True,  False,  {'2': 0.5, '1': 0.0}),
+            (['1', '2'], ['2', '3'], False, True,   {'2': 0.5, '3': float('NaN')}),
+            (['1', '2'], ['2', '3'], False, False,  {'2': 0.5, '1': 0.0, '3': float('NaN')}),
+            # no qid overlap between topics and qrels; should throw exception if filter_qrels=True
+            (['1'], ['3'], True,  True,   ValueError('There is no overlap between the query IDs found in the topics and qrels. If this is intentional, set filter_qrels=False and drop_unused=False.')),
+            (['1'], ['3'], True,  False,  ValueError('There is no overlap between the query IDs found in the topics and qrels. If this is intentional, set filter_qrels=False and drop_unused=False.')),
+            (['1'], ['3'], False, True,   ValueError('There is no overlap between the query IDs found in the topics and qrels. If this is intentional, set filter_qrels=False and drop_unused=False.')),
+            (['1'], ['3'], False, False,  {'1': 0.0, '3': float('NaN')}),
+        ]
+        for qrel_qids, topic_qids, drop_unused, filter_qrels, result in test_cases:
+            with self.subTest(f'qrel_qids={qrel_qids} topic_qids={topic_qids} drop_unused={drop_unused} filter_qrels={filter_qrels}'):
+                if isinstance(result, ValueError):
+                    with self.assertRaises(ValueError) as context:
+                        pt.Experiment([bm25], topics[topics.qid.isin(topic_qids)], qrels[qrels.qid.isin(qrel_qids)], [P@2, 'P', 'mrt'], drop_unused=drop_unused, filter_qrels=filter_qrels, perquery=True)
+                    self.assertEqual(context.exception.args, result.args)
+                    with self.assertRaises(ValueError) as context:
+                        pt.Experiment([bm25], topics[topics.qid.isin(topic_qids)], qrels[qrels.qid.isin(qrel_qids)], [P@2, 'P', 'mrt'], drop_unused=drop_unused, filter_qrels=filter_qrels, perquery=False)
+                    self.assertEqual(context.exception.args, result.args)
+                else:
+                    with warnings.catch_warnings(record=True) as w:
+                        res = pt.Experiment([bm25], topics[topics.qid.isin(topic_qids)], qrels[qrels.qid.isin(qrel_qids)], [P@2, 'P', 'mrt'], drop_unused=drop_unused, filter_qrels=filter_qrels, perquery=True)
+                    if any(math.isnan(v) for v in result.values()):
+                        self.assertEqual(len(w), 1)
+                        self.assertEqual(w[0].message.args[0], f'1 topic(s) not found in qrels. Scores for these topics are given as NaN and should not contribute to averages.')
+                    else:
+                        self.assertEqual(len(w), 0)
+                    res = res[res['measure'] == 'P@2'].drop(columns=['name', 'measure'])
+                    expected_res = pd.DataFrame([{'qid': qid, 'value': val} for qid, val in result.items()])
+                    pd.testing.assert_frame_equal(res.reset_index(drop=True), expected_res.reset_index(drop=True))
+                    res = pt.Experiment([bm25], topics[topics.qid.isin(topic_qids)], qrels[qrels.qid.isin(qrel_qids)], [P@2, 'P', 'mrt'], drop_unused=drop_unused, filter_qrels=filter_qrels, perquery=False)
+                    num_result = {k: v for k, v in result.items() if not math.isnan(v)}
+                    self.assertEqual(res.loc[0, 'P@2'], sum(num_result.values())/len(num_result))
 
     def test_mrt(self):
         brs = [

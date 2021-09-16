@@ -287,15 +287,6 @@ class Utils:
         return rtr
 
     @staticmethod
-    def ensure(dictionary, measures, qids):
-        missing = 0
-        for q in qids:
-            if q not in dictionary:
-                dictionary[q] = { m : 0 for m in measures }
-                missing+=1
-        return (dictionary, missing)
-
-    @staticmethod
     def mean_of_measures(result, measures=None, num_q = None):
         if len(result) == 0:
             raise ValueError("No measures received - perhaps qrels and topics had no results in common")
