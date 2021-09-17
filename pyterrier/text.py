@@ -160,7 +160,7 @@ def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='ti
     by aggregation functions, such as `max_passage()`.
 
     For the puposes of obtaining passages of a given length, tokenisation is perfomed simply by splitting on one-or-more spaces, i.e. based 
-    on the Python regular expression ``re.compile(r"\s+")``.
+    on the Python regular expression ``re.compile(r'\s+')``.
 
     Parameters:
         text_attr(str): what is the name of the dataframe attribute containing the main text of the document to be split into passages.
