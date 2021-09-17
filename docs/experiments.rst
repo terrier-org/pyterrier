@@ -160,25 +160,25 @@ The ``filter_by_qrels`` and ``fitler_by_topics`` parameters control the behaviou
 do not perfectly overlap. When ``filter_by_qrels=True``, topics are filtered down to only the ones that have qids in the
 qrels. Similarly, when ``fitler_by_topics=True``, qrels are filtered down to only the ones that have qids in the topics.
 
-For example, consier qrels that include qids ``A`` and ``B`` and topics that include ``B`` and ``C``. The results with
+For example, consier topics that include qids ``A`` and ``B`` and qrels that include ``B`` and ``C``. The results with
 each combination of settings are:
 
 +----------------------+----------------------+------------------+--------------------------------------------------------------------+
 | ``filter_by_topics`` | ``filter_by_qrels``  | Results consider | Notes                                                              |
 +======================+======================+==================+====================================================================+
-| ``True`` (default)   | ``False`` (default)  | ``B,C``          | ``A`` is removed because it does not appear in the topics.         |
+| ``True`` (default)   | ``False`` (default)  | ``A,B``          | ``C`` is removed because it does not appear in the topics.         |
 +----------------------+----------------------+------------------+--------------------------------------------------------------------+
 | ``True`` (default)   | ``True``             | ``B``            | Acts as an intersection of the qids found in the qrels and topics. |
 +----------------------+----------------------+------------------+--------------------------------------------------------------------+
 | ``False``            | ``False`` (default)  | ``A,B,C``        | Acts as a union of the qids found in qrels and topics.             |
 +----------------------+----------------------+------------------+--------------------------------------------------------------------+
-| ``False``            | ``True``             | ``A,B``          | ``C`` is removed because it does not appear in the qrels.          |
+| ``False``            | ``True``             | ``B,C``          | ``A`` is removed because it does not appear in the qrels.          |
 +----------------------+----------------------+------------------+--------------------------------------------------------------------+
 
-Note that, following IR evaluation conventions, topics that have no relevance judgments (``C`` in the above example)
+Note that, following IR evaluation conventions, topics that have no relevance judgments (``A`` in the above example)
 do not contribute to relevance-based measures (e.g., ``map``), but still contribute to efficiency measures (e.g., ``mrt``).
 As such, aggregate relevance-based measures will not change based on the value of ``filter_by_qrels``. When ``perquery=True``,
-topics that have no relevance judgments (``C``) will give a value of ``NaN``, indicating that they are not defined
+topics that have no relevance judgments (``A``) will give a value of ``NaN``, indicating that they are not defined
 and should not contribute to the average.
 
 The defaults (``filter_by_topics=True`` and ``filter_by_qrels=False``) were chosen because they likely reflect the intent
