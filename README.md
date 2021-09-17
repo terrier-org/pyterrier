@@ -161,4 +161,5 @@ By downloading and using PyTerrier, you agree to cite at the undernoted paper de
  - Alberto Ueda, Federal University of Minas Gerais
  - Sean MacAvaney, Georgetown University/University of Glasgow
  - Chentao Xu, University of Glasgow
+ - Sarawoot Kongyoung, University of Glasgow
  - Zhan Su, Copenhagen University
