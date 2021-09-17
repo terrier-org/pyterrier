@@ -32,7 +32,7 @@ tqdm = None
 HOME_DIR = None
 init_args ={}
 
-def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, logging='WARN', home_dir=None, boot_packages=[], tqdm=None, no_download=False):
+def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, logging='WARN', home_dir=None, boot_packages=[], tqdm=None, no_download=False,helper_version = None):
     """
     Function necessary to be called before Terrier classes and methods can be used.
     Loads the Terrier .jar file and imports classes. Also finds the correct version of Terrier to download if no version is specified.
@@ -55,6 +55,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
 
         home_dir(str): the home directory to use. Default to PYTERRIER_HOME environment variable.
         tqdm: The `tqdm <https://tqdm.github.io/>`_ instance to use for progress bars within PyTerrier. Defaults to tqdm.tqdm. Available options are `'tqdm'`, `'auto'` or `'notebook'`.
+        helper_version(str): Which version of the helper.
 
    
     **Locating the Terrier .jar file:** PyTerrier is not tied to a specific version of Terrier and will automatically locate and download a recent Terrier .jar file. However, inevitably, some functionalities will require more recent Terrier versions. 
@@ -63,9 +64,11 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
      * If the `version` init kwarg is not set, Terrier will query MavenCentral to determine the latest Terrier release.
      * If `version` is set to `"snapshot"`, the latest .jar file build derived from the `Terrier Github repository <https://github.com/terrier-org/terrier-core/>`_ will be downloaded from `Jitpack <https://jitpack.io/>`_.
      * Otherwise the local (`~/.mvn`) and MavenCentral repositories are searched for the jar file at the given version.
-     
     In this way, the default setting is to download the latest release of Terrier from MavenCentral. The user is also able to use a locally installed copy in their private Maven repository, or track the latest build of Terrier from Jitpack.
     
+    If you wish to run PyTerrier in an offline enviroment, you should ensure that the "terrier-assemblies-{your version}-jar-with-dependencies.jar" and "terrier-python-helper-{your helper version}.jar"
+    are in the  "~/.pyterrier" (if they are not present, they will be downloaded the first time). Then you should set their versions when calling ``init()`` function. For example:
+    ``pt.init(version = 5.5, helper_version = "0.0.6")``.
     """
     set_tqdm(tqdm)
 
@@ -88,7 +91,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
             os.mkdir(HOME_DIR)
 
     # get the initial classpath for the JVM
-    classpathTrJars = setup_terrier(HOME_DIR, version, boot_packages=boot_packages, force_download=not no_download)
+    classpathTrJars = setup_terrier(HOME_DIR, version, helper_version = helper_version, boot_packages=boot_packages, force_download=not no_download)
     
     if is_windows():
         if "JAVA_HOME" in os.environ:
