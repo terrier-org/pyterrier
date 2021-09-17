@@ -6,7 +6,7 @@ import numpy as np
 from typing import Callable, Union, Dict, List, Tuple, Sequence, Any
 from .utils import Utils
 from .transformer import TransformerBase, EstimatorBase
-from .model import add_ranks
+from .model import add_ranks, coerce_dataframe_types
 import deprecation
 import ir_measures
 from ir_measures.measures import BaseMeasure 
@@ -137,6 +137,7 @@ def _run_and_evaluate(
     # if its a DataFrame, use it as the results
     if isinstance(system, pd.DataFrame):
         res = system
+        res = coerce_dataframe_types(res)
         if len(res) == 0:
             raise ValueError("%d topics, but no results in dataframe" % len(topics))
         evalMeasuresDict = _ir_measures_to_dict(
@@ -154,6 +155,8 @@ def _run_and_evaluate(
         res = system.transform(topics)
         endtime = timer()
         runtime =  (endtime - starttime) * 1000.
+
+        res = coerce_dataframe_types(res)
 
         if len(res) == 0:
             raise ValueError("%d topics, but no results received from %s" % (len(topics), str(system)) )
@@ -176,6 +179,7 @@ def _run_and_evaluate(
                 raise ValueError("batch of %d topics, but no results received in batch %d from %s" % (len(batch_topics), i, str(system) ) )
             endtime = timer()
             runtime += (endtime - starttime) * 1000.
+            res = coerce_dataframe_types(res)
             batch_qids = set(batch_topics.qid)
             batch_qrels = qrels[qrels.query_id.isin(batch_qids)] # filter qrels down to just the qids that appear in this batch
             remaining_qrel_qids.difference_update(batch_qids)
