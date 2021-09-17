@@ -1,6 +1,6 @@
 from .base import BaseTestCase
 import pandas as pd
-from pyterrier.model import add_ranks, FIRST_RANK, coerce_queries_dataframe, split_df
+from pyterrier.model import add_ranks, FIRST_RANK, coerce_queries_dataframe, coerce_dataframe_types, split_df
 import pyterrier as pt
 class TestModel(BaseTestCase):
 
@@ -159,6 +159,40 @@ class TestModel(BaseTestCase):
         exp_result = pd.DataFrame([["1", "light"], ["2", "mathematical"], ["3", "electronic"]], columns=['qid', 'query'])
         result = coerce_queries_dataframe(input)
         self.assertTrue(exp_result.equals(result))
+
+    def test_coerce_dataframe_types(self):
+        with self.subTest('typical'):
+            input = pd.DataFrame([[1, 'query', 5, '1.3']], columns=['qid', 'query', 'docno', 'score'])
+            exp_result = pd.DataFrame([['1', 'query', '5', 1.3]], columns=['qid', 'query', 'docno', 'score'])
+            self.assertFalse(input.equals(exp_result))
+            result = coerce_dataframe_types(input)
+            pd.testing.assert_frame_equal(result, exp_result)
+        with self.subTest('missing column'):
+            input = pd.DataFrame([['query', 5, '1.3']], columns=['query', 'docno', 'score'])
+            exp_result = pd.DataFrame([['query', '5', 1.3]], columns=['query', 'docno', 'score'])
+            self.assertFalse(input.equals(exp_result))
+            result = coerce_dataframe_types(input)
+            pd.testing.assert_frame_equal(result, exp_result)
+        with self.subTest('score as integer'):
+            import torch
+            input = pd.DataFrame([[1, 'query', 5, 1]], columns=['qid', 'query', 'docno', 'score'])
+            exp_result = pd.DataFrame([['1', 'query', '5', 1.]], columns=['qid', 'query', 'docno', 'score'])
+            self.assertFalse(input.equals(exp_result))
+            result = coerce_dataframe_types(input)
+            pd.testing.assert_frame_equal(result, exp_result)
+        with self.subTest('score as torch type'):
+            import torch
+            input = pd.DataFrame([[1, 'query', 5, torch.tensor(1.3)]], columns=['qid', 'query', 'docno', 'score'])
+            exp_result = pd.DataFrame([['1', 'query', '5', 1.3]], columns=['qid', 'query', 'docno', 'score'])
+            self.assertFalse(input.equals(exp_result))
+            result = coerce_dataframe_types(input)
+            pd.testing.assert_frame_equal(result, exp_result)
+        with self.subTest('score not parsable as float'):
+            import torch
+            input = pd.DataFrame([[1, 'query', 5, 'A']], columns=['qid', 'query', 'docno', 'score'])
+            self.assertFalse(input.equals(exp_result))
+            with self.assertRaises(ValueError):
+                result = coerce_dataframe_types(input)
 
     def test_split_Q(self):
         df = pt.new.queries(["a", "b", "c"])
