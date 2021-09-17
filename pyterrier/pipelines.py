@@ -1,7 +1,6 @@
 from collections import defaultdict
 from warnings import warn
 import os
-import itertools
 import pandas as pd
 import numpy as np
 from typing import Callable, Union, Dict, List, Tuple, Sequence, Any
@@ -97,6 +96,9 @@ def _ir_measures_to_dict(
             metric = m.measure
             metric = rev_mapping.get(metric, str(metric))
             rtr[m.query_id][metric] = m.value
+        # When reporting per-query results, it can desirable to show something for topics that were executed
+        # do not have corresponding qrels. If the caller passes in backfill_qids, we'll ensure that these
+        # qids are present, and if not add placeholders with NaN values for all measures.
         if backfill_qids is not None:
             backfill_count = 0
             for qid in backfill_qids:
@@ -167,21 +169,43 @@ def _run_and_evaluate(
         #transformer, evaluate queries in batches
         assert batch_size > 0
         starttime = timer()
-        results=[]
-        for i, res in enumerate( system.transform_gen(topics, batch_size=batch_size)):
+        evalMeasuresDict = {}
+        remaining_qrel_qids = set(qrels.query_id)
+        for i, (res, batch_topics) in enumerate( system.transform_gen(topics, batch_size=batch_size, output_topics=True)):
             if len(res) == 0:
-                raise ValueError("batch of %d topics, but no results received in batch %d from %s" % (batch_size, i, str(system) ) )
+                raise ValueError("batch of %d topics, but no results received in batch %d from %s" % (len(batch_topics), i, str(system) ) )
             endtime = timer()
             runtime += (endtime - starttime) * 1000.
-            results.append(res)
+            batch_qids = set(batch_topics.qid)
+            batch_qrels = qrels[qrels.query_id.isin(batch_qids)] # filter qrels down to just the qids that appear in this batch
+            remaining_qrel_qids.difference_update(batch_qids)
+            batch_backfill = [qid for qid in backfill_qids if qid in batch_qids] if backfill_qids is not None else None
+            evalMeasuresDict.update(_ir_measures_to_dict(
+                ir_measures.iter_calc(metrics, batch_qrels, res.rename(columns=_irmeasures_columns)),
+                metrics,
+                rev_mapping,
+                num_q,
+                perquery=True,
+                backfill_qids=batch_backfill))
             starttime = timer()
-        evalMeasuresDict = _ir_measures_to_dict(
-            ir_measures.iter_calc(metrics, qrels, pd.concat(results).rename(columns=_irmeasures_columns)),
-            metrics,
-            rev_mapping,
-            num_q,
-            perquery,
-            backfill_qids)
+        if remaining_qrel_qids:
+            # there are some qids in the qrels that were not in the topics. Get the default values for these and update evalMeasuresDict
+            missing_qrels = qrels[qrels.query_id.isin(remaining_qrel_qids)]
+            empty_res = pd.DataFrame([], columns=['query_id', 'doc_id', 'score'])
+            evalMeasuresDict.update(_ir_measures_to_dict(
+                ir_measures.iter_calc(metrics, missing_qrels, empty_res),
+                metrics,
+                rev_mapping,
+                num_q,
+                perquery=True))
+        if not perquery:
+            # aggregate measures if not in per query mode
+            aggregators = {rev_mapping.get(m, str(m)): m.aggregator() for m in metrics}
+            for q in evalMeasuresDict:
+                for metric in metrics:
+                    s_metric = rev_mapping.get(metric, str(metric))
+                    aggregators[s_metric].add(evalMeasuresDict[q][s_metric])
+            evalMeasuresDict = {m: agg.result() for m, agg in aggregators.items()}
     return (runtime, evalMeasuresDict)
 
 NUMERIC_TYPE = Union[float,int,complex]
@@ -196,14 +220,15 @@ def Experiment(
         perquery : bool = False,
         dataframe : bool =True,
         batch_size : int = None,
-        drop_unused : bool = False,
-        filter_qrels : bool = True,
+        filter_by_qrels : bool = False,
+        filter_by_topics : bool = True,
         baseline : int = None,
         test : Union[str,TEST_FN_TYPE] = "t",
         correction : str = None,
         correction_alpha : float = 0.05,
         highlight : str = None,
-        round : Union[int,Dict[str,int]] = None):
+        round : Union[int,Dict[str,int]] = None,
+        **kwargs):
     """
     Allows easy comparison of multiple retrieval transformer pipelines using a common set of topics, and
     identical evaluation measures computed using the same qrels. In essence, each transformer is applied on 
@@ -222,8 +247,8 @@ def Experiment(
         batch_size(int): If not None, evaluation is conducted in batches of batch_size topics. Default=None, which evaluates all topics at once. 
             Applying a batch_size is useful if you have large numbers of topics, and/or if your pipeline requires large amounts of temporary memory
             during a run.
-        drop_unused(bool): If True, will drop topics from the topics dataframe that have qids not appearing in the qrels dataframe. 
-        filter_qrels(bool): If True, will drop topics from the qrels dataframe that have qids not appearing in the topics dataframe. 
+        filter_by_qrels(bool): If True, will drop topics from the topics dataframe that have qids not appearing in the qrels dataframe. 
+        filter_by_topics(bool): If True, will drop topics from the qrels dataframe that have qids not appearing in the topics dataframe. 
         perquery(bool): If True return each metric for each query, else return mean metrics across all queries. Default=False.
         dataframe(bool): If True return results as a dataframe. Else as a dictionary of dictionaries. Default=True.
         baseline(int): If set to the index of an item of the retr_system list, will calculate the number of queries 
@@ -261,6 +286,10 @@ def Experiment(
         warn_old_sig = True
     if warn_old_sig:
         warn("Signature of Experiment() is now (retr_systems, topics, qrels, eval_metrics), please update your code", DeprecationWarning, 2)
+
+    if 'drop_unused' in kwargs:
+        filter_by_qrels = kwargs.pop('drop_unused')
+        warn('drop_unused is deprecated; use filter_by_qrels instead')
     
     if baseline is not None:
         assert int(baseline) >= 0 and int(baseline) < len(retr_systems)
@@ -295,18 +324,18 @@ def Experiment(
         return value
 
     # drop queries not appear in the qrels
-    if drop_unused:
+    if filter_by_qrels:
         # the commented variant would drop queries not having any RELEVANT labels
         # topics = topics.merge(qrels[qrels["label"] > 0][["qid"]].drop_duplicates())        
         topics = topics.merge(qrels[["qid"]].drop_duplicates())
         if len(topics) == 0:
-            raise ValueError('There is no overlap between the query IDs found in the topics and qrels. If this is intentional, set filter_qrels=False and drop_unused=False.')
+            raise ValueError('There is no overlap between the qids found in the topics and qrels. If this is intentional, set filter_by_topics=False and filter_by_qrels=False.')
 
     # drop qrels not appear in the topics
-    if filter_qrels:
+    if filter_by_topics:
         qrels = qrels.merge(topics[["qid"]].drop_duplicates())
         if len(qrels) == 0:
-            raise ValueError('There is no overlap between the query IDs found in the topics and qrels. If this is intentional, set filter_qrels=False and drop_unused=False.')
+            raise ValueError('There is no overlap between the qids found in the topics and qrels. If this is intentional, set filter_by_topics=False and filter_by_qrels=False.')
 
     from scipy import stats
     if test == "t":
@@ -365,7 +394,7 @@ def Experiment(
 
     if dataframe:
         if perquery:
-            df = pd.DataFrame(evalsRows, columns=["name", "qid", "measure", "value"])
+            df = pd.DataFrame(evalsRows, columns=["name", "qid", "measure", "value"]).sort_values(['name', 'qid'])
             if round is not None:
                 df["value"] = df["value"].round(round)
             return df

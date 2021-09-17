@@ -147,6 +147,53 @@ This provides a dataframe where each row is the performance of a given system fo
 
 NB: For brevity, we only show the top 5 rows of the returned table.
 
+Missing Topics and/or Qrels
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There is not always a one-to-one correspondance between the topic/query IDs (qids) that appear in
+the provided ``topics`` and ``qrels``. Qids that appear in topics but not qrels can be due to incomplete judgments,
+such as in sparsely labeled datasets or shared tasks that choose to omit some topics (e.g., due to cost).
+Qids that appear in qrels but no in topics can happen when running a subset of topics for testing purposes
+(e.g., ``topics.head(5)``).
+
+The ``filter_by_qrels`` and ``fitler_by_topics`` parameters control the behaviour of an experiment when topics and qrels
+do not perfectly overlap. When ``filter_by_qrels=True``, topics are filtered down to only the ones that have qids in the
+qrels. Similarly, when ``fitler_by_topics=True``, qrels are filtered down to only the ones that have qids in the topics.
+
+For example, consier qrels that include qids ``A`` and ``B`` and topics that include ``B`` and ``C``. The results with
+each combination of settings are:
+
++----------------------+----------------------+------------------+--------------------------------------------------------------------+
+| ``filter_by_topics`` | ``filter_by_qrels``  | Results consider | Notes                                                              |
++======================+======================+==================+====================================================================+
+| ``True`` (default)   | ``False`` (default)  | ``B,C``          | ``A`` is removed because it does not appear in the topics.         |
++----------------------+----------------------+------------------+--------------------------------------------------------------------+
+| ``True`` (default)   | ``True``             | ``B``            | Acts as an intersection of the qids found in the qrels and topics. |
++----------------------+----------------------+------------------+--------------------------------------------------------------------+
+| ``False``            | ``False`` (default)  | ``A,B,C``        | Acts as a union of the qids found in qrels and topics.             |
++----------------------+----------------------+------------------+--------------------------------------------------------------------+
+| ``False``            | ``True``             | ``A,B``          | ``C`` is removed because it does not appear in the qrels.          |
++----------------------+----------------------+------------------+--------------------------------------------------------------------+
+
+Note that, following IR evaluation conventions, topics that have no relevance judgments (``C`` in the above example)
+do not contribute to relevance-based measures (e.g., ``map``), but still contribute to efficiency measures (e.g., ``mrt``).
+As such, aggregate relevance-based measures will not change based on the value of ``filter_by_qrels``. When ``perquery=True``,
+topics that have no relevance judgments (``C``) will give a value of ``NaN``, indicating that they are not defined
+and should not contribute to the average.
+
+The defaults (``filter_by_topics=True`` and ``filter_by_qrels=False``) were chosen because they likely reflect the intent
+of the user in most cases. In particular, it runs all topics requested and evaluates on only those topics. However, you
+may want to change these settings in some circumstnaces. E.g.:
+
+ - If you want to save time and avoid running topics that will not be evaluated, set ``filter_by_qrels=True``.
+   This can be particularly helpful for large collections with many missing judgments, such as MS MARCO.
+ - If you want to evaluate across all topics from the qrels set ``filter_by_topics=False``.
+
+Note that in all cases, if a requested topic that appears in the qrels returns no results, it will properly contribute
+a score of 0 for evaluation.
+
+
+
 Available Evaluation Measures
 =============================
 

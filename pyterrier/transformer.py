@@ -128,7 +128,7 @@ class TransformerBase:
     def transform_iter(self, input: Iterable[dict]) -> pd.DataFrame:
         return self.transform(pd.DataFrame(list(input)))
 
-    def transform_gen(self, input : pd.DataFrame, batch_size=1) -> Iterator[pd.DataFrame]:
+    def transform_gen(self, input : pd.DataFrame, batch_size=1, output_topics=False) -> Iterator[pd.DataFrame]:
         """
             Method for executing a transformer pipeline on smaller batches of queries.
             The input dataframe is grouped into batches of batch_size queries, and a generator
@@ -151,11 +151,19 @@ class TransformerBase:
             if len(batch) == batch_size:
                 batch_topics = pd.concat(batch)
                 batch=[]
-                yield self.transform(batch_topics)
+                res = self.transform(batch_topics)
+                if output_topics:
+                    yield res, batch_topics
+                else:
+                    yield res
             batch.append(input[input["qid"] == query.qid])
         if len(batch) > 0:
             batch_topics = pd.concat(batch)
-            yield self.transform(batch_topics)
+            res = self.transform(batch_topics)
+            if output_topics:
+                yield res, batch_topics
+            else:
+                yield res
 
     def search(self, query : str, qid : str = "1", sort=True) -> pd.DataFrame:
         """
