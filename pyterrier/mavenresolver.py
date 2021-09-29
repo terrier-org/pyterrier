@@ -38,9 +38,9 @@ def downloadfile(orgName, packageName, version, file_path, artifact="jar", force
         return mvnLocalLocation
 
     if force_download:
-        print("Downloading "+ packageName + " " + version + "  " + artifact  + " to " + file_path + "...")
+        print("Downloading "+ packageName + " " + version + " " + artifact  + " to " + file_path + "...")
     else:
-        print(packageName + " " + version + "  " + artifact  + " not found, downloading to " + file_path + "...")
+        print(packageName + " " + version + " " + artifact  + " not found, downloading to " + file_path + "...")
     
     if "com/github" in orgName:
         mvnUrl = JITPACK_BASE_URL + filelocation
