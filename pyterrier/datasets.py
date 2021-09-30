@@ -589,7 +589,8 @@ TREC_COVID_FILES = {
         "docids-rnd4" : ("docids-rnd4.txt", "https://ir.nist.gov/covidSubmit/data/docids-rnd4.txt"),
         "docids-rnd5" : ("docids-rnd5.txt", "https://ir.nist.gov/covidSubmit/data/docids-rnd5.txt")
     },
-    "info_url"  : "https://ir.nist.gov/covidSubmit/"
+    "info_url"  : "https://ir.nist.gov/covidSubmit/",
+    "index": _datarepo_index
 }
 
 def msmarco_document_generate(dataset):
