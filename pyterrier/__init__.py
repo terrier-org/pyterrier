@@ -1,4 +1,4 @@
-__version__ = "0.7.0"
+__version__ = "0.7.1"
 
 import os
 from .bootstrap import _logging, setup_terrier, setup_jnius, is_windows
