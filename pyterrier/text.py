@@ -329,15 +329,16 @@ class SlidingWindowPassager(TransformerBase):
 
     def _check_columns(self, topics_and_res):
         if not self.text_attr in topics_and_res.columns:
-            raise KeyError("%s is a required input column, but not found in input dataframe." % self.text_attr)
+            raise KeyError("%s is a required input column, but not found in input dataframe. Found %s" % (self.text_attr, str(list(topics_and_res.columns))))
         if self.prepend_title and not self.title_attr in topics_and_res.columns:
-            raise KeyError("%s is a required input column, but not found in input dataframe. Set prepend_title=False to disable its use." % self.title_attr)
+            raise KeyError("%s is a required input column, but not found in input dataframe. Set prepend_title=False to disable its use. Found %s" % (self.title_attr, str(list(topics_and_res.columns))))
         if not "docno" in topics_and_res.columns:
-            raise KeyError("%s is a required input column, but not found in input dataframe." % "docno")
+            raise KeyError("%s is a required input column, but not found in input dataframe. Found %s" % ("docno", str(list(topics_and_res.columns))))
 
     def transform(self, topics_and_res):
         # validate input columns
         self._check_columns(topics_and_res)
+        print("calling sliding on df of %d rows" % len(topics_and_res))
 
         # now apply the passaging
         if "qid" in topics_and_res.columns: 
