@@ -824,7 +824,7 @@ class ComposedPipeline(NAryTransformerBase):
     name = "Compose"
 
     def index(self, iter : Iterable[dict], batch_size=100):
-        from more_itertools import ichunked
+        from more_itertools import chunked
         
         if len(self.models) > 2:
             #this compose could have > 2 models. we need a composite transform() on all but the last
@@ -834,7 +834,7 @@ class ComposedPipeline(NAryTransformerBase):
         last_transformer = self.models[-1]
         
         def gen():
-            for batch in ichunked(iter, batch_size):
+            for batch in chunked(iter, batch_size):
                 batch_df = prev_transformer.transform_iter(batch)
                 for row in batch_df.itertuples(index=False):
                     yield row._asdict()
