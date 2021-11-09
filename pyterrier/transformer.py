@@ -31,10 +31,13 @@ def get_transformer(v):
     if is_transformer(v):
         return v
     if is_lambda(v):
+        warn('Coercion of a lambda into a transformer is deprecated; use a pt.apply instead')
         return ApplyGenericTransformer(v)
     if is_function(v):
+        warn('Coercion of a function into a transformer is deprecated; use a pt.apply instead')
         return ApplyGenericTransformer(v)
     if isinstance(v, pd.DataFrame):
+        warn('Coercion of a dataframe into a transformer is deprecated; use a pt.apply instead')
         return SourceTransformer(v)
     raise ValueError("Passed parameter %s of type %s cannot be coerced into a transformer" % (str(v), type(v)))
 
@@ -289,6 +292,11 @@ class TransformerBase:
 
     def __hash__(self):
         return hash(repr(self))
+
+class Transformer(TransformerBase):
+    @staticmethod
+    def from_df(df : pd.DataFrame) -> TransformerBase:
+        return SourceTransformer(df)
 
 class IterDictIndexerBase(TransformerBase):
     def index(self, iter : Iterable[dict], **kwargs):
