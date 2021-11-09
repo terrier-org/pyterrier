@@ -70,11 +70,14 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     are in the  "~/.pyterrier" (if they are not present, they will be downloaded the first time). Then you should set their versions when calling ``init()`` function. For example:
     ``pt.init(version = 5.5, helper_version = "0.0.6")``.
     """
+    global firstInit
+    if firstInit:
+        raise RuntimeError("pt.init() has already been called. Check pt.started() before calling pt.init()")
+
     set_tqdm(tqdm)
 
     global ApplicationSetup
     global properties
-    global firstInit
     global file_path
     global HOME_DIR
 
