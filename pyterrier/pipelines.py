@@ -801,18 +801,6 @@ def GridScan(
     #1  BR(PL2)     1.0  0.189274
     #2  BR(PL2)     5.0  0.230838
     return pd.DataFrame(rtr)
-            
-
-from .ltr import RegressionTransformer, LTRTransformer
-@deprecation.deprecated(deprecated_in="0.3.0",
-                        details="Please use pt.ltr.apply_learned_model(learner, form='regression')")
-class LTR_pipeline(RegressionTransformer):
-    pass
-
-@deprecation.deprecated(deprecated_in="0.3.0",
-                        details="Please use pt.ltr.apply_learned_model(learner, form='ltr')")
-class XGBoostLTR_pipeline(LTRTransformer):
-    pass
 
 
 class PerQueryMaxMinScoreTransformer(TransformerBase):

@@ -7,12 +7,6 @@ stderr_ref = None
 TERRIER_PKG = "org.terrier"
 SAVED_FNS=[]
 
-@deprecation.deprecated(deprecated_in="0.1.3",
-                        # remove_id="",
-                        details="Use the logging(level) function instead")
-def setup_logging(level):
-    logging(level)
-
 def logging(level):
     from jnius import autoclass
     autoclass("org.terrier.python.PTUtils").setLogLevel(level, None)
