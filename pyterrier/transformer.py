@@ -472,8 +472,8 @@ class CombSumTransformer(BinaryTransformerBase):
         both_cols = set(res1.columns) & set(res2.columns)
         both_cols.remove("qid")
         both_cols.remove("docno")
-        merged = res1.merge(res2, on=["qid", "docno"], suffixes=[None, "_r"])
-        merged["score"] = merged["score"] + merged["score_r"]
+        merged = res1.merge(res2, on=["qid", "docno"], suffixes=[None, "_r"], how='outer')
+        merged["score"] = merged["score"].fillna(0) + merged["score_r"].fillna(0)
         merged = merged.drop(columns=["%s_r" % col for col in both_cols])
         merged = add_ranks(merged)
         return merged

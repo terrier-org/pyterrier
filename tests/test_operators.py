@@ -141,6 +141,22 @@ class TestOperators(BaseTestCase):
         self.assertEqual("doc1", rtr.iloc[0]["docno"])
         self.assertEqual(15, rtr.iloc[0]["score"])
 
+    def test_plus_notoverlap(self):
+        import pyterrier.transformer as ptt
+        mock1 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))
+        mock2 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc2", 10]], columns=["qid", "docno", "score"]))
+
+        combined = mock1 + mock2
+        # we dont need an input, as both Identity transformers will return anyway
+        rtr = combined.transform(None)
+
+        self.assertEqual(2, len(rtr))
+        self.assertEqual("q1", rtr.iloc[0]["qid"])
+        self.assertEqual("doc1", rtr.iloc[0]["docno"])
+        self.assertEqual(5, rtr.iloc[0]["score"])
+        self.assertEqual("doc2", rtr.iloc[1]["docno"])
+        self.assertEqual(10, rtr.iloc[1]["score"])
+
     def test_plus_more_cols(self):
         import pyterrier.transformer as ptt
         from pyterrier.model import add_ranks
