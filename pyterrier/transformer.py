@@ -114,8 +114,8 @@ class Scalar(Symbol):
 class TransformerBase:
     name = "TransformerBase"
     """
-        Base class for all transformers. Implements the various operators >> + * | & 
-        as well as the compile() for rewriting complex pipelines into more simples ones.
+        Base class for all transformers. Implements the various operators ``>>`` ``+`` ``*`` ``|`` ``&`` 
+        as well as ``search()`` for executing a single query and ``compile()`` for rewriting complex pipelines into more simples ones.
     """
 
     def transform(self, topics_or_res):
@@ -126,6 +126,11 @@ class TransformerBase:
         pass
 
     def transform_iter(self, input: Iterable[dict]) -> pd.DataFrame:
+        """
+            Method that proesses an iter-dict by instantiating it as a dataframe and calling transform().
+            Returns the DataFrame returned by transform(). Used in the implementation of index() on a composed 
+            pipeline.
+        """
         return self.transform(pd.DataFrame(list(input)))
 
     def transform_gen(self, input : pd.DataFrame, batch_size=1, output_topics=False) -> Iterator[pd.DataFrame]:
@@ -287,6 +292,10 @@ class TransformerBase:
 
 class IterDictIndexerBase(TransformerBase):
     def index(self, iter : Iterable[dict], **kwargs):
+        """
+            Takes an iterable of dictionaries ("iterdict"), and consumes them. There is no return;
+            This method is typically used to implement indexers.
+        """
         pass
 
     
@@ -824,6 +833,10 @@ class ComposedPipeline(NAryTransformerBase):
     name = "Compose"
 
     def index(self, iter : Iterable[dict], batch_size=100):
+        """
+        This methods implements indexing pipelines. It is responsible for calling the transform_iter() method of its 
+        constituent transformers (except the last one) on batches of records, and the index() method on the last transformer.
+        """
         from more_itertools import chunked
         
         if len(self.models) > 2:

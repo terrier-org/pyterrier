@@ -9,7 +9,7 @@ PyTerrier's retrieval architecture is based on three concepts:
  - the *transformation* of those dataframes by standard information retrieval operations, defined as transformers.
  - the compsition of transformers, supported by the operators defined on transformers.
 
-In essence, a PyTerrier transformer is a class with a `transform()` method, which takes as input a dataframe, and changes it,
+In essence, a PyTerrier transformer is a class with a ``transform()`` method, which takes as input a dataframe, and changes it,
 before returning it.
 
 +-------+---------+-------------+------------------+------------------------------+
@@ -37,11 +37,11 @@ earlier. So while the following two pipelines are semantically equivalent, the l
 
 Fitting
 =======
-When `fit()` is called on a pipeline, all estimators (transformers that also have a `fit()` method, as specified by 
+When `fit()` is called on a pipeline, all estimators (transformers that also have a ``fit()`` method, as specified by 
 `EstimatorBase`) within the pipeline are fitted, in turn. This allows one (or more) stages of learning to be 
 integrated into a retrieval pipeline.  See :ref:`pyterrier.ltr` for examples.
 
-When calling fit on a composed pipeline (i.e. one created using the `>>` operator), this will will call `fit()` on any 
+When calling fit on a composed pipeline (i.e. one created using the ``>>`` operator), this will will call ``fit()`` on any 
 estimators within that pipeline.
 
 Transformer base classes
@@ -63,10 +63,13 @@ to support the transformer operators (`>>`, `+` etc).
 EstimatorBase
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This class exposes a `fit()` method that can be used for transformers that can be trained.
+This class exposes a ``fit()`` method that can be used for transformers that can be trained.
 
 .. autoclass:: pyterrier.transformer.EstimatorBase
     :members:
+
+The ComposedPipeline implements ``fit()``, which applies the interimediate transformers on the specified training (and validation) topics, and places
+the output into the ``fit()`` method of the final transformer.
 
 Internal transformers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -96,6 +99,24 @@ to use these directly but they are documented for completeness.
 | `~`    | cache            | ChestCacheTransformer     |
 +--------+------------------+---------------------------+
 
+Indexing Pipelines
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Transformers can be chained to create indexing pipelines. The last element in the chain is assumed to be an indexer like 
+IterDictIndexer - it should implement an ``index()`` method like IterDictIndexerBase. For instance::
+
+    docs = [ {"docno" : "1", "text" : "a" } ] 
+    indexer = pt.text.sliding() >> pt.IterDictIndexer()
+    indexer.index(docs)
+
+This is implemented by several methods:
+
+ - The last stage of the pipeline should have an ``index()`` method that accepts an iterable of dictionaries
+ - ComposedPipeline has a special ``index()`` method that breaks the input iterable into chunks (the size of 
+   chunks can be altered by a batch_size kwarg) and passes those through the intermediate pipeline stages (i.e. all but the last).
+ - In the intermediate pipeline stages, the ``transform_iter()`` method is called - by default this instantiates a DataFrame
+   on batch_size records, which is passed to ``transform()``.
+ - These are passed to ``index()`` of the last pipeline stage.
 
 Writing your own transformer
 ============================
@@ -108,6 +129,7 @@ However, if your transformer has state, such as an expensive model to be loaded 
 extend TransformerBase directly. 
 
 Here are some hints for writing Transformers:
-
- - If you return ranked results, use `pt.model.add_ranks()` to add the rank column.
- - If your approach can be trained, you should extends EstimatorBase, and implement the `fit()` method.
+ - Except for an indexer, you should implement a ``transform()`` method.
+ - If your approach ranks results, use ``pt.model.add_ranks()`` to add the rank column.
+ - If your approach can be trained, your transformer should extend EstimatorBase, and implement the ``fit()`` method.
+ - If your approach is an indexer, your transformer should extend IterDictIndexerBase and implement ``index()`` method.
