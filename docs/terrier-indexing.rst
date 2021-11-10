@@ -84,7 +84,20 @@ IterDictIndexer
 .. autoclass:: pyterrier.IterDictIndexer
    :members: index
 
-Example indexing MSMARCO Passage Ranking dataset::
+An iterdict can just be a list of dictionaries::
+
+    docs = [ { 'docno' : 'doc1', 'text' : 'a b c' }  ]
+    iter_indexer = pt.IterDictIndexer("./index")
+    indexref1 = iter_indexer.index(docs, meta=['docno', 'text'], meta_lengths=[20, 4096])
+
+A dataframe can also be used, virtue of its ``.to_dict()`` method::
+
+    df = pd.DataFrame([['doc1', 'a b c']], columns=['docno', 'text'])
+    iter_indexer = pt.IterDictIndexer("./index")
+    indexref2 = indexer.index(df.to_dict(orient="records"))
+
+However, the main power of using IterDictIndexer is for processing indefinite iterables, such as those returned by generator functions.
+For example, the tsv file of the MSMARCO Passage Ranking corpus can be indexed as follows::
 
     dataset = pt.get_dataset("trec-deep-learning-passages")
     def msmarco_generate():
@@ -95,6 +108,8 @@ Example indexing MSMARCO Passage Ranking dataset::
     
     iter_indexer = pt.IterDictIndexer("./passage_index")
     indexref3 = iter_indexer.index(msmarco_generate(), meta=['docno', 'text'], meta_lengths=[20, 4096])
+
+IterDictIndexer can be used in connection with :ref:`indexing_pipelines`.
 
 On UNIX-based systems, you can also perform multi-threaded indexing::
 

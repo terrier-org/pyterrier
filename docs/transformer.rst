@@ -99,6 +99,9 @@ to use these directly but they are documented for completeness.
 | `~`    | cache            | ChestCacheTransformer     |
 +--------+------------------+---------------------------+
 
+
+.. _indexing_pipelines:
+
 Indexing Pipelines
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
