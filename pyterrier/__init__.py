@@ -132,7 +132,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     from .utils import Utils
     from .datasets import get_dataset, find_datasets, list_datasets
     from .index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, FlatJSONDocumentIterator, IndexingType
-    from .pipelines import LTR_pipeline, XGBoostLTR_pipeline, Experiment, GridScan, GridSearch, KFoldGridSearch
+    from .pipelines import Experiment, GridScan, GridSearch, KFoldGridSearch
 
     # Make imports global
     globals()["autoclass"] = autoclass
@@ -178,8 +178,6 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     globals()["IterDictIndexer"] = IterDictIndexer
     globals()["FlatJSONDocumentIterator"] = FlatJSONDocumentIterator
     globals()["Utils"] = Utils
-    globals()["LTR_pipeline"] = LTR_pipeline
-    globals()["XGBoostLTR_pipeline"] = XGBoostLTR_pipeline
     globals()["IndexFactory"] = autoclass("org.terrier.structures.IndexFactory")
     globals()["IndexRef"] = autoclass("org.terrier.querying.IndexRef")
     globals()["IndexingType"] = IndexingType

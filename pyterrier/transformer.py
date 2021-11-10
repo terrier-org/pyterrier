@@ -719,11 +719,6 @@ class ApplyGenericTransformer(ApplyTransformerBase):
         fn = self.fn
         return fn(inputRes)
 
-@deprecation.deprecated(deprecated_in="0.3.0",
-                        details="Please use pt.ApplyGenericTransformer")
-class LambdaPipeline(ApplyGenericTransformer):
-    pass
-
 class FeatureUnionPipeline(NAryTransformerBase):
     """
         Implements the feature union operator.
