@@ -37,7 +37,7 @@ def get_transformer(v):
         warn('Coercion of a function into a transformer is deprecated; use a pt.apply instead')
         return ApplyGenericTransformer(v)
     if isinstance(v, pd.DataFrame):
-        warn('Coercion of a dataframe into a transformer is deprecated; use a pt.apply instead')
+        warn('Coercion of a dataframe into a transformer is deprecated; use a pt.Transformer.from_df() instead')
         return SourceTransformer(v)
     raise ValueError("Passed parameter %s of type %s cannot be coerced into a transformer" % (str(v), type(v)))
 
@@ -295,8 +295,21 @@ class TransformerBase:
 
 class Transformer(TransformerBase):
     @staticmethod
-    def from_df(df : pd.DataFrame) -> TransformerBase:
-        return SourceTransformer(df)
+
+    #NB: typing cannot return Transformer until Python 3.7
+    def from_df(input : pd.DataFrame, uniform=False) -> TransformerBase:
+        """
+        Instantiates a transformer from an input dataframe. Some rows from the input dataframe are returned
+        in response to a query on the ``tranform()`` method. Depending on the value `uniform`, the dataframe
+        passed as an argument to ``transform()`` can affect this selection.
+
+        If `uniform` is True, input will be returned in its entirety each time.
+        If `uniform` is False, rows from input that match the qid values from the argument dataframe.
+        
+        """
+        if uniform:
+            return UniformTransformer(input)
+        return SourceTransformer(input)
 
 class IterDictIndexerBase(TransformerBase):
     def index(self, iter : Iterable[dict], **kwargs):
