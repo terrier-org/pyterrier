@@ -9,7 +9,7 @@ def print_columns(by_query : bool = False, message : str = None) -> TransformerB
     Arguments:
      - by_query(bool): whether to display for each query. Defaults to False.
      - message(str): whether to display a message before printing. Defaults to None, which means no message. This
-     is useful when print_columns() is being used multiple times within a pipeline 
+       is useful when ``print_columns()`` is being used multiple times within a pipeline 
      
 
     Example::
@@ -45,7 +45,7 @@ def print_num_rows(
     Arguments:
      - by_query(bool): whether to display for each query. Defaults to True.
      - message(str): whether to display a message before printing. Defaults to "num_rows". This
-    is useful when print_columns() is being used multiple times within a pipeline 
+       is useful when ``print_columns()`` is being used multiple times within a pipeline 
      
     Example::
     
@@ -94,7 +94,7 @@ def print_rows(
      - head(int): The number of rows to display. None means all rows.
      - columns(List[str]): Limit the columns for which data is displayed. Default of None displays all columns.
      - message(str): whether to display a message before printing. Defaults to None, which means no message. This
-       is useful when print_rows() is being used multiple times within a pipeline 
+       is useful when ``print_rows()`` is being used multiple times within a pipeline 
 
     Example::
 
