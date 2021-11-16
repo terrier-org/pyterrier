@@ -121,7 +121,7 @@ Similarly, indexing of JSONL files is similarly a few lines of Python::
           # yields a dictionary for each json line 
           yield json.loads(l)
 
-  indexref4 = pt.IterDictIndexer("./index").index(iter_file("/path/to/file.jsonl"), meta=['docno', 'text'], meta_lengths=[20, 4096])
+    indexref4 = pt.IterDictIndexer("./index").index(iter_file("/path/to/file.jsonl"), meta=['docno', 'text'], meta_lengths=[20, 4096])
   
 NB: Use ``pt.io.autoopen()`` as a drop-in replacement for ``open()`` that supports files compressed by gzip etc.
 
