@@ -111,10 +111,24 @@ For example, the tsv file of the MSMARCO Passage Ranking corpus can be indexed a
 
 IterDictIndexer can be used in connection with :ref:`indexing_pipelines`.
 
+Similarly, indexing of JSONL files is similarly a few lines of Python::
+
+    def iter_file(filename):
+      import json
+      with open(filename, 'rt') as file:
+        for l in file:
+          # assumes that each line contains 'docno', 'text' attributes
+          # yields a dictionary for each json line 
+          yield json.loads(l)
+
+  indexref4 = pt.IterDictIndexer("./index").index(iter_file("/path/to/file.jsonl"), meta=['docno', 'text'], meta_lengths=[20, 4096])
+  
+NB: Use ``pt.io.autoopen()`` as a drop-in replacement for ``open()`` that supports files compressed by gzip etc.
+
 On UNIX-based systems, you can also perform multi-threaded indexing::
 
     iter_indexer = pt.IterDictIndexer("./passage_index_8", threads=8)
-    indexref4 = iter_indexer.index(msmarco_generate(), meta=['docno', 'text'], meta_lengths=[20, 4096])
+    indexref5 = iter_indexer.index(msmarco_generate(), meta=['docno', 'text'], meta_lengths=[20, 4096])
 
 Note that the resulting index ordering with multiple threads is non-deterministic; if you need 
 deterministic behavior you must index in single-threaded mode. Furthermore, indexing can only go
