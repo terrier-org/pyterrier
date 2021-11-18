@@ -294,7 +294,9 @@ def Experiment(
     if 'drop_unused' in kwargs:
         filter_by_qrels = kwargs.pop('drop_unused')
         warn('drop_unused is deprecated; use filter_by_qrels instead')
-    
+    if len(kwargs):
+        raise TypeError("Unknown kwargs: %s" % (str(list(kwargs.keys()))))
+
     if baseline is not None:
         assert int(baseline) >= 0 and int(baseline) < len(retr_systems)
         assert not perquery
