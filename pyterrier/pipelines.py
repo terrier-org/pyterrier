@@ -126,10 +126,14 @@ def _run_and_evaluate(
         qrels: pd.DataFrame, 
         metrics : MEASURES_TYPE, 
         pbar = None,
+        save = None,
+        save_file = None,
         perquery : bool = False,
         batch_size = None,
         backfill_qids : Sequence[str] = None):
     
+    from .io import read_results, write_results
+
     if pbar is None:
         from . import tqdm
         pbar = tqdm(disable=True)
@@ -139,6 +143,14 @@ def _run_and_evaluate(
     from timeit import default_timer as timer
     runtime = 0
     num_q = qrels['query_id'].nunique()
+    if save_file is not None and os.path.exists(save_file):
+        if save == "reuse":
+            system = read_results(save_file)
+        elif save == "overwrite":
+            os.remove(save_file)
+        else:
+            raise ValueError("Unknown save argument '%s', valid options are 'reuse' or 'overwrite'")
+
     # if its a DataFrame, use it as the results
     if isinstance(system, pd.DataFrame):
         res = system
@@ -161,6 +173,10 @@ def _run_and_evaluate(
         res = system.transform(topics)
         endtime = timer()
         runtime =  (endtime - starttime) * 1000.
+
+        # write results to save_file; we can be sure this file does not exist
+        if save_file is not None:
+            write_results(res, save_file)
 
         res = coerce_dataframe_types(res)
 
@@ -186,6 +202,11 @@ def _run_and_evaluate(
                 raise ValueError("batch of %d topics, but no results received in batch %d from %s" % (len(batch_topics), i, str(system) ) )
             endtime = timer()
             runtime += (endtime - starttime) * 1000.
+
+            # write results to save_file; we will append for subsequent batches
+            if save_file is not None:
+                write_results(res, save_file, append=True)
+
             res = coerce_dataframe_types(res)
             batch_qids = set(batch_topics.qid)
             batch_qrels = qrels[qrels.query_id.isin(batch_qids)] # filter qrels down to just the qids that appear in this batch
@@ -241,6 +262,8 @@ def Experiment(
         highlight : str = None,
         round : Union[int,Dict[str,int]] = None,
         verbose : bool = False,
+        save_dir : str = None,
+        save : str = 'reuse',
         **kwargs):
     """
     Allows easy comparison of multiple retrieval transformer pipelines using a common set of topics, and
@@ -365,6 +388,14 @@ def Experiment(
     elif len(names) != len(retr_systems):
         raise ValueError("names should be the same length as retr_systems")
 
+    # validate save_dir and resulting filenames
+    if save_dir is not None:
+        if not os.path.exists(save_dir):
+            raise ValueError("save_dir %s does not exist" % save_dir)
+        for n in names:
+            if '/' in n:
+                raise ValueError("Names cannot contain / when save_dir is set, name is %s" % n)
+
     all_topic_qids = topics["qid"].values
 
     evalsRows=[]
@@ -376,7 +407,7 @@ def Experiment(
         mrt_needed = True
         eval_metrics.remove("mrt")
 
-    # run and evaluate each system
+    # progress bar construction
     from . import tqdm
     tqdm_args={
         'disable' : not verbose,
@@ -389,12 +420,19 @@ def Experiment(
         tqdm_args['total'] = (len(topics) / batch_size) * len(retr_systems)
 
     with tqdm(**tqdm_args) as pbar:
-        for name,system in zip(names, retr_systems):
+        # run and evaluate each system
+        for name, system in zip(names, retr_systems):
+            save_file = None
+            if save_dir is not None:
+                save_file = os.path.join(save_dir, "%s.res.gz" % name)
+
             time, evalMeasuresDict = _run_and_evaluate(
                 system, topics, qrels, eval_metrics, 
                 perquery=perquery or baseline is not None, 
                 batch_size=batch_size, 
                 backfill_qids=all_topic_qids if perquery else None,
+                save_file=save_file,
+                save=save,
                 pbar=pbar)
 
             if baseline is not None:
