@@ -197,30 +197,36 @@ def _run_and_evaluate(
         starttime = timer()
         evalMeasuresDict = {}
         remaining_qrel_qids = set(qrels.query_id)
-        for i, (res, batch_topics) in enumerate( system.transform_gen(topics, batch_size=batch_size, output_topics=True)):
-            if len(res) == 0:
-                raise ValueError("batch of %d topics, but no results received in batch %d from %s" % (len(batch_topics), i, str(system) ) )
-            endtime = timer()
-            runtime += (endtime - starttime) * 1000.
+        try:
+            for i, (res, batch_topics) in enumerate( system.transform_gen(topics, batch_size=batch_size, output_topics=True)):
+                if len(res) == 0:
+                    raise ValueError("batch of %d topics, but no results received in batch %d from %s" % (len(batch_topics), i, str(system) ) )
+                endtime = timer()
+                runtime += (endtime - starttime) * 1000.
 
-            # write results to save_file; we will append for subsequent batches
-            if save_file is not None:
-                write_results(res, save_file, append=True)
+                # write results to save_file; we will append for subsequent batches
+                if save_file is not None:
+                    write_results(res, save_file, append=True)
 
-            res = coerce_dataframe_types(res)
-            batch_qids = set(batch_topics.qid)
-            batch_qrels = qrels[qrels.query_id.isin(batch_qids)] # filter qrels down to just the qids that appear in this batch
-            remaining_qrel_qids.difference_update(batch_qids)
-            batch_backfill = [qid for qid in backfill_qids if qid in batch_qids] if backfill_qids is not None else None
-            evalMeasuresDict.update(_ir_measures_to_dict(
-                ir_measures.iter_calc(metrics, batch_qrels, res.rename(columns=_irmeasures_columns)),
-                metrics,
-                rev_mapping,
-                num_q,
-                perquery=True,
-                backfill_qids=batch_backfill))
-            pbar.update()
-            starttime = timer()
+                res = coerce_dataframe_types(res)
+                batch_qids = set(batch_topics.qid)
+                batch_qrels = qrels[qrels.query_id.isin(batch_qids)] # filter qrels down to just the qids that appear in this batch
+                remaining_qrel_qids.difference_update(batch_qids)
+                batch_backfill = [qid for qid in backfill_qids if qid in batch_qids] if backfill_qids is not None else None
+                evalMeasuresDict.update(_ir_measures_to_dict(
+                    ir_measures.iter_calc(metrics, batch_qrels, res.rename(columns=_irmeasures_columns)),
+                    metrics,
+                    rev_mapping,
+                    num_q,
+                    perquery=True,
+                    backfill_qids=batch_backfill))
+                pbar.update()
+                starttime = timer()
+        except Exception as inst:
+            # if an error is thrown, we need to clean up our existing file
+            if save_file is not None and os.path.exits(save_file):
+                os.remove(save_file)
+            raise inst
         if remaining_qrel_qids:
             # there are some qids in the qrels that were not in the topics. Get the default values for these and update evalMeasuresDict
             missing_qrels = qrels[qrels.query_id.isin(remaining_qrel_qids)]
@@ -392,9 +398,14 @@ def Experiment(
     if save_dir is not None:
         if not os.path.exists(save_dir):
             raise ValueError("save_dir %s does not exist" % save_dir)
+        if not os.path.isdir(save_dir):
+            raise ValueError("save_dir %s is not a directory" % save_dir)
+        from .io import ok_filename
         for n in names:
-            if '/' in n:
-                raise ValueError("Names cannot contain / when save_dir is set, name is %s" % n)
+            if not ok_filename(n):
+                raise ValueError("Name contains bad characters and save_dir is set, name is %s" % n)
+        if len(set(names)) < len(names):
+            raise ValueError("save_dir is set, but names are not unique. Use names= to set unique names")
 
     all_topic_qids = topics["qid"].values
 

@@ -113,6 +113,15 @@ def finalized_autoopen(path: str, mode: str):
     """
     return _finalized_open_base(path, mode, autoopen)
 
+def ok_filename(fname) -> bool:
+    """
+    Checks to see if a filename is valid.
+    """
+    BAD_CHARS = ':"%/<>^|?' + os.sep
+    for c in BAD_CHARS:
+        if c in fname:
+            return False
+    return True
 
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     """
@@ -219,16 +228,16 @@ def _write_results_trec(res, filename, run_name="pyterrier", append=False):
         res_copy = res.copy()[["qid", "docno", "rank", "score"]]
         res_copy.insert(1, "Q0", "Q0")
         res_copy.insert(5, "run_name", run_name)
-        res_copy.to_csv(filename, sep=" ", mode='wa' if append else 'w', header=False, index=False)
+        res_copy.to_csv(filename, sep=" ", mode='a' if append else 'w', header=False, index=False)
 
 def _write_results_minimal(res, filename, run_name="pyterrier", append=False):
         res_copy = res.copy()[["qid", "docno", "rank"]]
-        res_copy.to_csv(filename, sep="\t", mode='wa' if append else 'w', header=False, index=False)
+        res_copy.to_csv(filename, sep="\t", mode='a' if append else 'w', header=False, index=False)
 
 def _write_results_letor(res, filename, qrels=None, default_label=0, append=False):
     if qrels is not None:
         res = res.merge(qrels, on=['qid', 'docno'], how='left').fillna(default_label)
-    mode='wta' if append else 'wt' 
+    mode='wa' if append else 'wt' 
     with autoopen(filename, mode) as f:
         for row in res.itertuples():
             values = row.features
