@@ -125,10 +125,15 @@ def _run_and_evaluate(
         topics : pd.DataFrame, 
         qrels: pd.DataFrame, 
         metrics : MEASURES_TYPE, 
+        pbar = None,
         perquery : bool = False,
         batch_size = None,
         backfill_qids : Sequence[str] = None):
     
+    if pbar is None:
+        from . import tqdm
+        pbar = tqdm(disable=True)
+
     metrics, rev_mapping = _convert_measures(metrics)
     qrels = qrels.rename(columns={'qid': 'query_id', 'docno': 'doc_id', 'label': 'relevance'})
     from timeit import default_timer as timer
@@ -147,6 +152,7 @@ def _run_and_evaluate(
             num_q,
             perquery,
             backfill_qids)
+        pbar.update()
 
     elif batch_size is None:
         #transformer, evaluate all queries at once
@@ -168,6 +174,7 @@ def _run_and_evaluate(
             num_q,
             perquery,
             backfill_qids)
+        pbar.update()
     else:
         #transformer, evaluate queries in batches
         assert batch_size > 0
@@ -191,6 +198,7 @@ def _run_and_evaluate(
                 num_q,
                 perquery=True,
                 backfill_qids=batch_backfill))
+            pbar.update()
             starttime = timer()
         if remaining_qrel_qids:
             # there are some qids in the qrels that were not in the topics. Get the default values for these and update evalMeasuresDict
@@ -232,6 +240,7 @@ def Experiment(
         correction_alpha : float = 0.05,
         highlight : str = None,
         round : Union[int,Dict[str,int]] = None,
+        verbose : bool = False,
         **kwargs):
     """
     Allows easy comparison of multiple retrieval transformer pipelines using a common set of topics, and
@@ -254,7 +263,7 @@ def Experiment(
         filter_by_qrels(bool): If True, will drop topics from the topics dataframe that have qids not appearing in the qrels dataframe. 
         filter_by_topics(bool): If True, will drop topics from the qrels dataframe that have qids not appearing in the topics dataframe. 
         perquery(bool): If True return each metric for each query, else return mean metrics across all queries. Default=False.
-        dataframe(bool): If True return results as a dataframe. Else as a dictionary of dictionaries. Default=True.
+        dataframe(bool): If True return results as a dataframe, else as a dictionary of dictionaries. Default=True.
         baseline(int): If set to the index of an item of the retr_system list, will calculate the number of queries 
             improved, degraded and the statistical significance (paired t-test p value) for each measure.
             Default=None: If None, no additional columns will be added for each measure.
@@ -265,11 +274,12 @@ def Experiment(
             Additional columns are added denoting whether the null hypothesis can be rejected, and the corrected p value. 
             See `statsmodels.stats.multitest.multipletests() <https://www.statsmodels.org/dev/generated/statsmodels.stats.multitest.multipletests.html#statsmodels.stats.multitest.multipletests>`_
             for more information about available testing correction.
-        correction_alpha(float): What alpha value for multiple testing correction Default is 0.05.
+        correction_alpha(float): What alpha value for multiple testing correction. Default is 0.05.
         highlight(str): If `highlight="bold"`, highlights in bold the best measure value in each column; 
             if `highlight="color"` or `"colour"`, then the cell with the highest metric value will have a green background.
         round(int): How many decimal places to round each measure value to. This can also be a dictionary mapping measure name to number of decimal places.
             Default is None, which is no rounding.
+        verbose(bool): If True, a tqdm progress bar is shown as systems (or systems*batches if batch_size is set) are executed. Default=False.
 
     Returns:
         A Dataframe with each retrieval system with each metric evaluated.
@@ -367,36 +377,54 @@ def Experiment(
         eval_metrics.remove("mrt")
 
     # run and evaluate each system
-    for name,system in zip(names, retr_systems):
-        time, evalMeasuresDict = _run_and_evaluate(system, topics, qrels, eval_metrics, perquery=perquery or baseline is not None, batch_size=batch_size, backfill_qids=all_topic_qids if perquery else None)
+    from . import tqdm
+    tqdm_args={
+        'disable' : not verbose,
+        'unit' : 'system',
+        'total' : len(retr_systems),
+        'desc' : 'pt.Experiment'
+    }
+    if batch_size is not None:
+        tqdm_args['unit'] = 'batches'
+        tqdm_args['total'] = (len(topics) / batch_size) * len(retr_systems)
 
-        if baseline is not None:
-            evalDictsPerQ.append(evalMeasuresDict)
-            evalMeasuresDict = Utils.mean_of_measures(evalMeasuresDict)
+    with tqdm(**tqdm_args) as pbar:
+        for name,system in zip(names, retr_systems):
+            time, evalMeasuresDict = _run_and_evaluate(
+                system, topics, qrels, eval_metrics, 
+                perquery=perquery or baseline is not None, 
+                batch_size=batch_size, 
+                backfill_qids=all_topic_qids if perquery else None,
+                pbar=pbar)
 
-        if perquery:
-            for qid in evalMeasuresDict:
-                for measurename in evalMeasuresDict[qid]:
-                    evalsRows.append([
-                        name, 
-                        qid, 
-                        measurename, 
-                        _apply_round(
+            if baseline is not None:
+                evalDictsPerQ.append(evalMeasuresDict)
+                evalMeasuresDict = Utils.mean_of_measures(evalMeasuresDict)
+
+            if perquery:
+                for qid in evalMeasuresDict:
+                    for measurename in evalMeasuresDict[qid]:
+                        evalsRows.append([
+                            name, 
+                            qid, 
                             measurename, 
-                            evalMeasuresDict[qid][measurename]
-                        ) 
-                    ])
-            evalDict[name] = evalMeasuresDict
-        else:
-            import builtins
-            if mrt_needed:
-                evalMeasuresDict["mrt"] = time / float(len(all_topic_qids))
-            actual_metric_names = list(evalMeasuresDict.keys())
-            # gather mean values, applying rounding if necessary
-            evalMeasures=[ _apply_round(m, evalMeasuresDict[m]) for m in actual_metric_names]
+                            _apply_round(
+                                measurename, 
+                                evalMeasuresDict[qid][measurename]
+                            ) 
+                        ])
+                evalDict[name] = evalMeasuresDict
+            else:
+                import builtins
+                if mrt_needed:
+                    evalMeasuresDict["mrt"] = time / float(len(all_topic_qids))
+                actual_metric_names = list(evalMeasuresDict.keys())
+                # gather mean values, applying rounding if necessary
+                evalMeasures=[ _apply_round(m, evalMeasuresDict[m]) for m in actual_metric_names]
 
-            evalsRows.append([name]+evalMeasures)
-            evalDict[name] = evalMeasures
+                evalsRows.append([name]+evalMeasures)
+                evalDict[name] = evalMeasures
+    
 
     if dataframe:
         if perquery:
