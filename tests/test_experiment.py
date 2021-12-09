@@ -5,9 +5,9 @@ import unittest
 import warnings
 import math
 from pyterrier.measures import *
-from .base import BaseTestCase
+from .base import TempDirTestCase
 
-class TestExperiment(BaseTestCase):
+class TestExperiment(TempDirTestCase):
 
     def test_irm_APrel2(self):
         topics = pd.DataFrame([["q1", "q1"], ["q2", "q1"] ], columns=["qid", "query"])
@@ -127,9 +127,10 @@ class TestExperiment(BaseTestCase):
         
 
     def test_mrt(self):
+        index = pt.datasets.get_dataset("vaswani").get_index()
         brs = [
-            pt.BatchRetrieve(pt.datasets.get_dataset("vaswani").get_index(), wmodel="DPH"), 
-            pt.BatchRetrieve(pt.datasets.get_dataset("vaswani").get_index(), wmodel="BM25")
+            pt.BatchRetrieve(index, wmodel="DPH"), 
+            pt.BatchRetrieve(index, wmodel="BM25")
         ]
         topics = pt.datasets.get_dataset("vaswani").get_topics().head(10)
         qrels =  pt.datasets.get_dataset("vaswani").get_qrels()
@@ -137,6 +138,22 @@ class TestExperiment(BaseTestCase):
         pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], highlight="color")
         pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], baseline=0, highlight="color")
 
+    def test_save(self):
+        index = pt.datasets.get_dataset("vaswani").get_index()
+        brs = [
+            pt.BatchRetrieve(index, wmodel="DPH"), 
+            pt.BatchRetrieve(index, wmodel="BM25")
+        ]
+        topics = pt.datasets.get_dataset("vaswani").get_topics().head(10)
+        qrels =  pt.datasets.get_dataset("vaswani").get_qrels()
+        df1 = pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], save_dir=self.test_dir)
+        # check save_dir files are there
+        self.assertTrue(os.path.exists(os.path.join(self.test_dir, "BR(DPH).res.gz")))
+        self.assertTrue(os.path.exists(os.path.join(self.test_dir, "BR(BM25).res.gz")))
+        df2 = pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], save_dir=self.test_dir)
+        # a successful experiment using save_dir should be faster
+        self.assertTrue(df2.iloc[0]["mrt"] < df1.iloc[0]["mrt"])
+        
     def test_empty(self):
         df1 = pt.new.ranked_documents([[1]]).head(0)
         t1 = pt.transformer.SourceTransformer(df1)
