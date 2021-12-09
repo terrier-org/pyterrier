@@ -222,11 +222,11 @@ def _run_and_evaluate(
                     backfill_qids=batch_backfill))
                 pbar.update()
                 starttime = timer()
-        except Exception as inst:
+        except:
             # if an error is thrown, we need to clean up our existing file
             if save_file is not None and os.path.exits(save_file):
                 os.remove(save_file)
-            raise inst
+            raise
         if remaining_qrel_qids:
             # there are some qids in the qrels that were not in the topics. Get the default values for these and update evalMeasuresDict
             missing_qrels = qrels[qrels.query_id.isin(remaining_qrel_qids)]
