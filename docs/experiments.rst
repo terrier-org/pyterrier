@@ -194,9 +194,9 @@ such as in sparsely labeled datasets or shared tasks that choose to omit some to
 Qids that appear in qrels but no in topics can happen when running a subset of topics for testing purposes
 (e.g., ``topics.head(5)``).
 
-The ``filter_by_qrels`` and ``fitler_by_topics`` parameters control the behaviour of an experiment when topics and qrels
+The ``filter_by_qrels`` and ``filter_by_topics`` parameters control the behaviour of an experiment when topics and qrels
 do not perfectly overlap. When ``filter_by_qrels=True``, topics are filtered down to only the ones that have qids in the
-qrels. Similarly, when ``fitler_by_topics=True``, qrels are filtered down to only the ones that have qids in the topics.
+qrels. Similarly, when ``filter_by_topics=True``, qrels are filtered down to only the ones that have qids in the topics.
 
 For example, consier topics that include qids ``A`` and ``B`` and qrels that include ``B`` and ``C``. The results with
 each combination of settings are:
