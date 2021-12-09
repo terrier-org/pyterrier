@@ -126,7 +126,7 @@ def _run_and_evaluate(
         qrels: pd.DataFrame, 
         metrics : MEASURES_TYPE, 
         pbar = None,
-        save = None,
+        save_mode = None,
         save_file = None,
         perquery : bool = False,
         batch_size = None,
@@ -144,12 +144,12 @@ def _run_and_evaluate(
     runtime = 0
     num_q = qrels['query_id'].nunique()
     if save_file is not None and os.path.exists(save_file):
-        if save == "reuse":
+        if save_file == "reuse":
             system = read_results(save_file)
-        elif save == "overwrite":
+        elif save_file == "overwrite":
             os.remove(save_file)
         else:
-            raise ValueError("Unknown save argument '%s', valid options are 'reuse' or 'overwrite'")
+            raise ValueError("Unknown save_file argument '%s', valid options are 'reuse' or 'overwrite'")
 
     # if its a DataFrame, use it as the results
     if isinstance(system, pd.DataFrame):
@@ -269,7 +269,7 @@ def Experiment(
         round : Union[int,Dict[str,int]] = None,
         verbose : bool = False,
         save_dir : str = None,
-        save : str = 'reuse',
+        save_mode : str = 'reuse',
         **kwargs):
     """
     Allows easy comparison of multiple retrieval transformer pipelines using a common set of topics, and
@@ -292,6 +292,11 @@ def Experiment(
         filter_by_qrels(bool): If True, will drop topics from the topics dataframe that have qids not appearing in the qrels dataframe. 
         filter_by_topics(bool): If True, will drop topics from the qrels dataframe that have qids not appearing in the topics dataframe. 
         perquery(bool): If True return each metric for each query, else return mean metrics across all queries. Default=False.
+        save_dir(str): If set to the name of a directory, the results of each transformer will be saved in TREC-formatted results file, whose 
+            filename is based on the systems names (as specified by ``names`` kwarg). If the file exists and ``save_mode`` is set to "reuse", then the file
+            will be used for evaluation rather than the transformer. Default is None, such that saving and loading from files is disabled.
+        save_mode(str): Defines how existing files are used when ``save_dir`` is set. If set to "reuse", then files will be preferred
+            over transformers for evaluation. If set to "overwrite", existing files will be replaced. Default is "reuse".
         dataframe(bool): If True return results as a dataframe, else as a dictionary of dictionaries. Default=True.
         baseline(int): If set to the index of an item of the retr_system list, will calculate the number of queries 
             improved, degraded and the statistical significance (paired t-test p value) for each measure.
@@ -443,7 +448,7 @@ def Experiment(
                 batch_size=batch_size, 
                 backfill_qids=all_topic_qids if perquery else None,
                 save_file=save_file,
-                save=save,
+                save_mode=save_mode,
                 pbar=pbar)
 
             if baseline is not None:
