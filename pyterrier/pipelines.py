@@ -144,12 +144,12 @@ def _run_and_evaluate(
     runtime = 0
     num_q = qrels['query_id'].nunique()
     if save_file is not None and os.path.exists(save_file):
-        if save_file == "reuse":
+        if save_mode == "reuse":
             system = read_results(save_file)
-        elif save_file == "overwrite":
+        elif save_mode == "overwrite":
             os.remove(save_file)
         else:
-            raise ValueError("Unknown save_file argument '%s', valid options are 'reuse' or 'overwrite'")
+            raise ValueError("Unknown save_file argument '%s', valid options are 'reuse' or 'overwrite'" % save_mode)
 
     # if its a DataFrame, use it as the results
     if isinstance(system, pd.DataFrame):
