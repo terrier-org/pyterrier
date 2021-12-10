@@ -224,7 +224,7 @@ def _run_and_evaluate(
                 starttime = timer()
         except:
             # if an error is thrown, we need to clean up our existing file
-            if save_file is not None and os.path.exits(save_file):
+            if save_file is not None and os.path.exists(save_file):
                 os.remove(save_file)
             raise
         if remaining_qrel_qids:
