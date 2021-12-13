@@ -597,10 +597,18 @@ class FlatJSONDocumentIterator(PythonJavaClass):
 
 from pyterrier.transformer import IterDictIndexerBase
 class _BaseIterDictIndexer(Indexer, IterDictIndexerBase):
-    def __init__(self, index_path, *args, meta_reverse=['docno'], threads=1, **kwargs):
+    def __init__(self, index_path, *args, meta = {'docno' : 20}, meta_reverse=['docno'], threads=1, **kwargs):
+        """
+        
+        Args:
+            index_path(str): Directory to store index. Ignored for IndexingType.MEMORY.
+            meta(Dict[str,int]): What metadata for each document to record in the index, and what length to reserve. Defaults to `{"docno" : 20}`.
+            meta_reverse(List[str]): What metadata shoudl we be able to resolve back to a docid. Defaults to `["docno"]`,      
+        """
         IterDictIndexerBase.__init__(self)
         Indexer.__init__(self, index_path, *args, **kwargs)
         self.threads = threads
+        self.meta = meta
         self.meta_reverse = meta_reverse
 
     def _setup(self, fields, meta, meta_lengths):
@@ -635,17 +643,23 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
     Use this Indexer if you wish to index an iter of dicts (possibly with multiple fields).
     This version is used for Windows -- which doesn't support the faster fifo implementation.
     """
-    def index(self, it, fields=('text',), meta=('docno',), meta_lengths=None, threads=None):
+    def index(self, it, fields=('text',), meta=None, meta_lengths=None, threads=None):
         """
         Index the specified iter of dicts with the (optional) specified fields
 
         Args:
             it(iter[dict]): an iter of document dict to be indexed
             fields(list[str]): keys to be indexed as fields
-            meta(list[str]): keys to be considered as metdata
-            meta_lengths(list[int]): length of metadata, defaults to 512 characters
+            meta(list[str]): keys to be considered as metdata. Deprecated
+            meta_lengths(list[int]): length of metadata, defaults to 512 characters. Deprecated
         """
-        self._setup(fields, meta, meta_lengths)
+        if meta is not None:
+            warn('specifying meta and meta_lengths in IterDictIndexer.index() is deprecated, use kwargs in constructor instead', DeprecationWarning, 2)
+            self.meta = meta
+            if meta_lengths is not None:
+                self.meta = {zip(meta, meta_lengths)}
+
+        self._setup(fields, self.meta, None)
         assert self.threads == 1, 'IterDictIndexer does not support multiple threads on Windows'
         # we need to prevent collectionIterator from being GCd
         collectionIterator = FlatJSONDocumentIterator(iter(it)) # force it to be iter
@@ -667,7 +681,7 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
     This version is optimized by using multiple threads and POSIX fifos to tranfer data,
     which ends up being much faster.
     """
-    def index(self, it, fields=('text',), meta=('docno',), meta_lengths=None):
+    def index(self, it, fields=('text',), meta=None, meta_lengths=None):
         """
         Index the specified iter of dicts with the (optional) specified fields
 
@@ -681,7 +695,13 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
         JsonlDocumentIterator = autoclass("org.terrier.python.JsonlDocumentIterator")
         ParallelIndexer = autoclass("org.terrier.python.ParallelIndexer")
 
-        self._setup(fields, meta, meta_lengths)
+        if meta is not None:
+            warn('specifying meta and meta_lengths in IterDictIndexer.index() is deprecated, use constructor instead', DeprecationWarning, 2)
+            self.meta = meta
+            if meta_lengths is not None:
+                self.meta = {zip(meta, meta_lengths)}
+
+        self._setup(fields, self.meta, None)
 
         os.makedirs(self.index_dir, exist_ok=True) # ParallelIndexer expects the directory to exist
 
