@@ -293,7 +293,7 @@ def Experiment(
 
     if 'drop_unused' in kwargs:
         filter_by_qrels = kwargs.pop('drop_unused')
-        warn('drop_unused is deprecated; use filter_by_qrels instead')
+        warn('drop_unused is deprecated; use filter_by_qrels instead', DeprecationWarning)
     
     if baseline is not None:
         assert int(baseline) >= 0 and int(baseline) < len(retr_systems)
