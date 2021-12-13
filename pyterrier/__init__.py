@@ -74,6 +74,13 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     if firstInit:
         raise RuntimeError("pt.init() has already been called. Check pt.started() before calling pt.init()")
 
+    # check python version
+    import platform
+    from packaging.version import Version
+    if Version(platform.python_version()) < Version('3.7.0'):
+        from warnings import warn
+        warn("From PyTerrier 0.8, Python 3.7 will be required, you currently have %s" % platform.python_version())
+
     set_tqdm(tqdm)
 
     global ApplicationSetup

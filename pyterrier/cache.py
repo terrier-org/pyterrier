@@ -1,6 +1,5 @@
 from .transformer import TransformerBase
 import hashlib
-from chest import Chest
 from . import HOME_DIR 
 import os
 from os import path
@@ -116,6 +115,7 @@ class ChestCacheTransformer(TransformerBase):
         if not path.exists(definition_file):
             with open(definition_file, "w") as f:
                 f.write(trepr)
+        from chest import Chest
         self.chest = Chest(path=destdir, 
             dump=lambda data, filename: pd.DataFrame.to_pickle(data, filename) if isinstance(data, pd.DataFrame) else pickle.dump(data, filename, protocol=1),
             load=lambda filehandle: pickle.load(filehandle) if ".keys" in filehandle.name else pd.read_pickle(filehandle)

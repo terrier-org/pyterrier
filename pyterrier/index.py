@@ -129,6 +129,26 @@ def treccollection2textgen(
         verbose = False,
         num_docs = None,
         tag_text_length : int = 4096):
+    """
+    Creates a generator of dictionaries on parsing TREC formatted files. This is useful 
+    for parsing TREC-formatted corpora in indexers like IterDictIndexer, or similar 
+    indexers in other plugins (e.g. ColBERTIndexer).
+
+    Arguments:
+     - files(List[str]): list of files to parse in TREC format.
+     - meta(List[str]): list of attributes to expose in the dictionaries as metadata.
+     - meta_tags(Dict[str,str]): mapping of TREC tags as metadata.
+     - tag_text_length(int): maximium length of metadata. Defaults to 4096.
+     - verbose(bool): set to true to show a TQDM progress bar. Defaults to True.
+     - num_docs(int): a hint for TQDM to size the progress bar based on document counts rather than file count.
+
+    Example::
+
+        files = pt.io.find_files("/path/to/Disk45")
+        gen = pt.index.treccollection2textgen(files)
+        index = pt.IterDictIndexer("./index45").index(gen)
+
+    """
 
     props = {
         "TrecDocTags.doctag": "DOC",
