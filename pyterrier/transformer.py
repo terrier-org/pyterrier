@@ -122,7 +122,7 @@ class Transformer:
     """
 
     @staticmethod
-    def from_df(input : pd.DataFrame, uniform=False) -> Transformer:
+    def from_df(input : pd.DataFrame, uniform=False) -> 'Transformer':
         """
         Instantiates a transformer from an input dataframe. Some rows from the input dataframe are returned
         in response to a query on the ``transform()`` method. Depending on the value `uniform`, the dataframe
@@ -218,7 +218,7 @@ class Transformer:
             rtr = rtr.sort_values(["qid", "rank"], ascending=[True,True])
         return rtr
 
-    def compile(self) -> Transformer:
+    def compile(self) -> 'Transformer':
         """
         Rewrites this pipeline by applying of the Matchpy rules in rewrite_rules. Pipeline
         optimisation is discussed in the `ICTIR 2020 paper on PyTerrier <https://arxiv.org/abs/2007.14271>`_.
@@ -228,7 +228,7 @@ class Transformer:
         print("Applying %d rules" % len(rewrite_rules))
         return replace_all(self, rewrite_rules)
 
-    def parallel(self, N : int, backend='joblib') -> Transformer:
+    def parallel(self, N : int, backend='joblib') -> 'Transformer':
         """
         Returns a parallelised version of this transformer. The underlying transformer must be "picklable".
 
@@ -268,40 +268,40 @@ class Transformer:
         """
         return self.transform(*args, **kwargs)
 
-    def __rshift__(self, right) -> Transformer:
+    def __rshift__(self, right) -> 'Transformer':
         return ComposedPipeline(self, right)
 
-    def __rrshift__(self, left) -> Transformer:
+    def __rrshift__(self, left) -> 'Transformer':
         return ComposedPipeline(left, self)
 
-    def __add__(self, right : Transformer) -> Transformer:
+    def __add__(self, right : 'Transformer') -> 'Transformer':
         return CombSumTransformer(self, right)
 
-    def __pow__(self, right : Transformer) -> Transformer:
+    def __pow__(self, right : 'Transformer') -> 'Transformer':
         return FeatureUnionPipeline(self, right)
 
-    def __mul__(self, rhs : Union[float,int]) -> Transformer:
+    def __mul__(self, rhs : Union[float,int]) -> 'Transformer':
         assert isinstance(rhs, int) or isinstance(rhs, float)
         return ScalarProductTransformer(self, rhs)
 
-    def __rmul__(self, lhs : Union[float,int]) -> Transformer:
+    def __rmul__(self, lhs : Union[float,int]) -> 'Transformer':
         assert isinstance(lhs, int) or isinstance(lhs, float)
         return ScalarProductTransformer(self, lhs)
 
-    def __or__(self, right : Transformer) -> Transformer:
+    def __or__(self, right : 'Transformer') -> 'Transformer':
         return SetUnionTransformer(self, right)
 
-    def __and__(self, right : Transformer) -> Transformer:
+    def __and__(self, right : 'Transformer') -> 'Transformer':
         return SetIntersectionTransformer(self, right)
 
-    def __mod__(self, right : Transformer) -> Transformer:
+    def __mod__(self, right : 'Transformer') -> 'Transformer':
         assert isinstance(right, int)
         return RankCutoffTransformer(self, right)
 
-    def __xor__(self, right : Transformer) -> Transformer:
+    def __xor__(self, right : 'Transformer') -> 'Transformer':
         return ConcatenateTransformer(self, right)
 
-    def __invert__(self : Transformer) -> Transformer:
+    def __invert__(self : 'Transformer') -> 'Transformer':
         from .cache import ChestCacheTransformer
         return ChestCacheTransformer(self)
 

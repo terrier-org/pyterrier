@@ -2,7 +2,6 @@ __version__ = "0.8.0-alpha"
 
 import os
 
-from pyterrier.transformer import Transformer
 from .bootstrap import _logging, setup_terrier, setup_jnius, is_windows
 
 import importlib
