@@ -453,6 +453,7 @@ def Experiment(
 
             if baseline is not None:
                 evalDictsPerQ.append(evalMeasuresDict)
+                from . import Utils
                 evalMeasuresDict = Utils.mean_of_measures(evalMeasuresDict)
 
             if perquery:
