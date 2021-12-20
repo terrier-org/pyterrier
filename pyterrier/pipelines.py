@@ -224,7 +224,7 @@ def _run_and_evaluate(
                 starttime = timer()
         except:
             # if an error is thrown, we need to clean up our existing file
-            if save_file is not None and os.path.exits(save_file):
+            if save_file is not None and os.path.exists(save_file):
                 os.remove(save_file)
             raise
         if remaining_qrel_qids:
@@ -337,7 +337,7 @@ def Experiment(
 
     if 'drop_unused' in kwargs:
         filter_by_qrels = kwargs.pop('drop_unused')
-        warn('drop_unused is deprecated; use filter_by_qrels instead')
+        warn('drop_unused is deprecated; use filter_by_qrels instead', DeprecationWarning)
     if len(kwargs):
         raise TypeError("Unknown kwargs: %s" % (str(list(kwargs.keys()))))
 

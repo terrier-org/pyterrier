@@ -22,7 +22,7 @@ class TestUtils(TempDirTestCase):
 
     def test_parse_qrels(self):
         input = os.path.dirname(os.path.realpath(__file__)) + "/fixtures/qrels"
-        exp_result = pd.DataFrame([["1", "13", 1], ["1", "15", 1], ["2", "8", 1], ["2", "4", 1], ["2", "17", 1], ["3", "2", 1]], columns=['qid', 'docno', 'label'])
+        exp_result = pd.DataFrame([["1", "13", 1], ["1", "15", 1], ["2", "8", 1], ["2", "4", 1], ["2", "17", 1], ["3", "2", 1], ["003", "002", 1]], columns=['qid', 'docno', 'label'])
         result = pt.io.read_qrels(input)
         #print(exp_result)
         #print(result)
@@ -30,7 +30,7 @@ class TestUtils(TempDirTestCase):
 
     def test_convert_qrels_to_dict(self):
         input = os.path.dirname(os.path.realpath(__file__)) + "/fixtures/qrels"
-        exp_result = {"1": {"13": 1, "15": 1}, "2": {"17": 1, "8": 1, "4": 1}, "3": {"2": 1}}
+        exp_result = {"1": {"13": 1, "15": 1}, "2": {"17": 1, "8": 1, "4": 1}, "3": {"2": 1}, "003": {"002": 1}}
         df = pt.io.read_qrels(input)
         result = dict(pt.Utils.convert_qrels_to_dict(df))
         self.assertEqual(exp_result, result)
