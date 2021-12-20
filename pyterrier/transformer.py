@@ -309,6 +309,8 @@ class Transformer:
         return hash(repr(self))
 
 class TransformerBase(Transformer):
+    # this was the older name of Transformer.
+    # it will be deprecated in a future release.
     pass
 
 class IterDictIndexerBase(TransformerBase):
