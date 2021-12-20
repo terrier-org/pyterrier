@@ -86,4 +86,4 @@ jobs:
       env:
         TERRIER_VERSION: ${{ matrix.terrier }}
       run: |
-        pytest --durations=20 -p no:faulthandler
+        pytest --durations=20 -p no:faulthandler
