@@ -1,5 +1,5 @@
 from typing import Callable, Any, Dict
-from .transformer import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyGenericTransformer, TransformerBase
+from .transformer import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyGenericTransformer, Transformer
 from nptyping import NDArray
 import numpy as np
 import pandas as pd
@@ -16,7 +16,7 @@ def _bind(instance, func, as_name=None):
     setattr(instance, as_name, bound_method)
     return bound_method
 
-def query(fn : Callable[..., str], *args, **kwargs) -> TransformerBase:
+def query(fn : Callable[..., str], *args, **kwargs) -> Transformer:
     """
         Create a transformer that takes as input a query, and applies a supplied function to compute a new query formulation.
 
@@ -58,7 +58,7 @@ def query(fn : Callable[..., str], *args, **kwargs) -> TransformerBase:
     """
     return ApplyQueryTransformer(fn, *args, **kwargs)
 
-def doc_score(fn : Callable[..., float], *args, **kwargs) -> TransformerBase:
+def doc_score(fn : Callable[..., float], *args, **kwargs) -> Transformer:
     """
         Create a transformer that takes as input a ranked documents dataframe, and applies a supplied function to compute a new score.
         Ranks are automatically computed.
@@ -79,7 +79,7 @@ def doc_score(fn : Callable[..., float], *args, **kwargs) -> TransformerBase:
     """
     return ApplyDocumentScoringTransformer(fn, *args, **kwargs)
 
-def doc_features(fn : Callable[..., NDArray[Any]], *args, **kwargs) -> TransformerBase:
+def doc_features(fn : Callable[..., NDArray[Any]], *args, **kwargs) -> Transformer:
     """
         Create a transformer that takes as input a ranked documents dataframe, and applies the supplied function to each document to compute feature scores. 
 
@@ -108,7 +108,7 @@ def doc_features(fn : Callable[..., NDArray[Any]], *args, **kwargs) -> Transform
     """
     return ApplyDocFeatureTransformer(fn, *args, **kwargs)
 
-def rename(columns : Dict[str,str], *args, **kwargs):
+def rename(columns : Dict[str,str], *args, **kwargs) -> Transformer:
     """
         Creates a transformer that renames columns in a dataframe. 
 
@@ -121,7 +121,7 @@ def rename(columns : Dict[str,str], *args, **kwargs):
     """
     return ApplyGenericTransformer(lambda df: df.rename(columns=columns), *args, **kwargs)
 
-def generic(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> TransformerBase:
+def generic(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> Transformer:
     """
         Create a transformer that changes the input dataframe to another dataframe in an unspecified way.
 
@@ -142,7 +142,7 @@ def generic(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> Tra
     """
     return ApplyGenericTransformer(fn, *args, **kwargs)
 
-def by_query(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> TransformerBase:
+def by_query(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> Transformer:
     """
         As `pt.apply.generic()` except that fn receives a dataframe for one query at at time, rather than all results at once.
     """
@@ -162,7 +162,7 @@ class _apply:
         from functools import partial
         return partial(generic_apply, item)
 
-def generic_apply(name, *args, drop=False, **kwargs) -> TransformerBase:
+def generic_apply(name, *args, drop=False, **kwargs) -> Transformer:
     if drop:
         return ApplyGenericTransformer(lambda df : df.drop(name, axis=1), *args, **kwargs) 
     
