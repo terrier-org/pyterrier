@@ -21,7 +21,7 @@ class TestParallel(BaseTestCase):
         br = pt.BatchRetrieve(dataset.get_index(), wmodel=Tf)
         df = pt.Experiment(
             [br, br.parallel(3)],
-            dataset.get_topics(),
+            dataset.get_topics().head(4),
             dataset.get_qrels(),
             ["map", "mrt"]
         )
