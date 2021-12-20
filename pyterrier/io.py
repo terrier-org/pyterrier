@@ -143,7 +143,7 @@ def read_results(filename, format="trec", **kwargs):
         filename (str): The filename of the file to be read. Compressed files are handled automatically. A URL is also supported for the "trec" format.
         format (str): The format of the results file: one of "trec", "letor". Default is "trec".
         **kwargs (dict): Other arguments for the internal method
-    
+
     Returns:
         dataframe with usual qid, docno, score columns etc
     """
@@ -177,7 +177,7 @@ def _read_results_letor(filename, labels=False):
                 else:
                     kv[int(k)] = float(parts[i+1])
         features = np.array([kv[i] for i in sorted(kv.keys())])
-        return (label, qid, docno, features)       
+        return (label, qid, docno, features)
 
     with autoopen(filename, 'rt') as f:
         rows = []
@@ -206,7 +206,7 @@ def write_results(res, filename, format="trec", append=False, **kwargs):
     Write a results dataframe to a file.
 
     Parameters:
-        res (DataFrame): A results dataframe, with usual columns of qid, docno etc 
+        res (DataFrame): A results dataframe, with usual columns of qid, docno etc
         filename (str): The filename of the file to be written. Compressed files are handled automatically.
         format (str): The format of the results file: one of "trec", "letor", "minimal"
         append (bool): Append to an existing file. Defaults to False.
@@ -216,11 +216,11 @@ def write_results(res, filename, format="trec", append=False, **kwargs):
         * "trec" -- output columns are $qid Q0 $docno $rank $score $runname, space separated
         * "letor" -- This follows the LETOR and MSLR datasets, in that output columns are $label qid:$qid [$fid:$value]+ # docno=$docno
         * "minimal": output columns are $qid $docno $rank, tab-separated. This is used for submissions to the MSMARCO leaderboard.
-    
+
     """
     if not format in SUPPORTED_RESULTS_FORMATS:
         raise ValueError("Format %s not known, supported types are %s" % (format, str(SUPPORTED_RESULTS_FORMATS.keys())))
-    # convert generators to results 
+    # convert generators to results
     res = coerce_dataframe(res)
     return SUPPORTED_RESULTS_FORMATS[format][1](res, filename, append=append, **kwargs)
 
@@ -237,7 +237,7 @@ def _write_results_minimal(res, filename, run_name="pyterrier", append=False):
 def _write_results_letor(res, filename, qrels=None, default_label=0, append=False):
     if qrels is not None:
         res = res.merge(qrels, on=['qid', 'docno'], how='left').fillna(default_label)
-    mode='wa' if append else 'wt' 
+    mode='wa' if append else 'wt'
     with autoopen(filename, mode) as f:
         for row in res.itertuples():
             values = row.features
@@ -251,7 +251,7 @@ def read_topics(filename, format="trec", **kwargs):
 
     Parameters:
         filename(str): The filename of the topics file. A URL is supported for the "trec" and "singleline" formats.
-        format(str): One of "trec", "trecxml" or "singleline". Default is "trec" 
+        format(str): One of "trec", "trecxml" or "singleline". Default is "trec"
 
     Returns:
         pandas.Dataframe with columns=['qid','query']
@@ -275,7 +275,7 @@ def _read_topics_trec(file_path, doc_tag="TOP", id_tag="NUM", whitelist=["TITLE"
     trecquerysource = autoclass('org.terrier.applications.batchquerying.TRECQuery')
     tqs = trecquerysource(
         [file_path], doc_tag, id_tag, whitelist, blacklist,
-        # help jnius select the correct constructor 
+        # help jnius select the correct constructor
         signature="([Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;)V")
     topics_lst=[]
     while(tqs.hasNext()):
@@ -312,7 +312,7 @@ def _read_topics_trecxml(filename, tags=["query", "question", "narrative"], toke
                 if tokenise:
                     query_text = " ".join(tokeniser.getTokens(query_text))
                 query += " " + query_text
-        topics.append((str(qid), query)) 
+        topics.append((str(qid), query))
     return pd.DataFrame(topics, columns=["qid", "query"])
 
 def _read_topics_singleline(filepath, tokenise=True):
