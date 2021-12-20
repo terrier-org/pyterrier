@@ -35,7 +35,7 @@ def _check_ray():
     try:
         import ray
     except:
-        raise NotImplemented("ray is not installed. Run pip install ray")
+        raise NotImplementedError("ray is not installed. Run pip install ray")
     if not ray.is_initialized():
         raise ValueError("ray needs to be initialised. Run ray.init() first")
 

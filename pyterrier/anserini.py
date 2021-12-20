@@ -3,7 +3,6 @@ from .model import coerce_queries_dataframe
 from .batchretrieve import BatchRetrieveBase
 from warnings import warn
 import pandas as pd
-import numpy as np
 from . import tqdm
 
 anserini_monkey=False
@@ -134,7 +133,6 @@ class AnseriniBatchRetrieve(BatchRetrieveBase):
             queries=coerce_queries_dataframe(queries)
         docno_provided = "docno" in queries.columns
         docid_provided = "docid" in queries.columns
-        scores_provided = "scores" in queries.columns
         if docid_provided and not docno_provided:
             raise KeyError("Anserini doesnt expose Lucene's internal docids, you need the docnos")
         if docno_provided: #we are re-ranking

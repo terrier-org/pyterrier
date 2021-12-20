@@ -2,7 +2,7 @@ import pyterrier as pt
 from jnius import cast
 import pandas as pd
 from .batchretrieve import _parse_index_like
-from .transformer import TransformerBase, Symbol
+from .transformer import TransformerBase
 from . import tqdm
 from warnings import warn
 from typing import List
@@ -412,7 +412,7 @@ class _StashResults(TransformerBase):
 class _ResetResults(TransformerBase):
 
     def transform(self, topics_with_saved_docs : pd.DataFrame) -> pd.DataFrame:
-        if not "stashed_results_0" in topics_with_saved_docs.columns:
+        if "stashed_results_0" not in topics_with_saved_docs.columns:
             raise ValueError("Cannot apply pt.rewrite.reset_results() without pt.rewrite.stash_results() - column stashed_results_0 not found")
         from .model import query_columns
         query_cols = query_columns(topics_with_saved_docs)
