@@ -153,7 +153,7 @@ def scorer(*args, **kwargs) -> TransformerBase:
     return pt.batchretrieve.TextScorer(*args, **kwargs)
 
 def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='title', **kwargs) -> TransformerBase:
-    """
+    r"""
     A useful transformer for splitting long documents into smaller passages within a pipeline. This applies a *sliding* window over the
     text, where each passage is the give number of tokens long. Passages can overlap, if the stride is set smaller than the length. In
     applying this transformer, docnos are altered by adding '%p' and a passage number. The original scores for each document can be recovered
@@ -234,8 +234,8 @@ def kmaxavg_passage(k : int) -> TransformerBase:
     Scores each document based on the average score of the top scoring k passages. Generalises combination of mean_passage()
     and max_passage(). Proposed in [Chen2020].
 
-    Arguments:
-         - k(int): The number of passages for each document to use when scoring
+    Parameters:
+        k(int): The number of top-scored passages for each document to use when scoring
     
     """
     return KMaxAvgPassage(k)

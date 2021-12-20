@@ -11,9 +11,9 @@ from .base import TempDirTestCase, BaseTestCase
 class TestIterDictIndexer(TempDirTestCase):
         
 
-    def _create_index(self, it, fields, meta, type, indexer):
+    def _create_index(self, it, fields, type, indexer):
         print("Writing index to " + self.test_dir)
-        indexref = indexer.index(it, fields, meta)
+        indexref = indexer.index(it, fields)
         self.assertIsNotNone(indexref)
         return indexref
 
@@ -21,9 +21,9 @@ class TestIterDictIndexer(TempDirTestCase):
         from pyterrier.index import IndexingType
         # Test both versions: _fifo (for UNIX) and _nofifo (for Windows)
         indexers = [
-            pt.index._IterDictIndexer_fifo(self.test_dir, type=index_type),
-            pt.index._IterDictIndexer_fifo(self.test_dir, type=index_type, threads=4),
-            pt.index._IterDictIndexer_nofifo(self.test_dir, type=index_type),
+            pt.index._IterDictIndexer_fifo(self.test_dir, type=index_type, meta=meta),
+            pt.index._IterDictIndexer_fifo(self.test_dir, type=index_type, threads=4, meta=meta),
+            pt.index._IterDictIndexer_nofifo(self.test_dir, type=index_type, meta=meta),
         ]
         if BaseTestCase.is_windows():
            indexers = [indexers[-1]] 
@@ -35,7 +35,7 @@ class TestIterDictIndexer(TempDirTestCase):
                     {'docno': '3', 'url': 'url3', 'text': 'The body may perhaps compensates for the loss', 'title': 'Best of Viktor Prowoll'},
                 )
                 it = itertools.islice(it, n)
-                indexref = self._create_index(it, fields, meta, index_type, indexer)
+                indexref = self._create_index(it, fields, index_type, indexer)
                 index = pt.IndexFactory.of(indexref)
                 self.assertIsNotNone(index)
                 self.assertEqual(n, index.getCollectionStatistics().getNumberOfDocuments())
@@ -149,6 +149,24 @@ class TestIterDictIndexer(TempDirTestCase):
     def test_createindex3_single_pass_2fields(self):
         from pyterrier.index import IndexingType
         self._make_check_index(3, IndexingType.SINGLEPASS, fields=['text', 'title'])
+
+    def test_meta_init(self):
+        it = [
+            {'docno': '1', 'url': 'url1', 'text': 'He ran out of money, so he had to stop playing', 'title': 'Woes of playing poker'},
+            {'docno': '2', 'url': 'url2', 'text': 'The waves were crashing on the shore; it was a', 'title': 'Lovely sight'},
+            {'docno': '3', 'url': 'url3', 'text': 'The body may perhaps compensates for the loss', 'title': 'Best of Viktor Prowoll'},
+        ]
+        props={}
+        props["termpipelines"] = ""
+        
+        indexer = pt.IterDictIndexer(self.test_dir, meta={'docno' : 10, 'url' : 10, 'text' : 100, 'title' : 100}, meta_reverse=['docno', 'url'])
+        indexref = indexer.index(it)
+        index = pt.IndexFactory.of(indexref)
+        self.assertIn("docno", index.getMetaIndex().getKeys())
+        self.assertIn("text", index.getMetaIndex().getKeys())
+        self.assertIn("docno", index.getMetaIndex().getKeys())
+        self.assertIn("url", index.getMetaIndex().getReverseKeys())
+
 
     def test_check_stemmer(self):
         it = [

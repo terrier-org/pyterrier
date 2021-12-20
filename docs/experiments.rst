@@ -147,6 +147,44 @@ This provides a dataframe where each row is the performance of a given system fo
 
 NB: For brevity, we only show the top 5 rows of the returned table.
 
+Saving and Reusing Results 
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For some research tasks, it is considered good practice to save your results files when conducting experiments. This allows
+several advantages:
+
+ - It permits additional evaluation (e.g. more measures, more signifiance tests) without re-applying potentially slow transformer pipelines.
+ - It allows transformer results to be made available for other experiments, perhaps as a virtual data appendix in a paper.
+
+Saving can be enabled by adding the ``save_dir`` as a kwarg to pt.Experiment::
+
+    pt.Experiment(
+        [tfidf, bm25],
+        dataset.get_topics(),
+        dataset.get_qrels(),
+        eval_metrics=["map", "recip_rank"],
+        names=["TF_IDF", "BM25"],
+        save_dir="./",
+    )
+
+This will save two files, namely, TF_IDF.res.gz and BM25.res.gz to the current directory. If these files already exist,
+they will be "reused", i.e. loaded and evaluated in preference to application of the tfidf and/or bm25 transformers. 
+If experiments are being conducted on multiple different topic sets, care should be taken to ensure that previous 
+results for a different topic set are not reused for evaluation.
+
+If a transformer has been updated, outdated results files can be mistakenly used. To prevent this, set the ``save_mode`` 
+kwarg to ``"overwrite"``::
+
+    pt.Experiment(
+        [tfidf, bm25],
+        dataset.get_topics(),
+        dataset.get_qrels(),
+        eval_metrics=["map", "recip_rank"],
+        names=["TF_IDF", "BM25"],
+        save_dir="./",
+        save_mode="overwrite"
+    )
+
 Missing Topics and/or Qrels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -156,9 +194,9 @@ such as in sparsely labeled datasets or shared tasks that choose to omit some to
 Qids that appear in qrels but no in topics can happen when running a subset of topics for testing purposes
 (e.g., ``topics.head(5)``).
 
-The ``filter_by_qrels`` and ``fitler_by_topics`` parameters control the behaviour of an experiment when topics and qrels
+The ``filter_by_qrels`` and ``filter_by_topics`` parameters control the behaviour of an experiment when topics and qrels
 do not perfectly overlap. When ``filter_by_qrels=True``, topics are filtered down to only the ones that have qids in the
-qrels. Similarly, when ``fitler_by_topics=True``, qrels are filtered down to only the ones that have qids in the topics.
+qrels. Similarly, when ``filter_by_topics=True``, qrels are filtered down to only the ones that have qids in the topics.
 
 For example, consier topics that include qids ``A`` and ``B`` and qrels that include ``B`` and ``C``. The results with
 each combination of settings are:
