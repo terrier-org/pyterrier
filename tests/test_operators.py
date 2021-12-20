@@ -20,7 +20,7 @@ class TestOperators(BaseTestCase):
         import pyterrier.transformer as ptt
         
         topics = pd.DataFrame([["1", "A"]], columns=["qid", "query"])
-        rtr = ptt.SourceTransformer(topicsSource)(topics)
+        rtr = pt.Transformer.from_df(topicsSource)(topics)
         self.assertEqual(1, len(rtr))
         self.assertTrue("query" in rtr.columns)
         self.assertTrue("qid" in rtr.columns)
@@ -67,10 +67,10 @@ class TestOperators(BaseTestCase):
 
     def test_then_multi(self):
         import pyterrier.transformer as ptt
-        mock1 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))
-        mock2 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]))
-        mock3 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]))
-        mock4 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]))
+        mock1 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]), uniform=True)
+        mock2 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]), uniform=True)
+        mock3 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]), uniform=True)
+        mock4 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]), uniform=True)
         
         combined12 = mock1 >> mock2
         combined23 = mock2 >> mock3 
@@ -104,7 +104,7 @@ class TestOperators(BaseTestCase):
     def test_mul(self):
 
         import pyterrier.transformer as ptt
-        mock = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))
+        mock = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]), uniform=True)
         for comb in [mock * 10, 10 * mock]:
             rtr = comb.transform(None)
             self.assertEqual(1, len(rtr))
@@ -114,7 +114,7 @@ class TestOperators(BaseTestCase):
 
         import pyterrier.transformer as ptt
         from pyterrier.model import add_ranks
-        mock = ptt.UniformTransformer(add_ranks(pd.DataFrame([["q1", "doc1", 5], ["q1", "doc2", 10]], columns=["qid", "docno", "score"])))
+        mock = pt.Transformer.from_df(add_ranks(pd.DataFrame([["q1", "doc1", 5], ["q1", "doc2", 10]], columns=["qid", "docno", "score"])), uniform=True)
         rtr = mock.search("bla", qid="q1")
         self.assertEqual(2, len(rtr))
         self.assertEqual("q1", rtr.iloc[0]["qid"])
@@ -129,8 +129,8 @@ class TestOperators(BaseTestCase):
     
     def test_plus(self):
         import pyterrier.transformer as ptt
-        mock1 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))
-        mock2 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]))
+        mock1 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]), uniform=True)
+        mock2 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]), uniform=True)
 
         combined = mock1 + mock2
         # we dont need an input, as both Identity transformers will return anyway
@@ -143,8 +143,8 @@ class TestOperators(BaseTestCase):
 
     def test_plus_notoverlap(self):
         import pyterrier.transformer as ptt
-        mock1 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))
-        mock2 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc2", 10]], columns=["qid", "docno", "score"]))
+        mock1 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]), uniform=True)
+        mock2 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc2", 10]], columns=["qid", "docno", "score"]), uniform=True)
 
         combined = mock1 + mock2
         # we dont need an input, as both Identity transformers will return anyway
@@ -160,8 +160,8 @@ class TestOperators(BaseTestCase):
     def test_plus_more_cols(self):
         import pyterrier.transformer as ptt
         from pyterrier.model import add_ranks
-        mock1 = ptt.UniformTransformer(add_ranks(pd.DataFrame([["q1", "a query", "doc1", 5]], columns=["qid", "query", "docno", "score"])))
-        mock2 = ptt.UniformTransformer(add_ranks(pd.DataFrame([["q1", "a query", "doc1", 10]], columns=["qid", "query", "docno", "score"])))
+        mock1 = pt.Transformer.from_df(add_ranks(pd.DataFrame([["q1", "a query", "doc1", 5]], columns=["qid", "query", "docno", "score"])), uniform=True)
+        mock2 = pt.Transformer.from_df(add_ranks(pd.DataFrame([["q1", "a query", "doc1", 10]], columns=["qid", "query", "docno", "score"])), uniform=True)
 
         combined = mock1 + mock2
         # we dont need an input, as both Identity transformers will return anyway
@@ -177,7 +177,7 @@ class TestOperators(BaseTestCase):
 
     def test_rank_cutoff(self):
         import pyterrier.transformer as ptt
-        mock1 = ptt.UniformTransformer( pd.DataFrame([["q1", "d2", 0, 5.1], ["q1", "d3", 1, 5.1]], columns=["qid", "docno", "rank", "score"]))
+        mock1 = pt.Transformer.from_df( pd.DataFrame([["q1", "d2", 0, 5.1], ["q1", "d3", 1, 5.1]], columns=["qid", "docno", "rank", "score"]), uniform=True)
         cutpipe = mock1 % 1
         rtr = cutpipe.transform(None)
         self.assertEqual(1, len(rtr))
@@ -185,8 +185,8 @@ class TestOperators(BaseTestCase):
     def test_concatenate(self):
         import numpy as np
         import pyterrier.transformer as ptt
-        mock1 = ptt.UniformTransformer( pd.DataFrame([["q1", "d2", 2, 4.9, np.array([1,2])], ["q1", "d3", 1, 5.1, np.array([1,2])]], columns=["qid", "docno", "rank", "score", "bla"]))
-        mock2 = ptt.UniformTransformer( pd.DataFrame([["q1", "d1", 1, 4.9, np.array([1,1])], ["q1", "d3", 2, 5.1, np.array([1,2])]], columns=["qid", "docno", "rank", "score", "bla"]))
+        mock1 = pt.Transformer.from_df( pd.DataFrame([["q1", "d2", 2, 4.9, np.array([1,2])], ["q1", "d3", 1, 5.1, np.array([1,2])]], columns=["qid", "docno", "rank", "score", "bla"]), uniform=True)
+        mock2 = pt.Transformer.from_df( pd.DataFrame([["q1", "d1", 1, 4.9, np.array([1,1])], ["q1", "d3", 2, 5.1, np.array([1,2])]], columns=["qid", "docno", "rank", "score", "bla"]), uniform=True)
 
         cutpipe = mock1 ^ mock2
         rtr = cutpipe.transform(None)
@@ -204,9 +204,9 @@ class TestOperators(BaseTestCase):
 
     def test_plus_multi_rewrite(self):
         import pyterrier.transformer as ptt
-        mock1 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]))
-        mock2 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]))
-        mock3 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 15]], columns=["qid", "docno", "score"]))
+        mock1 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]), uniform=True)
+        mock2 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]), uniform=True)
+        mock3 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 15]], columns=["qid", "docno", "score"]), uniform=True)
 
         combined = mock1 + mock2 + mock3
         for pipe in [combined, combined.compile()]:
@@ -222,8 +222,8 @@ class TestOperators(BaseTestCase):
 
     def test_union(self):
         import pyterrier.transformer as ptt
-        mock1 = ptt.UniformTransformer(pd.DataFrame([["q1", "q1texta", "doc1", 5, "body text"], ["q1", "q1texta", "doc3", 5, "body text"]], columns=["qid", "query", "docno", "score", "body"]))
-        mock2 = ptt.UniformTransformer(pd.DataFrame([["q1", "q1textb", "doc2", 10, "body text" ]], [["q1", "q1textb", "doc3", 10, "body text"]], columns=["qid", "query", "docno", "score", "body"]))
+        mock1 = pt.Transformer.from_df(pd.DataFrame([["q1", "q1texta", "doc1", 5, "body text"], ["q1", "q1texta", "doc3", 5, "body text"]], columns=["qid", "query", "docno", "score", "body"]), uniform=True)
+        mock2 = pt.Transformer.from_df(pd.DataFrame([["q1", "q1textb", "doc2", 10, "body text" ]], [["q1", "q1textb", "doc3", 10, "body text"]], columns=["qid", "query", "docno", "score", "body"]), uniform=True)
 
         combined = mock1 | mock2
         # we dont need an input, as both Identity transformers will return anyway
@@ -246,8 +246,8 @@ class TestOperators(BaseTestCase):
 
     def test_intersect(self):
         import pyterrier.transformer as ptt
-        mock1 = ptt.UniformTransformer(pd.DataFrame([["q1", "q1texta", "doc1", 5, "body text"]], columns=["qid", "query", "docno", "score", "body"]))
-        mock2 = ptt.UniformTransformer(pd.DataFrame([["q1", "q1textb", "doc2", 10, "body text"], ["q1", "q1textb", "doc1", 10, "body text"]], columns=["qid", "query", "docno", "score", "body"]))
+        mock1 = pt.Transformer.from_df(pd.DataFrame([["q1", "q1texta", "doc1", 5, "body text"]], columns=["qid", "query", "docno", "score", "body"]), uniform=True)
+        mock2 = pt.Transformer.from_df(pd.DataFrame([["q1", "q1textb", "doc2", 10, "body text"], ["q1", "q1textb", "doc1", 10, "body text"]], columns=["qid", "query", "docno", "score", "body"]), uniform=True)
 
         combined = mock1 & mock2
         # we dont need an input, as both Identity transformers will return anyway
@@ -293,15 +293,15 @@ class TestOperators(BaseTestCase):
 
     def test_feature_union_multi(self):
         import pyterrier.transformer as ptt
-        mock0 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 0], ["q1", "doc2", 0]], columns=["qid", "docno", "score"]))
+        mock0 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 0], ["q1", "doc2", 0]], columns=["qid", "docno", "score"]), uniform=True)
 
-        mock1 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 5], ["q1", "doc2", 0]], columns=["qid", "docno", "score"]))
-        mock2 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 10], ["q1", "doc2", 0]], columns=["qid", "docno", "score"]))
-        mock3 = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 15], ["q1", "doc2", 0]], columns=["qid", "docno", "score"]))
+        mock1 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 5], ["q1", "doc2", 0]], columns=["qid", "docno", "score"]), uniform=True)
+        mock2 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 10], ["q1", "doc2", 0]], columns=["qid", "docno", "score"]), uniform=True)
+        mock3 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 15], ["q1", "doc2", 0]], columns=["qid", "docno", "score"]), uniform=True)
 
-        mock3_empty = ptt.UniformTransformer(pd.DataFrame([], columns=["qid", "docno", "score"]))
-        mock2_partial = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]))
-        mock3_partial = ptt.UniformTransformer(pd.DataFrame([["q1", "doc1", 15]], columns=["qid", "docno", "score"]))
+        mock3_empty = pt.Transformer.from_df(pd.DataFrame([], columns=["qid", "docno", "score"]), uniform=True)
+        mock2_partial = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]), uniform=True)
+        mock3_partial = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 15]], columns=["qid", "docno", "score"]), uniform=True)
 
 
         mock12a = mock1 ** mock2
@@ -385,10 +385,10 @@ class TestOperators(BaseTestCase):
 
     def test_feature_union(self): 
         import pyterrier.transformer as ptt
-        mock_input = ptt.UniformTransformer(pd.DataFrame([["q1", "a query", "doc1", 5]], columns=["qid", "query", "docno", "score"]))
+        mock_input = pt.Transformer.from_df(pd.DataFrame([["q1", "a query", "doc1", 5]], columns=["qid", "query", "docno", "score"]), uniform=True)
         
-        mock_f1 = ptt.UniformTransformer(pd.DataFrame([["q1", "a query", "doc1", 10]], columns=["qid", "query", "docno", "score"]))
-        mock_f2 = ptt.UniformTransformer(pd.DataFrame([["q1", "a query", "doc1", 50]], columns=["qid", "query", "docno", "score"]))
+        mock_f1 = pt.Transformer.from_df(pd.DataFrame([["q1", "a query", "doc1", 10]], columns=["qid", "query", "docno", "score"]), uniform=True)
+        mock_f2 = pt.Transformer.from_df(pd.DataFrame([["q1", "a query", "doc1", 50]], columns=["qid", "query", "docno", "score"]), uniform=True)
 
         def _test_expression(pipeline):
             # check access to the objects

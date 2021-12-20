@@ -156,7 +156,7 @@ class TestExperiment(TempDirTestCase):
         
     def test_empty(self):
         df1 = pt.new.ranked_documents([[1]]).head(0)
-        t1 = pt.transformer.SourceTransformer(df1)
+        t1 = pt.Transformer.from_df(df1)
 
         topics = pt.datasets.get_dataset("vaswani").get_topics().head(10)
         qrels =  pt.datasets.get_dataset("vaswani").get_qrels()
@@ -212,9 +212,8 @@ class TestExperiment(TempDirTestCase):
         res1 = pd.DataFrame([ ["q2", "d1", 2.0], ["q1", "d1", 1.0],], columns=["qid", "docno", "score"])
         res2 = pd.DataFrame([["q1", "d1", 1.0], ["q2", "d1", 2.0] ], columns=["qid", "docno", "score"])
         qrels = pd.DataFrame([["q1", "d1", 1], ["q2", "d3", 1] ], columns=["qid", "docno", "label"])
-        from pyterrier.transformer import UniformTransformer
         measures = pt.Experiment(
-                [UniformTransformer(res1), UniformTransformer(res2)],
+                [pt.Transformer.from_df(res1, uniform=True), pt.Transformer.from_df(res2, uniform=True)],
                 topics,
                 qrels,
                 ["map"],
