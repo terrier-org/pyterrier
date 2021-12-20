@@ -347,10 +347,11 @@ def read_qrels(file_path):
         pandas.Dataframe with columns=['qid','docno', 'label']
         with column types string, string, and int
     """
-    df = pd.read_csv(file_path, sep=r'\s+', names=["qid", "iter", "docno", "label"])
+    df = pd.read_csv(file_path,
+                     sep=r'\s+',
+                     names=["qid", "iter", "docno", "label"],
+                     dtype={"qid": "str", "docno": "str"})
     df = df.drop(columns="iter")
-    df["qid"] = df["qid"].astype(str)
-    df["docno"] = df["docno"].astype(str)
     return df
 
 SUPPORTED_TOPICS_FORMATS = {
