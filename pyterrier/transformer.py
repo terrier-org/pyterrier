@@ -6,7 +6,7 @@ import pandas as pd
 from .model import add_ranks
 from . import tqdm
 import deprecation
-from typing import Iterable, Iterator
+from typing import Iterable, Iterator, Union
 
 LAMBDA = lambda:0
 def is_lambda(v):
@@ -115,13 +115,28 @@ class Scalar(Symbol):
         self.value = value
 
 class TransformerBase:
-    name = "TransformerBase"
+    name = "Transformer"
     """
         Base class for all transformers. Implements the various operators ``>>`` ``+`` ``*`` ``|`` ``&`` 
         as well as ``search()`` for executing a single query and ``compile()`` for rewriting complex pipelines into more simples ones.
     """
 
-    def transform(self, topics_or_res):
+    @staticmethod
+    def from_df(input : pd.DataFrame, uniform=False) -> Transformer:
+        """
+        Instantiates a transformer from an input dataframe. Some rows from the input dataframe are returned
+        in response to a query on the ``transform()`` method. Depending on the value `uniform`, the dataframe
+        passed as an argument to ``transform()`` can affect this selection.
+
+        If `uniform` is True, input will be returned in its entirety each time.
+        If `uniform` is False, rows from input that match the qid values from the argument dataframe.
+        
+        """
+        if uniform:
+            return UniformTransformer(input)
+        return SourceTransformer(input)
+
+    def transform(self, topics_or_res : pd.DataFrame) -> pd.DataFrame:
         """
             Abstract method for all transformations. Typically takes as input a Pandas
             DataFrame, and also returns one.
@@ -203,7 +218,7 @@ class TransformerBase:
             rtr = rtr.sort_values(["qid", "rank"], ascending=[True,True])
         return rtr
 
-    def compile(self):
+    def compile(self) -> Transformer:
         """
         Rewrites this pipeline by applying of the Matchpy rules in rewrite_rules. Pipeline
         optimisation is discussed in the `ICTIR 2020 paper on PyTerrier <https://arxiv.org/abs/2007.14271>`_.
@@ -213,7 +228,7 @@ class TransformerBase:
         print("Applying %d rules" % len(rewrite_rules))
         return replace_all(self, rewrite_rules)
 
-    def parallel(self, N : int, backend='joblib'):
+    def parallel(self, N : int, backend='joblib') -> Transformer:
         """
         Returns a parallelised version of this transformer. The underlying transformer must be "picklable".
 
@@ -247,69 +262,54 @@ class TransformerBase:
             raise ValueError(('Invalid parameter name %s for transformer %s. '+
                     'Check the list of available parameters') %(name, str(self)))
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> pd.DataFrame:
         """
             Sets up a default method for every transformer, which is aliased to transform(). 
         """
         return self.transform(*args, **kwargs)
 
-    def __rshift__(self, right):
+    def __rshift__(self, right) -> Transformer:
         return ComposedPipeline(self, right)
 
-    def __rrshift__(self, left):
+    def __rrshift__(self, left) -> Transformer:
         return ComposedPipeline(left, self)
 
-    def __add__(self, right):
+    def __add__(self, right : Transformer) -> Transformer:
         return CombSumTransformer(self, right)
 
-    def __pow__(self, right):
+    def __pow__(self, right : Transformer) -> Transformer:
         return FeatureUnionPipeline(self, right)
 
-    def __mul__(self, rhs):
+    def __mul__(self, rhs : Union[float,int]) -> Transformer:
         assert isinstance(rhs, int) or isinstance(rhs, float)
         return ScalarProductTransformer(self, rhs)
 
-    def __rmul__(self, lhs):
+    def __rmul__(self, lhs : Union[float,int]) -> Transformer:
         assert isinstance(lhs, int) or isinstance(lhs, float)
         return ScalarProductTransformer(self, lhs)
 
-    def __or__(self, right):
+    def __or__(self, right : Transformer) -> Transformer:
         return SetUnionTransformer(self, right)
 
-    def __and__(self, right):
+    def __and__(self, right : Transformer) -> Transformer:
         return SetIntersectionTransformer(self, right)
 
-    def __mod__(self, right):
+    def __mod__(self, right : Transformer) -> Transformer:
         assert isinstance(right, int)
         return RankCutoffTransformer(self, right)
 
-    def __xor__(self, right):
+    def __xor__(self, right : Transformer) -> Transformer:
         return ConcatenateTransformer(self, right)
 
-    def __invert__(self):
+    def __invert__(self : Transformer) -> Transformer:
         from .cache import ChestCacheTransformer
         return ChestCacheTransformer(self)
 
     def __hash__(self):
         return hash(repr(self))
 
-class Transformer(TransformerBase):
-    @staticmethod
-
-    #NB: typing cannot return Transformer until Python 3.7
-    def from_df(input : pd.DataFrame, uniform=False) -> TransformerBase:
-        """
-        Instantiates a transformer from an input dataframe. Some rows from the input dataframe are returned
-        in response to a query on the ``tranform()`` method. Depending on the value `uniform`, the dataframe
-        passed as an argument to ``transform()`` can affect this selection.
-
-        If `uniform` is True, input will be returned in its entirety each time.
-        If `uniform` is False, rows from input that match the qid values from the argument dataframe.
-        
-        """
-        if uniform:
-            return UniformTransformer(input)
-        return SourceTransformer(input)
+class TransformerBase(Transformer):
+    pass
 
 class IterDictIndexerBase(TransformerBase):
     def index(self, iter : Iterable[dict], **kwargs):

@@ -23,6 +23,7 @@ pipelines = None
 rewrite = None
 text = None
 transformer = None
+Transformer = None
 
 file_path = os.path.dirname(os.path.abspath(__file__))
 firstInit = False
