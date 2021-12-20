@@ -5,12 +5,12 @@ PyTerrier Transformers
 
 PyTerrier's retrieval architecture is based on three concepts:
 
- - dataframes with pre-defined types (each with a minimum set of known attributes), as detailed in the data amodel.
+ - dataframes with pre-defined types (each with a minimum set of known attributes), as detailed in the data model.
  - the *transformation* of those dataframes by standard information retrieval operations, defined as transformers.
  - the compsition of transformers, supported by the operators defined on transformers.
 
 In essence, a PyTerrier transformer is a class with a ``transform()`` method, which takes as input a dataframe, and changes it,
-before returning it.
+before returning it. 
 
 +-------+---------+-------------+------------------+------------------------------+
 + Input | Output  | Cardinality | Example          | Concrete Transformer Example |
@@ -47,16 +47,16 @@ estimators within that pipeline.
 Transformer base classes
 ========================
 
-TransformerBase
+Transformer
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This class is the base class for all transformers.
 
-.. autoclass:: pyterrier.transformer.TransformerBase
+.. autoclass:: pyterrier.Transformer
     :members:
 
-Moreover, by extending TransformerBase, all transformer implementations gain the necessary "dunder" methods (e.g. `__rshift__()`)
-to support the transformer operators (`>>`, `+` etc). 
+Moreover, by extending Transformer, all transformer implementations gain the necessary "dunder" methods (e.g. ``__rshift__()``)
+to support the transformer operators (`>>`, `+` etc). NB: This class used to be called ``pyterrier.transformer.TransformerBase``
 
 .. _pt.transformer.estimatorbase:
 
@@ -129,10 +129,30 @@ Several common transformations are supported through the functions in the :ref:`
 :ref:`pyterrier.apply` documentation.
 
 However, if your transformer has state, such as an expensive model to be loaded at startup time, you may want to 
-extend TransformerBase directly. 
+extend ``pt.Transformer`` directly. 
 
 Here are some hints for writing Transformers:
  - Except for an indexer, you should implement a ``transform()`` method.
  - If your approach ranks results, use ``pt.model.add_ranks()`` to add the rank column.
  - If your approach can be trained, your transformer should extend EstimatorBase, and implement the ``fit()`` method.
  - If your approach is an indexer, your transformer should extend IterDictIndexerBase and implement ``index()`` method.
+
+
+Mocking Transformers from DataFrames
+====================================
+
+You can make a Transformer object from dataframes. For instance, a unifom transformer will always return the input
+dataframe any time ``transform()`` is called::
+
+  df = pt.new.ranked_documents([[1,2]])
+  uniformT = pt.Transformer.from_df(df, uniform=True)
+  # uniformT.transform() always returns df, regardless of arguments
+
+You can also create a Transformer object from existing results, e.g. saved on disk using ``pt.io.write_results()`` 
+etc. The resulting "source transformer" will return all results by matching on the qid of the input::
+
+  res = pt.io.read_results("/path/to/baseline.res.gz")
+  baselineT = pt.Transformer.from_df(df, uniform=True)
+
+  Q1 = pt.new.queries("test query", qid="Q1")
+  resQ1 = baselineT.transform(Q1)
