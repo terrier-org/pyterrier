@@ -170,7 +170,6 @@ class RemoteDataset(Dataset):
         if variant is None:
             if not isinstance(self.locations[component], list):
                 raise ValueError("For %s in dataset %s, you must specify a variant. Available are: %s" % (component, name, str(list(self.locations[component].keys()))))
-            location = self.locations[component][0]
         else:
             if isinstance(self.locations[component], list):
                 raise ValueError("For %s in dataset %s, there are no variants, but you specified %s" % (component, name, variant))

@@ -733,14 +733,16 @@ class FeatureUnionPipeline(NAryTransformerBase):
 
     def transform(self, inputRes):
         if not "docno" in inputRes.columns and "docid" in inputRes.columns:
-            raise ValueError("FeatureUnion operates as a re-ranker, but input did not have either docno or docid columns, found columns were %s" %  str(inputRes.columns))
+            raise ValueError("FeatureUnion operates as a re-ranker, but input did not have either "
+                "docno or docid columns, found columns were %s" %  str(inputRes.columns))
 
         num_results = len(inputRes)
         import numpy as np
 
         # a parent could be a feature union, but it still passes the inputRes directly, so inputRes should never have a features column
         if "features" in inputRes.columns:
-            raise ValueError("FeatureUnion operates as a re-ranker. They can be nested, but input should not contain a features column; found columns were %s" %  str(inputRes.columns))
+            raise ValueError("FeatureUnion operates as a re-ranker. They can be nested, but input "
+                "should not contain a features column; found columns were %s" %  str(inputRes.columns))
         
         all_results = []
 
@@ -761,7 +763,8 @@ class FeatureUnionPipeline(NAryTransformerBase):
                     raise ValueError("Results from %s did not include either score or features columns, found columns were %s" % (repr(m), str(res.columns)) )
 
                 if len(res) != num_results:
-                    warn("Got number of results different expected from %s, expected %d received %d, feature scores for any missing documents be 0, extraneous documents will be removed" % (repr(m), num_results, len(res)))
+                    warn("Got number of results different expected from %s, expected %d received %d, feature scores for any "
+                        "missing documents be 0, extraneous documents will be removed" % (repr(m), num_results, len(res)))
                     all_results[i] = res = inputRes[["qid", "docno"]].merge(res, on=["qid", "docno"], how="left")
                     res["score"] = res["score"].fillna(value=0)
 

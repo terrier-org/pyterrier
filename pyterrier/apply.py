@@ -1,7 +1,6 @@
 from typing import Callable, Any, Dict
 from .transformer import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyGenericTransformer, TransformerBase
 from nptyping import NDArray
-import numpy as np
 import pandas as pd
 
 def _bind(instance, func, as_name=None):
@@ -171,7 +170,9 @@ def generic_apply(name, *args, drop=False, **kwargs) -> TransformerBase:
 
     fn = args[0]
     args=[]
+
     def _new_column(df):
         df[name] = df.apply(fn, axis=1, result_type='reduce')
         return df
+    
     return ApplyGenericTransformer(_new_column, *args, **kwargs)

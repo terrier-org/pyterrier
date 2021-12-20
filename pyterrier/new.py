@@ -1,6 +1,5 @@
 
 from typing import Sequence, Union
-import pyterrier as pt
 import pandas as pd
 from .model import add_ranks
 

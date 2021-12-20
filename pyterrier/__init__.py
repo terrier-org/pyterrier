@@ -174,7 +174,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     globals()["find_datasets"] = find_datasets
     globals()["Experiment"] = Experiment
     globals()["BatchRetrieve"] = BatchRetrieve
-    globals()["TerrierRetrieve"] = BatchRetrieve # TerrierRetrieve is an alias to BatchRetrieve
+    globals()["TerrierRetrieve"] = BatchRetrieve  # TerrierRetrieve is an alias to BatchRetrieve
     globals()["Indexer"] = Indexer
     globals()["FeaturesBatchRetrieve"] = FeaturesBatchRetrieve
     globals()["TRECCollectionIndexer"] = TRECCollectionIndexer

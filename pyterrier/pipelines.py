@@ -1,12 +1,10 @@
-from collections import defaultdict
 from warnings import warn
 import os
 import pandas as pd
 import numpy as np
 from typing import Callable, Union, Dict, List, Tuple, Sequence, Any
-from .utils import Utils
-from .transformer import TransformerBase, EstimatorBase
-from .model import add_ranks, coerce_dataframe_types
+from .transformer import TransformerBase
+from .model import coerce_dataframe_types
 import deprecation
 import ir_measures
 from ir_measures.measures import BaseMeasure 
@@ -346,9 +344,11 @@ def Experiment(
         assert not perquery
 
     if isinstance(topics, str):
+        from . import Utils
         if os.path.isfile(topics):
             topics = Utils.parse_trec_topics_file(topics)
     if isinstance(qrels, str):
+        from . import Utils
         if os.path.isfile(qrels):
             qrels = Utils.parse_qrels(qrels)
 
@@ -818,7 +818,7 @@ def GridScan(
     for tran, param in candi_dict:
         try:
             tran.get_parameter(param)
-        except Exception as e:
+        except:
             raise ValueError("Transformer %s does not expose a parameter named %s" % (str(tran), param))
     
     keys,values = zip(*candi_dict.items())
