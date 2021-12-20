@@ -114,7 +114,9 @@ def setup_jnius():
         from . import autoclass
         # get bytebuffer representation of lambda
         # convert bytebyffer to python bytearray
-        bytesrep = javabytebuffer2array(self.scoringClass.serializeFn())
+        serlzd = self.scoringClass.serializeFn()
+        bytesrep = javabytebuffer2array(serlzd)
+        del(serlzd)
         return (
             new_callable_wmodel,
             (bytesrep, ),
