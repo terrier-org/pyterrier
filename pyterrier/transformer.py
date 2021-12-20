@@ -114,7 +114,7 @@ class Scalar(Symbol):
         super().__init__(name)
         self.value = value
 
-class TransformerBase:
+class Transformer:
     name = "Transformer"
     """
         Base class for all transformers. Implements the various operators ``>>`` ``+`` ``*`` ``|`` ``&`` 
