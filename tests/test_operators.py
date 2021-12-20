@@ -20,7 +20,7 @@ class TestOperators(BaseTestCase):
         import pyterrier.transformer as ptt
         
         topics = pd.DataFrame([["1", "A"]], columns=["qid", "query"])
-        rtr = ptt.SourceTransformer(topicsSource)(topics)
+        rtr = pt.Transformer.from_df(topicsSource)(topics)
         self.assertEqual(1, len(rtr))
         self.assertTrue("query" in rtr.columns)
         self.assertTrue("qid" in rtr.columns)

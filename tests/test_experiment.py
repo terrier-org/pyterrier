@@ -156,7 +156,7 @@ class TestExperiment(TempDirTestCase):
         
     def test_empty(self):
         df1 = pt.new.ranked_documents([[1]]).head(0)
-        t1 = pt.transformer.SourceTransformer(df1)
+        t1 = pt.Transformer.from_df(df1)
 
         topics = pt.datasets.get_dataset("vaswani").get_topics().head(10)
         qrels =  pt.datasets.get_dataset("vaswani").get_qrels()
