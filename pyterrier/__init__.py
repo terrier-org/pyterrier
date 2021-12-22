@@ -132,7 +132,8 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     version_string = tr_version.VERSION
     if "BUILD_DATE" in dir(tr_version):
         version_string += " (built by %s on %s)" % (tr_version.BUILD_USER, tr_version.BUILD_DATE)
-    print("PyTerrier %s has loaded Terrier %s" % (__version__, version_string))
+    import sys
+    print("PyTerrier %s has loaded Terrier %s\n" % (__version__, version_string), file=sys.stderr)
     properties = autoclass('java.util.Properties')()
     ApplicationSetup = autoclass('org.terrier.utility.ApplicationSetup')
 
