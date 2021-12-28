@@ -432,8 +432,10 @@ def Experiment(
         'desc' : 'pt.Experiment'
     }
     if batch_size is not None:
+        import math
         tqdm_args['unit'] = 'batches'
-        tqdm_args['total'] = (len(topics) / batch_size) * len(retr_systems)
+        # round number of batches up for each system
+        tqdm_args['total'] = math.ceil((len(topics) / batch_size)) * len(retr_systems)
 
     with tqdm(**tqdm_args) as pbar:
         # run and evaluate each system
