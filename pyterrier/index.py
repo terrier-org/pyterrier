@@ -4,9 +4,8 @@ This file contains all the indexers.
 
 # from jnius import autoclass, cast, PythonJavaClass, java_method
 from jnius import autoclass, PythonJavaClass, java_method, cast
-# from .utils import *
 import pandas as pd
-# import numpy as np
+from pyterrier.transformer import IterDictIndexerBase
 import os
 import enum
 import json

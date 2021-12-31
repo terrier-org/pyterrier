@@ -1,22 +1,20 @@
 from .transformer import TransformerBase
 import hashlib
-from . import HOME_DIR 
+from . import HOME_DIR
 import os
 from os import path
-CACHE_DIR = None
 import pandas as pd
 import pickle
-from functools import partial
 import datetime
 from warnings import warn
-
+CACHE_DIR = None
 DEFINITION_FILE = ".transformer"
 
 #https://stackoverflow.com/a/10171475
-from math import log
 unit_list = list( zip(['bytes', 'kB', 'MB', 'GB', 'TB', 'PB'], [0, 0, 1, 2, 2, 2]) )
 def sizeof_fmt(num):
     """Human friendly file size"""
+    from math import log
     if num > 1:
         exponent = min(int(log(num, 1024)), len(unit_list) - 1)
         quotient = float(num) / 1024**exponent

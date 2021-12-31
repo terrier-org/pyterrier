@@ -1,8 +1,5 @@
 import pandas as pd
-import pytrec_eval
 from collections import defaultdict
-import os
-import deprecation
 
 
 class Utils:
