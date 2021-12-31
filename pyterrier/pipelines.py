@@ -335,6 +335,9 @@ def Experiment(
     if warn_old_sig:
         warn("Signature of Experiment() is now (retr_systems, topics, qrels, eval_metrics), please update your code", DeprecationWarning, 2)
 
+    if not isinstance(retr_systems, list):
+        raise TypeError("Expected list of transformers for retr_systems, instead received %s" % str(type(retr_systems)))
+
     if 'drop_unused' in kwargs:
         filter_by_qrels = kwargs.pop('drop_unused')
         warn('drop_unused is deprecated; use filter_by_qrels instead', DeprecationWarning)
