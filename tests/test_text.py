@@ -37,16 +37,17 @@ class TestText(BaseTestCase):
     def test_snippets(self):
         br = pt.BatchRetrieve.from_dataset("vaswani", "terrier_stemmed_text", metadata=["docno", "text"])
         psg_scorer = ( 
-            pt.text.sliding(text_attr='text', length=5, prepend_attr=None) 
-            >> pt.text.scorer(body_attr="text", wmodel='Tf')
-            >> pt.debug.print_rows(jupyter=False)
+            pt.text.sliding(text_attr='text', length=25, stride=12, prepend_attr=None) 
+            >> pt.text.scorer(body_attr="text", wmodel='Tf', takes='docs')
         )
         pipe = br >> pt.text.snippets(psg_scorer)
         dfOut = pipe.search("chemical reactions")
-        print(dfOut)
         self.assertTrue("rank" in dfOut.columns)
         self.assertTrue("score" in dfOut.columns)
         self.assertTrue("summary" in dfOut.columns)
+        #.count() checks number of non-NaN values
+        #so lets count how mant are NaN
+        self.assertEqual(0, len(dfOut) - dfOut.summary.count())
 
 
     def test_fetch_text_docno(self):

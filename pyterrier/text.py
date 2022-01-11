@@ -272,7 +272,7 @@ def snippets(
         # use Tf as a passage scorer on sliding window passages 
         psg_scorer = ( 
             pt.text.sliding(text_attr='text', length=15, prepend_attr=None) 
-            >> pt.text.scorer(body_attr="text", wmodel='Tf', background_index=index)
+            >> pt.text.scorer(body_attr="text", wmodel='Tf', takes='docs')
         )
         
         # use psg_scorer for performing query-biased summarisation on docs retrieved by br 
