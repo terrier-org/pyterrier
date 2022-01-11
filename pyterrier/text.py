@@ -257,12 +257,12 @@ def snippets(
     """
     Applies query-biased summarisation (snippet), by applying the specified text scoring pipeline.
 
-    Arguments:
-     - text_scorer_pipe(Transformer): the pipeline for scoring passages in response to the query. Normally this applies passaging.
-     - text_attr(str): what is the name of the attribute that contains the text of the document
-     - summary_attr(str): what is the name of the attribute that should contain the query-biased summary for that document
-     - num_psgs(int): how many passages to select for the summary of each document
-     - joinstr(str): how to join passages for a given document together
+    Parameters:
+        text_scorer_pipe(Transformer): the pipeline for scoring passages in response to the query. Normally this applies passaging.
+        text_attr(str): what is the name of the attribute that contains the text of the document
+        summary_attr(str): what is the name of the attribute that should contain the query-biased summary for that document
+        num_psgs(int): how many passages to select for the summary of each document
+        joinstr(str): how to join passages for a given document together
 
     Example::
 
@@ -276,7 +276,7 @@ def snippets(
         )
         
         # use psg_scorer for performing query-biased summarisation on docs retrieved by br 
-        retr_pipe = br >> pt.text.snippet(psg_scorer)
+        retr_pipe = br >> pt.text.snippets(psg_scorer)
 
     """
     import pyterrier as pt
