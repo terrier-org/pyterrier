@@ -46,7 +46,7 @@ class TestText(BaseTestCase):
         self.assertTrue("score" in dfOut.columns)
         self.assertTrue("summary" in dfOut.columns)
         #.count() checks number of non-NaN values
-        #so lets count how mant are NaN
+        #so lets count how many are NaN
         self.assertEqual(0, len(dfOut) - dfOut.summary.count())
 
 
