@@ -4,9 +4,8 @@ This file contains all the indexers.
 
 # from jnius import autoclass, cast, PythonJavaClass, java_method
 from jnius import autoclass, PythonJavaClass, java_method, cast
-# from .utils import *
 import pandas as pd
-# import numpy as np
+from pyterrier.transformer import IterDictIndexerBase
 import os
 import enum
 import json
@@ -129,6 +128,26 @@ def treccollection2textgen(
         verbose = False,
         num_docs = None,
         tag_text_length : int = 4096):
+    """
+    Creates a generator of dictionaries on parsing TREC formatted files. This is useful 
+    for parsing TREC-formatted corpora in indexers like IterDictIndexer, or similar 
+    indexers in other plugins (e.g. ColBERTIndexer).
+
+    Arguments:
+     - files(List[str]): list of files to parse in TREC format.
+     - meta(List[str]): list of attributes to expose in the dictionaries as metadata.
+     - meta_tags(Dict[str,str]): mapping of TREC tags as metadata.
+     - tag_text_length(int): maximium length of metadata. Defaults to 4096.
+     - verbose(bool): set to true to show a TQDM progress bar. Defaults to True.
+     - num_docs(int): a hint for TQDM to size the progress bar based on document counts rather than file count.
+
+    Example::
+
+        files = pt.io.find_files("/path/to/Disk45")
+        gen = pt.index.treccollection2textgen(files)
+        index = pt.IterDictIndexer("./index45").index(gen)
+
+    """
 
     props = {
         "TrecDocTags.doctag": "DOC",
@@ -577,10 +596,18 @@ class FlatJSONDocumentIterator(PythonJavaClass):
 
 from pyterrier.transformer import IterDictIndexerBase
 class _BaseIterDictIndexer(Indexer, IterDictIndexerBase):
-    def __init__(self, index_path, *args, meta_reverse=['docno'], threads=1, **kwargs):
+    def __init__(self, index_path, *args, meta = {'docno' : 20}, meta_reverse=['docno'], threads=1, **kwargs):
+        """
+        
+        Args:
+            index_path(str): Directory to store index. Ignored for IndexingType.MEMORY.
+            meta(Dict[str,int]): What metadata for each document to record in the index, and what length to reserve. Defaults to `{"docno" : 20}`.
+            meta_reverse(List[str]): What metadata shoudl we be able to resolve back to a docid. Defaults to `["docno"]`,      
+        """
         IterDictIndexerBase.__init__(self)
         Indexer.__init__(self, index_path, *args, **kwargs)
         self.threads = threads
+        self.meta = meta
         self.meta_reverse = meta_reverse
 
     def _setup(self, fields, meta, meta_lengths):
@@ -615,17 +642,23 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
     Use this Indexer if you wish to index an iter of dicts (possibly with multiple fields).
     This version is used for Windows -- which doesn't support the faster fifo implementation.
     """
-    def index(self, it, fields=('text',), meta=('docno',), meta_lengths=None, threads=None):
+    def index(self, it, fields=('text',), meta=None, meta_lengths=None, threads=None):
         """
         Index the specified iter of dicts with the (optional) specified fields
 
         Args:
             it(iter[dict]): an iter of document dict to be indexed
             fields(list[str]): keys to be indexed as fields
-            meta(list[str]): keys to be considered as metdata
-            meta_lengths(list[int]): length of metadata, defaults to 512 characters
+            meta(list[str]): keys to be considered as metdata. Deprecated
+            meta_lengths(list[int]): length of metadata, defaults to 512 characters. Deprecated
         """
-        self._setup(fields, meta, meta_lengths)
+        if meta is not None:
+            warn('specifying meta and meta_lengths in IterDictIndexer.index() is deprecated, use kwargs in constructor instead', DeprecationWarning, 2)
+            self.meta = meta
+            if meta_lengths is not None:
+                self.meta = {zip(meta, meta_lengths)}
+
+        self._setup(fields, self.meta, None)
         assert self.threads == 1, 'IterDictIndexer does not support multiple threads on Windows'
         # we need to prevent collectionIterator from being GCd
         collectionIterator = FlatJSONDocumentIterator(iter(it)) # force it to be iter
@@ -647,7 +680,7 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
     This version is optimized by using multiple threads and POSIX fifos to tranfer data,
     which ends up being much faster.
     """
-    def index(self, it, fields=('text',), meta=('docno',), meta_lengths=None):
+    def index(self, it, fields=('text',), meta=None, meta_lengths=None):
         """
         Index the specified iter of dicts with the (optional) specified fields
 
@@ -661,7 +694,13 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
         JsonlDocumentIterator = autoclass("org.terrier.python.JsonlDocumentIterator")
         ParallelIndexer = autoclass("org.terrier.python.ParallelIndexer")
 
-        self._setup(fields, meta, meta_lengths)
+        if meta is not None:
+            warn('specifying meta and meta_lengths in IterDictIndexer.index() is deprecated, use constructor instead', DeprecationWarning, 2)
+            self.meta = meta
+            if meta_lengths is not None:
+                self.meta = {zip(meta, meta_lengths)}
+
+        self._setup(fields, self.meta, None)
 
         os.makedirs(self.index_dir, exist_ok=True) # ParallelIndexer expects the directory to exist
 

@@ -1,23 +1,20 @@
 from .transformer import TransformerBase
 import hashlib
-from chest import Chest
-from . import HOME_DIR 
+from . import HOME_DIR
 import os
 from os import path
-CACHE_DIR = None
 import pandas as pd
 import pickle
-from functools import partial
 import datetime
 from warnings import warn
-
+CACHE_DIR = None
 DEFINITION_FILE = ".transformer"
 
 #https://stackoverflow.com/a/10171475
-from math import log
 unit_list = list( zip(['bytes', 'kB', 'MB', 'GB', 'TB', 'PB'], [0, 0, 1, 2, 2, 2]) )
 def sizeof_fmt(num):
     """Human friendly file size"""
+    from math import log
     if num > 1:
         exponent = min(int(log(num, 1024)), len(unit_list) - 1)
         quotient = float(num) / 1024**exponent
@@ -116,6 +113,7 @@ class ChestCacheTransformer(TransformerBase):
         if not path.exists(definition_file):
             with open(definition_file, "w") as f:
                 f.write(trepr)
+        from chest import Chest
         self.chest = Chest(path=destdir, 
             dump=lambda data, filename: pd.DataFrame.to_pickle(data, filename) if isinstance(data, pd.DataFrame) else pickle.dump(data, filename, protocol=1),
             load=lambda filehandle: pickle.load(filehandle) if ".keys" in filehandle.name else pd.read_pickle(filehandle)

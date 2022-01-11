@@ -1,6 +1,7 @@
-__version__ = "0.6.0"
+__version__ = "0.8.0-alpha"
 
 import os
+
 from .bootstrap import _logging, setup_terrier, setup_jnius, is_windows
 
 import importlib
@@ -21,6 +22,7 @@ pipelines = None
 rewrite = None
 text = None
 transformer = None
+Transformer = None
 
 file_path = os.path.dirname(os.path.abspath(__file__))
 firstInit = False
@@ -32,7 +34,7 @@ tqdm = None
 HOME_DIR = None
 init_args ={}
 
-def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, logging='WARN', home_dir=None, boot_packages=[], tqdm=None, no_download=False):
+def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, logging='WARN', home_dir=None, boot_packages=[], tqdm=None, no_download=False,helper_version = None):
     """
     Function necessary to be called before Terrier classes and methods can be used.
     Loads the Terrier .jar file and imports classes. Also finds the correct version of Terrier to download if no version is specified.
@@ -55,6 +57,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
 
         home_dir(str): the home directory to use. Default to PYTERRIER_HOME environment variable.
         tqdm: The `tqdm <https://tqdm.github.io/>`_ instance to use for progress bars within PyTerrier. Defaults to tqdm.tqdm. Available options are `'tqdm'`, `'auto'` or `'notebook'`.
+        helper_version(str): Which version of the helper.
 
    
     **Locating the Terrier .jar file:** PyTerrier is not tied to a specific version of Terrier and will automatically locate and download a recent Terrier .jar file. However, inevitably, some functionalities will require more recent Terrier versions. 
@@ -63,15 +66,26 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
      * If the `version` init kwarg is not set, Terrier will query MavenCentral to determine the latest Terrier release.
      * If `version` is set to `"snapshot"`, the latest .jar file build derived from the `Terrier Github repository <https://github.com/terrier-org/terrier-core/>`_ will be downloaded from `Jitpack <https://jitpack.io/>`_.
      * Otherwise the local (`~/.mvn`) and MavenCentral repositories are searched for the jar file at the given version.
-     
     In this way, the default setting is to download the latest release of Terrier from MavenCentral. The user is also able to use a locally installed copy in their private Maven repository, or track the latest build of Terrier from Jitpack.
     
+    If you wish to run PyTerrier in an offline enviroment, you should ensure that the "terrier-assemblies-{your version}-jar-with-dependencies.jar" and "terrier-python-helper-{your helper version}.jar"
+    are in the  "~/.pyterrier" (if they are not present, they will be downloaded the first time). Then you should set their versions when calling ``init()`` function. For example:
+    ``pt.init(version = 5.5, helper_version = "0.0.6")``.
     """
+    global firstInit
+    if firstInit:
+        raise RuntimeError("pt.init() has already been called. Check pt.started() before calling pt.init()")
+
+    # check python version
+    import platform
+    from packaging.version import Version
+    if Version(platform.python_version()) < Version('3.7.0'):
+        raise RuntimeError("From PyTerrier 0.8, Python 3.7 minimum is required, you currently have %s" % platform.python_version())
+
     set_tqdm(tqdm)
 
     global ApplicationSetup
     global properties
-    global firstInit
     global file_path
     global HOME_DIR
 
@@ -88,7 +102,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
             os.mkdir(HOME_DIR)
 
     # get the initial classpath for the JVM
-    classpathTrJars = setup_terrier(HOME_DIR, version, boot_packages=boot_packages, force_download=not no_download)
+    classpathTrJars = setup_terrier(HOME_DIR, version, helper_version = helper_version, boot_packages=boot_packages, force_download=not no_download)
     
     if is_windows():
         if "JAVA_HOME" in os.environ:
@@ -118,7 +132,8 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     version_string = tr_version.VERSION
     if "BUILD_DATE" in dir(tr_version):
         version_string += " (built by %s on %s)" % (tr_version.BUILD_USER, tr_version.BUILD_DATE)
-    print("PyTerrier %s has loaded Terrier %s" % (__version__, version_string))
+    import sys
+    print("PyTerrier %s has loaded Terrier %s\n" % (__version__, version_string), file=sys.stderr)
     properties = autoclass('java.util.Properties')()
     ApplicationSetup = autoclass('org.terrier.utility.ApplicationSetup')
 
@@ -126,7 +141,8 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     from .utils import Utils
     from .datasets import get_dataset, find_datasets, list_datasets
     from .index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, FlatJSONDocumentIterator, IndexingType
-    from .pipelines import LTR_pipeline, XGBoostLTR_pipeline, Experiment, GridScan, GridSearch, KFoldGridSearch
+    from .pipelines import Experiment, GridScan, GridSearch, KFoldGridSearch
+    from .transformer import Transformer
 
     # Make imports global
     globals()["autoclass"] = autoclass
@@ -162,6 +178,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     globals()["find_datasets"] = find_datasets
     globals()["Experiment"] = Experiment
     globals()["BatchRetrieve"] = BatchRetrieve
+    globals()["TerrierRetrieve"] = BatchRetrieve  # TerrierRetrieve is an alias to BatchRetrieve
     globals()["Indexer"] = Indexer
     globals()["FeaturesBatchRetrieve"] = FeaturesBatchRetrieve
     globals()["TRECCollectionIndexer"] = TRECCollectionIndexer
@@ -171,14 +188,13 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     globals()["IterDictIndexer"] = IterDictIndexer
     globals()["FlatJSONDocumentIterator"] = FlatJSONDocumentIterator
     globals()["Utils"] = Utils
-    globals()["LTR_pipeline"] = LTR_pipeline
-    globals()["XGBoostLTR_pipeline"] = XGBoostLTR_pipeline
     globals()["IndexFactory"] = autoclass("org.terrier.structures.IndexFactory")
     globals()["IndexRef"] = autoclass("org.terrier.querying.IndexRef")
     globals()["IndexingType"] = IndexingType
     globals()["GridScan"] = GridScan
     globals()["GridSearch"] = GridSearch
     globals()["KFoldGridSearch"] = KFoldGridSearch
+    globals()["Transformer"] = Transformer
     
     
     # we save the pt.init() arguments so that other processes,

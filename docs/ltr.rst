@@ -193,13 +193,13 @@ Example::
     # learn a model for all four features
     full = pipeline >> pt.ltr.apply_learned_model(RandomForestRegressor(n_estimators=400))
     full.fit(trainTopics, trainQrels, validTopics, validQrels)
-    ranker.append(full)
+    rankers.append(full)
     
     # learn a model for 3 features, removing one each time
     for fid in range(numf):
         ablated = pipeline >> pt.ltr.ablate_features(fid) >> pt.ltr.apply_learned_model(RandomForestRegressor(n_estimators=400))
         ablated.fit(trainTopics, trainQrels, validTopics, validQrels)
-        rankers.append(full)
+        rankers.append(ablated)
 
     # evaluate the full (4 features) model, as well as the each model containing only 3 features)
     pt.Experiment(

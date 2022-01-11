@@ -153,14 +153,14 @@ def scorer(*args, **kwargs) -> TransformerBase:
     return pt.batchretrieve.TextScorer(*args, **kwargs)
 
 def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='title', **kwargs) -> TransformerBase:
-    """
+    r"""
     A useful transformer for splitting long documents into smaller passages within a pipeline. This applies a *sliding* window over the
     text, where each passage is the give number of tokens long. Passages can overlap, if the stride is set smaller than the length. In
     applying this transformer, docnos are altered by adding '%p' and a passage number. The original scores for each document can be recovered
     by aggregation functions, such as `max_passage()`.
 
     For the puposes of obtaining passages of a given length, tokenisation is perfomed simply by splitting on one-or-more spaces, i.e. based 
-    on the Python regular expression ``re.compile(r"\s+")``.
+    on the Python regular expression ``re.compile(r'\s+')``.
 
     Parameters:
         text_attr(str): what is the name of the dataframe attribute containing the main text of the document to be split into passages.
@@ -234,8 +234,8 @@ def kmaxavg_passage(k : int) -> TransformerBase:
     Scores each document based on the average score of the top scoring k passages. Generalises combination of mean_passage()
     and max_passage(). Proposed in [Chen2020].
 
-    Arguments:
-         - k(int): The number of passages for each document to use when scoring
+    Parameters:
+        k(int): The number of top-scored passages for each document to use when scoring
     
     """
     return KMaxAvgPassage(k)
@@ -389,15 +389,16 @@ class SlidingWindowPassager(TransformerBase):
 
     def _check_columns(self, topics_and_res):
         if not self.text_attr in topics_and_res.columns:
-            raise KeyError("%s is a required input column, but not found in input dataframe." % self.text_attr)
+            raise KeyError("%s is a required input column, but not found in input dataframe. Found %s" % (self.text_attr, str(list(topics_and_res.columns))))
         if self.prepend_title and not self.title_attr in topics_and_res.columns:
-            raise KeyError("%s is a required input column, but not found in input dataframe. Set prepend_title=False to disable its use." % self.title_attr)
+            raise KeyError("%s is a required input column, but not found in input dataframe. Set prepend_title=False to disable its use. Found %s" % (self.title_attr, str(list(topics_and_res.columns))))
         if not "docno" in topics_and_res.columns:
-            raise KeyError("%s is a required input column, but not found in input dataframe." % "docno")
+            raise KeyError("%s is a required input column, but not found in input dataframe. Found %s" % ("docno", str(list(topics_and_res.columns))))
 
     def transform(self, topics_and_res):
         # validate input columns
         self._check_columns(topics_and_res)
+        print("calling sliding on df of %d rows" % len(topics_and_res))
 
         # now apply the passaging
         if "qid" in topics_and_res.columns: 
