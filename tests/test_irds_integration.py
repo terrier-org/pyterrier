@@ -70,6 +70,14 @@ class TestIrDatasetsIntegration(BaseTestCase):
                 self.assertEqual('who is robert gray', results.iloc[0].query)
                 # ensure it's terrier-tokenised (orig text is "tracheids are part of _____.")
                 self.assertEqual('tracheids are part of', results[results.qid=='1124210'].iloc[0].query)
+    def test_nonexistant(self):
+        # Should raise an error when you request an irds: dataset that doesn't exist
+        with self.assertRaises(KeyError):
+            dataset = pt.datasets.get_dataset('irds:bla-bla-bla')
+
+        # (it's the same erorr raised without using the irds: integration)
+        with self.assertRaises(KeyError):
+            dataset = pt.datasets.get_dataset('bla-bla-bla')
 
 if __name__ == '__main__':
     unittest.main()
