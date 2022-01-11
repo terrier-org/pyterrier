@@ -57,5 +57,14 @@ class TestIrDatasetsIntegration(BaseTestCase):
                     index = pt.IndexFactory.of(indexref)
                     self.assertEqual(index.lexicon['covid'].frequency, 200582)
 
+    def test_nonexistant(self):
+        # Should raise an error when you request an irds: dataset that doesn't exist
+        with self.assertRaises(KeyError):
+            dataset = pt.datasets.get_dataset('irds:bla-bla-bla')
+
+        # (it's the same erorr raised without using the irds: integration)
+        with self.assertRaises(KeyError):
+            dataset = pt.datasets.get_dataset('bla-bla-bla')
+
 if __name__ == '__main__':
     unittest.main()
