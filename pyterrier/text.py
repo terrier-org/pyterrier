@@ -1,4 +1,5 @@
 from pyterrier.transformer import TransformerBase
+from . import Transformer
 from pyterrier.datasets import IRDSDataset
 import more_itertools
 from collections import defaultdict
@@ -246,6 +247,66 @@ def slidingWindow(sequence : list, winSize : int, step : int) -> list:
     stepping forward by the specified amount each time
     """
     return [x for x in list(more_itertools.windowed(sequence,n=winSize, step=step)) if x[-1] is not None]
+
+def snippets(
+        text_scorer_pipe : Transformer, 
+        text_attr : str = "text", 
+        summary_attr : str = "summary", 
+        num_psgs : int = 5, 
+        joinstr : str ='...') -> Transformer:
+    """
+    Applies query-biased summarisation (snippet), by applying the specified text scoring pipeline.
+
+    Arguments:
+     - text_scorer_pipe(Transformer): the pipeline for scoring passages in response to the query. Normally this applies passaging.
+     - text_attr(str): what is the name of the attribute that contains the text of the document
+     - summary_attr(str): what is the name of the attribute that should contain the query-biased summary for that document
+     - num_psgs(int): how many passages to select for the summary of each document
+     - joinstr(str): how to join passages for a given document together
+
+    Example::
+
+        # retrieve documents with text
+        br = pt.BatchRetrieve(index, metadata=['docno', 'text'])
+
+        # use Tf as a passage scorer on sliding window passages 
+        psg_scorer = ( 
+            pt.text.sliding(text_attr='text', length=15, prepend_attr=None) 
+            >> pt.text.scorer(body_attr="text", wmodel='Tf', takes='docs')
+        )
+        
+        # use psg_scorer for performing query-biased summarisation on docs retrieved by br 
+        retr_pipe = br >> pt.text.snippet(psg_scorer)
+
+    """
+    import pyterrier as pt
+    tsp = (
+        pt.apply.rename({'qid' : 'oldqid'}) 
+        >> pt.apply.qid(lambda row: row['oldqid'] + '-' + row['docno']) 
+        >> ( text_scorer_pipe % num_psgs )
+        >> pt.apply.qid(drop=True)
+        >> pt.apply.rename({'oldqid' : 'qid'})
+    )
+
+    def _qbsjoin(docres):
+        import pandas as pd
+        if len(docres) == 0:
+            docres[summary_attr] = pd.Series(dtype='str')
+            return docres     
+
+        psgres = tsp(docres)
+        if len(psgres) == 0:
+            print('no passages found in %d documents for query %s' % (len(docres), docres.iloc[0].query))
+            docres = docres.copy()
+            docres[summary_attr]  = ""
+            return docres
+
+        psgres[["olddocno", "pid"]] = psgres.docno.str.split("%p", expand=True)
+
+        newdf = psgres.groupby(['qid', 'olddocno'])[text_attr].agg(joinstr.join).reset_index().rename(columns={text_attr : summary_attr, 'olddocno' : 'docno'})
+        
+        return docres.merge(newdf, on=['qid', 'docno'], how='left')
+    return pt.apply.generic(_qbsjoin)   
 
 
 class DePassager(TransformerBase):
