@@ -107,6 +107,12 @@ class Dataset():
         """
         return None
 
+    def get_reranking_run(self, variant=None) -> pd.DataFrame:
+        """ 
+            Returns a standard run provided by the dataset used for re-ranking experiments.
+        """
+        pass
+
 class RemoteDataset(Dataset):
 
     def __init__(self, name, locations):
@@ -479,6 +485,20 @@ class IRDSDataset(Dataset):
 
         return df
 
+    def get_reranking_run(self, variant=None) -> pd.DataFrame:
+        """ 
+            Returns a standard run provided by the dataset used for re-ranking experiments.
+        """
+        ds = self.irds_ref()
+        assert ds.has_scoreddocs(), f"{self._irds_id} doesn't support get_reranking_run"
+        result = pd.DataFrame(ds.scoreddocs)
+        result = result.rename(columns={'query_id': 'qid', 'doc_id': 'docno'}) # convert irds field names to pyterrier names
+        result.sort_values(by=['qid', 'score', 'docno'], ascending=[True, False, True], inplace=True) # ensure data is sorted by qid, -score, did
+        # result doesn't yet contain queries (only qids) so load and merge them in
+        topics = self.get_topics(variant)
+        result = pd.merge(result, topics, how='left', on='qid', copy=False)
+        return result
+
     def _describe_component(self, component):
         ds = self.irds_ref()
         if component == "topics":
@@ -497,6 +517,8 @@ class IRDSDataset(Dataset):
             return None
         if component == "corpus":
             return ds.has_docs() or None
+        if component == "reranking_run":
+            return ds.has_scoreddocs() or None
         return None
 
     def info_url(self):
