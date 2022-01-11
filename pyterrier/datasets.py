@@ -107,9 +107,9 @@ class Dataset():
         """
         return None
 
-    def get_reranking_run(self, variant=None) -> pd.DataFrame:
+    def get_results(self, variant=None) -> pd.DataFrame:
         """ 
-            Returns a standard run provided by the dataset used for re-ranking experiments.
+            Returns a standard result set provided by the dataset. This is useful for re-ranking experiments.
         """
         pass
 
@@ -485,9 +485,9 @@ class IRDSDataset(Dataset):
 
         return df
 
-    def get_reranking_run(self, variant=None) -> pd.DataFrame:
+    def get_results(self, variant=None) -> pd.DataFrame:
         """ 
-            Returns a standard run provided by the dataset used for re-ranking experiments.
+            Returns a standard result set provided by the dataset. This is useful for re-ranking experiments.
         """
         ds = self.irds_ref()
         assert ds.has_scoreddocs(), f"{self._irds_id} doesn't support get_reranking_run"
@@ -517,7 +517,7 @@ class IRDSDataset(Dataset):
             return None
         if component == "corpus":
             return ds.has_docs() or None
-        if component == "reranking_run":
+        if component == "results":
             return ds.has_scoreddocs() or None
         return None
 

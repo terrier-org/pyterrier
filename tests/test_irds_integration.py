@@ -57,19 +57,19 @@ class TestIrDatasetsIntegration(BaseTestCase):
                     index = pt.IndexFactory.of(indexref)
                     self.assertEqual(index.lexicon['covid'].frequency, 200582)
 
-    def test_reranking_run(self):
-        if "PYTERRIER_TEST_IRDS_RERANKING_RUN" in os.environ:
+    def test_results(self):
+        if "PYTERRIER_TEST_IRDS_RESULTS" in os.environ:
             dataset = pt.datasets.get_dataset('irds:msmarco-passage/trec-dl-2019/judged')
-            with self.subTest('reranking_run'):
-                reranking_run = dataset.get_reranking_run()
-                self.assertEqual(41042, len(reranking_run))
-                self.assertEqual(['qid', 'docno', 'score', 'query'], list(reranking_run.columns))
-                self.assertEqual('1037798', reranking_run.iloc[0].qid)
-                self.assertEqual('1031599', reranking_run.iloc[0].docno)
-                self.assertEqual(0., reranking_run.iloc[0].score)
-                self.assertEqual('who is robert gray', reranking_run.iloc[0].query)
+            with self.subTest('results'):
+                results = dataset.get_results()
+                self.assertEqual(41042, len(results))
+                self.assertEqual(['qid', 'docno', 'score', 'query'], list(results.columns))
+                self.assertEqual('1037798', results.iloc[0].qid)
+                self.assertEqual('1031599', results.iloc[0].docno)
+                self.assertEqual(0., results.iloc[0].score)
+                self.assertEqual('who is robert gray', results.iloc[0].query)
                 # ensure it's terrier-tokenised (orig text is "tracheids are part of _____.")
-                self.assertEqual('tracheids are part of', reranking_run[reranking_run.qid=='1124210'].iloc[0].query)
+                self.assertEqual('tracheids are part of', results[results.qid=='1124210'].iloc[0].query)
 
 if __name__ == '__main__':
     unittest.main()
