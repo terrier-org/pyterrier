@@ -39,7 +39,7 @@ class TestText(BaseTestCase):
         psg_scorer = ( 
             pt.text.sliding(text_attr='text', length=5, prepend_attr=None) 
             >> pt.text.scorer(body_attr="text", wmodel='Tf')
-            >> pt.debug.print_rows()
+            >> pt.debug.print_rows(jupyter=False)
         )
         pipe = br >> pt.text.snippets(psg_scorer)
         dfOut = pipe.search("chemical reactions")
