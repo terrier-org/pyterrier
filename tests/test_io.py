@@ -155,8 +155,24 @@ class TestUtils(TempDirTestCase):
         with pt.io.autoopen('file.gz', 'rt') as f:
             self.assertEqual(f.read(), 'Shady\'s back')
 
+    def test_read_results_topic_merging(self):
+        orig_results = pd.DataFrame({
+            'qid': ['1', '1', '2'],
+            'docno': ['A', 'B', 'C'],
+            'score': [0.8, 0.4, 0.6],
+            'rank': [1, 2, 1]
+        })
+        pt.io.write_results(orig_results, 'test.res')
+        for results in [
+            pt.io.read_results('test.res', dataset='vaswani'),
+            pt.io.read_results('test.res', dataset=pt.get_dataset('vaswani')),
+            pt.io.read_results('test.res', topics=pt.get_dataset('vaswani').get_topics()),]:
+            self.assertEqual(results.iloc[0].query, 'measurement of dielectric constant of liquids by the use of microwave techniques')
+            self.assertEqual(results.iloc[1].query, 'measurement of dielectric constant of liquids by the use of microwave techniques')
+            self.assertEqual(results.iloc[2].query, 'mathematical analysis and design details of waveguide fed microwave radiations')
+
     def tearDown(self):
-        for file in ['file.txt', 'file.tmp.txt', 'file.gz', 'file.tmp.gz']:
+        for file in ['file.txt', 'file.tmp.txt', 'file.gz', 'file.tmp.gz', 'test.res']:
             if os.path.exists(file):
                 os.remove(file)
 
