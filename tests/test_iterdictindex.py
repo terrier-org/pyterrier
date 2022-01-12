@@ -30,9 +30,9 @@ class TestIterDictIndexer(TempDirTestCase):
         for indexer in indexers:
             with self.subTest(indexer=indexer):
                 it = (
-                    {'docno': '1', 'url': 'url1', 'text': 'He ran out of money, so he had to stop playing', 'title': 'Woes of playing poker'},
-                    {'docno': '2', 'url': 'url2', 'text': 'The waves were crashing on the shore; it was a', 'title': 'Lovely sight'},
-                    {'docno': '3', 'url': 'url3', 'text': 'The body may perhaps compensates for the loss', 'title': 'Best of Viktor Prowoll'},
+                    {'docno': '1', 'url': 'url1', 'text': 'He ran out of money, so he had to stop playing', 'title': 'Woes of playing poker', 'raw_source': b'<some>xml</content>'},
+                    {'docno': '2', 'url': 'url2', 'text': 'The waves were crashing on the shore; it was a', 'title': 'Lovely sight', 'raw_source': b'<some>xml</content>'},
+                    {'docno': '3', 'url': 'url3', 'text': 'The body may perhaps compensates for the loss', 'title': 'Best of Viktor Prowoll', 'raw_source': b'<some>xml</content>'},
                 )
                 it = itertools.islice(it, n)
                 indexref = self._create_index(it, fields, index_type, indexer)
