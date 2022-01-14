@@ -534,8 +534,8 @@ class TextScorer(TextIndexProcessor):
         Unknown kwargs are passed to BatchRetrieve.
 
         Arguments:
-            takes(str): configuration - what is needed as input: `"queries"`, or `"docs"`.
-            returns(str): configuration - what is needed as output: `"queries"`, or `"docs"`.
+            takes(str): configuration - what is needed as input: `"queries"`, or `"docs"`. Default is `"docs"` since v0.8.
+            returns(str): configuration - what is needed as output: `"queries"`, or `"docs"`. Default is `"docs"`.
             body_attr(str): what dataframe input column contains the text of the document. Default is `"body"`.
             wmodel(str): example of configuration passed to BatchRetrieve.
 
@@ -551,8 +551,8 @@ class TextScorer(TextIndexProcessor):
             #rtr will score each document for the query "chemical reactions" based on the provided document contents
     """
 
-    def __init__(self, **kwargs):
-        super().__init__(BatchRetrieve, **kwargs)
+    def __init__(self, takes="docs", **kwargs):
+        super().__init__(BatchRetrieve, takes=takes, **kwargs)
 
 class FeaturesBatchRetrieve(BatchRetrieve):
     """
