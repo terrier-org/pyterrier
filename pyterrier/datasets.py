@@ -771,6 +771,9 @@ TREC_WT_2003_FILES = {
     "info_url" : "https://trec.nist.gov/data/t12.web.html",
 }
 
+def irds_mirror(md5):
+    return f'http://mirror.ir-datasets.com/{md5}'
+
 def filter_on_qid_type(self, component, variant):
     if component == "topics":
         data = self.get_topics("all")
@@ -795,13 +798,13 @@ TREC_WT_2004_FILES = {
         },
     "topics_map" : [("04.topic-map.official.txt", [
         "https://trec.nist.gov/data/web/04.topic-map.official.txt",
-        "http://mirror.ir-datasets.com/79737768b3be1aa07b14691aa54802c5",
+        irds_mirror("79737768b3be1aa07b14691aa54802c5"),
         "https://www.dcs.gla.ac.uk/~craigm/04.topic-map.official.txt"
         ] )],
     "topics_prefixed" : { 
         "all" : ("Web2004.query.stream.trecformat.txt", [
                 "https://trec.nist.gov/data/web/Web2004.query.stream.trecformat.txt",
-                "https://mirror.ir-datasets.com/10821f7a000b8bec058097ede39570be",
+                irds_mirror("10821f7a000b8bec058097ede39570be"),
                 "https://www.dcs.gla.ac.uk/~craigm/Web2004.query.stream.trecformat.txt"], 
             "trec")
     },
@@ -812,7 +815,7 @@ TREC_WT_2004_FILES = {
             "np" : filter_on_qid_type,
             "all" : ("04.qrels.web.mixed.txt", [
                 "https://trec.nist.gov/data/web/04.qrels.web.mixed.txt",
-                "https://mirror.ir-datasets.com/93daa0e4b4190c84e30d2cce78a0f674",
+                irds_mirror("93daa0e4b4190c84e30d2cce78a0f674"),
                 "https://www.dcs.gla.ac.uk/~craigm/04.qrels.web.mixed.txt"])
         },
     "info_url" : "https://trec.nist.gov/data/t13.web.html",
@@ -995,12 +998,15 @@ TREC_PRECISION_MEDICINE_FILES = {
 VASWANI_CORPUS_BASE = "https://raw.githubusercontent.com/terrier-org/pyterrier/master/tests/fixtures/vaswani_npl/"
 VASWANI_INDEX_BASE = "https://raw.githubusercontent.com/terrier-org/pyterrier/master/tests/fixtures/index/"
 VASWANI_FILES = {
-    "corpus":
-        [("doc-text.trec", VASWANI_CORPUS_BASE + "corpus/doc-text.trec")],
-    "topics":
-        [("query-text.trec", VASWANI_CORPUS_BASE + "query-text.trec")],
-    "qrels":
-        [("qrels", VASWANI_CORPUS_BASE + "qrels")],
+    "corpus": [("doc-text.trec", [
+        VASWANI_CORPUS_BASE + "corpus/doc-text.trec",
+        irds_mirror("a059e713c50350e39999467c8c73b7c5")])],
+    "topics": [("query-text.trec", [
+        VASWANI_CORPUS_BASE + "query-text.trec",
+        irds_mirror("3a624be2b0ef7c9534cf848891679bec")])],
+    "qrels": [("qrels", [
+        VASWANI_CORPUS_BASE + "qrels",
+        irds_mirror("6acb6db9969da8b8c6c23c09551af8d9")])],
     "index": _datarepo_index_default_none,
     #"index":
     #    [(filename, VASWANI_INDEX_BASE + filename) for filename in STANDARD_TERRIER_INDEX_FILES + ["data.meta-0.fsomapfile"]],
