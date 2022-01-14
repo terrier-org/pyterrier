@@ -148,6 +148,27 @@ def read_results(filename, format="trec", topics=None, dataset=None, **kwargs):
 
     Returns:
         dataframe with usual qid, docno, score columns etc
+
+    Examples::
+
+        # a dataframe of results can be used directly in a pt.Experiment
+        pt.Experiment(
+            [ pt.io.read_results("/path/to/baselines-results.res.gz") ],
+            topics,
+            qrels,
+            ["map"]
+        )
+
+        # make a transformer from a results dataframe, include the query text
+        first_pass = pt.Transformer.from_df( pt.io.read_results("/path/to/results.gz", topics=topics) )
+        # make a max_passage retriever based on a previously saved results
+        max_passage = (first_pass 
+            >> pt.text.get_text(dataset)
+            >> pt.text.sliding()
+            >> pt.text.scorer()
+            >> pt.text.max_passage()
+        )
+
     """
     if not format in SUPPORTED_RESULTS_FORMATS:
         raise ValueError("Format %s not known, supported types are %s" % (format, str(SUPPORTED_RESULTS_FORMATS.keys())))
