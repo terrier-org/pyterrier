@@ -366,12 +366,12 @@ class RemoteDataset(Dataset):
         return None
 
     def get_index(self, variant=None, **kwargs):
-        import pyterrier as pt
+        from jnius import autoclass
         if self.name == "50pct" and variant is None:
             variant="ex1"
         thedir = self._get_all_files("index", variant=variant, **kwargs)
         return thedir
-        #return pt.autoclass("org.terrier.querying.IndexRef").of(os.path.join(thedir, "data.properties"))
+        #return autoclass("org.terrier.querying.IndexRef").of(os.path.join(thedir, "data.properties"))
 
     def __repr__(self):
         return "RemoteDataset for %s, with %s" % (self.name, str(list(self.locations.keys())))
@@ -439,8 +439,8 @@ class IRDSDataset(Dataset):
 
         # apply pyterrier tokenisation (otherwise the queries may not play well with batchretrieve)
         if tokenise_query and 'query' in df:
-            import pyterrier as pt
-            tokeniser = pt.autoclass("org.terrier.indexing.tokenisation.Tokeniser").getTokeniser()
+            from jnius import autoclass
+            tokeniser = autoclass("org.terrier.indexing.tokenisation.Tokeniser").getTokeniser()
             def pt_tokenise(text):
                 return ' '.join(tokeniser.getTokens(text))
             df['query'] = df['query'].apply(pt_tokenise)
