@@ -16,7 +16,7 @@ def is_function(v):
     return isinstance(v, types.FunctionType)
 
 def is_transformer(v):
-    if isinstance(v, TransformerBase):
+    if isinstance(v, Transformer):
         return True
     return False
 
