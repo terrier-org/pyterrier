@@ -341,7 +341,7 @@ class DePassager(TransformerBase):
             rtr = rtr.merge(topics_and_res[query_columns(topics_and_res)].drop_duplicates(), on='qid')
 
         if self.agg == 'kmaxavg':
-            rtr = topics_and_res.groupby(['qid', 'olddocno'])['score'].apply(lambda ser: ser.nlargest(2).mean()).reset_index().rename(columns={'olddocno' : 'docno'})
+            rtr = topics_and_res.groupby(['qid', 'olddocno'])['score'].apply(lambda ser: ser.nlargest(self.K).mean()).reset_index().rename(columns={'olddocno' : 'docno'})
             from .model import query_columns
             #add query columns back
             rtr = rtr.merge(topics_and_res[query_columns(topics_and_res)].drop_duplicates(), on='qid')
