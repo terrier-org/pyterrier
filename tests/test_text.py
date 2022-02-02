@@ -153,3 +153,19 @@ class TestText(BaseTestCase):
         self.assertEqual(0.5, dfmeanK["score"][0])
         self.assertFalse("pid" in dfmeanK.columns)
         self.assertFalse("olddocno" in dfmeanK.columns)
+
+        dfscores = pd.DataFrame([
+            ["0", "doc1%p0", 3, pt.model.FIRST_RANK],
+            ["0", "doc1%p1", 2, pt.model.FIRST_RANK+1],
+            ["0", "doc1%p2", 1, pt.model.FIRST_RANK+2],
+        ], columns=['qid', 'docno', 'score', 'rank'])
+
+        dfmeanK2 = pt.text.kmaxavg_passage(2)(dfscores)
+        print(dfmeanK2)
+        self.assertEqual(1, len(dfmeanK2))
+        self.assertEqual(2.5, dfmeanK2["score"][0])
+
+        dfmeanK3 = pt.text.kmaxavg_passage(3)(dfscores)
+        self.assertEqual(1, len(dfmeanK3))
+        self.assertEqual(2, dfmeanK3["score"][0])
+        
