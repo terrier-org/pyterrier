@@ -20,6 +20,8 @@ def _init_anserini():
             break
     assert anserini_found, 'Anserini jar not found: you should start PyTerrier, e.g. with '\
         + 'pt.init(boot_packages=["io.anserini:anserini:0.9.2:fatjar"])'
+    import pyserini.setup
+    pyserini.setup.configure_classpath = lambda x: x
     jnius_config.set_classpath = lambda x: x
     anserini_monkey = True
     return
