@@ -22,6 +22,7 @@ def _init_anserini():
         + 'pt.init(boot_packages=["io.anserini:anserini:0.9.2:fatjar"])'
     jnius_config.set_classpath = lambda x: x
     anserini_monkey = True
+    return
 
     #this is the Anserini early rank cutoff rule
     from matchpy import Wildcard, ReplacementRule, Pattern
