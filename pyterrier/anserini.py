@@ -63,7 +63,7 @@ class AnseriniBatchRetrieve(BatchRetrieveBase):
         self.index_location = index_location
         self.k = k
         _init_anserini()
-        from pyserini.search import pysearch
+        from pyserini.search import SimpleSearcher
         self.searcher = pysearch.SimpleSearcher(index_location)
         self.wmodel = wmodel
         self._setsimilarty(wmodel)
