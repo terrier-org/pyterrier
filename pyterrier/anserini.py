@@ -90,11 +90,11 @@ class AnseriniBatchRetrieve(BatchRetrieveBase):
     def _setsimilarty(self, wmodel):
         #commented lines are for anserini > 0.9.2
         if wmodel == "BM25":
-            self.searcher.object.setBM25Similarity(0.9, 0.4)
-            #self.searcher.object.setBM25(self.searcher.object.bm25_k1, self.searcher.object.bm25_b)
+            #self.searcher.object.setBM25Similarity(0.9, 0.4)
+            self.searcher.object.setBM25(self.searcher.object.bm25_k1, self.searcher.object.bm25_b)
         elif wmodel == "QLD":
-            self.searcher.object.setLMDirichletSimilarity(1000.0)
-            #self.searcher.object.setQLD(self.searcher.object.ql_mu)
+            #self.searcher.object.setLMDirichletSimilarity(1000.0)
+            self.searcher.object.setQLD(self.searcher.object.ql_mu)
         elif wmodel == "TFIDF":
             from jnius import autoclass
             self.searcher.object.similarty = autoclass("org.apache.lucene.search.similarities.ClassicSimilarity")()
