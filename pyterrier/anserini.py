@@ -154,7 +154,7 @@ class AnseriniBatchRetrieve(BatchRetrieveBase):
                 results.append([qid, query, docno, rank, score])
 
         else: #we are searching, no candidate set provided
-            for index,row in tqdm(queries.itertuples(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
+            for row in tqdm(queries.itertuples(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
                 rank = 0
                 qid = str(row.qid)
                 query = row.query
