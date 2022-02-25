@@ -228,19 +228,23 @@ class TestPipelineValidation(BaseTestCase):
 
     def test_experiment_auto_validates(self):
         indexref, queries = TestPipelineValidation.get_index_and_queries()
+        qrels = queries[["qid"]]
+        qrels["docno"] = "d1"
+        qrels["label"] = 1
+        
 
         generic = pt.apply.generic(lambda res: res[res["rank"] < 2])
         rewrite = pt.rewrite.SDM()
         invalid_pipeline = rewrite | rewrite
 
         # A pipeline that cannot be validated should raise ValidationError if validate is True
-        self.assertRaises(ValidationError, pt.Experiment, [generic], queries, [], ["map"], validate=True)
+        self.assertRaises(ValidationError, pt.Experiment, [generic], queries, qrels, ["map"], validate=True)
 
         # A given invalid pipeline should raise PipelineError if validate is True
-        self.assertRaises(PipelineError, pt.Experiment, [invalid_pipeline], queries, [], ["map"], validate=True)
+        self.assertRaises(PipelineError, pt.Experiment, [invalid_pipeline], queries, qrels, ["map"], validate=True)
 
         # A given pipeline that cannot be experimented on should raise ExperimentError by default
-        self.assertRaises(TypeError, pt.Experiment, [rewrite], queries, [], ["map"], validate=True)
+        self.assertRaises(TypeError, pt.Experiment, [rewrite], queries, qrels, ["map"], validate=True)
 
 
 if __name__ == "__main__":

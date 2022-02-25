@@ -443,17 +443,19 @@ class IdentityTransformer(TransformerBase, Operation):
     def transform(self, topics):
         return topics
 
-class SourceTransformer(TransformerBase):
+class SourceTransformer(TransformerBase, Operation):
     """
     A Transformer that can be used when results have been saved in a dataframe.
     It will select results on qid.
     If a query column is in the dataframe passed in the constructor, this will override any query
     column in the topics dataframe passed to the transform() method.
     """
-    arity = Arity.nullary
+    arity = Arity.unary
 
     def __init__(self, rtr, **kwargs):
-        #Operation.__init__(self, operands=[])
+        Operation.__init__(self, operands=rtr)
+        # this is a hack for matchpy
+        rtr = rtr[0] if isinstance(rtr, list) else rtr
         TransformerBase.__init__(self, input=[], output=rtr.columns.tolist(), **kwargs)
         self.operands=[]
         self.df = rtr#[0]
@@ -469,15 +471,17 @@ class SourceTransformer(TransformerBase):
         rtr = topics[columns].merge(self.df, on="qid")
         return rtr
 
-class UniformTransformer(TransformerBase):
+class UniformTransformer(TransformerBase, Operation):
     """
         A transformer that returns the same dataframe every time transform()
         is called. This class is useful for testing. 
     """
-    arity = Arity.nullary
+    arity = Arity.unary
 
     def __init__(self, rtr, **kwargs):
-        #Operation.__init__(self, operands=[])
+        Operation.__init__(self, operands=rtr)
+        # this is a hack for matchpy
+        rtr = rtr[0] if isinstance(rtr, list) else rtr
         TransformerBase.__init__(self, input=[], output=rtr.columns.tolist(), **kwargs)
         self.operands=[]
         self.rtr = rtr#[0]
