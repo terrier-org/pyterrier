@@ -4,9 +4,8 @@
 
 ### Sequential Dependence Model
 
-
 ```python
-pt.rewrite.SDM() >> pt.BatchRetrieve(indexref, wmodel="BM25")
+pipe = pt.rewrite.SDM() >> pt.BatchRetrieve(indexref, wmodel="BM25")
 ```
 
 Note that the SDM() rewriter has a number of constructor parameters:
@@ -18,16 +17,17 @@ Note that the SDM() rewriter has a number of constructor parameters:
 
 A simple QE transformer can be achieved using
 ```python
-pt.BatchRetrieve(indexref, wmodel="BM25", controls={"qe" : "on"})
+qe = pt.BatchRetrieve(indexref, wmodel="BM25", controls={"qe" : "on"})
 ```
 
 As this is pseudo-relevance feedback in nature, it identifies a set of documents, extracts informative term in the top-ranked documents, and re-exectutes the query.
 
 However, more control can be achieved by using the QueryExpansion transformer separately, as thus:
 ```python
-pt.BatchRetrieve(indexref, wmodel="BM25") >> \
-    pt.rewrite.QueryExpansion(indexref) >> \
+qe = (pt.BatchRetrieve(indexref, wmodel="BM25") >> 
+    pt.rewrite.QueryExpansion(indexref) >> 
     pt.BatchRetrieve(indexref, wmodel="BM25")
+)
 ```
 
 The QueryExpansion() object has the following constructor parameters:
@@ -38,9 +38,10 @@ The QueryExpansion() object has the following constructor parameters:
 Note that different indexes can be used to achieve query expansion using an external collection (sometimes called collection enrichment or external feedback).  For example, to expand queries using Wikipedia as an external resource, in order to get higher quality query re-weighted queries, would look like this:
 
 ```python
-pt.BatchRetrieve(wikipedia_index, wmodel="BM25") >> \
-    pt.rewrite.QueryExpansion(wikipedia_index) >> \
+pipe = (pt.BatchRetrieve(wikipedia_index, wmodel="BM25") >> 
+    pt.rewrite.QueryExpansion(wikipedia_index) >> 
     pt.BatchRetrieve(local_index, wmodel="BM25")
+)
 ```
 
 ### RM3 Query Expansion
@@ -48,10 +49,11 @@ pt.BatchRetrieve(wikipedia_index, wmodel="BM25") >> \
 We also provide RM3 query expansion, by virtue of an external plugin to Terrier called [terrier-prf](https://github.com/terrierteam/terrier-prf). This needs to be load at initialisation time.
 
 ```python
-pt.init(boot_packages=["org.terrier:terrier-prf:0.0.1-SNAPSHOT"])
-pt.BatchRetrieve(indexref, wmodel="BM25") >> \
-    pt.rewrite.RM3(indexref) >> \
+pt.init(boot_packages=["com.github.terrierteam:terrier-prf:-SNAPSHOT"])
+pipe = (pt.BatchRetrieve(indexref, wmodel="BM25") >> 
+    pt.rewrite.RM3(indexref) >> 
     pt.BatchRetrieve(indexref, wmodel="BM25")
+)
 ```
 ## Combining Rankings
 

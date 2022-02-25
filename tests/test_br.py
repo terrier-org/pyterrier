@@ -56,6 +56,25 @@ class TestBatchRetrieve(BaseTestCase):
         result = retr.transform(input_set)
         self.assertEqual(10, len(result))
 
+    def test_br_cutoff_stability(self):
+        indexloc = self.here + "/fixtures/index/data.properties"
+        input_set = pd.DataFrame([
+                    ["q1", "chemical"],
+                ],
+            columns=["qid", "query"])
+        br_cut_3 = pt.BatchRetrieve(indexloc, wmodel='Tf') % 3
+        br_3 = pt.BatchRetrieve(indexloc, wmodel='Tf', num_results=3)
+        #br = pt.BatchRetrieve(indexloc, wmodel='Tf')
+        #print(br.transform(input_set))
+
+        result_cut = br_cut_3.transform(input_set)
+        result_tr = br_3.transform(input_set)
+        print("Rank cutoff operator")
+        print(result_cut.docno)
+        print("terrier cutoff")
+        print(result_tr.docno)        
+        pd.testing.assert_series_equal(result_cut.docno, result_tr.docno)
+    
     def test_br_col_passthrough(self):
         indexloc = self.here + "/fixtures/index/data.properties"
         
@@ -150,6 +169,88 @@ class TestBatchRetrieve(BaseTestCase):
         input=pd.DataFrame([["1", "Stability"]],columns=['qid','query'])
         result = retr.transform(input)
         self.assertEqual(len(result), 10)
+
+        if not pt.check_version("5.5"):
+            return
+
+        retr = pt.BatchRetrieve(indexref, num_results=1001)        
+        result = retr.search("results")
+        self.assertEqual(len(result), 1001)
+
+    def test_num_manual_wmodel(self):
+        JIR = pt.autoclass('org.terrier.querying.IndexRef')
+        Tf = pt.autoclass("org.terrier.matching.models.Tf")()
+        indexref = JIR.of(self.here+"/fixtures/index/data.properties")
+        from jnius import JavaException
+        try:
+            retr = pt.BatchRetrieve(indexref, wmodel=Tf)
+            input=pd.DataFrame([["1", "Stability"]],columns=['qid','query'])
+            result = retr.transform(input)
+        except JavaException as ja:
+            print(ja.stacktrace)
+            raise ja
+        
+
+    def test_num_python_wmodel(self):
+        indexref = self.here+"/fixtures/index/data.properties"
+        Tf = lambda keyFreq, posting, entryStats, collStats: posting.getFrequency()
+        retr = pt.BatchRetrieve(indexref, wmodel=Tf)
+        input=pd.DataFrame([["1", "Stability"]],columns=['qid','query'])
+        result = retr.transform(input)
+
+    def test_threading_manualref(self):
+        
+        if not pt.check_version("5.5"):
+            self.skipTest("Requires Terrier 5.5")
+
+        topics = pt.get_dataset("vaswani").get_topics().head(8)
+
+        #this test ensures that we operate when the indexref is specified to be concurrent 
+        JIR = pt.autoclass('org.terrier.querying.IndexRef')
+        indexref = JIR.of("concurrent:" + self.here+"/fixtures/index/data.properties")
+        retr = pt.BatchRetrieve(indexref, threads=4)
+        result = retr.transform(topics)
+
+        #check that use of a callback model works under threading
+        Tf = lambda keyFreq, posting, entryStats, collStats: posting.getFrequency()
+        retr = pt.BatchRetrieve(indexref, threads=4, wmodel=Tf)
+        result = retr.transform(topics)
+
+    def test_threading_selfupgrade(self):
+        if not pt.check_version("5.5"):
+            self.skipTest("Requires Terrier 5.5")
+
+        topics = pt.get_dataset("vaswani").get_topics().head(10)
+
+        #this test ensures we can upgrade the indexref to be concurrent
+        JIR = pt.autoclass('org.terrier.querying.IndexRef')
+        indexref = JIR.of(self.here+"/fixtures/index/data.properties")
+        retr = pt.BatchRetrieve(indexref, threads=5)
+        result = retr.transform(topics)
+
+    def test_terrier_retrieve_alias(self):
+        # based off test_candidate_set_one_doc
+        if not pt.check_version("5.3"):
+            self.skipTest("Requires Terrier 5.3")
+        indexloc = self.here + "/fixtures/index/data.properties"
+        # docid 50 == docno 51
+        input_set = pd.DataFrame([["q1", "light", 50]], columns=["qid", "query", "docid"])
+        retr = pt.TerrierRetrieve(indexloc)
+
+        # this test the implementation of __call__() redirecting to transform()
+        for result in [retr.transform(input_set), retr(input_set)]:
+            result = retr.transform(input_set)
+            self.assertTrue("qid" in result.columns)
+            self.assertTrue("docno" in result.columns)
+            self.assertTrue("score" in result.columns)
+            self.assertTrue("rank" in result.columns)
+            self.assertEqual(1, len(result))
+            row = result.iloc[0]
+            self.assertEqual("q1", row["qid"])
+            self.assertEqual("51", row["docno"])
+            self.assertEqual(pt.model.FIRST_RANK, row["rank"])
+            self.assertTrue(row["score"] > 0)
+
 
 if __name__ == "__main__":
     unittest.main()

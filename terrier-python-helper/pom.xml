@@ -5,16 +5,16 @@
 
   <groupId>org.terrier</groupId>
   <artifactId>terrier-python-helper</artifactId>
-  <version>0.0.5</version>
+  <version>0.0.6</version>
   <url>http://terrier.org</url>
   <name>terrier-python-helper</name>
   <description>Python bindings for the Terrier IR platform</description>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>1.7</maven.compiler.source>
-    <maven.compiler.target>1.7</maven.compiler.target>
-    <build.terrier.version>5.3</build.terrier.version>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
+    <build.terrier.version>5.5</build.terrier.version>
   </properties>
 
   <organization>
@@ -86,14 +86,14 @@
     <dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-classic</artifactId>
-			<version>1.1.2</version>
+			<version>1.2.9</version>
       <scope>provided</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-core</artifactId>
-			<version>1.1.2</version>
+			<version>1.2.9</version>
       <scope>provided</scope>
 		</dependency>
   </dependencies>

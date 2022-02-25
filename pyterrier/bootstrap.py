@@ -5,13 +5,7 @@ from . import mavenresolver
 stdout_ref = None
 stderr_ref = None
 TERRIER_PKG = "org.terrier"
-
-
-@deprecation.deprecated(deprecated_in="0.1.3",
-                        # remove_id="",
-                        details="Use the logging(level) function instead")
-def setup_logging(level):
-    logging(level)
+SAVED_FNS=[]
 
 def logging(level):
     from jnius import autoclass
@@ -22,6 +16,32 @@ _logging = logging
 def new_indexref(s):
     from . import IndexRef
     return IndexRef.of(s)
+
+def new_wmodel(bytes):
+    from . import autoclass
+    serUtils = autoclass("org.terrier.python.Serialization")
+    return serUtils.deserialize(bytes, autoclass("org.terrier.utility.ApplicationSetup").getClass("org.terrier.matching.models.WeightingModel") )
+
+def new_callable_wmodel(byterep):
+    import dill as pickle
+    from dill import extend
+    #see https://github.com/SeldonIO/alibi/issues/447#issuecomment-881552005
+    extend(use_dill=False)            
+    fn = pickle.loads(byterep)
+    #we need to prevent these functions from being GCd.
+    global SAVED_FNS
+    SAVED_FNS.append(fn)
+    from .batchretrieve import _function2wmodel
+    callback, wmodel = _function2wmodel(fn)
+    SAVED_FNS.append(callback)
+    #print("Stored lambda fn  %s and callback in SAVED_FNS, now %d stored" % (str(fn), len(SAVED_FNS)))
+    return wmodel
+
+def javabytebuffer2array(buffer):
+    assert buffer is not None
+    def unsign(signed):
+        return signed + 256 if signed < 0 else signed
+    return bytearray([ unsign(buffer.get(offset)) for offset in range(buffer.capacity()) ])
 
 def setup_jnius():
     from jnius import protocol_map # , autoclass
@@ -36,7 +56,16 @@ def setup_jnius():
 
     protocol_map["org.terrier.structures.postings.IterablePosting"] = {
         '__iter__': lambda self: self,
-        '__next__': lambda self: _iterableposting_next(self)
+        '__next__': lambda self: _iterableposting_next(self),
+        '__str__': lambda self: self.toString()
+    }
+
+    protocol_map["org.terrier.structures.CollectionStatistics"] = {
+        '__str__': lambda self: self.toString()
+    }
+
+    protocol_map["org.terrier.structures.LexiconEntry"] = {
+        '__str__': lambda self: self.toString()
     }
 
     def _lexicon_getitem(self, term):
@@ -64,7 +93,62 @@ def setup_jnius():
         '__getstate__' : lambda self : None,
     }
 
-def setup_terrier(file_path, terrier_version=None, helper_version=None, boot_packages=[]):
+
+    # handles the pickling of WeightingModel classes, which are themselves usually Serializable in Java
+    def wmodel_reduce(self):
+        from . import autoclass
+        serUtils = autoclass("org.terrier.python.Serialization")
+        serialized = bytes(serUtils.serialize(self))
+        return (
+            new_wmodel,
+            (serialized, ),
+            None
+        )
+
+    protocol_map["org.terrier.matching.models.WeightingModel"] = {
+        '__reduce__' : wmodel_reduce,
+        '__getstate__' : lambda self : None,
+    }
+
+    def callable_wmodel_reduce(self):
+        from . import autoclass
+        # get bytebuffer representation of lambda
+        # convert bytebyffer to python bytearray
+        bytesrep = javabytebuffer2array(self.scoringClass.serializeFn())
+        return (
+            new_callable_wmodel,
+            (bytesrep, ),
+            None
+        )
+
+    protocol_map["org.terrier.python.CallableWeightingModel"] = {
+        '__reduce__' : callable_wmodel_reduce,
+        '__getstate__' : lambda self : None,
+    }
+
+    def _index_add(self, other):
+        from . import autoclass
+        fields_1 = self.getCollectionStatistics().getNumberOfFields()
+        fields_2 = self.getCollectionStatistics().getNumberOfFields()
+        if fields_1 != fields_2:
+            raise ValueError("Cannot document-wise merge indices with different numbers of fields (%d vs %d)" % (fields_1, fields_2))
+        blocks_1 = self.getCollectionStatistics().hasPositions()
+        blocks_2 = other.getCollectionStatistics().hasPositions()
+        if blocks_1 != blocks_2:
+            raise ValueError("Cannot document-wise merge indices with and without positions (%r vs %r)" % (blocks_1, blocks_2))
+        multiindex_cls = autoclass("org.terrier.realtime.multi.MultiIndex")
+        return multiindex_cls([self, other], blocks_1, fields_1 > 0)
+
+    protocol_map["org.terrier.structures.Index"] = {
+        # this means that len(index) returns the number of documents in the index
+        '__len__': lambda self: self.getCollectionStatistics().getNumberOfDocuments(),
+
+        # document-wise composition of indices: adding more documents to an index, by merging two indices with 
+        # different numbers of documents. This implemented by the overloading the `+` Python operator
+        '__add__': _index_add
+    }
+
+def setup_terrier(file_path, terrier_version=None, helper_version=None, boot_packages=[], force_download=True):
     """
     Download Terrier's jar file for the given version at the given file_path
     Called by pt.init()
@@ -83,7 +167,7 @@ def setup_terrier(file_path, terrier_version=None, helper_version=None, boot_pac
     # "snapshot" means use Jitpack.io to get a build of the current
     # 5.x branch from Github - see https://jitpack.io/#terrier-org/terrier-core/5.x-SNAPSHOT
     if terrier_version == "snapshot":
-        trJar = mavenresolver.downloadfile("com.github.terrier-org.terrier-core", "terrier-assemblies", "5.x-SNAPSHOT", file_path, "jar-with-dependencies", force_download=True)
+        trJar = mavenresolver.downloadfile("com.github.terrier-org.terrier-core", "terrier-assemblies", "5.x-SNAPSHOT", file_path, "jar-with-dependencies", force_download=force_download)
     else:
         trJar = mavenresolver.downloadfile(TERRIER_PKG, "terrier-assemblies", terrier_version, file_path, "jar-with-dependencies")
 

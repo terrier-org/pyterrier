@@ -1,4 +1,5 @@
 from pyterrier.transformer import TransformerBase
+from . import Transformer
 from pyterrier.datasets import IRDSDataset
 import more_itertools
 from collections import defaultdict
@@ -20,17 +21,17 @@ def get_text(
     or an IRDSDataset docstore.
 
     Arguments:
-        - indexlike: a Terrier index or IRDSDataset to retrieve the metadata from
-        - metakeys(list(str) or str): a list of strings of the metadata keys to retrieve from the index. Defaults to ["body"]
-        - by_query(bool): whether the entire dataframe should be progressed at once, rather than one query at a time. 
+        indexlike: a Terrier index or IRDSDataset to retrieve the metadata from
+        metadata(list(str) or str): a list of strings of the metadata keys to retrieve from the index. Defaults to ["body"]
+        by_query(bool): whether the entire dataframe should be progressed at once, rather than one query at a time. 
             Defaults to false, which means that all document metadata will be fetched at once.
-        - verbose(bool): whether to print a tqdm progress bar. Defaults to false. Has no effect when by_query=False
+        verbose(bool): whether to print a tqdm progress bar. Defaults to false. Has no effect when by_query=False
 
     Example::
 
-        pipe = pt.BatchRetrieve(index, wmodel="DPH") \ 
-            >> pt.text.get_text(index) \ 
-            >> pt.text.scorer(wmodel="DPH")
+        pipe = ( pt.BatchRetrieve(index, wmodel="DPH")
+            >> pt.text.get_text(index)
+            >> pt.text.scorer(wmodel="DPH") )
 
     """
     import pyterrier as pt
@@ -153,30 +154,30 @@ def scorer(*args, **kwargs) -> TransformerBase:
     return pt.batchretrieve.TextScorer(*args, **kwargs)
 
 def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='title', **kwargs) -> TransformerBase:
-    """
+    r"""
     A useful transformer for splitting long documents into smaller passages within a pipeline. This applies a *sliding* window over the
     text, where each passage is the give number of tokens long. Passages can overlap, if the stride is set smaller than the length. In
     applying this transformer, docnos are altered by adding '%p' and a passage number. The original scores for each document can be recovered
     by aggregation functions, such as `max_passage()`.
 
     For the puposes of obtaining passages of a given length, tokenisation is perfomed simply by splitting on one-or-more spaces, i.e. based 
-    on the Python regular expression `re.compile(r"\s+")`.
+    on the Python regular expression ``re.compile(r'\s+')``.
 
     Parameters:
-        - text_attr(str): what is the name of the dataframe attribute containing the main text of the document to be split into passages.
+        text_attr(str): what is the name of the dataframe attribute containing the main text of the document to be split into passages.
             Default is 'body'.
-        - length(int): how many tokes in each passage. Default is 150.
-        - stride(int): how many tokens to advance each passage by. Default is 75.
-        - prepend_attr(str): whether another document attribute, such as the title of the document, to each passage, following [Dai2019]. Defaults to 'title'. 
-        - title_attr(str): what is the name of the dataframe attribute containing the title the document to be split into passages.
+        length(int): how many tokens in each passage. Default is 150.
+        stride(int): how many tokens to advance each passage by. Default is 75.
+        prepend_attr(str): whether another document attribute, such as the title of the document, to each passage, following [Dai2019]. Defaults to 'title'. 
+        title_attr(str): what is the name of the dataframe attribute containing the title the document to be split into passages.
             Default is 'title'. Only used if prepend_title is set to True.
     
     Example::
     
-        pipe = pt.BatchRetrieve(index, wmodel="DPH", metadata=["docno", "body"]) \ 
-            >> pt.text.sliding(length=128, stride=64, prepend_attr=None) \ 
-            >> pt.text.scorer(wmodel="DPH") \ 
-            >> pt.text.max_passage()
+        pipe = ( pt.BatchRetrieve(index, wmodel="DPH", metadata=["docno", "body"]) 
+            >> pt.text.sliding(length=128, stride=64, prepend_attr=None) 
+            >> pt.text.scorer(wmodel="DPH") 
+            >> pt.text.max_passage() )
         
     """
 
@@ -234,8 +235,8 @@ def kmaxavg_passage(k : int) -> TransformerBase:
     Scores each document based on the average score of the top scoring k passages. Generalises combination of mean_passage()
     and max_passage(). Proposed in [Chen2020].
 
-    Arguments:
-         - k(int): The number of passages for each document to use when scoring
+    Parameters:
+        k(int): The number of top-scored passages for each document to use when scoring
     
     """
     return KMaxAvgPassage(k)
@@ -246,6 +247,66 @@ def slidingWindow(sequence : list, winSize : int, step : int) -> list:
     stepping forward by the specified amount each time
     """
     return [x for x in list(more_itertools.windowed(sequence,n=winSize, step=step)) if x[-1] is not None]
+
+def snippets(
+        text_scorer_pipe : Transformer, 
+        text_attr : str = "text", 
+        summary_attr : str = "summary", 
+        num_psgs : int = 5, 
+        joinstr : str ='...') -> Transformer:
+    """
+    Applies query-biased summarisation (snippet), by applying the specified text scoring pipeline.
+
+    Parameters:
+        text_scorer_pipe(Transformer): the pipeline for scoring passages in response to the query. Normally this applies passaging.
+        text_attr(str): what is the name of the attribute that contains the text of the document
+        summary_attr(str): what is the name of the attribute that should contain the query-biased summary for that document
+        num_psgs(int): how many passages to select for the summary of each document
+        joinstr(str): how to join passages for a given document together
+
+    Example::
+
+        # retrieve documents with text
+        br = pt.BatchRetrieve(index, metadata=['docno', 'text'])
+
+        # use Tf as a passage scorer on sliding window passages 
+        psg_scorer = ( 
+            pt.text.sliding(text_attr='text', length=15, prepend_attr=None) 
+            >> pt.text.scorer(body_attr="text", wmodel='Tf', takes='docs')
+        )
+        
+        # use psg_scorer for performing query-biased summarisation on docs retrieved by br 
+        retr_pipe = br >> pt.text.snippets(psg_scorer)
+
+    """
+    import pyterrier as pt
+    tsp = (
+        pt.apply.rename({'qid' : 'oldqid'}) 
+        >> pt.apply.qid(lambda row: row['oldqid'] + '-' + row['docno']) 
+        >> ( text_scorer_pipe % num_psgs )
+        >> pt.apply.qid(drop=True)
+        >> pt.apply.rename({'oldqid' : 'qid'})
+    )
+
+    def _qbsjoin(docres):
+        import pandas as pd
+        if len(docres) == 0:
+            docres[summary_attr] = pd.Series(dtype='str')
+            return docres     
+
+        psgres = tsp(docres)
+        if len(psgres) == 0:
+            print('no passages found in %d documents for query %s' % (len(docres), docres.iloc[0].query))
+            docres = docres.copy()
+            docres[summary_attr]  = ""
+            return docres
+
+        psgres[["olddocno", "pid"]] = psgres.docno.str.split("%p", expand=True)
+
+        newdf = psgres.groupby(['qid', 'olddocno'])[text_attr].agg(joinstr.join).reset_index().rename(columns={text_attr : summary_attr, 'olddocno' : 'docno'})
+        
+        return docres.merge(newdf, on=['qid', 'docno'], how='left')
+    return pt.apply.generic(_qbsjoin)   
 
 
 class DePassager(TransformerBase):
@@ -329,15 +390,16 @@ class SlidingWindowPassager(TransformerBase):
 
     def _check_columns(self, topics_and_res):
         if not self.text_attr in topics_and_res.columns:
-            raise KeyError("%s is a required input column, but not found in input dataframe." % self.text_attr)
+            raise KeyError("%s is a required input column, but not found in input dataframe. Found %s" % (self.text_attr, str(list(topics_and_res.columns))))
         if self.prepend_title and not self.title_attr in topics_and_res.columns:
-            raise KeyError("%s is a required input column, but not found in input dataframe. Set prepend_title=False to disable its use." % self.title_attr)
+            raise KeyError("%s is a required input column, but not found in input dataframe. Set prepend_title=False to disable its use. Found %s" % (self.title_attr, str(list(topics_and_res.columns))))
         if not "docno" in topics_and_res.columns:
-            raise KeyError("%s is a required input column, but not found in input dataframe." % "docno")
+            raise KeyError("%s is a required input column, but not found in input dataframe. Found %s" % ("docno", str(list(topics_and_res.columns))))
 
     def transform(self, topics_and_res):
         # validate input columns
         self._check_columns(topics_and_res)
+        print("calling sliding on df of %d rows" % len(topics_and_res))
 
         # now apply the passaging
         if "qid" in topics_and_res.columns: 

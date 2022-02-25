@@ -1,4 +1,6 @@
+import os
 import pandas as pd
+from contextlib import contextmanager
 
 
 def coerce_dataframe(obj):
@@ -45,21 +47,141 @@ def find_files(dir):
     return sorted(files)
 
 
-def read_results(filename, format="trec", **kwargs):
+@contextmanager
+def _finalized_open_base(path, mode, open_fn):
+    assert mode in ('b', 't') # must supply either binary or text mode
+    path_tmp = '{}.tmp{}'.format(*os.path.splitext(path)) # add tmp before extension (needed for autoopen)
+    # adapted from <https://github.com/allenai/ir_datasets/blob/master/ir_datasets/util/__init__.py#L34>
+    try:
+        with open_fn(path_tmp, f'x{mode}') as f: # open in exclusive write mode (raises error if already exists)
+            yield f
+        os.replace(path_tmp, path) # on success, move temp file to original path
+    except:
+        try:
+            os.remove(path_tmp)
+        except:
+            pass # edge case: removing temp file failed. Ignore and just raise orig error
+        raise
+
+
+def finalized_open(path: str, mode: str):
+    """
+    Opens a file for writing, but reverts it if there was an error in the process.
+
+    Args:
+        path(str): Path of file to open
+        mode(str): Either t or b, for text or binary mode
+
+    Example:
+        Returns a contextmanager that provides a file object, so should be used in a "with" statement. E.g.::
+
+            with pt.io.finalized_open("file.txt", "t") as f:
+                f.write("some text")
+            # file.txt exists with contents "some text"
+
+        If there is an error when writing, the file is reverted::
+
+            with pt.io.finalized_open("file.txt", "t") as f:
+                f.write("some other text")
+                raise Exception("an error")
+            # file.txt remains unchanged (if existed, contents unchanged; if didn't exist, still doesn't)
+    """
+    return _finalized_open_base(path, mode, open)
+
+
+def finalized_autoopen(path: str, mode: str):
+    """
+    Opens a file for writing with ``autoopen``, but reverts it if there was an error in the process.
+
+    Args:
+        path(str): Path of file to open
+        mode(str): Either t or b, for text or binary mode
+
+    Example:
+        Returns a contextmanager that provides a file object, so should be used in a "with" statement. E.g.::
+
+            with pt.io.finalized_autoopen("file.gz", "t") as f:
+                f.write("some text")
+            # file.gz exists with contents "some text"
+
+        If there is an error when writing, the file is reverted::
+
+            with pt.io.finalized_autoopen("file.gz", "t") as f:
+                f.write("some other text")
+                raise Exception("an error")
+            # file.gz remains unchanged (if existed, contents unchanged; if didn't exist, still doesn't)
+    """
+    return _finalized_open_base(path, mode, autoopen)
+
+def ok_filename(fname) -> bool:
+    """
+    Checks to see if a filename is valid.
+    """
+    BAD_CHARS = ':"%/<>^|?' + os.sep
+    for c in BAD_CHARS:
+        if c in fname:
+            return False
+    return True
+
+def touch(fname, mode=0o666, dir_fd=None, **kwargs):
+    """
+    Eqiuvalent to touch command on linux.
+    Implementation from https://stackoverflow.com/a/1160227
+    """
+    import os
+    flags = os.O_CREAT | os.O_APPEND
+    with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
+        os.utime(f.fileno() if os.utime in os.supports_fd else fname,
+            dir_fd=None if os.supports_fd else dir_fd, **kwargs)
+
+
+def read_results(filename, format="trec", topics=None, dataset=None, **kwargs):
     """
     Reads a file into a results dataframe.
 
     Parameters:
         filename (str): The filename of the file to be read. Compressed files are handled automatically. A URL is also supported for the "trec" format.
         format (str): The format of the results file: one of "trec", "letor". Default is "trec".
+        topics (None or pandas.DataFrame): If provided, will merge the topics to merge into the results. This is helpful for providing query text. Cannot be used in conjunction with dataset argument.
+        dataset (None, str or pyterrier.datasets.Dataset): If provided, loads topics from the dataset (or dataset ID) and merges them into the results. This is helpful for providing query text. Cannot be used in conjunction with dataset topics.
         **kwargs (dict): Other arguments for the internal method
-    
+
     Returns:
         dataframe with usual qid, docno, score columns etc
+
+    Examples::
+
+        # a dataframe of results can be used directly in a pt.Experiment
+        pt.Experiment(
+            [ pt.io.read_results("/path/to/baselines-results.res.gz") ],
+            topics,
+            qrels,
+            ["map"]
+        )
+
+        # make a transformer from a results dataframe, include the query text
+        first_pass = pt.Transformer.from_df( pt.io.read_results("/path/to/results.gz", topics=topics) )
+        # make a max_passage retriever based on a previously saved results
+        max_passage = (first_pass 
+            >> pt.text.get_text(dataset)
+            >> pt.text.sliding()
+            >> pt.text.scorer()
+            >> pt.text.max_passage()
+        )
+
     """
     if not format in SUPPORTED_RESULTS_FORMATS:
         raise ValueError("Format %s not known, supported types are %s" % (format, str(SUPPORTED_RESULTS_FORMATS.keys())))
-    return SUPPORTED_RESULTS_FORMATS[format][0](filename, **kwargs)
+    results = SUPPORTED_RESULTS_FORMATS[format][0](filename, **kwargs)
+    if dataset is not None:
+        assert topics is None, "Cannot provide both dataset and topics"
+        if isinstance(dataset, str):
+            import pyterrier as pt
+            dataset = pt.get_dataset(dataset)
+        topics = dataset.get_topics()
+    if topics is not None:
+        results = pd.merge(results, topics, how='left', on='qid')
+    return results
 
 def _read_results_letor(filename, labels=False):
 
@@ -87,7 +209,7 @@ def _read_results_letor(filename, labels=False):
                 else:
                     kv[int(k)] = float(parts[i+1])
         features = np.array([kv[i] for i in sorted(kv.keys())])
-        return (label, qid, docno, features)       
+        return (label, qid, docno, features)
 
     with autoopen(filename, 'rt') as f:
         rows = []
@@ -111,42 +233,44 @@ def _read_results_trec(filename):
     df["score"] = df["score"].astype(float)
     return df
 
-def write_results(res, filename, format="trec", **kwargs):
+def write_results(res, filename, format="trec", append=False, **kwargs):
     """
     Write a results dataframe to a file.
 
     Parameters:
-        res (DataFrame): A results dataframe, with usual columns of qid, docno etc 
+        res (DataFrame): A results dataframe, with usual columns of qid, docno etc
         filename (str): The filename of the file to be written. Compressed files are handled automatically.
         format (str): The format of the results file: one of "trec", "letor", "minimal"
+        append (bool): Append to an existing file. Defaults to False.
         **kwargs (dict): Other arguments for the internal method
 
     Supported Formats:
         * "trec" -- output columns are $qid Q0 $docno $rank $score $runname, space separated
         * "letor" -- This follows the LETOR and MSLR datasets, in that output columns are $label qid:$qid [$fid:$value]+ # docno=$docno
         * "minimal": output columns are $qid $docno $rank, tab-separated. This is used for submissions to the MSMARCO leaderboard.
-    
+
     """
     if not format in SUPPORTED_RESULTS_FORMATS:
         raise ValueError("Format %s not known, supported types are %s" % (format, str(SUPPORTED_RESULTS_FORMATS.keys())))
-    # convert generators to results 
+    # convert generators to results
     res = coerce_dataframe(res)
-    return SUPPORTED_RESULTS_FORMATS[format][1](res, filename, **kwargs)
+    return SUPPORTED_RESULTS_FORMATS[format][1](res, filename, append=append, **kwargs)
 
-def _write_results_trec(res, filename, run_name="pyterrier"):
+def _write_results_trec(res, filename, run_name="pyterrier", append=False):
         res_copy = res.copy()[["qid", "docno", "rank", "score"]]
         res_copy.insert(1, "Q0", "Q0")
         res_copy.insert(5, "run_name", run_name)
-        res_copy.to_csv(filename, sep=" ", header=False, index=False)
+        res_copy.to_csv(filename, sep=" ", mode='a' if append else 'w', header=False, index=False)
 
-def _write_results_minimal(res, filename, run_name="pyterrier"):
+def _write_results_minimal(res, filename, run_name="pyterrier", append=False):
         res_copy = res.copy()[["qid", "docno", "rank"]]
-        res_copy.to_csv(filename, sep="\t", header=False, index=False)
+        res_copy.to_csv(filename, sep="\t", mode='a' if append else 'w', header=False, index=False)
 
-def _write_results_letor(res, filename, qrels=None, default_label=0):
+def _write_results_letor(res, filename, qrels=None, default_label=0, append=False):
     if qrels is not None:
         res = res.merge(qrels, on=['qid', 'docno'], how='left').fillna(default_label)
-    with autoopen(filename, "wt") as f:
+    mode='wa' if append else 'wt'
+    with autoopen(filename, mode) as f:
         for row in res.itertuples():
             values = row.features
             label = row.label if qrels is not None else default_label
@@ -159,7 +283,7 @@ def read_topics(filename, format="trec", **kwargs):
 
     Parameters:
         filename(str): The filename of the topics file. A URL is supported for the "trec" and "singleline" formats.
-        format(str): One of "trec", "trecxml" or "singleline". Default is "trec" 
+        format(str): One of "trec", "trecxml" or "singleline". Default is "trec"
 
     Returns:
         pandas.Dataframe with columns=['qid','query']
@@ -183,7 +307,7 @@ def _read_topics_trec(file_path, doc_tag="TOP", id_tag="NUM", whitelist=["TITLE"
     trecquerysource = autoclass('org.terrier.applications.batchquerying.TRECQuery')
     tqs = trecquerysource(
         [file_path], doc_tag, id_tag, whitelist, blacklist,
-        # help jnius select the correct constructor 
+        # help jnius select the correct constructor
         signature="([Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;)V")
     topics_lst=[]
     while(tqs.hasNext()):
@@ -220,7 +344,7 @@ def _read_topics_trecxml(filename, tags=["query", "question", "narrative"], toke
                 if tokenise:
                     query_text = " ".join(tokeniser.getTokens(query_text))
                 query += " " + query_text
-        topics.append((str(qid), query)) 
+        topics.append((str(qid), query))
     return pd.DataFrame(topics, columns=["qid", "query"])
 
 def _read_topics_singleline(filepath, tokenise=True):
@@ -255,10 +379,11 @@ def read_qrels(file_path):
         pandas.Dataframe with columns=['qid','docno', 'label']
         with column types string, string, and int
     """
-    df = pd.read_csv(file_path, sep=r'\s+', names=["qid", "iter", "docno", "label"])
+    df = pd.read_csv(file_path,
+                     sep=r'\s+',
+                     names=["qid", "iter", "docno", "label"],
+                     dtype={"qid": "str", "docno": "str"})
     df = df.drop(columns="iter")
-    df["qid"] = df["qid"].astype(str)
-    df["docno"] = df["docno"].astype(str)
     return df
 
 SUPPORTED_TOPICS_FORMATS = {

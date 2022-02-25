@@ -1,6 +1,6 @@
 import sys
 
-assert sys.version_info[0] > 2, "Pyterrier requires Python 3.6"
+assert sys.version_info[0] > 2, "PyTerrier requires Python 3.7 minimum"
 
 import os
 try:
@@ -65,5 +65,5 @@ setup(
         "Operating System :: OS Independent",
     ],
     install_requires=requirements,
-    python_requires='>=3.6',
+    python_requires='>=3.7',
 )

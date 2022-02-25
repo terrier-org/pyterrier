@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from typing import List, Sequence, Union
 
@@ -43,7 +44,7 @@ def add_ranks(rtr : pd.DataFrame) -> pd.DataFrame:
         return rtr
 
     # -1 assures that first rank will be FIRST_RANK
-    rtr["rank"] = rtr.groupby("qid", sort=False).rank(ascending=False, method="first")["score"].astype(int) -1 + FIRST_RANK
+    rtr["rank"] = rtr.groupby("qid", sort=False)["score"].rank(ascending=False, method="first").astype(int) -1 + FIRST_RANK
     if STRICT_SORT:
         rtr.sort_values(["qid", "rank"], ascending=[True,True], inplace=True)
     return rtr
@@ -188,6 +189,35 @@ def coerce_queries_dataframe(query):
             return pd.DataFrame(indexed_query, columns=['qid', 'query'])
     # catch-all when we dont recognise the type
     raise ValueError("Could not coerce %s (type %s) into a DataFrame of queries" % (str(query), str(type(query))))
+
+
+def coerce_dataframe_types(dataframe):
+    """
+    Changes data types to match standard values. The dataframe need not have all the columns,
+    but if they are present, will cast the values to the proper types.
+     - ``qid`` -> ``str``
+     - ``docno`` -> ``str``
+     - ``score`` -> ``float``
+
+    Args:
+        dataframe: a Pandas dataframe
+
+    Returns:
+        dataframe with data types properly set
+    """
+    TYPE_MAP = { # python type -> acceptable numpy types
+        str: (np.dtype('O'),),
+        float: (np.dtype('float32'), np.dtype('float64')),
+    }
+    COLUMN_MAP = { # column name -> python type
+        'qid': str,
+        'docno': str,
+        'score': float,
+    }
+    for column, dtype in COLUMN_MAP.items():
+        if column in dataframe.columns and dataframe[column].dtype not in TYPE_MAP[dtype]:
+            dataframe[column] = dataframe[column].astype(dtype)
+    return dataframe
 
 
 def split_df(df : pd.DataFrame, N) -> List[pd.DataFrame]:

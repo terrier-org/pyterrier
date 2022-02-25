@@ -23,7 +23,7 @@ Available Neural Dense Retrieval and Re-ranking Integrations
 ============================================================
 
  - `OpenNIR <https://opennir.net/>`_ has integration with PyTerrier - see its `notebook examples <https://github.com/Georgetown-IR-Lab/OpenNIR/tree/master/examples>`_.
- - `PyTerrier_ColBERT <https://github.com/terrierteam/pyterrier_colbert>`_ contains a `ColBERT <https://github.com/stanford-futuredata/ColBERT/tree/v0.2>`_ integration, including both a text-scorer and a end-to-end dense retrieval.
+ - `PyTerrier_ColBERT <https://github.com/terrierteam/pyterrier_colbert>`_ contains a `ColBERT <https://github.com/stanford-futuredata/ColBERT>`_ integration, including both a text-scorer and a end-to-end dense retrieval.
  - `PyTerrier_ANCE <https://github.com/terrierteam/pyterrier_ance>`_ contains an `ANCE <https://github.com/microsoft/ANCE/>`_ integration for end-to-end dense retrieval.
  - `PyTerrier_T5 <https://github.com/terrierteam/pyterrier_t5>`_ contains a `monoT5 <https://arxiv.org/pdf/2101.05667.pdf>`_ integration.
  - `PyTerrier_doc2query <https://github.com/terrierteam/pyterrier_doc2query>`_ contains a `docT5query <https://github.com/castorini/docTTTTTquery>`_ integration.

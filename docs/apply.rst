@@ -13,11 +13,11 @@ functions) to easily transform inputs.
 The table below lists the main classes of transformation in the PyTerrier data 
 model, as well as the appropriate apply method to use in each case. In general,
 if there is a one-to-one mapping between the input and the output, then the specific
-pt.apply methods should be used (i.e. `query()`, `doc_score()`, `.doc_features()`).
+pt.apply methods should be used (i.e. ``query()``, ``doc_score()``, ``.doc_features()``).
 If the cardinality of the dataframe changes through applying the transformer, 
-then `generic()` or `by_query()` must be applied.
+then ``generic()`` or ``by_query()`` must be applied.
 
-In particular, through the use of `pt.apply.doc_score()`, any reranking method that can be expressed
+In particular, through the use of ``pt.apply.doc_score()``, any reranking method that can be expressed
 as a function of the text of the query and the text of the doucment can used as a reranker
 in a PyTerrier pipeline.
 
@@ -45,7 +45,7 @@ function.
 +-------+---------+-------------+------------------+---------------------------+----------------------+-----------------------+
 
 In each case, the result from calling a pyterrier.apply method is another PyTerrier transformer 
-(i.e. extends TransformerBase), which can be used for experimentation or combined with other 
+(i.e. extends ``pt.Transformer``), which can be used for experimentation or combined with other 
 PyTerrier transformers through the standard PyTerrier operators.
 
 If `verbose=True` is passed to any pyterrier apply method (except `generic()`), then a `TQDM <https://tqdm.github.io/>`_ 

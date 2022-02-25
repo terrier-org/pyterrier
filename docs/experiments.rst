@@ -147,6 +147,91 @@ This provides a dataframe where each row is the performance of a given system fo
 
 NB: For brevity, we only show the top 5 rows of the returned table.
 
+Saving and Reusing Results 
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For some research tasks, it is considered good practice to save your results files when conducting experiments. This allows
+several advantages:
+
+ - It permits additional evaluation (e.g. more measures, more signifiance tests) without re-applying potentially slow transformer pipelines.
+ - It allows transformer results to be made available for other experiments, perhaps as a virtual data appendix in a paper.
+
+Saving can be enabled by adding the ``save_dir`` as a kwarg to pt.Experiment::
+
+    pt.Experiment(
+        [tfidf, bm25],
+        dataset.get_topics(),
+        dataset.get_qrels(),
+        eval_metrics=["map", "recip_rank"],
+        names=["TF_IDF", "BM25"],
+        save_dir="./",
+    )
+
+This will save two files, namely, TF_IDF.res.gz and BM25.res.gz to the current directory. If these files already exist,
+they will be "reused", i.e. loaded and evaluated in preference to application of the tfidf and/or bm25 transformers. 
+If experiments are being conducted on multiple different topic sets, care should be taken to ensure that previous 
+results for a different topic set are not reused for evaluation.
+
+If a transformer has been updated, outdated results files can be mistakenly used. To prevent this, set the ``save_mode`` 
+kwarg to ``"overwrite"``::
+
+    pt.Experiment(
+        [tfidf, bm25],
+        dataset.get_topics(),
+        dataset.get_qrels(),
+        eval_metrics=["map", "recip_rank"],
+        names=["TF_IDF", "BM25"],
+        save_dir="./",
+        save_mode="overwrite"
+    )
+
+Missing Topics and/or Qrels
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There is not always a one-to-one correspondance between the topic/query IDs (qids) that appear in
+the provided ``topics`` and ``qrels``. Qids that appear in topics but not qrels can be due to incomplete judgments,
+such as in sparsely labeled datasets or shared tasks that choose to omit some topics (e.g., due to cost).
+Qids that appear in qrels but no in topics can happen when running a subset of topics for testing purposes
+(e.g., ``topics.head(5)``).
+
+The ``filter_by_qrels`` and ``filter_by_topics`` parameters control the behaviour of an experiment when topics and qrels
+do not perfectly overlap. When ``filter_by_qrels=True``, topics are filtered down to only the ones that have qids in the
+qrels. Similarly, when ``filter_by_topics=True``, qrels are filtered down to only the ones that have qids in the topics.
+
+For example, consier topics that include qids ``A`` and ``B`` and qrels that include ``B`` and ``C``. The results with
+each combination of settings are:
+
++----------------------+----------------------+------------------+--------------------------------------------------------------------+
+| ``filter_by_topics`` | ``filter_by_qrels``  | Results consider | Notes                                                              |
++======================+======================+==================+====================================================================+
+| ``True`` (default)   | ``False`` (default)  | ``A,B``          | ``C`` is removed because it does not appear in the topics.         |
++----------------------+----------------------+------------------+--------------------------------------------------------------------+
+| ``True`` (default)   | ``True``             | ``B``            | Acts as an intersection of the qids found in the qrels and topics. |
++----------------------+----------------------+------------------+--------------------------------------------------------------------+
+| ``False``            | ``False`` (default)  | ``A,B,C``        | Acts as a union of the qids found in qrels and topics.             |
++----------------------+----------------------+------------------+--------------------------------------------------------------------+
+| ``False``            | ``True``             | ``B,C``          | ``A`` is removed because it does not appear in the qrels.          |
++----------------------+----------------------+------------------+--------------------------------------------------------------------+
+
+Note that, following IR evaluation conventions, topics that have no relevance judgments (``A`` in the above example)
+do not contribute to relevance-based measures (e.g., ``map``), but still contribute to efficiency measures (e.g., ``mrt``).
+As such, aggregate relevance-based measures will not change based on the value of ``filter_by_qrels``. When ``perquery=True``,
+topics that have no relevance judgments (``A``) will give a value of ``NaN``, indicating that they are not defined
+and should not contribute to the average.
+
+The defaults (``filter_by_topics=True`` and ``filter_by_qrels=False``) were chosen because they likely reflect the intent
+of the user in most cases. In particular, it runs all topics requested and evaluates on only those topics. However, you
+may want to change these settings in some circumstnaces. E.g.:
+
+ - If you want to save time and avoid running topics that will not be evaluated, set ``filter_by_qrels=True``.
+   This can be particularly helpful for large collections with many missing judgments, such as MS MARCO.
+ - If you want to evaluate across all topics from the qrels set ``filter_by_topics=False``.
+
+Note that in all cases, if a requested topic that appears in the qrels returns no results, it will properly contribute
+a score of 0 for evaluation.
+
+
+
 Available Evaluation Measures
 =============================
 
@@ -160,7 +245,7 @@ Often used measures, including the name that must be used, are:
  - Number of retrieved documents (`num_ret`) - not averaged.
  - Number of relevant documents (`num_rel`) - not averaged.
  - Number of relevant documents retrieved (`num_rel_ret`) - not averaged.
- - Interpolated recall precision curves (`iprec_at_recall`). This is family of measures, so requesting `iprec_at_recall` will output measurements for `iprec_at_recall_0.00`, `iprec_at_recall_0.10`, etc.
+ - Interpolated recall precision curves (`iprec_at_recall`). This is family of measures, so requesting `iprec_at_recall` will output measurements for `IPrec@0.00`, `IPrec@0.10`, etc.
  - Precision at rank cutoff (e.g. `P_5`).
  - Recall (`recall`) will generate recall at different cutoffs, such as `recall_5`, etc.).
  - Mean response time (`mrt`) will report the average number of milliseconds to conduct a query (this is calculated by `pt.Experiment()` directly, not pytrec_eval).

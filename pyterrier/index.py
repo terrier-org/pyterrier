@@ -4,9 +4,8 @@ This file contains all the indexers.
 
 # from jnius import autoclass, cast, PythonJavaClass, java_method
 from jnius import autoclass, PythonJavaClass, java_method, cast
-# from .utils import *
 import pandas as pd
-# import numpy as np
+from pyterrier.transformer import IterDictIndexerBase
 import os
 import enum
 import json
@@ -17,7 +16,7 @@ import select
 import math
 from warnings import warn
 from collections import deque
-from typing import List, Dict
+from typing import List, Dict, Union
 
 StringReader = None
 HashMap = None
@@ -129,6 +128,26 @@ def treccollection2textgen(
         verbose = False,
         num_docs = None,
         tag_text_length : int = 4096):
+    """
+    Creates a generator of dictionaries on parsing TREC formatted files. This is useful 
+    for parsing TREC-formatted corpora in indexers like IterDictIndexer, or similar 
+    indexers in other plugins (e.g. ColBERTIndexer).
+
+    Arguments:
+     - files(List[str]): list of files to parse in TREC format.
+     - meta(List[str]): list of attributes to expose in the dictionaries as metadata.
+     - meta_tags(Dict[str,str]): mapping of TREC tags as metadata.
+     - tag_text_length(int): maximium length of metadata. Defaults to 4096.
+     - verbose(bool): set to true to show a TQDM progress bar. Defaults to True.
+     - num_docs(int): a hint for TQDM to size the progress bar based on document counts rather than file count.
+
+    Example::
+
+        files = pt.io.find_files("/path/to/Disk45")
+        gen = pt.index.treccollection2textgen(files)
+        index = pt.IterDictIndexer("./index45").index(gen)
+
+    """
 
     props = {
         "TrecDocTags.doctag": "DOC",
@@ -162,7 +181,13 @@ def treccollection2textgen(
         yield rtr
     
 
-def _TaggedDocumentSetup(meta, meta_tags):
+def _TaggedDocumentSetup(
+        meta : Dict[str,int],  #mapping from meta-key to length
+        meta_tags : Dict[str,str] #mapping from meta-key to tag
+    ):
+    """
+    Property setup for TaggedDocument etc to generate abstracts
+    """
 
     abstract_tags=meta_tags.values()
     abstract_names=meta_tags.keys()
@@ -177,8 +202,33 @@ def _TaggedDocumentSetup(meta, meta_tags):
     ApplicationSetup.setProperty("TaggedDocument.abstracts.tags.casesensitive", "false")
 
 
+def _FileDocumentSetup(   
+        meta : Dict[str,int],  #mapping from meta-key to length
+        meta_tags : Dict[str,str] #mapping from meta-key to tag
+    ):
+    """
+    Property setup for FileDocument etc to generate abstracts
+    """
 
-def createAsList(files_path : List[str]):
+    meta_name_for_abstract = None
+    for k, v in meta_tags.items():
+        if v == 'ELSE':
+            meta_name_for_abstract = k
+    if meta_name_for_abstract is None:
+        return
+    
+    if meta_name_for_abstract not in meta:
+        raise ValueError("You need to specify a meta length for " + meta_name_for_abstract)
+
+    abstract_length = meta[meta_name_for_abstract]
+
+    ApplicationSetup.setProperty("FileDocument.abstract", meta_name_for_abstract)
+    ApplicationSetup.setProperty("FileDocument.abstract.length", str(abstract_length))
+
+
+
+
+def createAsList(files_path : Union[str, List[str]]):
     """
     Helper method to be used by child indexers to add files to Java List
     Returns:
@@ -188,6 +238,8 @@ def createAsList(files_path : List[str]):
         asList = Arrays.asList(files_path)
     elif isinstance(files_path, list):
         asList = Arrays.asList(*files_path)
+    else:
+        raise ValueError(f"{files_path}: {type(files_path)} must be a List[str] or str")
     return asList
 
 # Using enum class create enumerations
@@ -215,7 +267,7 @@ class Indexer:
             "trec.collection.class": "TRECCollection",
     }
 
-    def __init__(self, index_path, *args, blocks=False, overwrite=False, verbose=False, type=IndexingType.CLASSIC, **kwargs):
+    def __init__(self, index_path, *args, blocks=False, overwrite=False, verbose=False, meta_reverse=["docno"], type=IndexingType.CLASSIC, **kwargs):
         """
         Init method
 
@@ -242,6 +294,7 @@ class Indexer:
         self.setProperties(**self.default_properties)
         self.overwrite = overwrite
         self.verbose = verbose
+        self.meta_reverse = meta_reverse
 
     def setProperty(self, k, v):
         """
@@ -309,6 +362,7 @@ class Indexer:
         """
         self.properties['indexer.meta.forward.keys'] = ','.join(self.meta.keys())
         self.properties['indexer.meta.forward.keylens'] = ','.join([str(l) for l in self.meta.values()])
+        self.properties['indexer.meta.reverse.keys'] = ','.join(self.meta_reverse)
         ApplicationSetup.getProperties().putAll(self.properties)
         if self.type is IndexingType.SINGLEPASS:
             if self.blocks:
@@ -542,10 +596,19 @@ class FlatJSONDocumentIterator(PythonJavaClass):
 
 from pyterrier.transformer import IterDictIndexerBase
 class _BaseIterDictIndexer(Indexer, IterDictIndexerBase):
-    def __init__(self, index_path, *args, threads=1, **kwargs):
+    def __init__(self, index_path, *args, meta = {'docno' : 20}, meta_reverse=['docno'], threads=1, **kwargs):
+        """
+        
+        Args:
+            index_path(str): Directory to store index. Ignored for IndexingType.MEMORY.
+            meta(Dict[str,int]): What metadata for each document to record in the index, and what length to reserve. Defaults to `{"docno" : 20}`.
+            meta_reverse(List[str]): What metadata shoudl we be able to resolve back to a docid. Defaults to `["docno"]`,      
+        """
         IterDictIndexerBase.__init__(self)
         Indexer.__init__(self, index_path, *args, **kwargs)
         self.threads = threads
+        self.meta = meta
+        self.meta_reverse = meta_reverse
 
     def _setup(self, fields, meta, meta_lengths):
         """
@@ -563,6 +626,7 @@ class _BaseIterDictIndexer(Indexer, IterDictIndexerBase):
         else: 
             if meta_lengths is None:
                 # the ramifications of setting all lengths to a large value is an overhead in memory usage during decompression
+                # also increased reverse lookup file if reverse meta lookups are enabled.
                 meta_lengths = ['512'] * len(meta)
             self.meta = { k:v for k,v in zip( meta, meta_lengths)}
 
@@ -572,26 +636,38 @@ class _BaseIterDictIndexer(Indexer, IterDictIndexerBase):
             'FieldTags.casesensitive': 'true',
         })
 
+    def _filter_iterable(self, it, indexed_fields):
+        # Only include necessary fields: those that are indexed, metadata fields, and docno
+        all_fields = {'docno'} | set(indexed_fields) | set(self.meta.keys())
+        for doc in it:
+            yield {f: doc[f] for f in all_fields}
+
 
 class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
     """
     Use this Indexer if you wish to index an iter of dicts (possibly with multiple fields).
     This version is used for Windows -- which doesn't support the faster fifo implementation.
     """
-    def index(self, it, fields=('text',), meta=('docno',), meta_lengths=None, threads=None):
+    def index(self, it, fields=('text',), meta=None, meta_lengths=None, threads=None):
         """
         Index the specified iter of dicts with the (optional) specified fields
 
         Args:
             it(iter[dict]): an iter of document dict to be indexed
             fields(list[str]): keys to be indexed as fields
-            meta(list[str]): keys to be considered as metdata
-            meta_lengths(list[int]): length of metadata, defaults to 512 characters
+            meta(list[str]): keys to be considered as metdata. Deprecated
+            meta_lengths(list[int]): length of metadata, defaults to 512 characters. Deprecated
         """
-        self._setup(fields, meta, meta_lengths)
+        if meta is not None:
+            warn('specifying meta and meta_lengths in IterDictIndexer.index() is deprecated, use kwargs in constructor instead', DeprecationWarning, 2)
+            self.meta = meta
+            if meta_lengths is not None:
+                self.meta = {zip(meta, meta_lengths)}
+
+        self._setup(fields, self.meta, None)
         assert self.threads == 1, 'IterDictIndexer does not support multiple threads on Windows'
         # we need to prevent collectionIterator from being GCd
-        collectionIterator = FlatJSONDocumentIterator(iter(it)) # force it to be iter
+        collectionIterator = FlatJSONDocumentIterator(self._filter_iterable(it, fields))
         javaDocCollection = autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
         index = self.createIndexer()
         index.index([javaDocCollection])
@@ -610,7 +686,7 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
     This version is optimized by using multiple threads and POSIX fifos to tranfer data,
     which ends up being much faster.
     """
-    def index(self, it, fields=('text',), meta=('docno',), meta_lengths=None):
+    def index(self, it, fields=('text',), meta=None, meta_lengths=None):
         """
         Index the specified iter of dicts with the (optional) specified fields
 
@@ -624,7 +700,13 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
         JsonlDocumentIterator = autoclass("org.terrier.python.JsonlDocumentIterator")
         ParallelIndexer = autoclass("org.terrier.python.ParallelIndexer")
 
-        self._setup(fields, meta, meta_lengths)
+        if meta is not None:
+            warn('specifying meta and meta_lengths in IterDictIndexer.index() is deprecated, use constructor instead', DeprecationWarning, 2)
+            self.meta = meta
+            if meta_lengths is not None:
+                self.meta = {zip(meta, meta_lengths)}
+
+        self._setup(fields, self.meta, None)
 
         os.makedirs(self.index_dir, exist_ok=True) # ParallelIndexer expects the directory to exist
 
@@ -648,7 +730,7 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
                 fifos.append(fifo)
 
             # Start dishing out the docs to the fifos
-            threading.Thread(target=self._write_fifos, args=(it, fifos), daemon=True).start()
+            threading.Thread(target=self._write_fifos, args=(self._filter_iterable(it, fields), fifos), daemon=True).start()
 
             # Different process for memory indexer (still taking advantage of faster fifos)
             if Indexer is BasicMemoryIndexer:
@@ -735,7 +817,7 @@ class TRECCollectionIndexer(Indexer):
         self.meta_tags = meta_tags
     
 
-    def index(self, files_path):
+    def index(self, files_path : Union[str,List[str]]):
         """
         Index the specified TREC formatted files
 
@@ -783,7 +865,7 @@ class FilesIndexer(Indexer):
         self.meta_reverse = meta_reverse
         self.meta_tags = meta_tags
 
-    def index(self, files_path):
+    def index(self, files_path : Union[str,List[str]]):
         """
         Index the specified files.
 
@@ -794,6 +876,7 @@ class FilesIndexer(Indexer):
         index = self.createIndexer()
         asList = createAsList(files_path)
         _TaggedDocumentSetup(self.meta, self.meta_tags)
+        _FileDocumentSetup(self.meta, self.meta_tags)
         
         simpleColl = SimpleFileCollection(asList, False)
         index.index([simpleColl])

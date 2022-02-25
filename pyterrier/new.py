@@ -1,6 +1,5 @@
 
 from typing import Sequence, Union
-import pyterrier as pt
 import pandas as pd
 from .model import add_ranks
 
@@ -8,7 +7,7 @@ def empty_Q() -> pd.DataFrame:
     """
         Returns an empty dataframe with columns `["qid", "query"]`.
     """
-    return pd.DataFrame([[]], columns=["qid", "query"])
+    return pd.DataFrame(columns=["qid", "query"])
 
 def queries(queries : Union[str, Sequence[str]], qid : Union[str, Sequence[str]] = None, **others) -> pd.DataFrame:
     """

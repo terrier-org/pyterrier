@@ -14,6 +14,19 @@ class TestParallel(BaseTestCase):
         )
         self.assertEqual(df.iloc[0]["map"], df.iloc[1]["map"])
 
+    def test_parallel_joblib_experiment_br_callback(self):
+        self.skip_windows()
+        dataset = pt.get_dataset("vaswani")
+        Tf = lambda keyFreq, posting, entryStats, collStats: posting.getFrequency()
+        br = pt.BatchRetrieve(dataset.get_index(), wmodel=Tf)
+        df = pt.Experiment(
+            [br, br.parallel(3)],
+            dataset.get_topics().head(4),
+            dataset.get_qrels(),
+            ["map", "mrt"]
+        )
+        self.assertEqual(df.iloc[0]["map"], df.iloc[1]["map"])
+
     def test_parallel_joblib_ops(self):
         self.skip_windows()
         dataset = pt.get_dataset("vaswani")

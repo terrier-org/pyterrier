@@ -41,7 +41,140 @@ class TestUtils(TempDirTestCase):
                 self.assertEqual(row1["docno"], row2["docno"])
                 self.assertEqual(row1["docno"], row2["docno"])
                 self.assertEqual(row1["qid"], row2["qid"])
-                self.assertTrue(np.array_equal(row1["features"], row2["features"]))        
+                self.assertTrue(np.array_equal(row1["features"], row2["features"]))
+
+    def test_finalized_open(self):
+        self.assertFalse(os.path.exists('file.txt'))
+        self.assertFalse(os.path.exists('file.tmp.txt'))
+
+        try:
+            with pt.io.finalized_open('file.txt', 't') as f:
+                f.write('OK')
+                self.assertFalse(os.path.exists('file.txt'))
+                self.assertTrue(os.path.exists('file.tmp.txt'))
+                raise Exception("test")
+        except Exception as e:
+            if e.args[0] != 'test':
+                raise # raise any error but our test error
+        # File *doesn't* exist
+        self.assertFalse(os.path.exists('file.txt'))
+        self.assertFalse(os.path.exists('file.tmp.txt'))
+
+        with pt.io.finalized_open('file.txt', 't') as f:
+            f.write('Guess who\'s back')
+            self.assertFalse(os.path.exists('file.txt'))
+            self.assertTrue(os.path.exists('file.tmp.txt'))
+        # File *does* exist
+        self.assertTrue(os.path.exists('file.txt'))
+        self.assertFalse(os.path.exists('file.tmp.txt'))
+        with open('file.txt', 'rt') as f:
+            self.assertEqual(f.read(), 'Guess who\'s back')
+
+        with pt.io.finalized_open('file.txt', 't') as f:
+            f.write('Shady\'s back')
+            self.assertTrue(os.path.exists('file.txt'))
+            self.assertTrue(os.path.exists('file.tmp.txt'))
+            with open('file.txt', 'rt') as f:
+                self.assertEqual(f.read(), 'Guess who\'s back')
+        # contents *are* updated
+        self.assertTrue(os.path.exists('file.txt'))
+        self.assertFalse(os.path.exists('file.tmp.txt'))
+        with open('file.txt', 'rt') as f:
+            self.assertEqual(f.read(), 'Shady\'s back')
+
+        try:
+            with pt.io.finalized_open('file.txt', 't') as f:
+                f.write('Back again')
+                self.assertTrue(os.path.exists('file.txt'))
+                self.assertTrue(os.path.exists('file.tmp.txt'))
+                with open('file.txt', 'rt') as f:
+                    self.assertEqual(f.read(), 'Shady\'s back')
+                raise Exception("test")
+        except Exception as e:
+            if e.args[0] != 'test':
+                raise # raise any error but our test error
+        # contents *aren't* updated
+        self.assertTrue(os.path.exists('file.txt'))
+        self.assertFalse(os.path.exists('file.tmp.txt'))
+        with open('file.txt', 'rt') as f:
+            self.assertEqual(f.read(), 'Shady\'s back')
+
+    def test_finalized_autoopen(self):
+        self.assertFalse(os.path.exists('file.gz'))
+        self.assertFalse(os.path.exists('file.tmp.gz'))
+
+        try:
+            with pt.io.finalized_autoopen('file.gz', 't') as f:
+                f.write('OK')
+                self.assertFalse(os.path.exists('file.gz'))
+                self.assertTrue(os.path.exists('file.tmp.gz'))
+                raise Exception("test")
+        except Exception as e:
+            if e.args[0] != 'test':
+                raise # raise any error but our test error
+        # File *doesn't* exist
+        self.assertFalse(os.path.exists('file.gz'))
+        self.assertFalse(os.path.exists('file.tmp.gz'))
+
+        with pt.io.finalized_autoopen('file.gz', 't') as f:
+            f.write('Guess who\'s back')
+            self.assertFalse(os.path.exists('file.gz'))
+            self.assertTrue(os.path.exists('file.tmp.gz'))
+        # File *does* exist
+        self.assertTrue(os.path.exists('file.gz'))
+        self.assertFalse(os.path.exists('file.tmp.gz'))
+        with pt.io.autoopen('file.gz', 'rt') as f:
+            self.assertEqual(f.read(), 'Guess who\'s back')
+
+        with pt.io.finalized_autoopen('file.gz', 't') as f:
+            f.write('Shady\'s back')
+            self.assertTrue(os.path.exists('file.gz'))
+            self.assertTrue(os.path.exists('file.tmp.gz'))
+            with pt.io.autoopen('file.gz', 'rt') as f:
+                self.assertEqual(f.read(), 'Guess who\'s back')
+        # contents *are* updated
+        self.assertTrue(os.path.exists('file.gz'))
+        self.assertFalse(os.path.exists('file.tmp.gz'))
+        with pt.io.autoopen('file.gz', 'rt') as f:
+            self.assertEqual(f.read(), 'Shady\'s back')
+
+        try:
+            with pt.io.finalized_autoopen('file.gz', 't') as f:
+                f.write('Back again')
+                self.assertTrue(os.path.exists('file.gz'))
+                self.assertTrue(os.path.exists('file.tmp.gz'))
+                with pt.io.autoopen('file.gz', 'rt') as f:
+                    self.assertEqual(f.read(), 'Shady\'s back')
+                raise Exception("test")
+        except Exception as e:
+            if e.args[0] != 'test':
+                raise # raise any error but our test error
+        # contents *aren't* updated
+        self.assertTrue(os.path.exists('file.gz'))
+        self.assertFalse(os.path.exists('file.tmp.gz'))
+        with pt.io.autoopen('file.gz', 'rt') as f:
+            self.assertEqual(f.read(), 'Shady\'s back')
+
+    def test_read_results_topic_merging(self):
+        orig_results = pd.DataFrame({
+            'qid': ['1', '1', '2'],
+            'docno': ['A', 'B', 'C'],
+            'score': [0.8, 0.4, 0.6],
+            'rank': [1, 2, 1]
+        })
+        pt.io.write_results(orig_results, 'test.res')
+        for results in [
+            pt.io.read_results('test.res', dataset='vaswani'),
+            pt.io.read_results('test.res', dataset=pt.get_dataset('vaswani')),
+            pt.io.read_results('test.res', topics=pt.get_dataset('vaswani').get_topics()),]:
+            self.assertEqual(results.iloc[0].query, 'measurement of dielectric constant of liquids by the use of microwave techniques')
+            self.assertEqual(results.iloc[1].query, 'measurement of dielectric constant of liquids by the use of microwave techniques')
+            self.assertEqual(results.iloc[2].query, 'mathematical analysis and design details of waveguide fed microwave radiations')
+
+    def tearDown(self):
+        for file in ['file.txt', 'file.tmp.txt', 'file.gz', 'file.tmp.gz', 'test.res']:
+            if os.path.exists(file):
+                os.remove(file)
 
     
 

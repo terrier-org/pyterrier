@@ -19,9 +19,15 @@ def downloadfile(orgName, packageName, version, file_path, artifact="jar", force
     filename = packageName + "-" + version + suffix + "." + ext
 
     filelocation = orgName + "/" + packageName + "/" + version + "/" + filename
-
-    if os.path.isfile(os.path.join(file_path, filename)) and not force_download:
-        return os.path.join(file_path, filename)
+    
+    target_file = os.path.join(file_path, filename)
+    file_exists = os.path.isfile(target_file)
+    if file_exists:
+        if not force_download:
+            return target_file
+        else:
+            # ensure that wget doesnt put the file in a different name
+            os.remove(target_file)
 
     # check local Maven repo, and use that if it exists
     from os.path import expanduser
@@ -32,9 +38,9 @@ def downloadfile(orgName, packageName, version, file_path, artifact="jar", force
         return mvnLocalLocation
 
     if force_download:
-        print("Downloading "+ packageName + " " + version + "  " + artifact  + " to " + file_path + "...")
+        print("Downloading "+ packageName + " " + version + " " + artifact  + " to " + file_path + "...")
     else:
-        print(packageName + " " + version + "  " + artifact  + " not found, downloading to " + file_path + "...")
+        print(packageName + " " + version + " " + artifact  + " not found, downloading to " + file_path + "...")
     
     if "com/github" in orgName:
         mvnUrl = JITPACK_BASE_URL + filelocation

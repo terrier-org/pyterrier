@@ -8,7 +8,6 @@ import pandas as pd
 from .model import QUERIES, RANKED_DOCS, RANKED_DOCS_, RETRIEVED_DOCS, RETRIEVED_DOCS_, RETRIEVED_DOCS_FEATURES, RETRIEVED_DOCS_FEATURES_, _last_query, add_ranks
 from . import tqdm
 import deprecation
-from typing import Iterable, List, Sequence, Callable, Union
 from enum import Enum
 
 class Family():
@@ -17,13 +16,17 @@ class Family():
     QUERY_EXPANSION = 'queryexpansion'
     RERANKING = 'reranking'
     FEATURE_SCORING = 'featurescoring'
+from typing import Iterable, List, Sequence, Callable, Iterator, Union
 
 LAMBDA = lambda:0
 def is_lambda(v):
     return isinstance(v, type(LAMBDA)) and v.__name__ == LAMBDA.__name__
-       
+
+def is_function(v):
+    return isinstance(v, types.FunctionType)
+
 def is_transformer(v):
-    if isinstance(v, TransformerBase):
+    if isinstance(v, Transformer):
         return True
     return False
 
@@ -38,10 +41,13 @@ def get_transformer(v):
     if is_transformer(v):
         return v
     if is_lambda(v):
+        warn('Coercion of a lambda into a transformer is deprecated; use a pt.apply instead')
         return ApplyGenericTransformer(v)
-    if isinstance(v, types.FunctionType):
+    if is_function(v):
+        warn('Coercion of a function into a transformer is deprecated; use a pt.apply instead')
         return ApplyGenericTransformer(v)
     if isinstance(v, pd.DataFrame):
+        warn('Coercion of a dataframe into a transformer is deprecated; use a pt.Transformer.from_df() instead')
         return SourceTransformer(v)
     raise ValueError("Passed parameter %s of type %s cannot be coerced into a transformer" % (str(v), type(v)))
 
@@ -118,12 +124,11 @@ class Scalar(Symbol):
         super().__init__(name)
         self.value = value
 
-class TransformerBase:
-    name = "TransformerBase"
-    #is_constant=True
+class Transformer:
+    name = "Transformer"
     """
-        Base class for all transformers. Implements the various operators >> + * | & 
-        as well as the compile() for rewriting complex pipelines into more simples ones.
+        Base class for all transformers. Implements the various operators ``>>`` ``+`` ``*`` ``|`` ``&`` 
+        as well as ``search()`` for executing a single query and ``compile()`` for rewriting complex pipelines into more simples ones.
     """
 
     def __init__(self, family : str = None, input : COLUMNS_TYPE = None, output : COLUMNS_TYPE = None, **kwargs):
@@ -167,7 +172,22 @@ class TransformerBase:
         if self.output is None:
             _raise("No family specified and output not defined for transformer " + selfname)
 
-    def transform(self, topics_or_res):
+    @staticmethod
+    def from_df(input : pd.DataFrame, uniform=False) -> 'Transformer':
+        """
+        Instantiates a transformer from an input dataframe. Some rows from the input dataframe are returned
+        in response to a query on the ``transform()`` method. Depending on the value `uniform`, the dataframe
+        passed as an argument to ``transform()`` can affect this selection.
+
+        If `uniform` is True, input will be returned in its entirety each time.
+        If `uniform` is False, rows from input that match the qid values from the argument dataframe.
+        
+        """
+        if uniform:
+            return UniformTransformer(input)
+        return SourceTransformer(input)
+
+    def transform(self, topics_or_res : pd.DataFrame) -> pd.DataFrame:
         """
             Abstract method for all transformations. Typically takes as input a Pandas
             DataFrame, and also returns one.
@@ -175,13 +195,23 @@ class TransformerBase:
         pass
 
     def transform_iter(self, input: Iterable[dict]) -> pd.DataFrame:
+        """
+            Method that proesses an iter-dict by instantiating it as a dataframe and calling transform().
+            Returns the DataFrame returned by transform(). Used in the implementation of index() on a composed 
+            pipeline.
+        """
         return self.transform(pd.DataFrame(list(input)))
 
-    def transform_gen(self, input : pd.DataFrame, batch_size=1) -> pd.DataFrame:
+    def transform_gen(self, input : pd.DataFrame, batch_size=1, output_topics=False) -> Iterator[pd.DataFrame]:
         """
             Method for executing a transformer pipeline on smaller batches of queries.
             The input dataframe is grouped into batches of batch_size queries, and a generator
             returned, such that transform() is only executed for a smaller batch at a time. 
+
+            Arguments:
+                input(DataFrame): a dataframe to process
+                batch_size(int): how many input instances to execute in each batch. Defaults to 1.
+            
         """
         docno_provided = "docno" in input.columns
         docid_provided = "docid" in input.columns
@@ -195,11 +225,19 @@ class TransformerBase:
             if len(batch) == batch_size:
                 batch_topics = pd.concat(batch)
                 batch=[]
-                yield self.transform(batch_topics)
+                res = self.transform(batch_topics)
+                if output_topics:
+                    yield res, batch_topics
+                else:
+                    yield res
             batch.append(input[input["qid"] == query.qid])
         if len(batch) > 0:
             batch_topics = pd.concat(batch)
-            yield self.transform(batch_topics)
+            res = self.transform(batch_topics)
+            if output_topics:
+                yield res, batch_topics
+            else:
+                yield res
 
     def search(self, query : str, qid : str = "1", sort=True) -> pd.DataFrame:
         """
@@ -209,9 +247,9 @@ class TransformerBase:
             method passing a dataframe.
 
             Arguments:
-             - query(str): String form of the query to run
-             - qid(str): the query id to associate to this request. defaults to 1.
-             - sort(bool): ensures the results are sorted by descending rank (defaults to True)
+                query(str): String form of the query to run
+                qid(str): the query id to associate to this request. defaults to 1.
+                sort(bool): ensures the results are sorted by descending rank (defaults to True)
 
             Example::
 
@@ -272,7 +310,7 @@ class TransformerBase:
         else:
             raise TypeError("Could not validate transformer %s with given input %s", (str(self), str(inputs)))
 
-    def compile(self):
+    def compile(self) -> 'Transformer':
         """
         Rewrites this pipeline by applying of the Matchpy rules in rewrite_rules. Pipeline
         optimisation is discussed in the `ICTIR 2020 paper on PyTerrier <https://arxiv.org/abs/2007.14271>`_.
@@ -282,7 +320,7 @@ class TransformerBase:
         print("Applying %d rules" % len(rewrite_rules))
         return replace_all(self, rewrite_rules)
 
-    def parallel(self, N : int, backend='joblib'):
+    def parallel(self, N : int, backend='joblib') -> 'Transformer':
         """
         Returns a parallelised version of this transformer. The underlying transformer must be "picklable".
 
@@ -316,54 +354,63 @@ class TransformerBase:
             raise ValueError(('Invalid parameter name %s for transformer %s. '+
                     'Check the list of available parameters') %(name, str(self)))
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> pd.DataFrame:
         """
             Sets up a default method for every transformer, which is aliased to transform(). 
         """
         return self.transform(*args, **kwargs)
 
-    def __rshift__(self, right):
+    def __rshift__(self, right) -> 'Transformer':
         return ComposedPipeline(self, right)
 
-    def __rrshift__(self, left):
+    def __rrshift__(self, left) -> 'Transformer':
         return ComposedPipeline(left, self)
 
-    def __add__(self, right):
+    def __add__(self, right : 'Transformer') -> 'Transformer':
         return CombSumTransformer(self, right)
 
-    def __pow__(self, right):
+    def __pow__(self, right : 'Transformer') -> 'Transformer':
         return FeatureUnionPipeline(self, right)
 
-    def __mul__(self, rhs):
+    def __mul__(self, rhs : Union[float,int]) -> 'Transformer':
         assert isinstance(rhs, int) or isinstance(rhs, float)
         return ScalarProductTransformer(self, rhs)
 
-    def __rmul__(self, lhs):
+    def __rmul__(self, lhs : Union[float,int]) -> 'Transformer':
         assert isinstance(lhs, int) or isinstance(lhs, float)
         return ScalarProductTransformer(self, lhs)
 
-    def __or__(self, right):
+    def __or__(self, right : 'Transformer') -> 'Transformer':
         return SetUnionTransformer(self, right)
 
-    def __and__(self, right):
+    def __and__(self, right : 'Transformer') -> 'Transformer':
         return SetIntersectionTransformer(self, right)
 
-    def __mod__(self, right):
+    def __mod__(self, right : 'Transformer') -> 'Transformer':
         assert isinstance(right, int)
         return RankCutoffTransformer(self, right)
 
-    def __xor__(self, right):
+    def __xor__(self, right : 'Transformer') -> 'Transformer':
         return ConcatenateTransformer(self, right)
 
-    def __invert__(self):
+    def __invert__(self : 'Transformer') -> 'Transformer':
         from .cache import ChestCacheTransformer
         return ChestCacheTransformer(self)
 
     def __hash__(self):
         return hash(repr(self))
 
+class TransformerBase(Transformer):
+    # this was the older name of Transformer.
+    # it will be deprecated in a future release.
+    pass
+
 class IterDictIndexerBase(TransformerBase):
     def index(self, iter : Iterable[dict], **kwargs):
+        """
+            Takes an iterable of dictionaries ("iterdict"), and consumes them. There is no return;
+            This method is typically used to implement indexers.
+        """
         pass
 
     
@@ -376,10 +423,10 @@ class EstimatorBase(TransformerBase):
             Method for training the transformer.
 
             Arguments:
-             - topics_or_res_tr(DataFrame): training topics (usually with documents)
-             - qrels_tr(DataFrame): training qrels
-             - topics_or_res_va(DataFrame): validation topics (usually with documents)
-             - qrels_va(DataFrame): validation qrels
+                topics_or_res_tr(DataFrame): training topics (usually with documents)
+                qrels_tr(DataFrame): training qrels
+                topics_or_res_va(DataFrame): validation topics (usually with documents)
+                qrels_va(DataFrame): validation qrels
         """
         pass
 
@@ -594,7 +641,18 @@ class SetIntersectionTransformer(BinaryTransformerBase):
         
         on_cols = ["qid", "docno"]
         rtr = res1.merge(res2, on=on_cols, suffixes=('','_y'))
-        rtr.drop(columns=["score", "rank"], inplace=True, errors='ignore')
+        rtr.drop(columns=["score", "rank", "score_y", "rank_y", "query_y"], inplace=True, errors='ignore')
+        for col in rtr.columns:
+            if not '_y' in col:
+                continue
+            new_name = col.replace('_y', '')
+            if new_name in rtr.columns:
+                # duplicated column, drop
+                rtr.drop(columns=[col], inplace=True)
+                continue
+            # column only from RHS, keep, but rename by removing '_y' suffix
+            rtr.rename(columns={col:new_name}, inplace=True)
+
         return rtr
 
     def _calculate_output(self, left_cols, right_cols):
@@ -616,8 +674,8 @@ class CombSumTransformer(BinaryTransformerBase):
         both_cols = set(res1.columns) & set(res2.columns)
         both_cols.remove("qid")
         both_cols.remove("docno")
-        merged = res1.merge(res2, on=["qid", "docno"], suffixes=[None, "_r"])
-        merged["score"] = merged["score"] + merged["score_r"]
+        merged = res1.merge(res2, on=["qid", "docno"], suffixes=[None, "_r"], how='outer')
+        merged["score"] = merged["score"].fillna(0) + merged["score_r"].fillna(0)
         merged = merged.drop(columns=["%s_r" % col for col in both_cols])
         merged = add_ranks(merged)
         return merged
@@ -685,6 +743,8 @@ class ScalarProductTransformer(BinaryTransformerBase):
     def transform(self, topics_and_res):
         res = self.transformer.transform(topics_and_res)
         res["score"] = self.scalar * res["score"]
+        if self.scalar < 0:
+            res = add_ranks(res)
         return res
     
     def _calculate_output(self, left_output_cols, right_output_cols):
@@ -736,7 +796,16 @@ class ApplyForEachQuery(ApplyTransformerBase):
         self.add_ranks = add_ranks
     
     def transform(self, res):
-        rtr = pd.concat(self.fn(group) for qid, group in res.groupby("qid"))
+        if len(res) == 0:
+            return self.fn(res)
+        it = res.groupby("qid")
+        if self.verbose:
+            it = tqdm(it, unit='query')
+        try:
+            dfs = [self.fn(group) for qid, group in it]
+            rtr = pd.concat(dfs)
+        except Exception as a:
+            raise Exception("Problem applying %s" % self.fn) from a
         if self.add_ranks:
             rtr = add_ranks(rtr)
         return rtr
@@ -874,11 +943,6 @@ class ApplyGenericTransformer(ApplyTransformerBase):
         fn = self.fn
         return fn(inputRes)
 
-@deprecation.deprecated(deprecated_in="0.3.0",
-                        details="Please use pt.apply.ApplyGenericTransformer")
-class LambdaPipeline(ApplyGenericTransformer):
-    pass
-
 class FeatureUnionPipeline(NAryTransformerBase):
     """
         Implements the feature union operator.
@@ -896,14 +960,16 @@ class FeatureUnionPipeline(NAryTransformerBase):
 
     def transform(self, inputRes):
         if not "docno" in inputRes.columns and "docid" in inputRes.columns:
-            raise ValueError("FeatureUnion operates as a re-ranker, but input did not have either docno or docid columns, found columns were %s" %  str(inputRes.columns))
+            raise ValueError("FeatureUnion operates as a re-ranker, but input did not have either "
+                "docno or docid columns, found columns were %s" %  str(inputRes.columns))
 
         num_results = len(inputRes)
         import numpy as np
 
         # a parent could be a feature union, but it still passes the inputRes directly, so inputRes should never have a features column
         if "features" in inputRes.columns:
-            raise ValueError("FeatureUnion operates as a re-ranker. They can be nested, but input should not contain a features column; found columns were %s" %  str(inputRes.columns))
+            raise ValueError("FeatureUnion operates as a re-ranker. They can be nested, but input "
+                "should not contain a features column; found columns were %s" %  str(inputRes.columns))
         
         all_results = []
 
@@ -924,7 +990,8 @@ class FeatureUnionPipeline(NAryTransformerBase):
                     raise ValueError("Results from %s did not include either score or features columns, found columns were %s" % (repr(m), str(res.columns)) )
 
                 if len(res) != num_results:
-                    warn("Got number of results different expected from %s, expected %d received %d, feature scores for any missing documents be 0, extraneous documents will be removed" % (repr(m), num_results, len(res)))
+                    warn("Got number of results different expected from %s, expected %d received %d, feature scores for any "
+                        "missing documents be 0, extraneous documents will be removed" % (repr(m), num_results, len(res)))
                     all_results[i] = res = inputRes[["qid", "docno"]].merge(res, on=["qid", "docno"], how="left")
                     res["score"] = res["score"].fillna(value=0)
 
@@ -997,7 +1064,11 @@ class ComposedPipeline(NAryTransformerBase):
     name = "Compose"
 
     def index(self, iter : Iterable[dict], batch_size=100):
-        from more_itertools import ichunked
+        """
+        This methods implements indexing pipelines. It is responsible for calling the transform_iter() method of its 
+        constituent transformers (except the last one) on batches of records, and the index() method on the last transformer.
+        """
+        from more_itertools import chunked
         
         if len(self.models) > 2:
             #this compose could have > 2 models. we need a composite transform() on all but the last
@@ -1007,7 +1078,7 @@ class ComposedPipeline(NAryTransformerBase):
         last_transformer = self.models[-1]
         
         def gen():
-            for batch in ichunked(iter, batch_size):
+            for batch in chunked(iter, batch_size):
                 batch_df = prev_transformer.transform_iter(batch)
                 for row in batch_df.itertuples(index=False):
                     yield row._asdict()

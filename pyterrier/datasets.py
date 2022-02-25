@@ -4,13 +4,17 @@ import os
 import pandas as pd
 from .transformer import is_lambda
 import types
+from typing import Union, Tuple, Iterator, Dict, Any, List
+from warnings import warn
 import requests
-from .io import autoopen
+from .io import autoopen, touch
 from . import tqdm, HOME_DIR
 import tarfile
+from warnings import warn
 
 import pyterrier
 
+TERRIER_DATA_BASE="http://data.terrier.org/indices/"
 STANDARD_TERRIER_INDEX_FILES = [
     "data.direct.bf",
     "data.document.fsarrayfile",
@@ -52,47 +56,62 @@ class Dataset():
         """
         pass
 
-    def get_corpus_iter(self, verbose=True):
+    def get_corpus_iter(self, verbose=True) -> Iterator[Dict[str,Any]]:
         """
             Returns an iter of dicts for this collection. If verbose=True, a tqdm pbar shows the progress over this iterator.
         """
         pass
 
-    def get_corpus_lang(self):
+    def get_corpus_lang(self) -> Union[str,None]:
         """
             Returns the ISO 639-1 language code for the corpus, or None for multiple/other/unknown
         """
         return None
 
-    def get_index(self, variant=None):
+    def get_index(self, variant=None, **kwargs):
         """ 
             Returns the IndexRef of the index to allow retrieval. Only a few datasets provide indices ready made.
         """
         pass
 
-    def get_topics(self, variant=None):
+    def get_topics(self, variant=None) -> pd.DataFrame:
         """
             Returns the topics, as a dataframe, ready for retrieval. 
         """
         pass
 
-    def get_topics_lang(self):
+    def get_topics_lang(self) -> Union[str,None]:
         """
             Returns the ISO 639-1 language code for the topics, or None for multiple/other/unknown
         """
         return None
 
-    def get_qrels(self, variant=None):
+    def get_qrels(self, variant=None) -> pd.DataFrame:
         """ 
             Returns the qrels, as a dataframe, ready for evaluation.
         """
         pass
+
+    def get_topicsqrels(self, variant=None) -> Tuple[pd.DataFrame,pd.DataFrame]:
+        """
+            Returns both the topics and qrels in a tuple. This is useful for pt.Experiment().
+        """
+        return (
+            self.get_topics(variant=variant),
+            self.get_qrels(variant=variant)
+        )
 
     def info_url(self):
         """
             Returns a url that provides more information about this dataset.
         """
         return None
+
+    def get_results(self, variant=None) -> pd.DataFrame:
+        """ 
+            Returns a standard result set provided by the dataset. This is useful for re-ranking experiments.
+        """
+        pass
 
 class RemoteDataset(Dataset):
 
@@ -115,21 +134,40 @@ class RemoteDataset(Dataset):
             self.password = kwargs['password']
 
     @staticmethod
-    def download(URL, filename, **kwargs):
+    def download(URLs : Union[str,List[str]], filename : str, **kwargs):
+        import pyterrier as pt
         basename = os.path.basename(filename)
-        r = requests.get(URL, allow_redirects=True, stream=True, **kwargs)
-        r.raise_for_status()
-        total = int(r.headers.get('content-length', 0))
-        with open(filename, 'wb') as file, tqdm(
-                desc=basename,
-                total=total,
-                unit='iB',
-                unit_scale=True,
-                unit_divisor=1024,
-        ) as bar:
-            for data in r.iter_content(chunk_size=1024):
-                size = file.write(data)
-                bar.update(size)
+
+        if isinstance(URLs, str):
+            URLs = [URLs]
+        
+        finalattempt=len(URLs)-1
+        error = None
+        for i, url in enumerate(URLs):            
+            try:
+                r = requests.get(url, allow_redirects=True, stream=True, **kwargs)
+                r.raise_for_status()
+                total = int(r.headers.get('content-length', 0))
+                with pt.io.finalized_open(filename, 'b') as file, tqdm(
+                        desc=basename,
+                        total=total,
+                        unit='iB',
+                        unit_scale=True,
+                        unit_divisor=1024,
+                ) as bar:
+                    for data in r.iter_content(chunk_size=1024):
+                        size = file.write(data)
+                        bar.update(size)
+                    break
+            except Exception as e:
+                if error is not None:
+                    e.__cause__ = error # chain errors to show all if fails
+                error = e
+                if i == finalattempt:
+                    raise error
+                else:
+                    warn("Problem fetching %s, resorting to next mirror" % url)
+            
 
     def _check_variant(self, component, variant=None):
         name=self.name
@@ -138,7 +176,6 @@ class RemoteDataset(Dataset):
         if variant is None:
             if not isinstance(self.locations[component], list):
                 raise ValueError("For %s in dataset %s, you must specify a variant. Available are: %s" % (component, name, str(list(self.locations[component].keys()))))
-            location = self.locations[component][0]
         else:
             if isinstance(self.locations[component], list):
                 raise ValueError("For %s in dataset %s, there are no variants, but you specified %s" % (component, name, variant))
@@ -169,8 +206,9 @@ class RemoteDataset(Dataset):
             os.makedirs(self.corpus_home)
         
         local = os.path.join(self.corpus_home, local)
-        if "#" in URL and not os.path.exists(local):
-            tarname, intarfile = URL.split("#")
+        actualURL = URL if isinstance(URL, str) else URL[0]
+        if "#" in actualURL and not os.path.exists(local):
+            tarname, intarfile = actualURL.split("#")
             assert not "/" in intarfile
             assert ".tar" in tarname or ".tgz" in tarname
             localtarfile, _ = self._get_one_file("tars", tarname)
@@ -191,17 +229,72 @@ class RemoteDataset(Dataset):
         return (local, filetype)
 
     def _get_all_files(self, component, variant=None, **kwargs):
-        localDir = os.path.join(self.corpus_home, component)
-        if not os.path.exists(localDir):
-            os.makedirs(localDir)
-            print("Downloading %s %s to %s" % (self.name, component, localDir))
+        if variant is None:
+            localDir = os.path.join(self.corpus_home, component)
+        else:
+            localDir = os.path.join(self.corpus_home, component, variant)
+
         kwargs = {}
         if self.user is not None:
             kwargs["auth"]=(self.user, self.password)
-        file_list = self.locations[component] if variant is None else self.locations[component][variant]
-        for (local, URL) in file_list:
+
+        direxists = os.path.exists(localDir)
+        
+        location = self.locations[component]
+        if is_lambda(location) or isinstance(location, types.FunctionType):
+            # functions are expensive to call, normally another HTTP is needed.
+            # just assume we have everthing we need if we have the local directory already
+            # and it contains a .complete file.
+            if direxists and os.path.exists(os.path.join(localDir, ".complete")):
+                return localDir
+
+            # call the function, and get the file list
+            file_list = location(self, component, variant, **kwargs)
+        else:
+            file_list = self.locations[component] if variant is None else self.locations[component][variant]
+
+        if not direxists:
+            os.makedirs(localDir)
+            print("Downloading %s %s to %s" % (self.name, component, localDir))
+        
+
+        # check for how much space is required and available space
+        def _totalsize(file_list):
+            total = -1
+            for f in file_list:
+                if len(f) > 2:
+                    total += f[2]
+            if total != -1:
+                total += 1
+            return total
+
+        totalsize = _totalsize(file_list)
+        if totalsize > 0:
+            import shutil
+            total, used, free = shutil.disk_usage(localDir)
+            if free < totalsize:
+                raise ValueError("Insufficient freedisk space at %s to download index" % localDir)
+            if totalsize > 2 * 2**30:
+                warn("Downloading index of > 2GB.")
+
+        for fileentry in file_list:
+            local = fileentry[0]
+            URL = fileentry[1]
+            expectedlength = -1
+            if len(fileentry) == 3:
+                expectedlength = fileentry[2]
             local = os.path.join(localDir, local)
-            if not os.path.exists(local):
+            
+            # if file exists and we know length, check if dowload is complete
+            fileexists = os.path.exists(local)
+            if fileexists and expectedlength >= 0:
+                length = os.stat(local).st_size
+                if expectedlength != length:
+                    warn("Removing partial download of %s (expected %d bytes, found %d)" % (local, expectedlength, length ))
+                    os.remove(local)
+                    fileexists = False
+
+            if not fileexists:
                 if "#" in URL:
                     tarname, intarfile = URL.split("#")
                     assert not "/" in intarfile
@@ -217,6 +310,15 @@ class RemoteDataset(Dataset):
                         RemoteDataset.download(URL, local, **kwargs)
                     except urllib.error.HTTPError as he:
                         raise ValueError("Could not fetch " + URL) from he
+
+                    # verify file if exists
+                    if expectedlength >= 0:
+                        length = os.stat(local).st_size
+                        if expectedlength != length:
+                            raise ValueError("Failed download of %s to %s (expected %d bytes, found %d)" % (URL, local, expectedlength, length ))
+
+        # finally, touch a file signifying that download has been completed
+        touch(os.path.join(localDir, ".complete"))
         return localDir
 
     def _describe_component(self, component):
@@ -224,11 +326,13 @@ class RemoteDataset(Dataset):
             return None
         if type(self.locations[component]) == type([]):
             return True
-        return list(self.locations[component].keys())
+        if isinstance(self.locations[component], dict):
+            return list(self.locations[component].keys())
+        return True
 
     def get_corpus(self, **kwargs):
         import pyterrier as pt
-        return pt.io.find_files(self._get_all_files("corpus", **kwargs))
+        return list(filter(lambda f : not f.endswith(".complete"), pt.io.find_files(self._get_all_files("corpus", **kwargs))))
 
     def get_corpus_iter(self, **kwargs):
         if not "corpus_iter" in self.locations:
@@ -261,12 +365,13 @@ class RemoteDataset(Dataset):
             return 'en' # all are english
         return None
 
-    def get_index(self, variant=None):
+    def get_index(self, variant=None, **kwargs):
         import pyterrier as pt
         if self.name == "50pct" and variant is None:
             variant="ex1"
-        thedir = self._get_all_files("index", variant=variant)
-        return pt.autoclass("org.terrier.querying.IndexRef").of(os.path.join(thedir, "data.properties"))
+        thedir = self._get_all_files("index", variant=variant, **kwargs)
+        return thedir
+        #return pt.autoclass("org.terrier.querying.IndexRef").of(os.path.join(thedir, "data.properties"))
 
     def __repr__(self):
         return "RemoteDataset for %s, with %s" % (self.name, str(list(self.locations.keys())))
@@ -278,15 +383,14 @@ class RemoteDataset(Dataset):
 class IRDSDataset(Dataset):
     def __init__(self, irds_id):
         self._irds_id = irds_id
-        self._irds_ref = None
+        self._irds_ref = ir_datasets.load(self._irds_id)
 
     def irds_ref(self):
-        if self._irds_ref is None:
-            self._irds_ref = ir_datasets.load(self._irds_id)
         return self._irds_ref
 
     def get_corpus(self):
-        raise NotImplementedError("IRDSDataset doesn't support get_corpus; use get_corpus_iter instead")
+        raise NotImplementedError("IRDSDataset doesn't support get_corpus; use get_corpus_iter instead. If you "
+                                  "are indexing, get_corpus_iter should be used in conjunction with IterDictIndexer.")
 
     def get_corpus_iter(self, verbose=True):
         ds = self.irds_ref()
@@ -379,6 +483,20 @@ class IRDSDataset(Dataset):
 
         return df
 
+    def get_results(self, variant=None) -> pd.DataFrame:
+        """ 
+            Returns a standard result set provided by the dataset. This is useful for re-ranking experiments.
+        """
+        ds = self.irds_ref()
+        assert ds.has_scoreddocs(), f"{self._irds_id} doesn't support get_reranking_run"
+        result = pd.DataFrame(ds.scoreddocs)
+        result = result.rename(columns={'query_id': 'qid', 'doc_id': 'docno'}) # convert irds field names to pyterrier names
+        result.sort_values(by=['qid', 'score', 'docno'], ascending=[True, False, True], inplace=True) # ensure data is sorted by qid, -score, did
+        # result doesn't yet contain queries (only qids) so load and merge them in
+        topics = self.get_topics(variant)
+        result = pd.merge(result, topics, how='left', on='qid', copy=False)
+        return result
+
     def _describe_component(self, component):
         ds = self.irds_ref()
         if component == "topics":
@@ -397,6 +515,8 @@ class IRDSDataset(Dataset):
             return None
         if component == "corpus":
             return ds.has_docs() or None
+        if component == "results":
+            return ds.has_scoreddocs() or None
         return None
 
     def info_url(self):
@@ -415,6 +535,37 @@ def passage_generate(dataset):
                 docno, passage = l.split("\t")
                 yield {'docno' : docno, 'text' : passage}
 
+def _datarepo_index(self, component, variant=None, version='latest', **kwargs):
+    if variant is None:
+        raise ValueError(f"Must specify index variant for {self.name}. See http://data.terrier.org/{self.name}.dataset.html")
+    urlprefix= f"http://data.terrier.org/indices/{self.name}/{variant}/{version}/"
+    url = urlprefix + "files"
+    try:
+        r = requests.get(url, **kwargs)
+        r.raise_for_status()
+        file = r.text.splitlines()
+    except Exception as e:
+        raise ValueError(f"Could not find index variant {variant} for dataset {self.name} at {url}. See available variants at http://data.terrier.org/{self.name}.dataset.html") from e
+    rtr = []
+    import re
+    for linenum, line in enumerate(file):
+        # skip comments
+        if line.startswith("#"):
+            continue
+        try:
+            (length, filename) = re.split(r"\s+", line.strip(), 2)
+            rtr.append((filename, urlprefix+filename, int(length)))
+        except Exception as e:
+            raise ValueError(f"Could not parse {url} line {linenum} '{line}'") from e
+    return rtr
+    
+def _datarepo_index_default_none(self, component, variant=None, version='latest', **kwargs):
+    """
+    For backward compatability with vaswani - use default for variant 
+    """
+    if variant is None:
+        variant = 'terrier_stemmed'
+    return _datarepo_index(self, component, variant=variant, version=version, **kwargs)
 
 ANTIQUE_FILES = {
     "topics" : {
@@ -457,7 +608,8 @@ TREC_COVID_FILES = {
         "docids-rnd4" : ("docids-rnd4.txt", "https://ir.nist.gov/covidSubmit/data/docids-rnd4.txt"),
         "docids-rnd5" : ("docids-rnd5.txt", "https://ir.nist.gov/covidSubmit/data/docids-rnd5.txt")
     },
-    "info_url"  : "https://ir.nist.gov/covidSubmit/"
+    "info_url"  : "https://ir.nist.gov/covidSubmit/",
+    "index": _datarepo_index
 }
 
 def msmarco_document_generate(dataset):
@@ -467,7 +619,7 @@ def msmarco_document_generate(dataset):
                 docno, url, title, passage = l.split("\t")
                 yield {'docno' : docno, 'url' : url, 'title' : title, 'text' : passage}
 
-TREC_DEEPLEARNING_DOCS_MSMARCO_FILES = {
+MSMARCO_DOC_FILES = {
     "corpus" : 
         [("msmarco-docs.trec.gz", "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-docs.trec.gz")],
     "corpus-tsv":
@@ -488,12 +640,21 @@ TREC_DEEPLEARNING_DOCS_MSMARCO_FILES = {
             "test-2020" : ("2020qrels-docs.txt", "https://trec.nist.gov/data/deep/2020qrels-docs.txt")
         },
     "info_url" : "https://microsoft.github.io/msmarco/",
-    "corpus_iter" : msmarco_document_generate
+    "corpus_iter" : msmarco_document_generate,
+    "index" : _datarepo_index
 }
 
-TREC_DEEPLEARNING_PASSAGE_MSMARCO_FILES = {
+MSMARCO_PASSAGE_FILES = {
     "corpus" : 
         [("collection.tsv", "collection.tar.gz#collection.tsv")],
+    "index": {
+        "terrier_stemmed" : [(filename, TERRIER_DATA_BASE + "/msmarco_passage/terrier_stemmed/latest/" + filename) for filename in STANDARD_TERRIER_INDEX_FILES],
+        "terrier_unstemmed" : [(filename, TERRIER_DATA_BASE + "/msmarco_passage/terrier_unstemmed/latest/" + filename) for filename in STANDARD_TERRIER_INDEX_FILES],
+        "terrier_stemmed_text" : [(filename, TERRIER_DATA_BASE + "/msmarco_passage/terrier_stemmed_text/latest/" + filename) for filename in STANDARD_TERRIER_INDEX_FILES],
+        "terrier_unstemmed_text" : [(filename, TERRIER_DATA_BASE + "/msmarco_passage/terrier_unstemmed_text/latest/" + filename) for filename in STANDARD_TERRIER_INDEX_FILES],
+        "terrier_stemmed_deepct" : [(filename, TERRIER_DATA_BASE + "/msmarco_passage/terrier_stemmed_deepct/latest/" + filename) for filename in STANDARD_TERRIER_INDEX_FILES],
+        "terrier_stemmed_docT5query" : [(filename, TERRIER_DATA_BASE + "/msmarco_passage/terrier_stemmed_docT5query/latest/" + filename) for filename in STANDARD_TERRIER_INDEX_FILES],
+    },
     "topics" :
         { 
             "train" : ("queries.train.tsv", "queries.tar.gz#queries.train.tsv", "singleline"),
@@ -518,7 +679,44 @@ TREC_DEEPLEARNING_PASSAGE_MSMARCO_FILES = {
             "dev.small" : ("qrels.dev.small.tsv", "collectionandqueries.tar.gz#qrels.dev.small.tsv"),
         },
     "info_url" : "https://microsoft.github.io/MSMARCO-Passage-Ranking/",
-    "corpus_iter" : passage_generate
+    "corpus_iter" : passage_generate,
+    "index" : _datarepo_index
+}
+
+MSMARCOv2_DOC_FILES = {
+    "info_url" : "https://microsoft.github.io/msmarco/TREC-Deep-Learning.html",
+    "topics" : {
+        "train" : ("docv2_train_queries.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/docv2_train_queries.tsv", "singleline"),
+        "dev1"  :("docv2_dev_queries.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/docv2_dev_queries.tsv", "singleline"),
+        "dev2"  :("docv2_dev2_queries.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/docv2_dev2_queries.tsv", "singleline"),
+        "valid1" : ("msmarco-test2019-queries.tsv.gz" , "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-test2019-queries.tsv.gz", "singleline"),
+        "valid2" : ("msmarco-test2020-queries.tsv.gz" , "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-test2020-queries.tsv.gz", "singleline"),
+        "trec_2021" : ("2021_queries.tsv" , "https://msmarco.blob.core.windows.net/msmarcoranking/2021_queries.tsv", "singleline"),
+    },
+    "qrels" : {
+        "train" : ("docv2_train_qrels.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/docv2_train_qrels.tsv"),
+        "dev1"  :("docv2_dev_qrels.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/docv2_dev_qrels.tsv"),
+        "dev2"  :("docv2_dev2_qrels.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/docv2_dev2_qrels.tsv"),
+        "valid1" : ("docv2_trec2019_qrels.txt.gz" , "https://msmarco.blob.core.windows.net/msmarcoranking/docv2_trec2019_qrels.txt.gz"),
+        "valid2" : ("docv2_trec2020_qrels.txt.gz" , "https://msmarco.blob.core.windows.net/msmarcoranking/docv2_trec2020_qrels.txt.gz")
+    },
+    "index" : _datarepo_index,
+}
+
+MSMARCOv2_PASSAGE_FILES = {
+    "info_url" : "https://microsoft.github.io/msmarco/TREC-Deep-Learning.html",
+    "topics" : {
+        "train" : ("passv2_train_queries.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/passv2_train_queries.tsv", "singleline"),
+        "dev1"  : ("passv2_dev_queries.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/passv2_dev_queries.tsv", "singleline"),
+        "dev2"  : ("passv2_dev2_queries.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/passv2_dev2_queries.tsv", "singleline"),
+        "trec_2021" : ("2021_queries.tsv" , "https://msmarco.blob.core.windows.net/msmarcoranking/2021_queries.tsv", "singleline"),
+    },
+    "qrels" : {
+        "train" : ("passv2_train_qrels.tsv" "https://msmarco.blob.core.windows.net/msmarcoranking/passv2_train_qrels.tsv"),
+        "dev1"  : ("passv2_dev_qrels.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/passv2_dev_qrels.tsv"),
+        "dev2"  : ("passv2_dev2_qrels.tsv", "https://msmarco.blob.core.windows.net/msmarcoranking/passv2_dev2_qrels.tsv"),
+    },
+    "index" : _datarepo_index,
 }
 
 # remove WT- prefix from topics
@@ -573,12 +771,16 @@ TREC_WT_2003_FILES = {
     "info_url" : "https://trec.nist.gov/data/t12.web.html",
 }
 
+def irds_mirror(md5):
+    return f'http://mirror.ir-datasets.com/{md5}'
+
 def filter_on_qid_type(self, component, variant):
     if component == "topics":
         data = self.get_topics("all")
     elif component == "qrels":
         data = self.get_qrels("all")
-    qid2type = pd.read_csv("https://trec.nist.gov/data/web/04.topic-map.official.txt", names=["qid", "type"], sep=" ")
+    qid2type_file = self._get_one_file("topics_map")[0]
+    qid2type = pd.read_csv(qid2type_file, names=["qid", "type"], sep=" ")
     qid2type["qid"] = qid2type.apply(lambda row: row["qid"].split("-")[1], axis=1)
     rtr = data.merge(qid2type[qid2type["type"] == variant], on=["qid"])
     if len(rtr) == 0:
@@ -594,16 +796,27 @@ TREC_WT_2004_FILES = {
             "hp": filter_on_qid_type,
             "td": filter_on_qid_type,
         },
-    "topics_prefixed" : 
-        { 
-            "all" : ("Web2004.query.stream.trecformat.txt", "https://trec.nist.gov/data/web/Web2004.query.stream.trecformat.txt", "trec")
-        },
+    "topics_map" : [("04.topic-map.official.txt", [
+        "https://trec.nist.gov/data/web/04.topic-map.official.txt",
+        irds_mirror("79737768b3be1aa07b14691aa54802c5"),
+        "https://www.dcs.gla.ac.uk/~craigm/04.topic-map.official.txt"
+        ] )],
+    "topics_prefixed" : { 
+        "all" : ("Web2004.query.stream.trecformat.txt", [
+                "https://trec.nist.gov/data/web/Web2004.query.stream.trecformat.txt",
+                irds_mirror("10821f7a000b8bec058097ede39570be"),
+                "https://www.dcs.gla.ac.uk/~craigm/Web2004.query.stream.trecformat.txt"], 
+            "trec")
+    },
     "qrels" : 
         {
             "hp" : filter_on_qid_type,
             "td" : filter_on_qid_type,
             "np" : filter_on_qid_type,
-            "all" : ("04.qrels.web.mixed.txt", "https://trec.nist.gov/data/web/04.qrels.web.mixed.txt")
+            "all" : ("04.qrels.web.mixed.txt", [
+                "https://trec.nist.gov/data/web/04.qrels.web.mixed.txt",
+                irds_mirror("93daa0e4b4190c84e30d2cce78a0f674"),
+                "https://www.dcs.gla.ac.uk/~craigm/04.qrels.web.mixed.txt"])
         },
     "info_url" : "https://trec.nist.gov/data/t13.web.html",
 }
@@ -611,8 +824,8 @@ TREC_WT_2004_FILES = {
 FIFTY_PCT_INDEX_BASE = "http://www.dcs.gla.ac.uk/~craigm/IR_HM/"
 FIFTY_PCT_FILES = {
     "index": {
-        "ex1" : [(filename, FIFTY_PCT_INDEX_BASE + "index/" + filename) for filename in ["data.meta-0.fsomapfile"] + STANDARD_TERRIER_INDEX_FILES],
-        "ex2" : [(filename, FIFTY_PCT_INDEX_BASE + "index_block_fields_2021_content/" + filename) for filename in ["data.meta-0.fsomapfile", "data-pagerank.oos"] + STANDARD_TERRIER_INDEX_FILES],   
+        "ex2" : [(filename, FIFTY_PCT_INDEX_BASE + "index/" + filename) for filename in ["data.meta-0.fsomapfile"] + STANDARD_TERRIER_INDEX_FILES],
+        "ex3" : [(filename, FIFTY_PCT_INDEX_BASE + "ex3/" + filename) for filename in ["data.meta-0.fsomapfile", "data-pagerank.oos"] + STANDARD_TERRIER_INDEX_FILES],   
     },
     "topics": { 
             "training" : ("training.topics", FIFTY_PCT_INDEX_BASE + "topics/" + "training.topics", "trec"),
@@ -785,14 +998,18 @@ TREC_PRECISION_MEDICINE_FILES = {
 VASWANI_CORPUS_BASE = "https://raw.githubusercontent.com/terrier-org/pyterrier/master/tests/fixtures/vaswani_npl/"
 VASWANI_INDEX_BASE = "https://raw.githubusercontent.com/terrier-org/pyterrier/master/tests/fixtures/index/"
 VASWANI_FILES = {
-    "corpus":
-        [("doc-text.trec", VASWANI_CORPUS_BASE + "corpus/doc-text.trec")],
-    "topics":
-        [("query-text.trec", VASWANI_CORPUS_BASE + "query-text.trec")],
-    "qrels":
-        [("qrels", VASWANI_CORPUS_BASE + "qrels")],
-    "index":
-        [(filename, VASWANI_INDEX_BASE + filename) for filename in STANDARD_TERRIER_INDEX_FILES + ["data.meta-0.fsomapfile"]],
+    "corpus": [("doc-text.trec", [
+        VASWANI_CORPUS_BASE + "corpus/doc-text.trec",
+        irds_mirror("a059e713c50350e39999467c8c73b7c5")])],
+    "topics": [("query-text.trec", [
+        VASWANI_CORPUS_BASE + "query-text.trec",
+        irds_mirror("3a624be2b0ef7c9534cf848891679bec")])],
+    "qrels": [("qrels", [
+        VASWANI_CORPUS_BASE + "qrels",
+        irds_mirror("6acb6db9969da8b8c6c23c09551af8d9")])],
+    "index": _datarepo_index_default_none,
+    #"index":
+    #    [(filename, VASWANI_INDEX_BASE + filename) for filename in STANDARD_TERRIER_INDEX_FILES + ["data.meta-0.fsomapfile"]],
     "info_url" : "http://ir.dcs.gla.ac.uk/resources/test_collections/npl/",
     "corpus_iter" : lambda dataset, **kwargs : pyterrier.index.treccollection2textgen(dataset.get_corpus(), num_docs=11429, verbose=kwargs.get("verbose", False))
 }
@@ -804,8 +1021,10 @@ DATASET_MAP = {
     "antique" : RemoteDataset("antique", ANTIQUE_FILES),
     # generated from http://ir.dcs.gla.ac.uk/resources/test_collections/npl/
     "vaswani": RemoteDataset("vaswani", VASWANI_FILES),
-    "trec-deep-learning-docs" : RemoteDataset("trec-deep-learning-docs", TREC_DEEPLEARNING_DOCS_MSMARCO_FILES),
-    "trec-deep-learning-passages" : RemoteDataset("trec-deep-learning-passages", TREC_DEEPLEARNING_PASSAGE_MSMARCO_FILES),
+    "msmarco_document" : RemoteDataset("msmarco_document", MSMARCO_DOC_FILES),
+    "msmarcov2_document" : RemoteDataset("msmarcov2_document", MSMARCOv2_DOC_FILES),
+    "msmarco_passage" : RemoteDataset("msmarco_passage", MSMARCO_PASSAGE_FILES),
+    "msmarcov2_passage" : RemoteDataset("msmarcov2_passage", MSMARCOv2_PASSAGE_FILES),
     "trec-robust-2004" : RemoteDataset("trec-robust-2004", TREC_ROBUST_04_FILES),
     "trec-robust-2005" : RemoteDataset("trec-robust-2005", TREC_ROBUST_05_FILES),
     "trec-terabyte" : RemoteDataset("trec-terabyte", TREC_TB_FILES),
@@ -839,11 +1058,23 @@ import ir_datasets
 for ds_id in ir_datasets.registry:
     DATASET_MAP[f'irds:{ds_id}'] = IRDSDataset(ds_id)
 
+# "trec-deep-learning-docs"
+#DATASET_MAP['msmarco_document'] = DATASET_MAP["trec-deep-learning-docs"]
+#DATASET_MAP['msmarco_passage'] = DATASET_MAP["trec-deep-learning-passages"]
+DATASET_MAP["trec-deep-learning-docs"] = DATASET_MAP['msmarco_document']
+DATASET_MAP["trec-deep-learning-passages"] = DATASET_MAP['msmarco_passage']
+
 
 def get_dataset(name, **kwargs):
     """
         Get a dataset by name
     """
+    # Some datasets in ir_datasets are built on-the-fly (e.g., clirmatrix).
+    # Handle this by allocating it on demand here.
+    if name not in DATASET_MAP and name.startswith('irds:'):
+        # remove irds: prefix
+        ds_id = name[len('irds:'):]
+        DATASET_MAP[name] = IRDSDataset(ds_id)
     rtr = DATASET_MAP[name]
     rtr._configure(**kwargs)
     return rtr
@@ -853,6 +1084,13 @@ def datasets():
         Lists all the names of the datasets
     """
     return DATASET_MAP.keys()
+
+def find_datasets(query, en_only=True):
+    """
+    A grep-like method to help identify datasets. Filters the output of list_datasets() based on the name containing the query
+    """
+    datasets = list_datasets(en_only=en_only)
+    return datasets[datasets['dataset'].str.contains(query)]
 
 def list_datasets(en_only=True):
     """

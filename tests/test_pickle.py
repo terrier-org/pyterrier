@@ -51,7 +51,7 @@ class TestPickle(TempDirTestCase):
 
     def _sourcetransformer(self, pickler):
         df = pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"])
-        t = pt.transformer.SourceTransformer(df)
+        t = pt.Transformer.from_df(df)
         t_2 = pickler.loads(pickler.dumps(t))
         q  = pd.DataFrame([["q1", "query"]], columns=["qid", "query"])
         res = t_2(q)
@@ -69,6 +69,22 @@ class TestPickle(TempDirTestCase):
     def test_br_pickle(self):
         self._br(pickle)
 
+    # def test_br_dill_callback(self):
+    #     import dill
+    #     self._br(dill, wmodel=lambda keyFreq, posting, entryStats, collStats: posting.getFrequency())
+
+    def test_br_pickle_callback(self):
+        import pickle
+        self._br(pickle, wmodel=lambda keyFreq, posting, entryStats, collStats: posting.getFrequency())
+
+    def test_br_joblib_callback(self):
+        import joblib
+        self._fix_joblib()
+        self._br(joblib, wmodel=lambda keyFreq, posting, entryStats, collStats: posting.getFrequency())
+
+    def test_br_pickle_straightwmodel(self):
+        self._br(pickle, wmodel=pt.autoclass("org.terrier.matching.models.BM25")())
+
     def test_br_joblib(self):
         import joblib
         self._fix_joblib()
@@ -82,14 +98,15 @@ class TestPickle(TempDirTestCase):
         self._fix_joblib()
         self._fbr(joblib)
 
-    def _br(self, pickler):
+    def _br(self, pickler, wmodel='BM25'):
         vaswani = pt.datasets.get_dataset("vaswani")
-        br = pt.BatchRetrieve(vaswani.get_index(), wmodel="BM25", controls={"c" : 0.75}, num_results=15)
+        br = pt.BatchRetrieve(vaswani.get_index(), wmodel=wmodel, controls={"c" : 0.75}, num_results=15)
         q  = pd.DataFrame([["q1", "chemical"]], columns=["qid", "query"])
         res1 = br(q)
         br2 = pickler.loads(pickler.dumps(br))
 
-        self.assertEqual("BM25", br2.controls["wmodel"])
+        if isinstance(wmodel, str):
+            self.assertEqual(wmodel, br2.controls["wmodel"])
         self.assertEqual(br.controls, br2.controls)
         self.assertEqual(br.properties, br2.properties)
         self.assertEqual(br.metadata, br2.metadata)

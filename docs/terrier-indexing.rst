@@ -4,7 +4,7 @@ Terrier Indexing
 PyTerrier has a number of useful classes for creating Terrier indices, which can be used for retrieval, query expansion, etc.
 There are four indexer classes:
 
- - You can create an index from TREC-formatted files, from a TREC test collectoin, using TRECCollectionIndexer.
+ - You can create an index from TREC-formatted files, from a TREC test collection, using TRECCollectionIndexer.
  - For indexing TXT, PDF, Microsoft Word files, etc files you can use FilesIndexer.
  - For indexing Pandas Dataframe you can use DFIndexer.
  - For any abitrary iterable dictionaries, you can use IterDictIndexer.
@@ -18,7 +18,7 @@ Index Types
 ===========
 
 .. autoclass:: pyterrier.index.IndexingType
-   :inherited-members: CLASSIC SINGLEPASS MEMORY
+   :inherited-members: CLASSIC, SINGLEPASS, MEMORY
 
 Indexer Classes
 ===============
@@ -84,7 +84,22 @@ IterDictIndexer
 .. autoclass:: pyterrier.IterDictIndexer
    :members: index
 
-Example indexing MSMARCO Passage Ranking dataset::
+**Examples using IterDictIndexer**
+
+An iterdict can just be a list of dictionaries::
+
+    docs = [ { 'docno' : 'doc1', 'text' : 'a b c' }  ]
+    iter_indexer = pt.IterDictIndexer("./index")
+    indexref1 = iter_indexer.index(docs, meta=['docno', 'text'], meta_lengths=[20, 4096])
+
+A dataframe can also be used, virtue of its ``.to_dict()`` method::
+
+    df = pd.DataFrame([['doc1', 'a b c']], columns=['docno', 'text'])
+    iter_indexer = pt.IterDictIndexer("./index")
+    indexref2 = indexer.index(df.to_dict(orient="records"))
+
+However, the main power of using IterDictIndexer is for processing indefinite iterables, such as those returned by generator functions.
+For example, the tsv file of the MSMARCO Passage Ranking corpus can be indexed as follows::
 
     dataset = pt.get_dataset("trec-deep-learning-passages")
     def msmarco_generate():
@@ -96,10 +111,42 @@ Example indexing MSMARCO Passage Ranking dataset::
     iter_indexer = pt.IterDictIndexer("./passage_index")
     indexref3 = iter_indexer.index(msmarco_generate(), meta=['docno', 'text'], meta_lengths=[20, 4096])
 
-On UNIX-based systems, you can also perform multi-threaded indexing::
+IterDictIndexer can be used in connection with :ref:`indexing_pipelines`.
+
+Similarly, indexing of JSONL files is similarly a few lines of Python::
+
+    def iter_file(filename):
+      import json
+      with open(filename, 'rt') as file:
+        for l in file:
+          # assumes that each line contains 'docno', 'text' attributes
+          # yields a dictionary for each json line 
+          yield json.loads(l)
+
+    indexref4 = pt.IterDictIndexer("./index").index(iter_file("/path/to/file.jsonl"), meta=['docno', 'text'], meta_lengths=[20, 4096])
+  
+NB: Use ``pt.io.autoopen()`` as a drop-in replacement for ``open()`` that supports files compressed by gzip etc.
+
+**Indexing TREC-formatted files using IterDictIndexer**
+
+If you have TREC-formatted files that you wish to use with an IterDictIndexer-like indexer, ``pt.index.treccollection2textgen()`` can be used
+as a helper function to aid in parsing such files.
+
+.. autofunction:: pyterrier.index.treccollection2textgen
+
+Example using Indexing Pipelines::
+
+    files = pt.io.find_files("/path/to/Disk45")
+    gen = pt.index.treccollection2textgen(files)
+    indexer = pt.text.sliding() >> pt.IterDictIndexer("./index45")
+    index = indexer.index(gen)
+
+**Threading**
+
+On UNIX-based systems, IterDictIndexer can also perform multi-threaded indexing::
 
     iter_indexer = pt.IterDictIndexer("./passage_index_8", threads=8)
-    indexref4 = iter_indexer.index(msmarco_generate(), meta=['docno', 'text'], meta_lengths=[20, 4096])
+    indexref6 = iter_indexer.index(msmarco_generate(), meta=['docno', 'text'], meta_lengths=[20, 4096])
 
 Note that the resulting index ordering with multiple threads is non-deterministic; if you need 
 deterministic behavior you must index in single-threaded mode. Furthermore, indexing can only go
@@ -123,11 +170,11 @@ indexing configurations, and how to apply them when indexing using PyTerrier, no
  See the `org.terrier.terms <http://terrier.org/docs/current/javadoc/org/terrier/terms/package-summary.html>`_ package for a list of 
  the available term pipeline objects provided by Terrier.
 
-- *tokenisation*: Similarly, tokenisation is controlled by the `"tokeniser"` property. `EnglishTokeniser <http://terrier.org/docs/current/javadoc/org/terrier/indexing/tokenisation/EnglishTokeniser.html>`_ is the  default tokeniser. Other tokenisers are listed in  `org.terrier.indexing.tokenisation <http://terrier.org/docs/current/javadoc/org/terrier/indexing/tokenisation/package-summary.html>`_ package. For instance, use `indexer.setProperty("tokeniser", "UTFTokeniser")` when indexing non-English text.
+- *languages and tokenisation*: Similarly, the choice of tokeniser is controlled by the `"tokeniser"` property. `EnglishTokeniser <http://terrier.org/docs/current/javadoc/org/terrier/indexing/tokenisation/EnglishTokeniser.html>`_ is the  default tokeniser. Other tokenisers are listed in  `org.terrier.indexing.tokenisation <http://terrier.org/docs/current/javadoc/org/terrier/indexing/tokenisation/package-summary.html>`_ package. For instance, use `indexer.setProperty("tokeniser", "UTFTokeniser")` when indexing non-English text.
 
 - *positions (aka blocks)* - all indexers expose a `blocks` boolean constructor argument to allow position information to be recoreded in the index. Defaults to False, i.e. positions are not recorded.
 
-- *fields* - fields refers to storing the frequency of a terms occurrence in different parts of a document, e.g. title vs body vs anchor text In the IterDictIndexer, Fields are set in the `index()` method; otherwise the `"FieldTags.process"` property must be set. See the Terrier `indexing documentation on fields <https://github.com/terrier-org/terrier-core/blob/5.x/doc/configure_indexing.md#fields>`_ for more information. 
+- *fields* - fields refers to storing the frequency of a terms occurrence in different parts of a document, e.g. title vs body vs anchor text. In the IterDictIndexer, fields are set in the `index()` method; otherwise the `"FieldTags.process"` property must be set. See the Terrier `indexing documentation on fields <https://github.com/terrier-org/terrier-core/blob/5.x/doc/configure_indexing.md#fields>`_ for more information. 
 
 - *changing the tags parsed by TREC Collection* - use the relevant properties listed in the Terrier `indexing documentation <https://github.com/terrier-org/terrier-core/blob/5.x/doc/configure_indexing.md#basic-indexing-setup>`_.
 
