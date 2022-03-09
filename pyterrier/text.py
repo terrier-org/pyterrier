@@ -346,6 +346,8 @@ class DePassager(TransformerBase):
             #add query columns back
             rtr = rtr.merge(topics_and_res[query_columns(topics_and_res)].drop_duplicates(), on='qid')
 
+        if "docid" in rtr.columns:
+            rtr = rtr.drop(columns=['docid'])
         rtr = add_ranks(rtr)
         return rtr
 
