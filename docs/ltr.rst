@@ -106,7 +106,7 @@ A sklearn regressor can be passed directly to `pt.ltr.apply_learned_model()`::
 Note that if the feature definitions in the pipeline change, you will need to create a new instance of `rf`.
 
 For analysis purposes, the feature importances identified by RandomForestRegressor can be accessed
-through `rf.features_importances_` - see the `relevant sklearn documentation <https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html#sklearn.ensemble.RandomForestRegressor.feature_importances_>`_ for more information.
+through `rf.feature_importances_` - see the `relevant sklearn documentation <https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html#sklearn.ensemble.RandomForestRegressor.feature_importances_>`_ for more information.
 
 Gradient Boosted Trees & LambdaMART
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -156,7 +156,7 @@ Note that if the feature definitions in the pipeline change, you will need to cr
 
 In our experience, LightGBM *tends* to be more effective than xgBoost.
 
-Similar to sklearn, both XGBoost and LightGBM provide feature importances via `lmart_x.features_importances_` and `lmart_l.features_importances_`.
+Similar to sklearn, both XGBoost and LightGBM provide feature importances via `lmart_x.feature_importances_` and `lmart_l.feature_importances_`.
 
 FastRank: Coordinate Ascent
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
