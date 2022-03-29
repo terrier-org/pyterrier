@@ -130,7 +130,7 @@ class LTRTransformer(RegressionTransformer):
             np.stack(tr_res["features"].values), tr_res["label"].values, 
             group=tr_res.groupby(["qid"])["docno"].count().to_numpy(), # we name group here for lightgbm compat. 
             eval_set=[(np.stack(va_res["features"].values), va_res["label"].values)],
-            eval_group=[va_res.groupby(["qid"]).count().to_numpy()],
+            eval_group=[va_res.groupby(["qid"])["docno"].count().to_numpy()],
             **kwargs
         )
         self.num_f = tr_res.iloc[0].features.shape[0]
