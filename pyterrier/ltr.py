@@ -144,8 +144,7 @@ class FastRankEstimator(EstimatorBase):
         Init method
 
         Args:
-            LTR: The model which to use for learning-to-rank. Must have a fit() and predict() methods.
-            fit_kwargs: A dictionary containing additional arguments that can be passed to LTR's fit() method.  
+            learner: The model which to use for learning-to-rank. Must have a fit() and predict() methods.
         """
         super().__init__(*args, **kwargs)
         self.learner = learner
