@@ -4,7 +4,7 @@ from .transformer import TransformerBase, EstimatorBase
 from .apply import doc_score, doc_features
 from .model import add_ranks
 from typing import Sequence, Union
-import numpy as np
+import numpy as np, pandas as pd
 
 FeatureList = Union[Sequence[int], int]
 
@@ -112,6 +112,13 @@ class LTRTransformer(RegressionTransformer):
             qrelsValid(DataFrame): A dataframe containing the qrels for the validation topics
             
         """
+
+        def _count_by_topic(res : pd.DataFrame) -> Sequence[int]:
+            # we must ensure res and count_series have the same ordering
+            res = res.sort_values("qid")
+            count_series = res.groupby(["qid"], sort=False)["docno"].count().to_numpy()
+            return count_series, res
+
         if topics_and_results_Train is None or len(topics_and_results_Train) == 0:
             raise ValueError("No training results to fit to")
         if topics_and_results_Valid is None or len(topics_and_results_Valid) == 0:
@@ -126,11 +133,16 @@ class LTRTransformer(RegressionTransformer):
         va_res = topics_and_results_Valid.merge(qrelsValid, on=['qid', 'docno'], how='left').fillna(0)
 
         kwargs = self.fit_kwargs
+
+        # this enforces a sort on tr_res and va_res that matches the counts
+        counts_tr, tr_res = _count_by_topic(tr_res)
+        counts_va, va_res = _count_by_topic(va_res)
+        
         self.learner.fit(
             np.stack(tr_res["features"].values), tr_res["label"].values, 
-            group=tr_res.groupby(["qid"])["docno"].count().to_numpy(), # we name group here for lightgbm compat. 
+            group=counts_tr, # we name group here for lightgbm compat. 
             eval_set=[(np.stack(va_res["features"].values), va_res["label"].values)],
-            eval_group=[va_res.groupby(["qid"])["docno"].count().to_numpy()],
+            eval_group=[counts_va],
             **kwargs
         )
         self.num_f = tr_res.iloc[0].features.shape[0]
