@@ -3,7 +3,7 @@
 from .transformer import TransformerBase, EstimatorBase
 from .apply import doc_score, doc_features
 from .model import add_ranks
-from typing import Sequence, Union
+from typing import Sequence, Union, Tuple
 import numpy as np, pandas as pd
 
 FeatureList = Union[Sequence[int], int]
@@ -113,7 +113,7 @@ class LTRTransformer(RegressionTransformer):
             
         """
 
-        def _count_by_topic(res : pd.DataFrame) -> Sequence[int]:
+        def _count_by_topic(res : pd.DataFrame) -> Tuple[Sequence[int], pd.DataFrame]:
             # we must ensure res and count_series have the same ordering
             res = res.sort_values("qid")
             count_series = res.groupby(["qid"], sort=False)["docno"].count().to_numpy()
