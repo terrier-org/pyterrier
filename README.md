@@ -11,7 +11,7 @@ A Python API for Terrier - v.0.8
 
 The easiest way to get started with PyTerrier is to use one of our Colab notebooks - look for the ![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg) badges below.
 
-### Linux or Google Colab
+### Linux or Google Colab or Windows
 1. `pip install python-terrier`
 2. You may need to set JAVA_HOME environment variable if Pyjnius cannot find your Java installation.
 
@@ -19,10 +19,6 @@ The easiest way to get started with PyTerrier is to use one of our Colab noteboo
 
 1. You need to hava Java installed. Pyjnius/PyTerrier will pick up the location automatically.
 2. `pip install python-terrier`
-
-### Windows 🆕
-1. `pip install python-terrier`
-2. You may need to set JAVA_HOME environment variable if Pyjnius cannot find your Java installation.
 
 # Indexing
 
