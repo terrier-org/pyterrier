@@ -838,11 +838,11 @@ class ComposedPipeline(NAryTransformerBase):
     def fit(self, topics_or_res_tr, qrels_tr, topics_or_res_va=None, qrels_va=None):
         """
         This is a default implementation for fitting a pipeline. The assumption is that
-        all EstimatorBase be composed with a TransformerBase. It will execute any pre-requisite
-        transformers BEFORE executing the fitting the stage.
+        all Estimator be composed with someo other Transformer. It will execute any pre-requisite
+        transformers BEFORE executing the fitting of the Estimator stage.
         """
         for m in self.models:
-            if isinstance(m, EstimatorBase):
+            if isinstance(m, Estimator):
                 m.fit(topics_or_res_tr, qrels_tr, topics_or_res_va, qrels_va)
             else:
                 topics_or_res_tr = m.transform(topics_or_res_tr)
