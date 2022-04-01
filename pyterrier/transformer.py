@@ -374,9 +374,9 @@ class SourceTransformer(TransformerBase, Operation):
 
         # we drop columns in topics that exist in the self.df
         drop_columns = common_columns[common_columns != "qid"]
-        if len(drop_columns) > 1:
+        if len(drop_columns) > 0:
             keeping = topics.columns[~ topics.columns.isin(drop_columns)]
-
+        
         rtr = topics[keeping].merge(self.df, on="qid")
         return rtr
 

@@ -27,8 +27,7 @@ class TestOperators(BaseTestCase):
         self.assertEqual(2, len(rtr.columns))  
         self.assertEqual("AA", rtr.iloc[0]["query"])
 
-        sequence1 = topicsSource >> ptt.ApplyGenericTransformer(fn1)
-        self.assertTrue(isinstance(sequence1[0], ptt.SourceTransformer))
+        sequence1 = pt.Transformer.from_df(topicsSource) >> ptt.ApplyGenericTransformer(fn1)
         rtr = sequence1(topics)
         self.assertTrue("query" in rtr.columns)
         self.assertTrue("qid" in rtr.columns)
