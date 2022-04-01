@@ -32,13 +32,13 @@ def get_transformer(v):
     if is_transformer(v):
         return v
     if is_lambda(v):
-        warn('Coercion of a lambda into a transformer is deprecated; use a pt.apply instead')
+        warn('Coercion of a lambda into a transformer is deprecated; use a pt.apply instead', DeprecationWarning)
         return ApplyGenericTransformer(v)
     if is_function(v):
-        warn('Coercion of a function into a transformer is deprecated; use a pt.apply instead')
+        warn('Coercion of a function into a transformer is deprecated; use a pt.apply instead', DeprecationWarning)
         return ApplyGenericTransformer(v)
     if isinstance(v, pd.DataFrame):
-        warn('Coercion of a dataframe into a transformer is deprecated; use a pt.Transformer.from_df() instead')
+        warn('Coercion of a dataframe into a transformer is deprecated; use a pt.Transformer.from_df() instead', DeprecationWarning)
         return SourceTransformer(v)
     raise ValueError("Passed parameter %s of type %s cannot be coerced into a transformer" % (str(v), type(v)))
 
