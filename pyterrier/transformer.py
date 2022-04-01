@@ -2,6 +2,7 @@
 import types
 from matchpy import ReplacementRule, Wildcard, Symbol, Symbol, Operation, Arity, replace_all
 from warnings import warn
+from deprecated import deprecated
 import pandas as pd
 from .model import add_ranks
 from typing import Iterable, Iterator, Union
@@ -258,6 +259,7 @@ class Transformer:
     def __hash__(self):
         return hash(repr(self))
 
+@deprecated(reason="Use public pt.Transformer class instead", version='0.9')
 class TransformerBase(Transformer):
     # this was the older name of Transformer.
     # it will be deprecated in a future release.
@@ -287,6 +289,7 @@ class Estimator(Transformer):
         """
         pass
 
+@deprecated(reason="Use public pt.Estimator class instead", version='0.9')
 class EstimatorBase(Estimator):
     pass
 
