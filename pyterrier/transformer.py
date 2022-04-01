@@ -4,7 +4,6 @@ from matchpy import ReplacementRule, Wildcard, Symbol, Symbol, Operation, Arity,
 from warnings import warn
 import pandas as pd
 from .model import add_ranks
-from . import tqdm
 from typing import Iterable, Iterator, Union
 # NB: this module is intended to have no dependencies on anything using Java
 
@@ -553,6 +552,7 @@ class ApplyForEachQuery(ApplyTransformerBase):
         self.add_ranks = add_ranks
     
     def transform(self, res):
+        from . import tqdm
         if len(res) == 0:
             return self.fn(res)
         it = res.groupby("qid")
@@ -587,6 +587,7 @@ class ApplyDocumentScoringTransformer(ApplyTransformerBase):
         super().__init__(fn, *args, **kwargs)
     
     def transform(self, inputRes):
+        from . import tqdm
         fn = self.fn
         outputRes = inputRes.copy()
         if self.verbose:
@@ -617,6 +618,7 @@ class ApplyDocFeatureTransformer(ApplyTransformerBase):
         super().__init__(fn, *args, **kwargs)
 
     def transform(self, inputRes):
+        from . import tqdm
         fn = self.fn
         outputRes = inputRes.copy()
         if self.verbose:
@@ -655,6 +657,7 @@ class ApplyQueryTransformer(ApplyTransformerBase):
 
     def transform(self, inputRes):
         from .model import push_queries
+        from . import tqdm
         fn = self.fn
         outputRes = push_queries(inputRes.copy(), inplace=True, keep_original=True)
         if self.verbose:

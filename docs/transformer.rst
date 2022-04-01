@@ -65,7 +65,7 @@ EstimatorBase
 
 This class exposes a ``fit()`` method that can be used for transformers that can be trained.
 
-.. autoclass:: pyterrier.transformer.EstimatorBase
+.. autoclass:: pyterrier.Estimator
     :members:
 
 The ComposedPipeline implements ``fit()``, which applies the interimediate transformers on the specified training (and validation) topics, and places

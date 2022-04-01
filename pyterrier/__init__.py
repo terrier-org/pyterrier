@@ -2,7 +2,7 @@ __version__ = "0.8.0"
 
 import os
 
-from pyterrier.transformer import Estimator
+from pyterrier.transformer import Estimator, Transformer
 
 from .bootstrap import _logging, setup_terrier, setup_jnius, is_windows
 
@@ -24,8 +24,6 @@ pipelines = None
 rewrite = None
 text = None
 transformer = None
-Transformer = None
-Estimator = None
 
 file_path = os.path.dirname(os.path.abspath(__file__))
 firstInit = False
@@ -197,8 +195,6 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     globals()["GridScan"] = GridScan
     globals()["GridSearch"] = GridSearch
     globals()["KFoldGridSearch"] = KFoldGridSearch
-    globals()["Transformer"] = Transformer
-    globals()["Estimator"] = Estimator
     
     
     # we save the pt.init() arguments so that other processes,

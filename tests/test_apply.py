@@ -1,5 +1,5 @@
 
-from pyterrier.transformer import TransformerBase
+from pyterrier import Transformer
 import pandas as pd
 import pyterrier as pt
 import os
@@ -12,18 +12,16 @@ import os
 class TestCache(BaseTestCase):
 
     def test_drop_columns(self):
-        from pyterrier.transformer import TransformerBase
         testDF = pd.DataFrame([["q1", "the bear and the wolf", 1]], columns=["qid", "query", "Bla"])
         p = pt.apply.Bla(drop=True)
-        self.assertTrue(isinstance(p, TransformerBase))
+        self.assertTrue(isinstance(p, Transformer))
         rtr = p(testDF)
         self.assertTrue("Bla" not in rtr.columns)
 
     def test_make_columns(self):
-        from pyterrier.transformer import TransformerBase
         testDF = pd.DataFrame([["q1", "the bear and the wolf", 1]], columns=["qid", "query", "Bla"])
         p = pt.apply.BlaB(lambda row: row["Bla"] * 2)
-        self.assertTrue(isinstance(p, TransformerBase))
+        self.assertTrue(isinstance(p, Transformer))
         rtr = p(testDF)
         self.assertTrue("BlaB" in rtr.columns)
         self.assertEqual(rtr.iloc[0]["BlaB"], 2)
@@ -32,10 +30,9 @@ class TestCache(BaseTestCase):
         self.assertTrue("BlaB" in rtr.columns)
 
     def test_rename_columns(self):
-        from pyterrier.transformer import TransformerBase
         testDF = pd.DataFrame([["q1", "the bear and the wolf", 1]], columns=["qid", "query", "Bla"])
         p = pt.apply.rename({'Bla' : "Bla2"})
-        self.assertTrue(isinstance(p, TransformerBase))
+        self.assertTrue(isinstance(p, Transformer))
         rtr = p(testDF)
         self.assertTrue("Bla2" in rtr.columns)
         self.assertFalse("Bla" in rtr.columns)

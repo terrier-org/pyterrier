@@ -60,7 +60,7 @@ class TestText(BaseTestCase):
             pt.IndexFactory.of(pt.get_dataset("vaswani").get_index())
         ]:
             textT = pt.text.get_text(indexlike, "docno")
-            self.assertTrue(isinstance(textT, pt.transformer.TransformerBase))
+            self.assertTrue(isinstance(textT, pt.Transformer))
             dfOut = textT.transform(dfinput)
             self.assertTrue(isinstance(dfOut, pd.DataFrame))
             self.assertTrue("docno" in dfOut.columns)
@@ -75,7 +75,7 @@ class TestText(BaseTestCase):
             pt.IndexFactory.of(pt.get_dataset("vaswani").get_index())
         ]:
             textT = pt.text.get_text(indexlike, "docno")
-            self.assertTrue(isinstance(textT, pt.transformer.TransformerBase))
+            self.assertTrue(isinstance(textT, pt.Transformer))
             dfOut = textT.transform(dfinput)
             self.assertTrue(isinstance(dfOut, pd.DataFrame))
             self.assertTrue("docno" in dfOut.columns)
@@ -87,7 +87,7 @@ class TestText(BaseTestCase):
             ["q1", "a query", "4"],
             ], columns=["qid", "query", "docno"])
         textT = pt.text.get_text(pt.get_dataset('irds:vaswani'), "text")
-        self.assertTrue(isinstance(textT, pt.transformer.TransformerBase))
+        self.assertTrue(isinstance(textT, pt.Transformer))
         dfOut = textT.transform(dfinput)
         self.assertTrue(isinstance(dfOut, pd.DataFrame))
         self.assertTrue("text" in dfOut.columns)

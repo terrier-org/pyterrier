@@ -13,7 +13,7 @@ class TestTransformer(BaseTestCase):
             pass
         class MyTransformer3(pt.transformer.IterDictIndexerBase):
             pass
-        class MyTransformer4(pt.transformer.EstimatorBase):
+        class MyTransformer4(pt.Estimator):
             pass
         for T in [MyTransformer1, MyTransformer2, MyTransformer3, MyTransformer4]:
             self.assertTrue(pt.transformer.is_transformer(T()))
