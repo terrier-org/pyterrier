@@ -1,5 +1,6 @@
 from typing import Callable, Any, Dict
-from .transformer import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyGenericTransformer, Transformer
+from . import Transformer
+from .transformer import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyGenericTransformer
 from nptyping import NDArray
 import pandas as pd
 

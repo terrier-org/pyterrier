@@ -2,6 +2,8 @@ __version__ = "0.8.0"
 
 import os
 
+from pyterrier.transformer import Estimator
+
 from .bootstrap import _logging, setup_terrier, setup_jnius, is_windows
 
 import importlib
@@ -23,6 +25,7 @@ rewrite = None
 text = None
 transformer = None
 Transformer = None
+Estimator = None
 
 file_path = os.path.dirname(os.path.abspath(__file__))
 firstInit = False
@@ -142,7 +145,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     from .datasets import get_dataset, find_datasets, list_datasets
     from .index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, FlatJSONDocumentIterator, IndexingType
     from .pipelines import Experiment, GridScan, GridSearch, KFoldGridSearch
-    from .transformer import Transformer
+    from .transformer import Transformer, Estimator
 
     # Make imports global
     globals()["autoclass"] = autoclass
@@ -195,6 +198,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     globals()["GridSearch"] = GridSearch
     globals()["KFoldGridSearch"] = KFoldGridSearch
     globals()["Transformer"] = Transformer
+    globals()["Estimator"] = Estimator
     
     
     # we save the pt.init() arguments so that other processes,

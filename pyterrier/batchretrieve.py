@@ -2,11 +2,11 @@ from jnius import autoclass, cast
 from typing import Union
 import pandas as pd
 import numpy as np
-from . import tqdm, check_version
+from . import tqdm, check_version, Transformer
 from warnings import warn
 from .index import Indexer
 from .datasets import Dataset
-from .transformer import TransformerBase, Symbol, is_lambda
+from .transformer import Symbol, is_lambda
 from .model import coerce_queries_dataframe, FIRST_RANK
 import deprecation
 import concurrent
@@ -82,7 +82,7 @@ def _parse_index_like(index_location):
         or an pyterrier.Indexer object'''
     )
 
-class BatchRetrieveBase(TransformerBase, Symbol):
+class BatchRetrieveBase(Transformer, Symbol):
     """
     A base class for retrieval
 
@@ -452,7 +452,7 @@ class BatchRetrieve(BatchRetrieveBase):
 
 
 
-class TextIndexProcessor(TransformerBase):
+class TextIndexProcessor(Transformer):
     '''
         Creates a new MemoryIndex based on the contents of documents passed to it.
         It then creates a new instance of the innerclass and passes the topics to that.

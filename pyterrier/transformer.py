@@ -5,7 +5,6 @@ from warnings import warn
 import pandas as pd
 from .model import add_ranks
 from . import tqdm
-import deprecation
 from typing import Iterable, Iterator, Union
 # NB: this module is intended to have no dependencies on anything using Java
 
@@ -57,6 +56,23 @@ class Transformer:
         Base class for all transformers. Implements the various operators ``>>`` ``+`` ``*`` ``|`` ``&`` 
         as well as ``search()`` for executing a single query and ``compile()`` for rewriting complex pipelines into more simples ones.
     """
+
+    @staticmethod
+    def identity() -> 'Transformer':
+        """
+        Instantiates a transformer that returns exactly its input. 
+        
+        This can be useful for adding the candidate ranking score
+        as a feature in for learning-to-rank::
+
+            bm25 = pt.BatchRetrieve(index, wmodel="BM25")
+            two_feat_pipe = bm25 >> pt.Transformer.identify() ** pt.BatchRetrieve(index, wmodel="PL2")
+
+        This will return a pipelines that has a score column (BM25), but also has a features column containing
+        BM25 and PL2 scores.
+        
+        """
+        return IdentityTransformer()    
 
     @staticmethod
     def from_df(input : pd.DataFrame, uniform=False) -> 'Transformer':
@@ -248,16 +264,15 @@ class TransformerBase(Transformer):
     # it will be deprecated in a future release.
     pass
 
-class IterDictIndexerBase(TransformerBase):
+class IterDictIndexerBase(Transformer):
     def index(self, iter : Iterable[dict], **kwargs):
         """
             Takes an iterable of dictionaries ("iterdict"), and consumes them. There is no return;
             This method is typically used to implement indexers.
         """
         pass
-
     
-class EstimatorBase(TransformerBase):
+class Estimator(Transformer):
     """
         This is a base class for things that can be fitted.
     """
@@ -273,7 +288,10 @@ class EstimatorBase(TransformerBase):
         """
         pass
 
-class IdentityTransformer(TransformerBase, Operation):
+class EstimatorBase(Estimator):
+    pass
+
+class IdentityTransformer(Transformer, Operation):
     """
         A transformer that returns exactly the same as its input.
     """
@@ -285,7 +303,7 @@ class IdentityTransformer(TransformerBase, Operation):
     def transform(self, topics):
         return topics
 
-class SourceTransformer(TransformerBase, Operation):
+class SourceTransformer(Transformer, Operation):
     """
     A Transformer that can be used when results have been saved in a dataframe.
     It will select results on qid.
@@ -326,7 +344,7 @@ class UniformTransformer(TransformerBase, Operation):
         rtr = self.rtr.copy()
         return rtr
 
-class BinaryTransformerBase(TransformerBase,Operation):
+class BinaryTransformerBase(Transformer,Operation):
     """
         A base class for all operator transformers that can combine the input of exactly 2 transformers. 
     """
@@ -338,7 +356,7 @@ class BinaryTransformerBase(TransformerBase,Operation):
         self.left = operands[0]
         self.right = operands[1]
 
-class NAryTransformerBase(TransformerBase,Operation):
+class NAryTransformerBase(Transformer,Operation):
     """
         A base class for all operator transformers that can combine the input of 2 or more transformers. 
     """
@@ -516,7 +534,7 @@ class RankCutoffTransformer(BinaryTransformerBase):
         res = res[res["rank"] < self.cutoff.value]
         return res
     
-class ApplyTransformerBase(TransformerBase):
+class ApplyTransformerBase(Transformer):
     """
         A base class for Apply*Transformers
     """
@@ -783,8 +801,8 @@ class ComposedPipeline(NAryTransformerBase):
         >>> # OR
         >>> # we can even use lambdas as transformers
         >>> comp = ComposedPipeline([DPH_br, lambda res : res[res["rank"] < 2]])
-        >>> # this is equivelent
-        >>> # comp = DPH_br >> lambda res : res[res["rank"] < 2]]
+        >>> # this is equivelent
+        >>> # comp = DPH_br >> lambda res : res[res["rank"] < 2]]
     """
     name = "Compose"
 

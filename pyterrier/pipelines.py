@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import numpy as np
 from typing import Callable, Union, Dict, List, Tuple, Sequence, Any
-from .transformer import TransformerBase
+from . import Transformer
 from .model import coerce_dataframe_types
 import deprecation
 import ir_measures
@@ -12,7 +12,7 @@ MEASURE_TYPE=Union[str,BaseMeasure]
 MEASURES_TYPE=Sequence[MEASURE_TYPE]
 
 
-SYSTEM_OR_RESULTS_TYPE = Union[TransformerBase, pd.DataFrame]
+SYSTEM_OR_RESULTS_TYPE = Union[Transformer, pd.DataFrame]
 
 def _bold_cols(data, col_type):
     if not data.name in col_type:
@@ -556,7 +556,7 @@ def Experiment(
 
 TRANSFORMER_PARAMETER_VALUE_TYPE = Union[str,float,int,str]
 GRID_SCAN_PARAM_SETTING = Tuple[
-            TransformerBase, 
+            Transformer, 
             str, 
             TRANSFORMER_PARAMETER_VALUE_TYPE
         ]
@@ -578,8 +578,8 @@ def _restore_state(param_state):
 
 
 def KFoldGridSearch( 
-        pipeline : TransformerBase,
-        params : Dict[TransformerBase,Dict[str,List[TRANSFORMER_PARAMETER_VALUE_TYPE]]],
+        pipeline : Transformer,
+        params : Dict[Transformer,Dict[str,List[TRANSFORMER_PARAMETER_VALUE_TYPE]]],
         topics_list : List[pd.DataFrame],
         qrels : Union[pd.DataFrame,List[pd.DataFrame]],
         metric : MEASURE_TYPE = "map",
@@ -597,7 +597,7 @@ def KFoldGridSearch(
     been executed.
 
     Args:
-        pipeline(TransformerBase): a transformer or pipeline to tune
+        pipeline(Transformer): a transformer or pipeline to tune
         params(dict): a two-level dictionary, mapping transformer to param name to a list of values
         topics_list(List[DataFrame]): a *list* of topics dataframes to tune upon
         qrels(DataFrame or List[DataFrame]): qrels to tune upon. A single dataframe, or a list for each fold.       
@@ -675,8 +675,8 @@ def KFoldGridSearch(
     return (pd.concat(results), settings)
 
 def GridSearch(
-        pipeline : TransformerBase,
-        params : Dict[TransformerBase,Dict[str,List[TRANSFORMER_PARAMETER_VALUE_TYPE]]],
+        pipeline : Transformer,
+        params : Dict[Transformer,Dict[str,List[TRANSFORMER_PARAMETER_VALUE_TYPE]]],
         topics : pd.DataFrame,
         qrels : pd.DataFrame,
         metric : MEASURE_TYPE = "map",
@@ -685,14 +685,14 @@ def GridSearch(
         verbose: bool = False,
         batch_size = None,
         return_type : str = "opt_pipeline"
-    ) -> Union[TransformerBase,GRID_SEARCH_RETURN_TYPE_SETTING]:
+    ) -> Union[Transformer,GRID_SEARCH_RETURN_TYPE_SETTING]:
     """
     GridSearch is essentially, an argmax GridScan(), i.e. it returns an instance of the pipeline to tune
     with the best parameter settings among params, that were found that were obtained using the specified
     topics and qrels, and for the specified measure.
 
     Args:
-        pipeline(TransformerBase): a transformer or pipeline to tune
+        pipeline(Transformer): a transformer or pipeline to tune
         params(dict): a two-level dictionary, mapping transformer to param name to a list of values
         topics(DataFrame): topics to tune upon
         qrels(DataFrame): qrels to tune upon       
@@ -748,8 +748,8 @@ def GridSearch(
 
 
 def GridScan(
-        pipeline : TransformerBase,
-        params : Dict[TransformerBase,Dict[str,List[TRANSFORMER_PARAMETER_VALUE_TYPE]]],
+        pipeline : Transformer,
+        params : Dict[Transformer,Dict[str,List[TRANSFORMER_PARAMETER_VALUE_TYPE]]],
         topics : pd.DataFrame,
         qrels : pd.DataFrame,
         metrics : Union[MEASURE_TYPE,MEASURES_TYPE] = ["map"],
@@ -767,7 +767,7 @@ def GridScan(
     as well as controls in the case of BatchRetrieve.
 
     Args:
-        pipeline(TransformerBase): a transformer or pipeline
+        pipeline(Transformer): a transformer or pipeline
         params(dict): a two-level dictionary, mapping transformer to param name to a list of values
         topics(DataFrame): topics to tune upon
         qrels(DataFrame): qrels to tune upon       
@@ -893,7 +893,7 @@ def GridScan(
     return pd.DataFrame(rtr)
 
 
-class PerQueryMaxMinScoreTransformer(TransformerBase):
+class PerQueryMaxMinScoreTransformer(Transformer):
     '''
     applies per-query maxmin scaling on the input scores
     '''
