@@ -18,6 +18,8 @@ def importProps():
     globals()["props"] = props
 props = None
 
+rewrites_setup = False
+
 _matchops = ["#combine", "#uw", "#1", "#tag", "#prefix", "#band", "#base64", "#syn"]
 def _matchop(query):
     for m in _matchops:
@@ -760,3 +762,74 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         if self.wmodel is None:
             return "FBR(" + str(len(self.features)) + " features)"
         return "FBR(" + self.controls["wmodel"] + " and " + str(len(self.features)) + " features)"
+
+
+def _setup_rewrites():
+    global rewrites_setup
+    if rewrites_setup:
+        return
+
+    from matchpy import ReplacementRule, Wildcard, replace_all, Pattern, CustomConstraint
+    from .transformer import add_rewrite, ComposedPipeline, FeatureUnionPipeline
+    # three arbitrary "things".
+    x = Wildcard.dot('x')
+    xs = Wildcard.plus('xs')
+    y = Wildcard.dot('y')
+    z = Wildcard.dot('z')
+    # two different match retrives
+    _br1 = Wildcard.symbol('_br1', BatchRetrieve)
+    _br2 = Wildcard.symbol('_br2', BatchRetrieve)
+    _fbr = Wildcard.symbol('_fbr', FeaturesBatchRetrieve)
+    
+    # batch retrieves for the same index
+    BR_index_matches = CustomConstraint(lambda _br1, _br2: _br1.indexref == _br2.indexref)
+    BR_FBR_index_matches = CustomConstraint(lambda _br1, _fbr: _br1.indexref == _fbr.indexref)
+    
+    # rewrite nested binary feature unions into one single polyadic feature union
+    add_rewrite(ReplacementRule(
+        Pattern(FeatureUnionPipeline(x, FeatureUnionPipeline(y,z)) ),
+        lambda x, y, z: FeatureUnionPipeline(x,y,z)
+    ))
+    add_rewrite(ReplacementRule(
+        Pattern(FeatureUnionPipeline(FeatureUnionPipeline(x,y), z) ),
+        lambda x, y, z: FeatureUnionPipeline(x,y,z)
+    ))
+    add_rewrite(ReplacementRule(
+        Pattern(FeatureUnionPipeline(FeatureUnionPipeline(x,y), xs) ),
+        lambda x, y, xs: FeatureUnionPipeline(*[x,y]+list(xs))
+    ))
+
+    # rewrite nested binary compose into one single polyadic compose
+    add_rewrite(ReplacementRule(
+        Pattern(ComposedPipeline(x, ComposedPipeline(y,z)) ),
+        lambda x, y, z: ComposedPipeline(x,y,z)
+    ))
+    add_rewrite(ReplacementRule(
+        Pattern(ComposedPipeline(ComposedPipeline(x,y), z) ),
+        lambda x, y, z: ComposedPipeline(x,y,z)
+    ))
+    add_rewrite(ReplacementRule(
+        Pattern(ComposedPipeline(ComposedPipeline(x,y), xs) ),
+        lambda x, y, xs: ComposedPipeline(*[x,y]+list(xs))
+    ))
+
+    # rewrite batch a feature union of BRs into an FBR
+    add_rewrite(ReplacementRule(
+        Pattern(FeatureUnionPipeline(_br1, _br2), BR_index_matches),
+        lambda _br1, _br2: FeaturesBatchRetrieve(_br1.indexref, ["WMODEL:" + _br1.controls["wmodel"], "WMODEL:" + _br2.controls["wmodel"]])
+    ))
+
+    def push_fbr_earlier(_br1, _fbr):
+        #TODO copy more attributes
+        _fbr.wmodel = _br1.controls["wmodel"]
+        return _fbr
+
+    # rewrite a BR followed by a FBR into a FBR
+    add_rewrite(ReplacementRule(
+        Pattern(ComposedPipeline(_br1, _fbr), BR_FBR_index_matches),
+        push_fbr_earlier
+    ))
+
+    rewrites_setup = True
+
+_setup_rewrites()

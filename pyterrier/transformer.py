@@ -1,12 +1,13 @@
 
 import types
-from matchpy import ReplacementRule, Wildcard, Symbol, Operation, Arity, replace_all, Pattern, CustomConstraint
+from matchpy import ReplacementRule, Wildcard, Symbol, Symbol, Operation, Arity, replace_all
 from warnings import warn
 import pandas as pd
 from .model import add_ranks
 from . import tqdm
 import deprecation
 from typing import Iterable, Iterator, Union
+# NB: this module is intended to have no dependencies on anything using Java
 
 LAMBDA = lambda:0
 def is_lambda(v):
@@ -41,73 +42,9 @@ def get_transformer(v):
         return SourceTransformer(v)
     raise ValueError("Passed parameter %s of type %s cannot be coerced into a transformer" % (str(v), type(v)))
 
-rewrites_setup = False
 rewrite_rules = []
-
-def setup_rewrites():
-    from .batchretrieve import BatchRetrieve, FeaturesBatchRetrieve
-    #three arbitrary "things".
-    x = Wildcard.dot('x')
-    xs = Wildcard.plus('xs')
-    y = Wildcard.dot('y')
-    z = Wildcard.dot('z')
-    # two different match retrives
-    _br1 = Wildcard.symbol('_br1', BatchRetrieve)
-    _br2 = Wildcard.symbol('_br2', BatchRetrieve)
-    _fbr = Wildcard.symbol('_fbr', FeaturesBatchRetrieve)
-    
-    # batch retrieves for the same index
-    BR_index_matches = CustomConstraint(lambda _br1, _br2: _br1.indexref == _br2.indexref)
-    BR_FBR_index_matches = CustomConstraint(lambda _br1, _fbr: _br1.indexref == _fbr.indexref)
-    
-    # rewrite nested binary feature unions into one single polyadic feature union
-    rewrite_rules.append(ReplacementRule(
-        Pattern(FeatureUnionPipeline(x, FeatureUnionPipeline(y,z)) ),
-        lambda x, y, z: FeatureUnionPipeline(x,y,z)
-    ))
-    rewrite_rules.append(ReplacementRule(
-        Pattern(FeatureUnionPipeline(FeatureUnionPipeline(x,y), z) ),
-        lambda x, y, z: FeatureUnionPipeline(x,y,z)
-    ))
-    rewrite_rules.append(ReplacementRule(
-        Pattern(FeatureUnionPipeline(FeatureUnionPipeline(x,y), xs) ),
-        lambda x, y, xs: FeatureUnionPipeline(*[x,y]+list(xs))
-    ))
-
-    # rewrite nested binary compose into one single polyadic compose
-    rewrite_rules.append(ReplacementRule(
-        Pattern(ComposedPipeline(x, ComposedPipeline(y,z)) ),
-        lambda x, y, z: ComposedPipeline(x,y,z)
-    ))
-    rewrite_rules.append(ReplacementRule(
-        Pattern(ComposedPipeline(ComposedPipeline(x,y), z) ),
-        lambda x, y, z: ComposedPipeline(x,y,z)
-    ))
-    rewrite_rules.append(ReplacementRule(
-        Pattern(ComposedPipeline(ComposedPipeline(x,y), xs) ),
-        lambda x, y, xs: ComposedPipeline(*[x,y]+list(xs))
-    ))
-
-    # rewrite batch a feature union of BRs into an FBR
-    rewrite_rules.append(ReplacementRule(
-        Pattern(FeatureUnionPipeline(_br1, _br2), BR_index_matches),
-        lambda _br1, _br2: FeaturesBatchRetrieve(_br1.indexref, ["WMODEL:" + _br1.controls["wmodel"], "WMODEL:" + _br2.controls["wmodel"]])
-    ))
-
-    def push_fbr_earlier(_br1, _fbr):
-        #TODO copy more attributes
-        _fbr.wmodel = _br1.controls["wmodel"]
-        return _fbr
-
-    # rewrite a BR followed by a FBR into a FBR
-    rewrite_rules.append(ReplacementRule(
-        Pattern(ComposedPipeline(_br1, _fbr), BR_FBR_index_matches),
-        push_fbr_earlier
-    ))
-
-    global rewrites_setup
-    rewrites_setup = True
-
+def add_rewrite(rule : ReplacementRule):
+    rewrite_rules.append(rule)
 
 class Scalar(Symbol):
     def __init__(self, name, value):
@@ -223,8 +160,6 @@ class Transformer:
         Rewrites this pipeline by applying of the Matchpy rules in rewrite_rules. Pipeline
         optimisation is discussed in the `ICTIR 2020 paper on PyTerrier <https://arxiv.org/abs/2007.14271>`_.
         """
-        if not rewrites_setup:
-            setup_rewrites()
         print("Applying %d rules" % len(rewrite_rules))
         return replace_all(self, rewrite_rules)
 
