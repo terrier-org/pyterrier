@@ -68,6 +68,9 @@ class SDM(TransformerBase):
         assert check_version("5.3")
         self.ApplyTermPipeline_stopsonly = pt.autoclass("org.terrier.querying.ApplyTermPipeline")("Stopwords")
 
+    def __repr__(self):
+        return "SDM()"
+
     def transform(self, topics_and_res):
         results = []
         from .model import ranked_documents_to_queries, push_queries
@@ -183,6 +186,14 @@ class QueryExpansion(TransformerBase):
         else:
             raise ValueError("Input resultset has neither docid nor docno")
         return QueryResultSet(docids, scores, occurrences)
+
+    def __repr__(self):
+        return "QueryExpansion(" + ",".join([
+            self.indexref.toString(),
+            str(self.fb_docs),
+            str(self.fb_terms),
+            str(self.qe)
+            ]) + ")"
 
     def _configure_request(self, rq):
         rq.setControl("qe_fb_docs", str(self.fb_docs))
@@ -407,7 +418,10 @@ class _StashResults(TransformerBase):
                 for i in range(len(groupDf)):
                     groupDf.at[i, "stashed_results_0"] = docsDict
                 rtr.append(groupDf)
-            return pd.concat(rtr)        
+            return pd.concat(rtr)   
+
+    def __repr__(self):
+        return "pt.rewrite.stash_results()"     
 
 class _ResetResults(TransformerBase):
 
@@ -425,6 +439,9 @@ class _ResetResults(TransformerBase):
             finaldf = querydf.merge(docsdf, on="qid")
             rtr.append(finaldf)
         return pd.concat(rtr)
+
+    def __repr__(self):
+        return "pt.rewrite.reset_results()"
 
 def linear(weightCurrent : float, weightPrevious : float, format="terrierql", **kwargs) -> TransformerBase:
     """
@@ -488,3 +505,6 @@ class _LinearRewriteMix(TransformerBase):
         newDF = push_queries(topics_and_res)
         newDF["query"] = newDF.apply(fn, axis=1)
         return newDF
+
+    def __repr__(self):
+        return "pt.rewrite.linear()"

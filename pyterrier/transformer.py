@@ -590,6 +590,9 @@ class ApplyTransformerBase(TransformerBase):
         self.fn = fn
         self.verbose = verbose
 
+    def __repr__(self):
+        return "pt.apply.??()"
+
 class ApplyForEachQuery(ApplyTransformerBase):
     def __init__(self, fn,  *args, add_ranks=True, **kwargs):
         """
