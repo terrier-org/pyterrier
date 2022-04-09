@@ -40,6 +40,13 @@ Welcome to PyTerrier's documentation!
 
 .. toctree::
    :maxdepth: 1
+   :caption: Common Errors
+
+   errors/LTR001
+   errors/LTR002
+
+.. toctree::
+   :maxdepth: 1
    :caption: Other PyTerrier plugins
 
    OpenNIR <https://opennir.net/>

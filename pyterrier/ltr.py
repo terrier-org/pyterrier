@@ -2,7 +2,7 @@
 
 from .transformer import TransformerBase, EstimatorBase
 from .apply import doc_score, doc_features
-from .model import add_ranks
+from .model import add_ranks, error
 from typing import Sequence, Union
 import numpy as np
 
@@ -23,7 +23,8 @@ class AblateFeatures(TransformerBase):
                 fvalues[findex] = self.null
             return fvalues
         
-        assert "features" in topics_and_res.columns
+        if not "features" in topics_and_res.columns:
+            raise TypeError(error("LTR001", "Input does not contain a features columns"))
         topics_and_res = topics_and_res.copy()
         topics_and_res["features"] = topics_and_res.apply(_reset, axis=1)
         return topics_and_res
@@ -36,7 +37,8 @@ class KeepFeatures(TransformerBase):
         
     def transform(self, topics_and_res):
         
-        assert "features" in topics_and_res.columns
+        if not "features" in topics_and_res.columns:
+            raise TypeError(error("LTR001", "Input does not contain a features columns"))
         topics_and_res = topics_and_res.copy()
         topics_and_res["features"] = topics_and_res.apply(lambda row: row["features"][self.fids], axis=1)
         return topics_and_res
@@ -67,8 +69,8 @@ class RegressionTransformer(EstimatorBase):
         """
         if len(topics_and_results_Train) == 0:
             raise ValueError("No topics to fit to")
-        if 'features' not in topics_and_results_Train.columns:
-            raise ValueError("No features column retrieved")
+        if not "features" in topics_and_results_Train.columns:
+            raise TypeError(error("LTR001", "Input %s does not contain a features columns" % "topics_and_results_Train"))
         train_DF = topics_and_results_Train.merge(qrelsTrain, on=['qid', 'docno'], how='left').fillna(0)
         kwargs = self.fit_kwargs
         self.learner.fit(np.stack(train_DF["features"].values), train_DF["label"].values, **kwargs)
@@ -82,16 +84,19 @@ class RegressionTransformer(EstimatorBase):
         Args:
             topicsTest(DataFrame): A dataframe with the test topics.
         """
+        if not "features" in test_DF.columns:
+            raise TypeError(error("LTR001", "Input does not contain a features columns"))
+
         test_DF = test_DF.copy()
 
         # check for change in number of features
         found_numf = test_DF.iloc[0].features.shape[0]
         if self.num_f is not None:
             if found_numf != self.num_f:
-                raise ValueError("Expected %d features, but found %d features" % (self.num_f, found_numf))
+                raise ValueError(error("LTR002","Expected %d features, but found %d features" % (self.num_f, found_numf)))
         if hasattr(self.learner, 'feature_importances_'):
             if len(self.learner.feature_importances_) != found_numf:
-                raise ValueError("Expected %d features, but found %d features" % (len(self.learner.feature_importances_), found_numf))
+                raise ValueError(error("LTR002","Expected %d features, but found %d features" % (len(self.learner.feature_importances_), found_numf)))
 
         test_DF["score"] = self.learner.predict(np.stack(test_DF["features"].values))
         return add_ranks(test_DF)
@@ -117,10 +122,10 @@ class LTRTransformer(RegressionTransformer):
         if topics_and_results_Valid is None or len(topics_and_results_Valid) == 0:
             raise ValueError("No validation results to fit to")
 
-        if 'features' not in topics_and_results_Train.columns:
-            raise ValueError("No features column retrieved in training")
-        if 'features' not in topics_and_results_Valid.columns:
-            raise ValueError("No features column retrieved in validation")
+        if not "features" in topics_and_results_Train.columns:
+            raise TypeError(error("LTR001", "Input %s does not contain a features columns" % "topics_and_results_Train"))
+        if not "features" in topics_and_results_Train.columns:
+            raise TypeError(error("LTR001", "Input %s does not contain a features columns" % "topics_and_results_Valid"))
 
         tr_res = topics_and_results_Train.merge(qrelsTrain, on=['qid', 'docno'], how='left').fillna(0)
         va_res = topics_and_results_Valid.merge(qrelsValid, on=['qid', 'docno'], how='left').fillna(0)
@@ -171,9 +176,9 @@ class FastRankEstimator(EstimatorBase):
         if topics_and_results_Train is None or len(topics_and_results_Train) == 0:
             raise ValueError("No training results to fit to")
 
-        if 'features' not in topics_and_results_Train.columns:
-            raise ValueError("No features column retrieved in training")
-
+        if not "features" in topics_and_results_Train.columns:
+            raise TypeError(error("LTR001", "Input %s does not contain a features columns" % "topics_and_results_Train"))
+        
         tr_res = topics_and_results_Train.merge(qrelsTrain, on=['qid', 'docno'], how='left').fillna(0)
         dataset = self._make_dataset(tr_res, add_labels=True)
         self.num_f = dataset.num_features()
@@ -194,10 +199,10 @@ class FastRankEstimator(EstimatorBase):
         # check for change in number of features
         found_numf = dataset.num_features()
         if self.num_f is not None and found_numf != self.num_f:
-            raise ValueError("Expected %d features, but found %d features" % (self.num_f, found_numf))
+            raise ValueError(error("LTR002", "Expected %d features, but found %d features" % (self.num_f, found_numf)))
         if hasattr(self.learner, 'feature_importances_'):
             if len(self.learner.feature_importances_) != found_numf:
-                raise ValueError("Expected %d features, but found %d features" % (len(self.learner.feature_importances_), found_numf))
+                raise ValueError(error("LTR002", "Expected %d features, but found %d features" % (len(self.learner.feature_importances_), found_numf)))
         
         rtr = dataset.predict_scores(self.model)
         scores = [rtr[i] for i in range(len(rtr))]
