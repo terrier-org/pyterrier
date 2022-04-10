@@ -381,11 +381,13 @@ class RemoteDataset(Dataset):
 
 
 class IRDSDataset(Dataset):
-    def __init__(self, irds_id):
+    def __init__(self, irds_id, defer_load=False):
         self._irds_id = irds_id
-        self._irds_ref = ir_datasets.load(self._irds_id)
+        self._irds_ref = None if defer_load else ir_datasets.load(self._irds_id)
 
     def irds_ref(self):
+        if self._irds_ref is None:
+            self._irds_ref = ir_datasets.load(self._irds_id)
         return self._irds_ref
 
     def get_corpus(self):
@@ -1056,7 +1058,7 @@ DATASET_MAP = {
 # ...
 import ir_datasets
 for ds_id in ir_datasets.registry:
-    DATASET_MAP[f'irds:{ds_id}'] = IRDSDataset(ds_id)
+    DATASET_MAP[f'irds:{ds_id}'] = IRDSDataset(ds_id, defer_load=True)
 
 # "trec-deep-learning-docs"
 #DATASET_MAP['msmarco_document'] = DATASET_MAP["trec-deep-learning-docs"]

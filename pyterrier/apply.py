@@ -96,7 +96,7 @@ def doc_features(fn : Callable[..., NDArray[Any]], *args, **kwargs) -> Transform
 
             def _features(row):
                 docid = row["docid"]
-                content = index.getMetaIndex.getItem("text", docid)
+                content = index.getMetaIndex().getItem("text", docid)
                 f1 = len(content)
                 f2 = len(content.split(" "))
                 return np.array([f1, f2])

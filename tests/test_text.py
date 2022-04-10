@@ -118,7 +118,7 @@ class TestText(BaseTestCase):
         self.assertEqual("sentence", dfoutput["body"][1])
 
     def test_depassager(self):
-        dfinput = pd.DataFrame([["q1", "a query", "doc1", "title", "body sentence"]], columns=["qid", "query", "docno", "title", "body"])
+        dfinput = pd.DataFrame([["q1", "a query", "doc1", 1, "title", "body sentence"]], columns=["qid", "query", "docno", "docid", "title", "body"])
         passager = pt.text.sliding(length=1, stride=1)
         dfpassage = passager(dfinput)
         #     qid    query    docno            body                                         
@@ -131,6 +131,7 @@ class TestText(BaseTestCase):
         self.assertEqual(1, dfmax["score"][0])
         self.assertTrue("query" in dfmax.columns)
         self.assertTrue("body" in dfmax.columns)
+        self.assertFalse("docid" in dfmax.columns)
         self.assertFalse("pid" in dfmax.columns)
         self.assertFalse("olddocno" in dfmax.columns)
         self.assertEqual("a query", dfmax["query"][0])
@@ -140,16 +141,35 @@ class TestText(BaseTestCase):
         self.assertEqual(1, dffirst["score"][0])
         self.assertTrue("body" in dffirst.columns)
         self.assertFalse("pid" in dffirst.columns)
+        self.assertFalse("docid" in dffirst.columns)
         self.assertFalse("olddocno" in dffirst.columns)
 
         dfmean = pt.text.mean_passage()(dfpassage)
         self.assertEqual(1, len(dfmean))
         self.assertEqual(0.5, dfmean["score"][0])
         self.assertFalse("pid" in dfmean.columns)
+        self.assertFalse("docid" in dfmean.columns)
         self.assertFalse("olddocno" in dfmax.columns)
 
         dfmeanK = pt.text.kmaxavg_passage(2)(dfpassage)
         self.assertEqual(1, len(dfmeanK))
         self.assertEqual(0.5, dfmeanK["score"][0])
         self.assertFalse("pid" in dfmeanK.columns)
+        self.assertFalse("docid" in dfmeanK.columns)
         self.assertFalse("olddocno" in dfmeanK.columns)
+
+        dfscores = pd.DataFrame([
+            ["0", "doc1%p0", 3, pt.model.FIRST_RANK],
+            ["0", "doc1%p1", 2, pt.model.FIRST_RANK+1],
+            ["0", "doc1%p2", 1, pt.model.FIRST_RANK+2],
+        ], columns=['qid', 'docno', 'score', 'rank'])
+
+        dfmeanK2 = pt.text.kmaxavg_passage(2)(dfscores)
+        print(dfmeanK2)
+        self.assertEqual(1, len(dfmeanK2))
+        self.assertEqual(2.5, dfmeanK2["score"][0])
+
+        dfmeanK3 = pt.text.kmaxavg_passage(3)(dfscores)
+        self.assertEqual(1, len(dfmeanK3))
+        self.assertEqual(2, dfmeanK3["score"][0])
+        

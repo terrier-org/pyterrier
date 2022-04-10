@@ -87,3 +87,10 @@ jobs:
         TERRIER_VERSION: ${{ matrix.terrier }}
       run: |
         pytest --durations=20 -p no:faulthandler
+
+    - name: Anserini unit tests
+      env:
+        TERRIER_VERSION: ${{ matrix.terrier }}
+      run: |
+        pip install pyserini==0.9.4
+        pytest --durations=20 -p no:faulthandler  tests/anserini/
