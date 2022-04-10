@@ -10,7 +10,7 @@ chest
 scipy
 requests
 joblib
-nptyping
+nptyping==1.4.4
 more_itertools
 ir_datasets>=0.3.2
 jinja2
