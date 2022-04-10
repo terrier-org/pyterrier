@@ -354,7 +354,7 @@ class SourceTransformer(TransformerBase, Operation):
     """
     A Transformer that can be used when results have been saved in a dataframe.
     It will select results on qid.
-    If a query column is in the dataframe passed in the constructor, this will override any query
+    If a column is in the dataframe passed in the constructor, this will override any
     column in the topics dataframe passed to the transform() method.
     """
     arity = Arity.nullary
@@ -363,16 +363,21 @@ class SourceTransformer(TransformerBase, Operation):
         super().__init__(operands=[], **kwargs)
         self.operands=[]
         self.df = rtr[0]
-        self.df_contains_query = "query" in self.df.columns
         assert "qid" in self.df.columns
     
     def transform(self, topics):
+        import numpy as np
         assert "qid" in topics.columns
-        columns=["qid"]
-        topics_contains_query = "query" in topics.columns
-        if not self.df_contains_query and topics_contains_query:
-            columns.append("query")
-        rtr = topics[columns].merge(self.df, on="qid")
+        keeping = topics.columns
+
+        common_columns = np.intersect1d(topics.columns, self.df.columns)
+
+        # we drop columns in topics that exist in the self.df
+        drop_columns = common_columns[common_columns != "qid"]
+        if len(drop_columns) > 0:
+            keeping = topics.columns[~ topics.columns.isin(drop_columns)]
+        
+        rtr = topics[keeping].merge(self.df, on="qid")
         return rtr
 
 class UniformTransformer(TransformerBase, Operation):
