@@ -737,7 +737,7 @@ class FeatureUnionPipeline(NAryTransformerBase):
         all_results = []
 
         for i, m in enumerate(self.models):
-            #IMPORTANT this .copy() is important, in case an operand transformer changes inputRes
+            # IMPORTANT this .copy() is important, in case an operand transformer changes inputRes
             results = m.transform(inputRes.copy())
             if len(results) == 0:
                 raise ValueError("Got no results from %s, expected %d" % (repr(m), num_results) )
@@ -849,8 +849,9 @@ class ComposedPipeline(NAryTransformerBase):
     def fit(self, topics_or_res_tr, qrels_tr, topics_or_res_va=None, qrels_va=None):
         """
         This is a default implementation for fitting a pipeline. The assumption is that
-        all Estimator be composed with someo other Transformer. It will execute any pre-requisite
-        transformers BEFORE executing the fitting of the Estimator stage.
+        any Estimator is composed with other Transformers. Calling this method execute 
+        any pre-requisite transformers (transform method) BEFORE executing the fitting 
+        of the Estimator stage.
         """
         for m in self.models:
             if isinstance(m, Estimator):
