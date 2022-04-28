@@ -424,7 +424,8 @@ def Experiment(
     mrt_needed = False
     if "mrt" in eval_metrics:
         mrt_needed = True
-        eval_metrics = eval_metrics.copy().remove("mrt")
+        eval_metrics = eval_metrics.copy()
+        eval_metrics.remove("mrt")
 
     # progress bar construction
     from . import tqdm
