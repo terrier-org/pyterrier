@@ -134,7 +134,9 @@ class TestExperiment(TempDirTestCase):
         ]
         topics = pt.datasets.get_dataset("vaswani").get_topics().head(10)
         qrels =  pt.datasets.get_dataset("vaswani").get_qrels()
-        pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"])
+        measures = ["map", "mrt"]
+        pt.Experiment(brs, topics, qrels, eval_metrics=measures)
+        self.assertTrue("mrt" in measures)
         pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], highlight="color")
         pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], baseline=0, highlight="color")
 
