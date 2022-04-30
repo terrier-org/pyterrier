@@ -293,27 +293,29 @@ class TestExperiment(TempDirTestCase):
         res2 = pt.BatchRetrieve(dataset.get_index(), wmodel="DPH")(dataset.get_topics().head(numt))
 
         # t-test
-        df = pt.Experiment(
-            [res1, res2], 
-            dataset.get_topics().head(numt), 
-            dataset.get_qrels(),
-            eval_metrics=["map", "ndcg"], 
-            baseline=0)
-        self.assertTrue("map +" in df.columns)
-        self.assertTrue("map -" in df.columns)
-        self.assertTrue("map p-value" in df.columns)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            df = pt.Experiment(
+                [res1, res2], 
+                dataset.get_topics().head(numt), 
+                dataset.get_qrels(),
+                eval_metrics=["map", "ndcg"], 
+                baseline=0)
+            self.assertTrue("map +" in df.columns)
+            self.assertTrue("map -" in df.columns)
+            self.assertTrue("map p-value" in df.columns)
 
-        # wilcoxon signed-rank test
-        df = pt.Experiment(
-            [res1, res2], 
-            dataset.get_topics().head(numt), 
-            dataset.get_qrels(),
-            eval_metrics=["map", "ndcg"], 
-            test='wilcoxon', 
-            baseline=0)
-        self.assertTrue("map +" in df.columns)
-        self.assertTrue("map -" in df.columns)
-        self.assertTrue("map p-value" in df.columns)
+            # wilcoxon signed-rank test
+            df = pt.Experiment(
+                [res1, res2], 
+                dataset.get_topics().head(numt), 
+                dataset.get_qrels(),
+                eval_metrics=["map", "ndcg"], 
+                test='wilcoxon', 
+                baseline=0)
+            self.assertTrue("map +" in df.columns)
+            self.assertTrue("map -" in df.columns)
+            self.assertTrue("map p-value" in df.columns)
 
 
         # user-specified TOST
