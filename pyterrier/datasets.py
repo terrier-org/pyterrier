@@ -431,6 +431,11 @@ class IRDSDataset(Dataset):
         df.rename(columns={"query_id": "qid"}, inplace=True) # pyterrier uses "qid"
 
         if variant is not None:
+            # Some datasets have a query field called "query". We need to remove it or
+            # we'll end up with multiple "query" columns, which will cause problems
+            # because many components are written assuming no columns have the same name.
+            if variant != 'query' and 'query' in df.columns:
+                df.drop(['query'], 1, inplace=True)
             df.rename(columns={variant: "query"}, inplace=True) # user specified which version of the query they want
             df.drop(df.columns.difference(['qid','query']), 1, inplace=True)
         elif len(qcls._fields) == 2:
