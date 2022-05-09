@@ -12,8 +12,8 @@ FIRST_RANK = 0
 STRICT_SORT = False
 
 def error(number, message):
-    BASEURL="https://pyterrier.readthedocs.io/en/latest/"
-    return "%s - %s .For more information, see %s/errors/%s.html" % (
+    BASEURL="https://pyterrier.readthedocs.io/en/latest"
+    return "%s - %s. For more information, see %s/errors/%s.html" % (
         number, message, BASEURL, number)
 
 def add_ranks(rtr : pd.DataFrame) -> pd.DataFrame:
