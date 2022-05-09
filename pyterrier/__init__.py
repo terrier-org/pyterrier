@@ -74,7 +74,8 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     """
     global firstInit
     if firstInit:
-        raise RuntimeError("pt.init() has already been called. Check pt.started() before calling pt.init()")
+        from .model import error
+        raise RuntimeError(error("INIT001", "pt.init() has already been called. Check pt.started() before calling pt.init()"))
 
     # check python version
     import platform
