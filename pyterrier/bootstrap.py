@@ -1,3 +1,4 @@
+from email.mime import base
 import deprecation
 
 from . import mavenresolver
@@ -18,11 +19,26 @@ class TerrierException(Exception):
 
     @staticmethod 
     def from_java(baseexception, form='retrieval'):
-        stacktrace = '\n\t'.join(baseexception.stacktrace)
-        message = f"{baseexception.classname} occurred during {form}: {baseexception.innermessage}"
-        baseexception.innermessage += "\n" + stacktrace
-        return TerrierException(message)
 
+        # check we got a JavaException, i.e. an Exception occured within the JVM        
+        from jnius import JavaException
+        if not isinstance(baseexception, JavaException):
+            message = f"Exception occurred during {form}"
+            return TerrierException(message)
+
+        # extract Java stacktrace from jnius.JavaException
+        stacktrace = '\n\t'.join(baseexception.stacktrace)
+        stacktrace = stacktrace.replace('\n\tCaused by:', '\nCaused by:')
+
+        # alter JavaException message to include stacktrace
+        # source: https://stackoverflow.com/questions/6062576/adding-information-to-an-exception#comment109953981_46091127
+        args = list(baseexception.args) 
+        args[0] +=  "\n" + stacktrace
+        baseexception.args = tuple(args)
+
+        # formulate more useful Python exception than the standard JavaException
+        message = f"{baseexception.classname} occurred during {form}: {baseexception.innermessage}"
+        return TerrierException(message)
 
 def new_indexref(s):
     from . import IndexRef
