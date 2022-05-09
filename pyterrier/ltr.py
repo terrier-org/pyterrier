@@ -25,6 +25,10 @@ class AblateFeatures(TransformerBase):
         
         if not "features" in topics_and_res.columns:
             raise TypeError(error("LTR001", "Input does not contain a features columns"))
+        if max(self.fids) >= topics_and_res.iloc[0].features.shape[0]:
+            raise TypeError(error("LTR003", "Found %d features, but requesting to keep/ablate feature id %d" 
+                % (topics_and_res.iloc[0].features.shape[0], max(self.fids))))
+
         topics_and_res = topics_and_res.copy()
         topics_and_res["features"] = topics_and_res.apply(_reset, axis=1)
         return topics_and_res
@@ -39,6 +43,10 @@ class KeepFeatures(TransformerBase):
         
         if not "features" in topics_and_res.columns:
             raise TypeError(error("LTR001", "Input does not contain a features columns"))
+        if max(self.fids) >= topics_and_res.iloc[0].features.shape[0]:
+            raise TypeError(error("LTR003", "Found %d features, but requesting to keep/ablate feature id %d" 
+                % (topics_and_res.iloc[0].features.shape[0], max(self.fids))))
+        
         topics_and_res = topics_and_res.copy()
         topics_and_res["features"] = topics_and_res.apply(lambda row: row["features"][self.fids], axis=1)
         return topics_and_res
