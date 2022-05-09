@@ -390,40 +390,46 @@ class BatchRetrieve(BatchRetrieveBase):
         if queries["qid"].dtype == np.int64:
             queries['qid'] = queries['qid'].astype(str)
 
-        if self.threads > 1:
+        from jnius import JavaException
+        try:
+            if self.threads > 1:
 
-            if not self.concurrentIL.isConcurrent(self.indexref):
-                raise ValueError("Threads must be set >1 in constructor and/or concurrent indexref used")
-            
-            with ThreadPoolExecutor(max_workers=self.threads) as executor:
+                if not self.concurrentIL.isConcurrent(self.indexref):
+                    raise ValueError("Threads must be set >1 in constructor and/or concurrent indexref used")
                 
-                # we must detatch jnius to prevent thread leaks through JNI
-                from jnius import detach
-                def _one_row(*args, **kwargs):
-                    rtr = self._retrieve_one(*args, **kwargs)
-                    detach()
-                    return rtr
-                
-                # create a future for each query, and submit to Terrier
-                future_results = {
-                    executor.submit(_one_row, row, input_results, docno_provided=docno_provided, docid_provided=docid_provided, scores_provided=scores_provided) : row.qid 
-                    for row in queries.itertuples()}                
-                
-                # as these futures complete, wait and add their results
-                iter = concurrent.futures.as_completed(future_results)
+                with ThreadPoolExecutor(max_workers=self.threads) as executor:
+                    
+                    # we must detatch jnius to prevent thread leaks through JNI
+                    from jnius import detach
+                    def _one_row(*args, **kwargs):
+                        rtr = self._retrieve_one(*args, **kwargs)
+                        detach()
+                        return rtr
+                    
+                    # create a future for each query, and submit to Terrier
+                    future_results = {
+                        executor.submit(_one_row, row, input_results, docno_provided=docno_provided, docid_provided=docid_provided, scores_provided=scores_provided) : row.qid 
+                        for row in queries.itertuples()}                
+                    
+                    # as these futures complete, wait and add their results
+                    iter = concurrent.futures.as_completed(future_results)
+                    if self.verbose:
+                        iter = tqdm(iter, desc=str(self), total=queries.shape[0], unit="q")
+                    
+                    for future in iter:
+                        res = future.result()
+                        results.extend(res)
+            else:
+                iter = queries.itertuples()
                 if self.verbose:
                     iter = tqdm(iter, desc=str(self), total=queries.shape[0], unit="q")
-                
-                for future in iter:
-                    res = future.result()
+                for row in iter:
+                    res = self._retrieve_one(row, input_results, docno_provided=docno_provided, docid_provided=docid_provided, scores_provided=scores_provided)
                     results.extend(res)
-        else:
-            iter = queries.itertuples()
-            if self.verbose:
-                iter = tqdm(iter, desc=str(self), total=queries.shape[0], unit="q")
-            for row in iter:
-                res = self._retrieve_one(row, input_results, docno_provided=docno_provided, docid_provided=docid_provided, scores_provided=scores_provided)
-                results.extend(res)
+        
+        except JavaException as ja:
+            from .bootstrap import TerrierException
+            raise TerrierException.from_java(ja) from ja
 
         res_dt = pd.DataFrame(results, columns=['qid', 'docid' ] + self.metadata + ['rank', 'score'])
         # ensure to return the query and any other input columns

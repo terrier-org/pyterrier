@@ -13,6 +13,17 @@ def logging(level):
 # make an alias
 _logging = logging
 
+class TerrierException(Exception):
+    pass
+
+    @staticmethod 
+    def from_java(baseexception, form='retrieval'):
+        stacktrace = '\n\t'.join(baseexception.stacktrace)
+        message = f"{baseexception.classname} occurred during {form}: {baseexception.innermessage}"
+        baseexception.innermessage += "\n" + stacktrace
+        return TerrierException(message)
+
+
 def new_indexref(s):
     from . import IndexRef
     return IndexRef.of(s)
