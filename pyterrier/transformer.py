@@ -514,30 +514,43 @@ class ConcatenateTransformer(BinaryTransformerBase):
         import pandas as pd
         # take the first set as the top of the ranking
         res1 = self.left.transform(topics_and_res)
-        # identify the lowest score for each query
-        last_scores = res1[['qid', 'score']].groupby('qid').min().rename(columns={"score" : "_lastscore"})
 
         # the right hand side will provide the rest of the ranking        
         res2 = self.right.transform(topics_and_res)
 
-        
-        intersection = pd.merge(res1[["qid", "docno"]], res2[["qid", "docno"]].reset_index())
-        remainder = res2.drop(intersection["index"])
+        # build up mappings from the results in the form of {'qid': df}
+        # this makes matching them significantly faster
+        res1 = dict(iter(res1.groupby('qid')))
+        res2 = dict(iter(res2.groupby('qid')))
 
-        # we will append documents from remainder to res1
-        # but we need to offset the score from each remaining document based on the last score in res1
-        # explanation: remainder["score"] - remainder["_firstscore"] - self.epsilon ensures that the
-        # first document in remainder has a score of -epsilon; we then add the score of the last document
-        # from res1
-        first_scores = remainder[['qid', 'score']].groupby('qid').max().rename(columns={"score" : "_firstscore"})
-
-        remainder = remainder.merge(last_scores, on=["qid"]).merge(first_scores, on=["qid"])
-        remainder["score"] = remainder["score"] - remainder["_firstscore"] + remainder["_lastscore"] - self.epsilon
-        remainder = remainder.drop(columns=["_lastscore",  "_firstscore"])
+        res = []
+        for qid in res1.keys() | res2.keys():
+            if qid in res1 and qid not in res2:
+                res.append(res1[qid]) # this query was dropped in res2, so nothing special to do here
+                continue
+            if qid in res2 and qid not in res1:
+                res.append(res2[qid]) # this query was dropped in res1, so nothing special to do here
+                continue
+            # this query appears in both res1 and res2 (normal case)
+            # res1 always goes first
+            res.append(res1[qid])
+            
+            # we will append documents from remainder to res1
+            # but we need to offset the score from each remaining document based on the last score in res1
+            # explanation: remainder["score"] - first_score + last_score - self.epsilon ensures that the
+            # first document in remainder has a score of -epsilon; we then add the score of the last document
+            # from res1
+            last_score = res1[qid]['score'].min()
+            docs_in_res1 = set(res1[qid]['docno'])
+            remainder = res2[qid][~res2[qid]['docno'].isin(docs_in_res1)]
+            first_score = remainder['score'].max()
+            remainder = remainder.assign(score=remainder["score"] - first_score + last_score - self.epsilon)
+            res.append(remainder)
 
         # now bring together and re-sort
         # this sort should match trec_eval
-        rtr = pd.concat([res1, remainder]).sort_values(by=["qid", "score", "docno"], ascending=[True, False, True]) 
+        rtr = pd.concat(res, ignore_index=True)
+        rtr.sort_values(by=["qid", "score", "docno"], ascending=[True, False, True], inplace=True)
 
         # recompute the ranks
         rtr = add_ranks(rtr)
