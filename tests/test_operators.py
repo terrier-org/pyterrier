@@ -184,12 +184,12 @@ class TestOperators(BaseTestCase):
     def test_concatenate(self):
         import numpy as np
         import pyterrier.transformer as ptt
-        mock1 = pt.Transformer.from_df( pd.DataFrame([["q1", "d2", 2, 4.9, np.array([1,2])], ["q1", "d3", 1, 5.1, np.array([1,2])]], columns=["qid", "docno", "rank", "score", "bla"]), uniform=True)
-        mock2 = pt.Transformer.from_df( pd.DataFrame([["q1", "d1", 1, 4.9, np.array([1,1])], ["q1", "d3", 2, 5.1, np.array([1,2])]], columns=["qid", "docno", "rank", "score", "bla"]), uniform=True)
+        mock1 = pt.Transformer.from_df( pd.DataFrame([["q1", "d2", 2, 4.9, np.array([1,2])], ["q1", "d3", 1, 5.1, np.array([1,2])], ['q3', 'd1', 5, 1.2, np.array([1,2])]], columns=["qid", "docno", "rank", "score", "bla"]), uniform=True)
+        mock2 = pt.Transformer.from_df( pd.DataFrame([["q1", "d1", 1, 4.9, np.array([1,1])], ["q1", "d3", 2, 5.1, np.array([1,2])], ['q4', 'd1', 1, 4.5, np.array([9, 1])]], columns=["qid", "docno", "rank", "score", "bla"]), uniform=True)
 
         cutpipe = mock1 ^ mock2
         rtr = cutpipe.transform(None)
-        self.assertEqual(3, len(rtr))
+        self.assertEqual(5, len(rtr))
         row0 = rtr.iloc[0] 
         self.assertEqual("d3", row0["docno"])
         self.assertEqual(5.1, row0["score"])
@@ -199,6 +199,14 @@ class TestOperators(BaseTestCase):
         row2 = rtr.iloc[2] 
         self.assertEqual("d1", row2["docno"])
         self.assertEqual(4.9-0.0001, row2["score"])
+        row3 = rtr.iloc[3] 
+        self.assertEqual("q3", row3["qid"])
+        self.assertEqual("d1", row3["docno"])
+        self.assertEqual(1.2, row3["score"])
+        row4 = rtr.iloc[4] 
+        self.assertEqual("q4", row4["qid"])
+        self.assertEqual("d1", row4["docno"])
+        self.assertEqual(4.5, row4["score"])
 
 
     def test_plus_multi_rewrite(self):
