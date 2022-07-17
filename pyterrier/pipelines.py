@@ -128,9 +128,18 @@ def _run_and_evaluate(
         save_file = None,
         perquery : bool = False,
         batch_size = None,
-        backfill_qids : Sequence[str] = None):
+        backfill_qids : Sequence[str] = None,
+        calc_co2 : bool = False):
     
     from .io import read_results, write_results
+
+    co2 = 0
+    if calc_co2:
+        # codecarbon is an optional dependency. 
+        try:
+            from codecarbon import EmissionsTracker
+        except ImportError:
+            raise ValueError("co2 measure requested, but codecarbon not installed. Run pip install codecarbon to enable co2 measure")
 
     if pbar is None:
         from . import tqdm
@@ -167,9 +176,14 @@ def _run_and_evaluate(
     elif batch_size is None:
         #transformer, evaluate all queries at once
             
+        if calc_co2:
+            et = EmissionsTracker()
+            et.start()
         starttime = timer()
         res = system.transform(topics)
         endtime = timer()
+        if calc_co2:
+            co2 += et.stop()
         runtime =  (endtime - starttime) * 1000.
 
         # write results to save_file; we can be sure this file does not exist
@@ -196,7 +210,23 @@ def _run_and_evaluate(
         evalMeasuresDict = {}
         remaining_qrel_qids = set(qrels.query_id)
         try:
-            for i, (res, batch_topics) in enumerate( system.transform_gen(topics, batch_size=batch_size, output_topics=True)):
+            generator = system.transform_gen(topics, batch_size=batch_size, output_topics=True)
+
+            # co2 handling
+            if calc_co2:
+                # make a yield generator that tracks co2 on each call of next()
+                def _gen(gen_transform):
+                    et = EmissionsTracker()
+                    while True: #exits when StopIteration is received
+                        et.start()
+                        rtr = next(gen_transform)
+                        co2 += et.stop()
+                        yield rtr
+
+                # wrap the transform_gen method on system
+                generator = _gen(generator)
+
+            for i, (res, batch_topics) in enumerate(generator):
                 if len(res) == 0:
                     raise ValueError("batch of %d topics, but no results received in batch %d from %s" % (len(batch_topics), i, str(system) ) )
                 endtime = timer()
@@ -243,7 +273,7 @@ def _run_and_evaluate(
                     s_metric = rev_mapping.get(metric, str(metric))
                     aggregators[s_metric].add(evalMeasuresDict[q][s_metric])
             evalMeasuresDict = {m: agg.result() for m, agg in aggregators.items()}
-    return (runtime, evalMeasuresDict)
+    return (runtime, evalMeasuresDict, co2)
 
 NUMERIC_TYPE = Union[float,int,complex]
 TEST_FN_TYPE = Callable[ [Sequence[NUMERIC_TYPE],Sequence[NUMERIC_TYPE]], Tuple[Any,NUMERIC_TYPE] ]
@@ -422,10 +452,16 @@ def Experiment(
     evalDictsPerQ=[]
     actual_metric_names=[]
     mrt_needed = False
+    co2_needed = False
     if "mrt" in eval_metrics:
         mrt_needed = True
         eval_metrics = eval_metrics.copy()
         eval_metrics.remove("mrt")
+    if "co2" in eval_metrics:
+        co2_needed= True
+        eval_metrics = eval_metrics.copy()
+        eval_metrics.remove("co2")
+
 
     # progress bar construction
     from . import tqdm
@@ -448,7 +484,7 @@ def Experiment(
             if save_dir is not None:
                 save_file = os.path.join(save_dir, "%s.res.gz" % name)
 
-            time, evalMeasuresDict = _run_and_evaluate(
+            time, evalMeasuresDict, co2 = _run_and_evaluate(
                 system, topics, qrels, eval_metrics, 
                 perquery=perquery or baseline is not None, 
                 batch_size=batch_size, 
@@ -479,6 +515,8 @@ def Experiment(
                 import builtins
                 if mrt_needed:
                     evalMeasuresDict["mrt"] = time / float(len(all_topic_qids))
+                if co2_needed
+                    evalMeasuresDict["mrt"] = co2
                 actual_metric_names = list(evalMeasuresDict.keys())
                 # gather mean values, applying rounding if necessary
                 evalMeasures=[ _apply_round(m, evalMeasuresDict[m]) for m in actual_metric_names]
@@ -497,6 +535,8 @@ def Experiment(
         highlight_cols = { m : "+"  for m in actual_metric_names }
         if mrt_needed:
             highlight_cols["mrt"] = "-"
+        if co2_needed:
+            highlight_cols["co2"] = "-"
 
         p_col_names=[]
         if baseline is not None:
@@ -505,6 +545,8 @@ def Experiment(
             per_q_metrics = actual_metric_names.copy()
             if mrt_needed:
                 per_q_metrics.remove("mrt")
+            if co2_needed:
+                per_q_metrics.remove("co2")
 
             for m in per_q_metrics:
                 baselinePerQuery[m] = np.array([ evalDictsPerQ[baseline][q][m] for q in evalDictsPerQ[baseline] ])
@@ -843,7 +885,7 @@ def GridScan(
             # such as (BatchRetrieve, 'wmodel', 'BM25')
             parameter_list.append( (tran, param_name, value) )
             
-        time, eval_scores = _run_and_evaluate(pipeline, topics, qrels, metrics, perquery=False, batch_size=batch_size)
+        time, eval_scores, _ = _run_and_evaluate(pipeline, topics, qrels, metrics, perquery=False, batch_size=batch_size)
         return parameter_list, eval_scores
 
     def _evaluate_several_settings(inputs : List[Tuple]):
