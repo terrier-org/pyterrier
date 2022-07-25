@@ -294,7 +294,7 @@ class Transformer:
     def __and__(self, right : 'Transformer') -> 'Transformer':
         return SetIntersectionTransformer(self, right)
 
-    def __mod__(self, right : 'Transformer') -> 'Transformer':
+    def __mod__(self, right : int) -> 'Transformer':
         assert isinstance(right, int)
         return RankCutoffTransformer(self, right)
 
