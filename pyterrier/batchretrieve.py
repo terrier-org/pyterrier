@@ -2,11 +2,11 @@ from jnius import autoclass, cast
 from typing import Union
 import pandas as pd
 import numpy as np
-from . import tqdm, check_version
+from . import tqdm, check_version, Transformer
 from warnings import warn
 from .index import Indexer
 from .datasets import Dataset
-from .transformer import TransformerBase, Symbol, is_lambda
+from .transformer import Symbol
 from .model import coerce_queries_dataframe, FIRST_RANK
 import deprecation
 import concurrent
@@ -80,7 +80,7 @@ def _parse_index_like(index_location):
         or an pyterrier.Indexer object'''
     )
 
-class BatchRetrieveBase(TransformerBase, Symbol):
+class BatchRetrieveBase(Transformer, Symbol):
     """
     A base class for retrieval
 
@@ -95,7 +95,7 @@ def _from_dataset(dataset : Union[str,Dataset],
             clz,
             variant : str = None, 
             version='latest',            
-            **kwargs):
+            **kwargs) -> Transformer:
 
     from . import get_dataset
     from .io import autoopen
@@ -450,7 +450,7 @@ class BatchRetrieve(BatchRetrieveBase):
 
 
 
-class TextIndexProcessor(TransformerBase):
+class TextIndexProcessor(Transformer):
     '''
         Creates a new MemoryIndex based on the contents of documents passed to it.
         It then creates a new instance of the innerclass and passes the topics to that.
@@ -760,3 +760,74 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         if self.wmodel is None:
             return "FBR(" + str(len(self.features)) + " features)"
         return "FBR(" + self.controls["wmodel"] + " and " + str(len(self.features)) + " features)"
+
+rewrites_setup = False
+
+def setup_rewrites():
+    from .batchretrieve import BatchRetrieve, FeaturesBatchRetrieve
+    from .transformer import rewrite_rules
+    from .ops import FeatureUnionPipeline, ComposedPipeline
+    from matchpy import ReplacementRule, Wildcard, Pattern, CustomConstraint
+    #three arbitrary "things".
+    x = Wildcard.dot('x')
+    xs = Wildcard.plus('xs')
+    y = Wildcard.dot('y')
+    z = Wildcard.dot('z')
+    # two different match retrives
+    _br1 = Wildcard.symbol('_br1', BatchRetrieve)
+    _br2 = Wildcard.symbol('_br2', BatchRetrieve)
+    _fbr = Wildcard.symbol('_fbr', FeaturesBatchRetrieve)
+    
+    # batch retrieves for the same index
+    BR_index_matches = CustomConstraint(lambda _br1, _br2: _br1.indexref == _br2.indexref)
+    BR_FBR_index_matches = CustomConstraint(lambda _br1, _fbr: _br1.indexref == _fbr.indexref)
+    
+    # rewrite nested binary feature unions into one single polyadic feature union
+    rewrite_rules.append(ReplacementRule(
+        Pattern(FeatureUnionPipeline(x, FeatureUnionPipeline(y,z)) ),
+        lambda x, y, z: FeatureUnionPipeline(x,y,z)
+    ))
+    rewrite_rules.append(ReplacementRule(
+        Pattern(FeatureUnionPipeline(FeatureUnionPipeline(x,y), z) ),
+        lambda x, y, z: FeatureUnionPipeline(x,y,z)
+    ))
+    rewrite_rules.append(ReplacementRule(
+        Pattern(FeatureUnionPipeline(FeatureUnionPipeline(x,y), xs) ),
+        lambda x, y, xs: FeatureUnionPipeline(*[x,y]+list(xs))
+    ))
+
+    # rewrite nested binary compose into one single polyadic compose
+    rewrite_rules.append(ReplacementRule(
+        Pattern(ComposedPipeline(x, ComposedPipeline(y,z)) ),
+        lambda x, y, z: ComposedPipeline(x,y,z)
+    ))
+    rewrite_rules.append(ReplacementRule(
+        Pattern(ComposedPipeline(ComposedPipeline(x,y), z) ),
+        lambda x, y, z: ComposedPipeline(x,y,z)
+    ))
+    rewrite_rules.append(ReplacementRule(
+        Pattern(ComposedPipeline(ComposedPipeline(x,y), xs) ),
+        lambda x, y, xs: ComposedPipeline(*[x,y]+list(xs))
+    ))
+
+    # rewrite batch a feature union of BRs into an FBR
+    rewrite_rules.append(ReplacementRule(
+        Pattern(FeatureUnionPipeline(_br1, _br2), BR_index_matches),
+        lambda _br1, _br2: FeaturesBatchRetrieve(_br1.indexref, ["WMODEL:" + _br1.controls["wmodel"], "WMODEL:" + _br2.controls["wmodel"]])
+    ))
+
+    def push_fbr_earlier(_br1, _fbr):
+        #TODO copy more attributes
+        _fbr.wmodel = _br1.controls["wmodel"]
+        return _fbr
+
+    # rewrite a BR followed by a FBR into a FBR
+    rewrite_rules.append(ReplacementRule(
+        Pattern(ComposedPipeline(_br1, _fbr), BR_FBR_index_matches),
+        push_fbr_earlier
+    ))
+
+    global rewrites_setup
+    rewrites_setup = True
+
+setup_rewrites()

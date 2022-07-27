@@ -43,7 +43,7 @@ class TestOperators(BaseTestCase):
             return topics
         fn1 = lambda topics : rewrite(topics)
         fn2 = lambda topics : rewrite(topics)
-        import pyterrier.transformer as ptt
+        import pyterrier.apply_base as ptt
         sequence1 = ptt.ApplyGenericTransformer(fn1) >> ptt.ApplyGenericTransformer(fn2)
         sequence2 = ptt.ApplyGenericTransformer(fn1) >> fn2
         sequence3 = ptt.ApplyGenericTransformer(fn1) >> rewrite
@@ -51,11 +51,11 @@ class TestOperators(BaseTestCase):
         sequence5 = rewrite >> ptt.ApplyGenericTransformer(fn2)
         
         for sequence in [sequence1, sequence2, sequence3, sequence4, sequence5]:
-            self.assertTrue(isinstance(sequence, ptt.TransformerBase))
+            self.assertTrue(isinstance(sequence, ptt.Transformer))
             #check we can access items
             self.assertEqual(2, len(sequence))
-            self.assertTrue(sequence[0], ptt.TransformerBase)
-            self.assertTrue(sequence[1], ptt.TransformerBase)            
+            self.assertTrue(sequence[0], ptt.Transformer)
+            self.assertTrue(sequence[1], ptt.Transformer)            
             input = pd.DataFrame([["q1", "hello"]], columns=["qid", "query"])
             output = sequence.transform(input)
             self.assertEqual(1, len(output))
@@ -157,7 +157,6 @@ class TestOperators(BaseTestCase):
         self.assertEqual(10, rtr.iloc[1]["score"])
 
     def test_plus_more_cols(self):
-        import pyterrier.transformer as ptt
         from pyterrier.model import add_ranks
         mock1 = pt.Transformer.from_df(add_ranks(pd.DataFrame([["q1", "a query", "doc1", 5]], columns=["qid", "query", "docno", "score"])), uniform=True)
         mock2 = pt.Transformer.from_df(add_ranks(pd.DataFrame([["q1", "a query", "doc1", 10]], columns=["qid", "query", "docno", "score"])), uniform=True)
@@ -175,7 +174,6 @@ class TestOperators(BaseTestCase):
             self.assertFalse(bad in rtr.columns, "column %s in returned dataframe" % bad)
 
     def test_rank_cutoff(self):
-        import pyterrier.transformer as ptt
         mock1 = pt.Transformer.from_df( pd.DataFrame([["q1", "d2", 0, 5.1], ["q1", "d3", 1, 5.1]], columns=["qid", "docno", "rank", "score"]), uniform=True)
         cutpipe = mock1 % 1
         rtr = cutpipe.transform(None)
@@ -183,7 +181,6 @@ class TestOperators(BaseTestCase):
         
     def test_concatenate(self):
         import numpy as np
-        import pyterrier.transformer as ptt
         mock1 = pt.Transformer.from_df( pd.DataFrame([["q1", "d2", 2, 4.9, np.array([1,2])], ["q1", "d3", 1, 5.1, np.array([1,2])]], columns=["qid", "docno", "rank", "score", "bla"]), uniform=True)
         mock2 = pt.Transformer.from_df( pd.DataFrame([["q1", "d1", 1, 4.9, np.array([1,1])], ["q1", "d3", 2, 5.1, np.array([1,2])]], columns=["qid", "docno", "rank", "score", "bla"]), uniform=True)
 
@@ -202,7 +199,6 @@ class TestOperators(BaseTestCase):
 
 
     def test_plus_multi_rewrite(self):
-        import pyterrier.transformer as ptt
         mock1 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"]), uniform=True)
         mock2 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]), uniform=True)
         mock3 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 15]], columns=["qid", "docno", "score"]), uniform=True)
@@ -220,7 +216,6 @@ class TestOperators(BaseTestCase):
 
 
     def test_union(self):
-        import pyterrier.transformer as ptt
         mock1 = pt.Transformer.from_df(pd.DataFrame([["q1", "q1texta", "doc1", 5, "body text"], ["q1", "q1texta", "doc3", 5, "body text"]], columns=["qid", "query", "docno", "score", "body"]), uniform=True)
         mock2 = pt.Transformer.from_df(pd.DataFrame([["q1", "q1textb", "doc2", 10, "body text" ]], [["q1", "q1textb", "doc3", 10, "body text"]], columns=["qid", "query", "docno", "score", "body"]), uniform=True)
 
@@ -244,7 +239,6 @@ class TestOperators(BaseTestCase):
             self.assertFalse(col in rtr.columns, "%s found in cols" % col)            
 
     def test_intersect(self):
-        import pyterrier.transformer as ptt
         mock1 = pt.Transformer.from_df(pd.DataFrame([["q1", "q1texta", "doc1", 5, "body text"]], columns=["qid", "query", "docno", "score", "body"]), uniform=True)
         mock2 = pt.Transformer.from_df(pd.DataFrame([["q1", "q1textb", "doc2", 10, "body text"], ["q1", "q1textb", "doc1", 10, "body text"]], columns=["qid", "query", "docno", "score", "body"]), uniform=True)
 
@@ -291,7 +285,8 @@ class TestOperators(BaseTestCase):
 
 
     def test_feature_union_multi(self):
-        import pyterrier.transformer as ptt
+        import pyterrier.ops as pto
+        import pyterrier.batchretrieve
         mock0 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 0], ["q1", "doc2", 0]], columns=["qid", "docno", "score"]), uniform=True)
 
         mock1 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 5], ["q1", "doc2", 0]], columns=["qid", "docno", "score"]), uniform=True)
@@ -306,38 +301,38 @@ class TestOperators(BaseTestCase):
         mock12a = mock1 ** mock2
         mock123a = mock1 ** mock2 ** mock3
         mock123b = mock12a ** mock3
-        mock123a_manual = ptt.FeatureUnionPipeline(
-                ptt.FeatureUnionPipeline(mock1, mock2),
+        mock123a_manual = pto.FeatureUnionPipeline(
+                pto.FeatureUnionPipeline(mock1, mock2),
                 mock3
         )
-        mock123b_manual = ptt.FeatureUnionPipeline(
+        mock123b_manual = pto.FeatureUnionPipeline(
                 mock1,
-                ptt.FeatureUnionPipeline(mock2, mock3),
+                pto.FeatureUnionPipeline(mock2, mock3),
         )
-        mock123e = ptt.FeatureUnionPipeline(
+        mock123e = pto.FeatureUnionPipeline(
                 mock1,
-                ptt.FeatureUnionPipeline(mock2, mock3_empty),
-        )
-
-        mock12e3 = ptt.FeatureUnionPipeline(
-                mock1,
-                ptt.FeatureUnionPipeline(mock3_empty, mock3),
+                pto.FeatureUnionPipeline(mock2, mock3_empty),
         )
 
-        mock123p = ptt.FeatureUnionPipeline(
+        mock12e3 = pto.FeatureUnionPipeline(
                 mock1,
-                ptt.FeatureUnionPipeline(mock2, mock3_partial),
+                pto.FeatureUnionPipeline(mock3_empty, mock3),
         )
 
-        mock12p3 = ptt.FeatureUnionPipeline(
+        mock123p = pto.FeatureUnionPipeline(
                 mock1,
-                ptt.FeatureUnionPipeline(mock2_partial, mock3),
+                pto.FeatureUnionPipeline(mock2, mock3_partial),
+        )
+
+        mock12p3 = pto.FeatureUnionPipeline(
+                mock1,
+                pto.FeatureUnionPipeline(mock2_partial, mock3),
         )
         
         
         self.assertEqual(2, len(mock12a.models))
         self.assertEqual(2, len(mock12a.models))
-        ptt.setup_rewrites()
+        pyterrier.batchretrieve.setup_rewrites()
 
         mock123_simple = mock123a.compile()
         self.assertIsNotNone(mock123_simple)
@@ -383,7 +378,7 @@ class TestOperators(BaseTestCase):
 
 
     def test_feature_union(self): 
-        import pyterrier.transformer as ptt
+        import pyterrier.ops as ptt
         mock_input = pt.Transformer.from_df(pd.DataFrame([["q1", "a query", "doc1", 5]], columns=["qid", "query", "docno", "score"]), uniform=True)
         
         mock_f1 = pt.Transformer.from_df(pd.DataFrame([["q1", "a query", "doc1", 10]], columns=["qid", "query", "docno", "score"]), uniform=True)
