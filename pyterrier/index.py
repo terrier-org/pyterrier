@@ -16,7 +16,7 @@ import select
 import math
 from warnings import warn
 from collections import deque
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Any
 
 StringReader = None
 HashMap = None
@@ -596,7 +596,7 @@ class FlatJSONDocumentIterator(PythonJavaClass):
 
 from pyterrier.transformer import IterDictIndexerBase
 class _BaseIterDictIndexer(Indexer, IterDictIndexerBase):
-    def __init__(self, index_path, *args, meta = {'docno' : 20}, meta_reverse=['docno'], threads=1, **kwargs):
+    def __init__(self, index_path, *args, meta = {'docno' : 20}, meta_reverse=['docno'], pretokenised=False, threads=1, **kwargs):
         """
         
         Args:
@@ -609,6 +609,7 @@ class _BaseIterDictIndexer(Indexer, IterDictIndexerBase):
         self.threads = threads
         self.meta = meta
         self.meta_reverse = meta_reverse
+        self.pretokenised = pretokenised
 
     def _setup(self, fields, meta, meta_lengths):
         """
@@ -666,15 +667,34 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
 
         self._setup(fields, self.meta, None)
         assert self.threads == 1, 'IterDictIndexer does not support multiple threads on Windows'
-        # we need to prevent collectionIterator from being GCd
-        collectionIterator = FlatJSONDocumentIterator(self._filter_iterable(it, fields))
-        javaDocCollection = autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
+
         index = self.createIndexer()
-        index.index([javaDocCollection])
-        global lastdoc
-        lastdoc = None
-        self.index_called = True
-        collectionIterator = None
+        if self.pretokenised:
+            assert not self.blocks, "pretokenised isnt compatible with blocks"
+
+            # we generate DocumentPostingList from a dictionary of pretokenised text, e.g.
+            # [
+            #     {'docno' : 'd1', 'toks' : {'a' : 1, 'aa' : 2}
+            # ]
+            
+            iter_docs = DocListIterator(it)
+            self.index_called = True
+            index.indexIterator(iter_docs)
+            iter_docs = None
+
+        else:
+
+            # we need to prevent collectionIterator from being GCd
+            collectionIterator = FlatJSONDocumentIterator(self._filter_iterable(it, fields))
+            javaDocCollection = autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
+            
+            index.index([javaDocCollection])
+            global lastdoc
+            lastdoc = None
+            self.index_called = True
+            collectionIterator = None
+
+
         if self.type is IndexingType.MEMORY:
             return index.getIndex().getIndexRef()
         return IndexRef.of(self.index_dir + "/data.properties")
@@ -922,7 +942,41 @@ class TQDMSizeCollection(PythonJavaClass):
         lastdoc = self.collection.getDocument()
         return lastdoc
         
+class DocListIterator(PythonJavaClass):
+    dpl_class = autoclass("org.terrier.structures.indexing.DocumentPostingList")
+    tuple_class = autoclass("org.terrier.structures.collections.MapEntry")
+    __javainterfaces__ = [
+        'java/util/Iterator',
+    ]
 
+    def __init__(self, pyiterator):
+        self.pyiterator = pyiterator
+        self.hasnext = True
+
+    @staticmethod
+    def pyDictToMapEntry(doc_dict : Dict[str,Any]): #returns Map.Entry<Map<String,String>, DocumentPostingList>>
+        dpl = DocListIterator.dpl_class()
+        for t,tf in doc_dict["toks"].items():
+            dpl.insert(tf, t)
+        # TODO: do we need to remove toks column from doc_dict
+        return DocListIterator.tuple_class(doc_dict, dpl)
+
+    @java_method('()Z')
+    def hasNext(self):
+        return self.hasnext
+
+    @java_method('()Ljava/lang/Object;')
+    def next(self):
+        #TODO how to do this
+        from main import next as corenext
+        try:
+            doc_dict = corenext(self.pyiterator)
+        except StopIteration as se:
+            self.hasnext = False
+            # terrier will ignore a null return from an iterator
+            return None
+        return DocListIterator.pyDictToMapEntry(doc_dict)
+        
 
 class TQDMCollection(PythonJavaClass):
     __javainterfaces__ = ['org/terrier/indexing/Collection']
