@@ -1,4 +1,4 @@
-from .transformer import Transformer, EstimatorBase, get_transformer, Scalar, 
+from .transformer import Transformer, EstimatorBase, get_transformer, Scalar
 from .model import add_ranks
 from matchpy import Operation, Arity
 from warnings import warn
