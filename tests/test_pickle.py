@@ -103,7 +103,8 @@ class TestPickle(TempDirTestCase):
         br = pt.BatchRetrieve(vaswani.get_index(), wmodel=wmodel, controls={"c" : 0.75}, num_results=15)
         q  = pd.DataFrame([["q1", "chemical"]], columns=["qid", "query"])
         res1 = br(q)
-        br2 = pickler.loads(pickler.dumps(br))
+        byterep = pickler.dumps(br)
+        br2 = pickler.loads(byterep)
 
         if isinstance(wmodel, str):
             self.assertEqual(wmodel, br2.controls["wmodel"])
@@ -121,7 +122,8 @@ class TestPickle(TempDirTestCase):
         br = pt.FeaturesBatchRetrieve(vaswani.get_index(), wmodel="BM25", features=["WMODEL:DPH"], controls={"c" : 0.75}, num_results=15)
         q  = pd.DataFrame([["q1", "chemical"]], columns=["qid", "query"])
         res1 = br(q)
-        br2 = pickler.loads(pickler.dumps(br))
+        byterep = pickler.dumps(br)
+        br2 = pickler.loads(byterep)
 
         self.assertEqual("BM25", br2.controls["wmodel"])
         self.assertEqual(br.controls, br2.controls)
