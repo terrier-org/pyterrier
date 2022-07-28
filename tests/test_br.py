@@ -203,17 +203,17 @@ class TestBatchRetrieve(BaseTestCase):
         if not pt.check_version("5.5"):
             self.skipTest("Requires Terrier 5.5")
 
-        topics = pt.get_dataset("vaswani").get_topics().head(10)
+        topics = pt.get_dataset("vaswani").get_topics().head(8)
 
         #this test ensures that we operate when the indexref is specified to be concurrent 
         JIR = pt.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of("concurrent:" + self.here+"/fixtures/index/data.properties")
-        retr = pt.BatchRetrieve(indexref, threads=5)
+        retr = pt.BatchRetrieve(indexref, threads=4)
         result = retr.transform(topics)
 
         #check that use of a callback model works under threading
         Tf = lambda keyFreq, posting, entryStats, collStats: posting.getFrequency()
-        retr = pt.BatchRetrieve(indexref, threads=5, wmodel=Tf)
+        retr = pt.BatchRetrieve(indexref, threads=4, wmodel=Tf)
         result = retr.transform(topics)
 
     def test_threading_selfupgrade(self):

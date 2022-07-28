@@ -135,21 +135,53 @@ def touch(fname, mode=0o666, dir_fd=None, **kwargs):
             dir_fd=None if os.supports_fd else dir_fd, **kwargs)
 
 
-def read_results(filename, format="trec", **kwargs):
+def read_results(filename, format="trec", topics=None, dataset=None, **kwargs):
     """
     Reads a file into a results dataframe.
 
     Parameters:
         filename (str): The filename of the file to be read. Compressed files are handled automatically. A URL is also supported for the "trec" format.
         format (str): The format of the results file: one of "trec", "letor". Default is "trec".
+        topics (None or pandas.DataFrame): If provided, will merge the topics to merge into the results. This is helpful for providing query text. Cannot be used in conjunction with dataset argument.
+        dataset (None, str or pyterrier.datasets.Dataset): If provided, loads topics from the dataset (or dataset ID) and merges them into the results. This is helpful for providing query text. Cannot be used in conjunction with dataset topics.
         **kwargs (dict): Other arguments for the internal method
 
     Returns:
         dataframe with usual qid, docno, score columns etc
+
+    Examples::
+
+        # a dataframe of results can be used directly in a pt.Experiment
+        pt.Experiment(
+            [ pt.io.read_results("/path/to/baselines-results.res.gz") ],
+            topics,
+            qrels,
+            ["map"]
+        )
+
+        # make a transformer from a results dataframe, include the query text
+        first_pass = pt.Transformer.from_df( pt.io.read_results("/path/to/results.gz", topics=topics) )
+        # make a max_passage retriever based on a previously saved results
+        max_passage = (first_pass 
+            >> pt.text.get_text(dataset)
+            >> pt.text.sliding()
+            >> pt.text.scorer()
+            >> pt.text.max_passage()
+        )
+
     """
     if not format in SUPPORTED_RESULTS_FORMATS:
         raise ValueError("Format %s not known, supported types are %s" % (format, str(SUPPORTED_RESULTS_FORMATS.keys())))
-    return SUPPORTED_RESULTS_FORMATS[format][0](filename, **kwargs)
+    results = SUPPORTED_RESULTS_FORMATS[format][0](filename, **kwargs)
+    if dataset is not None:
+        assert topics is None, "Cannot provide both dataset and topics"
+        if isinstance(dataset, str):
+            import pyterrier as pt
+            dataset = pt.get_dataset(dataset)
+        topics = dataset.get_topics()
+    if topics is not None:
+        results = pd.merge(results, topics, how='left', on='qid')
+    return results
 
 def _read_results_letor(filename, labels=False):
 

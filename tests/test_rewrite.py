@@ -285,9 +285,7 @@ class TestRewrite(TempDirTestCase):
         dataset = pt.datasets.get_dataset("vaswani")
         indexref = dataset.get_index()
         index = pt.IndexFactory.of(indexref)
-        # given their defaults, there three expressions are identical, all use Bo1
-        qe1 = pt.rewrite.QueryExpansion(index)
-        qe2 = pt.rewrite.DFRQueryExpansion(index)
+
         qe3 = pt.rewrite.Bo1QueryExpansion(index)
 
         # lets go faster, we only need 18 topics. qid 16 had a tricky case
@@ -295,7 +293,7 @@ class TestRewrite(TempDirTestCase):
 
         qrels = dataset.get_qrels()
 
-        for qe in [qe1, qe2, qe3]:
+        for qe in [qe3]:
             br = pt.BatchRetrieve(index)
 
             queriesIn = pd.DataFrame([["1", "compact"]], columns=["qid", "query"])

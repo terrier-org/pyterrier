@@ -4,9 +4,8 @@ This file contains all the indexers.
 
 # from jnius import autoclass, cast, PythonJavaClass, java_method
 from jnius import autoclass, PythonJavaClass, java_method, cast
-# from .utils import *
 import pandas as pd
-# import numpy as np
+from pyterrier.transformer import IterDictIndexerBase
 import os
 import enum
 import json
@@ -637,6 +636,12 @@ class _BaseIterDictIndexer(Indexer, IterDictIndexerBase):
             'FieldTags.casesensitive': 'true',
         })
 
+    def _filter_iterable(self, it, indexed_fields):
+        # Only include necessary fields: those that are indexed, metadata fields, and docno
+        all_fields = {'docno'} | set(indexed_fields) | set(self.meta.keys())
+        for doc in it:
+            yield {f: doc[f] for f in all_fields}
+
 
 class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
     """
@@ -662,7 +667,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
         self._setup(fields, self.meta, None)
         assert self.threads == 1, 'IterDictIndexer does not support multiple threads on Windows'
         # we need to prevent collectionIterator from being GCd
-        collectionIterator = FlatJSONDocumentIterator(iter(it)) # force it to be iter
+        collectionIterator = FlatJSONDocumentIterator(self._filter_iterable(it, fields))
         javaDocCollection = autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
         index = self.createIndexer()
         index.index([javaDocCollection])
@@ -725,7 +730,7 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
                 fifos.append(fifo)
 
             # Start dishing out the docs to the fifos
-            threading.Thread(target=self._write_fifos, args=(it, fifos), daemon=True).start()
+            threading.Thread(target=self._write_fifos, args=(self._filter_iterable(it, fields), fifos), daemon=True).start()
 
             # Different process for memory indexer (still taking advantage of faster fifos)
             if Indexer is BasicMemoryIndexer:

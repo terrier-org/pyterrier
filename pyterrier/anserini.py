@@ -3,7 +3,6 @@ from .model import coerce_queries_dataframe
 from .batchretrieve import BatchRetrieveBase
 from warnings import warn
 import pandas as pd
-import numpy as np
 from . import tqdm
 
 anserini_monkey=False
@@ -21,8 +20,11 @@ def _init_anserini():
             break
     assert anserini_found, 'Anserini jar not found: you should start PyTerrier, e.g. with '\
         + 'pt.init(boot_packages=["io.anserini:anserini:0.9.2:fatjar"])'
+    import pyserini.setup
+    pyserini.setup.configure_classpath = lambda x: x
     jnius_config.set_classpath = lambda x: x
     anserini_monkey = True
+    return
 
     #this is the Anserini early rank cutoff rule
     from matchpy import Wildcard, ReplacementRule, Pattern
@@ -63,8 +65,8 @@ class AnseriniBatchRetrieve(BatchRetrieveBase):
         self.index_location = index_location
         self.k = k
         _init_anserini()
-        from pyserini.search import pysearch
-        self.searcher = pysearch.SimpleSearcher(index_location)
+        from pyserini.search import SimpleSearcher
+        self.searcher = SimpleSearcher(index_location)
         self.wmodel = wmodel
         self._setsimilarty(wmodel)
 
@@ -90,11 +92,11 @@ class AnseriniBatchRetrieve(BatchRetrieveBase):
     def _setsimilarty(self, wmodel):
         #commented lines are for anserini > 0.9.2
         if wmodel == "BM25":
-            self.searcher.object.setBM25Similarity(0.9, 0.4)
-            #self.searcher.object.setBM25(self.searcher.object.bm25_k1, self.searcher.object.bm25_b)
+            #self.searcher.object.setBM25Similarity(0.9, 0.4)
+            self.searcher.object.setBM25(0.9, 0.4)
         elif wmodel == "QLD":
-            self.searcher.object.setLMDirichletSimilarity(1000.0)
-            #self.searcher.object.setQLD(self.searcher.object.ql_mu)
+            #self.searcher.object.setLMDirichletSimilarity(1000.0)
+            self.searcher.object.setQLD(1000.0)
         elif wmodel == "TFIDF":
             from jnius import autoclass
             self.searcher.object.similarty = autoclass("org.apache.lucene.search.similarities.ClassicSimilarity")()
@@ -134,7 +136,6 @@ class AnseriniBatchRetrieve(BatchRetrieveBase):
             queries=coerce_queries_dataframe(queries)
         docno_provided = "docno" in queries.columns
         docid_provided = "docid" in queries.columns
-        scores_provided = "scores" in queries.columns
         if docid_provided and not docno_provided:
             raise KeyError("Anserini doesnt expose Lucene's internal docids, you need the docnos")
         if docno_provided: #we are re-ranking
@@ -155,7 +156,7 @@ class AnseriniBatchRetrieve(BatchRetrieveBase):
                 results.append([qid, query, docno, rank, score])
 
         else: #we are searching, no candidate set provided
-            for index,row in tqdm(queries.itertuples(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
+            for row in tqdm(queries.itertuples(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
                 rank = 0
                 qid = str(row.qid)
                 query = row.query

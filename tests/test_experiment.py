@@ -134,7 +134,9 @@ class TestExperiment(TempDirTestCase):
         ]
         topics = pt.datasets.get_dataset("vaswani").get_topics().head(10)
         qrels =  pt.datasets.get_dataset("vaswani").get_qrels()
-        pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"])
+        measures = ["map", "mrt"]
+        pt.Experiment(brs, topics, qrels, eval_metrics=measures)
+        self.assertTrue("mrt" in measures)
         pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], highlight="color")
         pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], baseline=0, highlight="color")
 
@@ -156,7 +158,7 @@ class TestExperiment(TempDirTestCase):
         
     def test_empty(self):
         df1 = pt.new.ranked_documents([[1]]).head(0)
-        t1 = pt.transformer.SourceTransformer(df1)
+        t1 = pt.Transformer.from_df(df1)
 
         topics = pt.datasets.get_dataset("vaswani").get_topics().head(10)
         qrels =  pt.datasets.get_dataset("vaswani").get_qrels()
@@ -212,9 +214,8 @@ class TestExperiment(TempDirTestCase):
         res1 = pd.DataFrame([ ["q2", "d1", 2.0], ["q1", "d1", 1.0],], columns=["qid", "docno", "score"])
         res2 = pd.DataFrame([["q1", "d1", 1.0], ["q2", "d1", 2.0] ], columns=["qid", "docno", "score"])
         qrels = pd.DataFrame([["q1", "d1", 1], ["q2", "d3", 1] ], columns=["qid", "docno", "label"])
-        from pyterrier.transformer import UniformTransformer
         measures = pt.Experiment(
-                [UniformTransformer(res1), UniformTransformer(res2)],
+                [pt.Transformer.from_df(res1, uniform=True), pt.Transformer.from_df(res2, uniform=True)],
                 topics,
                 qrels,
                 ["map"],
@@ -292,27 +293,29 @@ class TestExperiment(TempDirTestCase):
         res2 = pt.BatchRetrieve(dataset.get_index(), wmodel="DPH")(dataset.get_topics().head(numt))
 
         # t-test
-        df = pt.Experiment(
-            [res1, res2], 
-            dataset.get_topics().head(numt), 
-            dataset.get_qrels(),
-            eval_metrics=["map", "ndcg"], 
-            baseline=0)
-        self.assertTrue("map +" in df.columns)
-        self.assertTrue("map -" in df.columns)
-        self.assertTrue("map p-value" in df.columns)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            df = pt.Experiment(
+                [res1, res2], 
+                dataset.get_topics().head(numt), 
+                dataset.get_qrels(),
+                eval_metrics=["map", "ndcg"], 
+                baseline=0)
+            self.assertTrue("map +" in df.columns)
+            self.assertTrue("map -" in df.columns)
+            self.assertTrue("map p-value" in df.columns)
 
-        # wilcoxon signed-rank test
-        df = pt.Experiment(
-            [res1, res2], 
-            dataset.get_topics().head(numt), 
-            dataset.get_qrels(),
-            eval_metrics=["map", "ndcg"], 
-            test='wilcoxon', 
-            baseline=0)
-        self.assertTrue("map +" in df.columns)
-        self.assertTrue("map -" in df.columns)
-        self.assertTrue("map p-value" in df.columns)
+            # wilcoxon signed-rank test
+            df = pt.Experiment(
+                [res1, res2], 
+                dataset.get_topics().head(numt), 
+                dataset.get_qrels(),
+                eval_metrics=["map", "ndcg"], 
+                test='wilcoxon', 
+                baseline=0)
+            self.assertTrue("map +" in df.columns)
+            self.assertTrue("map -" in df.columns)
+            self.assertTrue("map p-value" in df.columns)
 
 
         # user-specified TOST

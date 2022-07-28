@@ -51,7 +51,7 @@ class TestPickle(TempDirTestCase):
 
     def _sourcetransformer(self, pickler):
         df = pd.DataFrame([["q1", "doc1", 5]], columns=["qid", "docno", "score"])
-        t = pt.transformer.SourceTransformer(df)
+        t = pt.Transformer.from_df(df)
         t_2 = pickler.loads(pickler.dumps(t))
         q  = pd.DataFrame([["q1", "query"]], columns=["qid", "query"])
         res = t_2(q)

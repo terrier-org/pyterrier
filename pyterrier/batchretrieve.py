@@ -46,9 +46,10 @@ def _function2wmodel(function):
             #see https://github.com/SeldonIO/alibi/issues/447#issuecomment-881552005
             from dill import extend
             extend(use_dill=False)
-            byterep = pickle.dumps(self.fn)
-            byterep = autoclass("java.nio.ByteBuffer").wrap(byterep)
-            return byterep
+            # keep both python and java representations around to prevent them being GCd in respective VMs 
+            self.pbyterep = pickle.dumps(self.fn)
+            self.jbyterep = autoclass("java.nio.ByteBuffer").wrap(self.pbyterep)
+            return self.jbyterep
 
     callback = PythonWmodelFunction(function)
     wmodel = autoclass("org.terrier.python.CallableWeightingModel")( callback )
@@ -534,8 +535,8 @@ class TextScorer(TextIndexProcessor):
         Unknown kwargs are passed to BatchRetrieve.
 
         Arguments:
-            takes(str): configuration - what is needed as input: `"queries"`, or `"docs"`.
-            returns(str): configuration - what is needed as output: `"queries"`, or `"docs"`.
+            takes(str): configuration - what is needed as input: `"queries"`, or `"docs"`. Default is `"docs"` since v0.8.
+            returns(str): configuration - what is needed as output: `"queries"`, or `"docs"`. Default is `"docs"`.
             body_attr(str): what dataframe input column contains the text of the document. Default is `"body"`.
             wmodel(str): example of configuration passed to BatchRetrieve.
 
@@ -551,8 +552,8 @@ class TextScorer(TextIndexProcessor):
             #rtr will score each document for the query "chemical reactions" based on the provided document contents
     """
 
-    def __init__(self, **kwargs):
-        super().__init__(BatchRetrieve, **kwargs)
+    def __init__(self, takes="docs", **kwargs):
+        super().__init__(BatchRetrieve, takes=takes, **kwargs)
 
 class FeaturesBatchRetrieve(BatchRetrieve):
     """

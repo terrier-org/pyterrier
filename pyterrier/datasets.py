@@ -107,6 +107,12 @@ class Dataset():
         """
         return None
 
+    def get_results(self, variant=None) -> pd.DataFrame:
+        """ 
+            Returns a standard result set provided by the dataset. This is useful for re-ranking experiments.
+        """
+        pass
+
 class RemoteDataset(Dataset):
 
     def __init__(self, name, locations):
@@ -170,7 +176,6 @@ class RemoteDataset(Dataset):
         if variant is None:
             if not isinstance(self.locations[component], list):
                 raise ValueError("For %s in dataset %s, you must specify a variant. Available are: %s" % (component, name, str(list(self.locations[component].keys()))))
-            location = self.locations[component][0]
         else:
             if isinstance(self.locations[component], list):
                 raise ValueError("For %s in dataset %s, there are no variants, but you specified %s" % (component, name, variant))
@@ -376,9 +381,9 @@ class RemoteDataset(Dataset):
 
 
 class IRDSDataset(Dataset):
-    def __init__(self, irds_id):
+    def __init__(self, irds_id, defer_load=False):
         self._irds_id = irds_id
-        self._irds_ref = None
+        self._irds_ref = None if defer_load else ir_datasets.load(self._irds_id)
 
     def irds_ref(self):
         if self._irds_ref is None:
@@ -426,6 +431,11 @@ class IRDSDataset(Dataset):
         df.rename(columns={"query_id": "qid"}, inplace=True) # pyterrier uses "qid"
 
         if variant is not None:
+            # Some datasets have a query field called "query". We need to remove it or
+            # we'll end up with multiple "query" columns, which will cause problems
+            # because many components are written assuming no columns have the same name.
+            if variant != 'query' and 'query' in df.columns:
+                df.drop(['query'], 1, inplace=True)
             df.rename(columns={variant: "query"}, inplace=True) # user specified which version of the query they want
             df.drop(df.columns.difference(['qid','query']), 1, inplace=True)
         elif len(qcls._fields) == 2:
@@ -480,6 +490,20 @@ class IRDSDataset(Dataset):
 
         return df
 
+    def get_results(self, variant=None) -> pd.DataFrame:
+        """ 
+            Returns a standard result set provided by the dataset. This is useful for re-ranking experiments.
+        """
+        ds = self.irds_ref()
+        assert ds.has_scoreddocs(), f"{self._irds_id} doesn't support get_reranking_run"
+        result = pd.DataFrame(ds.scoreddocs)
+        result = result.rename(columns={'query_id': 'qid', 'doc_id': 'docno'}) # convert irds field names to pyterrier names
+        result.sort_values(by=['qid', 'score', 'docno'], ascending=[True, False, True], inplace=True) # ensure data is sorted by qid, -score, did
+        # result doesn't yet contain queries (only qids) so load and merge them in
+        topics = self.get_topics(variant)
+        result = pd.merge(result, topics, how='left', on='qid', copy=False)
+        return result
+
     def _describe_component(self, component):
         ds = self.irds_ref()
         if component == "topics":
@@ -498,6 +522,8 @@ class IRDSDataset(Dataset):
             return None
         if component == "corpus":
             return ds.has_docs() or None
+        if component == "results":
+            return ds.has_scoreddocs() or None
         return None
 
     def info_url(self):
@@ -752,6 +778,9 @@ TREC_WT_2003_FILES = {
     "info_url" : "https://trec.nist.gov/data/t12.web.html",
 }
 
+def irds_mirror(md5):
+    return f'http://mirror.ir-datasets.com/{md5}'
+
 def filter_on_qid_type(self, component, variant):
     if component == "topics":
         data = self.get_topics("all")
@@ -776,13 +805,13 @@ TREC_WT_2004_FILES = {
         },
     "topics_map" : [("04.topic-map.official.txt", [
         "https://trec.nist.gov/data/web/04.topic-map.official.txt",
-        "http://mirror.ir-datasets.com/79737768b3be1aa07b14691aa54802c5",
+        irds_mirror("79737768b3be1aa07b14691aa54802c5"),
         "https://www.dcs.gla.ac.uk/~craigm/04.topic-map.official.txt"
         ] )],
     "topics_prefixed" : { 
         "all" : ("Web2004.query.stream.trecformat.txt", [
                 "https://trec.nist.gov/data/web/Web2004.query.stream.trecformat.txt",
-                "https://mirror.ir-datasets.com/10821f7a000b8bec058097ede39570be",
+                irds_mirror("10821f7a000b8bec058097ede39570be"),
                 "https://www.dcs.gla.ac.uk/~craigm/Web2004.query.stream.trecformat.txt"], 
             "trec")
     },
@@ -793,7 +822,7 @@ TREC_WT_2004_FILES = {
             "np" : filter_on_qid_type,
             "all" : ("04.qrels.web.mixed.txt", [
                 "https://trec.nist.gov/data/web/04.qrels.web.mixed.txt",
-                "https://mirror.ir-datasets.com/93daa0e4b4190c84e30d2cce78a0f674",
+                irds_mirror("93daa0e4b4190c84e30d2cce78a0f674"),
                 "https://www.dcs.gla.ac.uk/~craigm/04.qrels.web.mixed.txt"])
         },
     "info_url" : "https://trec.nist.gov/data/t13.web.html",
@@ -802,8 +831,8 @@ TREC_WT_2004_FILES = {
 FIFTY_PCT_INDEX_BASE = "http://www.dcs.gla.ac.uk/~craigm/IR_HM/"
 FIFTY_PCT_FILES = {
     "index": {
-        "ex1" : [(filename, FIFTY_PCT_INDEX_BASE + "index/" + filename) for filename in ["data.meta-0.fsomapfile"] + STANDARD_TERRIER_INDEX_FILES],
-        "ex2" : [(filename, FIFTY_PCT_INDEX_BASE + "index_block_fields_2021_content/" + filename) for filename in ["data.meta-0.fsomapfile", "data-pagerank.oos"] + STANDARD_TERRIER_INDEX_FILES],   
+        "ex2" : [(filename, FIFTY_PCT_INDEX_BASE + "index/" + filename) for filename in ["data.meta-0.fsomapfile"] + STANDARD_TERRIER_INDEX_FILES],
+        "ex3" : [(filename, FIFTY_PCT_INDEX_BASE + "ex3/" + filename) for filename in ["data.meta-0.fsomapfile", "data-pagerank.oos"] + STANDARD_TERRIER_INDEX_FILES],   
     },
     "topics": { 
             "training" : ("training.topics", FIFTY_PCT_INDEX_BASE + "topics/" + "training.topics", "trec"),
@@ -976,12 +1005,15 @@ TREC_PRECISION_MEDICINE_FILES = {
 VASWANI_CORPUS_BASE = "https://raw.githubusercontent.com/terrier-org/pyterrier/master/tests/fixtures/vaswani_npl/"
 VASWANI_INDEX_BASE = "https://raw.githubusercontent.com/terrier-org/pyterrier/master/tests/fixtures/index/"
 VASWANI_FILES = {
-    "corpus":
-        [("doc-text.trec", VASWANI_CORPUS_BASE + "corpus/doc-text.trec")],
-    "topics":
-        [("query-text.trec", VASWANI_CORPUS_BASE + "query-text.trec")],
-    "qrels":
-        [("qrels", VASWANI_CORPUS_BASE + "qrels")],
+    "corpus": [("doc-text.trec", [
+        VASWANI_CORPUS_BASE + "corpus/doc-text.trec",
+        irds_mirror("a059e713c50350e39999467c8c73b7c5")])],
+    "topics": [("query-text.trec", [
+        VASWANI_CORPUS_BASE + "query-text.trec",
+        irds_mirror("3a624be2b0ef7c9534cf848891679bec")])],
+    "qrels": [("qrels", [
+        VASWANI_CORPUS_BASE + "qrels",
+        irds_mirror("6acb6db9969da8b8c6c23c09551af8d9")])],
     "index": _datarepo_index_default_none,
     #"index":
     #    [(filename, VASWANI_INDEX_BASE + filename) for filename in STANDARD_TERRIER_INDEX_FILES + ["data.meta-0.fsomapfile"]],
@@ -1031,7 +1063,7 @@ DATASET_MAP = {
 # ...
 import ir_datasets
 for ds_id in ir_datasets.registry:
-    DATASET_MAP[f'irds:{ds_id}'] = IRDSDataset(ds_id)
+    DATASET_MAP[f'irds:{ds_id}'] = IRDSDataset(ds_id, defer_load=True)
 
 # "trec-deep-learning-docs"
 #DATASET_MAP['msmarco_document'] = DATASET_MAP["trec-deep-learning-docs"]

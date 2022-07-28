@@ -106,7 +106,7 @@ A sklearn regressor can be passed directly to `pt.ltr.apply_learned_model()`::
 Note that if the feature definitions in the pipeline change, you will need to create a new instance of `rf`.
 
 For analysis purposes, the feature importances identified by RandomForestRegressor can be accessed
-through `rf.features_importances_` - see the `relevant sklearn documentation <https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html#sklearn.ensemble.RandomForestRegressor.feature_importances_>`_ for more information.
+through `rf.feature_importances_` - see the `relevant sklearn documentation <https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html#sklearn.ensemble.RandomForestRegressor.feature_importances_>`_ for more information.
 
 Gradient Boosted Trees & LambdaMART
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -156,7 +156,7 @@ Note that if the feature definitions in the pipeline change, you will need to cr
 
 In our experience, LightGBM *tends* to be more effective than xgBoost.
 
-Similar to sklearn, both XGBoost and LightGBM provide feature importances via `lmart_x.features_importances_` and `lmart_l.features_importances_`.
+Similar to sklearn, both XGBoost and LightGBM provide feature importances via `lmart_x.feature_importances_` and `lmart_l.feature_importances_`.
 
 FastRank: Coordinate Ascent
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -193,13 +193,13 @@ Example::
     # learn a model for all four features
     full = pipeline >> pt.ltr.apply_learned_model(RandomForestRegressor(n_estimators=400))
     full.fit(trainTopics, trainQrels, validTopics, validQrels)
-    ranker.append(full)
+    rankers.append(full)
     
     # learn a model for 3 features, removing one each time
     for fid in range(numf):
         ablated = pipeline >> pt.ltr.ablate_features(fid) >> pt.ltr.apply_learned_model(RandomForestRegressor(n_estimators=400))
         ablated.fit(trainTopics, trainQrels, validTopics, validQrels)
-        rankers.append(full)
+        rankers.append(ablated)
 
     # evaluate the full (4 features) model, as well as the each model containing only 3 features)
     pt.Experiment(

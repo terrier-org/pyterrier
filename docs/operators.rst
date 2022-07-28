@@ -83,8 +83,8 @@ Instead of the following Python::
     br_DPH = BatchRetrieve(index, "DPH")
     br_BM25 = BatchRetrieve(index, "BM25")
 
-    res1 = br_DPH.trasnform(topics)
-    res2 = br_BM25.trasnform(topics)
+    res1 = br_DPH.transform(topics)
+    res2 = br_BM25.transform(topics)
     res = res1.merge(res2, on=["qid", "docno"])
     res["score"] = 2 * res["score_x"] + res["score_y"]
 
