@@ -394,19 +394,35 @@ class IRDSDataset(Dataset):
         raise NotImplementedError("IRDSDataset doesn't support get_corpus; use get_corpus_iter instead. If you "
                                   "are indexing, get_corpus_iter should be used in conjunction with IterDictIndexer.")
 
-    def get_corpus_iter(self, verbose=True):
+    def get_corpus_iter(self, verbose=True, start=0, count=None):
         ds = self.irds_ref()
         assert ds.has_docs(), f"{self._irds_id} doesn't support get_corpus_iter"
         it = ds.docs_iter()
+        total = ds.docs_count()
+
+        # use slicing if requested
+        if start > 0 or count is not None:
+            if count is not None:
+                it = it[start:start+count]
+                total = count
+            else:
+                it = it[start:]
+                total -= start
+        
+        # tqdm support
         if verbose:
-            it = tqdm(it, desc=f'{self._irds_id} documents', total=ds.docs_count())
+            it = tqdm(it, desc=f'{self._irds_id} documents', total=total)
+
+        # rewrite to follow pyterrier std
         def gen():
             for doc in it:
                 doc = doc._asdict()
                 # pyterrier uses "docno"
                 doc['docno'] = doc.pop('doc_id')
                 yield doc
-        return GeneratorLen(gen(), ds.docs_count())
+
+        # ensure we can provide accurate len
+        return GeneratorLen(gen(), total)
 
     def get_corpus_lang(self):
         ds = self.irds_ref()

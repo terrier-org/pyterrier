@@ -17,6 +17,7 @@ class TestIrDatasetsIntegration(BaseTestCase):
             self.assertEqual(len(qrels), 2083)
         with self.subTest('corpus'):
             corpus = dataset.get_corpus_iter()
+            self.assertEqual(len(corpus), 11429)
             corpus = list(corpus)
             self.assertEqual(len(corpus), 11429)
             with tempfile.TemporaryDirectory() as d:
@@ -25,6 +26,13 @@ class TestIrDatasetsIntegration(BaseTestCase):
                 index = pt.IndexFactory.of(indexref)
                 self.assertEqual(index.lexicon['bit'].frequency, 33)
                 index.close()
+        with self.subTest('corpus-slice'):
+            corpus = dataset.get_corpus_iter(start=1, count=2)
+            self.assertEqual(2, len(corpus))
+            self.assertEqual(2, len(list(corpus)))
+            corpus = dataset.get_corpus_iter(start=0, count=2)
+            self.assertEqual(2, len(corpus))
+            self.assertEqual(2, len(list(corpus)))
 
     def test_antique(self):
         dataset = pt.datasets.get_dataset('irds:antique/test')
