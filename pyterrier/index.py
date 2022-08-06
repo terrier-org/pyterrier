@@ -688,7 +688,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
             collectionIterator = FlatJSONDocumentIterator(self._filter_iterable(it, fields))
             javaDocCollection = autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
             
-            index.index([javaDocCollection])
+            index.index(javaDocCollection)
             global lastdoc
             lastdoc = None
             self.index_called = True
@@ -851,12 +851,10 @@ class TRECCollectionIndexer(Indexer):
         _TaggedDocumentSetup(self.meta, self.meta_tags)
 
         colObj = createCollection(files_path, self.collection)
-        collsArray = [colObj]
         if self.verbose and isinstance(colObj, autoclass("org.terrier.indexing.MultiDocumentFileCollection")):
             colObj = cast("org.terrier.indexing.MultiDocumentFileCollection", colObj)
             colObj = TQDMCollection(colObj)
-            collsArray = autoclass("org.terrier.python.PTUtils").makeCollection(colObj)
-        index.index(collsArray)
+        index.index(colObj)
         global lastdoc
         lastdoc = None
         colObj.close()
@@ -899,7 +897,7 @@ class FilesIndexer(Indexer):
         _FileDocumentSetup(self.meta, self.meta_tags)
         
         simpleColl = SimpleFileCollection(asList, False)
-        index.index([simpleColl])
+        index.index(simpleColl)
         global lastdoc
         lastdoc = None
         self.index_called = True
@@ -958,7 +956,8 @@ class DocListIterator(PythonJavaClass):
         dpl = DocListIterator.dpl_class()
         for t,tf in doc_dict["toks"].items():
             dpl.insert(tf, t)
-        # TODO: do we need to remove toks column from doc_dict
+        # we cant make the toks column into the metaindex as it isnt a string. remove it.
+        dpl.remove("toks")
         return DocListIterator.tuple_class(doc_dict, dpl)
 
     @java_method('()Z')
