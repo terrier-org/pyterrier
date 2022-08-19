@@ -89,7 +89,7 @@ IterDictIndexer
 An iterdict can just be a list of dictionaries::
 
     docs = [ { 'docno' : 'doc1', 'text' : 'a b c' }  ]
-    iter_indexer = pt.IterDictIndexer("./index", meta=['docno', 'text'], meta_lengths=[20, 4096])
+    iter_indexer = pt.IterDictIndexer("./index", meta={'docno': 20, 'text': 4096})
     indexref1 = iter_indexer.index(docs)
 
 A dataframe can also be used, virtue of its ``.to_dict()`` method::
@@ -108,7 +108,7 @@ For example, the tsv file of the MSMARCO Passage Ranking corpus can be indexed a
                 docno, passage = l.split("\t")
                 yield {'docno' : docno, 'text' : passage}
     
-    iter_indexer = pt.IterDictIndexer("./passage_index", meta=['docno', 'text'], meta_lengths=[20, 4096])
+    iter_indexer = pt.IterDictIndexer("./passage_index", meta={'docno': 20, 'text': 4096})
     indexref3 = iter_indexer.index(msmarco_generate())
 
 IterDictIndexer can be used in connection with :ref:`indexing_pipelines`.
@@ -123,7 +123,7 @@ Similarly, indexing of JSONL files is similarly a few lines of Python::
           # yields a dictionary for each json line 
           yield json.loads(l)
 
-    indexref4 = pt.IterDictIndexer("./index", meta=['docno', 'text'], meta_lengths=[20, 4096]).index(iter_file("/path/to/file.jsonl"))
+    indexref4 = pt.IterDictIndexer("./index", meta={'docno': 20, 'text': 4096}).index(iter_file("/path/to/file.jsonl"))
   
 NB: Use ``pt.io.autoopen()`` as a drop-in replacement for ``open()`` that supports files compressed by gzip etc.
 
@@ -145,7 +145,7 @@ Example using Indexing Pipelines::
 
 On UNIX-based systems, IterDictIndexer can also perform multi-threaded indexing::
 
-    iter_indexer = pt.IterDictIndexer("./passage_index_8", meta=['docno', 'text'], meta_lengths=[20, 4096], threads=8)
+    iter_indexer = pt.IterDictIndexer("./passage_index_8", meta={'docno': 20, 'text': 4096}, threads=8)
     indexref6 = iter_indexer.index(msmarco_generate())
 
 Note that the resulting index ordering with multiple threads is non-deterministic; if you need 
