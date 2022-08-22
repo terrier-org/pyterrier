@@ -6,7 +6,7 @@ pyjnius>=1.4.2
 matchpy
 sklearn
 deprecation
-git+https://github.com/s-t-e-v-e-n-k/chest.git@python-310-support#egg=chest
+chest
 scipy
 requests
 joblib
