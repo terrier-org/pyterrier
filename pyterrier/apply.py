@@ -1,4 +1,4 @@
-from typing import Callable, Any, Dict
+from typing import Callable, Any, Dict, Union, Sequence
 from .transformer import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyGenericTransformer, Transformer
 from nptyping import NDArray
 import pandas as pd
@@ -57,7 +57,7 @@ def query(fn : Callable[..., str], *args, **kwargs) -> Transformer:
     """
     return ApplyQueryTransformer(fn, *args, **kwargs)
 
-def doc_score(fn : Callable[..., float], *args, batch_size=None, **kwargs) -> Transformer:
+def doc_score(fn : Union[Callable[..., float], Callable[pd.DataFrame, Sequence[float]]], *args, batch_size=None, **kwargs) -> Transformer:
     """
         Create a transformer that takes as input a ranked documents dataframe, and applies a supplied function to compute a new score.
         Ranks are automatically computed. doc_score() can operate row-wise, or batch-wise, depending on whether batch_size is set.
