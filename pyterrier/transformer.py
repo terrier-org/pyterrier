@@ -3,7 +3,7 @@ import types
 from matchpy import ReplacementRule, Wildcard, Symbol, Operation, Arity, replace_all, Pattern, CustomConstraint
 from warnings import warn
 import pandas as pd
-from .model import add_ranks
+from .model import add_ranks, split_df
 from . import tqdm
 import deprecation
 from typing import Iterable, Iterator, Union
@@ -633,17 +633,28 @@ class ApplyDocumentScoringTransformer(ApplyTransformerBase):
                 return float(row["url".count("/")])
             
             pipe = pt.BatchRetrieve(index) >> pt.apply.doc_score(_score_fn)
+
+        Can be used in batching manner, which is particularly useful for appling neural models. In this case,
+        the scoring function receives a dataframe, rather than a single row::
+
+            def _doclen(df):
+                return df.text.str.len()
+            
+            pipe = pt.BatchRetrieve(index) >> pt.apply.doc_score(_doclen)
+
     """
-    def __init__(self, fn,  *args, **kwargs):
+    def __init__(self, fn,  *args, batch_size=None, **kwargs):
         """
             Arguments:
-             - fn (Callable): Takes as input a panda Series for a row representing that document, and returns the new float doument score 
+             - fn (Callable): Takes as input a panda Series for a row representing that document, and returns the new float doument score. If batch_size is set,
+             takes a dataframe, and returns a sequence of floats representing scores for those documents.
+             - batch_size (int or None). How many documents to operate on at once. If None, operates row-wise
         """
         super().__init__(fn, *args, **kwargs)
-    
-    def transform(self, inputRes):
+        self.batch_size = batch_size
+
+    def _transform_rowwise(self, outputRes):
         fn = self.fn
-        outputRes = inputRes.copy()
         if self.verbose:
             tqdm.pandas(desc="pt.apply.doc_score", unit="d")
             outputRes["score"] = outputRes.progress_apply(fn, axis=1)
@@ -651,6 +662,27 @@ class ApplyDocumentScoringTransformer(ApplyTransformerBase):
             outputRes["score"] = outputRes.apply(fn, axis=1)
         outputRes = add_ranks(outputRes)
         return outputRes
+    
+    def _transform_batchwise(self, outputRes):
+        fn = self.fn
+        outputRes["score"] = fn(outputRes)
+        return outputRes
+    
+    def transform(self, inputRes):
+        outputRes = inputRes.copy()
+        if self.batch_size is None:
+            return self._transform_rowwise(inputRes)
+
+        import math
+        from .model import split_df
+        from . import tqdm
+        num_chunks = math.ceil( len(inputRes) / self.batch_size )
+        iterator = split_df(inputRes, num_chunks)
+        iterator = tqdm(iterator, desc="pt.apply", unit='row')
+        rtr = pd.concat([self._transform_batchwise(chunk_df) for chunk_df in iterator])
+        print(rtr)
+        rtr = add_ranks(rtr)
+        return rtr
 
 class ApplyDocFeatureTransformer(ApplyTransformerBase):
     """
