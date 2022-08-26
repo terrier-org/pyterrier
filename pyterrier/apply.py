@@ -15,7 +15,7 @@ def _bind(instance, func, as_name=None):
     setattr(instance, as_name, bound_method)
     return bound_method
 
-def query(fn : Callable[..., str], *args, **kwargs) -> Transformer:
+def query(fn : Callable[[pd.Series], str], *args, **kwargs) -> Transformer:
     """
         Create a transformer that takes as input a query, and applies a supplied function to compute a new query formulation.
 
@@ -57,7 +57,7 @@ def query(fn : Callable[..., str], *args, **kwargs) -> Transformer:
     """
     return ApplyQueryTransformer(fn, *args, **kwargs)
 
-def doc_score(fn : Union[Callable[..., float], Callable[pd.DataFrame, Sequence[float]]], *args, batch_size=None, **kwargs) -> Transformer:
+def doc_score(fn : Union[Callable[[pd.Series], float], Callable[[pd.DataFrame], Sequence[float]]], *args, batch_size=None, **kwargs) -> Transformer:
     """
         Create a transformer that takes as input a ranked documents dataframe, and applies a supplied function to compute a new score.
         Ranks are automatically computed. doc_score() can operate row-wise, or batch-wise, depending on whether batch_size is set.
@@ -88,7 +88,7 @@ def doc_score(fn : Union[Callable[..., float], Callable[pd.DataFrame, Sequence[f
     """
     return ApplyDocumentScoringTransformer(fn, *args, batch_size=batch_size, **kwargs)
 
-def doc_features(fn : Callable[..., NDArray[Any]], *args, **kwargs) -> Transformer:
+def doc_features(fn : Callable[[pd.Series], NDArray[Any]], *args, **kwargs) -> Transformer:
     """
         Create a transformer that takes as input a ranked documents dataframe, and applies the supplied function to each document to compute feature scores. 
 
