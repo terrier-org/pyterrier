@@ -8,6 +8,15 @@ import tempfile
 
 class TestUtils(TempDirTestCase):
 
+    def test_compression(self):
+        with pt.io.autoopen(os.path.join(self.here, 'fixtures/testfile.txt.lz4'), 'rt') as f:
+            lines = f.readlines()
+            self.assertEqual('hello world', lines[0])
+        with pt.io.autoopen(os.path.join(self.test_dir, "bla.txt.gz"), 'wt') as f:
+            f.write('bla')
+        with pt.io.autoopen(os.path.join(self.test_dir, "bla.txt.gz"), 'rt') as f:
+            lines = f.readlines()
+            self.assertEqual('bla', lines[0])
 
     def test_save_trec(self):
         res = pd.DataFrame([["1", "d1", 5.3, 1]], columns=['qid', 'docno', 'score', 'rank'])

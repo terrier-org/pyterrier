@@ -17,7 +17,7 @@ def coerce_dataframe(obj):
 
 def autoopen(filename, mode='rb'):
     """
-    A drop-in for open() that applies automatic compression for .gz and .bz2 file extensions
+    A drop-in for open() that applies automatic compression for .gz, .bz2 and .lz4 file extensions
     """
 
     if filename.endswith(".gz"):
@@ -26,6 +26,9 @@ def autoopen(filename, mode='rb'):
     elif filename.endswith(".bz2"):
         import bz2
         return bz2.open(filename, mode)
+    elif filename.endswith(".lz4"):
+        import lz4.frame
+        return lz4.frame.open(filename, mode)
     return open(filename, mode)
 
 def find_files(dir):
