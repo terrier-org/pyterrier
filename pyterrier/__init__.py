@@ -98,8 +98,8 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
         from os.path import expanduser
         userhome = expanduser("~")
         HOME_DIR = os.path.join(userhome, ".pyterrier")
-        if not os.path.exists(HOME_DIR):
-            os.mkdir(HOME_DIR)
+    if not os.path.exists(HOME_DIR):
+        os.mkdir(HOME_DIR)
 
     # get the initial classpath for the JVM
     classpathTrJars = setup_terrier(HOME_DIR, version, helper_version = helper_version, boot_packages=boot_packages, force_download=not no_download)
