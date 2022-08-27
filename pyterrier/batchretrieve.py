@@ -46,9 +46,10 @@ def _function2wmodel(function):
             #see https://github.com/SeldonIO/alibi/issues/447#issuecomment-881552005
             from dill import extend
             extend(use_dill=False)
-            byterep = pickle.dumps(self.fn)
-            byterep = autoclass("java.nio.ByteBuffer").wrap(byterep)
-            return byterep
+            # keep both python and java representations around to prevent them being GCd in respective VMs 
+            self.pbyterep = pickle.dumps(self.fn)
+            self.jbyterep = autoclass("java.nio.ByteBuffer").wrap(self.pbyterep)
+            return self.jbyterep
 
     callback = PythonWmodelFunction(function)
     wmodel = autoclass("org.terrier.python.CallableWeightingModel")( callback )

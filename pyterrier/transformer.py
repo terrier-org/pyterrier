@@ -234,7 +234,7 @@ class Transformer:
         from .ops import SetIntersectionTransformer
         return SetIntersectionTransformer(self, right)
 
-    def __mod__(self, right : 'Transformer') -> 'Transformer':
+    def __mod__(self, right : int) -> 'Transformer':
         assert isinstance(right, int)
         from .ops import RankCutoffTransformer
         return RankCutoffTransformer(self, right)
@@ -337,5 +337,3 @@ class UniformTransformer(Transformer, Operation):
     def transform(self, topics):
         rtr = self.rtr.copy()
         return rtr
-
-    

@@ -3,3 +3,4 @@ xgboost
 ray
 fastrank>=0.7.0
 torch
+lz4

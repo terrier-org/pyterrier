@@ -8,7 +8,7 @@ import tempfile
 import shutil
 import os
 
-class TestCache(BaseTestCase):
+class TestApply(BaseTestCase):
 
     def test_drop_columns(self):
         from pyterrier.transformer import Transformer

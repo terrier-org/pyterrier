@@ -32,11 +32,11 @@ class ApplyForEachQuery(ApplyTransformerBase):
             it = tqdm(it, unit='query')
         try:
             dfs = [self.fn(group) for qid, group in it]
+            if self.add_ranks:
+                dfs = [add_ranks(df, single_query=True) for df in dfs]
             rtr = pd.concat(dfs)
         except Exception as a:
             raise Exception("Problem applying %s" % self.fn) from a
-        if self.add_ranks:
-            rtr = add_ranks(rtr)
         return rtr
 
 class ApplyDocumentScoringTransformer(ApplyTransformerBase):

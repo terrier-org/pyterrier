@@ -64,7 +64,7 @@ Common properties:
     bm25b = pt.BatchRetrieve(index, controls={"wmodel":"BM25"})
 
     # this one also applies query expansion inside Terrier
-    bm25_qe = pt.BatchRetrieve(index, wmodel="BM25" controls={"qe":"on", "qemodel" : "Bo1"})
+    bm25_qe = pt.BatchRetrieve(index, wmodel="BM25", controls={"qe":"on", "qemodel" : "Bo1"})
 
     # when we introduce an unstemmed BatchRetrieve, we ensure to explicitly set the termpipelines
     # for the other BatchRetrieve as well

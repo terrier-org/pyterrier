@@ -195,12 +195,5 @@ texinfo_documents = [
 # for Sphinx-1.4 or newer
 
 extensions += ["myst_parser"]
-
-# for Sphinx-1.3
-from myst_parser.sphinx_parser import MystParser
-source_parsers = {
-    '.md':  MystParser,
-}
-
 source_suffix = ['.rst', '.md']
 

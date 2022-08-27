@@ -77,51 +77,51 @@ class TestModel(BaseTestCase):
         self.assertEqual("q1", df3.iloc[0]["query"])
         self.assertEqual("q2", df3.iloc[1]["query"])
 
-
     def test_rank_zero_query(self):
         df = pd.DataFrame([], columns=["qid", "docno", "score"])
         df = add_ranks(df)
         self.assertTrue("rank" in df.columns)
 
     def test_rank_one_query(self):
-        df = pd.DataFrame([["q1", "doc1", 5], ["q1", "doc2", 5]], columns=["qid", "docno", "score"])
-        df = add_ranks(df)
-        self.assertTrue("rank" in df.columns)
-        # check that first item is rank 1
-        self.assertEqual(df.iloc[0]["rank"], FIRST_RANK)
-        # check that ties are resolved by keeping the same order.
-        # trec_eval instead breaks ties on ascending docno
-        self.assertEqual(df.iloc[1]["rank"], FIRST_RANK+1)
+        for sq in [True, False]:
+            df = pd.DataFrame([["q1", "doc1", 5], ["q1", "doc2", 5]], columns=["qid", "docno", "score"])
+            df = add_ranks(df, single_query=True)
+            self.assertTrue("rank" in df.columns)
+            # check that first item is rank 1
+            self.assertEqual(df.iloc[0]["rank"], FIRST_RANK)
+            # check that ties are resolved by keeping the same order.
+            # trec_eval instead breaks ties on ascending docno
+            self.assertEqual(df.iloc[1]["rank"], FIRST_RANK+1)
 
     def test_rank_one_query_neg(self):
-        df = pd.DataFrame([["q1", "doc1", -4], ["q1", "doc2", -5]], columns=["qid", "docno", "score"])
-        df = add_ranks(df)
-        df = df.sort_values("rank", ascending=True)
-        self.assertTrue("rank" in df.columns)
-        # check that first item is rank 1
-        self.assertEqual(df.iloc[0]["rank"], FIRST_RANK)
-        self.assertEqual(df.iloc[0]["docno"], "doc1")
+        for sq in [True, False]:
+            df = pd.DataFrame([["q1", "doc1", -4], ["q1", "doc2", -5]], columns=["qid", "docno", "score"])
+            df = add_ranks(df, single_query=sq)
+            df = df.sort_values("rank", ascending=True)
+            self.assertTrue("rank" in df.columns)
+            # check that first item is rank 1
+            self.assertEqual(df.iloc[0]["rank"], FIRST_RANK)
+            self.assertEqual(df.iloc[0]["docno"], "doc1")
 
-        df = pd.DataFrame([["q1", "doc2", -5], ["q1", "doc1", -4]], columns=["qid", "docno", "score"])
-        df = add_ranks(df)
-        df = df.sort_values("rank", ascending=True)
-        self.assertTrue("rank" in df.columns)
-        # check that first item is rank 1
-        self.assertEqual(df.iloc[0]["rank"], FIRST_RANK)
-        self.assertEqual(df.iloc[0]["docno"], "doc1")
+            df = pd.DataFrame([["q1", "doc2", -5], ["q1", "doc1", -4]], columns=["qid", "docno", "score"])
+            df = add_ranks(df, single_query=sq)
+            df = df.sort_values("rank", ascending=True)
+            self.assertTrue("rank" in df.columns)
+            # check that first item is rank 1
+            self.assertEqual(df.iloc[0]["rank"], FIRST_RANK)
+            self.assertEqual(df.iloc[0]["docno"], "doc1")
         
-
     def test_rank_one_query_sort(self):
         import pyterrier as pt
         sort_status = pt.model.STRICT_SORT
         pt.model.STRICT_SORT = True
-        df = pd.DataFrame([["q1", "doc1", 4], ["q1", "doc2", 5]], columns=["qid", "docno", "score"])
-        df = add_ranks(df)
-        print(df)
-        self.assertTrue("rank" in df.columns)
-        # check that first item is rank 1
-        self.assertEqual(df.iloc[0]["rank"], FIRST_RANK)
-        self.assertEqual(df.iloc[0]["docno"], "doc2")
+        for sq in [True, False]:
+            df = pd.DataFrame([["q1", "doc1", 4], ["q1", "doc2", 5]], columns=["qid", "docno", "score"])
+            df = add_ranks(df, single_query=sq)
+            self.assertTrue("rank" in df.columns)
+            # check that first item is rank 1
+            self.assertEqual(df.iloc[0]["rank"], FIRST_RANK)
+            self.assertEqual(df.iloc[0]["docno"], "doc2")
         pt.model.STRICT_SORT = sort_status
 
     def test_rank_two_queries(self):
@@ -173,8 +173,19 @@ class TestModel(BaseTestCase):
             self.assertFalse(input.equals(exp_result))
             result = coerce_dataframe_types(input)
             pd.testing.assert_frame_equal(result, exp_result)
-        with self.subTest('score as integer'):
+        with self.subTest('score not parsable as float'):
+            input = pd.DataFrame([[1, 'query', 5, 'A']], columns=['qid', 'query', 'docno', 'score'])
+            self.assertFalse(input.equals(exp_result))
+            with self.assertRaises(ValueError):
+                result = coerce_dataframe_types(input)
+
+    def test_coerce_dataframe_types_torch(self):
+        try:
             import torch
+        except ImportError:
+            self.skipTest("No torch installed")
+
+        with self.subTest('score as integer'):
             input = pd.DataFrame([[1, 'query', 5, 1]], columns=['qid', 'query', 'docno', 'score'])
             exp_result = pd.DataFrame([['1', 'query', '5', 1.]], columns=['qid', 'query', 'docno', 'score'])
             self.assertFalse(input.equals(exp_result))
@@ -187,13 +198,7 @@ class TestModel(BaseTestCase):
             self.assertFalse(input.equals(exp_result))
             result = coerce_dataframe_types(input)
             pd.testing.assert_frame_equal(result, exp_result)
-        with self.subTest('score not parsable as float'):
-            import torch
-            input = pd.DataFrame([[1, 'query', 5, 'A']], columns=['qid', 'query', 'docno', 'score'])
-            self.assertFalse(input.equals(exp_result))
-            with self.assertRaises(ValueError):
-                result = coerce_dataframe_types(input)
-
+        
     def test_split_Q(self):
         df = pt.new.queries(["a", "b", "c"])
         dfs = split_df(df, 2)

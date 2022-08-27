@@ -113,7 +113,7 @@ class TestOperators(BaseTestCase):
 
         import pyterrier.transformer as ptt
         from pyterrier.model import add_ranks
-        mock = pt.Transformer.from_df(add_ranks(pd.DataFrame([["q1", "doc1", 5], ["q1", "doc2", 10]], columns=["qid", "docno", "score"])), uniform=True)
+        mock = pt.Transformer.from_df(add_ranks(pd.DataFrame([["q1", "doc1", 5], ["q1", "doc2", 10]], columns=["qid", "docno", "score"]), single_query=True), uniform=True)
         rtr = mock.search("bla", qid="q1")
         self.assertEqual(2, len(rtr))
         self.assertEqual("q1", rtr.iloc[0]["qid"])
@@ -158,8 +158,8 @@ class TestOperators(BaseTestCase):
 
     def test_plus_more_cols(self):
         from pyterrier.model import add_ranks
-        mock1 = pt.Transformer.from_df(add_ranks(pd.DataFrame([["q1", "a query", "doc1", 5]], columns=["qid", "query", "docno", "score"])), uniform=True)
-        mock2 = pt.Transformer.from_df(add_ranks(pd.DataFrame([["q1", "a query", "doc1", 10]], columns=["qid", "query", "docno", "score"])), uniform=True)
+        mock1 = pt.Transformer.from_df(add_ranks(pd.DataFrame([["q1", "a query", "doc1", 5]], columns=["qid", "query", "docno", "score"]), single_query=True), uniform=True)
+        mock2 = pt.Transformer.from_df(add_ranks(pd.DataFrame([["q1", "a query", "doc1", 10]], columns=["qid", "query", "docno", "score"]), single_query=True), uniform=True)
 
         combined = mock1 + mock2
         # we dont need an input, as both Identity transformers will return anyway

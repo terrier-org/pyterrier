@@ -11,24 +11,35 @@ FIRST_RANK = 0
 # as well as having correct ranks assigned
 STRICT_SORT = False
 
-def add_ranks(rtr : pd.DataFrame) -> pd.DataFrame:
+def add_ranks(df : pd.DataFrame, single_query=False) -> pd.DataFrame:
     """
         Canonical method for adding a rank column which is calculated based on the score attribute
-        for each query. Note that the dataframe is NOT sorted by this operation.
+        for each query. Note that the dataframe is NOT sorted by this operation (this is defined by STRICT_SORT).
+        The dataframe is modified, i.e. inplace.
 
         Arguments
             df: dataframe to create rank attribute for
+            single_query (bool): whether the dataframe contains only a single-query or not. This method will be quicker for single-query dataframes
     """
-    rtr.drop(columns=["rank"], errors="ignore", inplace=True)
-    if len(rtr) == 0:
-        rtr["rank"] = pd.Series(index=rtr.index, dtype='int64')
-        return rtr
+
+    df.drop(columns=["rank"], errors="ignore", inplace=True)
+    if len(df) == 0:
+        df["rank"] = pd.Series(index=df.index, dtype='int64')
+        return df
+
+    # remove group when single_query is True
+    if single_query:
+        # -1 assures that first rank will be FIRST_RANK
+        df["rank"] = df["score"].rank(ascending=False, method="first").astype(int) -1 + FIRST_RANK
+        if STRICT_SORT:
+            df.sort_values(["rank"], ascending=True, inplace=True)
+        return df
 
     # -1 assures that first rank will be FIRST_RANK
-    rtr["rank"] = rtr.groupby("qid", sort=False)["score"].rank(ascending=False, method="first").astype(int) -1 + FIRST_RANK
+    df["rank"] = df.groupby("qid", sort=False)["score"].rank(ascending=False, method="first").astype(int) -1 + FIRST_RANK
     if STRICT_SORT:
-        rtr.sort_values(["qid", "rank"], ascending=[True,True], inplace=True)
-    return rtr
+        df.sort_values(["qid", "rank"], ascending=[True,True], inplace=True)
+    return df
 
 def document_columns(df : pd.DataFrame) -> Sequence[str]:
     """

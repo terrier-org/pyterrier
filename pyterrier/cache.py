@@ -113,6 +113,15 @@ class ChestCacheTransformer(Transformer):
         if not path.exists(definition_file):
             with open(definition_file, "w") as f:
                 f.write(trepr)
+        
+        # monkeypatch for Python 3.9 support 
+        import platform
+        from packaging.version import Version
+        if Version(platform.python_version()) > Version('3.9.0'):
+            import collections
+            import collections.abc
+            collections.MutableMapping = collections.abc.MutableMapping
+            
         from chest import Chest
         self.chest = Chest(path=destdir, 
             dump=lambda data, filename: pd.DataFrame.to_pickle(data, filename) if isinstance(data, pd.DataFrame) else pickle.dump(data, filename, protocol=1),
