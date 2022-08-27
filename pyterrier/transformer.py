@@ -2,7 +2,9 @@ import types
 from matchpy import Wildcard, Symbol, Operation, Arity
 from warnings import warn
 import pandas as pd
+import deprecation
 from typing import Iterable, Iterator, Union
+from . import __version__
 
 LAMBDA = lambda:0
 def is_lambda(v):
@@ -250,6 +252,9 @@ class Transformer:
     def __hash__(self):
         return hash(repr(self))
 
+@deprecation.deprecated(deprecated_in="0.9", removed_in="1.2",
+                        current_version=__version__,
+                        details="Use pt.Transformer instead of TransformerBase")
 class TransformerBase(Transformer):
     # this was the older name of Transformer.
     # it will be deprecated in a future release.
@@ -263,8 +268,7 @@ class IterDictIndexerBase(Transformer):
         """
         pass
 
-    
-class EstimatorBase(Transformer):
+class Estimator(Transformer):
     """
         This is a base class for things that can be fitted.
     """
@@ -279,6 +283,12 @@ class EstimatorBase(Transformer):
                 qrels_va(DataFrame): validation qrels
         """
         pass
+
+@deprecation.deprecated(deprecated_in="0.9", removed_in="1.2",
+                        current_version=__version__,
+                        details="Use pt.Estimator instead of EstimatorBase")
+class EstimatorBase(Estimator):
+    pass
 
 class IdentityTransformer(Transformer, Operation):
     """

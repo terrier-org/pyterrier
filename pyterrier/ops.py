@@ -1,4 +1,4 @@
-from .transformer import Transformer, EstimatorBase, get_transformer, Scalar
+from .transformer import Transformer, Estimator, get_transformer, Scalar
 from .model import add_ranks
 from matchpy import Operation, Arity
 from warnings import warn
@@ -338,7 +338,7 @@ class ComposedPipeline(NAryTransformerBase):
         transformers BEFORE executing the fitting the stage.
         """
         for m in self.models:
-            if isinstance(m, EstimatorBase):
+            if isinstance(m, Estimator):
                 m.fit(topics_or_res_tr, qrels_tr, topics_or_res_va, qrels_va)
             else:
                 topics_or_res_tr = m.transform(topics_or_res_tr)

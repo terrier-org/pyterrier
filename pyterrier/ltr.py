@@ -1,6 +1,5 @@
 
-from . import Transformer
-from .transformer import EstimatorBase
+from . import Transformer, Estimator
 from .apply import doc_score, doc_features
 from .model import add_ranks
 from typing import Sequence, Union
@@ -41,7 +40,7 @@ class KeepFeatures(Transformer):
         topics_and_res["features"] = topics_and_res.apply(lambda row: row["features"][self.fids], axis=1)
         return topics_and_res
 
-class RegressionTransformer(EstimatorBase):
+class RegressionTransformer(Estimator):
     """
     This class simplifies the use of Scikit-learn's techniques for learning-to-rank.
     """
@@ -135,7 +134,7 @@ class LTRTransformer(RegressionTransformer):
         )
         self.num_f = tr_res.iloc[0].features.shape[0]
 
-class FastRankEstimator(EstimatorBase):
+class FastRankEstimator(Estimator):
     """
     This class simplifies the use of FastRank's techniques for learning-to-rank.
     """

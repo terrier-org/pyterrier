@@ -5,7 +5,7 @@ import os
 from .bootstrap import _logging, setup_terrier, setup_jnius, is_windows
 
 # definitive API used by others, now available before pt.init
-from .transformer import Transformer
+from .transformer import Transformer, Estimator
 
 import importlib
 
