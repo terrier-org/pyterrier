@@ -8,7 +8,6 @@ from .index import Indexer
 from .datasets import Dataset
 from .transformer import Symbol
 from .model import coerce_queries_dataframe, FIRST_RANK
-import deprecation
 import concurrent
 from concurrent.futures import ThreadPoolExecutor
 

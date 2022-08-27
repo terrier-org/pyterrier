@@ -1,5 +1,3 @@
-import deprecation
-
 from . import mavenresolver
 
 stdout_ref = None

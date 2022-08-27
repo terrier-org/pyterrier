@@ -2,7 +2,7 @@ import types
 from matchpy import Wildcard, Symbol, Operation, Arity
 from warnings import warn
 import pandas as pd
-import deprecation
+from deprecated import deprecated
 from typing import Iterable, Iterator, Union
 from . import __version__
 
@@ -29,17 +29,17 @@ def get_transformer(v, stacklevel=1):
     if is_transformer(v):
         return v
     if is_lambda(v):
-        warn('Coercion of a lambda into a transformer is deprecated; use a pt.apply instead', stacklevel=stacklevel)
+        warn('Coercion of a lambda into a transformer is deprecated; use a pt.apply instead', stacklevel=stacklevel, category=DeprecationWarning)
         from .apply_base import ApplyGenericTransformer
         return ApplyGenericTransformer(v)
     if is_function(v):
         from .apply_base import ApplyGenericTransformer
-        warn('Coercion of a function (called "%s") into a transformer is deprecated; use a pt.apply instead' % v.__name__, stacklevel=stacklevel)
+        warn('Coercion of a function (called "%s") into a transformer is deprecated; use a pt.apply instead' % v.__name__, stacklevel=stacklevel, category=DeprecationWarning)
         return ApplyGenericTransformer(v)
     if isinstance(v, pd.DataFrame):
-        warn('Coercion of a dataframe into a transformer is deprecated; use a pt.Transformer.from_df() instead', stacklevel=stacklevel)
+        warn('Coercion of a dataframe into a transformer is deprecated; use a pt.Transformer.from_df() instead', stacklevel=stacklevel, category=DeprecationWarning)
         return SourceTransformer(v)
-    raise ValueError("Passed parameter %s of type %s cannot be coerced into a transformer" % (str(v), type(v)), stacklevel=stacklevel)
+    raise ValueError("Passed parameter %s of type %s cannot be coerced into a transformer" % (str(v), type(v)), stacklevel=stacklevel, category=DeprecationWarning)
 
 rewrite_rules = []
 
@@ -252,13 +252,10 @@ class Transformer:
     def __hash__(self):
         return hash(repr(self))
 
-@deprecation.deprecated(deprecated_in="0.9", removed_in="1.2",
-                        current_version=__version__,
-                        details="Use pt.Transformer instead of TransformerBase")
 class TransformerBase(Transformer):
-    # this was the older name of Transformer.
-    # it will be deprecated in a future release.
-    pass
+    @deprecated(version="0.9", reason="Use pt.Transformer instead of TransformerBase")
+    def __init__(self, *args, **kwargs):
+        super(Transformer, self).__init__(*args, **kwargs)
 
 class IterDictIndexerBase(Transformer):
     def index(self, iter : Iterable[dict], **kwargs):
@@ -284,11 +281,10 @@ class Estimator(Transformer):
         """
         pass
 
-@deprecation.deprecated(deprecated_in="0.9", removed_in="1.2",
-                        current_version=__version__,
-                        details="Use pt.Estimator instead of EstimatorBase")
 class EstimatorBase(Estimator):
-    pass
+    @deprecated(version="0.9", reason="Use pt.Estimator instead of EstimatorBase")
+    def __init__(self, *args, **kwargs):
+        super(Estimator, self).__init__(*args, **kwargs)
 
 class IdentityTransformer(Transformer, Operation):
     """

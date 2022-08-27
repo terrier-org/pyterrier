@@ -3,6 +3,7 @@ import unittest
 from .base import BaseTestCase
 import os
 import pandas as pd
+from pytest import warns
 
 class TestTransformer(BaseTestCase):
 
@@ -17,5 +18,13 @@ class TestTransformer(BaseTestCase):
             pass
         class MyTransformer4(pt.transformer.EstimatorBase):
             pass
-        for T in [MyTransformer1, MyTransformer2, MyTransformer3, MyTransformer4, MyTransformer4a]:
+
+        # check normal API
+        for T in [MyTransformer1, MyTransformer3, MyTransformer4a]:
             self.assertTrue(pt.transformer.is_transformer(T()))
+
+        # check deprecated API
+        for T in [MyTransformer2, MyTransformer4]:
+            with warns(DeprecationWarning, match='instead of'):
+                instance = T()
+            self.assertTrue(pt.transformer.is_transformer(instance))

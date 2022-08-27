@@ -5,7 +5,6 @@ import numpy as np
 from typing import Callable, Union, Dict, List, Tuple, Sequence, Any
 from . import Transformer
 from .model import coerce_dataframe_types
-import deprecation
 import ir_measures
 from ir_measures.measures import BaseMeasure 
 MEASURE_TYPE=Union[str,BaseMeasure]
