@@ -5,16 +5,16 @@
 
   <groupId>org.terrier</groupId>
   <artifactId>terrier-python-helper</artifactId>
-  <version>0.0.6</version>
+  <version>0.0.7</version>
   <url>http://terrier.org</url>
   <name>terrier-python-helper</name>
   <description>Python bindings for the Terrier IR platform</description>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
-    <build.terrier.version>5.5</build.terrier.version>
+    <maven.compiler.source>1.9</maven.compiler.source>
+    <maven.compiler.target>1.9</maven.compiler.target>
+    <build.terrier.version>5.7-SNAPSHOT</build.terrier.version>
   </properties>
 
   <organization>
@@ -49,9 +49,9 @@
   </distributionManagement>
 
   <scm>
-		<url>https://github.com/terrier-org/terrier-core</url>
-		<connection>scm:git:https://github.com/terrier-org/terrier-core.git</connection>
-		<developerConnection>scm:git:git@github.com:terrier-org/terrier-core.git</developerConnection>
+		<url>https://github.com/terrier-org/pyterrier</url>
+		<connection>scm:git:https://github.com/terrier-orgpyterrier.git</connection>
+		<developerConnection>scm:git:git@github.com:terrier-org/pyterrier.git</developerConnection>
 	</scm>
 
   <dependencies>
@@ -90,17 +90,34 @@
       <scope>provided</scope>
 		</dependency>
 
+    <!-- for JSON parsing -->
+    <dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-core</artifactId>
+			<version>2.9.10</version>
+			<type>jar</type>
+      <scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			<version>2.9.10.8</version>
+			<type>jar</type>
+      <scope>provided</scope>
+		</dependency>
+
     <dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-classic</artifactId>
-			<version>1.2.9</version>
+			<version>1.2.0</version>
       <scope>provided</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-core</artifactId>
-			<version>1.2.9</version>
+			<version>1.2.0</version>
       <scope>provided</scope>
 		</dependency>
   </dependencies>
