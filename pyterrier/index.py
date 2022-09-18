@@ -3,6 +3,7 @@ This file contains all the indexers.
 """
 
 # from jnius import autoclass, cast, PythonJavaClass, java_method
+from curses import A_CHARTEXT
 from jnius import autoclass, PythonJavaClass, java_method, cast
 import pandas as pd
 from pyterrier.transformer import IterDictIndexerBase
@@ -84,6 +85,7 @@ def run_autoclass():
     Collection = autoclass("org.terrier.indexing.Collection")
     Arrays = autoclass("java.util.Arrays")
     Array = autoclass('java.lang.reflect.Array')
+    HashMap = autoclass('java.util.HashMap')
     ApplicationSetup = autoclass('org.terrier.utility.ApplicationSetup')
     Properties = autoclass('java.util.Properties')
     CLITool = autoclass("org.terrier.applications.CLITool")
@@ -596,7 +598,7 @@ class FlatJSONDocumentIterator(PythonJavaClass):
 
 from pyterrier.transformer import IterDictIndexerBase
 class _BaseIterDictIndexer(Indexer, IterDictIndexerBase):
-    def __init__(self, index_path, *args, meta = {'docno' : 20}, meta_reverse=['docno'], pretokenised=False, threads=1, **kwargs):
+    def __init__(self, index_path, *args, meta = {'docno' : 20}, meta_reverse=['docno'], pretokenised=False, threads=1, toks=False, **kwargs):
         """
         
         Args:
@@ -610,6 +612,9 @@ class _BaseIterDictIndexer(Indexer, IterDictIndexerBase):
         self.meta = meta
         self.meta_reverse = meta_reverse
         self.pretokenised = pretokenised
+        if self.pretokenised:
+            from pyterrier import check_version
+            assert check_version(5.7), "Terrier too old, this requires 5.7"
 
     def _setup(self, fields, meta, meta_lengths):
         """
@@ -631,15 +636,20 @@ class _BaseIterDictIndexer(Indexer, IterDictIndexerBase):
                 meta_lengths = ['512'] * len(meta)
             self.meta = { k:v for k,v in zip( meta, meta_lengths)}
 
-        self.setProperties(**{
-            'metaindex.compressed.crop.long' : 'true',
-            'FieldTags.process': ','.join(fields),
-            'FieldTags.casesensitive': 'true',
-        })
+        if not self.pretokenised:
+            self.setProperties(**{
+                'metaindex.compressed.crop.long' : 'true',
+                'FieldTags.process': ','.join(fields),
+                'FieldTags.casesensitive': 'true',
+            })
 
     def _filter_iterable(self, it, indexed_fields):
         # Only include necessary fields: those that are indexed, metadata fields, and docno
-        all_fields = {'docno'} | set(indexed_fields) | set(self.meta.keys())
+        
+        if self.pretokenised:
+            all_fields = {'docno', "toks"} | set(self.meta.keys())
+        else:
+            all_fields = {'docno'} | set(indexed_fields) | set(self.meta.keys())
         for doc in it:
             yield {f: doc[f] for f in all_fields}
 
@@ -679,7 +689,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
             
             iter_docs = DocListIterator(it)
             self.index_called = True
-            index.indexIterator(iter_docs)
+            index.indexDocuments(iter_docs)
             iter_docs = None
 
         else:
@@ -718,6 +728,7 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
         """
         CollectionFromDocumentIterator = autoclass("org.terrier.python.CollectionFromDocumentIterator")
         JsonlDocumentIterator = autoclass("org.terrier.python.JsonlDocumentIterator")
+        JsonlTokenisedIterator = autoclass("org.terrier.python.JsonlPretokenisedIterator")
         ParallelIndexer = autoclass("org.terrier.python.ParallelIndexer")
 
         if meta is not None:
@@ -746,7 +757,10 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
             for i in range(self.threads):
                 fifo = f'{d}/docs-{i}.jsonl'
                 os.mkfifo(fifo)
-                j_collections.append(CollectionFromDocumentIterator(JsonlDocumentIterator(fifo)))
+                if (self.pretokenised):
+                    j_collections.append(JsonlTokenisedIterator(fifo))
+                else:
+                    j_collections.append(CollectionFromDocumentIterator(JsonlDocumentIterator(fifo)))
                 fifos.append(fifo)
 
             # Start dishing out the docs to the fifos
@@ -755,11 +769,17 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
             # Different process for memory indexer (still taking advantage of faster fifos)
             if Indexer is BasicMemoryIndexer:
                 index = Indexer()
-                index.index(j_collections)
+                if self.pretokenised:
+                    index.indexDocuments(j_collections)
+                else:
+                    index.index(j_collections)
                 return index.getIndex().getIndexRef()
 
             # Start the indexing threads
-            ParallelIndexer.buildParallel(j_collections, self.index_dir, Indexer, Merger)
+            if self.pretokenised:
+                ParallelIndexer.buildParallelTokenised(j_collections, self.index_dir, Indexer, Merger)
+            else:
+                ParallelIndexer.buildParallel(j_collections, self.index_dir, Indexer, Merger)
             return IndexRef.of(self.index_dir + "/data.properties")
 
     def _write_fifos(self, it, fifos):
@@ -951,14 +971,21 @@ class DocListIterator(PythonJavaClass):
         self.pyiterator = pyiterator
         self.hasnext = True
 
+    @staticmethod 
+    def pyDictToMap(a_dict): #returns Map<String,String>
+        rtr = HashMap()
+        for k,v in a_dict.items():
+            rtr.put(k, v)
+        return rtr
+
     @staticmethod
     def pyDictToMapEntry(doc_dict : Dict[str,Any]): #returns Map.Entry<Map<String,String>, DocumentPostingList>>
         dpl = DocListIterator.dpl_class()
         for t,tf in doc_dict["toks"].items():
             dpl.insert(tf, t)
         # we cant make the toks column into the metaindex as it isnt a string. remove it.
-        dpl.remove("toks")
-        return DocListIterator.tuple_class(doc_dict, dpl)
+        del doc_dict["toks"]
+        return DocListIterator.tuple_class(DocListIterator.pyDictToMap(doc_dict), dpl)
 
     @java_method('()Z')
     def hasNext(self):
@@ -967,9 +994,9 @@ class DocListIterator(PythonJavaClass):
     @java_method('()Ljava/lang/Object;')
     def next(self):
         #TODO how to do this
-        from main import next as corenext
+        ##
         try:
-            doc_dict = corenext(self.pyiterator)
+            doc_dict = next(self.pyiterator)
         except StopIteration as se:
             self.hasnext = False
             # terrier will ignore a null return from an iterator
