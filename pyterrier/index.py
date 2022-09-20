@@ -636,7 +636,13 @@ class _BaseIterDictIndexer(Indexer, IterDictIndexerBase):
                 meta_lengths = ['512'] * len(meta)
             self.meta = { k:v for k,v in zip( meta, meta_lengths)}
 
-        if not self.pretokenised:
+        if self.pretokenised:
+            self.setProperties(**{
+                'metaindex.compressed.crop.long' : 'true',
+                'FieldTags.process': '',
+                'FieldTags.casesensitive': 'true',
+            })
+        else:
             self.setProperties(**{
                 'metaindex.compressed.crop.long' : 'true',
                 'FieldTags.process': ','.join(fields),
