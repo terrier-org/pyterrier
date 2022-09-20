@@ -74,15 +74,16 @@ class TestIterDictIndexerPreTok(TempDirTestCase):
             shutil.rmtree(self.test_dir)
             os.mkdir(self.test_dir)
 
-    def test_pretok_createindex1(self):
+    def test_pretok_createindex1_basic(self):
         from pyterrier.index import IndexingType
         from jnius import JavaException
         try:
             self._make_pretok_index(1, IndexingType.CLASSIC)
         except JavaException as ja:
             print("\n\t".join(ja.stacktrace))
+            raise ja
 
-    def test_pretok_createindex2(self):
+    def test_pretok_createindex2_basic(self):
         from pyterrier.index import IndexingType
         self._make_pretok_index(2, IndexingType.CLASSIC)
 
@@ -93,10 +94,16 @@ class TestIterDictIndexerPreTok(TempDirTestCase):
             self._make_pretok_index(1, IndexingType.SINGLEPASS)
         except JavaException as ja:
             print("\n\t".join(ja.stacktrace))
+            raise ja
 
     def test_pretok_createindex2_single_pass(self):
         from pyterrier.index import IndexingType
-        self._make_pretok_index(2, IndexingType.SINGLEPASS)
+        from jnius import JavaException
+        try:
+            self._make_pretok_index(2, IndexingType.SINGLEPASS)
+        except JavaException as ja:
+            print("\n\t".join(ja.stacktrace))
+            raise ja
 
 if __name__ == "__main__":
     unittest.main()
