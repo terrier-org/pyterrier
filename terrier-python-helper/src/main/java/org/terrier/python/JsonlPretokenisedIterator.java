@@ -11,8 +11,6 @@ import java.io.FileNotFoundException;
 import java.lang.IllegalStateException;
 import org.terrier.structures.indexing.DocumentPostingList;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /** This class allows reading FlatJSONDocument objects, line by line from a file */

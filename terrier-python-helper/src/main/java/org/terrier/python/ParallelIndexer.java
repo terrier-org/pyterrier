@@ -14,17 +14,12 @@ import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terrier.indexing.Collection;
-import org.terrier.indexing.CollectionFactory;
 import org.terrier.structures.Index;
 import org.terrier.structures.IndexOnDisk;
 import org.terrier.structures.IndexUtil;
 import org.terrier.structures.indexing.Indexer;
 import org.terrier.structures.indexing.DocumentPostingList;
-import org.terrier.structures.merging.BlockStructureMerger;
 import org.terrier.structures.merging.StructureMerger;
-import org.terrier.utility.ApplicationSetup;
-import org.terrier.utility.TagSet;
-
 
 /** Indexes sourceCollections in parallel to outputPath, using the provided indexerClass and mergerClass.
   * It uses one thread per collection.
