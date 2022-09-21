@@ -52,6 +52,11 @@ public class ParallelIndexer {
         {
             @Override
             public String apply(Iterator<Map.Entry<Map<String,String>, DocumentPostingList>> docSource) {
+                // if the fifo has already closed without writing 
+                // any docs, dont even bother creating an indexer 
+                if (! docSource.hasNext()) {
+                    return null;
+                }
                 String thisPrefix = "data_stream"+indexCounter.getAndIncrement();
                 Indexer indexer;
                 try {
