@@ -28,7 +28,7 @@ public class Serialization {
         return rtr;
     }
 
-    @SuppressWarnings(“unchecked”)
+    @SuppressWarnings("unchecked")
     public static <K extends Serializable> K deserialize(byte[] input, Class<K> clz) throws IOException, ClassNotFoundException {
         ByteArrayInputStream bis = new ByteArrayInputStream(input);
         ObjectInputStream in = null;
