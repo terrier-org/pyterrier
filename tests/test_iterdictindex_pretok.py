@@ -46,8 +46,8 @@ class TestIterDictIndexerPreTok(TempDirTestCase):
         for indexer in indexers:
             with self.subTest(indexer=indexer):
                 it = [
-                    {'docno': 'd1', 'url': 'url1', "toks" : {"a" : 1, "b" : 2}},
-                    {'docno': 'd2', 'url': 'url2', "toks" : {"a" : 1, "b" : 2}}
+                    {'docno': 'd1', 'url': 'url1', "toks" : {"a" : 1, "b" : 2.9123}},
+                    {'docno': 'd2', 'url': 'url2', "toks" : {"a" : 1.5, "b" : 2.}}
                 ]
                 it = itertools.islice(it, n)
                 print("Writing index to " + self.test_dir)

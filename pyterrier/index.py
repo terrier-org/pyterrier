@@ -690,7 +690,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
 
             # we generate DocumentPostingList from a dictionary of pretokenised text, e.g.
             # [
-            #     {'docno' : 'd1', 'toks' : {'a' : 1, 'aa' : 2}
+            #     {'docno' : 'd1', 'toks' : {'a' : 1, 'aa' : 2}}
             # ]
             
             iter_docs = DocListIterator(it)
@@ -807,6 +807,8 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
                         # single threaded mode
                         ready = deque(fifos)
                 fifo = ready.popleft()
+                if 'toks' in doc:
+                    doc['toks'] = {k: int(v) for k, v in doc['toks'].items()} # cast all values as ints
                 json.dump(doc, fifo)
                 fifo.write('\n')
 
@@ -988,7 +990,7 @@ class DocListIterator(PythonJavaClass):
     def pyDictToMapEntry(doc_dict : Dict[str,Any]): #returns Map.Entry<Map<String,String>, DocumentPostingList>>
         dpl = DocListIterator.dpl_class()
         for t,tf in doc_dict["toks"].items():
-            dpl.insert(tf, t)
+            dpl.insert(int(tf), t)
         # we cant make the toks column into the metaindex as it isnt a string. remove it.
         del doc_dict["toks"]
         return DocListIterator.tuple_class(DocListIterator.pyDictToMap(doc_dict), dpl)
