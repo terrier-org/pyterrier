@@ -680,7 +680,6 @@ class ApplyDocumentScoringTransformer(ApplyTransformerBase):
         iterator = split_df(inputRes, num_chunks)
         iterator = tqdm(iterator, desc="pt.apply", unit='row')
         rtr = pd.concat([self._transform_batchwise(chunk_df) for chunk_df in iterator])
-        print(rtr)
         rtr = add_ranks(rtr)
         return rtr
 
