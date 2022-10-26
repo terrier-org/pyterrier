@@ -182,7 +182,7 @@ Query-biased Summarisation (Snippets)
 Examples of Sentence-Transformers
 =================================
 
-Here we use demonstrate the use of `pt.apply.doc_score( , batch_size=128)` to allow an easy application of `Sentence Transformers <https://www.sbert.net/>_`. 
+Here we demonstrate the use of `pt.apply.doc_score( , batch_size=128)` to allow an easy application of `Sentence Transformers <https://www.sbert.net/>_` for reranking BM25 results:: 
 
     import pandas as pd
     from sentence_transformers import CrossEncoder, SentenceTransformer
