@@ -641,6 +641,7 @@ class _BaseIterDictIndexer(Indexer, IterDictIndexerBase):
                 'metaindex.compressed.crop.long' : 'true',
                 'FieldTags.process': '',
                 'FieldTags.casesensitive': 'true',
+                'termpipelines' : ''
             })
         else:
             self.setProperties(**{
