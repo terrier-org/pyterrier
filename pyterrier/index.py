@@ -3,7 +3,6 @@ This file contains all the indexers.
 """
 
 # from jnius import autoclass, cast, PythonJavaClass, java_method
-from curses import A_CHARTEXT
 from jnius import autoclass, PythonJavaClass, java_method, cast
 import pandas as pd
 from pyterrier.transformer import IterDictIndexerBase
