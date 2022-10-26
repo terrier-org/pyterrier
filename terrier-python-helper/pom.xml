@@ -50,7 +50,7 @@
 
   <scm>
 		<url>https://github.com/terrier-org/pyterrier</url>
-		<connection>scm:git:https://github.com/terrier-orgpyterrier.git</connection>
+		<connection>scm:git:https://github.com/terrier-org/pyterrier.git</connection>
 		<developerConnection>scm:git:git@github.com:terrier-org/pyterrier.git</developerConnection>
 	</scm>
 
