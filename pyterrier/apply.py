@@ -1,4 +1,4 @@
-from typing import Callable, Any, Dict
+from typing import Callable, Any, Dict, Union, Sequence
 from .transformer import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyGenericTransformer, Transformer
 from nptyping import NDArray
 import pandas as pd
@@ -15,7 +15,7 @@ def _bind(instance, func, as_name=None):
     setattr(instance, as_name, bound_method)
     return bound_method
 
-def query(fn : Callable[..., str], *args, **kwargs) -> Transformer:
+def query(fn : Callable[[pd.Series], str], *args, **kwargs) -> Transformer:
     """
         Create a transformer that takes as input a query, and applies a supplied function to compute a new query formulation.
 
@@ -57,28 +57,38 @@ def query(fn : Callable[..., str], *args, **kwargs) -> Transformer:
     """
     return ApplyQueryTransformer(fn, *args, **kwargs)
 
-def doc_score(fn : Callable[..., float], *args, **kwargs) -> Transformer:
+def doc_score(fn : Union[Callable[[pd.Series], float], Callable[[pd.DataFrame], Sequence[float]]], *args, batch_size=None, **kwargs) -> Transformer:
     """
         Create a transformer that takes as input a ranked documents dataframe, and applies a supplied function to compute a new score.
-        Ranks are automatically computed.
+        Ranks are automatically computed. doc_score() can operate row-wise, or batch-wise, depending on whether batch_size is set.
 
         The supplied function is called once for each document, and must return a float containing the new score for that document.
         Each time it is called, the function is supplied with a Panda Series representing the attributes of the query and document.
 
         Arguments:
             fn(Callable): the function to apply to each row
+            batch_size (int or None). How many documents to operate on at once (batch-wise). If None, operates row-wise
             verbose(bool): if set to True, a TQDM progress bar will be displayed
 
-        Example::
+        Example (Row-wise)::
 
             # this transformer will subtract 5 from the score of each document
             p = pt.BatchRetrieve(index, wmodel="DPH") >> 
                 pt.apply.doc_score(lambda doc : doc["score"] -5)
 
-    """
-    return ApplyDocumentScoringTransformer(fn, *args, **kwargs)
+        Can be used in batch-wise manner, which is particularly useful for appling neural models. In this case,
+        the scoring function receives a dataframe, rather than a single row::
 
-def doc_features(fn : Callable[..., NDArray[Any]], *args, **kwargs) -> Transformer:
+            def _doclen(df):
+                # returns series of lengths
+                return df.text.str.len()
+            
+            pipe = pt.BatchRetrieve(index) >> pt.apply.doc_score(_doclen)
+
+    """
+    return ApplyDocumentScoringTransformer(fn, *args, batch_size=batch_size, **kwargs)
+
+def doc_features(fn : Callable[[pd.Series], NDArray[Any]], *args, **kwargs) -> Transformer:
     """
         Create a transformer that takes as input a ranked documents dataframe, and applies the supplied function to each document to compute feature scores. 
 
