@@ -734,7 +734,8 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
         """
         CollectionFromDocumentIterator = autoclass("org.terrier.python.CollectionFromDocumentIterator")
         JsonlDocumentIterator = autoclass("org.terrier.python.JsonlDocumentIterator")
-        JsonlTokenisedIterator = autoclass("org.terrier.python.JsonlPretokenisedIterator")
+        if self.pretokenised:
+            JsonlTokenisedIterator = autoclass("org.terrier.python.JsonlPretokenisedIterator")
         ParallelIndexer = autoclass("org.terrier.python.ParallelIndexer")
 
         if meta is not None:
