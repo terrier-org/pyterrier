@@ -283,7 +283,7 @@ class Indexer(Transformer):
 class IterDictIndexerBase(Indexer):
     @deprecated(version="0.9", reason="Use pt.Indexer instead of IterDictIndexerBase")
     def __init__(self, *args, **kwargs):
-        super(Estimator, self).__init__(*args, **kwargs)
+        super(Indexer, self).__init__(*args, **kwargs)
 
 class Estimator(Transformer):
     """
