@@ -64,12 +64,17 @@ class TestTRECIndexer(TempDirTestCase):
         self.assertFalse(os.path.isfile(self.test_dir + '/data.direct.bf'))
 
     def test_TREC_indexing_memory(self):
-        print("Writing index to " + self.test_dir)
-        indexer = pt.TRECCollectionIndexer(self.test_dir, type=pt.IndexingType.MEMORY)
-        indexRef = indexer.index(pt.io.find_files(self.here + "/fixtures/vaswani_npl/corpus/"))
-        self.assertIsNotNone(indexRef)
-        index = pt.IndexFactory.of(indexRef)
-        self.assertEqual(11429, index.getCollectionStatistics().getNumberOfDocuments())
+        from jnius import JavaException
+        try:
+            print("Writing index to " + self.test_dir)
+            indexer = pt.TRECCollectionIndexer(self.test_dir, type=pt.IndexingType.MEMORY)
+            indexRef = indexer.index(pt.io.find_files(self.here + "/fixtures/vaswani_npl/corpus/"))
+            self.assertIsNotNone(indexRef)
+            index = pt.IndexFactory.of(indexRef)
+            self.assertEqual(11429, index.getCollectionStatistics().getNumberOfDocuments())
+        except JavaException as ja:
+            print(ja.stacktrace)
+            raise ja
 
     def test_TREC_indexing_bad_files_type(self):
         print("Writing index to " + self.test_dir)

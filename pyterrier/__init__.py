@@ -33,6 +33,7 @@ properties = None
 tqdm = None
 HOME_DIR = None
 init_args ={}
+_helper_version = None
 
 def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, logging='WARN', home_dir=None, boot_packages=[], tqdm=None, no_download=False,helper_version = None):
     """
@@ -102,7 +103,9 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
         os.mkdir(HOME_DIR)
 
     # get the initial classpath for the JVM
-    classpathTrJars = setup_terrier(HOME_DIR, version, helper_version = helper_version, boot_packages=boot_packages, force_download=not no_download)
+    classpathTrJars, hlpr_ver = setup_terrier(HOME_DIR, version, helper_version = helper_version, boot_packages=boot_packages, force_download=not no_download)
+    global _helper_version
+    _helper_version = hlpr_ver
     
     if is_windows():
         if "JAVA_HOME" in os.environ:
@@ -133,7 +136,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     if "BUILD_DATE" in dir(tr_version):
         version_string += " (built by %s on %s)" % (tr_version.BUILD_USER, tr_version.BUILD_DATE)
     import sys
-    print("PyTerrier %s has loaded Terrier %s\n" % (__version__, version_string), file=sys.stderr)
+    print("PyTerrier %s has loaded Terrier %s and terrier-helper %s\n" % (__version__, version_string, _helper_version), file=sys.stderr)
     properties = autoclass('java.util.Properties')()
     ApplicationSetup = autoclass('org.terrier.utility.ApplicationSetup')
 
@@ -264,14 +267,14 @@ def version():
     from jnius import autoclass
     return autoclass("org.terrier.Version").VERSION
 
-def check_version(min):
+def check_version(min, helper=False):
     """
         Returns True iff the underlying Terrier version is no older than the requested version.
     """
     from jnius import autoclass
     from packaging.version import Version
     min = Version(str(min))
-    currentVer = Version(version().replace("-SNAPSHOT", ""))
+    currentVer = Version((_helper_version if helper else version()).replace("-SNAPSHOT", ""))
     return currentVer >= min
 
 def redirect_stdouterr():

@@ -12,8 +12,11 @@ class BaseTestCase(unittest.TestCase):
         terrier_version = os.environ.get("TERRIER_VERSION", None)
         if terrier_version is not None:
             print("Testing with Terrier version " + terrier_version)
+        terrier_helper_version = os.environ.get("TERRIER_HELPER_VERSION", None)
+        if terrier_helper_version is not None:
+            print("Testing with Terrier Helper version " + terrier_helper_version)
         if not pt.started():
-            pt.init(version=terrier_version, logging="DEBUG")
+            pt.init(version=terrier_version, logging="DEBUG", helper_version=terrier_helper_version)
         self.here = os.path.dirname(os.path.realpath(__file__))
         assert "version" in pt.init_args
         assert pt.init_args["version"] == terrier_version

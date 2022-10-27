@@ -6,28 +6,96 @@ import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.concurrent.Callable;
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.Map;
 import java.lang.reflect.Constructor;
 import java.lang.ReflectiveOperationException;
 import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terrier.indexing.Collection;
-import org.terrier.indexing.CollectionFactory;
 import org.terrier.structures.Index;
 import org.terrier.structures.IndexOnDisk;
 import org.terrier.structures.IndexUtil;
 import org.terrier.structures.indexing.Indexer;
-import org.terrier.structures.merging.BlockStructureMerger;
+import org.terrier.structures.indexing.DocumentPostingList;
 import org.terrier.structures.merging.StructureMerger;
-import org.terrier.utility.ApplicationSetup;
-import org.terrier.utility.TagSet;
-
 
 /** Indexes sourceCollections in parallel to outputPath, using the provided indexerClass and mergerClass.
   * It uses one thread per collection.
   * Implementation based off org.terrier.applications.ThreadedBatchIndexing. */
 public class ParallelIndexer {
     protected static Logger logger = LoggerFactory.getLogger(ParallelIndexer.class);
+
+    public static void buildParallelTokenised(
+            final Iterator<Map.Entry<Map<String,String>, DocumentPostingList>>[] docSources, 
+            String output, Class indexerClass, Class mergerClass) 
+        {
+        final String outputPath = output;
+        final Constructor indexerConst;
+        final Constructor mergerConst;
+        try {
+            indexerConst = indexerClass.getConstructor(new Class[]{String.class, String.class}); // path, prefix
+            mergerConst = mergerClass.getConstructor(new Class[]{IndexOnDisk.class, IndexOnDisk.class, IndexOnDisk.class}); // a, b, out
+        } catch (ReflectiveOperationException ex) {
+            throw new RuntimeException(ex); // Thrown if mergerClass is not for an StructureMerger class
+        }
+
+        final long starttime = System.currentTimeMillis();
+        final AtomicInteger indexCounter = new AtomicInteger();
+        final AtomicInteger mergeCounter = new AtomicInteger();         
+        
+        final int threadCount = docSources.length;
+
+        IndexOnDisk.setIndexLoadingProfileAsRetrieval(false);
+        final Function<Iterator<Map.Entry<Map<String,String>, DocumentPostingList>>,String> indexer = new Function<Iterator<Map.Entry<Map<String,String>, DocumentPostingList>>,String>()
+        {
+            @Override
+            public String apply(Iterator<Map.Entry<Map<String,String>, DocumentPostingList>> docSource) {
+                // if the fifo has already closed without writing 
+                // any docs, dont even bother creating an indexer 
+                if (! docSource.hasNext()) {
+                    return null;
+                }
+                String thisPrefix = "data_stream"+indexCounter.getAndIncrement();
+                Indexer indexer;
+                try {
+                    indexer = (Indexer) indexerConst.newInstance(outputPath, thisPrefix);
+                } catch (ReflectiveOperationException ex) {
+                    throw new RuntimeException(ex); // Thrown if indexerClass is not for an Indexer class
+                }
+                indexer.setExternalParalllism(threadCount);
+                indexer.indexDocuments(docSource);
+                return thisPrefix;
+            }   
+        };
+        
+        final BinaryOperator<String> merger = getMerger(mergerConst, outputPath, mergeCounter);
+        Callable<String> callable = new Callable<String>() {
+            @Override
+            public String call() {
+                return Arrays.asList(docSources).parallelStream().map(indexer).reduce(merger).get();
+            }
+        };
+        ForkJoinPool forkPool = new ForkJoinPool(threadCount);
+        String tmpPrefix;
+        try {
+            tmpPrefix = forkPool.submit(callable).get();
+        } catch (java.lang.InterruptedException ex) {
+            throw new RuntimeException(ex); // Problem running thread
+        } catch (java.util.concurrent.ExecutionException ex) {
+            throw new RuntimeException(ex); // Problem running thread
+        }
+        if (tmpPrefix == null)
+        {
+            return;
+        }
+        try {
+            IndexUtil.renameIndex(outputPath, tmpPrefix, outputPath, "data");
+        } catch (IOException ex) {
+            throw new RuntimeException(ex); // Problem renaming index
+        }
+    }
 
     public static void buildParallel(Collection[] sourceCollections, String output, Class indexerClass, Class mergerClass) {
         final Collection[] collections = sourceCollections;
@@ -60,11 +128,43 @@ public class ParallelIndexer {
                     throw new RuntimeException(ex); // Thrown if indexerClass is not for an Indexer class
                 }
                 indexer.setExternalParalllism(threadCount);
-                indexer.index(new Collection[] {collection});
+                indexer.index(collection);
                 return thisPrefix;
             }   
         };
-        final BinaryOperator<String> merger = new BinaryOperator<String>()
+        
+        final BinaryOperator<String> merger = getMerger(mergerConst, outputPath, mergeCounter);
+        Callable<String> callable = new Callable<String>() {
+            @Override
+            public String call() {
+                return Arrays.asList(collections).parallelStream().map(indexer).reduce(merger).get();
+            }
+        };
+        ForkJoinPool forkPool = new ForkJoinPool(threadCount);
+        String tmpPrefix;
+        try {
+            tmpPrefix = forkPool.submit(callable).get();
+        } catch (java.lang.InterruptedException ex) {
+            throw new RuntimeException(ex); // Problem running thread
+        } catch (java.util.concurrent.ExecutionException ex) {
+            throw new RuntimeException(ex); // Problem running thread
+        }
+        if (tmpPrefix == null)
+        {
+            return;
+        }
+        try {
+            IndexUtil.renameIndex(outputPath, tmpPrefix, outputPath, "data");
+        } catch (IOException ex) {
+            throw new RuntimeException(ex); // Problem renaming index
+        }
+    }
+
+    final static BinaryOperator<String> getMerger(
+        final Constructor mergerConst,
+        final String outputPath, 
+        final AtomicInteger mergeCounter) {
+        return new BinaryOperator<String>()
         {
             @Override
             public String apply(String t, String u) {
@@ -126,30 +226,5 @@ public class ParallelIndexer {
                 return thisPrefix;
             }
         };
-        
-        Callable<String> callable = new Callable<String>() {
-            @Override
-            public String call() {
-                return Arrays.asList(collections).parallelStream().map(indexer).reduce(merger).get();
-            }
-        };
-        ForkJoinPool forkPool = new ForkJoinPool(threadCount);
-        String tmpPrefix;
-        try {
-            tmpPrefix = forkPool.submit(callable).get();
-        } catch (java.lang.InterruptedException ex) {
-            throw new RuntimeException(ex); // Problem running thread
-        } catch (java.util.concurrent.ExecutionException ex) {
-            throw new RuntimeException(ex); // Problem running thread
-        }
-        if (tmpPrefix == null)
-        {
-            return;
-        }
-        try {
-            IndexUtil.renameIndex(outputPath, tmpPrefix, outputPath, "data");
-        } catch (IOException ex) {
-            throw new RuntimeException(ex); // Problem renaming index
-        }
     }
 }

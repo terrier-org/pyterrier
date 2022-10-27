@@ -44,7 +44,7 @@ public class CallableWeightingModel extends WeightingModel {
         return this.getClass().getSimpleName();
     }
 
-    private void writeObject(java.io.ObjectOutputStream out) throws IOException {}
-    private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {}
+    private void writeObject(ObjectOutputStream out) throws IOException {}
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {}
     private void readObjectNoData() throws ObjectStreamException {}
 }

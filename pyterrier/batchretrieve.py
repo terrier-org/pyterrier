@@ -127,6 +127,22 @@ class BatchRetrieve(BatchRetrieveBase):
     """
 
     @staticmethod
+    def matchop(t, w=1):
+        """
+        Static method used for rewriting a query term to use a MatchOp operator if it contains
+        anything except ASCII letters or digits.
+        """
+        import base64
+        import string
+        if not all(a in string.ascii_letters + string.digits for a in t):
+            encoded = base64.b64encode(t.encode('utf-8')).decode("utf-8") 
+            t = f'#base64({encoded})'
+        if w != 1:
+            t = f'#combine:0={w}({t})'
+        return t
+
+
+    @staticmethod
     def from_dataset(dataset : Union[str,Dataset], 
             variant : str = None, 
             version='latest',            
