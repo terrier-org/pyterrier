@@ -5,7 +5,6 @@ import os
 import shutil
 import tempfile
 from .base import TempDirTestCase
-from jnius import JavaException
 
 class TestTRECIndexer(TempDirTestCase):
 
@@ -65,6 +64,7 @@ class TestTRECIndexer(TempDirTestCase):
         self.assertFalse(os.path.isfile(self.test_dir + '/data.direct.bf'))
 
     def test_TREC_indexing_memory(self):
+        from jnius import JavaException
         try:
             print("Writing index to " + self.test_dir)
             indexer = pt.TRECCollectionIndexer(self.test_dir, type=pt.IndexingType.MEMORY)
