@@ -1,4 +1,4 @@
-from .transformer import TransformerBase
+from . import Transformer
 import pandas as pd
 import pyterrier as pt
 
@@ -64,7 +64,7 @@ def _parallel_lambda_joblib(function, inputs, jobs):
             delayed(function)(input) for input in inputs)
         
 
-class PoolParallelTransformer(TransformerBase):
+class PoolParallelTransformer(Transformer):
 
     def __init__(self, parent, n_jobs, backend='joblib', **kwargs):
         super().__init__(**kwargs)

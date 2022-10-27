@@ -38,7 +38,7 @@ earlier. So while the following two pipelines are semantically equivalent, the l
 Fitting
 =======
 When `fit()` is called on a pipeline, all estimators (transformers that also have a ``fit()`` method, as specified by 
-`EstimatorBase`) within the pipeline are fitted, in turn. This allows one (or more) stages of learning to be 
+`Estimator`) within the pipeline are fitted, in turn. This allows one (or more) stages of learning to be 
 integrated into a retrieval pipeline.  See :ref:`pyterrier.ltr` for examples.
 
 When calling fit on a composed pipeline (i.e. one created using the ``>>`` operator), this will will call ``fit()`` on any 
@@ -58,23 +58,34 @@ This class is the base class for all transformers.
 Moreover, by extending Transformer, all transformer implementations gain the necessary "dunder" methods (e.g. ``__rshift__()``)
 to support the transformer operators (`>>`, `+` etc). NB: This class used to be called ``pyterrier.transformer.TransformerBase``
 
-.. _pt.transformer.estimatorbase:
+.. _pt.transformer.estimator:
 
-EstimatorBase
+Estimator
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This class exposes a ``fit()`` method that can be used for transformers that can be trained.
+This base class exposes a ``fit()`` method that can be used for transformers that can be trained.
 
-.. autoclass:: pyterrier.transformer.EstimatorBase
+.. autoclass:: pyterrier.Estimator
     :members:
 
 The ComposedPipeline implements ``fit()``, which applies the interimediate transformers on the specified training (and validation) topics, and places
 the output into the ``fit()`` method of the final transformer.
 
+Indexer
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This base  class exposes a ``index()`` method that can be used for transformers that create an index.
+
+.. autoclass:: pyterrier.Indexer
+    :members:
+
+The ComposedPipeline also implements ``index()``, which applies the interimediate transformers on the specified documents to be indexed, and places
+the output into the ``index()`` method of the final transformer.
+
 Internal transformers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A significant number of transformers are defined in pyterrier.transformer to implement operators etc. Its is not expected
+A significant number of transformers are defined in pyterrier.ops to implement operators etc. Its is not expected
 to use these directly but they are documented for completeness.
 
 +--------+------------------+---------------------------+
@@ -106,7 +117,7 @@ Indexing Pipelines
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Transformers can be chained to create indexing pipelines. The last element in the chain is assumed to be an indexer like 
-IterDictIndexer - it should implement an ``index()`` method like IterDictIndexerBase. For instance::
+IterDictIndexer - it should implement an ``index()`` method like pt.Indexer. For instance::
 
     docs = [ {"docno" : "1", "text" : "a" } ] 
     indexer = pt.text.sliding() >> pt.IterDictIndexer()
@@ -133,9 +144,9 @@ extend ``pt.Transformer`` directly.
 
 Here are some hints for writing Transformers:
  - Except for an indexer, you should implement a ``transform()`` method.
- - If your approach ranks results, use ``pt.model.add_ranks()`` to add the rank column.
- - If your approach can be trained, your transformer should extend EstimatorBase, and implement the ``fit()`` method.
- - If your approach is an indexer, your transformer should extend IterDictIndexerBase and implement ``index()`` method.
+ - If your approach ranks results, use ``pt.model.add_ranks()`` to add the rank column. (``pt.apply.doc_score`` will call add_ranks automatically). 
+ - If your approach can be trained, your transformer should extend Estimator, and implement the ``fit()`` method.
+ - If your approach is an indexer, your transformer should extend Indexer and implement ``index()`` method.
 
 
 Mocking Transformers from DataFrames

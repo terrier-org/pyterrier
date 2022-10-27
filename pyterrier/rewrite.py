@@ -2,7 +2,7 @@ import pyterrier as pt
 from jnius import cast
 import pandas as pd
 from .batchretrieve import _parse_index_like
-from .transformer import TransformerBase
+from . import Transformer
 from . import tqdm
 from warnings import warn
 from typing import List
@@ -30,7 +30,7 @@ def _check_terrier_prf():
             break
     assert _terrier_prf_package_loaded, _terrier_prf_message
 
-def reset() -> TransformerBase:
+def reset() -> Transformer:
     """
         Undoes a previous query rewriting operation. This results in the query formulation stored in the `"query_0"`
         attribute being moved to the `"query"` attribute, and, if present, the `"query_1"` being moved to
@@ -49,7 +49,7 @@ def reset() -> TransformerBase:
     from .model import pop_queries
     return pt.apply.generic(lambda topics: pop_queries(topics))
 
-class SDM(TransformerBase):
+class SDM(Transformer):
     '''
         Implements the sequential dependence model, which Terrier supports using its
         Indri/Galagoo compatible matchop query language. The rewritten query is derived using
@@ -125,7 +125,7 @@ class SequentialDependence(SDM):
     '''
     pass
     
-class QueryExpansion(TransformerBase):
+class QueryExpansion(Transformer):
     '''
         A base class for applying different types of query expansion using Terrier's classes.
         This transformer changes the query. It must be followed by a Terrier Retrieve() transformer.
@@ -368,7 +368,7 @@ class AxiomaticQE(QueryExpansion):
         self.qe.fbDocs = self.fb_docs
         return super().transform(queries_and_docs)
 
-def stash_results(clear=True) -> TransformerBase:
+def stash_results(clear=True) -> Transformer:
     """
     Stashes (saves) the current retrieved documents for each query into the column `"stashed_results_0"`.
     This means that they can be restored later by using `pt.rewrite.reset_results()`.
@@ -380,14 +380,14 @@ def stash_results(clear=True) -> TransformerBase:
     """
     return _StashResults(clear)
     
-def reset_results() -> TransformerBase:
+def reset_results() -> Transformer:
     """
     Applies a transformer that undoes a `pt.rewrite.stash_results()` transformer, thereby restoring the
     ranked documents.
     """
     return _ResetResults()
 
-class _StashResults(TransformerBase):
+class _StashResults(Transformer):
 
     def __init__(self, clear, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -423,7 +423,7 @@ class _StashResults(TransformerBase):
     def __repr__(self):
         return "pt.rewrite.stash_results()"     
 
-class _ResetResults(TransformerBase):
+class _ResetResults(Transformer):
 
     def transform(self, topics_with_saved_docs : pd.DataFrame) -> pd.DataFrame:
         if "stashed_results_0" not in topics_with_saved_docs.columns:
@@ -443,7 +443,7 @@ class _ResetResults(TransformerBase):
     def __repr__(self):
         return "pt.rewrite.reset_results()"
 
-def linear(weightCurrent : float, weightPrevious : float, format="terrierql", **kwargs) -> TransformerBase:
+def linear(weightCurrent : float, weightPrevious : float, format="terrierql", **kwargs) -> Transformer:
     """
     Applied to make a linear combination of the current and previous query formulation. The implementation
     is tied to the underlying query language used by the retrieval/re-ranker transformers. Two of Terrier's
@@ -470,7 +470,7 @@ def linear(weightCurrent : float, weightPrevious : float, format="terrierql", **
     """
     return _LinearRewriteMix([weightCurrent, weightPrevious], format, **kwargs)
 
-class _LinearRewriteMix(TransformerBase):
+class _LinearRewriteMix(Transformer):
 
     def __init__(self, weights : List[float], format : str = 'terrierql', **kwargs):
         super().__init__(**kwargs)

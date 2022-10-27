@@ -1,4 +1,4 @@
-from .transformer import TransformerBase
+from . import Transformer
 import hashlib
 from . import HOME_DIR
 import os
@@ -58,7 +58,7 @@ def clear_cache():
     import shutil
     shutil.rmtree(CACHE_DIR)
 
-class ChestCacheTransformer(TransformerBase):
+class ChestCacheTransformer(Transformer):
     """
         A transformer that cache the results of the consituent (inner) transformer. 
         This is instantiated using the `~` operator on any transformer.

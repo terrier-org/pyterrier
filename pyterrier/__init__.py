@@ -4,6 +4,9 @@ import os
 
 from .bootstrap import _logging, setup_terrier, setup_jnius, is_windows
 
+# definitive API used by others, now available before pt.init
+from .transformer import Transformer, Estimator, Indexer
+
 import importlib
 
 #sub modules
@@ -22,7 +25,7 @@ pipelines = None
 rewrite = None
 text = None
 transformer = None
-Transformer = None
+
 
 file_path = os.path.dirname(os.path.abspath(__file__))
 firstInit = False
@@ -145,7 +148,6 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     from .datasets import get_dataset, find_datasets, list_datasets
     from .index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, FlatJSONDocumentIterator, IndexingType
     from .pipelines import Experiment, GridScan, GridSearch, KFoldGridSearch
-    from .transformer import Transformer
 
     # Make imports global
     globals()["autoclass"] = autoclass
@@ -197,7 +199,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     globals()["GridScan"] = GridScan
     globals()["GridSearch"] = GridSearch
     globals()["KFoldGridSearch"] = KFoldGridSearch
-    globals()["Transformer"] = Transformer
+    
     
     
     # we save the pt.init() arguments so that other processes,

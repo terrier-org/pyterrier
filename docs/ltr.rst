@@ -89,8 +89,8 @@ Learning
 
 .. autofunction:: pyterrier.ltr.apply_learned_model()
 
-The resulting transformer implements EstimatorBase, in other words it has a `fit()` method, that can be trained using
-training topics and qrels, as well as (optionally) validation topics and qrels. See also :ref:`pt.transformer.estimatorbase`.
+The resulting transformer implements Estimator, in other words it has a `fit()` method, that can be trained using
+training topics and qrels, as well as (optionally) validation topics and qrels. See also :ref:`pt.transformer.estimator`.
 
 SKLearn
 ~~~~~~~
