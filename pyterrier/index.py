@@ -5,7 +5,7 @@ This file contains all the indexers.
 # from jnius import autoclass, cast, PythonJavaClass, java_method
 from jnius import autoclass, PythonJavaClass, java_method, cast
 import pandas as pd
-from pyterrier.transformer import IterDictIndexerBase
+from . import Indexer
 import os
 import enum
 import json
@@ -254,7 +254,7 @@ class IndexingType(enum.Enum):
     MEMORY = 3 #: An in-memory index. No direct index is created.
 
 
-class Indexer:
+class TerrierIndexer:
     """
     Parent class. It can be used to load an existing index.
     Use one of its children classes if you wish to create a new index.
@@ -338,12 +338,11 @@ class Indexer:
 
     def createIndexer(self):
         """
-        TODO
         Checks `self.type` and
         - if false, check `blocks` and create a BlockIndexer if true, else create BasicIndexer
         - if true, check `blocks` and create a BlockSinglePassIndexer if true, else create BasicSinglePassIndexer
         Returns:
-            Created index object
+            Created  Java object extending org.terrier.structures.indexing.Indexer
         """
         
         Indexer, _ = self.indexerAndMergerClasses()
@@ -481,7 +480,7 @@ class DFIndexUtils:
                 ),
             lengths)
 
-class DFIndexer(Indexer):
+class DFIndexer(TerrierIndexer):
     """
     Use this Indexer if you wish to index a pandas.Dataframe
 
@@ -596,8 +595,7 @@ class FlatJSONDocumentIterator(PythonJavaClass):
             return lastdoc
         return None
 
-from pyterrier.transformer import IterDictIndexerBase
-class _BaseIterDictIndexer(Indexer, IterDictIndexerBase):
+class _BaseIterDictIndexer(TerrierIndexer, Indexer):
     def __init__(self, index_path, *args, meta = {'docno' : 20}, meta_reverse=['docno'], pretokenised=False, threads=1, **kwargs):
         """
         
@@ -606,8 +604,8 @@ class _BaseIterDictIndexer(Indexer, IterDictIndexerBase):
             meta(Dict[str,int]): What metadata for each document to record in the index, and what length to reserve. Defaults to `{"docno" : 20}`.
             meta_reverse(List[str]): What metadata shoudl we be able to resolve back to a docid. Defaults to `["docno"]`,      
         """
-        IterDictIndexerBase.__init__(self)
-        Indexer.__init__(self, index_path, *args, **kwargs)
+        Indexer.__init__(self)
+        TerrierIndexer.__init__(self, index_path, *args, **kwargs)
         self.threads = threads
         self.meta = meta
         self.meta_reverse = meta_reverse
@@ -824,7 +822,7 @@ else:
 IterDictIndexer.__name__ = 'IterDictIndexer' # trick sphinx into not using "alias of"
 
 
-class TRECCollectionIndexer(Indexer):
+class TRECCollectionIndexer(TerrierIndexer):
 
 
     """
@@ -898,7 +896,7 @@ class TRECCollectionIndexer(Indexer):
             return index.getIndex().getIndexRef()
         return IndexRef.of(self.index_dir + "/data.properties")
 
-class FilesIndexer(Indexer):
+class FilesIndexer(TerrierIndexer):
     '''
         Use this Indexer if you wish to index a pdf, docx, txt etc files
 

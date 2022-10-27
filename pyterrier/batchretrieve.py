@@ -4,7 +4,6 @@ import pandas as pd
 import numpy as np
 from . import tqdm, check_version, Transformer
 from warnings import warn
-from .index import Indexer
 from .datasets import Dataset
 from .transformer import Symbol
 from .model import coerce_queries_dataframe, FIRST_RANK
@@ -63,13 +62,14 @@ def _mergeDicts(defaults, settings):
 def _parse_index_like(index_location):
     JIR = autoclass('org.terrier.querying.IndexRef')
     JI = autoclass('org.terrier.structures.Index')
+    from .index import TerrierIndexer
 
     if isinstance(index_location, JIR):
         return index_location
     if isinstance(index_location, JI):
         return cast('org.terrier.structures.Index', index_location).getIndexRef()
-    if isinstance(index_location, str) or issubclass(type(index_location), Indexer):
-        if issubclass(type(index_location), Indexer):
+    if isinstance(index_location, str) or issubclass(type(index_location), TerrierIndexer):
+        if issubclass(type(index_location), TerrierIndexer):
             return JIR.of(index_location.path)
         return JIR.of(index_location)
 
@@ -77,7 +77,7 @@ def _parse_index_like(index_location):
         f'''index_location is current a {type(index_location)},
         while it needs to be an Index, an IndexRef, a string that can be
         resolved to an index location (e.g. path/to/index/data.properties),
-        or an pyterrier.Indexer object'''
+        or an pyterrier.index.TerrierIndexer object'''
     )
 
 class BatchRetrieveBase(Transformer, Symbol):

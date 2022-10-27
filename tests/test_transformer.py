@@ -12,7 +12,9 @@ class TestTransformer(BaseTestCase):
             pass
         class MyTransformer2(pt.transformer.TransformerBase):
             pass
-        class MyTransformer3(pt.transformer.IterDictIndexerBase):
+        class MyTransformer3(pt.Indexer):
+            pass
+        class MyTransformer3a(pt.transformer.IterDictIndexerBase):
             pass
         class MyTransformer4a(pt.Estimator):
             pass
@@ -24,7 +26,7 @@ class TestTransformer(BaseTestCase):
             self.assertTrue(pt.transformer.is_transformer(T()))
 
         # check deprecated API
-        for T in [MyTransformer2, MyTransformer4]:
+        for T in [MyTransformer2, MyTransformer3a, MyTransformer4]:
             with warns(DeprecationWarning, match='instead of'):
                 instance = T()
             self.assertTrue(pt.transformer.is_transformer(instance))

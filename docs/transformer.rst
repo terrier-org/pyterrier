@@ -63,13 +63,24 @@ to support the transformer operators (`>>`, `+` etc). NB: This class used to be 
 Estimator
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This class exposes a ``fit()`` method that can be used for transformers that can be trained.
+This base class exposes a ``fit()`` method that can be used for transformers that can be trained.
 
 .. autoclass:: pyterrier.Estimator
     :members:
 
 The ComposedPipeline implements ``fit()``, which applies the interimediate transformers on the specified training (and validation) topics, and places
 the output into the ``fit()`` method of the final transformer.
+
+Indexer
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This base  class exposes a ``index()`` method that can be used for transformers that create an index.
+
+.. autoclass:: pyterrier.Indexer
+    :members:
+
+The ComposedPipeline also implements ``index()``, which applies the interimediate transformers on the specified documents to be indexed, and places
+the output into the ``index()`` method of the final transformer.
 
 Internal transformers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -106,7 +117,7 @@ Indexing Pipelines
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Transformers can be chained to create indexing pipelines. The last element in the chain is assumed to be an indexer like 
-IterDictIndexer - it should implement an ``index()`` method like IterDictIndexerBase. For instance::
+IterDictIndexer - it should implement an ``index()`` method like pt.Indexer. For instance::
 
     docs = [ {"docno" : "1", "text" : "a" } ] 
     indexer = pt.text.sliding() >> pt.IterDictIndexer()
@@ -135,7 +146,7 @@ Here are some hints for writing Transformers:
  - Except for an indexer, you should implement a ``transform()`` method.
  - If your approach ranks results, use ``pt.model.add_ranks()`` to add the rank column. (``pt.apply.doc_score`` will call add_ranks automatically). 
  - If your approach can be trained, your transformer should extend Estimator, and implement the ``fit()`` method.
- - If your approach is an indexer, your transformer should extend IterDictIndexerBase and implement ``index()`` method.
+ - If your approach is an indexer, your transformer should extend Indexer and implement ``index()`` method.
 
 
 Mocking Transformers from DataFrames

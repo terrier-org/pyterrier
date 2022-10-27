@@ -57,6 +57,21 @@ class Transformer:
     """
 
     @staticmethod
+    def identity() -> 'Transformer':
+        """
+        Instantiates a transformer that returns exactly its input. 
+        
+        This can be useful for adding the candidate ranking score
+        as a feature in for learning-to-rank::
+            bm25 = pt.BatchRetrieve(index, wmodel="BM25")
+            two_feat_pipe = bm25 >> pt.Transformer.identify() ** pt.BatchRetrieve(index, wmodel="PL2")
+        This will return a pipeline that produces a score column (BM25), but also has a features column containing
+        BM25 and PL2 scores.
+        
+        """
+        return IdentityTransformer()
+
+    @staticmethod
     def from_df(input : pd.DataFrame, uniform=False) -> 'Transformer':
         """
         Instantiates a transformer from an input dataframe. Some rows from the input dataframe are returned
@@ -257,13 +272,18 @@ class TransformerBase(Transformer):
     def __init__(self, *args, **kwargs):
         super(Transformer, self).__init__(*args, **kwargs)
 
-class IterDictIndexerBase(Transformer):
+class Indexer(Transformer):
     def index(self, iter : Iterable[dict], **kwargs):
         """
             Takes an iterable of dictionaries ("iterdict"), and consumes them. There is no return;
             This method is typically used to implement indexers.
         """
         pass
+
+class IterDictIndexerBase(Indexer):
+    @deprecated(version="0.9", reason="Use pt.Indexer instead of IterDictIndexerBase")
+    def __init__(self, *args, **kwargs):
+        super(Estimator, self).__init__(*args, **kwargs)
 
 class Estimator(Transformer):
     """
