@@ -5,6 +5,7 @@ import unittest
 import tempfile
 import shutil
 import os
+from unittest import SkipTest
 
 from .base import TempDirTestCase, BaseTestCase
 
@@ -12,7 +13,7 @@ class TestIterDictIndexerPreTok(TempDirTestCase):
     
     def test_json_pretok_iterator(self):
         if not pt.check_version("5.7"):
-            self.skipTest("Requires Terrier 5.7")
+            raise SkipTest("Requires Terrier 5.7")
 
         it = [
             {'docno': 'd1', 'url': 'url1', "toks" : {"a" : 1, "b" : 2}}

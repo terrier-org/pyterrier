@@ -883,7 +883,12 @@ class TRECCollectionIndexer(Indexer):
         if self.verbose and isinstance(colObj, autoclass("org.terrier.indexing.MultiDocumentFileCollection")):
             colObj = cast("org.terrier.indexing.MultiDocumentFileCollection", colObj)
             colObj = TQDMCollection(colObj)
-        index.index(colObj)
+        import pyterrier as pt
+        # remove once 5.7 is now the minimum version
+        if pt.check_version("5.7"):
+            index.index(colObj)
+        else:
+            index.index([colObj])
         global lastdoc
         lastdoc = None
         colObj.close()
