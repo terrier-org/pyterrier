@@ -384,7 +384,7 @@ class Indexer:
             if self.blocks:
                 raise Exception("Memory indexing with positions not yet implemented")
             else:
-                Merger = BasicMemoryIndexer
+                Indexer = BasicMemoryIndexer
                 Merger = None
         else:
             raise Exception("Unknown indexer type")
