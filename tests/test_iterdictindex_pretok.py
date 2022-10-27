@@ -12,8 +12,8 @@ from .base import TempDirTestCase, BaseTestCase
 class TestIterDictIndexerPreTok(TempDirTestCase):
     
     def test_json_pretok_iterator(self):
-        if not pt.check_version("5.7"):
-            raise SkipTest("Requires Terrier 5.7")
+        if not pt.check_version("5.7") or not pt.check_version("0.0.7", helper=True):
+            raise SkipTest("Requires Terrier 5.7 and helper 0.0.7")
 
         it = [
             {'docno': 'd1', 'url': 'url1', "toks" : {"a" : 1, "b" : 2}}
@@ -38,8 +38,8 @@ class TestIterDictIndexerPreTok(TempDirTestCase):
         self.assertEqual(1, pl.getFrequency("a"))
 
     def _make_pretok_index(self, n, index_type, meta=('docno', 'url')):
-        if not pt.check_version("5.7"):
-            self.skipTest("Requires Terrier 5.7")
+        if not pt.check_version("5.7") or not pt.check_version("0.0.7", helper=True):
+            self.skipTest("Requires Terrier 5.7 and helper 0.0.7")
         
         from pyterrier.index import IndexingType
         # Test both versions: _fifo (for UNIX) and _nofifo (for Windows)

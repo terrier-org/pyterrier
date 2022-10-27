@@ -195,7 +195,7 @@ def setup_terrier(file_path, terrier_version=None, helper_version=None, boot_pac
         filename = mavenresolver.downloadfile(group, pkg, version, file_path, filetype)
         classpath.append(filename)
 
-    return classpath
+    return classpath, helper_version
 
 def is_windows() -> bool:
     import platform
