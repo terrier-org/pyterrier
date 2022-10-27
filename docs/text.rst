@@ -179,6 +179,40 @@ Query-biased Summarisation (Snippets)
 
 .. autofunction:: pyterrier.text.snippets()
 
+Examples of Sentence-Transformers
+=================================
+
+Here we demonstrate the use of `pt.apply.doc_score( , batch_size=128)` to allow an easy application of `Sentence Transformers <https://www.sbert.net/>_` for reranking BM25 results:: 
+
+    import pandas as pd
+    from sentence_transformers import CrossEncoder, SentenceTransformer
+    crossmodel = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-12-v2', max_length=512)
+    bimodel = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+
+    def _crossencoder_apply(df : pd.DataFrame):
+        return crossmodel.predict(list(zip(df['query'].values, df['text'].values)))
+
+    cross_encT = pt.apply.doc_score(_crossencoder_apply, batch_size=128)
+
+    def _biencoder_apply(df : pd.DataFrame):
+        from sentence_transformers.util import cos_sim
+        query_embs = bimodel.encode(df['query'].values)
+        doc_embs = bimodel.encode(df['text'].values)
+        scores =  cos_sim(query_embs, doc_embs)
+        return scores[0]
+
+    bi_encT = pt.apply.doc_score(_biencoder_apply, batch_size=128)
+
+    pt.Experiment(
+        [ bm25, bm25 >> bi_encT, bm25 >> cross_encT ],
+        dataset.get_topics(),
+        dataset.get_qrels(),
+        ["map"],
+        names=["BM25", "BM25 >> BiEncoder", "BM25 >> CrossEncoder"]
+    )
+
+
+
 References
 ==========
 

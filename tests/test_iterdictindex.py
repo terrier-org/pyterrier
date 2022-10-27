@@ -186,7 +186,6 @@ class TestIterDictIndexer(TempDirTestCase):
         #restore setting after test
         pt.ApplicationSetup.setProperty("termpipelines", "Stopwords,PorterStemmer")
         self.assertEqual("", index.getIndexProperty("termpipelines", "bla"))
-        
 
 if __name__ == "__main__":
     unittest.main()

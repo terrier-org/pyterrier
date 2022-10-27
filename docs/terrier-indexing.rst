@@ -181,3 +181,40 @@ indexing configurations, and how to apply them when indexing using PyTerrier, no
 - *metaindex configuration*: metadata refers to the arbitrary strings associated to each document recorded in a Terrier index. These can range from the `"docno"` attribute of each document, as used to support experimentation, to other attributes such as the URL of the documents, or even the raw text of the document. Indeed, storing the raw text of each document is a trick often used when applying additional re-rankers such as BERT (see `pyterrier_bert <https://github.com/cmacdonald/pyterrier_bert>`_ for more information on integrating PyTerrier with BERT-based re-rankers). Indexers now expose `meta` and `meta_tags` constructor kwarg to make this easier.
 
 - *reverse metaindex configuration*: on occasion, there is a need to lookup up documents in a Terrier index based on their metadata, e.g. "docno". The `meta_reverse` constructor kwarg allows meta keys that support reverse lookup to be specified.
+
+
+Pretokenised
+============
+
+Sometimes you want more fine-grained control over the tokenisation directly within PyTerrier. In this case, each document to be indexed can contain a dictionary of pre-tokenised text and their counts. This works if the `pretokenised` flag is set to True at indexing time::
+
+    iter_indexer = pt.IterDictIndexer("./pretokindex", meta={'docno': 20}, threads=1, pretokenised=True)
+    indexref6 = iter_indexer.index([
+        {'docno' : 'd1', 'toks' : {'a' : 1, '##2' : 2}}
+        {'docno' : 'd2', 'toks' : {'a' : 2, '##2' : 1}}
+    ])
+
+This allows tokenisation using, for instance, the `HuggingFace tokenizers <https://huggingface.co/docs/transformers/fast_tokenizers>_`::
+
+    iter_indexer = pt.IterDictIndexer("./pretokindex", meta={'docno': 20}, threads=1, pretokenised=True)
+    from transformers import AutoTokenizer
+    from collections import Counter
+
+    tok = AutoTokenizer.from_pretrained("bert-base-uncased")
+
+    # this creates a new column called 'toks', where each row contains a dictionary of the BERT WordPiece tokens of the 'text' column
+    # this particular examples tokenises one row at a time, this could be made more efficient
+    token_row_apply = pt.apply.toks(lambda row: Counter(tok.convert_ids_to_tokens(tok(row['text']).input_ids)))
+
+    index_pipe = token_row_apply >> iter_indexer
+    indexref = index_pipe.index([
+        {'docno' : 'd1', 'text' : 'do goldfish grow?'},
+        {'docno' : 'd2', 'text' : ''}
+    ])
+
+At retrieval time, WordPieces that contain special characters (e.g. `##w` `[SEP]`) need to be encoded so as to avoid Terrier's tokeniser. We use `pt.BatchRetrieve.matchop()` to perform that rewriting::
+
+    br = pt.BatchRetrieve(indexref)
+    tok = AutoTokenizer.from_pretrained("bert-base-uncased")
+    query_toks = pt.apply.query(lambda row: ' '.join(map(pt.BatchRetrieve.matchop, tok.convert_ids_to_tokens(tok(row['query']).input_ids))) )
+    retr_pipe = query_toks >> br
