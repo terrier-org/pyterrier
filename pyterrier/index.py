@@ -46,6 +46,7 @@ BlockStructureMerger = None
 lastdoc=None
 
 def run_autoclass():
+    from . import check_version
     global StringReader
     global HashMap
     global TaggedDocument
@@ -80,7 +81,7 @@ def run_autoclass():
     BlockIndexer = autoclass("org.terrier.structures.indexing.classical.BlockIndexer")
     BasicSinglePassIndexer = autoclass("org.terrier.structures.indexing.singlepass.BasicSinglePassIndexer")
     BlockSinglePassIndexer = autoclass("org.terrier.structures.indexing.singlepass.BlockSinglePassIndexer")
-    BasicMemoryIndexer = autoclass("org.terrier.python.MemoryIndexer")
+    BasicMemoryIndexer = autoclass("org.terrier.realtime.memory.MemoryIndexer" if check_version("5.7") else "org.terrier.python.MemoryIndexer")
     Collection = autoclass("org.terrier.indexing.Collection")
     Arrays = autoclass("java.util.Arrays")
     Array = autoclass('java.lang.reflect.Array')
@@ -383,7 +384,7 @@ class Indexer:
             if self.blocks:
                 raise Exception("Memory indexing with positions not yet implemented")
             else:
-                Indexer = BasicMemoryIndexer
+                Merger = BasicMemoryIndexer
                 Merger = None
         else:
             raise Exception("Unknown indexer type")
