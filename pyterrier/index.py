@@ -405,7 +405,7 @@ class TerrierIndexer:
         else:
             
             termpipeline = []
-            if self.stopwords is not None:
+            if self.stopwords is not None and self.stopwords != TerrierStopwords.none:
                 termpipeline.append('Stopwords')
 
             stemmer_clz = TerrierStemmer.to_class(self.stemmer)

@@ -174,13 +174,19 @@ class TestIterDictIndexer(TempDirTestCase):
             {'docno': '2', 'url': 'url2', 'text': 'The waves were crashing on the shore; it was a', 'title': 'Lovely sight'},
             {'docno': '3', 'url': 'url3', 'text': 'The body may perhaps compensates for the loss', 'title': 'Best of Viktor Prowoll'},
         ]
-        indexer = pt.IterDictIndexer(self.test_dir, stemmer=None, stopwords=None)
-        indexref = indexer.index(it)
-        index = pt.IndexFactory.of(indexref)
-        index = pt.cast("org.terrier.structures.IndexOnDisk", index)
-        #restore setting after test
-        pt.ApplicationSetup.setProperty("termpipelines", "Stopwords,PorterStemmer")
-        self.assertEqual("", index.getIndexProperty("termpipelines", "bla"))
+        settings = [( pt.index.TerrierStemmer.none, pt.index.TerrierStopwords.none), (None, None)]
+        for setting in settings:
+            with self.subTest('setting %s' % str(setting)):
+                indexer = pt.IterDictIndexer(self.test_dir, stemmer=setting[0], stopwords=setting[1], overwrite=True)
+                indexref = indexer.index(it)
+                index = pt.IndexFactory.of(indexref)
+                index = pt.cast("org.terrier.structures.IndexOnDisk", index)
+                self.assertEqual("", index.getIndexProperty("termpipelines", "bla"))
+                self.assertEqual(11, index.getDocumentIndex().getDocumentLength(0))
+                
+                # restore setting after test
+                pt.ApplicationSetup.setProperty("termpipelines", "Stopwords,PorterStemmer")
+                self.assertEqual("", index.getIndexProperty("termpipelines", "bla"))
 
     def test_check_weakstemmer(self):
         it = [
@@ -188,13 +194,17 @@ class TestIterDictIndexer(TempDirTestCase):
             {'docno': '2', 'url': 'url2', 'text': 'The waves were crashing on the shore; it was a', 'title': 'Lovely sight'},
             {'docno': '3', 'url': 'url3', 'text': 'The body may perhaps compensates for the loss', 'title': 'Best of Viktor Prowoll'},
         ]
-        indexer = pt.IterDictIndexer(self.test_dir, stemmer='WeakPorterStemmer')
-        indexref = indexer.index(it)
-        index = pt.IndexFactory.of(indexref)
-        index = pt.cast("org.terrier.structures.IndexOnDisk", index)
-        #restore setting after test
-        pt.ApplicationSetup.setProperty("termpipelines", "Stopwords,PorterStemmer")
-        self.assertEqual("Stopwords,WeakPorterStemmer", index.getIndexProperty("termpipelines", "bla"))
+        settings = ['WeakPorterStemmer', pt.index.TerrierStemmer.weakporter]
+        for setting in settings:
+            with self.subTest('setting %s' % str(setting)):
+                indexer = pt.IterDictIndexer(self.test_dir, stemmer=setting, overwrite=True)
+                indexref = indexer.index(it)
+                index = pt.IndexFactory.of(indexref)
+                self.assertEqual(3, index.getDocumentIndex().getDocumentLength(0)) #ran money playing
+                index = pt.cast("org.terrier.structures.IndexOnDisk", index)
+                # restore setting after test
+                pt.ApplicationSetup.setProperty("termpipelines", "Stopwords,PorterStemmer")
+                self.assertEqual("Stopwords,WeakPorterStemmer", index.getIndexProperty("termpipelines", "bla"))
 
 if __name__ == "__main__":
     unittest.main()
