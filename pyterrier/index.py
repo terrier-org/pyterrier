@@ -757,8 +757,9 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
             # we need to prevent collectionIterator from being GCd
             collectionIterator = FlatJSONDocumentIterator(self._filter_iterable(it, fields))
             javaDocCollection = autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
-            
-            index.index(javaDocCollection)
+            # remove once 5.7 is now the minimum version
+            from . import check_version
+            index.index(javaDocCollection if check_version("5.7") else [javaDocCollection])
             global lastdoc
             lastdoc = None
             self.index_called = True
@@ -942,7 +943,7 @@ class TRECCollectionIndexer(TerrierIndexer):
         if pt.check_version("5.7"):
             index.index(colObj)
         else:
-            index.index([colObj])
+            index.index(autoclass("org.terrier.python.PTUtils").makeCollection(colObj))
         global lastdoc
         lastdoc = None
         colObj.close()
@@ -985,7 +986,9 @@ class FilesIndexer(TerrierIndexer):
         _FileDocumentSetup(self.meta, self.meta_tags)
         
         simpleColl = SimpleFileCollection(asList, False)
-        index.index(simpleColl)
+        # remove once 5.7 is now the minimum version
+        from . import check_version
+        index.index(simpleColl if check_version("5.7") else [simpleColl])
         global lastdoc
         lastdoc = None
         self.index_called = True
