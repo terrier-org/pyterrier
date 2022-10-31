@@ -2,8 +2,8 @@
 This file contains all the indexers.
 """
 
-# from jnius import autoclass, cast, PythonJavaClass, java_method
 from jnius import autoclass, PythonJavaClass, java_method, cast
+from enum import Enum
 import pandas as pd
 from . import Indexer
 import os
@@ -253,6 +253,27 @@ class IndexingType(enum.Enum):
     SINGLEPASS = 2 #: A single-pass indexing regime, which builds an inverted index directly. No direct index structure is created. Typically is faster than classical indexing.
     MEMORY = 3 #: An in-memory index. No direct index is created.
 
+class TerrierStemmer(Enum):
+    none = 'none'
+    porter = 'porter'
+    weakporter = 'weak'
+
+    @staticmethod
+    def to_class(this):
+        if this is None or this == TerrierStemmer.none:
+            return None
+        if this == TerrierStemmer.porter:
+            return 'PorterStemmer'
+        if this == TerrierStemmer.weakporter:
+            return 'WeakPorterStemmer'
+        if isinstance(this, str):
+            return this
+        
+
+class TerrierStopwords(Enum):
+    none = 'none'
+    terrier = 'terrier'
+
 
 class TerrierIndexer:
     """
@@ -269,7 +290,15 @@ class TerrierIndexer:
             "trec.collection.class": "TRECCollection",
     }
 
-    def __init__(self, index_path, *args, blocks=False, overwrite=False, verbose=False, meta_reverse=["docno"], type=IndexingType.CLASSIC, **kwargs):
+    def __init__(self, index_path : str, *args, 
+            blocks : bool = False, 
+            overwrite: bool = False, 
+            verbose : bool = False, 
+            meta_reverse : List[str] = ["docno"],
+            stemmer : Union[None, str, TerrierStemmer] = TerrierStemmer.porter,
+            stopwords : Union[None, TerrierStopwords] = TerrierStopwords.terrier,
+            type=IndexingType.CLASSIC, 
+            **kwargs):
         """
         Init method
 
@@ -292,6 +321,8 @@ class TerrierIndexer:
         self.index_dir = index_path
         self.blocks = blocks
         self.type = type
+        self.stemmer = stemmer
+        self.stopwords = stopwords
         self.properties = Properties()
         self.setProperties(**self.default_properties)
         self.overwrite = overwrite
@@ -361,10 +392,32 @@ class TerrierIndexer:
         Returns:
             type objects for indexer and merger for the given configuration
         """
+
+        # configure the meta index
         self.properties['indexer.meta.forward.keys'] = ','.join(self.meta.keys())
         self.properties['indexer.meta.forward.keylens'] = ','.join([str(l) for l in self.meta.values()])
         self.properties['indexer.meta.reverse.keys'] = ','.join(self.meta_reverse)
+
+        # configure the term pipeline
+        if 'termpipelines' in self.properties:
+            # use existing configuration if present
+            warn("Setting of termpipelines property directly is deprecated", stacklevel=4, category=DeprecationWarning)
+        else:
+            
+            termpipeline = []
+            if self.stopwords is not None:
+                termpipeline.append('Stopwords')
+
+            stemmer_clz = TerrierStemmer.to_class(self.stemmer)
+            if stemmer_clz is not None:
+                termpipeline.append(stemmer_clz)
+            
+            self.properties['termpipelines'] = ','.join(termpipeline)
+
+        # inform terrier of all properties
         ApplicationSetup.getProperties().putAll(self.properties)
+
+        # now create the indexers 
         if self.type is IndexingType.SINGLEPASS:
             if self.blocks:
                 Indexer = BlockSinglePassIndexer
@@ -613,6 +666,9 @@ class _BaseIterDictIndexer(TerrierIndexer, Indexer):
         if self.pretokenised:
             from pyterrier import check_version
             assert check_version(5.7), "Terrier too old, this requires 5.7"
+            # we disable stemming and stopwords for pretokenised indices
+            self.stemmer = None
+            self.stopwords = None
 
     def _setup(self, fields, meta, meta_lengths):
         """
@@ -639,7 +695,6 @@ class _BaseIterDictIndexer(TerrierIndexer, Indexer):
                 'metaindex.compressed.crop.long' : 'true',
                 'FieldTags.process': '',
                 'FieldTags.casesensitive': 'true',
-                'termpipelines' : ''
             })
         else:
             self.setProperties(**{
