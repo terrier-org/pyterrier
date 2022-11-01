@@ -167,12 +167,26 @@ class TestIterDictIndexer(TempDirTestCase):
         self.assertIn("docno", index.getMetaIndex().getKeys())
         self.assertIn("url", index.getMetaIndex().getReverseKeys())
 
+    def test_check_nostemmer_utf_toks(self):
+        # check that UTFTokeniser is doing its job
+        it = [
+            {'docno': '3', 'url': 'url3', 'text': 'The body may perhaps compensates før the loss'},
+        ]
+        
+        indexer = pt.IterDictIndexer(self.test_dir, stemmer=None, stopwords=None, tokeniser="UTFTokeniser")
+        indexref = indexer.index(it)
+        index = pt.IndexFactory.of(indexref)
+        index = pt.cast("org.terrier.structures.IndexOnDisk", index)
+        self.assertEqual("", index.getIndexProperty("termpipelines", "bla"))
+        self.assertTrue("før" in index.getLexicon())
+        # restore setting after test
+        pt.ApplicationSetup.setProperty("termpipelines", "Stopwords,PorterStemmer")
 
     def test_check_nostemmer(self):
         it = [
             {'docno': '1', 'url': 'url1', 'text': 'He ran out of money, so he had to stop playing', 'title': 'Woes of playing poker'},
             {'docno': '2', 'url': 'url2', 'text': 'The waves were crashing on the shore; it was a', 'title': 'Lovely sight'},
-            {'docno': '3', 'url': 'url3', 'text': 'The body may perhaps compensates for the loss', 'title': 'Best of Viktor Prowoll'},
+            {'docno': '3', 'url': 'url3', 'text': 'The body may perhaps compensates før the loss', 'title': 'Best of Viktor Prowoll'},
         ]
         settings = [( pt.index.TerrierStemmer.none, pt.index.TerrierStopwords.none), (None, None)]
         for setting in settings:
@@ -184,6 +198,10 @@ class TestIterDictIndexer(TempDirTestCase):
                 self.assertEqual("", index.getIndexProperty("termpipelines", "bla"))
                 self.assertEqual(11, index.getDocumentIndex().getDocumentLength(0))
                 
+                # før is tokenised as f r by EnglishTokeniser
+                self.assertTrue("f" in index.getLexicon())
+                self.assertTrue("r" in index.getLexicon())
+
                 # restore setting after test
                 pt.ApplicationSetup.setProperty("termpipelines", "Stopwords,PorterStemmer")
                 self.assertEqual("", index.getIndexProperty("termpipelines", "bla"))

@@ -257,6 +257,15 @@ class TerrierStemmer(Enum):
     none = 'none'
     porter = 'porter'
     weakporter = 'weak'
+    # available snowball stemmers in Terrier
+    danish = 'danish'
+    finnish = 'finnish'
+    german = 'german'
+    hungarian = 'hungarian'
+    norwegian = 'norwegian'
+    portugese = 'portugese'
+    swedish = 'swedish'
+    turkish = 'turkish'
 
     @staticmethod
     def to_class(this):
@@ -266,6 +275,25 @@ class TerrierStemmer(Enum):
             return 'PorterStemmer'
         if this == TerrierStemmer.weakporter:
             return 'WeakPorterStemmer'
+        
+        # snowball stemmers
+        if this == TerrierStemmer.danish:
+            return 'DanishSnowballStemmer'
+        if this == TerrierStemmer.finnish:
+            return 'FinnishSnowballStemmer'
+        if this == TerrierStemmer.german:
+            return 'GermanSnowballStemmer'
+        if this == TerrierStemmer.hungarian:
+            return 'HungarianSnowballStemmer'
+        if this == TerrierStemmer.norwegian:
+            return 'NorwegianSnowballStemmer'
+        if this == TerrierStemmer.portugese:
+            return 'PortugueseSnowballStemmer'
+        if this == TerrierStemmer.swedish:
+            return 'SwedishSnowballStemmer'
+        if this == TerrierStemmer.turkish:
+            return 'TurkishSnowballStemmer'
+
         if isinstance(this, str):
             return this
         
@@ -297,6 +325,7 @@ class TerrierIndexer:
             meta_reverse : List[str] = ["docno"],
             stemmer : Union[None, str, TerrierStemmer] = TerrierStemmer.porter,
             stopwords : Union[None, TerrierStopwords] = TerrierStopwords.terrier,
+            tokeniser : str = "EnglishTokeniser",
             type=IndexingType.CLASSIC, 
             **kwargs):
         """
@@ -323,6 +352,7 @@ class TerrierIndexer:
         self.type = type
         self.stemmer = stemmer
         self.stopwords = stopwords
+        self.tokeniser = tokeniser
         self.properties = Properties()
         self.setProperties(**self.default_properties)
         self.overwrite = overwrite
@@ -413,6 +443,11 @@ class TerrierIndexer:
                 termpipeline.append(stemmer_clz)
             
             self.properties['termpipelines'] = ','.join(termpipeline)
+
+        if "tokeniser" in self.properties:
+            warn("Setting of tokeniser property directly is deprecated", stacklevel=4, category=DeprecationWarning)
+        else:
+            self.properties['tokeniser'] = self.tokeniser
 
         # inform terrier of all properties
         ApplicationSetup.getProperties().putAll(self.properties)
@@ -887,14 +922,12 @@ class TRECCollectionIndexer(TerrierIndexer):
 
     def __init__(self, 
             index_path : str, 
-            blocks : bool = False, 
-            overwrite : bool = False, 
-            type : IndexingType =IndexingType.CLASSIC, 
             collection : str = "trec", 
             verbose : bool = False,
             meta : Dict[str,int] = {"docno" : 20},
             meta_reverse : List[str] = ["docno"],
-            meta_tags : Dict[str,str] = {}
+            meta_tags : Dict[str,str] = {},
+            **kwargs
             ):
         """
         Init method

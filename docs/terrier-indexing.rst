@@ -162,15 +162,16 @@ to the Indexer classes. However, as Terrier is a legacy platform, some changes w
 Moreover, the manner of the configuration needed varies a little between the Indexer classes. In the following, we list common
 indexing configurations, and how to apply them when indexing using PyTerrier, noting any differences betweeen the Indexer classes.
 
-- *stemming configuation or stopwords*: the default Terrier indexing configuration is to use a term pipeline of `Stopwords,PorterStemmer`. You can change the term pipeline configuration using the `"termpipeline"` property::
+- *stemming configuation or stopwords*: the default Terrier indexing configuration is to apply an English stopword list, and Porter's stemmer. You can configure this using the ``stemmer`` and ``stopwords`` kwargs for the various indexers::
 
-    indexer.setProperty("termpipelines", "")
+    indexer = pt.IterDictIndexer(stemmer='SpanishSnowballStemmer', stopwords=None)
 
- Note that any subsequent indexing or retrieval operation would also require the `"termpipeline"` property to be suitably updated.
- See the `org.terrier.terms <http://terrier.org/docs/current/javadoc/org/terrier/terms/package-summary.html>`_ package for a list of 
+  See the `org.terrier.terms <http://terrier.org/docs/current/javadoc/org/terrier/terms/package-summary.html>`_ package for a list of 
  the available term pipeline objects provided by Terrier.
 
-- *languages and tokenisation*: Similarly, the choice of tokeniser is controlled by the `"tokeniser"` property. `EnglishTokeniser <http://terrier.org/docs/current/javadoc/org/terrier/indexing/tokenisation/EnglishTokeniser.html>`_ is the  default tokeniser. Other tokenisers are listed in  `org.terrier.indexing.tokenisation <http://terrier.org/docs/current/javadoc/org/terrier/indexing/tokenisation/package-summary.html>`_ package. For instance, use `indexer.setProperty("tokeniser", "UTFTokeniser")` when indexing non-English text.
+- *languages and tokenisation*: Similarly, the choice of tokeniser can be controlled in the indexer constructor using the ``tokeniser`` kwarg. `EnglishTokeniser <http://terrier.org/docs/current/javadoc/org/terrier/indexing/tokenisation/EnglishTokeniser.html>`_ is the  default tokeniser. Other tokenisers are listed in  `org.terrier.indexing.tokenisation <http://terrier.org/docs/current/javadoc/org/terrier/indexing/tokenisation/package-summary.html>`_ package. For instance, its common to use `UTFTokeniser` when indexing non-English text::
+
+    indexer = pt.IterDictIndexer(stemmer=None, stopwords=None, tokeniser="UTFTokeniser")
 
 - *positions (aka blocks)* - all indexers expose a `blocks` boolean constructor argument to allow position information to be recoreded in the index. Defaults to False, i.e. positions are not recorded.
 
