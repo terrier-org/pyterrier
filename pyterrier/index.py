@@ -943,7 +943,7 @@ class TRECCollectionIndexer(TerrierIndexer):
             meta_tags(Dict[str,str]): For collections formed using tagged data (e.g. HTML), which tags correspond to which metadata. This is useful for recording the text of documents for use in neural rankers - see :ref:`pt.text`.
 
         """
-        super().__init__(index_path, blocks=blocks, overwrite=overwrite, type=type)
+        super().__init__(index_path, **kwargs)
         if isinstance(collection, str):
             if collection in type_to_class:
                 collection = type_to_class[collection]
