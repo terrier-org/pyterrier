@@ -2,8 +2,8 @@
 This file contains all the indexers.
 """
 
-# from jnius import autoclass, cast, PythonJavaClass, java_method
 from jnius import autoclass, PythonJavaClass, java_method, cast
+from enum import Enum
 import pandas as pd
 from . import Indexer
 import os
@@ -253,18 +253,125 @@ def createAsList(files_path : Union[str, List[str]]):
 # Using enum class create enumerations
 class IndexingType(enum.Enum):
     """
-        This enum is used to determine the type of index built by Terrier. The default is CLASSIC.
+        This enum is used to determine the type of index built by Terrier. The default is CLASSIC. For more information,
+        see the relevant Terrier `indexer <https://terrier-core.readthedocs.io/en/latest/indexer_details.html>`_
+        and `realtime <https://terrier-core.readthedocs.io/en/latest/realtime_indices.html>`_ documentation.
     """
     CLASSIC = 1 #: A classical indexing regime, which also creates a direct index structure, useful for query expansion
     SINGLEPASS = 2 #: A single-pass indexing regime, which builds an inverted index directly. No direct index structure is created. Typically is faster than classical indexing.
-    MEMORY = 3 #: An in-memory index. No direct index is created.
+    MEMORY = 3 #: An in-memory index. No persistent index is created.
 
+class TerrierStemmer(Enum):
+    """
+        This enum provides an API for the stemmers available in Terrier. The stemming configuration is saved in the index
+        and loaded at retrieval time. `Snowball <https://snowballstem.org/>`_ stemmers for various languages 
+        `are available in Terrier <http://terrier.org/docs/current/javadoc/org/terrier/terms/package-summary.html>`_.
+    """
+    none = 'none' #: Apply no stemming
+    porter = 'porter' #: Apply Porter's English stemmer
+    weakporter = 'weakporter' #: Apply a weak version of Porter's English stemmer
+    # available snowball stemmers in Terrier
+    danish = 'danish' #: Snowball Danish stemmer
+    finnish = 'finnish' #: Snowball Finnish stemmer
+    german = 'german' #: Snowball German stemmer
+    hungarian = 'hungarian' #: Snowball Hungarian stemmer
+    norwegian = 'norwegian' #: Snowball Norwegian stemmer
+    portugese = 'portugese' #: Snowball Portuguese stemmer
+    swedish = 'swedish' #: Snowball Swedish stemmer
+    turkish = 'turkish' #: Snowball Turkish stemmer
+
+    @staticmethod
+    def _to_obj(this):
+        try:
+            return TerrierStemmer(this)
+        except ValueError:
+            return this
+
+    @staticmethod
+    def _to_class(this):
+        if this is None or this == TerrierStemmer.none:
+            return None
+        if this == TerrierStemmer.porter:
+            return 'PorterStemmer'
+        if this == TerrierStemmer.weakporter:
+            return 'WeakPorterStemmer'
+        
+        # snowball stemmers
+        if this == TerrierStemmer.danish:
+            return 'DanishSnowballStemmer'
+        if this == TerrierStemmer.finnish:
+            return 'FinnishSnowballStemmer'
+        if this == TerrierStemmer.german:
+            return 'GermanSnowballStemmer'
+        if this == TerrierStemmer.hungarian:
+            return 'HungarianSnowballStemmer'
+        if this == TerrierStemmer.norwegian:
+            return 'NorwegianSnowballStemmer'
+        if this == TerrierStemmer.portugese:
+            return 'PortugueseSnowballStemmer'
+        if this == TerrierStemmer.swedish:
+            return 'SwedishSnowballStemmer'
+        if this == TerrierStemmer.turkish:
+            return 'TurkishSnowballStemmer'
+
+        if isinstance(this, str):
+            return this
+        
+
+class TerrierStopwords(Enum):
+    """
+        This enum provides an API for the stopword configuration used during indexing with Terrier
+    """
+
+    none = 'none' #: No Stemming
+    terrier = 'terrier' #: Apply Terrier's standard stopword list
+
+    @staticmethod
+    def _to_obj(this):
+        try:
+            return TerrierStopwords(this)
+        except ValueError:
+            return this
+
+
+class TerrierTokeniser(Enum):
+    """
+        This enum provides an API for the tokeniser configuration used during indexing with Terrier.
+    """
+
+    whitespace = 'whitespace' #: Tokenise on whitespace only
+    english = 'english' #: Terrier's standard tokeniser, designed for English
+    utf = 'utf' #: A variant of Terrier's standard tokeniser, similar to English, but with UTF support.
+    twitter = 'twitter' #: Like utf, but keeps hashtags etc
+    identity = 'identity' #: Performs no tokenisation - strings are kept as is. 
+
+    @staticmethod
+    def _to_obj(this):
+        try:
+            return TerrierTokeniser(this)
+        except ValueError:
+            return this
+
+    @staticmethod
+    def _to_class(this):
+        if this == TerrierTokeniser.whitespace:
+            return 'WhitespaceTokeniser'
+        if this == TerrierTokeniser.english:
+            return 'EnglishTokeniser'
+        if this == TerrierTokeniser.utf:
+            return 'UTFTokeniser'
+        if this == TerrierTokeniser.twitter:
+            return 'UTFTwitterTokeniser'
+        if this == TerrierTokeniser.identity:
+            return 'IdentityTokeniser'
+        if isinstance(this, str):
+            return this
 
 class TerrierIndexer:
     """
-    Parent class. It can be used to load an existing index.
-    Use one of its children classes if you wish to create a new index.
-
+    This is the super class for all of the Terrier-based indexers exposed by PyTerrier. It hosts common configuration
+    for all index types.
+    
     """
 
     default_properties = {
@@ -275,16 +382,29 @@ class TerrierIndexer:
             "trec.collection.class": "TRECCollection",
     }
 
-    def __init__(self, index_path, *args, blocks=False, overwrite=False, verbose=False, meta_reverse=["docno"], type=IndexingType.CLASSIC, **kwargs):
+    def __init__(self, index_path : str, *args, 
+            blocks : bool = False, 
+            overwrite: bool = False, 
+            verbose : bool = False, 
+            meta_reverse : List[str] = ["docno"],
+            stemmer : Union[None, str, TerrierStemmer] = TerrierStemmer.porter,
+            stopwords : Union[None, TerrierStopwords] = TerrierStopwords.terrier,
+            tokeniser : Union[str,TerrierTokeniser] = TerrierTokeniser.english,
+            type=IndexingType.CLASSIC, 
+            **kwargs):
         """
-        Init method
+        Constructor called by all indexer subclasses. All arguments listed below are available in 
+        IterDictIndexer, DFIndexer, TRECCollectionIndexer and FilesIndsexer. 
 
         Args:
             index_path (str): Directory to store index. Ignored for IndexingType.MEMORY.
             blocks (bool): Create indexer with blocks if true, else without blocks. Default is False.
             overwrite (bool): If index already present at `index_path`, True would overwrite it, False throws an Exception. Default is False.
             verbose (bool): Provide progess bars if possible. Default is False.
-            type (IndexingType): the specific indexing procedure to use. Default is IndexingType.CLASSIC.
+            stemmer (TerrierStemmer): the stemmer to apply. Default is ``TerrierStemmer.porter``.
+            stopwords (TerrierStopwords): the stopwords list to apply. Default is ``TerrierStemmer.terrier``.
+            tokeniser (TerrierTokeniser): the stemmer to apply. Default is ``TerrierTokeniser.english``.
+            type (IndexingType): the specific indexing procedure to use. Default is ``IndexingType.CLASSIC``.
         """
         if StringReader is None:
             run_autoclass()
@@ -298,6 +418,9 @@ class TerrierIndexer:
         self.index_dir = index_path
         self.blocks = blocks
         self.type = type
+        self.stemmer = TerrierStemmer._to_obj(stemmer)
+        self.stopwords = TerrierStopwords._to_obj(stopwords)
+        self.tokeniser = TerrierTokeniser._to_obj(tokeniser)
         self.properties = Properties()
         self.setProperties(**self.default_properties)
         self.overwrite = overwrite
@@ -367,10 +490,37 @@ class TerrierIndexer:
         Returns:
             type objects for indexer and merger for the given configuration
         """
+
+        # configure the meta index
         self.properties['indexer.meta.forward.keys'] = ','.join(self.meta.keys())
         self.properties['indexer.meta.forward.keylens'] = ','.join([str(l) for l in self.meta.values()])
         self.properties['indexer.meta.reverse.keys'] = ','.join(self.meta_reverse)
+
+        # configure the term pipeline
+        if 'termpipelines' in self.properties:
+            # use existing configuration if present
+            warn("Setting of termpipelines property directly is deprecated", stacklevel=4, category=DeprecationWarning)
+        else:
+            
+            termpipeline = []
+            if self.stopwords is not None and self.stopwords != TerrierStopwords.none:
+                termpipeline.append('Stopwords')
+
+            stemmer_clz = TerrierStemmer._to_class(self.stemmer)
+            if stemmer_clz is not None:
+                termpipeline.append(stemmer_clz)
+            
+            self.properties['termpipelines'] = ','.join(termpipeline)
+
+        if "tokeniser" in self.properties:
+            warn("Setting of tokeniser property directly is deprecated", stacklevel=4, category=DeprecationWarning)
+        else:
+            self.properties['tokeniser'] = TerrierTokeniser._to_class(self.tokeniser)
+
+        # inform terrier of all properties
         ApplicationSetup.getProperties().putAll(self.properties)
+
+        # now create the indexers 
         if self.type is IndexingType.SINGLEPASS:
             if self.blocks:
                 Indexer = BlockSinglePassIndexer
@@ -619,6 +769,9 @@ class _BaseIterDictIndexer(TerrierIndexer, Indexer):
         if self.pretokenised:
             from pyterrier import check_version
             assert check_version(5.7), "Terrier too old, this requires 5.7"
+            # we disable stemming and stopwords for pretokenised indices
+            self.stemmer = None
+            self.stopwords = None
 
     def _setup(self, fields, meta, meta_lengths):
         """
@@ -645,7 +798,6 @@ class _BaseIterDictIndexer(TerrierIndexer, Indexer):
                 'metaindex.compressed.crop.long' : 'true',
                 'FieldTags.process': '',
                 'FieldTags.casesensitive': 'true',
-                'termpipelines' : ''
             })
         else:
             self.setProperties(**{
@@ -708,8 +860,9 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
             # we need to prevent collectionIterator from being GCd
             collectionIterator = FlatJSONDocumentIterator(self._filter_iterable(it, fields))
             javaDocCollection = autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
-            
-            index.index(javaDocCollection)
+            # remove once 5.7 is now the minimum version
+            from . import check_version
+            index.index(javaDocCollection if check_version("5.7") else [javaDocCollection])
             global lastdoc
             lastdoc = None
             self.index_called = True
@@ -837,14 +990,12 @@ class TRECCollectionIndexer(TerrierIndexer):
 
     def __init__(self, 
             index_path : str, 
-            blocks : bool = False, 
-            overwrite : bool = False, 
-            type : IndexingType =IndexingType.CLASSIC, 
             collection : str = "trec", 
             verbose : bool = False,
             meta : Dict[str,int] = {"docno" : 20},
             meta_reverse : List[str] = ["docno"],
-            meta_tags : Dict[str,str] = {}
+            meta_tags : Dict[str,str] = {},
+            **kwargs
             ):
         """
         Init method
@@ -860,7 +1011,7 @@ class TRECCollectionIndexer(TerrierIndexer):
             meta_tags(Dict[str,str]): For collections formed using tagged data (e.g. HTML), which tags correspond to which metadata. This is useful for recording the text of documents for use in neural rankers - see :ref:`pt.text`.
 
         """
-        super().__init__(index_path, blocks=blocks, overwrite=overwrite, type=type)
+        super().__init__(index_path, **kwargs)
         if isinstance(collection, str):
             if collection in type_to_class:
                 collection = type_to_class[collection]
@@ -893,7 +1044,7 @@ class TRECCollectionIndexer(TerrierIndexer):
         if pt.check_version("5.7"):
             index.index(colObj)
         else:
-            index.index([colObj])
+            index.index(autoclass("org.terrier.python.PTUtils").makeCollection(colObj))
         global lastdoc
         lastdoc = None
         colObj.close()
@@ -936,7 +1087,9 @@ class FilesIndexer(TerrierIndexer):
         _FileDocumentSetup(self.meta, self.meta_tags)
         
         simpleColl = SimpleFileCollection(asList, False)
-        index.index(simpleColl)
+        # remove once 5.7 is now the minimum version
+        from . import check_version
+        index.index(simpleColl if check_version("5.7") else [simpleColl])
         global lastdoc
         lastdoc = None
         self.index_called = True

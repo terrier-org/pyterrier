@@ -2,27 +2,25 @@ Terrier Indexing
 ----------------
 
 PyTerrier has a number of useful classes for creating Terrier indices, which can be used for retrieval, query expansion, etc.
-There are four indexer classes:
-
- - You can create an index from TREC-formatted files, from a TREC test collection, using TRECCollectionIndexer.
- - For indexing TXT, PDF, Microsoft Word files, etc files you can use FilesIndexer.
- - For indexing Pandas Dataframe you can use DFIndexer.
- - For any abitrary iterable dictionaries, you can use IterDictIndexer.
-
-There are also different types of indexing supported in Terrier that are exposed in PyTerrier.
-
-We explain both the indexing types and the indexer classes below, with examples. Further worked examples of indexing are provided in the `example indexing notebook <https://github.com/terrier-org/pyterrier/blob/master/examples/notebooks/indexing.ipynb>`_.
-
-
-Index Types
-===========
-
-.. autoclass:: pyterrier.index.IndexingType
-   :inherited-members: CLASSIC, SINGLEPASS, MEMORY
 
 Indexer Classes
 ===============
 
+There are four indexer classes:
+
+ - You can create an index from TREC-formatted files, from a TREC test collection, using ``TRECCollectionIndexer``.
+ - For indexing TXT, PDF, Microsoft Word files, etc files you can use ``FilesIndexer``.
+ - For indexing Pandas Dataframe you can use ``DFIndexer``.
+ - For any abitrary iterable dictionaries, you can use ``IterDictIndexer``.
+
+There are also different types of indexing supported in Terrier that are exposed in PyTerrier. We explain both the indexing types and the indexer classes below, with examples. Further worked examples of indexing are provided in the `example indexing notebook <https://github.com/terrier-org/pyterrier/blob/master/examples/notebooks/indexing.ipynb>`_.
+
+TerrierIndexer
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+All indexer classes extend ``TerrierIndexer``. Common indexer contrustor arguments for all four indexers are shown below.
+
+.. autoclass:: pyterrier.index.TerrierIndexer
 
 TRECCollectionIndexer
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -162,25 +160,64 @@ to the Indexer classes. However, as Terrier is a legacy platform, some changes w
 Moreover, the manner of the configuration needed varies a little between the Indexer classes. In the following, we list common
 indexing configurations, and how to apply them when indexing using PyTerrier, noting any differences betweeen the Indexer classes.
 
-- *stemming configuation or stopwords*: the default Terrier indexing configuration is to use a term pipeline of `Stopwords,PorterStemmer`. You can change the term pipeline configuration using the `"termpipeline"` property::
+**Choice of Indexer**
 
-    indexer.setProperty("termpipelines", "")
+Terrier has three different types of indexer. The choice of indexer is exposed using the ``type`` kwarg 
+to the indexer class. The indexer type can be set using the ``IndexingType`` enum.
 
- Note that any subsequent indexing or retrieval operation would also require the `"termpipeline"` property to be suitably updated.
- See the `org.terrier.terms <http://terrier.org/docs/current/javadoc/org/terrier/terms/package-summary.html>`_ package for a list of 
- the available term pipeline objects provided by Terrier.
+.. autoclass:: pyterrier.index.IndexingType
+   :inherited-members: CLASSIC, SINGLEPASS, MEMORY
 
-- *languages and tokenisation*: Similarly, the choice of tokeniser is controlled by the `"tokeniser"` property. `EnglishTokeniser <http://terrier.org/docs/current/javadoc/org/terrier/indexing/tokenisation/EnglishTokeniser.html>`_ is the  default tokeniser. Other tokenisers are listed in  `org.terrier.indexing.tokenisation <http://terrier.org/docs/current/javadoc/org/terrier/indexing/tokenisation/package-summary.html>`_ package. For instance, use `indexer.setProperty("tokeniser", "UTFTokeniser")` when indexing non-English text.
+**Stemming configuation or stopwords**
 
-- *positions (aka blocks)* - all indexers expose a `blocks` boolean constructor argument to allow position information to be recoreded in the index. Defaults to False, i.e. positions are not recorded.
+The default Terrier indexing configuration is to apply an English stopword list, and Porter's stemmer. You can configure this using the ``stemmer`` and ``stopwords`` kwargs for the various indexers::
 
-- *fields* - fields refers to storing the frequency of a terms occurrence in different parts of a document, e.g. title vs body vs anchor text. In the IterDictIndexer, fields are set in the `index()` method; otherwise the `"FieldTags.process"` property must be set. See the Terrier `indexing documentation on fields <https://github.com/terrier-org/terrier-core/blob/5.x/doc/configure_indexing.md#fields>`_ for more information. 
+    indexer = pt.IterDictIndexer(stemmer='SpanishSnowballStemmer', stopwords=None)
 
-- *changing the tags parsed by TREC Collection* - use the relevant properties listed in the Terrier `indexing documentation <https://github.com/terrier-org/terrier-core/blob/5.x/doc/configure_indexing.md#basic-indexing-setup>`_.
+.. autoclass:: pyterrier.index.TerrierStemmer
+   :inherited-members: 
 
-- *metaindex configuration*: metadata refers to the arbitrary strings associated to each document recorded in a Terrier index. These can range from the `"docno"` attribute of each document, as used to support experimentation, to other attributes such as the URL of the documents, or even the raw text of the document. Indeed, storing the raw text of each document is a trick often used when applying additional re-rankers such as BERT (see `pyterrier_bert <https://github.com/cmacdonald/pyterrier_bert>`_ for more information on integrating PyTerrier with BERT-based re-rankers). Indexers now expose `meta` and `meta_tags` constructor kwarg to make this easier.
+See also the `org.terrier.terms <http://terrier.org/docs/current/javadoc/org/terrier/terms/package-summary.html>`_ package for a list of 
+the available term pipeline objects provided by Terrier.
 
-- *reverse metaindex configuration*: on occasion, there is a need to lookup up documents in a Terrier index based on their metadata, e.g. "docno". The `meta_reverse` constructor kwarg allows meta keys that support reverse lookup to be specified.
+Similarly the use of Terrier's English stopword list can be disabled using the ``stopwords`` kwarg.
+
+.. autoclass:: pyterrier.index.TerrierStopwords
+   :inherited-members: 
+
+**Languages and Tokenisation**
+
+Similarly, the choice of tokeniser can be controlled in the indexer constructor using the ``tokeniser`` kwarg. 
+`EnglishTokeniser <http://terrier.org/docs/current/javadoc/org/terrier/indexing/tokenisation/EnglishTokeniser.html>`_ is the 
+default tokeniser. Other tokenisers are listed in  `org.terrier.indexing.tokenisation <http://terrier.org/docs/current/javadoc/org/terrier/indexing/tokenisation/package-summary.html>`_ 
+package. For instance, its common to use `UTFTokeniser` when indexing non-English text::
+
+    indexer = pt.IterDictIndexer(stemmer=None, stopwords=None, tokeniser="UTFTokeniser")
+
+.. autoclass:: pyterrier.index.TerrierTokeniser
+   :inherited-members: 
+
+
+**Positions (aka blocks)** 
+
+All indexer classes expose a `blocks` boolean constructor argument to allow position information to be recoreded in the index. Defaults to False, i.e. positions are not recorded.
+
+
+**Fields**
+
+Fields refers to storing the frequency of a terms occurrence in different parts of a document, e.g. title vs body vs anchor text. In the IterDictIndexer, fields are set in the `index()` method; otherwise the `"FieldTags.process"` property must be set. See the Terrier `indexing documentation on fields <https://github.com/terrier-org/terrier-core/blob/5.x/doc/configure_indexing.md#fields>`_ for more information. 
+
+**Changing the tags parsed by TREC Collection** 
+
+Use the relevant properties listed in the Terrier `indexing documentation <https://github.com/terrier-org/terrier-core/blob/5.x/doc/configure_indexing.md#basic-indexing-setup>`_.
+
+**MetaIndex configuration** 
+
+Metadata refers to the arbitrary strings associated to each document recorded in a Terrier index. These can range from the `"docno"` attribute of each document, as used to support experimentation, to other attributes such as the URL of the documents, or even the raw text of the document. Indeed, storing the raw text of each document is a trick often used when applying additional re-rankers such as BERT (see `pyterrier_bert <https://github.com/cmacdonald/pyterrier_bert>`_ for more information on integrating PyTerrier with BERT-based re-rankers). Indexers now expose `meta` and `meta_tags` constructor kwarg to make this easier.
+
+**Reverse MetaIndex configuration** 
+
+On occasion, there is a need to lookup up documents in a Terrier index based on their metadata, e.g. "docno". The `meta_reverse` constructor kwarg allows meta keys that support reverse lookup to be specified.
 
 
 Pretokenised

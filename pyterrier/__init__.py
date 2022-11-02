@@ -146,7 +146,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     from .batchretrieve import BatchRetrieve, FeaturesBatchRetrieve
     from .utils import Utils
     from .datasets import get_dataset, find_datasets, list_datasets
-    from .index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, FlatJSONDocumentIterator, IndexingType
+    from .index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, IndexingType, TerrierStemmer, TerrierStopwords, TerrierTokeniser
     from .pipelines import Experiment, GridScan, GridSearch, KFoldGridSearch
 
     # Make imports global
@@ -178,27 +178,33 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     _logging(logging)
     setup_jnius()
 
+    # .datasets
     globals()["get_dataset"] = get_dataset
     globals()["list_datasets"] = list_datasets
     globals()["find_datasets"] = find_datasets
-    globals()["Experiment"] = Experiment
+    # .batchretrieve
     globals()["BatchRetrieve"] = BatchRetrieve
     globals()["TerrierRetrieve"] = BatchRetrieve  # TerrierRetrieve is an alias to BatchRetrieve
     globals()["Indexer"] = Indexer
     globals()["FeaturesBatchRetrieve"] = FeaturesBatchRetrieve
+    # .index
     globals()["TRECCollectionIndexer"] = TRECCollectionIndexer
     globals()["FilesIndexer"] = FilesIndexer
     globals()["DFIndexer"] = DFIndexer
     globals()["DFIndexUtils"] = DFIndexUtils
     globals()["IterDictIndexer"] = IterDictIndexer
-    globals()["FlatJSONDocumentIterator"] = FlatJSONDocumentIterator
-    globals()["Utils"] = Utils
     globals()["IndexFactory"] = autoclass("org.terrier.structures.IndexFactory")
     globals()["IndexRef"] = autoclass("org.terrier.querying.IndexRef")
     globals()["IndexingType"] = IndexingType
+    globals()["TerrierStemmer"] = TerrierStemmer
+    globals()["TerrierStopwords"] = TerrierStopwords
+    globals()["TerrierTokeniser"] = TerrierTokeniser
+    # .pipelines etc
+    globals()["Experiment"] = Experiment
     globals()["GridScan"] = GridScan
     globals()["GridSearch"] = GridSearch
     globals()["KFoldGridSearch"] = KFoldGridSearch
+    globals()["Utils"] = Utils
     
     
     

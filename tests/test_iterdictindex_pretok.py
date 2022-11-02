@@ -76,6 +76,10 @@ class TestIterDictIndexerPreTok(TempDirTestCase):
                 post = inv.getPostings(lex.getLexiconEntry('a'))
                 post.next()
                 self.assertEqual(1, post.frequency)
+
+                pindex = pt.cast("org.terrier.structures.PropertiesIndex", index)
+                self.assertEqual("", pindex.getIndexProperty("termpipelines", "BLA"))
+
                 index.close()
             # reset index directory for next run
             shutil.rmtree(self.test_dir)
