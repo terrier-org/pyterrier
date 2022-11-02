@@ -188,7 +188,7 @@ class TestIterDictIndexer(TempDirTestCase):
             {'docno': '2', 'url': 'url2', 'text': 'The waves were crashing on the shore; it was a', 'title': 'Lovely sight'},
             {'docno': '3', 'url': 'url3', 'text': 'The body may perhaps compensates før the loss', 'title': 'Best of Viktor Prowoll'},
         ]
-        settings = [( pt.index.TerrierStemmer.none, pt.index.TerrierStopwords.none), (None, None)]
+        settings = [( pt.TerrierStemmer.none, pt.TerrierStopwords.none), (None, None)]
         for setting in settings:
             with self.subTest('setting %s' % str(setting)):
                 indexer = pt.IterDictIndexer(self.test_dir, stemmer=setting[0], stopwords=setting[1], overwrite=True)
@@ -212,7 +212,7 @@ class TestIterDictIndexer(TempDirTestCase):
             {'docno': '2', 'url': 'url2', 'text': 'The waves were crashing on the shore; it was a', 'title': 'Lovely sight'},
             {'docno': '3', 'url': 'url3', 'text': 'The body may perhaps compensates for the loss', 'title': 'Best of Viktor Prowoll'},
         ]
-        settings = ['WeakPorterStemmer', pt.index.TerrierStemmer.weakporter]
+        settings = ['WeakPorterStemmer', 'weak', pt.TerrierStemmer.weakporter]
         for setting in settings:
             with self.subTest('setting %s' % str(setting)):
                 indexer = pt.IterDictIndexer(self.test_dir, stemmer=setting, overwrite=True)

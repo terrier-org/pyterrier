@@ -247,28 +247,42 @@ def createAsList(files_path : Union[str, List[str]]):
 # Using enum class create enumerations
 class IndexingType(enum.Enum):
     """
-        This enum is used to determine the type of index built by Terrier. The default is CLASSIC.
+        This enum is used to determine the type of index built by Terrier. The default is CLASSIC. For more information,
+        see the relevant Terrier `indexer <https://terrier-core.readthedocs.io/en/latest/indexer_details.html>`_
+        and `realtime <https://terrier-core.readthedocs.io/en/latest/realtime_indices.html>`_ documentation.
     """
     CLASSIC = 1 #: A classical indexing regime, which also creates a direct index structure, useful for query expansion
     SINGLEPASS = 2 #: A single-pass indexing regime, which builds an inverted index directly. No direct index structure is created. Typically is faster than classical indexing.
-    MEMORY = 3 #: An in-memory index. No direct index is created.
+    MEMORY = 3 #: An in-memory index. No persistent index is created.
 
 class TerrierStemmer(Enum):
-    none = 'none'
-    porter = 'porter'
-    weakporter = 'weak'
+    """
+        This enum provides an API for the stemmers available in Terrier. The stemming configuration is saved in the index
+        and loaded at retrieval time. `Snowball <https://snowballstem.org/>`_ stemmers for various languages 
+        `are available in Terrier <http://terrier.org/docs/current/javadoc/org/terrier/terms/package-summary.html>`_.
+    """
+    none = 'none' #: Apply no stemming
+    porter = 'porter' #: Apply Porter's English stemmer
+    weakporter = 'weak' #: Apply a weak version of Porter's English stemmer
     # available snowball stemmers in Terrier
-    danish = 'danish'
-    finnish = 'finnish'
-    german = 'german'
-    hungarian = 'hungarian'
-    norwegian = 'norwegian'
-    portugese = 'portugese'
-    swedish = 'swedish'
-    turkish = 'turkish'
+    danish = 'danish' #: Snowball Danish stemmer
+    finnish = 'finnish' #: Snowball Finnish stemmer
+    german = 'german' #: Snowball German stemmer
+    hungarian = 'hungarian' #: Snowball Hungarian stemmer
+    norwegian = 'norwegian' #: Snowball Norwegian stemmer
+    portugese = 'portugese' #: Snowball Portuguese stemmer
+    swedish = 'swedish' #: Snowball Swedish stemmer
+    turkish = 'turkish' #: Snowball Turkish stemmer
 
     @staticmethod
-    def to_class(this):
+    def _to_obj(this):
+        try:
+            return TerrierStemmer(this)
+        except ValueError:
+            return this
+
+    @staticmethod
+    def _to_class(this):
         if this is None or this == TerrierStemmer.none:
             return None
         if this == TerrierStemmer.porter:
@@ -299,9 +313,53 @@ class TerrierStemmer(Enum):
         
 
 class TerrierStopwords(Enum):
-    none = 'none'
-    terrier = 'terrier'
+    """
+        This enum provides an API for the stopword configuration used during indexing with Terrier
+    """
 
+    none = 'none' #: No Stemming
+    terrier = 'terrier' #: Apply Terrier's standard stopword list
+
+    @staticmethod
+    def _to_obj(this):
+        try:
+            return TerrierStopwords(this)
+        except ValueError:
+            return this
+
+
+class TerrierTokeniser(Enum):
+    """
+        This enum provides an API for the tokeniser configuration used during indexing with Terrier.
+    """
+
+    whitespace = 'whitespace' #: Tokenise on whitespace only
+    english = 'english' #: Terrier's standard tokeniser, designed for English
+    utf = 'utf' #: A variant of Terrier's standard tokeniser, similar to English, but with UTF support.
+    twitter = 'twitter' #: Like utf, but keeps hashtags etc
+    identity = 'identity' #: Performs no tokenisation - strings are kept as is. 
+
+    @staticmethod
+    def _to_obj(this):
+        try:
+            return TerrierTokeniser(this)
+        except ValueError:
+            return this
+
+    @staticmethod
+    def _to_class(this):
+        if this == TerrierTokeniser.whitespace:
+            return 'WhitespaceTokeniser'
+        if this == TerrierTokeniser.english:
+            return 'EnglishTokeniser'
+        if this == TerrierTokeniser.utf:
+            return 'UTFTokeniser'
+        if this == TerrierTokeniser.twitter:
+            return 'UTFTwitterTokeniser'
+        if this == TerrierTokeniser.identity:
+            return 'IdentityTokeniser'
+        if isinstance(this, str):
+            return this
 
 class TerrierIndexer:
     """
@@ -325,7 +383,7 @@ class TerrierIndexer:
             meta_reverse : List[str] = ["docno"],
             stemmer : Union[None, str, TerrierStemmer] = TerrierStemmer.porter,
             stopwords : Union[None, TerrierStopwords] = TerrierStopwords.terrier,
-            tokeniser : str = "EnglishTokeniser",
+            tokeniser : Union[str,TerrierTokeniser] = TerrierTokeniser.english,
             type=IndexingType.CLASSIC, 
             **kwargs):
         """
@@ -350,9 +408,9 @@ class TerrierIndexer:
         self.index_dir = index_path
         self.blocks = blocks
         self.type = type
-        self.stemmer = stemmer
-        self.stopwords = stopwords
-        self.tokeniser = tokeniser
+        self.stemmer = TerrierStemmer._to_obj(stemmer)
+        self.stopwords = TerrierStopwords._to_obj(stopwords)
+        self.tokeniser = TerrierTokeniser._to_obj(tokeniser)
         self.properties = Properties()
         self.setProperties(**self.default_properties)
         self.overwrite = overwrite
@@ -438,7 +496,7 @@ class TerrierIndexer:
             if self.stopwords is not None and self.stopwords != TerrierStopwords.none:
                 termpipeline.append('Stopwords')
 
-            stemmer_clz = TerrierStemmer.to_class(self.stemmer)
+            stemmer_clz = TerrierStemmer._to_class(self.stemmer)
             if stemmer_clz is not None:
                 termpipeline.append(stemmer_clz)
             
@@ -447,7 +505,7 @@ class TerrierIndexer:
         if "tokeniser" in self.properties:
             warn("Setting of tokeniser property directly is deprecated", stacklevel=4, category=DeprecationWarning)
         else:
-            self.properties['tokeniser'] = self.tokeniser
+            self.properties['tokeniser'] = TerrierTokeniser._to_class(self.tokeniser)
 
         # inform terrier of all properties
         ApplicationSetup.getProperties().putAll(self.properties)
