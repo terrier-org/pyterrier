@@ -65,6 +65,7 @@ Tuning BM25 and RM3
 
 The query expansion transformer in pt.rewrite have parameters controlling the number 
 of feedback documents and expansion terms, namely:
+
  - ``fb_terms`` -- the number of terms to add to the query.
  - ``fb_docs`` -- the size of the pseudo-relevant set. 
 

@@ -63,8 +63,10 @@ class Transformer:
         
         This can be useful for adding the candidate ranking score
         as a feature in for learning-to-rank::
+
             bm25 = pt.BatchRetrieve(index, wmodel="BM25")
             two_feat_pipe = bm25 >> pt.Transformer.identify() ** pt.BatchRetrieve(index, wmodel="PL2")
+        
         This will return a pipeline that produces a score column (BM25), but also has a features column containing
         BM25 and PL2 scores.
         
