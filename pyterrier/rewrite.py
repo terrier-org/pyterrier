@@ -44,17 +44,17 @@ def tokenise(tokeniser : Union[str,TerrierTokeniser,FunctionType] = 'english', m
     
     Example - use default tokeniser::
 
-        pipe = pt.rewrite.tokeniser() >> pt.BatchRetrieve()
+        pipe = pt.rewrite.tokenise() >> pt.BatchRetrieve()
         pipe.search("Question with 'capitals' and other stuff?")
     
     Example - roll your own tokeniser::
 
-        poortokenisation = pt.rewrite.tokeniser(lambda query: query.split(" ")) >> pt.BatchRetrieve()
+        poortokenisation = pt.rewrite.tokenise(lambda query: query.split(" ")) >> pt.BatchRetrieve()
 
     Example - for non-English languages, tokenise on standard UTF non-alphanumeric characters::
 
-        utftokenised = pt.rewrite.tokeniser(pt.TerrierTokeniser.utf)) >> pt.BatchRetrieve()
-        utftokenised = pt.rewrite.tokeniser("utf")) >> pt.BatchRetrieve()
+        utftokenised = pt.rewrite.tokenise(pt.TerrierTokeniser.utf)) >> pt.BatchRetrieve()
+        utftokenised = pt.rewrite.tokenise("utf")) >> pt.BatchRetrieve()
 
     Example - tokenising queries using a `HuggingFace tokenizer <https://huggingface.co/docs/transformers/fast_tokenizers>`_ ::
 
