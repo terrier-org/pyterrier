@@ -41,7 +41,11 @@ IndexFactory = None
 StructureMerger = None
 BlockStructureMerger = None
 
-IterDictIndexerBase = Index # backwards compat
+# for backward compatibility
+class IterDictIndexerBase(Indexer):
+    @deprecated(version="0.9", reason="Use pt.Indexer instead of IterDictIndexerBase")
+    def __init__(self, *args, **kwargs):
+        super(Indexer, self).__init__(*args, **kwargs)
 
 # lastdoc ensures that a Document instance from a Collection is not GCd before Java has used it.
 lastdoc=None
