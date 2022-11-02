@@ -70,6 +70,9 @@ def tokenise(tokeniser : Union[str,TerrierTokeniser,FunctionType] = 'english', m
         _query_fn = tokeniser
     else:
         tokeniser = TerrierTokeniser._to_obj(tokeniser)
+        tokeniser = TerrierTokeniser._to_class(tokeniser)
+        if "." not in tokeniser:
+            tokeniser = 'org.terrier.indexing.tokenisation.' + tokeniser
         tokenobj = pt.autoclass(tokeniser)()
         _query_fn = tokenobj.getTokens
 
