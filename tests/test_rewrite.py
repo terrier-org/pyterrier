@@ -283,6 +283,7 @@ class TestRewrite(TempDirTestCase):
         self.assertEqual('chemical reactions', pt.rewrite.tokenise().search("Chemical Reactions?").iloc[0].query)
         self.assertEqual('f r', pt.rewrite.tokenise().search("før").iloc[0].query)
         self.assertEqual('før', pt.rewrite.tokenise('utf').search("før").iloc[0].query)
+        self.assertEqual('før', pt.rewrite.tokenise(pt.TerrierTokeniser.utf).search("før").iloc[0].query)
         self.assertEqual('før', pt.rewrite.tokenise('UTFTokeniser').search("før").iloc[0].query)
         self.assertEqual('før', pt.rewrite.tokenise('identity').search("før").iloc[0].query)
         self.assertEqual('#base64(ZsO4cg==)', pt.rewrite.tokenise('identity', matchop=True).search("før").iloc[0].query)
