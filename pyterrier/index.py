@@ -363,9 +363,9 @@ class TerrierTokeniser(Enum):
 
 class TerrierIndexer:
     """
-    Parent class. It can be used to load an existing index.
-    Use one of its children classes if you wish to create a new index.
-
+    This is the super class for all of the Terrier-based indexers exposed by PyTerrier. It hosts common configuration
+    for all index types.
+    
     """
 
     default_properties = {
@@ -387,14 +387,18 @@ class TerrierIndexer:
             type=IndexingType.CLASSIC, 
             **kwargs):
         """
-        Init method
+        Constructor called by all indexer subclasses. All arguments listed below are available in 
+        IterDictIndexer, DFIndexer, TRECCollectionIndexer and FilesIndsexer. 
 
         Args:
             index_path (str): Directory to store index. Ignored for IndexingType.MEMORY.
             blocks (bool): Create indexer with blocks if true, else without blocks. Default is False.
             overwrite (bool): If index already present at `index_path`, True would overwrite it, False throws an Exception. Default is False.
             verbose (bool): Provide progess bars if possible. Default is False.
-            type (IndexingType): the specific indexing procedure to use. Default is IndexingType.CLASSIC.
+            stemmer (TerrierStemmer): the stemmer to apply. Default is ``TerrierStemmer.porter``.
+            stopwords (TerrierStopwords): the stopwords list to apply. Default is ``TerrierStemmer.terrier``.
+            tokeniser (TerrierTokeniser): the stemmer to apply. Default is ``TerrierTokeniser.english``.
+            type (IndexingType): the specific indexing procedure to use. Default is ``IndexingType.CLASSIC``.
         """
         if StringReader is None:
             run_autoclass()

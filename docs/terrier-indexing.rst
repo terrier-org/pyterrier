@@ -2,21 +2,25 @@ Terrier Indexing
 ----------------
 
 PyTerrier has a number of useful classes for creating Terrier indices, which can be used for retrieval, query expansion, etc.
-There are four indexer classes:
-
- - You can create an index from TREC-formatted files, from a TREC test collection, using TRECCollectionIndexer.
- - For indexing TXT, PDF, Microsoft Word files, etc files you can use FilesIndexer.
- - For indexing Pandas Dataframe you can use DFIndexer.
- - For any abitrary iterable dictionaries, you can use IterDictIndexer.
-
-There are also different types of indexing supported in Terrier that are exposed in PyTerrier.
-
-We explain both the indexing types and the indexer classes below, with examples. Further worked examples of indexing are provided in the `example indexing notebook <https://github.com/terrier-org/pyterrier/blob/master/examples/notebooks/indexing.ipynb>`_.
-
 
 Indexer Classes
 ===============
 
+There are four indexer classes:
+
+ - You can create an index from TREC-formatted files, from a TREC test collection, using ``TRECCollectionIndexer``.
+ - For indexing TXT, PDF, Microsoft Word files, etc files you can use ``FilesIndexer``.
+ - For indexing Pandas Dataframe you can use ``DFIndexer``.
+ - For any abitrary iterable dictionaries, you can use ``IterDictIndexer``.
+
+There are also different types of indexing supported in Terrier that are exposed in PyTerrier. We explain both the indexing types and the indexer classes below, with examples. Further worked examples of indexing are provided in the `example indexing notebook <https://github.com/terrier-org/pyterrier/blob/master/examples/notebooks/indexing.ipynb>`_.
+
+TerrierIndexer
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+All indexer classes extend ``TerrierIndexer``. Common indexer contrustor arguments for all four indexers are shown below.
+
+.. autoclass:: pyterrier.index.TerrierIndexer
 
 TRECCollectionIndexer
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -158,7 +162,7 @@ indexing configurations, and how to apply them when indexing using PyTerrier, no
 
 **Choice of Indexer**
 
-Terrier has three difdferent types of indexer. The choice of indexer is exposed using the ``type`` kwarg 
+Terrier has three different types of indexer. The choice of indexer is exposed using the ``type`` kwarg 
 to the indexer class. The indexer type can be set using the ``IndexingType`` enum.
 
 .. autoclass:: pyterrier.index.IndexingType
