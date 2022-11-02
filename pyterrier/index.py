@@ -15,6 +15,7 @@ import threading
 import select
 import math
 from warnings import warn
+from deprecated import deprecated
 from collections import deque
 from typing import List, Dict, Union, Any
 
@@ -41,6 +42,11 @@ IndexFactory = None
 StructureMerger = None
 BlockStructureMerger = None
 
+# for backward compatibility
+class IterDictIndexerBase(Indexer):
+    @deprecated(version="0.9", reason="Use pt.Indexer instead of IterDictIndexerBase")
+    def __init__(self, *args, **kwargs):
+        super(Indexer, self).__init__(*args, **kwargs)
 
 # lastdoc ensures that a Document instance from a Collection is not GCd before Java has used it.
 lastdoc=None
