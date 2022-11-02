@@ -212,7 +212,7 @@ class TestIterDictIndexer(TempDirTestCase):
             {'docno': '2', 'url': 'url2', 'text': 'The waves were crashing on the shore; it was a', 'title': 'Lovely sight'},
             {'docno': '3', 'url': 'url3', 'text': 'The body may perhaps compensates for the loss', 'title': 'Best of Viktor Prowoll'},
         ]
-        settings = ['WeakPorterStemmer', 'weak', pt.TerrierStemmer.weakporter]
+        settings = ['WeakPorterStemmer', 'weakporter', pt.TerrierStemmer.weakporter]
         for setting in settings:
             with self.subTest('setting %s' % str(setting)):
                 indexer = pt.IterDictIndexer(self.test_dir, stemmer=setting, overwrite=True)
