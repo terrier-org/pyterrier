@@ -3,9 +3,11 @@ from jnius import cast
 import pandas as pd
 from .batchretrieve import _parse_index_like
 from . import Transformer
+from .index import TerrierTokeniser
 from . import tqdm
 from warnings import warn
-from typing import List
+from typing import List,Union
+from types import FunctionType
 
 TerrierQLParser = pt.autoclass("org.terrier.querying.TerrierQLParser")()
 TerrierQLToMatchingQueryTerms = pt.autoclass("org.terrier.querying.TerrierQLToMatchingQueryTerms")()
@@ -29,6 +31,61 @@ def _check_terrier_prf():
             _terrier_prf_package_loaded = True
             break
     assert _terrier_prf_package_loaded, _terrier_prf_message
+
+def tokenise(tokeniser : Union[str,TerrierTokeniser,FunctionType] = 'english', matchop=False) -> Transformer:
+    """
+
+    Applies tokenisation to the query. By default, queries obtained from ``pt.get_dataset().get_topics()`` are
+    normally tokenised.
+
+    Args:
+        tokeniser(Union[str,TerrierTokeniser,FunctionType]): Defines what tokeniser should be used - either a Java tokeniser name in Terrier, a TerrierTokeniser instance, or a function that takes a str as input and returns a list of str.
+        matchop(bool): Whether query terms should be wrapped in matchops, to ensure they can be parsed by a Terrier BatchRetrieve transformer.
+    
+    Example - use default tokeniser::
+
+        pipe = pt.rewrite.tokeniser() >> pt.BatchRetrieve()
+        pipe.search("Question with 'capitals' and other stuff?")
+    
+    Example - roll your own tokeniser::
+
+        poortokenisation = pt.rewrite.tokeniser(lambda query: query.split(" ")) >> pt.BatchRetrieve()
+
+    Example - for non-English languages, tokenise on standard UTF non-alphanumeric characters::
+
+        utftokenised = pt.rewrite.tokeniser(pt.TerrierTokeniser.utf)) >> pt.BatchRetrieve()
+        utftokenised = pt.rewrite.tokeniser("utf")) >> pt.BatchRetrieve()
+
+    Example - tokenising queries using a `HuggingFace tokenizer <https://huggingface.co/docs/transformers/fast_tokenizers>`_ ::
+
+        # this assumes the index was created in a pretokenised manner
+        br = pt.BatchRetrieve(indexref)
+        tok = AutoTokenizer.from_pretrained("bert-base-uncased")
+        query_toks = pt.rewrite.tokenise(tok.tokenize, matchop=True)
+        retr_pipe = query_toks >> br
+    
+    """
+    _query_fn = None
+    if isinstance(tokeniser, FunctionType):
+        _query_fn = tokeniser
+    else:
+        tokeniser = TerrierTokeniser._to_obj(tokeniser)
+        tokenobj = pt.autoclass(tokeniser)()
+        _query_fn = tokenobj.getTokens
+
+    def _join_str(input : Union[str,List[str]]):
+        if isinstance(input, str):
+            return input
+        return ' '.join(input)
+
+    def _join_str_matchop(input : List[str]):
+        assert not isinstance(input, str), "Expected a list of strings"
+        return ' '.join(map(pt.BatchRetrieve.matchop, input))
+    
+    if matchop:
+        return pt.apply.query(lambda r: _join_str_matchop(_query_fn(r.query)))
+    return pt.apply.query(lambda r: _join_str(_query_fn(r.query)))
+
 
 def reset() -> Transformer:
     """
