@@ -41,6 +41,7 @@ IndexFactory = None
 StructureMerger = None
 BlockStructureMerger = None
 
+IterDictIndexerBase = Index # backwards compat
 
 # lastdoc ensures that a Document instance from a Collection is not GCd before Java has used it.
 lastdoc=None
