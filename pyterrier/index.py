@@ -15,6 +15,7 @@ import threading
 import select
 import math
 from warnings import warn
+from deprecated import deprecated
 from collections import deque
 from typing import List, Dict, Union, Any
 
