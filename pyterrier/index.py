@@ -263,7 +263,7 @@ class TerrierStemmer(Enum):
     """
     none = 'none' #: Apply no stemming
     porter = 'porter' #: Apply Porter's English stemmer
-    weakporter = 'weak' #: Apply a weak version of Porter's English stemmer
+    weakporter = 'weakporter' #: Apply a weak version of Porter's English stemmer
     # available snowball stemmers in Terrier
     danish = 'danish' #: Snowball Danish stemmer
     finnish = 'finnish' #: Snowball Finnish stemmer
