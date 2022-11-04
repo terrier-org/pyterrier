@@ -43,6 +43,7 @@ jobs:
       with:
         java-version: ${{ matrix.java }}
         architecture: ${{ matrix.architecture }}
+        distribution: 'zulu'
     
     - name: Install Terrier snapshot
       if: matrix.terrier == '5.4-SNAPSHOT'
