@@ -249,9 +249,11 @@ This allows tokenisation using, for instance, the `HuggingFace tokenizers <https
         {'docno' : 'd2', 'text' : ''}
     ])
 
-At retrieval time, WordPieces that contain special characters (e.g. `##w` `[SEP]`) need to be encoded so as to avoid Terrier's tokeniser. We use `pt.BatchRetrieve.matchop()` to perform that rewriting::
+At retrieval time, WordPieces that contain special characters (e.g. `'##w'` `'[SEP]'`) need to be encoded so as to avoid Terrier's tokeniser. 
+We use ``pt.rewrite.tokenise()`` to apply a tokeniser to the query, setting ``matchop`` to True, such that ``pt.BatchRetrieve.matchop()`` 
+is called to ensure that rewritten query terms are properly encoded::
 
     br = pt.BatchRetrieve(indexref)
     tok = AutoTokenizer.from_pretrained("bert-base-uncased")
-    query_toks = pt.apply.query(lambda row: ' '.join(map(pt.BatchRetrieve.matchop, tok.convert_ids_to_tokens(tok(row['query']).input_ids))) )
+    query_toks = pt.rewrite.tokenise(tok.tokenize, matchop=True)
     retr_pipe = query_toks >> br

@@ -279,6 +279,16 @@ class TestRewrite(TempDirTestCase):
         self.assertEqual("a", dfOut.iloc[0]["query_1"])
         self.assertEqual("#combine:0:0.750000:1:0.250000(#combine(az) #combine(a))", dfOut.iloc[0]["query"])
 
+    def test_tokenise(self):
+        self.assertEqual('chemical reactions', pt.rewrite.tokenise().search("Chemical Reactions?").iloc[0].query)
+        self.assertEqual('f r', pt.rewrite.tokenise().search("før").iloc[0].query)
+        self.assertEqual('før', pt.rewrite.tokenise('utf').search("før").iloc[0].query)
+        self.assertEqual('før', pt.rewrite.tokenise(pt.TerrierTokeniser.utf).search("før").iloc[0].query)
+        self.assertEqual('før', pt.rewrite.tokenise('UTFTokeniser').search("før").iloc[0].query)
+        self.assertEqual('før', pt.rewrite.tokenise('identity').search("før").iloc[0].query)
+        self.assertEqual('#base64(ZsO4cg==)', pt.rewrite.tokenise('identity', matchop=True).search("før").iloc[0].query)
+        self.assertEqual('a b', pt.rewrite.tokenise(lambda q : q.split('/')).search("a/b").iloc[0].query)
+
     def test_qe(self):
         if not pt.check_version("5.3"):
             self.skipTest("Requires Terrier 5.3")
