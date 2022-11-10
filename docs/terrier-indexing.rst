@@ -227,7 +227,7 @@ Sometimes you want more fine-grained control over the tokenisation directly with
 
     iter_indexer = pt.IterDictIndexer("./pretokindex", meta={'docno': 20}, threads=1, pretokenised=True)
     indexref6 = iter_indexer.index([
-        {'docno' : 'd1', 'toks' : {'a' : 1, '##2' : 2}}
+        {'docno' : 'd1', 'toks' : {'a' : 1, '##2' : 2}},
         {'docno' : 'd2', 'toks' : {'a' : 2, '##2' : 1}}
     ])
 
