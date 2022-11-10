@@ -91,7 +91,6 @@ def run_autoclass():
     Collection = autoclass("org.terrier.indexing.Collection")
     Arrays = autoclass("java.util.Arrays")
     Array = autoclass('java.lang.reflect.Array')
-    HashMap = autoclass('java.util.HashMap')
     ApplicationSetup = autoclass('org.terrier.utility.ApplicationSetup')
     Properties = autoclass('java.util.Properties')
     CLITool = autoclass("org.terrier.applications.CLITool")
