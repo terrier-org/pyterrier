@@ -14,7 +14,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>1.9</maven.compiler.source>
     <maven.compiler.target>1.9</maven.compiler.target>
-    <build.terrier.version>5.7-SNAPSHOT</build.terrier.version>
+    <build.terrier.version>5.7</build.terrier.version>
   </properties>
 
   <organization>
