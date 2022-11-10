@@ -44,9 +44,9 @@ class TestIterDictIndexerPreTok(TempDirTestCase):
         from pyterrier.index import IndexingType
         # Test both versions: _fifo (for UNIX) and _nofifo (for Windows)
         indexers = [
-            #pt.index._IterDictIndexer_fifo(self.test_dir, type=index_type, meta=meta, pretokenised=True),
-            pt.index._IterDictIndexer_fifo(self.test_dir, type=index_type, threads=4, meta=meta, pretokenised=True),
-            #pt.index._IterDictIndexer_nofifo(self.test_dir, type=index_type, meta=meta, pretokenised=True),
+            pt.index._IterDictIndexer_fifo(self.test_dir, type=index_type, meta=meta, pretokenised=True),
+            #pt.index._IterDictIndexer_fifo(self.test_dir, type=index_type, threads=4, meta=meta, pretokenised=True),
+            pt.index._IterDictIndexer_nofifo(self.test_dir, type=index_type, meta=meta, pretokenised=True),
         ]
         if BaseTestCase.is_windows():
            indexers = [indexers[-1]] 
