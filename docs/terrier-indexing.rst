@@ -231,7 +231,7 @@ Sometimes you want more fine-grained control over the tokenisation directly with
         {'docno' : 'd2', 'toks' : {'a' : 2, '##2' : 1}}
     ])
 
-This allows tokenisation using, for instance, the `HuggingFace tokenizers <https://huggingface.co/docs/transformers/fast_tokenizers>_`::
+This allows tokenisation using, for instance, the `HuggingFace tokenizers <https://huggingface.co/docs/transformers/fast_tokenizers>`_::
 
     iter_indexer = pt.IterDictIndexer("./pretokindex", meta={'docno': 20}, threads=1, pretokenised=True)
     from transformers import AutoTokenizer
