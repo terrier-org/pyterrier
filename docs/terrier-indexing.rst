@@ -233,7 +233,7 @@ Sometimes you want more fine-grained control over the tokenisation directly with
 
 This allows tokenisation using, for instance, the `HuggingFace tokenizers <https://huggingface.co/docs/transformers/fast_tokenizers>`_::
 
-    iter_indexer = pt.IterDictIndexer("./pretokindex", meta={'docno': 20}, threads=1, pretokenised=True)
+    iter_indexer = pt.IterDictIndexer("./pretokindex", meta={'docno': 20}, pretokenised=True)
     from transformers import AutoTokenizer
     from collections import Counter
 
