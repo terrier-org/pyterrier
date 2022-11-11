@@ -91,7 +91,6 @@ def run_autoclass():
     Collection = autoclass("org.terrier.indexing.Collection")
     Arrays = autoclass("java.util.Arrays")
     Array = autoclass('java.lang.reflect.Array')
-    HashMap = autoclass('java.util.HashMap')
     ApplicationSetup = autoclass('org.terrier.utility.ApplicationSetup')
     Properties = autoclass('java.util.Properties')
     CLITool = autoclass("org.terrier.applications.CLITool")
@@ -1142,6 +1141,9 @@ class DocListIterator(PythonJavaClass):
     def __init__(self, pyiterator):
         self.pyiterator = pyiterator
         self.hasnext = True
+        self.lastdoc = None
+        import pyterrier as pt
+        self.tr57 = not pt.check_version("5.8")
 
     @staticmethod 
     def pyDictToMap(a_dict): #returns Map<String,String>
@@ -1150,11 +1152,18 @@ class DocListIterator(PythonJavaClass):
             rtr.put(k, v)
         return rtr
 
-    @staticmethod
-    def pyDictToMapEntry(doc_dict : Dict[str,Any]): #returns Map.Entry<Map<String,String>, DocumentPostingList>>
+    def pyDictToMapEntry(self,doc_dict : Dict[str,Any]): #returns Map.Entry<Map<String,String>, DocumentPostingList>>
         dpl = DocListIterator.dpl_class()
-        for t,tf in doc_dict["toks"].items():
-            dpl.insert(int(tf), t)
+        # this works around a bug in the counting of doc lengths in Tr 5.7
+        if self.tr57:
+            for t,tf in doc_dict["toks"].items():
+                for i in range(int(tf)):
+                    dpl.insert(t)
+        else: #this code for 5.8 onwards
+            for t,tf in doc_dict["toks"].items():
+                for i in range(int(tf)):
+                    dpl.insert(int(tf), t)
+        
         # we cant make the toks column into the metaindex as it isnt a string. remove it.
         del doc_dict["toks"]
         return DocListIterator.tuple_class(DocListIterator.pyDictToMap(doc_dict), dpl)
@@ -1165,15 +1174,15 @@ class DocListIterator(PythonJavaClass):
 
     @java_method('()Ljava/lang/Object;')
     def next(self):
-        #TODO how to do this
-        ##
         try:
             doc_dict = next(self.pyiterator)
         except StopIteration as se:
             self.hasnext = False
             # terrier will ignore a null return from an iterator
             return None
-        return DocListIterator.pyDictToMapEntry(doc_dict)
+        # keep this around to prevent being GCd before Java can read it
+        self.lastdoc = self.pyDictToMapEntry(doc_dict)
+        return self.lastdoc
         
 
 class TQDMCollection(PythonJavaClass):
