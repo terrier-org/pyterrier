@@ -227,11 +227,11 @@ Sometimes you want more fine-grained control over the tokenisation directly with
 
     iter_indexer = pt.IterDictIndexer("./pretokindex", meta={'docno': 20}, threads=1, pretokenised=True)
     indexref6 = iter_indexer.index([
-        {'docno' : 'd1', 'toks' : {'a' : 1, '##2' : 2}}
+        {'docno' : 'd1', 'toks' : {'a' : 1, '##2' : 2}},
         {'docno' : 'd2', 'toks' : {'a' : 2, '##2' : 1}}
     ])
 
-This allows tokenisation using, for instance, the `HuggingFace tokenizers <https://huggingface.co/docs/transformers/fast_tokenizers>_`::
+This allows tokenisation using, for instance, the `HuggingFace tokenizers <https://huggingface.co/docs/transformers/fast_tokenizers>`_::
 
     iter_indexer = pt.IterDictIndexer("./pretokindex", meta={'docno': 20}, threads=1, pretokenised=True)
     from transformers import AutoTokenizer
@@ -239,8 +239,10 @@ This allows tokenisation using, for instance, the `HuggingFace tokenizers <https
 
     tok = AutoTokenizer.from_pretrained("bert-base-uncased")
 
-    # this creates a new column called 'toks', where each row contains a dictionary of the BERT WordPiece tokens of the 'text' column
-    # this particular examples tokenises one row at a time, this could be made more efficient
+    # This creates a new column called 'toks', where each row contains 
+    # a dictionary of the BERT WordPiece tokens of the 'text' column.
+    # This simple example tokenises one row at a time, this could be  
+    # made more efficient to utilise batching support in the tokeniser. 
     token_row_apply = pt.apply.toks(lambda row: Counter(tok.tokenize(row['text'])))
 
     index_pipe = token_row_apply >> iter_indexer

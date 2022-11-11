@@ -10,6 +10,50 @@ from unittest import SkipTest
 from .base import TempDirTestCase, BaseTestCase
 
 class TestIterDictIndexerPreTok(TempDirTestCase):
+
+    def test_dpl(self):
+        pt.index.run_autoclass()
+        it1 = [
+            {'docno': 'd1', 'url': 'url1', "toks" : {"a" : 1, "b" : 2}}
+        ]
+        it2 = [
+            {'docno': 'd1', 'url': 'url1', "toks" : {"a" : 1, "b" : 2}},
+            {'docno': 'd2', 'url': 'url1', "toks" : {"a" : 1, "b" : 1}}
+        ]
+        from pyterrier.index import DocListIterator
+        
+        iterator =  DocListIterator(iter(it1))
+        self.assertTrue(iterator.hasNext())
+        obj = iterator.next()
+        self.assertIsNotNone(obj)
+        self.assertEqual("d1", obj.getKey().get("docno"))
+        self.assertEqual(2, obj.getValue().getFrequency("b"))
+        self.assertEqual(3, obj.getValue().getDocumentLength())
+        
+        if iterator.hasNext():
+            obj = iterator.next()
+            self.assertIsNone(obj)
+        self.assertFalse(iterator.hasNext())
+
+        iterator =  DocListIterator(iter(it2))
+        self.assertTrue(iterator.hasNext())
+        obj = iterator.next()
+        self.assertIsNotNone(obj)
+        self.assertEqual("d1", obj.getKey().get("docno"))
+        self.assertEqual(2, obj.getValue().getFrequency("b"))
+
+        self.assertTrue(iterator.hasNext())
+        obj = iterator.next()
+        self.assertIsNotNone(obj)
+        self.assertEqual(1, obj.getValue().getFrequency("b"))
+        self.assertEqual("d2", obj.getKey().get("docno"))
+
+        if iterator.hasNext():
+            obj = iterator.next()
+            self.assertIsNone(obj)
+        self.assertFalse(iterator.hasNext())
+
+
     
     def test_json_pretok_iterator(self):
         if not pt.check_version("5.7") or not pt.check_version("0.0.7", helper=True):
@@ -44,9 +88,9 @@ class TestIterDictIndexerPreTok(TempDirTestCase):
         from pyterrier.index import IndexingType
         # Test both versions: _fifo (for UNIX) and _nofifo (for Windows)
         indexers = [
-            #pt.index._IterDictIndexer_fifo(self.test_dir, type=index_type, meta=meta, pretokenised=True),
+            pt.index._IterDictIndexer_fifo(self.test_dir, type=index_type, meta=meta, pretokenised=True),
             pt.index._IterDictIndexer_fifo(self.test_dir, type=index_type, threads=4, meta=meta, pretokenised=True),
-            #pt.index._IterDictIndexer_nofifo(self.test_dir, type=index_type, meta=meta, pretokenised=True),
+            pt.index._IterDictIndexer_nofifo(self.test_dir, type=index_type, meta=meta, pretokenised=True),
         ]
         if BaseTestCase.is_windows():
            indexers = [indexers[-1]] 
