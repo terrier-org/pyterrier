@@ -241,7 +241,7 @@ This allows tokenisation using, for instance, the `HuggingFace tokenizers <https
 
     # this creates a new column called 'toks', where each row contains a dictionary of the BERT WordPiece tokens of the 'text' column
     # this particular examples tokenises one row at a time, this could be made more efficient
-    token_row_apply = pt.apply.toks(lambda row: Counter(tok.convert_ids_to_tokens(tok(row['text']).input_ids)))
+    token_row_apply = pt.apply.toks(lambda row: Counter(tok.tokenize(row['text'])))
 
     index_pipe = token_row_apply >> iter_indexer
     indexref = index_pipe.index([
