@@ -4,7 +4,7 @@ wget
 tqdm
 pyjnius>=1.4.2
 matchpy
-sklearn
+scikit-learn
 deprecated
 chest
 scipy
