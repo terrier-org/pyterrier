@@ -83,7 +83,7 @@ def doc_score(fn : Union[Callable[[pd.Series], float], Callable[[pd.DataFrame], 
                 # returns series of lengths
                 return df.text.str.len()
             
-            pipe = pt.BatchRetrieve(index) >> pt.apply.doc_score(_doclen)
+            pipe = pt.BatchRetrieve(index) >> pt.apply.doc_score(_doclen, batch_size=128)
 
     """
     return ApplyDocumentScoringTransformer(fn, *args, batch_size=batch_size, **kwargs)
