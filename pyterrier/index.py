@@ -613,6 +613,9 @@ class DFIndexUtils:
             else:
                 raise ValueError("Keyword kwargs need to be of type pandas.Series, list or tuple")
 
+        if "docno" not in all_metadata:
+            raise ValueError('No docno column specified, while PyTerrier assumes a docno should exist. Found meta columns were %s' % str(list(all_metadata.keys())))
+
         # this method creates the documents as and when needed.
         def convertDoc(text_row, meta_column):
             if text_row is None:
