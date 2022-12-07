@@ -68,6 +68,56 @@ class TestApply(BaseTestCase):
 
         outputDfEmpty = p(inputDf.head(0))
 
+    def test_by_query_apply_batch(self):
+        # same as test_by_query_apply, but batch_size is set.
+        inputDf = pt.new.ranked_documents([[1], [2]], qid=["1", "2"])
+        def _inc_score(res):
+            if len(res) == 0:
+                return res
+            res = res.copy()
+            res["score"] = res["score"] + int(res.iloc[0]["qid"])
+            return res
+        p = pt.apply.by_query(_inc_score, batch_size=1)
+        outputDf = p(inputDf)
+        self.assertEqual(outputDf.iloc[0]["qid"], "1")
+        self.assertEqual(outputDf.iloc[0]["score"], 2)
+        self.assertEqual(outputDf.iloc[1]["qid"], "2")
+        self.assertEqual(outputDf.iloc[1]["score"], 4)
+
+        outputDfEmpty = p(inputDf.head(0))
+
+    def test_generic(self):
+        inputDf = pt.new.ranked_documents([[1], [2]], qid=["1", "2"])
+        def _fn1(df):
+            df = df.copy()
+            df["score"] = df["score"] * 2
+            return df
+        for i, t in enumerate([
+            pt.apply.generic(_fn1),
+            pt.apply.generic(_fn1, batch_size=1)
+        ]):
+            outputDf = t(inputDf)
+            self.assertEqual(2, len(outputDf))
+            self.assertEqual(outputDf.iloc[0]["qid"], "1")
+            self.assertEqual(outputDf.iloc[0]["score"], 2)
+            self.assertEqual(outputDf.iloc[1]["qid"], "2")
+            self.assertEqual(outputDf.iloc[1]["score"], 4)
+        
+        def _fn2(df):
+            df = df.copy()
+            df["score"] = len(df)
+            return df
+        t1 = pt.apply.generic(_fn2)
+        t2 = pt.apply.generic(_fn2, batch_size=1)
+        outputDf1 = t1(inputDf)
+        outputDf2 = t2(inputDf)
+        self.assertEqual(2, len(outputDf1))
+        self.assertEqual(2, len(outputDf2))
+        # batch is the entire dataframe, ie 2 rows
+        self.assertEqual(2, outputDf1.iloc[0]["score"])
+        # batch is a one row dataframe
+        self.assertEqual(1, outputDf2.iloc[0]["score"])
+    
     def test_docscore_apply(self):
         p = pt.apply.doc_score(lambda doc_row: len(doc_row["text"]))
         testDF = pd.DataFrame([["q1", "hello", "d1", "aa"]], columns=["qid", "query", "docno", "text"])
