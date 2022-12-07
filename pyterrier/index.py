@@ -725,7 +725,7 @@ class FlatJSONDocumentIterator(PythonJavaClass):
     def is_dict(obj) -> bool:
         return hasattr(obj, '__getitem__') and hasattr(obj, 'items')
 
-    def __init__(self, it):
+    def __init__(self, it, meta):
         super(FlatJSONDocumentIterator, self).__init__()
         if FlatJSONDocument is None:
             run_autoclass()
@@ -734,6 +734,15 @@ class FlatJSONDocumentIterator(PythonJavaClass):
         self._next = next(self._it, StopIteration)
         if not FlatJSONDocumentIterator.is_dict(self._next):
             raise ValueError("Was passed %s while expected dict-like object" % (str(type(self._next))))
+        if meta is not None:
+            for k in meta:
+                if k not in self._next:
+                    raise ValueError("Indexing meta key %s not found in first document (keys %s)" % (k, str(list(self._next.keys()))))
+                if len(self._next[k]) > int(meta[k]): # use int() as meta lengths can be string by now
+                    warn("Indexing meta key %s length requested %d but exceeded in first document (actual length %d)."+
+                        " Increase the length in the meta dict for the pt.IterDictIndexer" % (
+                            k, meta[k], len(self._next[k])
+                        ))
 
     @java_method('()V')
     def remove():
@@ -866,7 +875,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
         else:
 
             # we need to prevent collectionIterator from being GCd
-            collectionIterator = FlatJSONDocumentIterator(self._filter_iterable(it, fields))
+            collectionIterator = FlatJSONDocumentIterator(self._filter_iterable(it, fields), self.meta)
             javaDocCollection = autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
             # remove once 5.7 is now the minimum version
             from . import check_version

@@ -79,13 +79,13 @@ class TestIterDictIndexer(TempDirTestCase):
         from pyterrier.index import FlatJSONDocumentIterator
 
         it1 = itertools.islice(it, 1)
-        jIter1 = FlatJSONDocumentIterator(it1)
+        jIter1 = FlatJSONDocumentIterator(it1, None)
         self.assertTrue(jIter1.hasNext())
         self.assertIsNotNone(jIter1.next())
         self.assertFalse(jIter1.hasNext())
 
         it2 = itertools.islice(it, 2)
-        jIter1 = FlatJSONDocumentIterator(it2)
+        jIter1 = FlatJSONDocumentIterator(it2, None)
         self.assertTrue(jIter1.hasNext())
         self.assertIsNotNone(jIter1.next())
         self.assertTrue(jIter1.hasNext())
@@ -93,7 +93,10 @@ class TestIterDictIndexer(TempDirTestCase):
         self.assertFalse(jIter1.hasNext())
 
         with self.assertRaises(ValueError):
-            jIter2 = FlatJSONDocumentIterator(iter([['a', 'b']]))
+            jIter2 = FlatJSONDocumentIterator(iter([['a', 'b']]), None)
+
+        with self.assertRaises(ValueError):
+            jIter2 = FlatJSONDocumentIterator(iter([{'a': 'b'}]), {'docno' : 20})
 
     def test_createindex1(self):
         from pyterrier.index import IndexingType
