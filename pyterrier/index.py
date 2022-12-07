@@ -721,6 +721,10 @@ class PythonListIterator(PythonJavaClass):
 class FlatJSONDocumentIterator(PythonJavaClass):
     __javainterfaces__ = ['java/util/Iterator']
 
+    @staticmethod
+    def is_dict(obj) -> bool:
+        return hasattr(obj, '__getitem__') and hasattr(obj, 'items')
+
     def __init__(self, it):
         super(FlatJSONDocumentIterator, self).__init__()
         if FlatJSONDocument is None:
@@ -728,6 +732,8 @@ class FlatJSONDocumentIterator(PythonJavaClass):
         self._it = it
         # easiest way to support hasNext is just to start consuming right away, I think
         self._next = next(self._it, StopIteration)
+        if not FlatJSONDocumentIterator.is_dict(self._next):
+            raise ValueError("Was passed %s while expected dict-like object" % (str(type(self._next))))
 
     @java_method('()V')
     def remove():
