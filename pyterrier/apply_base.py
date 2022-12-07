@@ -16,25 +16,42 @@ class ApplyTransformerBase(Transformer):
         return "pt.apply.??()"
 
 class ApplyForEachQuery(ApplyTransformerBase):
-    def __init__(self, fn,  *args, add_ranks=True, **kwargs):
+    def __init__(self, fn,  *args, add_ranks=True, batch_size=None, **kwargs):
         """
             Arguments:
              - fn (Callable): Takes as input a panda Series for a row representing that document, and returns the new float doument score 
         """
         super().__init__(fn, *args, **kwargs)
         self.add_ranks = add_ranks
+        self.batch_size = batch_size
     
     def transform(self, res):
         if len(res) == 0:
             return self.fn(res)
+
+        import math, pandas as pd
+        from pyterrier.model import split_df
+        from . import tqdm
+
         it = res.groupby("qid")
         if self.verbose:
             it = tqdm(it, unit='query')
         try:
-            dfs = [self.fn(group) for qid, group in it]
+            if self.batch_size is None:
+                query_dfs = [self.fn(group) for qid, group in it]
+            else:
+                # fn cannot be applied to more than batch_size rows at once
+                # so we must split and reconstruct the output FOR EACH QUERY
+                query_dfs = []
+                for qid, group in it:
+                    
+                    num_chunks = math.ceil( len(group) / self.batch_size )
+                    iterator = split_df(group, num_chunks)
+                    query_dfs.append( pd.concat([self.fn(chunk_df) for chunk_df in iterator]) )
+
             if self.add_ranks:
-                dfs = [add_ranks(df, single_query=True) for df in dfs]
-            rtr = pd.concat(dfs)
+                query_dfs = [add_ranks(df, single_query=True) for df in query_dfs]
+            rtr = pd.concat(query_dfs)
         except Exception as a:
             raise Exception("Problem applying %s" % self.fn) from a
         return rtr
@@ -187,14 +204,27 @@ class ApplyGenericTransformer(ApplyTransformerBase):
 
     """
 
-    def __init__(self, fn,  *args, **kwargs):
+    def __init__(self, fn,  *args, batch_size=None, **kwargs):
         """
             Arguments:
              - fn (Callable): Takes as input a panda DataFrame, and returns a new Pandas DataFrame 
         """
         super().__init__(fn, *args, **kwargs)
+        self.batch_size = batch_size
 
     def transform(self, inputRes):
-        fn = self.fn
-        return fn(inputRes)
+        # no batching
+        if self.batch_size is None:
+            return self.fn(inputRes)
+
+        # batching
+        import math, pandas as pd
+        from pyterrier.model import split_df
+        from . import tqdm
+        num_chunks = math.ceil( len(inputRes) / self.batch_size )
+        iterator = split_df(inputRes, num_chunks)
+        if self.verbose:
+            iterator = tqdm(iterator, desc="pt.apply", unit='row') 
+        rtr = pd.concat([self.fn(chunk_df) for chunk_df in iterator])
+        return rtr
 

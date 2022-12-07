@@ -130,7 +130,7 @@ def rename(columns : Dict[str,str], *args, **kwargs) -> Transformer:
     """
     return ApplyGenericTransformer(lambda df: df.rename(columns=columns), *args, **kwargs)
 
-def generic(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> Transformer:
+def generic(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, batch_size=None, **kwargs) -> Transformer:
     """
         Create a transformer that changes the input dataframe to another dataframe in an unspecified way.
 
@@ -140,6 +140,8 @@ def generic(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> Tra
 
         Arguments:
             fn(Callable): the function to apply to each row
+            batch_size(int or None): whether to apply fn on batches of rows or all that are received
+            verbose(bool): Whether to display a progress bar over batches (only used if batch_size is set).
 
         Example::
 
@@ -149,13 +151,15 @@ def generic(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> Tra
             pipe = pt.BatchRetrieve(index) >> pt.apply.generic(lambda res : res[res["rank"] < 2])
 
     """
-    return ApplyGenericTransformer(fn, *args, **kwargs)
+    return ApplyGenericTransformer(fn, *args, batch_size=batch_size, **kwargs)
 
-def by_query(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> Transformer:
+def by_query(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, batch_size=None, **kwargs) -> Transformer:
     """
         As `pt.apply.generic()` except that fn receives a dataframe for one query at at time, rather than all results at once.
+        If batch_size is set, fn will receive no more than batch_size documents for any query. The verbose kwargs controls whether
+        to display a progress bar over queries.  
     """
-    return ApplyForEachQuery(fn, *args, **kwargs)
+    return ApplyForEachQuery(fn, *args, batch_size=batch_size, **kwargs)
 
 class _apply:
 
