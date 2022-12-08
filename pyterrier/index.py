@@ -18,6 +18,7 @@ from warnings import warn
 from deprecated import deprecated
 from collections import deque
 from typing import List, Dict, Union, Any
+import more_itertools
 
 StringReader = None
 HashMap = None
@@ -718,31 +719,17 @@ class PythonListIterator(PythonJavaClass):
             lastdoc = [text, meta]
         return lastdoc
 
+
 class FlatJSONDocumentIterator(PythonJavaClass):
     __javainterfaces__ = ['java/util/Iterator']
 
-    @staticmethod
-    def is_dict(obj) -> bool:
-        return hasattr(obj, '__getitem__') and hasattr(obj, 'items')
-
-    def __init__(self, it, meta):
+    def __init__(self, it):
         super(FlatJSONDocumentIterator, self).__init__()
         if FlatJSONDocument is None:
             run_autoclass()
         self._it = it
         # easiest way to support hasNext is just to start consuming right away, I think
         self._next = next(self._it, StopIteration)
-        if not FlatJSONDocumentIterator.is_dict(self._next):
-            raise ValueError("Was passed %s while expected dict-like object" % (str(type(self._next))))
-        if meta is not None:
-            for k in meta:
-                if k not in self._next:
-                    raise ValueError("Indexing meta key %s not found in first document (keys %s)" % (k, str(list(self._next.keys()))))
-                if len(self._next[k]) > int(meta[k]): # use int() as meta lengths can be string by now
-                    warn("Indexing meta key %s length requested %d but exceeded in first document (actual length %d)."+
-                        " Increase the length in the meta dict for the pt.IterDictIndexer" % (
-                            k, meta[k], len(self._next[k])
-                        ))
 
     @java_method('()V')
     def remove():
@@ -825,13 +812,43 @@ class _BaseIterDictIndexer(TerrierIndexer, Indexer):
 
     def _filter_iterable(self, it, indexed_fields):
         # Only include necessary fields: those that are indexed, metadata fields, and docno
-        
+        # Also, check that the provided iterator is a suitable format
+
         if self.pretokenised:
             all_fields = {'docno', "toks"} | set(self.meta.keys())
         else:
             all_fields = {'docno'} | set(indexed_fields) | set(self.meta.keys())
-        for doc in it:
-            yield {f: doc[f] for f in all_fields}
+
+        (first_doc,), it = more_itertools.spy(it) # peek at the first document and validate it
+        self._validate_doc_dict(first_doc)
+
+        # important: return an iterator here, rather than make this function a generator,
+        # to be sure that the validation above happens when _filter_iterable is called,
+        # rather than on the first invocation of next()
+        return ({f: doc[f] for f in all_fields} for doc in it)
+
+    def _is_dict(self, obj):
+        return hasattr(obj, '__getitem__') and hasattr(obj, 'items')
+
+    def _validate_doc_dict(self, obj):
+        """
+        Raise errors/warnings for common indexing mistakes
+        """
+        if not self._is_dict(obj):
+            raise ValueError("Was passed %s while expected dict-like object" % (str(type(obj))))
+        if self.meta is not None:
+            for k in self.meta:
+                if k not in obj:
+                    raise ValueError(f"Indexing meta key {k} not found in first document (keys {list(obj.keys())})")
+                if len(obj) > int(self.meta[k]):
+                    msg = f"Indexing meta key {k} length requested {self.meta[k]} but exceeded in first document (actual length {len(obj[k])}). " + \
+                          f"Increase the length in the meta dict for the indexer, e.g., pt.IterDictIndexer(..., meta={ {k: len(obj[k])} })."
+                    if k == 'docno':
+                        # docnos that are truncated will cause major issues; raise an error
+                        raise ValueError(msg)
+                    else:
+                        # Other fields may not matter as much; just show a warning
+                        warn(msg)
 
 
 class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
@@ -867,7 +884,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
             #     {'docno' : 'd1', 'toks' : {'a' : 1, 'aa' : 2}}
             # ]
             
-            iter_docs = DocListIterator(it)
+            iter_docs = DocListIterator(self._filter_iterable(it, fields))
             self.index_called = True
             index.indexDocuments(iter_docs)
             iter_docs = None
@@ -875,7 +892,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
         else:
 
             # we need to prevent collectionIterator from being GCd
-            collectionIterator = FlatJSONDocumentIterator(self._filter_iterable(it, fields), self.meta)
+            collectionIterator = FlatJSONDocumentIterator(self._filter_iterable(it, fields))
             javaDocCollection = autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
             # remove once 5.7 is now the minimum version
             from . import check_version

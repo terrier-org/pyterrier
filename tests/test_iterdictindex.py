@@ -79,24 +79,18 @@ class TestIterDictIndexer(TempDirTestCase):
         from pyterrier.index import FlatJSONDocumentIterator
 
         it1 = itertools.islice(it, 1)
-        jIter1 = FlatJSONDocumentIterator(it1, None)
+        jIter1 = FlatJSONDocumentIterator(it1)
         self.assertTrue(jIter1.hasNext())
         self.assertIsNotNone(jIter1.next())
         self.assertFalse(jIter1.hasNext())
 
         it2 = itertools.islice(it, 2)
-        jIter1 = FlatJSONDocumentIterator(it2, None)
+        jIter1 = FlatJSONDocumentIterator(it2)
         self.assertTrue(jIter1.hasNext())
         self.assertIsNotNone(jIter1.next())
         self.assertTrue(jIter1.hasNext())
         self.assertIsNotNone(jIter1.next())
         self.assertFalse(jIter1.hasNext())
-
-        with self.assertRaises(ValueError):
-            jIter2 = FlatJSONDocumentIterator(iter([['a', 'b']]), None)
-
-        with self.assertRaises(ValueError):
-            jIter2 = FlatJSONDocumentIterator(iter([{'a': 'b'}]), {'docno' : 20})
 
     def test_createindex1(self):
         from pyterrier.index import IndexingType
@@ -158,9 +152,9 @@ class TestIterDictIndexer(TempDirTestCase):
 
     def test_meta_init(self):
         it = [
-            {'docno': '1', 'url': 'url1', 'text': 'He ran out of money, so he had to stop playing', 'title': 'Woes of playing poker'},
-            {'docno': '2', 'url': 'url2', 'text': 'The waves were crashing on the shore; it was a', 'title': 'Lovely sight'},
-            {'docno': '3', 'url': 'url3', 'text': 'The body may perhaps compensates for the loss', 'title': 'Best of Viktor Prowoll'},
+            {'docno': '11', 'url': 'url1', 'text': 'He ran out of money, so he had to stop playing', 'title': 'Woes of playing poker'},
+            {'docno': '12', 'url': 'url2', 'text': 'The waves were crashing on the shore; it was a', 'title': 'Lovely sight'},
+            {'docno': '13', 'url': 'url3', 'text': 'The body may perhaps compensates for the loss', 'title': 'Best of Viktor Prowoll'},
         ]
         props={}
         props["termpipelines"] = ""
@@ -172,6 +166,14 @@ class TestIterDictIndexer(TempDirTestCase):
         self.assertIn("text", index.getMetaIndex().getKeys())
         self.assertIn("docno", index.getMetaIndex().getKeys())
         self.assertIn("url", index.getMetaIndex().getReverseKeys())
+
+        indexer = pt.IterDictIndexer(self.test_dir, meta={'docno' : 10, 'url' : 10, 'text' : 100, 'title' : 100, 'missing_field': 100}, meta_reverse=['docno', 'url'])
+        with self.assertRaises(ValueError):
+            indexer.index(it) # missing field
+
+        indexer = pt.IterDictIndexer(self.test_dir, meta={'docno' : 1, 'url' : 10, 'text' : 100, 'title' : 100}, meta_reverse=['docno', 'url'])
+        with self.assertRaises(ValueError):
+            indexer.index(it) # docno not long enough
 
     def test_check_nostemmer_utf_toks(self):
         # check that UTFTokeniser is doing its job
