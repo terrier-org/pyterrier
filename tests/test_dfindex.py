@@ -112,6 +112,20 @@ class TestDFIndexer(TempDirTestCase):
         self.assertIsNotNone(jIter1.next())
         self.assertFalse(jIter1.hasNext())
 
+    def test_badinvocation(self):
+        import pandas as pd
+        df_docids = pd.DataFrame([['d1', 'this is a doc']], columns=['body', 'doc_id'])
+        df_docnos = df_docids.rename(columns={'doc_id' : 'docno'})
+        with self.assertRaises(ValueError):
+            # this should fail - there is no docno column
+            ref = pt.DFIndexer(self.test_dir).index(df_docids["body"], df_docids['doc_id'])
+        with self.assertRaises(ValueError):
+            # this should fail - there is no docno column
+            ref = pt.DFIndexer(self.test_dir).index(df_docids["body"], docn=df_docids['doc_id'])
+            
+        # this should pass - it picks up the metadata name from the series name
+        ref = pt.DFIndexer(self.test_dir).index(df_docids["body"], df_docnos['docno'])
+
     def test_createindex1_two_metadata(self):
         from pyterrier.index import IndexingType
         self._make_check_index(1, IndexingType.CLASSIC, include_urls=True)
