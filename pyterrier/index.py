@@ -719,7 +719,6 @@ class PythonListIterator(PythonJavaClass):
             lastdoc = [text, meta]
         return lastdoc
 
-
 class FlatJSONDocumentIterator(PythonJavaClass):
     __javainterfaces__ = ['java/util/Iterator']
 
