@@ -74,6 +74,11 @@ def _add_text_terrier_metaindex(index, metadata):
 
     def add_text_function_docids(res):
         res = res.copy()
+        if len(res) == 0:
+            for k in metadata:
+                res[k] = pd.Series(dtype='object')
+            return res
+
         docids = res.docid.values.tolist()
         # indexed by docid then keys
         allmeta = metaindex.getItems(metadata, docids)
