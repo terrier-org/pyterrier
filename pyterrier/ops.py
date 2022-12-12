@@ -2,7 +2,8 @@ from .transformer import Transformer, Estimator, get_transformer, Scalar
 from .model import add_ranks
 from matchpy import Operation, Arity
 from warnings import warn
-from typing import Iterable, Iterator, Union
+from typing import Iterable
+import pandas as pd
 
 class BinaryTransformerBase(Transformer,Operation):
     """
@@ -224,7 +225,7 @@ class FeatureUnionPipeline(NAryTransformerBase):
         for i, m in enumerate(self.models):
             #IMPORTANT this .copy() is important, in case an operand transformer changes inputRes
             results = m.transform(inputRes.copy())
-            if len(results) == 0:
+            if len(results) == 0 and num_results != 0:
                 raise ValueError("Got no results from %s, expected %d" % (repr(m), num_results) )
             assert not "features_x" in results.columns 
             assert not "features_y" in results.columns
@@ -243,7 +244,10 @@ class FeatureUnionPipeline(NAryTransformerBase):
                     all_results[i] = res = inputRes[["qid", "docno"]].merge(res, on=["qid", "docno"], how="left")
                     res["score"] = res["score"].fillna(value=0)
 
-                res["features"] = res.apply(lambda row : np.array([row["score"]]), axis=1)
+                if len(res) == 0:
+                    res["features"] = pd.Series([], dtype='float64')
+                else:
+                    res["features"] = res.apply(lambda row : np.array([row["score"]]), axis=1)
                 res.drop(columns=["score"], inplace=True)
             assert "features" in res.columns
             #print("%d got %d features from operand %d" % ( id(self) ,   len(results.iloc[0]["features"]), i))
@@ -262,8 +266,8 @@ class FeatureUnionPipeline(NAryTransformerBase):
             both_cols.remove("qid")
             both_cols.remove("docno")
             both_cols.remove("features")
-            rtr = pd.merge(left, right, on=["qid", "docno"])            
-            rtr["features"] = rtr.apply(_concat_features, axis=1)
+            rtr = pd.merge(left, right, on=["qid", "docno"])
+            rtr["features"] = rtr.apply(_concat_features, axis=1, result_type='reduce')
             rtr.rename(columns={"%s_x" % col : col for col in both_cols}, inplace=True)
             rtr.drop(columns=["features_x", "features_y"] + ["%s_y" % col for col in both_cols], inplace=True)
             return rtr
