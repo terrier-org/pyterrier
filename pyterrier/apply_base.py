@@ -89,21 +89,28 @@ class ApplyDocumentScoringTransformer(ApplyTransformerBase):
 
     def _transform_rowwise(self, outputRes):
         fn = self.fn
+        if len(outputRes) == 0:
+            outputRes["score"] = pd.Series(dtype='float64')
+            return outputRes
         if self.verbose:
             tqdm.pandas(desc="pt.apply.doc_score", unit="d")
-            outputRes["score"] = outputRes.progress_apply(fn, axis=1)
+            outputRes["score"] = outputRes.progress_apply(fn, axis=1).astype('float64')
         else:
-            outputRes["score"] = outputRes.apply(fn, axis=1)
+            outputRes["score"] = outputRes.apply(fn, axis=1).astype('float64')
         outputRes = add_ranks(outputRes)
         return outputRes
     
     def _transform_batchwise(self, outputRes):
         fn = self.fn
         outputRes["score"] = fn(outputRes)
+        outputRes["score"] = outputRes["score"].astype('float64')
         return outputRes
     
     def transform(self, inputRes):
         outputRes = inputRes.copy()
+        if len(outputRes) == 0:
+            outputRes["score"] = pd.Series(dtype='float64')
+            return add_ranks(outputRes)
         if self.batch_size is None:
             return self._transform_rowwise(inputRes)
 
