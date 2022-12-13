@@ -518,7 +518,7 @@ class TextIndexProcessor(Transformer):
             # build a mapping, as the metaindex may not have reverse lookups enabled
             input = topics_and_res.copy()
             # add the docid to the dataframe
-            input["docid"] = input.apply(lambda row: docno2docid[row["docno"]], axis=1)
+            input["docid"] = input.apply(lambda row: docno2docid[row["docno"]], axis=1, result_type='reduce')
 
 
         # and then just instantiate BR using the our new index 

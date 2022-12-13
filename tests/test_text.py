@@ -17,6 +17,12 @@ class TestText(BaseTestCase):
         self.assertEqual(1.0, dfOut.iloc[0].score)
         self.assertEqual(1.0, dfOut.iloc[1].score)
 
+        # now check that text scorer can also work on an empty dataframe
+        dfEmpty = pt.text.scorer(body_attr="text", wmodel="Tf").transform(dfIn.head(0))
+        self.assertEqual(0, len(dfEmpty))
+        self.assertIn("rank", dfEmpty.columns)
+        self.assertIn("score", dfEmpty.columns)
+
     def test_scorer_rerank(self):
         #checks that the rank attribute is updated.
         dfIn = pd.DataFrame(
@@ -32,7 +38,6 @@ class TestText(BaseTestCase):
         self.assertEqual(3.0, dfOut.iloc[1].score)
         self.assertEqual(0, dfOut.iloc[1]["rank"])
         self.assertEqual(1, dfOut.iloc[0]["rank"])
-        print(dfOut)
 
     def test_snippets(self):
         br = pt.BatchRetrieve.from_dataset("vaswani", "terrier_stemmed_text", metadata=["docno", "text"])
