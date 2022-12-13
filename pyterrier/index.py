@@ -633,7 +633,6 @@ class DFIndexUtils:
             
         df = pd.DataFrame.from_dict(all_metadata, orient="columns")
         lengths = DFIndexUtils.get_column_lengths(df)
-        print(lengths)
         return (
             PythonListIterator(
                 text.values,
