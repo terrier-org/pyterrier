@@ -21,7 +21,8 @@ def add_ranks(df : pd.DataFrame, single_query=False) -> pd.DataFrame:
             df: dataframe to create rank attribute for
             single_query (bool): whether the dataframe contains only a single-query or not. This method will be quicker for single-query dataframes
     """
-
+    if "score" not in df.columns:
+        raise KeyError("Must have score column to add ranks to dataframe. Found columns were %s" % str(df.columns.values.tolist()))
     df.drop(columns=["rank"], errors="ignore", inplace=True)
     if len(df) == 0:
         df["rank"] = pd.Series(index=df.index, dtype='int64')

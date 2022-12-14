@@ -25,6 +25,9 @@ class ApplyForEachQuery(ApplyTransformerBase):
         self.add_ranks = add_ranks
         self.batch_size = batch_size
     
+    def __repr__(self):
+        return "pt.apply.by_query()"
+    
     def transform(self, res):
         if len(res) == 0:
             return self.fn(res)
@@ -48,12 +51,18 @@ class ApplyForEachQuery(ApplyTransformerBase):
                     num_chunks = math.ceil( len(group) / self.batch_size )
                     iterator = split_df(group, num_chunks)
                     query_dfs.append( pd.concat([self.fn(chunk_df) for chunk_df in iterator]) )
-
-            if self.add_ranks:
-                query_dfs = [add_ranks(df, single_query=True) for df in query_dfs]
-            rtr = pd.concat(query_dfs)
         except Exception as a:
             raise Exception("Problem applying %s" % self.fn) from a
+
+        if self.add_ranks:
+            try:
+                query_dfs = [add_ranks(df, single_query=True) for df in query_dfs]
+            except KeyError as ke:
+                suffix = 'Try setting add_ranks=False'
+                if len(query_dfs) > 0 and 'score' not in query_dfs[0].columns:
+                    suffix = 'Score column not present. See add_ranks=False'
+                raise ValueError("Cannot apply add_ranks in pt.apply.by_query -" + suffix) from ke
+        rtr = pd.concat(query_dfs)
         return rtr
 
 class ApplyDocumentScoringTransformer(ApplyTransformerBase):
@@ -86,6 +95,9 @@ class ApplyDocumentScoringTransformer(ApplyTransformerBase):
         """
         super().__init__(fn, *args, **kwargs)
         self.batch_size = batch_size
+
+    def __repr__(self):
+        return "pt.apply.doc_score()"
 
     def _transform_rowwise(self, outputRes):
         fn = self.fn
@@ -136,6 +148,9 @@ class ApplyDocFeatureTransformer(ApplyTransformerBase):
         """
         super().__init__(fn, *args, **kwargs)
 
+    def __repr__(self):
+        return "pt.apply.doc_features()"
+
     def transform(self, inputRes):
         fn = self.fn
         outputRes = inputRes.copy()
@@ -172,6 +187,9 @@ class ApplyQueryTransformer(ApplyTransformerBase):
              - verbose (bool): Display a tqdm progress bar for this transformer
         """
         super().__init__(fn, *args, **kwargs)
+
+    def __repr__(self):
+        return "pt.apply.query()"
 
     def transform(self, inputRes):
         from .model import push_queries
@@ -211,6 +229,9 @@ class ApplyGenericTransformer(ApplyTransformerBase):
         """
         super().__init__(fn, *args, **kwargs)
         self.batch_size = batch_size
+
+    def __repr__(self):
+        return "pt.apply.generic()"
 
     def transform(self, inputRes):
         # no batching
