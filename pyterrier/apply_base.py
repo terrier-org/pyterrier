@@ -60,7 +60,7 @@ class ApplyForEachQuery(ApplyTransformerBase):
             except KeyError as ke:
                 suffix = 'Try setting add_ranks=False'
                 if len(query_dfs) > 0 and 'score' not in query_dfs[0].columns:
-                    suffix = 'Score column not present. See add_ranks=False'
+                    suffix = 'Score column not present. Set add_ranks=False'
                 raise ValueError("Cannot apply add_ranks in pt.apply.by_query -" + suffix) from ke
         rtr = pd.concat(query_dfs)
         return rtr
