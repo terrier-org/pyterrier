@@ -17,6 +17,12 @@ class TestText(BaseTestCase):
         self.assertEqual(1.0, dfOut.iloc[0].score)
         self.assertEqual(1.0, dfOut.iloc[1].score)
 
+        # now check that text scorer can also work on an empty dataframe
+        dfEmpty = pt.text.scorer(body_attr="text", wmodel="Tf").transform(dfIn.head(0))
+        self.assertEqual(0, len(dfEmpty))
+        self.assertIn("rank", dfEmpty.columns)
+        self.assertIn("score", dfEmpty.columns)
+
     def test_scorer_rerank(self):
         #checks that the rank attribute is updated.
         dfIn = pd.DataFrame(
@@ -32,7 +38,6 @@ class TestText(BaseTestCase):
         self.assertEqual(3.0, dfOut.iloc[1].score)
         self.assertEqual(0, dfOut.iloc[1]["rank"])
         self.assertEqual(1, dfOut.iloc[0]["rank"])
-        print(dfOut)
 
     def test_snippets(self):
         br = pt.BatchRetrieve.from_dataset("vaswani", "terrier_stemmed_text", metadata=["docno", "text"])
@@ -67,6 +72,7 @@ class TestText(BaseTestCase):
         
     def test_fetch_text_docid(self):
         dfinput = pd.DataFrame([["q1", "a query", 1]], columns=["qid", "query", "docid"])
+        df_empty = dfinput.head(0)
         #directory, indexref, str, Index
         for indexlike in [
             pt.get_dataset("vaswani").get_index(), 
@@ -79,6 +85,12 @@ class TestText(BaseTestCase):
             dfOut = textT.transform(dfinput)
             self.assertTrue(isinstance(dfOut, pd.DataFrame))
             self.assertTrue("docno" in dfOut.columns)
+            self.assertEqual('object', dfOut['docno'].dtype)
+
+            dfOut2 = textT.transform(df_empty)
+            self.assertTrue(isinstance(dfOut2, pd.DataFrame))
+            self.assertTrue("docno" in dfOut2.columns)
+            self.assertEqual('object', dfOut2['docno'].dtype)
 
     def test_fetch_text_irds(self):
         dfinput = pd.DataFrame([
@@ -86,14 +98,21 @@ class TestText(BaseTestCase):
             ["q1", "a query", "1"],
             ["q1", "a query", "4"],
             ], columns=["qid", "query", "docno"])
+        df_empty = dfinput.head(0)
         textT = pt.text.get_text(pt.get_dataset('irds:vaswani'), "text")
         self.assertTrue(isinstance(textT, pt.Transformer))
         dfOut = textT.transform(dfinput)
         self.assertTrue(isinstance(dfOut, pd.DataFrame))
         self.assertTrue("text" in dfOut.columns)
+        self.assertEqual('object', dfOut['docno'].dtype)
         self.assertTrue("the british computer society  report of a conference held in cambridge\njune\n" in dfOut.iloc[0].text)
         self.assertTrue("compact memories have flexible capacities  a digital data storage\nsystem with capacity up to bits and random and or sequential access\nis described\n" in dfOut.iloc[1].text)
         self.assertTrue("the british computer society  report of a conference held in cambridge\njune\n" in dfOut.iloc[2].text)
+
+        dfOut2 = textT.transform(df_empty)
+        self.assertTrue(isinstance(dfOut2, pd.DataFrame))
+        self.assertTrue("text" in dfOut2.columns)
+        self.assertEqual('object', dfOut2['docno'].dtype)
 
     def test_passager_title(self):
         dfinput = pd.DataFrame([["q1", "a query", "doc1", "title", "body sentence"]], columns=["qid", "query", "docno", "title", "body"])

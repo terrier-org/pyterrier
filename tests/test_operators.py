@@ -381,6 +381,16 @@ class TestOperators(BaseTestCase):
             _test_expression(mock12p3)
             assert "Got number of results" in str(w[-1].message)
 
+    def test_feature_union_empty(self):
+        mock_input = pt.Transformer.from_df(pd.DataFrame([["q1", "a query", "doc1", 5]], columns=["qid", "query", "docno", "score"]))
+        mock_f1 = pt.Transformer.from_df(pd.DataFrame([["q1", "a query", "doc1", 10]], columns=["qid", "query", "docno", "score"]))
+        mock_f2 = pt.Transformer.from_df(pd.DataFrame([["q1", "a query", "doc1", 50]], columns=["qid", "query", "docno", "score"]))
+
+        pipe = mock_input >> (mock_f1 ** mock_f2)
+        rtr = pipe.search('another query', qid='q2')
+        self.assertEqual(0, len(rtr))
+        self.assertIn('score', rtr.columns)
+        self.assertIn('features', rtr.columns)
 
     def test_feature_union(self): 
         import pyterrier.ops as ptt
@@ -395,22 +405,27 @@ class TestOperators(BaseTestCase):
             self.assertEqual(2, len(pipeline[1]))
             
             # we dont need an input, as both Uniform transformers will return anyway
-            rtr = pipeline.transform(None)
-            self.assertEqual(1, len(rtr))
-            self.assertTrue("qid" in rtr.columns)
-            self.assertTrue("docno" in rtr.columns)
-            #self.assertTrue("score" in rtr.columns)
-            self.assertTrue("features" in rtr.columns)
+            for name, input in [
+                ('none', None),
+                ('query df', pt.new.queries(['a query'], qid=['q1'])),
+                ('empty query df', pt.new.queries(['a query'], qid=['q1']).head(0))
+            ]:
+                with self.subTest(name):
+                    rtr = pipeline.transform(input)
+                    self.assertEqual(1, len(rtr))
+                    self.assertTrue("qid" in rtr.columns)
+                    self.assertTrue("docno" in rtr.columns)
+                    #self.assertTrue("score" in rtr.columns)
+                    self.assertTrue("features" in rtr.columns)
 
-            bad_columns = ["rank_x", "rank_y", "rank_r", "query_x", "query_y", "query_R", "score_x", "score_y", "score_r", "features_x", "features_y"]
-            print(rtr.columns)
-            for bad in bad_columns:
-                self.assertFalse(bad in rtr.columns, "column %s in returned dataframe" % bad)
+                    bad_columns = ["rank_x", "rank_y", "rank_r", "query_x", "query_y", "query_R", "score_x", "score_y", "score_r", "features_x", "features_y"]
+                    for bad in bad_columns:
+                        self.assertFalse(bad in rtr.columns, "column %s in returned dataframe" % bad)
 
-            self.assertTrue("q1" in rtr["qid"].values)
-            self.assertTrue("doc1" in rtr["docno"].values)
-            import numpy as np
-            self.assertTrue( np.array_equal(np.array([10,50]), rtr.iloc[0]["features"]))
+                    self.assertTrue("q1" in rtr["qid"].values)
+                    self.assertTrue("doc1" in rtr["docno"].values)
+                    import numpy as np
+                    self.assertTrue( np.array_equal(np.array([10,50]), rtr.iloc[0]["features"]))
 
         # test using direct instantiation, as well as using the ** operator
         _test_expression(mock_input >> ptt.FeatureUnionPipeline(mock_f1, mock_f2))

@@ -585,7 +585,11 @@ class DFIndexUtils:
 
     @staticmethod
     def get_column_lengths(df):
-        return dict([(v, df[v].apply(lambda r: len(str(r)) if r!=None else 0).max())for v in df.columns.values])
+        import math
+        meta2len = dict([(v, df[v].apply(lambda r: len(str(r)) if r!=None else 0).max())for v in df.columns.values])
+        # nan values can arise if df is empty. Here we take a metalength of 1 instead.
+        meta2len = {k : 1 if math.isnan(l) else l for k, l in meta2len.items()}
+        return meta2len
 
     @staticmethod
     def create_javaDocIterator(text, *args, **kwargs):
@@ -616,7 +620,6 @@ class DFIndexUtils:
 
         if "docno" not in all_metadata:
             raise ValueError('No docno column specified, while PyTerrier assumes a docno should exist. Found meta columns were %s' % str(list(all_metadata.keys())))
-
         # this method creates the documents as and when needed.
         def convertDoc(text_row, meta_column):
             if text_row is None:

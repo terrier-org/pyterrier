@@ -125,12 +125,22 @@ class TestApply(BaseTestCase):
         self.assertEqual(rtr.iloc[0]["score"], 2.0)
         self.assertEqual(rtr.iloc[0]["rank"], pt.model.FIRST_RANK)
 
+        rtr2 = p(testDF.head(0))
+        self.assertTrue("rank" in rtr2.columns)
+        self.assertTrue("score" in rtr2.columns)
+        self.assertEqual('float64', rtr2['score'].dtype)
+
     def test_docscore_batch(self):
         p = pt.apply.doc_score(lambda df: df["text"].str.len(), batch_size=2)
         testDF = pd.DataFrame([["q1", "hello", "d1", "aa"]], columns=["qid", "query", "docno", "text"])
         rtr = p(testDF)
         self.assertEqual(rtr.iloc[0]["score"], 2.0)
         self.assertEqual(rtr.iloc[0]["rank"], pt.model.FIRST_RANK)
+
+        rtr2 = p(testDF.head(0))
+        self.assertTrue("rank" in rtr2.columns)
+        self.assertTrue("score" in rtr2.columns)
+        self.assertEqual('float64', rtr2['score'].dtype)
 
     def test_docfeatures_apply(self):
         import numpy as np
