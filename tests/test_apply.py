@@ -68,6 +68,10 @@ class TestApply(BaseTestCase):
 
         outputDfEmpty = p(inputDf.head(0))
 
+        p2 = pt.apply.by_query(lambda x: x)
+        with self.assertRaisesRegex(ValueError, 'Score column not present'):
+            p2(pt.new.queries(['query 1', 'query 2']))
+
     def test_by_query_apply_batch(self):
         # same as test_by_query_apply, but batch_size is set.
         inputDf = pt.new.ranked_documents([[1], [2]], qid=["1", "2"])
