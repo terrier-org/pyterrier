@@ -24,10 +24,10 @@ The easiest way to get started with PyTerrier is to use one of our Colab noteboo
 
 PyTerrier has a number of useful classes for creating indices:
 
- - You can create an index from TREC formatted collection using TRECCollectionIndexer.    
- - For TXT, PDF, Microsoft Word files, etc files you can use FilesIndexer.
- - For Pandas Dataframe you can use DFIndexer.
- - For any abitrary iterable dictionaries, you can use IterDictIndexer.
+ - You can create an index from TREC formatted collection using [TRECCollectionIndexer](https://pyterrier.readthedocs.io/en/latest/terrier-indexing.html#treccollectionindexer).    
+ - For TXT, PDF, Microsoft Word files, etc files you can use [FilesIndexer](https://pyterrier.readthedocs.io/en/latest/terrier-indexing.html#filesindexer).
+ - For Pandas Dataframe you can use [DFIndexer](https://pyterrier.readthedocs.io/en/latest/terrier-indexing.html#dfindexer).
+ - For any abitrary iterable dictionaries, you can use [IterDictIndexer](https://pyterrier.readthedocs.io/en/latest/terrier-indexing.html#iterdictindexer).
 
 See the [indexing documentation](https://pyterrier.readthedocs.io/en/latest/terrier-indexing.html), or the examples in the [indexing notebook](examples/notebooks/indexing.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/indexing.ipynb)
 
@@ -69,8 +69,10 @@ PyTerrier has additional plugins for BERT (through OpenNIR), T5, ColBERT, ANCE, 
  - OpenNIR: [[Github](https://github.com/Georgetown-IR-Lab/OpenNIR)] [[Documentation](https://opennir.net/)]
  - PyTerrier_ANCE: [[Github](https://github.com/terrierteam/pyterrier_ance)] - dense retrieval
  - PyTerrier_ColBERT: [[Github](https://github.com/terrierteam/pyterrier_colbert)] - dense retrieval and/or neural reranking
- - PyTerrier_T5: [[Github](https://github.com/terrierteam/pyterrier_t5)] - neural reranking
+ - PyTerrier_PISA: [[Github](https://github.com/terrierteam/pyterrier_pisa)] - fast in-memory indexing and retrieval using [PISA](https://github.com/pisa-engine/pisa)
+ - PyTerrier_T5: [[Github](https://github.com/terrierteam/pyterrier_t5)] - neural reranking: monoT5, duoT5
  - PyTerrier_doc2query: [[Github](https://github.com/terrierteam/pyterrier_doc2query)] - neural augmented indexing
+ - PyTerrier_SPLADE: [[Github](https://github.com/cmacdonald/pyt_splade)] - neural augmented indexing
  - PyTerrier_DeepCT: [[Github](https://github.com/terrierteam/pyterrier_deepct)] - neural augmented indexing
 
 You can see examples of how to use these, including notebooks that run on Google Colab, in the contents of our [ECIR 2021 tutorial](https://github.com/terrier-org/ecir2021tutorial).
