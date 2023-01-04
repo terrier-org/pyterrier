@@ -38,6 +38,11 @@ class TestApply(BaseTestCase):
         rtr = p(testDF)
         self.assertTrue("Bla2" in rtr.columns)
         self.assertFalse("Bla" in rtr.columns)
+        with self.assertRaises(KeyError):
+            testDF2 = pd.DataFrame([["q1", "the bear and the wolf", 1]], columns=["qid", "query", "Bla2"])
+            rtr = p(testDF2)
+        p_ignore = pt.apply.rename({'Bla' : "Bla2"}, errors='ignore')
+        rtr = p_ignore(testDF2)
 
     def test_query_apply(self):
         stops=set(["and", "the"])

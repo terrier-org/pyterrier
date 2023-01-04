@@ -117,18 +117,19 @@ def doc_features(fn : Callable[[pd.Series], NDArray[Any]], *args, **kwargs) -> T
     """
     return ApplyDocFeatureTransformer(fn, *args, **kwargs)
 
-def rename(columns : Dict[str,str], *args, **kwargs) -> Transformer:
+def rename(columns : Dict[str,str], *args, errors='raise', **kwargs) -> Transformer:
     """
         Creates a transformer that renames columns in a dataframe. 
 
         Args:
-            columns(dict): A dictionary mapping from old column name to new column name 
+            columns(dict): A dictionary mapping from old column name to new column name
+            errors(str): Maps to df.rename() errors kwarg - default to 'raise', alternatively can be 'ignore'
 
         Example::
             
             pipe = pt.BatchRetrieve(index, metadata=["docno", "body"]) >> pt.apply.rename({'body':'text'})
     """
-    return ApplyGenericTransformer(lambda df: df.rename(columns=columns), *args, **kwargs)
+    return ApplyGenericTransformer(lambda df: df.rename(columns=columns, errors=errors), *args, **kwargs)
 
 def generic(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, batch_size=None, **kwargs) -> Transformer:
     """
