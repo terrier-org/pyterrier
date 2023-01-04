@@ -319,15 +319,15 @@ def set_property(k, v):
         methods or arguments. So this method should be seen as a safety-valve - a way to override the 
         Terrier configuration not explicitly supported by PyTerrier.
     """
-    properties[k] = v
+    properties[str(k)] = str(v)
     ApplicationSetup.bootstrapInitialisation(properties)
 
 def set_properties(kwargs):
     """
         Allows to set many properties in Terrier's global properties configuration
     """
-    for control, value in kwargs.items():
-        properties.put(control, value)
+    for key, value in kwargs.items():
+        properties[str(key)] = str(value)
     ApplicationSetup.bootstrapInitialisation(properties)
 
 def run(cmd, args=[]):

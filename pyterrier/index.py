@@ -438,7 +438,7 @@ class TerrierIndexer:
         Usage::
             indexer.setProperty("termpipelines", "")
         """
-        self.properties.put(k, v)
+        self.properties.put(str(k), str(v))
 
     def setProperties(self, **kwargs):
         """
@@ -450,8 +450,8 @@ class TerrierIndexer:
         Usage:
             >>> setProperties(**{property1:value1, property2:value2})
         """
-        for control, value in kwargs.items():
-            self.properties.put(control, value)
+        for key, value in kwargs.items():
+            self.properties.put(str(key), str(value))
 
     def checkIndexExists(self):
         """

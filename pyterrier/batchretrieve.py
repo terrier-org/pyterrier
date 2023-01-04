@@ -218,7 +218,7 @@ class BatchRetrieve(BatchRetrieveBase):
         if props is None:
             importProps()
         for key, value in self.properties.items():
-            self.appSetup.setProperty(key, str(value))
+            self.appSetup.setProperty(str(key), str(value))
         
         self.controls = _mergeDicts(BatchRetrieve.default_controls, controls)
         if wmodel is not None:
@@ -459,10 +459,10 @@ class BatchRetrieve(BatchRetrieveBase):
 
     def setControls(self, controls):
         for key, value in controls.items():
-            self.controls[key] = value
+            self.controls[str(key)] = str(value)
 
     def setControl(self, control, value):
-        self.controls[control] = value
+        self.controls[str(control)] = str(value)
 
 
 
