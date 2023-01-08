@@ -61,14 +61,14 @@ Sometimes we have good retrieval approaches and we wish to combine these in a un
 ```python
 bm25 = pt.BatchRetrieve(indexref, wmodel="BM25")
 dph = pt.BatchRetrieve(indexref, wmodel="DPH")
-linear = bm25_cands + dph_cands
+linear = bm25 + dph
 ```
 
 Of course, some weighting can help:
 ```python
 bm25 = pt.BatchRetrieve(indexref, wmodel="BM25")
 dph = pt.BatchRetrieve(indexref, wmodel="DPH")
-linear = bm25_cands + 2* dph_cands
+linear = bm25 + 2* dph
 ```
 
 However, if the score distributions are not similar, finding a good weight can be tricky. Normalisation of retrieval scores can be advantagous in this case. We provide PerQueryMaxMinScoreTransformer() to make easy normalisation.
@@ -76,7 +76,7 @@ However, if the score distributions are not similar, finding a good weight can b
 ```python
 bm25 = pt.BatchRetrieve(indexref, wmodel="BM25") >> pt.pipelines.PerQueryMaxMinScoreTransformer()
 dph = pt.BatchRetrieve(indexref, wmodel="DPH" >> pt.pipelines.PerQueryMaxMinScoreTransformer()
-linear = 0.75 * bm25_cands + 0.25 * dph_cands
+linear = 0.75 * bm25 + 0.25 * dph
 ```
 
 
