@@ -842,7 +842,7 @@ class _BaseIterDictIndexer(TerrierIndexer, Indexer):
             for k in self.meta:
                 if k not in obj:
                     raise ValueError(f"Indexing meta key {k} not found in first document (keys {list(obj.keys())})")
-                if len(obj) > int(self.meta[k]):
+                if len(obj[k]) > int(self.meta[k]):
                     msg = f"Indexing meta key {k} length requested {self.meta[k]} but exceeded in first document (actual length {len(obj[k])}). " + \
                           f"Increase the length in the meta dict for the indexer, e.g., pt.IterDictIndexer(..., meta={ {k: len(obj[k])} })."
                     if k == 'docno':
