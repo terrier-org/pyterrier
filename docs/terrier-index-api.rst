@@ -18,7 +18,7 @@ Terrier has `IndexRef <http://terrier.org/docs/current/javadoc/org/terrier/query
 with an `IndexFactory <http://terrier.org/docs/current/javadoc/org/terrier/structures/IndexFactory.html>`_ 
 class that allows an Index to be obtained from the IndexRef.
 
-IndexRef is essentially a String that tells Terrier where the index is located. Tyically it is a file location, pointing to a data.properties file::
+IndexRef is essentially a String that tells Terrier where the index is located. Typically it is a file location, pointing to a data.properties file::
 
     indexref = pt.IndexRef.of("/path/to/data.properties")
 
