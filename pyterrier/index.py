@@ -261,6 +261,7 @@ class IndexingType(enum.Enum):
     SINGLEPASS = 2 #: A single-pass indexing regime, which builds an inverted index directly. No direct index structure is created. Typically is faster than classical indexing.
     MEMORY = 3 #: An in-memory index. No persistent index is created.
 
+_stemmer_cache = {}
 class TerrierStemmer(Enum):
     """
         This enum provides an API for the stemmers available in Terrier. The stemming configuration is saved in the index
@@ -316,7 +317,11 @@ class TerrierStemmer(Enum):
 
         if isinstance(this, str):
             return this
-        
+
+    def stem(self, tok):
+        if self not in _stemmer_cache:
+            _stemmer_cache[self] = autoclass(f'org.terrier.terms.{self._to_class(self)}')()
+        return _stemmer_cache[self].stem(tok)
 
 class TerrierStopwords(Enum):
     """
