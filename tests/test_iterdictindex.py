@@ -201,6 +201,9 @@ class TestIterDictIndexer(TempDirTestCase):
         index = pt.IndexFactory.of(indexref)
         index = pt.cast("org.terrier.structures.IndexOnDisk", index)
         self.assertIn(member="PyTerrierCustomStopwordList$Retrieval", container=index.getIndexProperty("termpipelines", "bla"))
+        self.assertIsNotNone(index.getIndexProperty('pyterrier.stopwords', None))
+        self.assertTrue("money" in index.getIndexProperty('pyterrier.stopwords', None))
+        self.assertTrue("crashing" in index.getIndexProperty('pyterrier.stopwords', None))
         self.assertEqual(10, index.getDocumentIndex().getDocumentLength(0)) # playing removed?
         
         # før is tokenised as f r by EnglishTokeniser
