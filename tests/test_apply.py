@@ -74,8 +74,12 @@ class TestApply(BaseTestCase):
         outputDfEmpty = p(inputDf.head(0))
 
         p2 = pt.apply.by_query(lambda x: x)
-        with self.assertRaisesRegex(ValueError, 'Score column not present'):
+        with self.assertRaisesRegex(ValueError, 'score column not present'):
             p2(pt.new.queries(['query 1', 'query 2']))
+
+        p3 = pt.apply.by_query(lambda x: 5/0, add_ranks=False)
+        with self.assertRaisesRegex(Exception, 'for qid 1'):
+            p3(pt.new.queries(['query 1', 'query 2']))
 
     def test_by_query_apply_batch(self):
         # same as test_by_query_apply, but batch_size is set.
