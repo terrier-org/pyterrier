@@ -267,6 +267,12 @@ class TerrierStemmer(Enum):
         This enum provides an API for the stemmers available in Terrier. The stemming configuration is saved in the index
         and loaded at retrieval time. `Snowball <https://snowballstem.org/>`_ stemmers for various languages 
         `are available in Terrier <http://terrier.org/docs/current/javadoc/org/terrier/terms/package-summary.html>`_.
+
+        It can also be used to access the stemmer::
+
+            stemmer = pt.TerrierStemmer.porter
+            stemmed_word = stemmer.stem('abandoned')
+
     """
     none = 'none' #: Apply no stemming
     porter = 'porter' #: Apply Porter's English stemmer
