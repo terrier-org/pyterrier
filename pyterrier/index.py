@@ -320,7 +320,14 @@ class TerrierStemmer(Enum):
 
     def stem(self, tok):
         if self not in _stemmer_cache:
-            _stemmer_cache[self] = autoclass(f'org.terrier.terms.{self._to_class(self)}')()
+            clz_name = self._to_class(self)
+            if clz_name is None:
+                class NoOpStem():
+                    def stem(self, word):
+                        return word
+                _stemmer_cache[self] = NoOpStem()
+            else:
+                _stemmer_cache[self] = autoclass(f'org.terrier.terms.{clz_name}')()
         return _stemmer_cache[self].stem(tok)
 
 class TerrierStopwords(Enum):
