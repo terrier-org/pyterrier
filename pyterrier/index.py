@@ -333,7 +333,11 @@ class TerrierStemmer(Enum):
                         return word
                 _stemmer_cache[self] = NoOpStem()
             else:
-                _stemmer_cache[self] = autoclass(f'org.terrier.terms.{clz_name}')()
+                if '.' not in clz_name:
+                    clz_name = f'org.terrier.terms.{clz_name}'
+                 # stemmers are termpipeline objects, and these have chained constructors
+                 # pass None to use the appropriate constructor
+                _stemmer_cache[self] = autoclass(clz_name)(None)
         return _stemmer_cache[self].stem(tok)
 
 class TerrierStopwords(Enum):
