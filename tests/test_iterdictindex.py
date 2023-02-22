@@ -190,6 +190,22 @@ class TestIterDictIndexer(TempDirTestCase):
         # restore setting after test
         pt.ApplicationSetup.setProperty("termpipelines", "Stopwords,PorterStemmer")
 
+    def test_check_customstops(self):
+        it = [
+            {'docno': '1', 'url': 'url1', 'text': 'He ran out of money, so he had to stop playing', 'title': 'Woes of playing poker'},
+            {'docno': '2', 'url': 'url2', 'text': 'The waves were crashing on the shore; it was a', 'title': 'Lovely sight'},
+            {'docno': '3', 'url': 'url3', 'text': 'The body may perhaps compensates før the loss', 'title': 'Best of Viktor Prowoll'},
+        ]
+        indexer = pt.IterDictIndexer(self.test_dir, stemmer=pt.TerrierStemmer.none, stopwords=['money', 'crashing'], overwrite=True)
+        indexref = indexer.index(it)
+        index = pt.IndexFactory.of(indexref)
+        index = pt.cast("org.terrier.structures.IndexOnDisk", index)
+        self.assertIn(member="PyTerrierCustomStopwordList$Retrieval", container=index.getIndexProperty("termpipelines", "bla"))
+        self.assertEqual(10, index.getDocumentIndex().getDocumentLength(0)) # playing removed?
+        
+        # før is tokenised as f r by EnglishTokeniser
+        self.assertFalse("money" in index.getLexicon())
+
     def test_check_nostemmer(self):
         it = [
             {'docno': '1', 'url': 'url1', 'text': 'He ran out of money, so he had to stop playing', 'title': 'Woes of playing poker'},

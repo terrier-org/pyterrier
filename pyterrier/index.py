@@ -325,14 +325,43 @@ class TerrierStopwords(Enum):
 
     none = 'none' #: No Stemming
     terrier = 'terrier' #: Apply Terrier's standard stopword list
+    custom = 'custom' #: Apply PyTerrierCustomStopwordList.Indexing for indexing, and PyTerrierCustomStopwordList.Retrieval for retrieval
 
     @staticmethod
     def _to_obj(this):
+        if isinstance(this, list):
+            rtr = TerrierStopwords('custom')
+            rtr.stopwords = list(this)
+            return rtr
         try:
             return TerrierStopwords(this)
         except ValueError:
             return this
+        
+    @staticmethod
+    def _indexing_config(this, termpipelines : List[str], properties : Dict[str,str], hooks : List):
+        if this is None or this == TerrierStopwords.none:
+            pass
+        if this == TerrierStopwords.terrier:
+            termpipelines.append('Stopwords')
+        if this == TerrierStopwords.custom:
+            from . import check_version
+            #assert check_version("5.8"), "Terrier 5.8 required"
+            properties["pyterrier.stopwords"]  = ",".join(this.stopwords)
+            termpipelines.append('org.terrier.python.PyTerrierCustomStopwordList$Indexing')
 
+            # this hook updates the index's properties to handle the python stopwords list
+            def _hook(pyindexer, index):
+                print("***** HOOK EXECUTED *****")
+                from . import cast
+                pindex = cast("org.terrier.structures.PropertiesIndex", index)
+                pindex.setIndexProperty("pyterrier.stopwords", ",".join(this.stopwords))
+                pindex.setIndexProperty("termpipelines", 
+                    pindex.getIndexProperty('termpipelines', None)
+                    .replace('org.terrier.python.PyTerrierCustomStopwordList$Indexing',
+                             'org.terrier.python.PyTerrierCustomStopwordList$Retrieval'))
+                pindex.flush()
+            hooks.append(_hook)
 
 class TerrierTokeniser(Enum):
     """
@@ -426,6 +455,7 @@ class TerrierIndexer:
         self.overwrite = overwrite
         self.verbose = verbose
         self.meta_reverse = meta_reverse
+        self.cleanup_hooks = []
 
     def setProperty(self, k, v):
         """
@@ -503,8 +533,7 @@ class TerrierIndexer:
         else:
             
             termpipeline = []
-            if self.stopwords is not None and self.stopwords != TerrierStopwords.none:
-                termpipeline.append('Stopwords')
+            TerrierStopwords._indexing_config(self.stopwords, termpipeline, self.properties, self.cleanup_hooks)
 
             stemmer_clz = TerrierStemmer._to_class(self.stemmer)
             if stemmer_clz is not None:
@@ -677,6 +706,9 @@ class DFIndexer(TerrierIndexer):
         javaDocCollection.close()
         self.index_called = True
         collectionIterator = None
+
+        for hook in self.cleanup_hooks:
+            hook(self, index.getIndex())
 
         if self.type is IndexingType.MEMORY:
             return index.getIndex().getIndexRef()
@@ -904,6 +936,8 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
             self.index_called = True
             collectionIterator = None
 
+        for hook in self.cleanup_hooks:
+            hook(self, index.getIndex())
 
         if self.type is IndexingType.MEMORY:
             return index.getIndex().getIndexRef()
@@ -981,7 +1015,12 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
                 ParallelIndexer.buildParallelTokenised(j_collections, self.index_dir, Indexer, Merger)
             else:
                 ParallelIndexer.buildParallel(j_collections, self.index_dir, Indexer, Merger)
-            return IndexRef.of(self.index_dir + "/data.properties")
+            
+            index_ref = self.index_dir + "/data.properties"
+            for hook in self.cleanup_hooks:
+                hook(self, IndexFactory.of(index_ref))
+
+            return IndexRef.of(index_ref)
 
     def _write_fifos(self, it, fifos):
         c = len(fifos)
@@ -1085,6 +1124,10 @@ class TRECCollectionIndexer(TerrierIndexer):
         lastdoc = None
         colObj.close()
         self.index_called = True
+        
+        for hook in self.cleanup_hooks:
+            hook(self, index.getIndex())
+
         if self.type is IndexingType.MEMORY:
             return index.getIndex().getIndexRef()
         return IndexRef.of(self.index_dir + "/data.properties")
@@ -1129,6 +1172,10 @@ class FilesIndexer(TerrierIndexer):
         global lastdoc
         lastdoc = None
         self.index_called = True
+
+        for hook in self.cleanup_hooks:
+            hook(self, index.getIndex())
+
         if self.type is IndexingType.MEMORY:
             return index.getIndex().getIndexRef()
         return IndexRef.of(self.index_dir + "/data.properties")

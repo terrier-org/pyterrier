@@ -5,7 +5,7 @@
 
   <groupId>org.terrier</groupId>
   <artifactId>terrier-python-helper</artifactId>
-  <version>0.0.7</version>
+  <version>0.0.8-SNAPSHOT</version>
   <url>http://terrier.org</url>
   <name>terrier-python-helper</name>
   <description>Python bindings for the Terrier IR platform</description>
