@@ -52,6 +52,28 @@ _irmeasures_columns = {
     'docno' : 'doc_id'
 }
 
+def _mean_of_measures(result, measures=None, num_q = None):
+        if len(result) == 0:
+            raise ValueError("No measures received - perhaps qrels and topics had no results in common")
+        measures_sum = {}
+        mean_dict = {}
+        if measures is None:
+            measures = list(next(iter(result.values())).keys())
+        measures_remove = ["runid"]
+        for m in measures_remove:
+            if m in measures:
+                measures.remove(m)
+        measures_no_mean = set(["num_q", "num_rel", "num_ret", "num_rel_ret"])
+        for val in result.values():
+            for measure in measures:
+                measure_val = val[measure]
+                measures_sum[measure] = measures_sum.get(measure, 0.0) + measure_val
+        if num_q is None:
+            num_q = len(result.values())
+        for measure, value in measures_sum.items():
+            mean_dict[measure] = value / (1 if measure in measures_no_mean else num_q)
+        return mean_dict
+
 def _convert_measures(metrics : MEASURES_TYPE) -> Tuple[Sequence[BaseMeasure], Dict[BaseMeasure,str]]:
     from ir_measures import parse_trec_measure
     rtr = []
@@ -271,8 +293,7 @@ def Experiment(
     """
     Allows easy comparison of multiple retrieval transformer pipelines using a common set of topics, and
     identical evaluation measures computed using the same qrels. In essence, each transformer is applied on 
-    the provided set of topics. Then the named trec_eval evaluation measures are computed 
-    (using `pt.Utils.evaluate()`) for each system.
+    the provided set of topics. Then the named evaluation measures are computed for each system.
 
     Args:
         retr_systems(list): A list of transformers to evaluate. If you already have the results for one 
@@ -576,6 +597,22 @@ def _restore_state(param_state):
     for (tran, param_name, param_value) in param_state:
         tran.set_parameter(param_name, param_value)
 
+def Evaluate(res : pd.DataFrame, qrels : pd.DataFrame, metrics=['map', 'ndcg'], perquery=False) -> Dict:
+    """
+    Evaluate the result dataframe with the given qrels
+
+    Args:
+        res: Either a dataframe with columns=['qid', 'docno', 'score'] or a dict {qid:{docno:score,},}
+        qrels: Either a dataframe with columns=['qid','docno', 'label'] or a dict {qid:{docno:label,},}
+        metrics(list): A list of strings specifying which evaluation metrics to use. Default=['map', 'ndcg']
+        perquery(bool): If true return each metric for each query, else return mean metrics. Default=False
+    """
+    from .io import coerce_dataframe
+    if len(res) == 0:
+        raise ValueError("No results for evaluation")
+
+    _, rtr = _run_and_evaluate(res, None, qrels, metrics, perquery=perquery)
+    return rtr
 
 def KFoldGridSearch( 
         pipeline : Transformer,

@@ -1,11 +1,13 @@
 import pandas as pd
 from collections import defaultdict
+from deprecated import deprecated
 
 
 class Utils:
-
+    # THIS CLASS WILL BE REMOVED the second minor release after 0.9
 
     @staticmethod
+    @deprecated(version="0.9")
     def convert_qrels_to_dict(df):
         """
         Convert a qrels dataframe to dictionary for use in pytrec_eval
@@ -22,6 +24,7 @@ class Utils:
         return(run_dict_pytrec_eval)
 
     @staticmethod
+    @deprecated(version="0.9")
     def convert_qrels_to_dataframe(qrels_dict) -> pd.DataFrame:
         """
         Convert a qrels dictionary to a dataframe
@@ -42,6 +45,7 @@ class Utils:
         return pd.DataFrame(result)
 
     @staticmethod
+    @deprecated(version="0.9")
     def convert_res_to_dict(df):
         """
         Convert a result dataframe to dictionary for use in pytrec_eval
@@ -58,54 +62,13 @@ class Utils:
         return(run_dict_pytrec_eval)
 
     @staticmethod
-    def evaluate(res, qrels, metrics=['map', 'ndcg'], perquery=False):
-        """
-        Evaluate the result dataframe with the given qrels
-
-        Args:
-            res: Either a dataframe with columns=['qid', 'docno', 'score'] or a dict {qid:{docno:score,},}
-            qrels: Either a dataframe with columns=['qid','docno', 'label'] or a dict {qid:{docno:label,},}
-            metrics(list): A list of strings specifying which evaluation metrics to use. Default=['map', 'ndcg']
-            perquery(bool): If true return each metric for each query, else return mean metrics. Default=False
-        """
-        from .io import coerce_dataframe
-        if not isinstance(res, dict):
-            res = coerce_dataframe(res)
-        if isinstance(res, pd.DataFrame):
-            batch_retrieve_results_dict = Utils.convert_res_to_dict(res)
-        else:
-            batch_retrieve_results_dict = res
-
-        if isinstance(qrels, pd.DataFrame):
-            qrels_df = qrels
-        else:
-            qrels_df = Utils.convert_qrels_to_dataframe(qrels)
-        if len(batch_retrieve_results_dict) == 0:
-            raise ValueError("No results for evaluation")
-
-        from .pipelines import _run_and_evaluate
-        _, rtr = _run_and_evaluate(res, None, qrels_df, metrics, perquery=perquery)
-        return rtr
+    @deprecated(version="0.9", reason="Use pt.Evaluate instead")
+    def evaluate(res : pd.DataFrame, qrels : pd.DataFrame, metrics=['map', 'ndcg'], perquery=False):
+        from .pipelines import Evaluate
+        return Evaluate(res, qrels, metrics=metrics, perquery=perquery)
 
     @staticmethod
+    @deprecated(version="0.9")
     def mean_of_measures(result, measures=None, num_q = None):
-        if len(result) == 0:
-            raise ValueError("No measures received - perhaps qrels and topics had no results in common")
-        measures_sum = {}
-        mean_dict = {}
-        if measures is None:
-            measures = list(next(iter(result.values())).keys())
-        measures_remove = ["runid"]
-        for m in measures_remove:
-            if m in measures:
-                measures.remove(m)
-        measures_no_mean = set(["num_q", "num_rel", "num_ret", "num_rel_ret"])
-        for val in result.values():
-            for measure in measures:
-                measure_val = val[measure]
-                measures_sum[measure] = measures_sum.get(measure, 0.0) + measure_val
-        if num_q is None:
-            num_q = len(result.values())
-        for measure, value in measures_sum.items():
-            mean_dict[measure] = value / (1 if measure in measures_no_mean else num_q)
-        return mean_dict
+        from .pipelines import _mean_of_measures
+        return _mean_of_measures(result, measures=measures, num_q=num_q)

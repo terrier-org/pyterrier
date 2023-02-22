@@ -23,7 +23,7 @@ class TestLTRPipeline(BaseTestCase):
             pt.ltr.apply_learned_model(train_request, form="fastrank")
         
         pipeline.fit(topics, qrels, topics, qrels)
-        pt.Utils.evaluate(
+        pt.Evaluate(
             pipeline.transform(topics),
             qrels
         )
@@ -50,7 +50,7 @@ class TestLTRPipeline(BaseTestCase):
         pipeline = features >> pt.ltr.apply_learned_model(xgb.sklearn.XGBRanker(**xgparams), form="ltr")
         
         pipeline.fit(topics, qrels, topics, qrels)
-        pt.Utils.evaluate(
+        pt.Evaluate(
             pipeline.transform(topics),
             qrels
         )
@@ -103,9 +103,9 @@ class TestLTRPipeline(BaseTestCase):
         )
         
         pipeline.fit(topics, qrels)
-        pt.Utils.evaluate(
+        pt.Evaluate(
             pipeline.transform(topics),
-            qrels,
+            qrels
         )
 
     def test_ltr_pipeline_feature_change(self):
