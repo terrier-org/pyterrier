@@ -39,12 +39,8 @@ public class JsonlDocumentIterator implements Iterator<FlatJSONDocument> {
         try {
             String line = this.scanner.nextLine().trim();
             return new FlatJSONDocument(line);
-        } catch (IllegalStateException ex) {
-            throw new NoSuchElementException("Illegal state");
-        } catch (JsonProcessingException ex) {
-            throw new NoSuchElementException("Invalid JSON");
-        } catch (IOException ex) {
-            throw new NoSuchElementException("IO Error");
+        } catch (Exception ee) {
+            throw new RuntimeException("Problem with JSON Document", ee);
         }
     }
 }
