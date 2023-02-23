@@ -88,8 +88,7 @@ class TestDunder(TempDirTestCase):
                  'The body may perhaps compensates for the loss']
         })
         import pyterrier as pt
-        pd_indexer = pt.DFIndexer(self.test_dir)
-        pd_indexer.properties["termpipelines"] = ""
+        pd_indexer = pt.DFIndexer(self.test_dir, stopwords=pt.TerrierStopwords.none, stemmer=pt.TerrierStemmer.none)
         indexref = pd_indexer.index(df["text"], df["docno"])
         index = pt.IndexFactory.of(indexref)
         self.assertIsNotNone(index)
@@ -109,6 +108,14 @@ class TestDunder(TempDirTestCase):
         self.assertTrue("crashing" in index.getLexicon())
         self.assertEqual(1, index.getLexicon()["crashing"].getFrequency())
         self.assertFalse("dentish" in index.getLexicon())
+        
+        # test Map$Entry can be decoded like a tuple
+        # both within an iterator, and separately
+        x, y = index.getLexicon().getLexiconEntry(0)
+        term_count = 0
+        for term, entry in index.getLexicon():
+            term_count += 1
+        self.assertEqual(term_count, index.getLexicon().numberOfEntries())
 
         # now test that IterablePosting has had its dunder methods added
         postings = index.getInvertedIndex().getPostings(index.getLexicon()["crashing"])
