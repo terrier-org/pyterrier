@@ -51,6 +51,20 @@ def setup_jnius():
         if 2147483647 == nextid:
             raise StopIteration()
         return self
+    
+    # Map$Entry can be decoded like a tuple
+    def MEgetitem(self, i):
+        if i == 0:
+            return self.getKey()
+        if i == 1:
+            return self.getValue()
+        raise IndexError()
+    
+    protocol_map['java.util.Map$Entry'] = {
+        '__getitem__' : MEgetitem,
+        '__iter__' : lambda self: iter([self.getKey(), self.getValue()]),
+        '__len__' : lambda self: 2
+    }
 
     protocol_map["org.terrier.structures.postings.IterablePosting"] = {
         '__iter__': lambda self: self,
