@@ -74,7 +74,7 @@ which allows multiple query dependent features to be calculated at once, by virt
 An equivalent pipeline to the example above would be::
 
     #pipeline = bm25 >> (tf ** pl2)
-    pipeline = pt.FeaturesBatchRetrieve(index, wmodel="BM25", features=["WMODEL:Tf", "WMODEL:PL2"]
+    pipeline = pt.FeaturesBatchRetrieve(index, wmodel="BM25", features=["WMODEL:Tf", "WMODEL:PL2"])
 
 
 Apply Functions
