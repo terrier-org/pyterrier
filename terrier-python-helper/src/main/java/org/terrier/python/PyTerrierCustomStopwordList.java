@@ -14,6 +14,8 @@ public abstract class PyTerrierCustomStopwordList implements TermPipeline
 {
     public static String PROPERTY = "pyterrier.stopwords";
     public static class Retrieval extends PyTerrierCustomStopwordList implements IndexConfigurable {
+
+        boolean configured = false;
         
         public void setIndex(Index index) {
             if (! (index instanceof PropertiesIndex)) {
@@ -21,6 +23,15 @@ public abstract class PyTerrierCustomStopwordList implements TermPipeline
             }
             PropertiesIndex pi = (PropertiesIndex)index;
             this.setup(pi.getProperties());
+            configured = true;
+        }
+
+        public void processTerm(final String t)
+	    {
+            if (! configured) {
+                throw new IllegalStateException("PyTerrierCustomStopwordList$Retrieval used, but index has not yet been configured");
+            }
+            super.processTerm(t);
         }
     }
 
@@ -59,7 +70,7 @@ public abstract class PyTerrierCustomStopwordList implements TermPipeline
         }
     } 
 
-    public final boolean isStopword(String t) {
+    public boolean isStopword(String t) {
         return stopWords.contains(t);
     }
 
@@ -69,7 +80,7 @@ public abstract class PyTerrierCustomStopwordList implements TermPipeline
 	 * object. This is the TermPipeline implementation part of this object.
 	 * @param t The term to be checked.
 	 */
-	public final void processTerm(final String t)
+	public void processTerm(final String t)
 	{
 		if (stopWords.contains(t))
 			return;
