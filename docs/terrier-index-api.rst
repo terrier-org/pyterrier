@@ -83,18 +83,20 @@ lookup can be done like accessing a dictionary::
 
     index.getLexicon()["chemic"].getDocumentFrequency()
 
-As our index is stemmed, we used the stemmed form of the word 'chemical' which is 'chemic'
+As our index is stemmed, we used the stemmed form of the word 'chemical' which is 'chemic'.
 
 How can I see all terms in an index?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We can iterate over a Lexicon. Like calling the ``iterator()`` method of 
-`LexiconEntry <http://terrier.org/docs/current/javadoc/org/terrier/structures/Lexicon.html>`_, 
-in Java, each iteration obtains a ``Map.Entry<String,LexiconEntry>``. If the statistics of each term 
-are required, these are available from the LexiconEntry, c.f. ``kv.getValue()``::
+`Lexicon <http://terrier.org/docs/current/javadoc/org/terrier/structures/Lexicon.html>`_, 
+in Java, each iteration obtains a ``Map.Entry<String,LexiconEntry>``. This can be decoded, 
+so we can iterate over each term and LexiconEntry (which provides access to the statistics 
+of each term) contained within the Lexicon.  
 
-    for kv in index.getLexicon():
-        print(kv.getKey())
+    for term, le in index.getLexicon():
+        print(term)
+        print(le.getFrequency())
 
 What is the un-smoothed probability of term Y occurring in the collection?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
