@@ -116,6 +116,12 @@ class TestDunder(TempDirTestCase):
         for term, entry in index.getLexicon():
             term_count += 1
         self.assertEqual(term_count, index.getLexicon().numberOfEntries())
+        term_count = 0
+        for lee in index.getLexicon():
+            term_count += 1
+            lee.getKey()
+            lee.getValue()
+        self.assertEqual(term_count, index.getLexicon().numberOfEntries())
 
         # now test that IterablePosting has had its dunder methods added
         postings = index.getInvertedIndex().getPostings(index.getLexicon()["crashing"])
