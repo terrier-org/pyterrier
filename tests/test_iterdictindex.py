@@ -208,6 +208,12 @@ class TestIterDictIndexer(TempDirTestCase):
         
         # før is tokenised as f r by EnglishTokeniser
         self.assertFalse("money" in index.getLexicon())
+        br = pt.BatchRetrieve(index)
+        res = br.search("crashing")
+        self.assertEqual(0, len(res))
+        res = br.search("money")
+        self.assertEqual(0, len(res))
+
 
     def test_check_nostemmer(self):
         it = [

@@ -16,6 +16,14 @@ public abstract class PyTerrierCustomStopwordList implements TermPipeline
     public static class Retrieval extends PyTerrierCustomStopwordList implements IndexConfigurable {
 
         boolean configured = false;
+
+        public Retrieval(TermPipeline _next) {
+            super(_next);
+        }
+        
+        public Retrieval() {
+            super();
+        }
         
         public void setIndex(Index index) {
             if (! (index instanceof PropertiesIndex)) {
