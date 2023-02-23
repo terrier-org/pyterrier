@@ -352,10 +352,14 @@ class TerrierStopwords(Enum):
 
             # this hook updates the index's properties to handle the python stopwords list
             def _hook(pyindexer, index):
-                print("***** HOOK EXECUTED *****")
                 from . import cast
                 pindex = cast("org.terrier.structures.PropertiesIndex", index)
+                # store the stopwords into the Index's properties
                 pindex.setIndexProperty("pyterrier.stopwords", ",".join(this.stopwords))
+
+                # change the stopwords list implementation: the Indexing variant obtains
+                # stopwords from the global ApplicationSetup properties, while the 
+                # Retrieval variant obtains them from the *Index* properties instead
                 pindex.setIndexProperty("termpipelines", 
                     pindex.getIndexProperty('termpipelines', None)
                     .replace('org.terrier.python.PyTerrierCustomStopwordList$Indexing',
