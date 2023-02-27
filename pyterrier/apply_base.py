@@ -37,11 +37,15 @@ class ApplyForEachQuery(ApplyTransformerBase):
         from . import tqdm
 
         it = res.groupby("qid")
+        lastqid = None
         if self.verbose:
             it = tqdm(it, unit='query')
         try:
             if self.batch_size is None:
-                query_dfs = [self.fn(group) for qid, group in it]
+                query_dfs = []
+                for qid, group in it:
+                    lastqid = qid
+                    query_dfs.append(self.fn(group))
             else:
                 # fn cannot be applied to more than batch_size rows at once
                 # so we must split and reconstruct the output FOR EACH QUERY
@@ -52,7 +56,7 @@ class ApplyForEachQuery(ApplyTransformerBase):
                     iterator = split_df(group, num_chunks)
                     query_dfs.append( pd.concat([self.fn(chunk_df) for chunk_df in iterator]) )
         except Exception as a:
-            raise Exception("Problem applying %s" % self.fn) from a
+            raise Exception("Problem applying %s for qid %s" % (self.fn, lastqid)) from a
 
         if self.add_ranks:
             try:
@@ -60,8 +64,8 @@ class ApplyForEachQuery(ApplyTransformerBase):
             except KeyError as ke:
                 suffix = 'Try setting add_ranks=False'
                 if len(query_dfs) > 0 and 'score' not in query_dfs[0].columns:
-                    suffix = 'Score column not present. Set add_ranks=False'
-                raise ValueError("Cannot apply add_ranks in pt.apply.by_query -" + suffix) from ke
+                    suffix = 'score column not present. Set add_ranks=False'
+                raise ValueError("Cannot apply add_ranks in pt.apply.by_query - " + suffix) from ke
         rtr = pd.concat(query_dfs)
         return rtr
 
