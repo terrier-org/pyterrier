@@ -259,7 +259,7 @@ def apply_learned_model(learner, form : str = 'regression', **kwargs) -> Transfo
 
         Args: 
             learner: an sklearn-compatible estimator
-            form(str): either 'regression' or 'ltr'        
+            form(str): either 'regression', 'ltr' or 'fastrank'        
     """
     if form == 'ltr':
         return LTRTransformer(learner, **kwargs)
