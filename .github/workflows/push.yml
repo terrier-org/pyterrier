@@ -16,12 +16,15 @@ jobs:
       matrix:
         python-version: ['3.7', '3.10']
         java: [11, 13]
-        os: ['ubuntu-latest', 'macOs-latest', 'windows-latest', 'self-hosted']
+        os: ['ubuntu-latest', 'macOs-latest', 'windows-latest']
         architecture: ['x64']
         terrier: ['snapshot'] #'5.3', '5.4-SNAPSHOT', 
-#        exclude:
-#          - java: 8
-#            terrier: '5.3-SNAPSHOT'
+        include:
+          - os: 'self-hosted' # our m1 runner, only one setting
+            python-version: '3.9'
+            java: 11
+            architecture: 'arm'
+            terrier: 'snapshot'
 
     runs-on: ${{ matrix.os }}
     steps:
