@@ -40,6 +40,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     
     - name: Setup java
+      if: matrix.os != 'self-hosted'
       uses: actions/setup-java@v3
       with:
         java-version: ${{ matrix.java }}
