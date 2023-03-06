@@ -1193,13 +1193,12 @@ class DocListIterator(PythonJavaClass):
         dpl = DocListIterator.dpl_class()
         # this works around a bug in the counting of doc lengths in Tr 5.7
         if self.tr57:
-            for t,tf in doc_dict["toks"].items():
+            for t, tf in doc_dict["toks"].items():
                 for i in range(int(tf)):
                     dpl.insert(t)
-        else: #this code for 5.8 onwards
-            for t,tf in doc_dict["toks"].items():
-                for i in range(int(tf)):
-                    dpl.insert(int(tf), t)
+        else: # this code for 5.8 onwards
+            for t, tf in doc_dict["toks"].items():
+                dpl.insert(int(tf), t)
         
         # we cant make the toks column into the metaindex as it isnt a string. remove it.
         del doc_dict["toks"]
