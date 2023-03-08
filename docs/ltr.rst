@@ -189,7 +189,7 @@ interface that is supported by PyTerrier by supplying `form="ltr"` kwarg to `pt.
     )
 
 Note that if the feature definitions in the pipeline change, you will need to create a new instance of XGBRanker (or LGBMRanker, as appropriate)
-and the ``pt.ltr.apply_learned_model()`` transformer. If you attempt to reuse XGBRanker/LGBMRanker within a different pipelines, the 
+and the ``pt.ltr.apply_learned_model()`` transformer. If you attempt to reuse XGBRanker/LGBMRanker within different pipelines, the 
 ``pt.ltr.apply_learned_model()`` transformer will try to warn you about this by raising a ``ValueError`` with `Expected X number of features, but found Y features`.
 
 In our experience, LightGBM *tends* to be more effective than xgBoost.
