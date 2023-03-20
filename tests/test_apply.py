@@ -52,9 +52,12 @@ class TestApply(BaseTestCase):
             )
         testDF = pd.DataFrame([["q1", origquery]], columns=["qid", "query"])
         rtr = p(testDF)
-        print(rtr)
         self.assertEqual(rtr.iloc[0]["query"], "bear wolf")
         self.assertEqual(rtr.iloc[0]["query_0"], origquery)
+
+        testDF2 = pd.DataFrame([["q1"]], columns=["qid"])
+        rtrDR2 = pt.apply.query(lambda row : row["qid"] )(testDF2)
+        self.assertEqual(rtrDR2.iloc[0]["query"], "q1")
 
     def test_by_query_apply(self):
         inputDf = pt.new.ranked_documents([[1], [2]], qid=["1", "2"])

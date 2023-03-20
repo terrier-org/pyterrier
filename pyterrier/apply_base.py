@@ -204,8 +204,12 @@ class ApplyQueryTransformer(ApplyTransformerBase):
 
     def transform(self, inputRes):
         from .model import push_queries
-        fn = self.fn
-        outputRes = push_queries(inputRes.copy(), inplace=True, keep_original=True)
+        fn = self.fn        
+        if "query" in inputRes.columns:
+            # we only push if a query already exists
+            outputRes = push_queries(inputRes.copy(), inplace=True, keep_original=True)
+        else:
+            outputRes = inputRes.copy()
         if self.verbose:
             tqdm.pandas(desc="pt.apply.query", unit="d")
             outputRes["query"] = outputRes.progress_apply(fn, axis=1)
