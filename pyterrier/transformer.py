@@ -213,11 +213,14 @@ class Transformer:
             raise ValueError(('Invalid parameter name %s for transformer %s. '+
                     'Check the list of available parameters') %(name, str(self)))
 
-    def __call__(self, *args, **kwargs) -> pd.DataFrame:
+    def __call__(self, input : Union[pd.DataFrame, Iterable[dict]]) -> pd.DataFrame:
         """
-            Sets up a default method for every transformer, which is aliased to transform(). 
+            Sets up a default method for every transformer, which is aliased to transform() (for DataFrames)
+            or transform_iter() (for iterable dictionaries) depending on the type of input. 
         """
-        return self.transform(*args, **kwargs)
+        if isinstance(input, pd.DataFrame):
+            return self.transform(input)
+        return self.transform_iter(input)
 
     def __rshift__(self, right) -> 'Transformer':
         from .ops import ComposedPipeline
