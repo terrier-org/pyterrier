@@ -163,7 +163,7 @@ You can also create a Transformer object from existing results, e.g. saved on di
 etc. The resulting "source transformer" will return all results by matching on the qid of the input::
 
   res = pt.io.read_results("/path/to/baseline.res.gz")
-  baselineT = pt.Transformer.from_df(df, uniform=True)
+  baselineT = pt.Transformer.from_df(res, uniform=True)
 
   Q1 = pt.new.queries("test query", qid="Q1")
   resQ1 = baselineT.transform(Q1)
