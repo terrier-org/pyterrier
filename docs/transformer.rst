@@ -57,7 +57,7 @@ This class is the base class for all transformers.
 
 
 Default Method
-^^^^^^^^^^^^^^
+,,,,,,,,,,,,,,,,
 
 You can invoke a transformer's transfor method simply by calling the default method. If ``t`` is a transformer::
 
@@ -75,7 +75,8 @@ This can be more succinct than creating new dataframes for testing transformer i
 
 
 Operator Support
-^^^^^^^^^^^^^^^^
+,,,,,,,,,,,,,,,,
+
 By extending Transformer, all transformer implementations gain the necessary "dunder" methods (e.g. ``__rshift__()``)
 to support the transformer operators (`>>`, `+` etc). NB: This class used to be called ``pyterrier.transformer.TransformerBase``
 

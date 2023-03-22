@@ -98,7 +98,8 @@ class Transformer:
     def transform_iter(self, input: Iterable[dict]) -> pd.DataFrame:
         """
             Method that proesses an iter-dict by instantiating it as a dataframe and calling transform().
-            Returns the DataFrame returned by transform(). Used in the implementation of index() on a composed 
+            Returns the DataFrame returned by transform(). This can be a handier version of transform()
+            that avoids constructing a dataframe by hand. Alo used in the implementation of index() on a composed 
             pipeline.
         """
         return self.transform(pd.DataFrame(list(input)))
