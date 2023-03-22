@@ -98,7 +98,8 @@ class Transformer:
     def transform_iter(self, input: Iterable[dict]) -> pd.DataFrame:
         """
             Method that proesses an iter-dict by instantiating it as a dataframe and calling transform().
-            Returns the DataFrame returned by transform(). Used in the implementation of index() on a composed 
+            Returns the DataFrame returned by transform(). This can be a handier version of transform()
+            that avoids constructing a dataframe by hand. Alo used in the implementation of index() on a composed 
             pipeline.
         """
         return self.transform(pd.DataFrame(list(input)))
@@ -213,11 +214,14 @@ class Transformer:
             raise ValueError(('Invalid parameter name %s for transformer %s. '+
                     'Check the list of available parameters') %(name, str(self)))
 
-    def __call__(self, *args, **kwargs) -> pd.DataFrame:
+    def __call__(self, input : Union[pd.DataFrame, Iterable[dict]]) -> pd.DataFrame:
         """
-            Sets up a default method for every transformer, which is aliased to transform(). 
+            Sets up a default method for every transformer, which is aliased to transform() (for DataFrames)
+            or transform_iter() (for iterable dictionaries) depending on the type of input. 
         """
-        return self.transform(*args, **kwargs)
+        if isinstance(input, pd.DataFrame):
+            return self.transform(input)
+        return self.transform_iter(input)
 
     def __rshift__(self, right) -> 'Transformer':
         from .ops import ComposedPipeline
