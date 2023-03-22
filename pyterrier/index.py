@@ -346,7 +346,7 @@ class TerrierStopwords(Enum):
             termpipelines.append('Stopwords')
         if this == TerrierStopwords.custom:
             from . import check_version
-            #assert check_version("5.8"), "Terrier 5.8 required"
+            assert check_version("5.8"), "Terrier 5.8 required"
             properties["pyterrier.stopwords"]  = ",".join(this.stopwords)
             termpipelines.append('org.terrier.python.PyTerrierCustomStopwordList$Indexing')
 
@@ -421,7 +421,7 @@ class TerrierIndexer:
             verbose : bool = False, 
             meta_reverse : List[str] = ["docno"],
             stemmer : Union[None, str, TerrierStemmer] = TerrierStemmer.porter,
-            stopwords : Union[None, TerrierStopwords] = TerrierStopwords.terrier,
+            stopwords : Union[None, TerrierStopwords, List[str]] = TerrierStopwords.terrier,
             tokeniser : Union[str,TerrierTokeniser] = TerrierTokeniser.english,
             type=IndexingType.CLASSIC, 
             **kwargs):
