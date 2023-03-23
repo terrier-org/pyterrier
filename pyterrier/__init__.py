@@ -201,7 +201,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     globals()["TerrierTokeniser"] = TerrierTokeniser
     # .pipelines etc
     globals()["Experiment"] = Experiment
-    globals()["Experiment"] = Evaluate
+    globals()["Evaluate"] = Evaluate
     globals()["GridScan"] = GridScan
     globals()["GridSearch"] = GridSearch
     globals()["KFoldGridSearch"] = KFoldGridSearch
