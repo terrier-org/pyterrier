@@ -647,7 +647,7 @@ class DFIndexUtils:
             if text_row is None:
                 text_row = ""
             hashmap = HashMap()
-            for column, value in meta_column[1].iteritems():
+            for column, value in meta_column[1].items():
                 if value is None:
                     value = ""
                 hashmap.put(column, value)
