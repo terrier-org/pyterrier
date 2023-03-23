@@ -340,7 +340,7 @@ class DePassager(Transformer):
             rtr = rtr.drop(columns=['docno', 'pid']).rename(columns={"olddocno" : "docno"})
 
         if self.agg == 'mean':
-            rtr = topics_and_res.groupby(['qid', 'olddocno']).mean()['score'].reset_index().rename(columns={'olddocno' : 'docno'})
+            rtr = topics_and_res.groupby(['qid', 'olddocno'])['score'].mean().reset_index().rename(columns={'olddocno' : 'docno'})
             from .model import query_columns
             #add query columns back
             rtr = rtr.merge(topics_and_res[query_columns(topics_and_res)].drop_duplicates(), on='qid')
