@@ -192,26 +192,26 @@ class TestIterDictIndexer(TempDirTestCase):
 
     def test_check_customstops(self):
         it = [
-            {'docno': '1', 'url': 'url1', 'text': 'He ran out of money, so he had to stop playing', 'title': 'Woes of playing poker'},
+            {'docno': '1', 'url': 'url1', 'text': 'He ran out of møney, so he had to stop playing', 'title': 'Woes of playing poker'},
             {'docno': '2', 'url': 'url2', 'text': 'The waves were crashing on the shore; it was a', 'title': 'Lovely sight'},
             {'docno': '3', 'url': 'url3', 'text': 'The body may perhaps compensates før the loss', 'title': 'Best of Viktor Prowoll'},
         ]
-        indexer = pt.IterDictIndexer(self.test_dir, stemmer=pt.TerrierStemmer.none, stopwords=['money', 'crashing'], overwrite=True)
+        indexer = pt.IterDictIndexer(self.test_dir, tokeniser=pt.TerrierTokeniser.utf, stemmer=pt.TerrierStemmer.none, stopwords=['møney', 'crashing'], overwrite=True)
         indexref = indexer.index(it)
         index = pt.IndexFactory.of(indexref)
         index = pt.cast("org.terrier.structures.IndexOnDisk", index)
         self.assertIn(member="PyTerrierCustomStopwordList$Retrieval", container=index.getIndexProperty("termpipelines", "bla"))
         self.assertIsNotNone(index.getIndexProperty('pyterrier.stopwords', None))
-        self.assertTrue("money" in index.getIndexProperty('pyterrier.stopwords', None))
+        self.assertTrue("møney" in index.getIndexProperty('pyterrier.stopwords', None))
         self.assertTrue("crashing" in index.getIndexProperty('pyterrier.stopwords', None))
         self.assertEqual(10, index.getDocumentIndex().getDocumentLength(0)) # playing removed?
         
         # før is tokenised as f r by EnglishTokeniser
-        self.assertFalse("money" in index.getLexicon())
+        self.assertFalse("møney" in index.getLexicon())
         br = pt.BatchRetrieve(index)
         res = br.search("crashing")
         self.assertEqual(0, len(res))
-        res = br.search("money")
+        res = br.search("møney")
         self.assertEqual(0, len(res))
 
 
