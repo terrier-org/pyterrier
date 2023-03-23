@@ -348,7 +348,9 @@ class TerrierStopwords(Enum):
             assert check_version("5.8"), "Terrier 5.8 required"
             assert stopword_list is not None, "expected to receive a stopword list"
 
-            properties["pyterrier.stopwords"]  = ",".join(stopword_list)
+            stopword_list_esc = [t.replace(",", "\\,") for t in stopword_list ]
+
+            properties["pyterrier.stopwords"]  = ",".join(stopword_list_esc)
             termpipelines.append('org.terrier.python.PyTerrierCustomStopwordList$Indexing')
 
             # this hook updates the index's properties to handle the python stopwords list
@@ -356,7 +358,7 @@ class TerrierStopwords(Enum):
                 from . import cast
                 pindex = cast("org.terrier.structures.PropertiesIndex", index)
                 # store the stopwords into the Index's properties
-                pindex.setIndexProperty("pyterrier.stopwords", ",".join(stopword_list))
+                pindex.setIndexProperty("pyterrier.stopwords", ",".join(stopword_list_esc))
 
                 # change the stopwords list implementation: the Indexing variant obtains
                 # stopwords from the global ApplicationSetup properties, while the 

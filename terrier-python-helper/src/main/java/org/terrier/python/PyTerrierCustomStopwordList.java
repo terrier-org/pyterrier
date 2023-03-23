@@ -72,9 +72,9 @@ public abstract class PyTerrierCustomStopwordList implements TermPipeline
         if (termString == null) {
             return;
         }
-        String[] terms = termString.split(",");
+        String[] terms = termString.split("(?<!\\\\),");
         for (String t : terms) {
-            stopWords.add(t);
+            stopWords.add(t.replace("\\,", ","));
         }
     } 
 
