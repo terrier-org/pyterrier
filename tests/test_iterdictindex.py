@@ -191,6 +191,8 @@ class TestIterDictIndexer(TempDirTestCase):
         pt.ApplicationSetup.setProperty("termpipelines", "Stopwords,PorterStemmer")
 
     def test_check_customstops(self):
+        if not pt.check_version("5.8"):
+            self.skipTest("Requires Terrier 5.8")
         it = [
             {'docno': '1', 'url': 'url1', 'text': 'He ran out of møney, so he had to stop playing', 'title': 'Woes of playing poker'},
             {'docno': '2', 'url': 'url2', 'text': 'The waves were crashing on the shore; it was a', 'title': 'Lovely sight'},
