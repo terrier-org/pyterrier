@@ -52,9 +52,12 @@ class TestApply(BaseTestCase):
             )
         testDF = pd.DataFrame([["q1", origquery]], columns=["qid", "query"])
         rtr = p(testDF)
-        print(rtr)
         self.assertEqual(rtr.iloc[0]["query"], "bear wolf")
         self.assertEqual(rtr.iloc[0]["query_0"], origquery)
+
+        testDF2 = pd.DataFrame([["q1"]], columns=["qid"])
+        rtrDR2 = pt.apply.query(lambda row : row["qid"] )(testDF2)
+        self.assertEqual(rtrDR2.iloc[0]["query"], "q1")
 
     def test_by_query_apply(self):
         inputDf = pt.new.ranked_documents([[1], [2]], qid=["1", "2"])
@@ -74,8 +77,12 @@ class TestApply(BaseTestCase):
         outputDfEmpty = p(inputDf.head(0))
 
         p2 = pt.apply.by_query(lambda x: x)
-        with self.assertRaisesRegex(ValueError, 'Score column not present'):
+        with self.assertRaisesRegex(ValueError, 'score column not present'):
             p2(pt.new.queries(['query 1', 'query 2']))
+
+        p3 = pt.apply.by_query(lambda x: 5/0, add_ranks=False)
+        with self.assertRaisesRegex(Exception, 'for qid 1'):
+            p3(pt.new.queries(['query 1', 'query 2']))
 
     def test_by_query_apply_batch(self):
         # same as test_by_query_apply, but batch_size is set.

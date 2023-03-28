@@ -30,7 +30,7 @@ Calculating Features
 Feature Union (`**`)
 ~~~~~~~~~~~~~~~~~~~~
 
-PyTerrier's main way to faciliate calculating extra features is through the `**` operator. Consider an example where
+PyTerrier's main way to faciliate calculating and intgrating extra features is through the `**` operator. Consider an example where
 the candidate set should be identified using the BM25 weighting model, and then additional features computed using the
 Tf and PL2 models::
 
@@ -74,15 +74,51 @@ which allows multiple query dependent features to be calculated at once, by virt
 An equivalent pipeline to the example above would be::
 
     #pipeline = bm25 >> (tf ** pl2)
-    pipeline = pt.FeaturesBatchRetrieve(index, wmodel="BM25", features=["WMODEL:Tf", "WMODEL:PL2"]
+    pipeline = pt.FeaturesBatchRetrieve(index, wmodel="BM25", features=["WMODEL:Tf", "WMODEL:PL2"])
 
 
-Apply Functions
+Apply Functions for Custom Features
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you have a way to calculate one or multiple ranking features at once, you can use pt.apply functions to create
-your feature sets.  See the :ref:`pyterrier.apply` for examples. Functions created by pt.apply can be combined using 
-the `**` operator.
+your feature sets.  See :ref:`pyterrier.apply` for more examples. In particular, use `pt.apply.doc_score` for 
+calculating a single feature based on a function. Transformers created by pt.apply can be combined using 
+the `**` operator. 
+
+For instance, consider you have two functions that each return one score that are to be used as
+features. We can instantiate these functions as Transformers using `pt.apply.doc_score()` invocations. Such custom 
+features can both be combined into a LTR pipeline using the `**` operator::
+
+    featureA = pt.apply.doc_score(lambda row: 5)
+    featureB = pt.apply.doc_score(lambda row: 2)
+    pipeline2f = bm25 >> (featureA ** featureB)
+    
+The output of ``pipeline2f`` would be as follows:
+
+====  ==========  ========  ============  =========================
+  ..  qid          docno        score              features
+====  ==========  ========  ============  =========================
+   1  q1             d5     (bm25 score)  [5, 2]
+====  ==========  ========  ============  =========================
+
+Of course, our example lambda functions return static scores for each document rather than computing meaningful features,
+for instance making a lookup based on ``row["docid"]`` or other attributes of each ``row``. 
+
+If we want to calculate more features at once, then we can go faster by using `pt.apply.doc_features`:: 
+
+    two_features = pt.apply.doc_features(lambda row: np.array([0,1])) # use doc_features when calculating multiple features
+    one_feature = pt.apply.doc_score(lambda row: 5)                   # use doc_score when calculating a single feature
+    pipeline3f = bm25 >> (two_features ** one_feature)
+
+The output of ``pipeline3f`` would be as follows:
+
+====  ==========  ========  ============  =========================
+  ..  qid          docno        score              features
+====  ==========  ========  ============  =========================
+   1  q1             d5     (bm25 score)  [0, 1, 5]
+====  ==========  ========  ============  =========================
+
+
 
 Learning
 ========
@@ -152,7 +188,9 @@ interface that is supported by PyTerrier by supplying `form="ltr"` kwarg to `pt.
         names=["BM25 Baseline", "LambdaMART (xgBoost)", "LambdaMART (LightGBM)" ]
     )
 
-Note that if the feature definitions in the pipeline change, you will need to create a new instance of XGBRanker (or LGBMRanker, as appropriate).
+Note that if the feature definitions in the pipeline change, you will need to create a new instance of XGBRanker (or LGBMRanker, as appropriate)
+and the ``pt.ltr.apply_learned_model()`` transformer. If you attempt to reuse XGBRanker/LGBMRanker within different pipelines, the 
+``pt.ltr.apply_learned_model()`` transformer will try to warn you about this by raising a ``ValueError`` with `Expected X number of features, but found Y features`.
 
 In our experience, LightGBM *tends* to be more effective than xgBoost.
 

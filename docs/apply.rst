@@ -66,6 +66,10 @@ In the following, we create a document re-ranking transformer that increases the
     qid docno                      url  score  rank
     0  q1    d1  https://www.example.com    1.1     0
 
+We can combine this pt.apply.doc_score() transformer into as a re-ranking pipeline using the `>>` operator::
+
+    pipeline = bm25 >> http_boost 
+
 Further examples are shown for each apply method below.
 
 Apply Methods

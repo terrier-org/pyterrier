@@ -7,6 +7,14 @@ from pytest import warns
 
 class TestTransformer(BaseTestCase):
 
+    def test_call(self):
+        inputDocs = pt.new.ranked_documents([[2, 1], [2]], qid=["q100", "q10"])
+        t = pt.Transformer.from_df(inputDocs)
+        self.assertEqual(2, len(t(pt.new.queries(['a'], qid=['q100']))))
+        self.assertEqual(1, len(t(pt.new.queries(['a'], qid=['q10']))))
+        self.assertEqual(2, len(t([{'qid' : 'q100'}])))
+        self.assertEqual(1, len(t([{'qid' : 'q10'}])))
+
     def test_is_transformer(self):
         class MyTransformer1(pt.Transformer):
             pass

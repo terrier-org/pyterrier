@@ -261,11 +261,18 @@ class IndexingType(enum.Enum):
     SINGLEPASS = 2 #: A single-pass indexing regime, which builds an inverted index directly. No direct index structure is created. Typically is faster than classical indexing.
     MEMORY = 3 #: An in-memory index. No persistent index is created.
 
+_stemmer_cache = {}
 class TerrierStemmer(Enum):
     """
         This enum provides an API for the stemmers available in Terrier. The stemming configuration is saved in the index
         and loaded at retrieval time. `Snowball <https://snowballstem.org/>`_ stemmers for various languages 
         `are available in Terrier <http://terrier.org/docs/current/javadoc/org/terrier/terms/package-summary.html>`_.
+
+        It can also be used to access the stemmer::
+
+            stemmer = pt.TerrierStemmer.porter
+            stemmed_word = stemmer.stem('abandoned')
+
     """
     none = 'none' #: Apply no stemming
     porter = 'porter' #: Apply Porter's English stemmer
@@ -316,7 +323,22 @@ class TerrierStemmer(Enum):
 
         if isinstance(this, str):
             return this
-        
+
+    def stem(self, tok):
+        if self not in _stemmer_cache:
+            clz_name = self._to_class(self)
+            if clz_name is None:
+                class NoOpStem():
+                    def stem(self, word):
+                        return word
+                _stemmer_cache[self] = NoOpStem()
+            else:
+                if '.' not in clz_name:
+                    clz_name = f'org.terrier.terms.{clz_name}'
+                 # stemmers are termpipeline objects, and these have chained constructors
+                 # pass None to use the appropriate constructor
+                _stemmer_cache[self] = autoclass(clz_name)(None)
+        return _stemmer_cache[self].stem(tok)
 
 class TerrierStopwords(Enum):
     """
@@ -661,7 +683,7 @@ class DFIndexUtils:
             if text_row is None:
                 text_row = ""
             hashmap = HashMap()
-            for column, value in meta_column[1].iteritems():
+            for column, value in meta_column[1].items():
                 if value is None:
                     value = ""
                 hashmap.put(column, value)
@@ -1247,13 +1269,12 @@ class DocListIterator(PythonJavaClass):
         dpl = DocListIterator.dpl_class()
         # this works around a bug in the counting of doc lengths in Tr 5.7
         if self.tr57:
-            for t,tf in doc_dict["toks"].items():
+            for t, tf in doc_dict["toks"].items():
                 for i in range(int(tf)):
                     dpl.insert(t)
-        else: #this code for 5.8 onwards
-            for t,tf in doc_dict["toks"].items():
-                for i in range(int(tf)):
-                    dpl.insert(int(tf), t)
+        else: # this code for 5.8 onwards
+            for t, tf in doc_dict["toks"].items():
+                dpl.insert(int(tf), t)
         
         # we cant make the toks column into the metaindex as it isnt a string. remove it.
         del doc_dict["toks"]

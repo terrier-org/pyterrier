@@ -16,12 +16,15 @@ jobs:
       matrix:
         python-version: ['3.7', '3.10']
         java: [11, 13]
-        os: ['ubuntu-latest', 'macOs-latest', 'windows-latest'] # 
+        os: ['ubuntu-latest', 'macOs-latest', 'windows-latest']
         architecture: ['x64']
         terrier: ['snapshot'] #'5.3', '5.4-SNAPSHOT', 
-#        exclude:
-#          - java: 8
-#            terrier: '5.3-SNAPSHOT'
+        include:
+          - os: 'self-hosted' # our m1 runner, only one setting
+            python-version: '3.9'
+            java: 11
+            architecture: 'arm'
+            terrier: 'snapshot'
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -34,11 +37,13 @@ jobs:
     - uses: actions/checkout@v3
     
     - name: Set up Python ${{ matrix.python-version }}
+      if: matrix.os != 'self-hosted'
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
     
     - name: Setup java
+      if: matrix.os != 'self-hosted'
       uses: actions/setup-java@v3
       with:
         java-version: ${{ matrix.java }}
@@ -54,6 +59,7 @@ jobs:
 
     # follows https://medium.com/ai2-blog/python-caching-in-github-actions-e9452698e98d
     - name: Loading Python & dependencies from cache
+      if: matrix.os != 'self-hosted'
       uses: actions/cache@v3
       with:
         path: ${{ env.pythonLocation }}

@@ -55,8 +55,32 @@ This class is the base class for all transformers.
 .. autoclass:: pyterrier.Transformer
     :members:
 
-Moreover, by extending Transformer, all transformer implementations gain the necessary "dunder" methods (e.g. ``__rshift__()``)
+
+Default Method
+,,,,,,,,,,,,,,,,
+
+You can invoke a transformer's transfor method simply by calling the default method. If ``t`` is a transformer::
+
+  df_in = pt.new.queries(['test query'], qid=['q1'])
+  df_out = t.transform(df_in)
+  df_out = t(df_in)
+
+The default method can also detect iterable dictionaries, and pass those directly to ``transform_iter()`` 
+(which typically calls ``transform()``). So the following expression is equivalent to the examples in the 
+previous code block::
+
+  df_out = t([{'qid' : 'q1', 'query' : 'test query'}])
+
+This can be more succinct than creating new dataframes for testing transformer implementations.
+
+
+Operator Support
+,,,,,,,,,,,,,,,,
+
+By extending Transformer, all transformer implementations gain the necessary "dunder" methods (e.g. ``__rshift__()``)
 to support the transformer operators (`>>`, `+` etc). NB: This class used to be called ``pyterrier.transformer.TransformerBase``
+
+
 
 .. _pt.transformer.estimator:
 
@@ -163,7 +187,7 @@ You can also create a Transformer object from existing results, e.g. saved on di
 etc. The resulting "source transformer" will return all results by matching on the qid of the input::
 
   res = pt.io.read_results("/path/to/baseline.res.gz")
-  baselineT = pt.Transformer.from_df(df, uniform=True)
+  baselineT = pt.Transformer.from_df(res, uniform=True)
 
   Q1 = pt.new.queries("test query", qid="Q1")
   resQ1 = baselineT.transform(Q1)
