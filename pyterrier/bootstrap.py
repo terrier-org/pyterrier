@@ -5,6 +5,87 @@ stderr_ref = None
 TERRIER_PKG = "org.terrier"
 SAVED_FNS=[]
 
+class IndexFactory:
+
+    @staticmethod
+    def _load_into_memory(index, structures=['lexicon', 'direct', 'inverted', 'meta'], load=False):
+
+        REWRITES = {
+            'meta' : {
+                # both metaindex implementations have the same property
+                'org.terrier.structures.ZstdCompressedMetaIndex' : {
+                    'index.meta.index-source' : 'fileinmem',
+                    'index.meta.data-source' : 'fileinmem'},
+            
+                'org.terrier.structures.CompressingMetaIndex' : {
+                    'index.meta.index-source' : 'fileinmem',
+                    'index.meta.data-source' : 'fileinmem'}
+            },
+            'lexicon' : {
+                'org.terrier.structures.FSOMapFileLexicon' : {
+                    'index.lexicon.data-source' : 'fileinmem'
+                }
+            },
+            'direct' : {
+                'org.terrier.structures.bit.BitPostingIndex' : {
+                    'index.direct.data-source' : 'fileinmem'}
+            },
+            'inverted' : {
+                'org.terrier.structures.bit.BitPostingIndex' : {
+                    'index.direct.data-source' : 'fileinmem'}
+            },
+            # TODO
+            # 'document' : {
+            #     'org.terrier.structures.FSADocumentIndex'
+            # }
+        }
+        from . import cast
+        pindex = cast("org.terrier.structures.IndexOnDisk", index)
+        load_profile = pindex.getIndexLoadingProfileAsRetrieval()
+        for s in structures:
+            if not pindex.hasIndexStructure(s):
+                continue
+            clz = pindex.getIndexProperty(f"index.{s}.class", "notfound")
+            if not clz in REWRITES[s]:
+                raise ValueError(f"Cannot load structure {s} into memory, underlying class {clz} is not supported")
+
+            # we only reload an index structure if a property has changed
+            dirty = False
+            for k, v in REWRITES[s][clz].items():
+                if pindex.getIndexProperty(k, "notset") != v:
+                    print("Rewriting " + k)
+                    pindex.setIndexProperty(k, v)
+                    dirty = True
+
+            if dirty:
+                # if the index is loaded, then we drop it, as it appears not be in memory
+                if pindex.structureCache.containsKey(s):
+                    pindex.structureCache.remove(s)
+
+                # force the index to be loaded now
+                if load:
+                    pindex.getIndexStructure(s)
+        pindex.dirtyProperties = False
+        return index
+
+    @staticmethod 
+    def of(indexlike, memory=False):
+        from . import autoclass
+        IOD = autoclass("org.terrier.structures.IndexOnDisk")
+        load_profile =  IOD.getIndexLoadingProfileAsRetrieval()
+
+        if memory or (isinstance(memory, list) and len(memory) > 0): #MEMORY CAN BE A LIST?
+            IOD.setIndexLoadingProfileAsRetrieval(False)
+        index = autoclass("org.terrier.structures.IndexFactory").of(indexlike)
+        
+        # noop if memory is False
+        IOD.setIndexLoadingProfileAsRetrieval(load_profile)
+        if not memory:
+            return index
+        if isinstance(memory, list):
+            return IndexFactory._load_into_memory(index, structures=memory)
+        return IndexFactory._load_into_memory(index)
+
 def logging(level):
     from jnius import autoclass
     autoclass("org.terrier.python.PTUtils").setLogLevel(level, None)
