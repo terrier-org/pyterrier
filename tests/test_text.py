@@ -1,6 +1,7 @@
 import pandas as pd
 import pyterrier as pt
 from .base import BaseTestCase
+import re
 
 
 class TestText(BaseTestCase):
@@ -135,6 +136,23 @@ class TestText(BaseTestCase):
         
         self.assertEqual("body", dfoutput["body"][0])
         self.assertEqual("sentence", dfoutput["body"][1])
+
+    def test_passager_custom_tokenizer(self):
+        class MockTokenizer:
+            @staticmethod
+            def tokenize(input_str):
+                rx = r"\w+(?:\"\w+)?|[^\w\s]"
+                return re.findall(rx, input_str)
+    
+        dfinput = pd.DataFrame([["q1", "a query", "doc1", "it's a sample document!"]], columns=["qid", "query", "docno", "body"])
+        passager = pt.text.sliding(length=4, stride=3, prepend_attr=None, tokenizer=MockTokenizer())
+        dfoutput = passager(dfinput)
+        self.assertEqual(2, len(dfoutput))
+        self.assertEqual("doc1%p0", dfoutput["docno"][0])
+        self.assertEqual("doc1%p1", dfoutput["docno"][1])
+
+        self.assertEqual("it ' s a", dfoutput["body"][0])
+        self.assertEqual("a sample document !", dfoutput["body"][1])
 
     def test_depassager(self):
         dfinput = pd.DataFrame([["q1", "a query", "doc1", 1, "title", "body sentence"]], columns=["qid", "query", "docno", "docid", "title", "body"])

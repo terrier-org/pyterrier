@@ -432,15 +432,11 @@ class SlidingWindowPassager(Transformer):
         return self.applyPassaging_no_qid(topics_and_res)
 
     def applyPassaging_no_qid(self, df):
-        if self.tokenizer is None:
-            p = re.compile(r"\s+")
+        tokenize = re.compile(r"\s+").split if self.tokenizer is None else self.tokenizer.tokenize
         rows=[]
         for row in df.itertuples():
             row = row._asdict()
-            if self.tokenizer is None:
-                toks = p.split(row[self.text_attr])
-            else:
-                toks = self.tokenizer.tokenize(row[self.text_attr])
+            toks = tokenize(row[self.text_attr])
             if len(toks) < self.passage_length:
                 row['docno'] = row['docno'] + "%p0"
                 row[self.text_attr] = ' '.join(toks)
@@ -465,8 +461,7 @@ class SlidingWindowPassager(Transformer):
     def applyPassaging(self, df, labels=True):
         newRows=[]
         labelCount=defaultdict(int)
-        if self.tokenizer is None:
-            p = re.compile(r"\s+")
+        tokenize = re.compile(r"\s+").split if self.tokenizer is None else self.tokenizer.tokenize
         currentQid=None
         rank=0
         copy_columns=[]
@@ -486,10 +481,7 @@ class SlidingWindowPassager(Transformer):
                     rank=0
                     currentQid = qid
                 rank+=1
-                if self.tokenizer is None:
-                    toks = p.split(row[self.text_attr])
-                else:
-                    toks = self.tokenizer.tokenize(row[self.text_attr])
+                toks = tokenize(row[self.text_attr])
                 if len(toks) < self.passage_length:
                     newRow = row.copy()
                     newRow['docno'] = row['docno'] + "%p0"
