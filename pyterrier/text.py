@@ -407,11 +407,22 @@ class SlidingWindowPassager(Transformer):
         self.prepend_title = prepend_title
         self.tokenizer = tokenizer
 
-        # check if the tokenizer has the `.tokenize()` method
+        # check if the tokenizer has the `.tokenize()` and the `.convert_tokens_to_string()` method
         if self.tokenizer is not None:
-            attr_exists = getattr(self.tokenizer, 'tokenize', False)
-            if not attr_exists or not callable(attr_exists):
+            tokenizer_attr = getattr(self.tokenizer, 'tokenize', False)
+            if not tokenizer_attr or not callable(tokenizer_attr):
                 raise TypeError("%s doesn't have a `tokenize(str) -> list[str]` method. The tokenizer must have `tokenize(str) -> list[str]` method.")
+            else:
+                self.tokenize = self.tokenizer.tokenize
+            
+            convert_to_string_attr = getattr(self.tokenizer, 'convert_tokens_to_string', False)
+            if not convert_to_string_attr or not callable(convert_to_string_attr):
+                raise TypeError("%s doesn't have a `convert_tokens_to_string(list[str]) -> str` method. The tokenizer must have `convert_tokens_to_string(list[str]) -> str` method.")
+            else:
+                self.detokenize = self.tokenizer.convert_tokens_to_string
+        else:
+            self.tokenize = re.compile(r"\s+").split
+            self.detokenize = ' '.join
 
     def _check_columns(self, topics_and_res):
         if not self.text_attr in topics_and_res.columns:
@@ -432,14 +443,13 @@ class SlidingWindowPassager(Transformer):
         return self.applyPassaging_no_qid(topics_and_res)
 
     def applyPassaging_no_qid(self, df):
-        tokenize = re.compile(r"\s+").split if self.tokenizer is None else self.tokenizer.tokenize
         rows=[]
         for row in df.itertuples():
             row = row._asdict()
-            toks = tokenize(row[self.text_attr])
+            toks = self.tokenize(row[self.text_attr])
             if len(toks) < self.passage_length:
                 row['docno'] = row['docno'] + "%p0"
-                row[self.text_attr] = ' '.join(toks)
+                row[self.text_attr] = self.detokenize(toks)
                 if self.prepend_title:
                     row[self.text_attr] = str(row[self.title_attr]) + self.join + row[self.text_attr]
                     del(row[self.title_attr])
@@ -449,7 +459,7 @@ class SlidingWindowPassager(Transformer):
                 for i, passage in enumerate( slidingWindow(toks, self.passage_length, self.passage_stride)):
                     newRow = row.copy()
                     newRow['docno'] = row['docno'] + "%p" + str(i)
-                    newRow[self.text_attr] = ' '.join(passage)
+                    newRow[self.text_attr] = self.detokenize(passage)
                     if self.prepend_title:
                         newRow[self.text_attr] = str(row[self.title_attr]) + self.join + newRow[self.text_attr]
                         del(newRow[self.title_attr])
@@ -461,7 +471,6 @@ class SlidingWindowPassager(Transformer):
     def applyPassaging(self, df, labels=True):
         newRows=[]
         labelCount=defaultdict(int)
-        tokenize = re.compile(r"\s+").split if self.tokenizer is None else self.tokenizer.tokenize
         currentQid=None
         rank=0
         copy_columns=[]
@@ -481,11 +490,11 @@ class SlidingWindowPassager(Transformer):
                     rank=0
                     currentQid = qid
                 rank+=1
-                toks = tokenize(row[self.text_attr])
+                toks = self.tokenize(row[self.text_attr])
                 if len(toks) < self.passage_length:
                     newRow = row.copy()
                     newRow['docno'] = row['docno'] + "%p0"
-                    newRow[self.text_attr] = ' '.join(toks)
+                    newRow[self.text_attr] = self.detokenize(toks)
                     if self.prepend_title:
                         newRow.drop(labels=[self.title_attr], inplace=True)
                         newRow[self.text_attr] = str(row[self.title_attr]) + self.join + newRow[self.text_attr]
@@ -499,7 +508,7 @@ class SlidingWindowPassager(Transformer):
                     for i, passage in enumerate( slidingWindow(toks, self.passage_length, self.passage_stride)):
                         newRow = row.copy()
                         newRow['docno'] = row['docno'] + "%p" + str(i)
-                        newRow[self.text_attr] = ' '.join(passage)
+                        newRow[self.text_attr] = self.detokenize(passage)
                         if self.prepend_title:
                             newRow.drop(labels=[self.title_attr], inplace=True)
                             newRow[self.text_attr] = str(row[self.title_attr]) + self.join + newRow[self.text_attr]
