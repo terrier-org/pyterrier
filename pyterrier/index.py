@@ -168,7 +168,7 @@ def treccollection2textgen(
     props['TaggedDocument.abstracts'] = ','.join(meta_tags.keys())
     # The tags from which to save the text. ELSE is special tag name, which means anything not consumed by other tags.
     props['TaggedDocument.abstracts.tags'] = ','.join(meta_tags.values())
-    # The max lengths of the abstracts. Abstracts will be cropped to this length. Defaults to empty.
+    # The max lengths of the abstracts. Abstracts will be truncated to this length. Defaults to empty.
     props['TaggedDocument.abstracts.lengths'] = ','.join([str(tag_text_length)] * len(meta_tags) )  
 
     collection = createCollection(files, props=props)
@@ -204,7 +204,7 @@ def _TaggedDocumentSetup(
     ApplicationSetup.setProperty("TaggedDocument.abstracts", ",".join(abstract_names))
     # The tags from which to save the text. ELSE is special tag name, which means anything not consumed by other tags.
     ApplicationSetup.setProperty("TaggedDocument.abstracts.tags", ",".join(abstract_tags))
-    # The max lengths of the abstracts. Abstracts will be cropped to this length. Defaults to empty.
+    # The max lengths of the abstracts. Abstracts will be truncated to this length. Defaults to empty.
     ApplicationSetup.setProperty("TaggedDocument.abstracts.lengths", ",".join(abstract_lengths))
     # Should the tags from which we create abstracts be case-sensitive
     ApplicationSetup.setProperty("TaggedDocument.abstracts.tags.casesensitive", "false")
@@ -785,7 +785,7 @@ class _BaseIterDictIndexer(TerrierIndexer, Indexer):
         
         Args:
             index_path(str): Directory to store index. Ignored for IndexingType.MEMORY.
-            meta(Dict[str,int]): What metadata for each document to record in the index, and what length to reserve. Metadata fields will be cropped to this length. Defaults to `{"docno" : 20}`.
+            meta(Dict[str,int]): What metadata for each document to record in the index, and what length to reserve. Metadata fields will be truncated to this length. Defaults to `{"docno" : 20}`.
             meta_reverse(List[str]): What metadata shoudl we be able to resolve back to a docid. Defaults to `["docno"]`,      
         """
         Indexer.__init__(self)
@@ -1064,7 +1064,7 @@ class TRECCollectionIndexer(TerrierIndexer):
             overwrite (bool): If index already present at `index_path`, True would overwrite it, False throws an Exception. Default is False.
             type (IndexingType): the specific indexing procedure to use. Default is IndexingType.CLASSIC.
             collection (Class name, or Class instance, or one of "trec", "trecweb", "warc"). Default is "trec".
-            meta(Dict[str,int]): What metadata for each document to record in the index, and what length to reserve. Metadata fields will be cropped to this length. Defaults to `{"docno" : 20}`.
+            meta(Dict[str,int]): What metadata for each document to record in the index, and what length to reserve. Metadata fields will be truncated to this length. Defaults to `{"docno" : 20}`.
             meta_reverse(List[str]): What metadata shoudl we be able to resolve back to a docid. Defaults to `["docno"]`.
             meta_tags(Dict[str,str]): For collections formed using tagged data (e.g. HTML), which tags correspond to which metadata. This is useful for recording the text of documents for use in neural rankers - see :ref:`pt.text`.
 
@@ -1119,7 +1119,7 @@ class FilesIndexer(TerrierIndexer):
             index_path (str): Directory to store index. Ignored for IndexingType.MEMORY.
             blocks (bool): Create indexer with blocks if true, else without blocks. Default is False.
             type (IndexingType): the specific indexing procedure to use. Default is IndexingType.CLASSIC.
-            meta(Dict[str,int]): What metadata for each document to record in the index, and what length to reserve. Metadata fields will be cropped to this length. Defaults to `{"docno" : 20, "filename" : 512}`.
+            meta(Dict[str,int]): What metadata for each document to record in the index, and what length to reserve. Metadata fields will be truncated to this length. Defaults to `{"docno" : 20, "filename" : 512}`.
             meta_reverse(List[str]): What metadata shoudl we be able to resolve back to a docid. Defaults to `["docno"]`,
             meta_tags(Dict[str,str]): For collections formed using tagged data (e.g. HTML), which tags correspond to which metadata. Defaults to empty. This is useful for recording the text of documents for use in neural rankers - see :ref:`pt.text`.
 
