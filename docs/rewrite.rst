@@ -130,7 +130,7 @@ previous query reformulation can be obtained by inclusion of a reset transformer
 Tokenising the Query
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Sometimes your query can include symbols that arent compatible with how your retriever parses the query.
+Sometimes your query can include symbols that aren't compatible with how your retriever parses the query.
 In this case, a custom tokeniser can be applied as part of the retrieval pipeline. 
 
 .. autofunction:: pyterrier.rewrite.tokenise()
