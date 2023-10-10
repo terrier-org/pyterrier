@@ -3,6 +3,7 @@ __version__ = "0.9.2"
 import os
 
 from .bootstrap import _logging, setup_terrier, setup_jnius, is_windows
+from tqdm.auto import tqdm
 
 # definitive API used by others, now available before pt.init
 from .transformer import Transformer, Estimator, Indexer
@@ -33,7 +34,6 @@ ApplicationSetup = None
 IndexFactory = None
 IndexRef = None
 properties = None
-tqdm = None
 HOME_DIR = None
 init_args ={}
 _helper_version = None
