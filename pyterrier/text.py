@@ -165,10 +165,12 @@ def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='ti
     applying this transformer, docnos are altered by adding '%p' and a passage number. The original scores for each document can be recovered
     by aggregation functions, such as `max_passage()`.
 
-    For the puposes of obtaining passages of a given length, tokenisation is perfomed by using the `tokenizer` object passed as an argument. 
-    The `tokenizer` object must have a `.tokenize(str) -> list[str]` method. By default, tokenisation is perfomed by splitting on one-or-more spaces, 
-    i.e. based on the Python regular expression ``re.compile(r'\s+')``.
-
+    For the puposes of obtaining passages of a given length, the tokenisation can be controlled. By default, tokenisation takes place by splitting
+    on space, i.e. based on the Python regular expression ``re.compile(r'\s+')``. However, more fine-grained tokenisation can applied by passing 
+    an object matching the HuggingFace Transformers `Tokenizer API <https://huggingface.co/docs/transformers/main/en/main_classes/tokenizer#transformers.PreTrainedTokenizer>`_ 
+    as the `tokenizer` kwarg argument. In short, the `tokenizer` object must have a `.tokenize(str) -> list[str]` method and 
+    `.convert_tokens_to_string(list[str]) -> str` for detokenisation.
+    
     Parameters:
         text_attr(str): what is the name of the dataframe attribute containing the main text of the document to be split into passages.
             Default is 'body'.
