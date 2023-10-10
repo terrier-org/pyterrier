@@ -127,7 +127,7 @@ previous query reformulation can be obtained by inclusion of a reset transformer
 .. autofunction:: pyterrier.rewrite.reset()
 
 
-Tokensing the Query
+Tokenising the Query
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Sometimes your query can include sybmols that arent compatible with how your retriever parses the query.
