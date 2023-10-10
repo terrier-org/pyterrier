@@ -1,4 +1,4 @@
-import pandas as pd
+import pandas as pd # an error occurring here ususally means failed pip installation not detected by GHA
 import pyterrier as pt
 import os
 import unittest
