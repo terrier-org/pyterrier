@@ -14,6 +14,7 @@ class TestOperators(BaseTestCase):
         topicsSource = pd.DataFrame([["1", "AA"]], columns=["qid", "query"])
 
         def rewrite(topics):
+            topics = topics.copy()
             for index, row in topics.iterrows():
                 row["query"] = row["query"] + " test"
             return topics
