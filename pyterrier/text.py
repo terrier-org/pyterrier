@@ -177,7 +177,7 @@ def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='ti
         prepend_attr(str): whether another document attribute, such as the title of the document, to each passage, following [Dai2019]. Defaults to 'title'. 
         title_attr(str): what is the name of the dataframe attribute containing the title the document to be split into passages.
             Default is 'title'. Only used if prepend_title is set to True.
-        tokenizer(obj): which model to use for tokenizing. the object must have a `.tokenize(str) -> list[str]` method for tokenization.
+        tokenizer(obj): which model to use for tokenizing. The object must have a `.tokenize(str) -> list[str]` method for tokenization and `.convert_tokens_to_string(list[str]) -> str` for detokenization.
             Default is None. Tokenisation is perfomed by splitting on one-or-more spaces, i.e. based on the Python regular expression ``re.compile(r'\s+')``
     
     Example::
@@ -409,17 +409,8 @@ class SlidingWindowPassager(Transformer):
 
         # check if the tokenizer has the `.tokenize()` and the `.convert_tokens_to_string()` method
         if self.tokenizer is not None:
-            tokenizer_attr = getattr(self.tokenizer, 'tokenize', False)
-            if not tokenizer_attr or not callable(tokenizer_attr):
-                raise TypeError("%s doesn't have a `tokenize(str) -> list[str]` method. The tokenizer must have `tokenize(str) -> list[str]` method.")
-            else:
-                self.tokenize = self.tokenizer.tokenize
-            
-            convert_to_string_attr = getattr(self.tokenizer, 'convert_tokens_to_string', False)
-            if not convert_to_string_attr or not callable(convert_to_string_attr):
-                raise TypeError("%s doesn't have a `convert_tokens_to_string(list[str]) -> str` method. The tokenizer must have `convert_tokens_to_string(list[str]) -> str` method.")
-            else:
-                self.detokenize = self.tokenizer.convert_tokens_to_string
+            self.tokenize = self.tokenizer.tokenize
+            self.detokenize = self.tokenizer.convert_tokens_to_string
         else:
             self.tokenize = re.compile(r"\s+").split
             self.detokenize = ' '.join
