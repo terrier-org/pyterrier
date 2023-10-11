@@ -1,4 +1,5 @@
 from . import mavenresolver
+from typing import Union, List
 
 stdout_ref = None
 stderr_ref = None
@@ -6,6 +7,10 @@ TERRIER_PKG = "org.terrier"
 SAVED_FNS=[]
 
 class IndexFactory:
+    """
+    This class "shades" the native Terrier `IndexFactory <http://terrier.org/docs/current/javadoc/org/terrier/structures/IndexFactory.html>`_ class - it offers essential the same API,
+    except that the ``of()`` method contains a memory kwarg, that can be used to load additional index data structures into memory. 
+    """
 
     @staticmethod
     def _load_into_memory(index, structures=['lexicon', 'direct', 'inverted', 'meta'], load=False):
@@ -53,7 +58,6 @@ class IndexFactory:
             dirty = False
             for k, v in REWRITES[s][clz].items():
                 if pindex.getIndexProperty(k, "notset") != v:
-                    print("Rewriting " + k)
                     pindex.setIndexProperty(k, v)
                     dirty = True
 
@@ -69,7 +73,14 @@ class IndexFactory:
         return index
 
     @staticmethod 
-    def of(indexlike, memory=False):
+    def of(indexlike, memory : Union[bool, List[str]] = False):
+        """
+        Loads an index. Returns a Terrier `Index <http://terrier.org/docs/current/javadoc/org/terrier/structures/Index.html>`_ object.
+
+        Args:
+            indexlike(str or IndexRef): Where is the index located
+            memory(bool or List[str]): If the index should be loaded into memory. Use `True` for all structures, or a list of structure names.
+        """
         from . import autoclass
         IOD = autoclass("org.terrier.structures.IndexOnDisk")
         load_profile =  IOD.getIndexLoadingProfileAsRetrieval()
