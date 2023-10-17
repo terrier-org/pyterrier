@@ -39,14 +39,23 @@ class IndexFactory:
                 'org.terrier.structures.bit.BitPostingIndex' : {
                     'index.direct.data-source' : 'fileinmem'}
             },
-            # TODO
-            # 'document' : {
-            #     'org.terrier.structures.FSADocumentIndex'
-            # }
         }
+        if "direct" in structures:
+            REWRITES['document'] = {
+                # we have to be sensitive to the presence of fields or not
+                # NB: loading these structures into memory only benefit direct index access
+                'org.terrier.structures.FSADocumentIndex' : {
+                    'index.document.class' : 'FSADocumentIndexInMem'
+                }, 
+                'org.terrier.structures.FSAFieldDocumentIndex' : {
+                    'index.document.class' : 'FSADocumentIndexInMemFields'
+                }
+            }
+
         from . import cast
         pindex = cast("org.terrier.structures.IndexOnDisk", index)
         load_profile = pindex.getIndexLoadingProfileAsRetrieval()
+        dirty_structures = set()
         for s in structures:
             if not pindex.hasIndexStructure(s):
                 continue
@@ -59,16 +68,25 @@ class IndexFactory:
             for k, v in REWRITES[s][clz].items():
                 if pindex.getIndexProperty(k, "notset") != v:
                     pindex.setIndexProperty(k, v)
-                    dirty = True
+                    dirty_structures.add(s)
 
-            if dirty:
-                # if the index is loaded, then we drop it, as it appears not be in memory
-                if pindex.structureCache.containsKey(s):
-                    pindex.structureCache.remove(s)
+                    # if the document index is reloaded, the inverted index should be reloaded too
+                    # NB: the direct index needs reloaded too, but this option is only available IF
+                    # the direct index is setup
+                    if s == "document":
+                        dirty_structures.add("inverted")
 
-                # force the index to be loaded now
-                if load:
-                    pindex.getIndexStructure(s)
+        # remove the old data structures from memory
+        for s in dirty_structures:
+            if pindex.structureCache.containsKey(s):
+                pindex.structureCache.remove(s)
+
+        # force the index structures to be loaded now
+        if load:
+            for s in dirty_structures:
+                pindex.getIndexStructure(s)
+
+        # dont allow the index properties to be rewritten
         pindex.dirtyProperties = False
         return index
 
