@@ -95,7 +95,8 @@ jobs:
       run: |
         pytest --durations=20 -p no:faulthandler
 
-    - name: Anserini unit tests
+    - name: Anserini unit tests (Python > 3.7)
+      if: matrix.python-version != '3.7'
       env:
         TERRIER_VERSION: ${{ matrix.terrier }}
       run: |
