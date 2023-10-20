@@ -99,5 +99,5 @@ jobs:
       env:
         TERRIER_VERSION: ${{ matrix.terrier }}
       run: |
-        pip install pyserini==0.9.4
+        pip install pyserini==0.22.0 faiss-cpu
         pytest --durations=20 -p no:faulthandler  tests/anserini/
