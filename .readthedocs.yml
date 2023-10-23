@@ -1,2 +1,5 @@
+version: 2
+build:
+  os: "ubuntu-22.04"
 conda:
   file: ./.readthedocs-conda-environment.yml
