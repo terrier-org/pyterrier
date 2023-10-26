@@ -4,9 +4,8 @@ channels:
   - conda-forge
 dependencies:
   - openjdk
-  - python=3.7
+  - python=3.8
   - pip
   - pip:
-    # In Read the Docs, seems installing 'requirements-dev.txt' seems ignored when Conda is used.
     - -r requirements.txt
-    - -r requirements-docs.txt
+    - -r docs/requirements.txt

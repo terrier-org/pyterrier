@@ -4,4 +4,4 @@ build:
   tools:
     python: "mambaforge-22.9"
 conda:
-  environment: .readthedocs-conda-environment.yml
+  environment: docs/readthedocs-conda-environment.yml
