@@ -148,7 +148,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     from .bootstrap import IndexFactory
     from .datasets import get_dataset, find_datasets, list_datasets
     from .index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, IndexingType, TerrierStemmer, TerrierStopwords, TerrierTokeniser
-    from .pipelines import Experiment, GridScan, GridSearch, KFoldGridSearch
+    from .pipelines import Experiment, GridScan, GridSearch, KFoldGridSearch, Evaluate
 
     # Make imports global
     globals()["autoclass"] = autoclass
@@ -202,6 +202,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     globals()["TerrierTokeniser"] = TerrierTokeniser
     # .pipelines etc
     globals()["Experiment"] = Experiment
+    globals()["Evaluate"] = Evaluate
     globals()["GridScan"] = GridScan
     globals()["GridSearch"] = GridSearch
     globals()["KFoldGridSearch"] = KFoldGridSearch
