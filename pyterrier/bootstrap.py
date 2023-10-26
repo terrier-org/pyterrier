@@ -8,8 +8,17 @@ SAVED_FNS=[]
 
 class IndexFactory:
     """
-    This class "shades" the native Terrier `IndexFactory <http://terrier.org/docs/current/javadoc/org/terrier/structures/IndexFactory.html>`_ class - it offers essential the same API,
+    The ``of()`` method of this factory class allows to load a Terrier `Index <http://terrier.org/docs/current/javadoc/org/terrier/structures/Index.html>`_.
+
+    NB: This class "shades" the native Terrier `IndexFactory <http://terrier.org/docs/current/javadoc/org/terrier/structures/IndexFactory.html>`_ class - it offers essential the same API,
     except that the ``of()`` method contains a memory kwarg, that can be used to load additional index data structures into memory. 
+
+    Terrier data structures that can be loaded into memory:
+     - 'inverted' - the inverted index, contains posting lists for each term. In the default configuration, this is read in from disk in chunks.
+     - 'lexicon' - the dictionary. By default, a binary search of the on-disk structure is used, so loading into memory can enhance speed.
+     - 'meta' - metadata about documents. Used as the final stage of retrieval, one seek for each retrieved document.
+     - 'direct' - contains posting lists for each document. No speed advantage for loading into memory unless pseudo-relevance feedback is being used.
+     - 'document' - contains document lengths, which are anyway loaded into memory. No speed advantage for loading into memory unless pseudo-relevance feedback is being used.
     """
 
     @staticmethod

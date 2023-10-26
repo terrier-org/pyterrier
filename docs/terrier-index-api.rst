@@ -38,6 +38,13 @@ If you want to access the underlying data structures, you need to use IndexFacto
 
 NB: BatchRetrieve will accept anything "index-like", i.e. a string location of an index, an IndexRef or an Index.
 
+We can also ask for the index to be loaded into memory::
+
+    index = pt.IndexFactory.of("/path/to/data.properties", mem=True)
+
+.. autoclass:: pyterrier.IndexFactory
+    :members: of
+
 Whats in an Index
 =================
 
