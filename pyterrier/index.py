@@ -39,7 +39,6 @@ ApplicationSetup = None
 Properties = None
 CLITool = None
 IndexRef = None
-IndexFactory = None
 StructureMerger = None
 BlockStructureMerger = None
 
@@ -73,7 +72,6 @@ def run_autoclass():
     global Properties
     global CLITool
     global IndexRef
-    global IndexFactory
     global StructureMerger
     global BlockStructureMerger
 
@@ -96,7 +94,6 @@ def run_autoclass():
     Properties = autoclass('java.util.Properties')
     CLITool = autoclass("org.terrier.applications.CLITool")
     IndexRef = autoclass('org.terrier.querying.IndexRef')
-    IndexFactory = autoclass('org.terrier.structures.IndexFactory')
     StructureMerger = autoclass("org.terrier.structures.merging.StructureMerger")
     BlockStructureMerger = autoclass("org.terrier.structures.merging.BlockStructureMerger")
 

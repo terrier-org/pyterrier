@@ -98,6 +98,17 @@ Good Practice::
     pl2 = pt.BatchRetrieve(index, wmodel="PL2")
     # here, we share the index between two instances of BatchRetrieve
 
+You can use the IndexFactory to specify that the index data structures to be loaded into memory::
+
+    # load all structures into memory
+    inmemindex = pt.IndexFactory.of("/path/to/data.properties", memory=True)
+    bm25_fast = pt.BatchRetrieve(inmemindex, wmodel="BM25")
+
+    # load just inverted and lexicon into memory
+    inmem_inverted_index = pt.IndexFactory.of("/path/to/data.properties", memory=['inverted', 'lexicon'])
+    bm25_fast = pt.BatchRetrieve(inmem_inverted_index, wmodel="BM25")
+
+
 TextScorer
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

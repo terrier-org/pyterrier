@@ -86,6 +86,14 @@ class TestBatchRetrieve(BaseTestCase):
         result = retr.transform(input_set)
         self.assertIn("username", result.columns)
 
+    def test_br_mem(self):
+        indexloc = self.here + "/fixtures/index/data.properties"
+        memindex = pt.IndexFactory.of(indexloc, memory=True)
+        pindex = pt.cast("org.terrier.structures.IndexOnDisk", memindex)
+        self.assertEqual("fileinmem", pindex.getIndexProperty("index.lexicon.data-source", "notfound"))
+        retr = pt.BatchRetrieve(memindex)
+        retr.search("chemical reactions")
+
     def test_br_empty(self):
         indexloc = self.here + "/fixtures/index/data.properties"
         

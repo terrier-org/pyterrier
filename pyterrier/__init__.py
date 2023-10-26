@@ -145,6 +145,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
 
     from .batchretrieve import BatchRetrieve, FeaturesBatchRetrieve
     from .utils import Utils
+    from .bootstrap import IndexFactory
     from .datasets import get_dataset, find_datasets, list_datasets
     from .index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, IndexingType, TerrierStemmer, TerrierStopwords, TerrierTokeniser
     from .pipelines import Experiment, GridScan, GridSearch, KFoldGridSearch
@@ -193,7 +194,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     globals()["DFIndexer"] = DFIndexer
     globals()["DFIndexUtils"] = DFIndexUtils
     globals()["IterDictIndexer"] = IterDictIndexer
-    globals()["IndexFactory"] = autoclass("org.terrier.structures.IndexFactory")
+    globals()["IndexFactory"] = IndexFactory
     globals()["IndexRef"] = autoclass("org.terrier.querying.IndexRef")
     globals()["IndexingType"] = IndexingType
     globals()["TerrierStemmer"] = TerrierStemmer
