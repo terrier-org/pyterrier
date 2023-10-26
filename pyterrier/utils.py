@@ -4,7 +4,7 @@ from deprecated import deprecated
 
 
 class Utils:
-    # THIS CLASS WILL BE REMOVED the second minor release after 0.9
+    # THIS CLASS WILL BE REMOVED IN A FUTURE RELEASE
 
     @staticmethod
     @deprecated(version="0.9")
