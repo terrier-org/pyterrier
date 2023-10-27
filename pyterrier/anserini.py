@@ -19,7 +19,7 @@ def _init_anserini():
             anserini_found = True
             break
     assert anserini_found, 'Anserini jar not found: you should start PyTerrier, e.g. with '\
-        + 'pt.init(boot_packages=["io.anserini:anserini:0.9.2:fatjar"])'
+        + 'pt.init(boot_packages=["io.anserini:anserini:0.22.0:fatjar"])'
     import pyserini.setup
     pyserini.setup.configure_classpath = lambda x: x
     jnius_config.set_classpath = lambda x: x
@@ -45,7 +45,7 @@ def _init_anserini():
 
 class AnseriniBatchRetrieve(BatchRetrieveBase):
     """
-        Allows retrieval from an Anserini index. To use this class, PyTerrier should have been started using `pt.init(boot_packages=["io.anserini:anserini:0.9.2:fatjar"])`.
+        Allows retrieval from an Anserini index. To use this class, PyTerrier should have been started using `pt.init(boot_packages=["io.anserini:anserini:0.22.0:fatjar"])`.
     """
     def __init__(self, index_location, k=1000, wmodel="BM25", **kwargs):
         """
@@ -90,7 +90,6 @@ class AnseriniBatchRetrieve(BatchRetrieveBase):
         self.index_location = d["index_location"]
 
     def _setsimilarty(self, wmodel):
-        #commented lines are for anserini > 0.9.2
         if wmodel == "BM25":
             self.searcher.set_bm25(k1=0.9, b=0.4)
         elif wmodel == "QLD":
