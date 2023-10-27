@@ -218,8 +218,8 @@ class TestRewrite(TempDirTestCase):
         #br_normal.saveResult(pipe_res, "/tmp/sdm.res", run_name="DPH")
 
         self.assertAlmostEqual(
-            pt.Utils.evaluate(pipe_res, dataset.get_qrels(), metrics=["map"])["map"], 
-            pt.Utils.evaluate(br_sdm.transform(t), dataset.get_qrels(), metrics=["map"])["map"], 
+            pt.Evaluate(pipe_res, dataset.get_qrels(), metrics=["map"])["map"], 
+            pt.Evaluate(br_sdm.transform(t), dataset.get_qrels(), metrics=["map"])["map"], 
             places=4)
 
     # RM3 cannot be tested with current jnius, as it must be placed into the boot classpath
@@ -245,7 +245,7 @@ class TestRewrite(TempDirTestCase):
     #     t = dataset.get_topics().head(18)
 
     #     all_qe_res = pipe.transform(t)
-    #     map_pipe = pt.Utils.evaluate(all_qe_res, dataset.get_qrels(), metrics=["map"])["map"]
+    #     map_pipe = pt.Evaluate(all_qe_res, dataset.get_qrels(), metrics=["map"])["map"]
 
     #     br_qe = pt.BatchRetrieve(indexref, 
     #         controls={"qe":"on"},
@@ -253,7 +253,7 @@ class TestRewrite(TempDirTestCase):
     #                 +"parseql:TerrierQLToMatchingQueryTerms,matchopql:MatchingOpQLParser,applypipeline:ApplyTermPipeline,"\
     #                 +"sd:DependenceModelPreProcess,localmatching:LocalManager$ApplyLocalMatching,qe:RM3,"\
     #                 +"labels:org.terrier.learning.LabelDecorator,filters:LocalManager$PostFilterProcess"})
-    #     map_qe = pt.Utils.evaluate(br_qe.transform(t), dataset.get_qrels(), metrics=["map"])["map"]
+    #     map_qe = pt.Evaluate(br_qe.transform(t), dataset.get_qrels(), metrics=["map"])["map"]
 
     #     self.assertAlmostEqual(map_qe, map_pipe, places=4)
 
@@ -323,10 +323,10 @@ class TestRewrite(TempDirTestCase):
             str(pipe)
 
             all_qe_res = pipe.transform(t)
-            map_pipe = pt.Utils.evaluate(all_qe_res, qrels, metrics=["map"])["map"]
+            map_pipe = pt.Evaluate(all_qe_res, qrels, metrics=["map"])["map"]
 
             br_qe = pt.BatchRetrieve(indexref, controls={"qe":"on"})
-            map_qe = pt.Utils.evaluate(br_qe.transform(t), qrels, metrics=["map"])["map"]
+            map_qe = pt.Evaluate(br_qe.transform(t), qrels, metrics=["map"])["map"]
 
             self.assertAlmostEqual(map_qe, map_pipe, places=4)
 

@@ -47,7 +47,7 @@ class TestScoring(TempDirTestCase):
         print(joined)
         #TODO: there is a bug here. TextScorer should have the same score, but it doesnt; occasionally terms arent matched
         #self.assertTrue(np.array_equal(joined["score_x"].values, joined["score_y"].values))
-        #self.assertEqual(pt.Utils.evaluate(output1,dataset.get_qrels()), pt.Utils.evaluate(output2,dataset.get_qrels()))
+        #self.assertEqual(pt.Evaluate(output1,dataset.get_qrels()), pt.Evaluate(output2,dataset.get_qrels()))
         
 
     def test_scoring_manual_empty(self):

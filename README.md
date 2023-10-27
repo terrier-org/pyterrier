@@ -38,7 +38,7 @@ topics = pt.io.read_topics(topicsFile)
 qrels = pt.io.read_qrels(qrelsFile)
 BM25_br = pt.BatchRetrieve(index, wmodel="BM25")
 res = BM25_br.transform(topics)
-pt.Utils.evaluate(res, qrels, metrics = ['map'])
+pt.Evaluate(res, qrels, metrics = ['map'])
 ```
 
 See also the [retrieval documentation](https://pyterrier.readthedocs.io/en/latest/terrier-retrieval.html), or the worked example in the [retrieval and evaluation notebook](examples/notebooks/retrieval_and_evaluation.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/retrieval_and_evaluation.ipynb)
