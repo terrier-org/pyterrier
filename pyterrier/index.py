@@ -935,7 +935,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
         self._setup(fields, self.meta, None)
         assert self.threads == 1, 'IterDictIndexer does not support multiple threads on Windows'
 
-        index = self.createIndexer()
+        indexer = self.createIndexer()
         if self.pretokenised:
             assert not self.blocks, "pretokenised isnt compatible with blocks"
 
@@ -946,7 +946,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
             
             iter_docs = DocListIterator(self._filter_iterable(it, fields))
             self.index_called = True
-            index.indexDocuments(iter_docs)
+            indexer.indexDocuments(iter_docs)
             iter_docs = None
 
         else:
@@ -956,18 +956,29 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
             javaDocCollection = autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
             # remove once 5.7 is now the minimum version
             from . import check_version
-            index.index(javaDocCollection if check_version("5.7") else [javaDocCollection])
+            indexer.index(javaDocCollection if check_version("5.7") else [javaDocCollection])
             global lastdoc
             lastdoc = None
             self.index_called = True
             collectionIterator = None
 
+        indexref = None
+        if self.type is IndexingType.MEMORY:
+            index = indexer.getIndex()
+            indexref = index.getIndexRef()
+        else:
+            from . import IndexFactory
+            indexref = IndexRef.of(self.index_dir + "/data.properties")
+            if len(self.cleanup_hooks) > 0:
+                sindex = autoclass("org.terrier.structures.Index")
+                sindex.setIndexLoadingProfileAsRetrieval(False)
+                index = IndexFactory.of(indexref)
+                sindex.setIndexLoadingProfileAsRetrieval(True)
+
         for hook in self.cleanup_hooks:
             hook(self, index.getIndex())
 
-        if self.type is IndexingType.MEMORY:
-            return index.getIndex().getIndexRef()
-        return IndexRef.of(self.index_dir + "/data.properties")
+        return indexref
 
 
 class _IterDictIndexer_fifo(_BaseIterDictIndexer):
@@ -1029,12 +1040,14 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
 
             # Different process for memory indexer (still taking advantage of faster fifos)
             if Indexer is BasicMemoryIndexer:
-                index = Indexer()
+                indexer = Indexer()
                 if self.pretokenised:
-                    index.indexDocuments(j_collections)
+                    indexer.indexDocuments(j_collections)
                 else:
-                    index.index(j_collections)
-                return index.getIndex().getIndexRef()
+                    indexer.index(j_collections)
+                for hook in self.cleanup_hooks:
+                    hook(self, indexer.getIndex())
+                return indexer.getIndex().getIndexRef()
 
             # Start the indexing threads
             if self.pretokenised:
@@ -1042,12 +1055,20 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
             else:
                 ParallelIndexer.buildParallel(j_collections, self.index_dir, Indexer, Merger)
             
-            index_ref = self.index_dir + "/data.properties"
-            for hook in self.cleanup_hooks:
-                from . import IndexFactory
-                hook(self, IndexFactory.of(index_ref))
+        indexref = None
+        from . import IndexFactory
+        indexref = IndexRef.of(self.index_dir + "/data.properties")
+        
+        if len(self.cleanup_hooks) > 0:
+            sindex = autoclass("org.terrier.structures.Index")
+            sindex.setIndexLoadingProfileAsRetrieval(False)
+            index = IndexFactory.of(indexref)
+            sindex.setIndexLoadingProfileAsRetrieval(True)
 
-            return IndexRef.of(index_ref)
+            for hook in self.cleanup_hooks:
+                hook(self, index)
+
+        return indexref
 
     def _write_fifos(self, it, fifos):
         c = len(fifos)
