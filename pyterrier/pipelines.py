@@ -480,7 +480,7 @@ def Experiment(
             if baseline is not None:
                 evalDictsPerQ.append(evalMeasuresDict)
                 from . import Utils
-                evalMeasuresDict = Utils.mean_of_measures(evalMeasuresDict)
+                evalMeasuresDict = _mean_of_measures(evalMeasuresDict)
 
             if perquery:
                 for qid in evalMeasuresDict:

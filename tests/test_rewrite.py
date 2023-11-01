@@ -140,13 +140,12 @@ class TestRewrite(TempDirTestCase):
     def test_sdm_docs(self):
         docs = pt.new.ranked_documents([[1,1]], qid=["q1"], query=[["hello friend","hello friend"]])
         sdm = pt.rewrite.SDM()
-        pipe = docs >> sdm
+        pipe = pt.Transformer.from_df(docs) >> sdm
         qids = pt.new.queries(["hello there"], qid=["q1"])  
         rtr = pipe(qids)
         self.assertIn("query", rtr.columns)
         self.assertIn("query_0", rtr.columns)
         self.assertIn("docno", rtr.columns)
-        print(rtr)
         self.assertEqual(2, len(rtr))
 
 
