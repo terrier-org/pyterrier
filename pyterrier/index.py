@@ -973,10 +973,9 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
                 sindex = autoclass("org.terrier.structures.Index")
                 sindex.setIndexLoadingProfileAsRetrieval(False)
                 index = IndexFactory.of(indexref)
+                for hook in self.cleanup_hooks:
+                    hook(self, index)
                 sindex.setIndexLoadingProfileAsRetrieval(True)
-
-        for hook in self.cleanup_hooks:
-            hook(self, index.getIndex())
 
         return indexref
 
