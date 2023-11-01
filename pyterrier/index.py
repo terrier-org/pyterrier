@@ -1044,6 +1044,7 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
             
             index_ref = self.index_dir + "/data.properties"
             for hook in self.cleanup_hooks:
+                from . import IndexFactory
                 hook(self, IndexFactory.of(index_ref))
 
             return IndexRef.of(index_ref)
