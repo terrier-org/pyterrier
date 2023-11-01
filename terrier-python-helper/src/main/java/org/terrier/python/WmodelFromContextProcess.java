@@ -8,10 +8,16 @@ import org.terrier.querying.Process;
 import org.terrier.querying.ProcessPhaseRequisites;
 import org.terrier.querying.ManagerRequisite;
 import org.terrier.querying.Request;
+import org.terrier.querying.SearchRequest;
 
 @ProcessPhaseRequisites(ManagerRequisite.MQT)
 /** Takes an object from the SearchRequest's context mapping, and uses that as the weighting model. */
 public class WmodelFromContextProcess implements Process {
+
+    public void process​(Manager manager, SearchRequest rq) {
+        throw new RuntimeException("old method called");
+        //this.process(manager, (Request) rq);
+    }
 
     public void process​(Manager manager, Request rq) {
         Object _wmodel = rq.getContextObject​("context_wmodel");

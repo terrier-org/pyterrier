@@ -185,6 +185,10 @@ Similarly the use of Terrier's English stopword list can be disabled using the `
 .. autoclass:: pyterrier.index.TerrierStopwords
    :inherited-members: 
 
+A custom stopword list can be set by setting the ``stopwords`` kwarg to a list of words::
+
+    indexer = pt.IterDictIndexer("./index", stopwords=['a', 'an', 'the'])
+
 **Languages and Tokenisation**
 
 Similarly, the choice of tokeniser can be controlled in the indexer constructor using the ``tokeniser`` kwarg. 
