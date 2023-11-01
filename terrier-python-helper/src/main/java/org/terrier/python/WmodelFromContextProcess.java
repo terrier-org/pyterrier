@@ -14,11 +14,6 @@ import org.terrier.querying.SearchRequest;
 /** Takes an object from the SearchRequest's context mapping, and uses that as the weighting model. */
 public class WmodelFromContextProcess implements Process {
 
-    public void process​(Manager manager, SearchRequest rq) {
-        throw new RuntimeException("old method called");
-        //this.process(manager, (Request) rq);
-    }
-
     public void process​(Manager manager, Request rq) {
         Object _wmodel = rq.getContextObject​("context_wmodel");
         if (_wmodel == null) {
