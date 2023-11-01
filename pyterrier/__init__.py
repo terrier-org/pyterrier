@@ -3,6 +3,7 @@ __version__ = "0.9.2"
 import os
 
 from .bootstrap import _logging, setup_terrier, setup_jnius, is_windows
+from tqdm.auto import tqdm
 
 # definitive API used by others, now available before pt.init
 from .transformer import Transformer, Estimator, Indexer
@@ -33,7 +34,6 @@ ApplicationSetup = None
 IndexFactory = None
 IndexRef = None
 properties = None
-tqdm = None
 HOME_DIR = None
 init_args ={}
 _helper_version = None
@@ -145,9 +145,10 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
 
     from .batchretrieve import BatchRetrieve, FeaturesBatchRetrieve
     from .utils import Utils
+    from .bootstrap import IndexFactory
     from .datasets import get_dataset, find_datasets, list_datasets
     from .index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, IndexingType, TerrierStemmer, TerrierStopwords, TerrierTokeniser
-    from .pipelines import Experiment, GridScan, GridSearch, KFoldGridSearch
+    from .pipelines import Experiment, GridScan, GridSearch, KFoldGridSearch, Evaluate
 
     # Make imports global
     globals()["autoclass"] = autoclass
@@ -193,7 +194,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     globals()["DFIndexer"] = DFIndexer
     globals()["DFIndexUtils"] = DFIndexUtils
     globals()["IterDictIndexer"] = IterDictIndexer
-    globals()["IndexFactory"] = autoclass("org.terrier.structures.IndexFactory")
+    globals()["IndexFactory"] = IndexFactory
     globals()["IndexRef"] = autoclass("org.terrier.querying.IndexRef")
     globals()["IndexingType"] = IndexingType
     globals()["TerrierStemmer"] = TerrierStemmer
@@ -201,6 +202,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     globals()["TerrierTokeniser"] = TerrierTokeniser
     # .pipelines etc
     globals()["Experiment"] = Experiment
+    globals()["Evaluate"] = Evaluate
     globals()["GridScan"] = GridScan
     globals()["GridSearch"] = GridSearch
     globals()["KFoldGridSearch"] = KFoldGridSearch

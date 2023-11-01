@@ -49,7 +49,7 @@ class AnseriniBatchRetrieve(BatchRetrieveBase):
     """
     def __init__(self, index_location, k=1000, wmodel="BM25", **kwargs):
         """
-            Construct an AnseriniBatchRetrieve retrieve. 
+            Construct an AnseriniBatchRetrieve retrieve from pyserini.search.lucene.LuceneSearcher. 
 
             Args:
 
@@ -65,8 +65,8 @@ class AnseriniBatchRetrieve(BatchRetrieveBase):
         self.index_location = index_location
         self.k = k
         _init_anserini()
-        from pyserini.search import SimpleSearcher
-        self.searcher = SimpleSearcher(index_location)
+        from pyserini.search.lucene import LuceneSearcher
+        self.searcher = LuceneSearcher(index_location)
         self.wmodel = wmodel
         self._setsimilarty(wmodel)
 
@@ -92,11 +92,9 @@ class AnseriniBatchRetrieve(BatchRetrieveBase):
     def _setsimilarty(self, wmodel):
         #commented lines are for anserini > 0.9.2
         if wmodel == "BM25":
-            #self.searcher.object.setBM25Similarity(0.9, 0.4)
-            self.searcher.object.setBM25(0.9, 0.4)
+            self.searcher.set_bm25(k1=0.9, b=0.4)
         elif wmodel == "QLD":
-            #self.searcher.object.setLMDirichletSimilarity(1000.0)
-            self.searcher.object.setQLD(1000.0)
+            self.searcher.object.set_qld(1000.0)
         elif wmodel == "TFIDF":
             from jnius import autoclass
             self.searcher.object.similarty = autoclass("org.apache.lucene.search.similarities.ClassicSimilarity")()
@@ -152,7 +150,7 @@ class AnseriniBatchRetrieve(BatchRetrieveBase):
                 if last_qid is None or last_qid != qid:
                     rank = 0
                 rank += 1
-                score = indexreaderutils.computeQueryDocumentScore(indexreader, docno, query, sim)
+                score = indexreaderutils.computeQueryDocumentScoreWithSimilarity(indexreader, docno, query, sim)
                 results.append([qid, query, docno, rank, score])
 
         else: #we are searching, no candidate set provided

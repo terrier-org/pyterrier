@@ -158,16 +158,19 @@ def scorer(*args, **kwargs) -> Transformer:
     import pyterrier as pt
     return pt.batchretrieve.TextScorer(*args, **kwargs)
 
-def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='title', **kwargs) -> Transformer:
+def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='title', tokenizer=None, **kwargs) -> Transformer:
     r"""
     A useful transformer for splitting long documents into smaller passages within a pipeline. This applies a *sliding* window over the
     text, where each passage is the give number of tokens long. Passages can overlap, if the stride is set smaller than the length. In
     applying this transformer, docnos are altered by adding '%p' and a passage number. The original scores for each document can be recovered
     by aggregation functions, such as `max_passage()`.
 
-    For the puposes of obtaining passages of a given length, tokenisation is perfomed simply by splitting on one-or-more spaces, i.e. based 
-    on the Python regular expression ``re.compile(r'\s+')``.
-
+    For the puposes of obtaining passages of a given length, the tokenisation can be controlled. By default, tokenisation takes place by splitting
+    on space, i.e. based on the Python regular expression ``re.compile(r'\s+')``. However, more fine-grained tokenisation can applied by passing 
+    an object matching the HuggingFace Transformers `Tokenizer API <https://huggingface.co/docs/transformers/main/en/main_classes/tokenizer#transformers.PreTrainedTokenizer>`_ 
+    as the `tokenizer` kwarg argument. In short, the `tokenizer` object must have a `.tokenize(str) -> list[str]` method and 
+    `.convert_tokens_to_string(list[str]) -> str` for detokenisation.
+    
     Parameters:
         text_attr(str): what is the name of the dataframe attribute containing the main text of the document to be split into passages.
             Default is 'body'.
@@ -176,6 +179,8 @@ def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='ti
         prepend_attr(str): whether another document attribute, such as the title of the document, to each passage, following [Dai2019]. Defaults to 'title'. 
         title_attr(str): what is the name of the dataframe attribute containing the title the document to be split into passages.
             Default is 'title'. Only used if prepend_title is set to True.
+        tokenizer(obj): which model to use for tokenizing. The object must have a `.tokenize(str) -> list[str]` method for tokenization and `.convert_tokens_to_string(list[str]) -> str` for detokenization.
+            Default is None. Tokenisation is perfomed by splitting on one-or-more spaces, i.e. based on the Python regular expression ``re.compile(r'\s+')``
     
     Example::
     
@@ -183,7 +188,14 @@ def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='ti
             >> pt.text.sliding(length=128, stride=64, prepend_attr=None) 
             >> pt.text.scorer(wmodel="DPH") 
             >> pt.text.max_passage() )
-        
+
+        # tokenizer model 
+        from transformers import AutoTokenizer
+        tok = AutoTokenizer.from_pretrained("bert-base-uncased")
+        pipe = (pt.BatchRetrieve(index, wmodel="DPH", metadata=["docno", "body"])
+            >> pt.text.sliding(length=128, stride=64, prepend_attr=None, tokenizer=tok)
+            >> pt.text.scorer(wmodel="DPH")
+            >> pt.text.max_passage() )
     """
 
     # deal with older names for attributes
@@ -211,6 +223,7 @@ def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='ti
         prepend_title=prepend_attr is not None,
         title_attr=prepend_attr,
         join=' ',
+        tokenizer=tokenizer,
         **kwargs
     )
 
@@ -386,7 +399,7 @@ class MeanPassage(DePassager):
 
 class SlidingWindowPassager(Transformer):
 
-    def __init__(self, text_attr='body', title_attr='title', passage_length=150, passage_stride=75, join=' ', prepend_title=True, **kwargs):
+    def __init__(self, text_attr='body', title_attr='title', passage_length=150, passage_stride=75, join=' ', prepend_title=True, tokenizer=None, **kwargs):
         super().__init__(**kwargs)
         self.text_attr=text_attr
         self.title_attr=title_attr
@@ -394,6 +407,15 @@ class SlidingWindowPassager(Transformer):
         self.passage_stride= passage_stride
         self.join = join
         self.prepend_title = prepend_title
+        self.tokenizer = tokenizer
+
+        # check if the tokenizer has the `.tokenize()` and the `.convert_tokens_to_string()` method
+        if self.tokenizer is not None:
+            self.tokenize = self.tokenizer.tokenize
+            self.detokenize = self.tokenizer.convert_tokens_to_string
+        else:
+            self.tokenize = re.compile(r"\s+").split
+            self.detokenize = ' '.join
 
     def _check_columns(self, topics_and_res):
         if not self.text_attr in topics_and_res.columns:
@@ -414,14 +436,13 @@ class SlidingWindowPassager(Transformer):
         return self.applyPassaging_no_qid(topics_and_res)
 
     def applyPassaging_no_qid(self, df):
-        p = re.compile(r"\s+")
         rows=[]
         for row in df.itertuples():
             row = row._asdict()
-            toks = p.split(row[self.text_attr])
+            toks = self.tokenize(row[self.text_attr])
             if len(toks) < self.passage_length:
                 row['docno'] = row['docno'] + "%p0"
-                row[self.text_attr] = ' '.join(toks)
+                row[self.text_attr] = self.detokenize(toks)
                 if self.prepend_title:
                     row[self.text_attr] = str(row[self.title_attr]) + self.join + row[self.text_attr]
                     del(row[self.title_attr])
@@ -431,7 +452,7 @@ class SlidingWindowPassager(Transformer):
                 for i, passage in enumerate( slidingWindow(toks, self.passage_length, self.passage_stride)):
                     newRow = row.copy()
                     newRow['docno'] = row['docno'] + "%p" + str(i)
-                    newRow[self.text_attr] = ' '.join(passage)
+                    newRow[self.text_attr] = self.detokenize(passage)
                     if self.prepend_title:
                         newRow[self.text_attr] = str(row[self.title_attr]) + self.join + newRow[self.text_attr]
                         del(newRow[self.title_attr])
@@ -443,7 +464,6 @@ class SlidingWindowPassager(Transformer):
     def applyPassaging(self, df, labels=True):
         newRows=[]
         labelCount=defaultdict(int)
-        p = re.compile(r"\s+")
         currentQid=None
         rank=0
         copy_columns=[]
@@ -463,11 +483,11 @@ class SlidingWindowPassager(Transformer):
                     rank=0
                     currentQid = qid
                 rank+=1
-                toks = p.split(row[self.text_attr])
+                toks = self.tokenize(row[self.text_attr])
                 if len(toks) < self.passage_length:
                     newRow = row.copy()
                     newRow['docno'] = row['docno'] + "%p0"
-                    newRow[self.text_attr] = ' '.join(toks)
+                    newRow[self.text_attr] = self.detokenize(toks)
                     if self.prepend_title:
                         newRow.drop(labels=[self.title_attr], inplace=True)
                         newRow[self.text_attr] = str(row[self.title_attr]) + self.join + newRow[self.text_attr]
@@ -481,7 +501,7 @@ class SlidingWindowPassager(Transformer):
                     for i, passage in enumerate( slidingWindow(toks, self.passage_length, self.passage_stride)):
                         newRow = row.copy()
                         newRow['docno'] = row['docno'] + "%p" + str(i)
-                        newRow[self.text_attr] = ' '.join(passage)
+                        newRow[self.text_attr] = self.detokenize(passage)
                         if self.prepend_title:
                             newRow.drop(labels=[self.title_attr], inplace=True)
                             newRow[self.text_attr] = str(row[self.title_attr]) + self.join + newRow[self.text_attr]

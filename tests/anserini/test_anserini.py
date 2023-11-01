@@ -1,6 +1,8 @@
 import unittest
 import os
 import pyterrier as pt
+ANSERINI_VERSION="0.22.0"
+
 class AnseriniTestCase(unittest.TestCase):
 
     def skip_pyserini(self):
@@ -15,7 +17,7 @@ class AnseriniTestCase(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(AnseriniTestCase, self).__init__(*args, **kwargs)
-        anserini_version = os.environ.get("ANSERINI_VERSION", "0.9.4")
+        anserini_version = os.environ.get("ANSERINI_VERSION", ANSERINI_VERSION)
         terrier_version = os.environ.get("TERRIER_VERSION", None)
         if terrier_version is not None:
             print("Testing with Terrier version " + terrier_version)
@@ -28,7 +30,23 @@ class AnseriniTestCase(unittest.TestCase):
     def test_anserini_vaswani(self):
         self.skip_pyserini()
         dest_index = os.path.join(self.here, "..", "fixtures", "anserini_index")
-        ret = pt.anserini.AnseriniBatchRetrieve(dest_index)
+        bm25 = pt.anserini.AnseriniBatchRetrieve(dest_index)
+        qld = pt.anserini.AnseriniBatchRetrieve(dest_index, wmodel='QLD')
+        tf_idf = pt.anserini.AnseriniBatchRetrieve(dest_index, wmodel='TFIDF')
         dataset = pt.get_dataset("vaswani")
-        df = pt.Experiment([ret], dataset.get_topics(), dataset.get_qrels(), ["map"])
-        self.assertEqual(0.2856489577946, df.iloc[0]["map"])
+        df = pt.Experiment([
+                bm25,
+                qld,
+                tf_idf                
+            ], 
+            dataset.get_topics(), 
+            dataset.get_qrels(), 
+            ["map"])
+        self.assertEqual(0.2856564466226712, df.iloc[0]["map"])
+        for i in df['map']:
+            self.assertGreater(i, 0)
+        
+        # check re-ranking works too
+        resIn = tf_idf.search("chemical reactions") 
+        resOut = (tf_idf >> bm25).search("chemical reactions")
+        self.assertEqual(len(resIn), len(resOut))

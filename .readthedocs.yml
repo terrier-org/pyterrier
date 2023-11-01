@@ -1,2 +1,7 @@
+version: 2
+build:
+  os: "ubuntu-22.04"
+  tools:
+    python: "mambaforge-22.9"
 conda:
-  file: ./.readthedocs-conda-environment.yml
+  environment: docs/readthedocs-conda-environment.yml
