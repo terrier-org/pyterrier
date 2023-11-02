@@ -5,7 +5,7 @@
 
 # PyTerrier
 
-A Python API for Terrier - v.0.9
+A Python API for Terrier - v.0.10
 
 # Installation
 
