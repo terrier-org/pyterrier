@@ -1,5 +1,5 @@
-#follows https://packaging.python.org/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
-name: Publish Python 🐍  distributions 📦 to PyPI and TestPyPI
+# follows https://packaging.python.org/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
+name: Publish Python 🐍  distributions 📦 to PyPI/TestPyPI
 
 on: 
   workflow_dispatch:
@@ -12,7 +12,7 @@ on:
 jobs:
   build-n-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
 
     steps:
     - name: Display phase
