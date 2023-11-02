@@ -18,10 +18,10 @@ jobs:
     - name: Display phase
       run: echo "Deploying "${{github.event.inputs.releasetype}}" $INPUT_RELEASETYPE to PyPI"
 
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v3
 
     - name: Set up Python 3.7
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v4
       with:
         python-version: 3.7
 
@@ -35,13 +35,13 @@ jobs:
   
     - name: Publish distribution 📦 to Test PyPI
       if: github.event.inputs.releasetype == 'test'
-      uses: pypa/gh-action-pypi-publish@master
+      uses: pypa/gh-action-pypi-publish@release/v1
       with:
         password: ${{ secrets.test_pypi_password }}
         repository_url: https://test.pypi.org/legacy/
 
     - name: Publish distribution 📦 to PyPI
       if: github.event.inputs.releasetype == 'release'
-      uses: pypa/gh-action-pypi-publish@master
+      uses: pypa/gh-action-pypi-publish@release/v1
       with:
         password: ${{ secrets.pypi_password }}
