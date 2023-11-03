@@ -1,4 +1,4 @@
-![Python package](https://github.com/terrier-org/pyterrier/workflows/Python%20package/badge.svg) 
+[![Continuous Testing](https://github.com/terrier-org/pyterrier/actions/workflows/push.yml/badge.svg)](https://github.com/terrier-org/pyterrier/actions/workflows/push.yml)
 [![PyPI version](https://badge.fury.io/py/python-terrier.svg)](https://badge.fury.io/py/python-terrier)
 [![Documentation Status](https://readthedocs.org/projects/pyterrier/badge/?version=latest)](https://pyterrier.readthedocs.io/en/latest/)
 
