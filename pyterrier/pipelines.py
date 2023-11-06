@@ -167,8 +167,12 @@ def _run_and_evaluate(
             system = read_results(save_file)
         elif save_mode == "overwrite":
             os.remove(save_file)
+        elif save_mode == 'error':
+            raise ValueError("save_dir is set, but the file %s already exists. If you are aware of are happy to reuse this  "+
+                             "file to speed up evaluation, set save_mode='reuse'; if you want to overwrite it, set save_mode='overwrite"
+                             % save_file)
         else:
-            raise ValueError("Unknown save_file argument '%s', valid options are 'reuse' or 'overwrite'" % save_mode)
+            raise ValueError("Unknown save_file argument '%s', valid options are 'error', 'reuse' or 'overwrite'" % save_mode)
 
     # if its a DataFrame, use it as the results
     if isinstance(system, pd.DataFrame):
@@ -288,7 +292,7 @@ def Experiment(
         round : Union[int,Dict[str,int]] = None,
         verbose : bool = False,
         save_dir : str = None,
-        save_mode : str = 'reuse',
+        save_mode : str = 'error',
         **kwargs):
     """
     Allows easy comparison of multiple retrieval transformer pipelines using a common set of topics, and
@@ -314,7 +318,8 @@ def Experiment(
             filename is based on the systems names (as specified by ``names`` kwarg). If the file exists and ``save_mode`` is set to "reuse", then the file
             will be used for evaluation rather than the transformer. Default is None, such that saving and loading from files is disabled.
         save_mode(str): Defines how existing files are used when ``save_dir`` is set. If set to "reuse", then files will be preferred
-            over transformers for evaluation. If set to "overwrite", existing files will be replaced. Default is "reuse".
+            over transformers for evaluation. If set to "overwrite", existing files will be replaced. If set to "error", the presence of any 
+            existing file will cause an error. Default is "error".
         dataframe(bool): If True return results as a dataframe, else as a dictionary of dictionaries. Default=True.
         baseline(int): If set to the index of an item of the retr_system list, will calculate the number of queries 
             improved, degraded and the statistical significance (paired t-test p value) for each measure.
