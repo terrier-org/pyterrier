@@ -168,11 +168,10 @@ def _run_and_evaluate(
         elif save_mode == "overwrite":
             os.remove(save_file)
         elif save_mode == 'error':
-            raise ValueError("save_dir is set, but the file %s already exists. If you are aware of are happy to reuse this  "+
-                             "file to speed up evaluation, set save_mode='reuse'; if you want to overwrite it, set save_mode='overwrite"
-                             % save_file)
+            raise ValueError(("save_dir is set, but the file '%s' already exists. If you are aware of are happy to reuse this  " % save_file)+
+                             "file to speed up evaluation, set save_mode='reuse'; if you want to overwrite it, set save_mode='overwrite'.")
         else:
-            raise ValueError("Unknown save_file argument '%s', valid options are 'error', 'reuse' or 'overwrite'" % save_mode)
+            raise ValueError("Unknown save_mode argument '%s', valid options are 'error', 'reuse' or 'overwrite'." % save_mode)
 
     # if its a DataFrame, use it as the results
     if isinstance(system, pd.DataFrame):
