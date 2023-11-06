@@ -13,7 +13,6 @@ joblib
 nptyping==1.4.4
 more_itertools
 ir_datasets>=0.3.2
-jinja2
 statsmodels
 ir_measures>=0.3.1
 dill
