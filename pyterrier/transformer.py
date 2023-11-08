@@ -281,8 +281,10 @@ class TransformerBase(Transformer):
 class Indexer(Transformer):
     def index(self, iter : Iterable[dict], **kwargs):
         """
-            Takes an iterable of dictionaries ("iterdict"), and consumes them. There is no return;
-            This method is typically used to implement indexers.
+            Takes an iterable of dictionaries ("iterdict"), and consumes them. The index method may return
+            an instance of the index or retriever. This method is typically used to implement indexers that
+            consume a corpus (or to consume the output of previous pipeline components that have
+            transformer the documents being consumed).
         """
         pass
 
