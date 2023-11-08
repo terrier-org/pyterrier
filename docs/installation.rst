@@ -23,6 +23,24 @@ If you want the latest version of PyTerrier, you can install direct from the Git
 
 NB: There is no need to have a local installation of the Java component, Terrier. PyTerrier will download the latest release on startup.
 
+Installation Troubleshooting
+============
+
+We aim to ensure that there are pre-compiled binaries available for any dependencies with native components, for all supported Python versions and for all major platforms (Linux, macOS, Windows).
+One notable exception is Mac M1 etc., as there are no freely available GitHub Actions runners for M1. Mac M1 installs may require to compile some dependencies.
+
+If the installation failed due to `pyautocorpus` did not run successfully, you may need to install `pcre` to your machine.
+
+macOS::
+
+    brew install pcre
+
+Linux::
+
+    apt-get update -y
+    apt-get install libpcre3-dev -y
+
+
 Configuration
 ==============
 
@@ -40,6 +58,9 @@ the usual places on your machine for a Java installation. If you have problems, 
     pt.init()
 
 `pt.init()` has a multitude of options, for instance that can make PyTerrier more notebook friendly, or to change the underlying version of Terrier, as described below.
+
+For users with an M1 Mac or later models, it is necessary to install the SSL certificates to avoid certificate errors. 
+To do this, locate the `Install Certificates.command` file within the `Application/Python[version]` directory. Once found, double-click on it to run the installation process.
 
 API Reference
 =============
