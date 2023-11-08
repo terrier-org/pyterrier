@@ -23,10 +23,13 @@ If you want the latest version of PyTerrier, you can install direct from the Git
 
 NB: There is no need to have a local installation of the Java component, Terrier. PyTerrier will download the latest release on startup.
 
-Installation Troubleshoot
+Installation Troubleshooting
 ============
 
-If the installation failed due to `pyautocorpus` did not run successfully. You will need to install `pcre` to your machine.
+We aim to ensure that there are pre-compiled binaries available for any dependencies with native components, for all supported Python versions and for all major platforms (Linux, macOS, Windows).
+One notable exception is Mac M1 etc., as there are no freely available GitHub Actions runners for M1. Mac M1 installs may require to compile some dependencies.
+
+If the installation failed due to `pyautocorpus` did not run successfully, you may need to install `pcre` to your machine.
 
 macOS::
 
