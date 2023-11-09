@@ -1,6 +1,7 @@
 import os
-import pandas as pd
 from contextlib import contextmanager
+
+import pandas as pd
 
 
 def coerce_dataframe(obj):
@@ -196,6 +197,7 @@ def _read_results_letor(filename, labels=False):
             # my %hash = map {split /:/, $_} @parts;
             # return ($label, $comment, %hash);
         import re
+
         import numpy as np
         line, comment = l.split("#")
         line = line.strip()
@@ -305,6 +307,7 @@ def read_topics(filename, format="trec", **kwargs):
 
 def _read_topics_trec(file_path, doc_tag="TOP", id_tag="NUM", whitelist=["TITLE"], blacklist=["DESC","NARR"]):
     from jnius import autoclass
+
     from . import check_version
     assert check_version("5.3")
     trecquerysource = autoclass('org.terrier.applications.batchquerying.TRECQuery')
@@ -331,6 +334,7 @@ def _read_topics_trecxml(filename, tags=["query", "question", "narrative"], toke
         pandas.Dataframe with columns=['qid','query']
     """
     import xml.etree.ElementTree as ET
+
     import pandas as pd
     tags=set(tags)
     topics=[]
@@ -339,7 +343,10 @@ def _read_topics_trecxml(filename, tags=["query", "question", "narrative"], toke
     from jnius import autoclass
     tokeniser = autoclass("org.terrier.indexing.tokenisation.Tokeniser").getTokeniser()
     for child in root.iter('topic'):
-        qid = child.attrib["number"]
+        try:
+            qid = child.attrib["number"]
+        except KeyError:
+            qid = child.find("number").text
         query = ""
         for tag in child:
             if tag.tag in tags:
@@ -347,7 +354,7 @@ def _read_topics_trecxml(filename, tags=["query", "question", "narrative"], toke
                 if tokenise:
                     query_text = " ".join(tokeniser.getTokens(query_text))
                 query += " " + query_text
-        topics.append((str(qid), query))
+        topics.append((str(qid), query.strip()))
     return pd.DataFrame(topics, columns=["qid", "query"])
 
 def _read_topics_singleline(filepath, tokenise=True):
@@ -364,6 +371,7 @@ def _read_topics_singleline(filepath, tokenise=True):
     """
     rows = []
     from jnius import autoclass
+
     from . import check_version
     assert check_version("5.3")
     slqIter = autoclass("org.terrier.applications.batchquerying.SingleLineTRECQuery")(filepath, tokenise)

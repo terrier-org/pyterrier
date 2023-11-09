@@ -1,0 +1,19 @@
+<topics>
+  <topic>
+    <number>1</number>
+    <title>lights</title>
+    <description>Description lights</description>
+    <narrative>Documents are relevant if they describe lights.</narrative>
+  </topic>
+  <topic>
+    <number>2</number>
+    <title>radiowaves</title>
+    <description>Description radiowaves</description>
+    <narrative>Documents are relevant if they describe radiowaves.</narrative>
+  </topic>
+  <topic number="3">
+    <title>sounds</title>
+    <description>Description sound</description>
+    <narrative>Documents are relevant if they describe sounds.</narrative>
+  </topic>
+</topics>
