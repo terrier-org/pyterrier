@@ -1,5 +1,6 @@
-from typing import Callable, Any, Dict, Union, Sequence
-from .apply_base import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyGenericTransformer, Transformer
+from typing import Callable, Any, Dict, Union, Iterator, Sequence
+from .transformer import Transformer, Indexer
+from .apply_base import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyGenericTransformer, ApplyIndexer
 from nptyping import NDArray
 import pandas as pd
 
@@ -117,6 +118,17 @@ def doc_features(fn : Callable[[pd.Series], NDArray[Any]], *args, **kwargs) -> T
     """
     return ApplyDocFeatureTransformer(fn, *args, **kwargs)
 
+def indexer(fn : Callable[[Iterator[Dict[str,Any]]], Any], **kwargs) -> Indexer:
+    """
+        Create an instance of pt.Indexer using a funcing that takes as input an interable dictionary.
+
+        The supplied function is called once. It may optionally return something (typically a reference to the "index").
+
+        Arguments:
+            fn(Callable): the function that consumed documents.
+    """
+    return ApplyIndexer(fn, **kwargs)
+
 def rename(columns : Dict[str,str], *args, errors='raise', **kwargs) -> Transformer:
     """
         Creates a transformer that renames columns in a dataframe. 
@@ -168,9 +180,10 @@ class _apply:
         _bind(self, lambda self, fn, *args, **kwargs : query(fn, *args, **kwargs), as_name='query')
         _bind(self, lambda self, fn, *args, **kwargs : doc_score(fn, *args, **kwargs), as_name='doc_score')
         _bind(self, lambda self, fn, *args, **kwargs : doc_features(fn, *args, **kwargs), as_name='doc_features')
+        _bind(self, lambda self, fn, *args, **kwargs : indexer(fn, *args, **kwargs), as_name='indexer')
         _bind(self, lambda self, fn, *args, **kwargs : rename(fn, *args, **kwargs), as_name='rename')
         _bind(self, lambda self, fn, *args, **kwargs : by_query(fn, *args, **kwargs), as_name='by_query')
-        _bind(self, lambda self, fn, *args, **kwargs : generic(fn, *args, **kwargs), as_name='generic')
+        _bind(self, lambda self, fn, *args, **kwargs : generic(fn, *args, **kwargs), as_name='generic')     
     
     def __getattr__(self, item):
         from functools import partial

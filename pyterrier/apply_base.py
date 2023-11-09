@@ -1,4 +1,4 @@
-from .transformer import Transformer
+from .transformer import Transformer, Indexer
 from . import tqdm
 from .model import add_ranks, split_df
 import pandas as pd
@@ -264,3 +264,14 @@ class ApplyGenericTransformer(ApplyTransformerBase):
         rtr = pd.concat([self.fn(chunk_df) for chunk_df in iterator])
         return rtr
 
+class ApplyIndexer(Indexer):
+    """
+    Allows arbitrary indexer pipelines components to be written as functions.
+    """
+    
+    def __init__(self, fn,  *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fn = fn
+
+    def index(self, iter_dict):
+        return self.fn(iter_dict)

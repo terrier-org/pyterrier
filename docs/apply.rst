@@ -43,6 +43,8 @@ function.
 +       |         |             |                  +---------------------------+----------------------+-----------------------+
 |       |         |             |                  | `pt.apply.by_query()`     | dataframe for 1 query| dataframe for 1 query |
 +-------+---------+-------------+------------------+---------------------------+----------------------+-----------------------+
+|   D   |  None   |        -    | Indexing         | `pt.apply.indexer()`      | iterable dictionary  | anything              | 
++-------+---------+-------------+------------------+---------------------------+----------------------+-----------------------+
 
 In each case, the result from calling a pyterrier.apply method is another PyTerrier transformer 
 (i.e. extends ``pt.Transformer``), which can be used for experimentation or combined with other 

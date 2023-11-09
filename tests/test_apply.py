@@ -18,6 +18,16 @@ class TestApply(BaseTestCase):
         rtr = p(testDF)
         self.assertTrue("Bla" not in rtr.columns)
 
+    def test_index_apply(self):
+        def _counter(iter_dict):
+            count = 0
+            for d in iter_dict:
+                count += 1
+            return count
+        indexer = pt.apply.indexer(_counter)
+        rtr = indexer.index([ {'docno' : 'd1'}, {'docno' : 'd2'}])
+        self.assertEqual(2, rtr)
+
     def test_make_columns(self):
         from pyterrier.transformer import Transformer
         testDF = pd.DataFrame([["q1", "the bear and the wolf", 1]], columns=["qid", "query", "Bla"])
