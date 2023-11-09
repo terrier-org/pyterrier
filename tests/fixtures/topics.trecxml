@@ -11,6 +11,7 @@
     <description>Description radiowaves</description>
     <narrative>Documents are relevant if they describe radiowaves.</narrative>
   </topic>
+  <!-- Use attribute rather than tag for number -->
   <topic number="3">
     <title>sounds</title>
     <description>Description sound</description>
