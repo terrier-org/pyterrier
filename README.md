@@ -162,3 +162,4 @@ By downloading and using PyTerrier, you agree to cite at the undernoted paper de
  - Sarawoot Kongyoung, University of Glasgow
  - Zhan Su, Copenhagen University
  - Marcus Schutte, TU Delft
+ - Lukas Zeit-Altpeter, Friedrich Schiller University Jena
