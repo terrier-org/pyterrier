@@ -305,7 +305,6 @@ def read_topics(filename, format="trec", **kwargs):
 
 def _read_topics_trec(file_path, doc_tag="TOP", id_tag="NUM", whitelist=["TITLE"], blacklist=["DESC","NARR"]):
     from jnius import autoclass
-
     from . import check_version
     assert check_version("5.3")
     trecquerysource = autoclass('org.terrier.applications.batchquerying.TRECQuery')
@@ -332,7 +331,6 @@ def _read_topics_trecxml(filename, tags=["query", "question", "narrative"], toke
         pandas.Dataframe with columns=['qid','query']
     """
     import xml.etree.ElementTree as ET
-
     import pandas as pd
     tags=set(tags)
     topics=[]
