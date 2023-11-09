@@ -86,6 +86,10 @@ def doc_score(fn : Union[Callable[[pd.Series], float], Callable[[pd.DataFrame], 
             
             pipe = pt.BatchRetrieve(index) >> pt.apply.doc_score(_doclen, batch_size=128)
 
+        Can also be used to create individual features that are combined using the ``**`` feature-union operator::
+
+            pipeline = bm25 >> ( some_features ** pt.apply.doc_score(_doclen) )
+
     """
     return ApplyDocumentScoringTransformer(fn, *args, batch_size=batch_size, **kwargs)
 
@@ -115,6 +119,11 @@ def doc_features(fn : Callable[[pd.Series], NDArray[Any]], *args, **kwargs) -> T
             p = pt.BatchRetrieve(index, wmodel="BM25") >> 
                 pt.apply.doc_features(_features )
 
+        NB: If you only want to calculate a single feature to add to existing features, it is better to use ``pt.apply.doc_score()`` 
+        and the ``**`` feature union operator::
+
+            pipeline = bm25 >> ( some_features ** pt.apply.doc_score(one_feature) )
+
     """
     return ApplyDocFeatureTransformer(fn, *args, **kwargs)
 
@@ -126,6 +135,17 @@ def indexer(fn : Callable[[Iterator[Dict[str,Any]]], Any], **kwargs) -> Indexer:
 
         Arguments:
             fn(Callable): the function that consumed documents.
+
+        Example::
+
+            # make a pt.Indexer that returns the numnber of documents consumed
+            def _counter(iter_dict):
+                count = 0
+                for d in iter_dict:
+                    count += 1
+                return count
+            indexer = pt.apply.indexer(_counter)
+            rtr = indexer.index([ {'docno' : 'd1'}, {'docno' : 'd2'}])
     """
     return ApplyIndexer(fn, **kwargs)
 
