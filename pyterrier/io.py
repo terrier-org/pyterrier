@@ -1,7 +1,6 @@
 import os
-from contextlib import contextmanager
-
 import pandas as pd
+from contextlib import contextmanager
 
 
 def coerce_dataframe(obj):
@@ -197,7 +196,6 @@ def _read_results_letor(filename, labels=False):
             # my %hash = map {split /:/, $_} @parts;
             # return ($label, $comment, %hash);
         import re
-
         import numpy as np
         line, comment = l.split("#")
         line = line.strip()
@@ -371,7 +369,6 @@ def _read_topics_singleline(filepath, tokenise=True):
     """
     rows = []
     from jnius import autoclass
-
     from . import check_version
     assert check_version("5.3")
     slqIter = autoclass("org.terrier.applications.batchquerying.SingleLineTRECQuery")(filepath, tokenise)
