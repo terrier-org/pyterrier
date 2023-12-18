@@ -321,7 +321,7 @@ class TestExperiment(TempDirTestCase):
         # user-specified TOST
         # TOST will omit warnings here, due to low numbers of topics
         import statsmodels.stats.weightstats
-        fn = lambda X,Y: (0, statsmodels.stats.weightstats.ttost_ind(X, Y, -0.01, 0.01)[0])
+        fn = lambda X,Y: (0, statsmodels.stats.weightstats.ttost_paired(X, Y, -0.01, 0.01)[0])
         
         #This filter doesnt work
         with warnings.catch_warnings(record=True) as w:
