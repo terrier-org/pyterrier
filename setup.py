@@ -53,6 +53,12 @@ setup(
     author="Craig Macdonald",
     author_email='craigm@dcs.gla.ac.uk',
     description="Terrier IR platform Python API",
+    project_urls={
+        'Documentation': 'https://pyterrier.readthedocs.io',
+        'Changelog': 'https://github.com/terrier-org/pyterrier/releases',
+        'Issue Tracker': 'https://github.com/terrier-org/pyterrier/issues',
+        'CI': 'https://github.com/terrier-org/pyterrier/actions',
+    },
     long_description=long_description,
     long_description_content_type="text/markdown",
     package_data={'': ['LICENSE.txt', 'requirements.txt', 'requirements-test.txt']},
