@@ -228,12 +228,8 @@ def _read_results_letor(filename, labels=False):
 
 def _read_results_trec(filename):
     results = []
-    df = pd.read_csv(filename, sep=r'\s+', names=["qid", "iter", "docno", "rank", "score", "name"])
+    df = pd.read_csv(filename, sep=r'\s+', names=["qid", "iter", "docno", "rank", "score", "name"], dtype={'qid': str, 'docno': str, 'rank': int, 'score': float}) 
     df = df.drop(columns="iter")
-    df["qid"] = df["qid"].astype(str)
-    df["docno"] = df["docno"].astype(str)
-    df["rank"] = df["rank"].astype(int)
-    df["score"] = df["score"].astype(float)
     return df
 
 def write_results(res, filename, format="trec", append=False, **kwargs):
