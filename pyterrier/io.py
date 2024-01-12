@@ -296,7 +296,7 @@ def read_topics(filename, format="trec", **kwargs):
     if format is None:
         format = "trec"
     if not format in SUPPORTED_TOPICS_FORMATS:
-        raise ValueError("Format %s not known, supported types are %s" % (format, str(SUPPORTED_RESULTS_FORMATS.keys())))
+        raise ValueError("Format %s not known, supported types are %s" % (format, str(SUPPORTED_TOPICS_FORMATS.keys())))
     return SUPPORTED_TOPICS_FORMATS[format](filename, **kwargs)
 
 def _read_topics_trec(file_path, doc_tag="TOP", id_tag="NUM", whitelist=["TITLE"], blacklist=["DESC","NARR"]):
