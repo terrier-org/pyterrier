@@ -5,19 +5,19 @@ Part of the power of PyTerrier comes from the ease in which researchers can form
 This is made possible by the operators available on Pyterrier's transformer objects. The following table summarises
 the available operators:
 
-============ =================================
+============ =======================================================
  Operator    Meaning                           
-============ =================================
+============ =======================================================
 `>>`         Then - chaining pipes            
 `+`          Linear combination of scores            
 `*`          Scalar factoring of scores         
 `&`          Document Set Intersection              
 `|`          Document Set Union         
 `%`          Apply rank cutoff                  
-`^`          Concatenate run with another       
+`^`          Concatenate the output of one transformer with another       
 `**`         Feature Union           
 `~`          Cache transformer result              
-============ =================================
+============ =======================================================
 
 NB: These operators retain their default Python operator precedence - that may not be aligned with your expectations
 in a PyTerrier context (e.g. `&` is higher than `>>`). 
