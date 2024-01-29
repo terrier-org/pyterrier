@@ -64,6 +64,14 @@ Example::
     dph = pt.BatchRetrieve(index, wmodel="DPH")
     pipelineQE = dph >> bo1 >> dph
 
+View the expansion terms::
+
+    pipelineDisplay = dph >> bo1
+    pipelineDisplay.search("chemical reactions")
+    # will return a dataframe with ['qid', 'query', 'query_0'] columns
+    # the reformulated query can be found in the 'query' column, 
+    # while the original query is in the 'query_0' columns
+
 **Alternative Formulations**
 
 Note that it is also possible to configure BatchRetrieve to perform QE directly using controls,
