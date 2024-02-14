@@ -171,3 +171,31 @@ of the term (obtained from the Lexicon, in the form of the LexiconEntry), as wel
         print("%s with score %0.4f"  % (docno, score))
 
 Note that using BatchRetrieve or similar is probably an easier prospect for such a use case.
+
+Can I get the index as a corpus_iter()?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A corpus_iter can be obtained from an Index object, which allows for instance:
+ - indexing the pre-tokenised Terrier index directly in another indexing pipeline
+ - extracting document metadata for ingestion into another indexing pipeline
+
+Metadata Example::
+
+    iter = index.get_corpus_iter(direct=False)
+    next(iter)
+    ## could display {'docno' : 'd1', 'text' : 'This document contains ...' }
+
+Pre-tokenised Example::
+
+    iter = index.get_corpus_iter()
+    next(iter)
+    ## could display {'docno' : 'd1', 'toks' : {'a' : 1, 'the' : 2}}
+
+Document Pruning Example::
+
+    index_pipe = (
+        # make a new toks column for each document, keeping only terms with frequency > 1
+        pt.apply.toks(lambda row: { t : row['toks'][t] for t in row['toks'] if row['toks'][t] > 1 } ) 
+        >> pt.IterDictIndexer("./pruned_index", pretokenised=True)
+    )
+    new_index_ref = index_pipe.index( index.get_corpus_iter())
