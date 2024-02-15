@@ -272,7 +272,7 @@ def setup_jnius():
         multiindex_cls = autoclass("org.terrier.realtime.multi.MultiIndex")
         return multiindex_cls([self, other], blocks_1, fields_1 > 0)
     
-    def _index_corpusiter(self, direct=True):
+    def _index_corpusiter(self, return_toks=True):
         def _index_corpusiter_meta(self):
             meta_inputstream = self.getIndexStructureInputStream("meta")
             keys = self.getMetaIndex().getKeys()
@@ -292,21 +292,24 @@ def setup_jnius():
             while direct_inputstream.hasNext():
                 ip = direct_inputstream.getNextPostings() #this is the next() method
 
+                # yield empty toks dicts for empty documents
                 for skipped in range(0, direct_inputstream.getEntriesSkipped()):
                     meta = meta_inputstream.next()
-                    yield {k : meta[keys_offset[k]] for k in keys_offset}
+                    rtr = {k : meta[keys_offset[k]] for k in keys_offset}   
+                    rtr['toks'] = {}
+                    yield rtr
 
                 toks = {}
                 while ip.next() != ip.EOL:
-                    t, le = lex[ip.getId()]
+                    t, _ = lex[ip.getId()]
                     toks[t] = ip.getFrequency()
                 meta = meta_inputstream.next()
                 rtr = {'toks' : toks}
                 rtr.update({k : meta[keys_offset[k]] for k in keys_offset})
                 yield rtr
-        if direct:
+        if return_toks:
             if not self.hasIndexStructureInputStream("direct"):
-                raise ValueError("No direct index input stream available")
+                raise ValueError("No direct index input stream available, cannot use return_toks=True")
             return _index_corpusiter_direct_pretok(self)
         return _index_corpusiter_meta(self)
 

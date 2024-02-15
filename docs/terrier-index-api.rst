@@ -181,15 +181,16 @@ A corpus_iter can be obtained from an Index object, which allows for instance:
 
 Metadata Example::
 
-    iter = index.get_corpus_iter(direct=False)
+    iter = index.get_corpus_iter(return_toks=False)
     next(iter)
-    ## could display {'docno' : 'd1', 'text' : 'This document contains ...' }
+    # would display {'docno' : 'd1', 'text' : 'This document contains ...' }
+    # assuming that index has been built with metadata=['docno', 'text']
 
 Pre-tokenised Example::
 
     iter = index.get_corpus_iter()
     next(iter)
-    ## could display {'docno' : 'd1', 'toks' : {'a' : 1, 'the' : 2}}
+    # would display {'docno' : 'd1', 'toks' : {'a' : 1, 'the' : 2}}
 
 Document Pruning Example::
 
