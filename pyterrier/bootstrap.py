@@ -46,7 +46,7 @@ class IndexFactory:
             },
             'inverted' : {
                 'org.terrier.structures.bit.BitPostingIndex' : {
-                    'index.direct.data-source' : 'fileinmem'}
+                    'index.inverted.data-source' : 'fileinmem'}
             },
         }
         if "direct" in structures:
