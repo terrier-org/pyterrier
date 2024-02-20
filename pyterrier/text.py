@@ -135,6 +135,13 @@ def scorer(*args, **kwargs) -> Transformer:
     This is an alias to pt.TextScorer(). Internally, a Terrier memory index is created, before being
     used for scoring.
 
+    Arguments:
+        body_attr(str): what dataframe input column contains the text of the document. Default is `"body"`.
+        wmodel(str): name of the weighting model to use for scoring.
+        background_index(index_like): An optional background index to use for collection statistics. If a weighting
+            model such as BM25 or TF_IDF or PL2 is used without setting the background_index, the background statistics
+            will be calculated from the dataframe, which is ususally not the desired behaviour.
+
     Example::
     
         df = pd.DataFrame(
@@ -149,8 +156,9 @@ def scorer(*args, **kwargs) -> Transformer:
         # ["q1", "chemical reactions", "d1", "professor protor poured the chemicals", 0, 1]
         # ["q1", "chemical reactions", "d2", "chemical brothers turned up the beats", 0, 1]
 
-    For calculating the scores of documents using any weighting model with the concept of IDF, it may be useful to make use of
-    an existing Terrier index for background statistics::
+    For calculating the scores of documents using any weighting model with the concept of IDF, it is strongly advised to make use of
+    an existing Terrier index for background statistics. Without a background index, IDF will be calculated based on the supplied
+    dataframe (for models such as BM25, this can lead to negative scores)::
 
         textscorerTfIdf = pt.text.scorer(body_attr="text", wmodel="TF_IDF", background_index=index)
 
