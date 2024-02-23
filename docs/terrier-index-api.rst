@@ -195,7 +195,7 @@ Pre-tokenised Example::
 Document Pruning Example::
 
     index_pipe = (
-        # make a new toks column for each document, keeping only terms with frequency > 1
+        # update the toks column for each document, keeping only terms with frequency > 1
         pt.apply.toks(lambda row: { t : row['toks'][t] for t in row['toks'] if row['toks'][t] > 1 } ) 
         >> pt.IterDictIndexer("./pruned_index", pretokenised=True)
     )
