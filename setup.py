@@ -71,5 +71,5 @@ setup(
         "Operating System :: OS Independent",
     ],
     install_requires=requirements,
-    python_requires='>=3.7',
+    python_requires='>=3.8',
 )
