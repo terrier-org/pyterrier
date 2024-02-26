@@ -553,7 +553,10 @@ class TextScorer(TextIndexProcessor):
             takes(str): configuration - what is needed as input: `"queries"`, or `"docs"`. Default is `"docs"` since v0.8.
             returns(str): configuration - what is needed as output: `"queries"`, or `"docs"`. Default is `"docs"`.
             body_attr(str): what dataframe input column contains the text of the document. Default is `"body"`.
-            wmodel(str): example of configuration passed to BatchRetrieve.
+            wmodel(str): name of the weighting model to use for scoring.
+            background_index(index_like): An optional background index to use for term and collection statistics. If a weighting
+                model such as BM25 or TF_IDF or PL2 is used without setting the background_index, the background statistics
+                will be calculated from the dataframe, which is ususally not the desired behaviour.
 
         Example::
 
@@ -562,9 +565,21 @@ class TextScorer(TextIndexProcessor):
                     ["q1", "chemical reactions", "d1", "professor protor poured the chemicals"],
                     ["q1", "chemical reactions", "d2", "chemical brothers turned up the beats"],
                 ], columns=["qid", "query", "text"])
-            textscorer = pt.TextScorer(takes="docs", body_attr="text", wmodel="TF_IDF")
+            textscorer = pt.TextScorer(takes="docs", body_attr="text", wmodel="Tf")
             rtr = textscorer.transform(df)
-            #rtr will score each document for the query "chemical reactions" based on the provided document contents
+            #rtr will score each document by term frequency for the query "chemical reactions" based on the provided document contents
+
+        Example::
+
+            df = pd.DataFrame(
+                [
+                    ["q1", "chemical reactions", "d1", "professor protor poured the chemicals"],
+                    ["q1", "chemical reactions", "d2", "chemical brothers turned up the beats"],
+                ], columns=["qid", "query", "text"])
+            existing_index = pt.IndexFactory.of(...)
+            textscorer = pt.TextScorer(takes="docs", body_attr="text", wmodel="TF_IDF", background_index=existing_index)
+            rtr = textscorer.transform(df)
+            #rtr will score each document by TF_IDF for the query "chemical reactions" based on the provided document contents
     """
 
     def __init__(self, takes="docs", **kwargs):
