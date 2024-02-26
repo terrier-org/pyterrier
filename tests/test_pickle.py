@@ -98,6 +98,22 @@ class TestPickle(TempDirTestCase):
         self._fix_joblib()
         self._fbr(joblib)
 
+    def test_qe_pickle(self):
+        self._qe(pickle)
+
+    def _qe(self, pickler):
+        vaswani = pt.datasets.get_dataset("vaswani")
+        index = vaswani.get_index()
+        bm25 = pt.BatchRetrieve(index, wmodel='BM25', controls={"c" : 0.75}, num_results=15)
+        br = bm25 >> pt.rewrite.Bo1QueryExpansion(index) >> bm25
+        q  = pd.DataFrame([["q1", "chemical"]], columns=["qid", "query"])
+        res1 = br(q)
+        byterep = pickler.dumps(br)
+        br2 = pickler.loads(byterep)
+
+        res2 = br2(q)
+        pd.testing.assert_frame_equal(res1, res2)
+    
     def _br(self, pickler, wmodel='BM25'):
         vaswani = pt.datasets.get_dataset("vaswani")
         br = pt.BatchRetrieve(vaswani.get_index(), wmodel=wmodel, controls={"c" : 0.75}, num_results=15)
