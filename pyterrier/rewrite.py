@@ -205,11 +205,40 @@ class QueryExpansion(Transformer):
         else:
             self.qe = qeclass
         self.indexref = _parse_index_like(index_like)
+        self.properties = properties
         for k,v in properties.items():
             pt.ApplicationSetup.setProperty(k, str(v))
         self.applytp = pt.autoclass("org.terrier.querying.ApplyTermPipeline")()
         self.fb_terms = fb_terms
         self.fb_docs = fb_docs
+        self.manager = pt.autoclass("org.terrier.querying.ManagerFactory")._from_(self.indexref)
+
+    def __reduce__(self):
+        return (
+            self.__class__,
+            (self.indexref,),
+            self.__getstate__()
+        )
+
+    def __getstate__(self): 
+        if isinstance(self.qe, str):
+            qe = self.qe
+        else:
+            qe = self.qe.getClass().getName()
+        return  {
+                'fb_terms' : self.fb_terms, 
+                'fb_docs' : self.fb_docs,
+                'qeclass' : qe,
+                'properties' : self.properties
+                }
+
+    def __setstate__(self, d): 
+        self.fb_terms = d["fb_terms"]
+        self.fb_docs = d["fb_docs"]
+        self.qe = pt.autoclass(d['qeclass'])()
+        self.properties.update(d["properties"])
+        for key,value in d["properties"].items():
+            self.appSetup.setProperty(key, str(value))
         self.manager = pt.autoclass("org.terrier.querying.ManagerFactory")._from_(self.indexref)
 
     def _populate_resultset(self, topics_and_res, qid, index):
@@ -386,6 +415,15 @@ class RM3(QueryExpansion):
         self.fb_lambda = fb_lambda
         kwargs["qeclass"] = rm
         super().__init__(*args, fb_terms=fb_terms, fb_docs=fb_docs, **kwargs)
+
+    def __getstate__(self): 
+        rtr = super().__getstate__()
+        rtr['fb_lambda'] = self.fb_lambda
+        return rtr
+    
+    def __setstate__(self, d): 
+        super().__setstate__(d)
+        self.fb_lambda = d["fb_lambda"]
 
     def _configure_request(self, rq):
         super()._configure_request(rq)
