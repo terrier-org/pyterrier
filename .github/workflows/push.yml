@@ -14,7 +14,7 @@ jobs:
     
     strategy:
       matrix:
-        python-version: ['3.7', '3.11']
+        python-version: ['3.8', '3.11']
         java: [11, 13]
         os: ['ubuntu-latest', 'macOs-latest', 'windows-latest']
         architecture: ['x64']
@@ -34,17 +34,17 @@ jobs:
       run: |
         brew install libomp
 
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Set up Python ${{ matrix.python-version }}
       if: matrix.os != 'self-hosted'
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     
     - name: Setup java
       if: matrix.os != 'self-hosted'
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         java-version: ${{ matrix.java }}
         architecture: ${{ matrix.architecture }}
@@ -60,7 +60,7 @@ jobs:
     # follows https://medium.com/ai2-blog/python-caching-in-github-actions-e9452698e98d
     - name: Loading Python & dependencies from cache
       if: matrix.os != 'self-hosted'
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ env.pythonLocation }}
         key: ${{ env.pythonLocation }}-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements-test.txt') }}
