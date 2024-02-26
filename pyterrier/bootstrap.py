@@ -282,6 +282,11 @@ def setup_jnius():
                 yield {k : item[keys_offset[k]] for k in keys_offset}
 
         def _index_corpusiter_direct_pretok(self):
+            import sys
+            MIN_PYTHON = (3, 8)
+            if sys.version_info < MIN_PYTHON:
+                raise NotImplementedError("Sorry, Python 3.8+ is required for this functionality")
+
             meta_inputstream = self.getIndexStructureInputStream("meta")
             keys = self.getMetaIndex().getKeys()
             keys_offset = { k: offset for offset, k in enumerate(keys) }
@@ -289,8 +294,8 @@ def setup_jnius():
             direct_inputstream = self.getIndexStructureInputStream("direct")
             lex = self.getLexicon()
 
-            while direct_inputstream.hasNext():
-                ip = direct_inputstream.getNextPostings() #this is the next() method
+            ip = None
+            while (ip := direct_inputstream.getNextPostings()) is not None: # this is the next() method
 
                 # yield empty toks dicts for empty documents
                 for skipped in range(0, direct_inputstream.getEntriesSkipped()):
@@ -307,6 +312,14 @@ def setup_jnius():
                 rtr = {'toks' : toks}
                 rtr.update({k : meta[keys_offset[k]] for k in keys_offset})
                 yield rtr
+
+            # yield for trailing empty documents
+            for skipped in range(0, direct_inputstream.getEntriesSkipped()):
+                meta = meta_inputstream.next()
+                rtr = {k : meta[keys_offset[k]] for k in keys_offset}   
+                rtr['toks'] = {}
+                yield rtr
+        
         if return_toks:
             if not self.hasIndexStructureInputStream("direct"):
                 raise ValueError("No direct index input stream available, cannot use return_toks=True")
