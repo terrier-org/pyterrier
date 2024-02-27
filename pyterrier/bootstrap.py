@@ -271,6 +271,60 @@ def setup_jnius():
             raise ValueError("Cannot document-wise merge indices with and without positions (%r vs %r)" % (blocks_1, blocks_2))
         multiindex_cls = autoclass("org.terrier.realtime.multi.MultiIndex")
         return multiindex_cls([self, other], blocks_1, fields_1 > 0)
+    
+    def _index_corpusiter(self, return_toks=True):
+        def _index_corpusiter_meta(self):
+            meta_inputstream = self.getIndexStructureInputStream("meta")
+            keys = self.getMetaIndex().getKeys()
+            keys_offset = { k: offset for offset, k in enumerate(keys) }
+            while meta_inputstream.hasNext():
+                item = meta_inputstream.next()
+                yield {k : item[keys_offset[k]] for k in keys_offset}
+
+        def _index_corpusiter_direct_pretok(self):
+            import sys
+            MIN_PYTHON = (3, 8)
+            if sys.version_info < MIN_PYTHON:
+                raise NotImplementedError("Sorry, Python 3.8+ is required for this functionality")
+
+            meta_inputstream = self.getIndexStructureInputStream("meta")
+            keys = self.getMetaIndex().getKeys()
+            keys_offset = { k: offset for offset, k in enumerate(keys) }
+            keys_offset = {'docno' : keys_offset['docno'] }
+            direct_inputstream = self.getIndexStructureInputStream("direct")
+            lex = self.getLexicon()
+
+            ip = None
+            while (ip := direct_inputstream.getNextPostings()) is not None: # this is the next() method
+
+                # yield empty toks dicts for empty documents
+                for skipped in range(0, direct_inputstream.getEntriesSkipped()):
+                    meta = meta_inputstream.next()
+                    rtr = {k : meta[keys_offset[k]] for k in keys_offset}   
+                    rtr['toks'] = {}
+                    yield rtr
+
+                toks = {}
+                while ip.next() != ip.EOL:
+                    t, _ = lex[ip.getId()]
+                    toks[t] = ip.getFrequency()
+                meta = meta_inputstream.next()
+                rtr = {'toks' : toks}
+                rtr.update({k : meta[keys_offset[k]] for k in keys_offset})
+                yield rtr
+
+            # yield for trailing empty documents
+            for skipped in range(0, direct_inputstream.getEntriesSkipped()):
+                meta = meta_inputstream.next()
+                rtr = {k : meta[keys_offset[k]] for k in keys_offset}   
+                rtr['toks'] = {}
+                yield rtr
+        
+        if return_toks:
+            if not self.hasIndexStructureInputStream("direct"):
+                raise ValueError("No direct index input stream available, cannot use return_toks=True")
+            return _index_corpusiter_direct_pretok(self)
+        return _index_corpusiter_meta(self)
 
     protocol_map["org.terrier.structures.Index"] = {
         # this means that len(index) returns the number of documents in the index
@@ -278,7 +332,10 @@ def setup_jnius():
 
         # document-wise composition of indices: adding more documents to an index, by merging two indices with 
         # different numbers of documents. This implemented by the overloading the `+` Python operator
-        '__add__': _index_add
+        '__add__': _index_add,
+
+        # get_corpus_iter returns a yield generator that return {"docno": "d1", "toks" : {'a' : 1}}
+        'get_corpus_iter' : _index_corpusiter
     }
 
 def setup_terrier(file_path, terrier_version=None, helper_version=None, boot_packages=[], force_download=True):
