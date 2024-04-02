@@ -137,6 +137,37 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
         if "matching" in retrBasic.controls:
             self.assertNotEqual(retrBasic.controls["matching"], "FatFeaturedScoringMatching,org.terrier.matching.daat.FatFull")
 
+    def test_fbr_example(self):
+        JIR = pt.autoclass('org.terrier.querying.IndexRef')
+        indexref = JIR.of(self.here + "/fixtures/index/data.properties")
+        index = pt.IndexFactory.of(indexref)
+        # this ranker will make the candidate set of documents for each query
+        BM25 = pt.BatchRetrieve(index, wmodel="BM25")
+
+        # these rankers we will use to re-rank the BM25 results
+        TF_IDF =  pt.BatchRetrieve(index, wmodel="Dl")
+        PL2 =  pt.BatchRetrieve(index, wmodel="PL2")
+
+        pipe =  (BM25 %2) >> (TF_IDF ** PL2)
+        fbr = pt.FeaturesBatchRetrieve(indexref, ["WMODEL:Dl", "WMODEL:PL2"], wmodel="BM25") % 2
+        resultP = pipe.search("chemical")
+        resultF = fbr.search("chemical")
+        pd.set_option('display.max_columns', None)
+
+        print(resultP)
+        print(resultF)
+        self.assertEqual(resultP.iloc[0].docno, resultF.iloc[0].docno)
+        self.assertEqual(resultP.iloc[0].score, resultF.iloc[0].score)
+        self.assertEqual(resultP.iloc[0].features[0], resultF.iloc[0].features[0])
+        self.assertEqual(resultP.iloc[0].features[1], resultF.iloc[0].features[1])
+
+        pipeCompiled = pipe.compile()
+        resultC = pipeCompiled.search("chemical")
+        self.assertEqual(resultP.iloc[0].docno, resultC.iloc[0].docno)
+        self.assertEqual(resultP.iloc[0].score, resultC.iloc[0].score)
+        self.assertEqual(resultP.iloc[0].features[0], resultC.iloc[0].features[0])
+        self.assertEqual(resultP.iloc[0].features[1], resultC.iloc[0].features[1])
+
     def test_fbr_empty(self):
         JIR = pt.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of(self.here + "/fixtures/index/data.properties")

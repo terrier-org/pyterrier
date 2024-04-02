@@ -672,7 +672,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         Performs the retrieval with multiple features
 
         Args:
-            queries: String for a single query, list of queries, or a pandas.Dataframe with columns=['qid', 'query']. For re-ranking,
+            queries: A pandas.Dataframe with columns=['qid', 'query']. For re-ranking,
                 the DataFrame may also have a 'docid' and or 'docno' column.
 
         Returns:
