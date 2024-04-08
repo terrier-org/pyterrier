@@ -210,11 +210,18 @@ class ApplyQueryTransformer(ApplyTransformerBase):
             outputRes = push_queries(inputRes.copy(), inplace=True, keep_original=True)
         else:
             outputRes = inputRes.copy()
-        if self.verbose:
-            tqdm.pandas(desc="pt.apply.query", unit="d")
-            outputRes["query"] = outputRes.progress_apply(fn, axis=1)
-        else:
-            outputRes["query"] = outputRes.apply(fn, axis=1)
+        try:
+            if self.verbose:
+                tqdm.pandas(desc="pt.apply.query", unit="d")
+                outputRes["query"] = outputRes.progress_apply(fn, axis=1)
+            else:
+                outputRes["query"] = outputRes.apply(fn, axis=1)
+        except ValueError as ve:
+            msg = str(ve)
+            if "Columns must be same length as key" in msg:
+                raise TypeError("Could not coerce return from pt.apply.query function into a list of strings. Check your function returns a string.") from ve
+            else:
+                raise ve
         return outputRes
 
 class ApplyGenericTransformer(ApplyTransformerBase):

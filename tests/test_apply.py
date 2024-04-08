@@ -59,6 +59,14 @@ class TestApply(BaseTestCase):
         rtrDR2 = pt.apply.query(lambda row : row["qid"] )(testDF2)
         self.assertEqual(rtrDR2.iloc[0]["query"], "q1")
 
+    def test_query_apply_error(self):
+        origquery="the bear and the wolf"
+        testDF = pd.DataFrame([["q1", origquery]], columns=["qid", "query"])
+        p = pt.apply.query(lambda q : q) # should thrown an error, as pt.apply.query should return a string, not a row
+        with self.assertRaises(TypeError) as te:
+            p(testDF)
+        self.assertTrue("Could not coerce return from pt.apply.query function into a list of strings" in str(te.exception))
+
     def test_by_query_apply(self):
         inputDf = pt.new.ranked_documents([[1], [2]], qid=["1", "2"])
         def _inc_score(res):
