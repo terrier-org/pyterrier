@@ -39,7 +39,7 @@ def get_transformer(v, stacklevel=1):
     if isinstance(v, pd.DataFrame):
         warn('Coercion of a dataframe into a transformer is deprecated; use a pt.Transformer.from_df() instead', stacklevel=stacklevel, category=DeprecationWarning)
         return SourceTransformer(v)
-    raise ValueError("Passed parameter %s of type %s cannot be coerced into a transformer" % (str(v), type(v)), stacklevel=stacklevel, category=DeprecationWarning)
+    raise ValueError("Passed parameter %s of type %s cannot be coerced into a transformer" % (str(v), type(v)))
 
 rewrite_rules = []
 
