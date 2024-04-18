@@ -8,6 +8,11 @@ from tqdm.auto import tqdm
 # definitive API used by others, now available before pt.init
 from .transformer import Transformer, Estimator, Indexer
 
+import pyterrier.artifact
+from pyterrier.artifact import Artifact
+import pyterrier.terrier
+from pyterrier.terrier import TerrierIndex
+
 import importlib
 
 #sub modules

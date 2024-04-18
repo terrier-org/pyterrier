@@ -72,4 +72,9 @@ setup(
     ],
     install_requires=requirements,
     python_requires='>=3.8',
+    entry_points={
+        'pyterrier.artifact': [
+            'terrier = pyterrier.terrier:TerrierIndex',
+        ],
+    },
 )
