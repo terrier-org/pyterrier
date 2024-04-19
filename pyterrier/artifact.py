@@ -139,6 +139,11 @@ class Artifact(ABC):
 
         return cls.load(path)
 
+    @classmethod
+    def from_dataset(cls, dataset: str, variant: str, *, expected_sha256: Optional[str] = None) -> 'Artifact':
+        branch = f'{dataset}.{variant}'
+        return cls.from_url(f'hf:macavaney/pyterrier-from-dataset@{branch}')
+
 
 from_url = Artifact.from_url
 
