@@ -78,7 +78,7 @@ def _finalized_open_base(path: str, mode: str, open_fn) -> io.IOBase:
             raise
         raise
 
-    os.rename(path_tmp, path)
+    os.replace(path_tmp, path)
 
 
 def finalized_open(path: str, mode: str):
@@ -146,7 +146,7 @@ def finalized_directory(path: str) -> str:
             raise
         raise
 
-    os.rename(path_tmp, path)
+    os.replace(path_tmp, path)
 
 
 def ok_filename(fname) -> bool:
