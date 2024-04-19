@@ -66,7 +66,8 @@ def _finalized_open_base(path: str, mode: str, open_fn) -> io.IOBase:
     prefix = f'.{os.path.basename(path)}.'
     dirname = os.path.dirname(path)
     try:
-        _, path_tmp = tempfile.mkstemp(prefix=prefix, dir=dirname)
+        fd, path_tmp = tempfile.mkstemp(prefix=prefix, dir=dirname)
+        os.close(fd) # mkstemp returns a low-level file descriptor... Close it and re-open the file the normal way
         with open_fn(path_tmp, f'w{mode}') as fout:
             yield fout
         os.chmod(path_tmp, 0o666) # default file umask
@@ -74,7 +75,7 @@ def _finalized_open_base(path: str, mode: str, open_fn) -> io.IOBase:
         try:
             os.remove(path_tmp)
         except:
-            pass # edge case: removing temp file failed. Ignore and just raise orig error
+            raise
         raise
 
     os.rename(path_tmp, path)
@@ -142,7 +143,7 @@ def finalized_directory(path: str) -> str:
         try:
             shutil.rmdir(path_tmp)
         except:
-            pass # edge case: removing temp file failed. Ignore and just raise orig error
+            raise
         raise
 
     os.rename(path_tmp, path)
