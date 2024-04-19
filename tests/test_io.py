@@ -53,116 +53,118 @@ class TestUtils(TempDirTestCase):
                 self.assertTrue(np.array_equal(row1["features"], row2["features"]))
 
     def test_finalized_open(self):
-        self.assertFalse(os.path.exists('file.txt'))
-        self.assertFalse(os.path.exists('file.tmp.txt'))
+        with tempfile.TemporaryDirectory() as d:
+            self.assertEqual(list(os.listdir(d)), []) # no files
 
-        try:
-            with pt.io.finalized_open('file.txt', 't') as f:
-                f.write('OK')
-                self.assertFalse(os.path.exists('file.txt'))
-                self.assertTrue(os.path.exists('file.tmp.txt'))
-                raise Exception("test")
-        except Exception as e:
-            if e.args[0] != 'test':
-                raise # raise any error but our test error
-        # File *doesn't* exist
-        self.assertFalse(os.path.exists('file.txt'))
-        self.assertFalse(os.path.exists('file.tmp.txt'))
+            try:
+                with pt.io.finalized_open(f'{d}/file.txt', 't') as f:
+                    f.write('OK')
+                    self.assertEqual(len(os.listdir(d)), 1)
+                    self.assertTrue(os.listdir(d)[0].startswith('.file.txt.tmp.'))
+                    raise Exception("test")
+            except Exception as e:
+                if e.args[0] != 'test':
+                    raise # raise any error but our test error
+            # File *doesn't* exist
+            self.assertEqual(list(os.listdir(d)), [])
 
-        with pt.io.finalized_open('file.txt', 't') as f:
-            f.write('Guess who\'s back')
-            self.assertFalse(os.path.exists('file.txt'))
-            self.assertTrue(os.path.exists('file.tmp.txt'))
-        # File *does* exist
-        self.assertTrue(os.path.exists('file.txt'))
-        self.assertFalse(os.path.exists('file.tmp.txt'))
-        with open('file.txt', 'rt') as f:
-            self.assertEqual(f.read(), 'Guess who\'s back')
-
-        with pt.io.finalized_open('file.txt', 't') as f:
-            f.write('Shady\'s back')
-            self.assertTrue(os.path.exists('file.txt'))
-            self.assertTrue(os.path.exists('file.tmp.txt'))
-            with open('file.txt', 'rt') as f:
+            with pt.io.finalized_open(f'{d}/file.txt', 't') as f:
+                f.write('Guess who\'s back')
+                self.assertEqual(len(os.listdir(d)), 1)
+                self.assertTrue(os.listdir(d)[0].startswith('.file.txt.tmp.'))
+            # File *does* exist
+            self.assertEqual(len(os.listdir(d)), 1)
+            self.assertEqual(os.listdir(d)[0], 'file.txt')
+            with open(f'{d}/file.txt', 'rt') as f:
                 self.assertEqual(f.read(), 'Guess who\'s back')
-        # contents *are* updated
-        self.assertTrue(os.path.exists('file.txt'))
-        self.assertFalse(os.path.exists('file.tmp.txt'))
-        with open('file.txt', 'rt') as f:
-            self.assertEqual(f.read(), 'Shady\'s back')
 
-        try:
-            with pt.io.finalized_open('file.txt', 't') as f:
-                f.write('Back again')
-                self.assertTrue(os.path.exists('file.txt'))
-                self.assertTrue(os.path.exists('file.tmp.txt'))
-                with open('file.txt', 'rt') as f:
-                    self.assertEqual(f.read(), 'Shady\'s back')
-                raise Exception("test")
-        except Exception as e:
-            if e.args[0] != 'test':
-                raise # raise any error but our test error
-        # contents *aren't* updated
-        self.assertTrue(os.path.exists('file.txt'))
-        self.assertFalse(os.path.exists('file.tmp.txt'))
-        with open('file.txt', 'rt') as f:
-            self.assertEqual(f.read(), 'Shady\'s back')
+            with pt.io.finalized_open(f'{d}/file.txt', 't') as f:
+                f.write('Shady\'s back')
+                self.assertEqual(len(os.listdir(d)), 2)
+                self.assertTrue(any(f.startswith('.file.txt.tmp.') for f in os.listdir(d)))
+                self.assertTrue(any(f == 'file.txt' for f in os.listdir(d)))
+                with open(f'{d}/file.txt', 'rt') as f:
+                    self.assertEqual(f.read(), 'Guess who\'s back')
+            # contents *are* updated
+            self.assertEqual(len(os.listdir(d)), 1)
+            self.assertEqual(os.listdir(d)[0], 'file.txt')
+            with open(f'{d}/file.txt', 'rt') as f:
+                self.assertEqual(f.read(), 'Shady\'s back')
+
+            try:
+                with pt.io.finalized_open(f'{d}/file.txt', 't') as f:
+                    f.write('Back again')
+                    self.assertEqual(len(os.listdir(d)), 2)
+                    self.assertTrue(any(f.startswith('.file.txt.tmp.') for f in os.listdir(d)))
+                    self.assertTrue(any(f == 'file.txt' for f in os.listdir(d)))
+                    with open(f'{d}/file.txt', 'rt') as f:
+                        self.assertEqual(f.read(), 'Shady\'s back')
+                    raise Exception("test")
+            except Exception as e:
+                if e.args[0] != 'test':
+                    raise # raise any error but our test error
+            # contents *aren't* updated
+            self.assertEqual(len(os.listdir(d)), 1)
+            self.assertEqual(os.listdir(d)[0], 'file.txt')
+            with open(f'{d}/file.txt', 'rt') as f:
+                self.assertEqual(f.read(), 'Shady\'s back')
 
     def test_finalized_autoopen(self):
-        self.assertFalse(os.path.exists('file.gz'))
-        self.assertFalse(os.path.exists('file.tmp.gz'))
+        with tempfile.TemporaryDirectory() as d:
+            self.assertEqual(list(os.listdir(d)), []) # no files
 
-        try:
-            with pt.io.finalized_autoopen('file.gz', 't') as f:
-                f.write('OK')
-                self.assertFalse(os.path.exists('file.gz'))
-                self.assertTrue(os.path.exists('file.tmp.gz'))
-                raise Exception("test")
-        except Exception as e:
-            if e.args[0] != 'test':
-                raise # raise any error but our test error
-        # File *doesn't* exist
-        self.assertFalse(os.path.exists('file.gz'))
-        self.assertFalse(os.path.exists('file.tmp.gz'))
+            try:
+                with pt.io.finalized_autoopen(f'{d}/file.txt', 't') as f:
+                    f.write('OK')
+                    self.assertEqual(len(os.listdir(d)), 1)
+                    self.assertTrue(os.listdir(d)[0].startswith('.file.txt.tmp.'))
+                    raise Exception("test")
+            except Exception as e:
+                if e.args[0] != 'test':
+                    raise # raise any error but our test error
+            # File *doesn't* exist
+            self.assertEqual(list(os.listdir(d)), [])
 
-        with pt.io.finalized_autoopen('file.gz', 't') as f:
-            f.write('Guess who\'s back')
-            self.assertFalse(os.path.exists('file.gz'))
-            self.assertTrue(os.path.exists('file.tmp.gz'))
-        # File *does* exist
-        self.assertTrue(os.path.exists('file.gz'))
-        self.assertFalse(os.path.exists('file.tmp.gz'))
-        with pt.io.autoopen('file.gz', 'rt') as f:
-            self.assertEqual(f.read(), 'Guess who\'s back')
-
-        with pt.io.finalized_autoopen('file.gz', 't') as f:
-            f.write('Shady\'s back')
-            self.assertTrue(os.path.exists('file.gz'))
-            self.assertTrue(os.path.exists('file.tmp.gz'))
-            with pt.io.autoopen('file.gz', 'rt') as f:
+            with pt.io.finalized_autoopen(f'{d}/file.txt', 't') as f:
+                f.write('Guess who\'s back')
+                self.assertEqual(len(os.listdir(d)), 1)
+                self.assertTrue(os.listdir(d)[0].startswith('.file.txt.tmp.'))
+            # File *does* exist
+            self.assertEqual(len(os.listdir(d)), 1)
+            self.assertEqual(os.listdir(d)[0], 'file.txt')
+            with open(f'{d}/file.txt', 'rt') as f:
                 self.assertEqual(f.read(), 'Guess who\'s back')
-        # contents *are* updated
-        self.assertTrue(os.path.exists('file.gz'))
-        self.assertFalse(os.path.exists('file.tmp.gz'))
-        with pt.io.autoopen('file.gz', 'rt') as f:
-            self.assertEqual(f.read(), 'Shady\'s back')
 
-        try:
-            with pt.io.finalized_autoopen('file.gz', 't') as f:
-                f.write('Back again')
-                self.assertTrue(os.path.exists('file.gz'))
-                self.assertTrue(os.path.exists('file.tmp.gz'))
-                with pt.io.autoopen('file.gz', 'rt') as f:
-                    self.assertEqual(f.read(), 'Shady\'s back')
-                raise Exception("test")
-        except Exception as e:
-            if e.args[0] != 'test':
-                raise # raise any error but our test error
-        # contents *aren't* updated
-        self.assertTrue(os.path.exists('file.gz'))
-        self.assertFalse(os.path.exists('file.tmp.gz'))
-        with pt.io.autoopen('file.gz', 'rt') as f:
-            self.assertEqual(f.read(), 'Shady\'s back')
+            with pt.io.finalized_autoopen(f'{d}/file.txt', 't') as f:
+                f.write('Shady\'s back')
+                self.assertEqual(len(os.listdir(d)), 2)
+                self.assertTrue(any(f.startswith('.file.txt.tmp.') for f in os.listdir(d)))
+                self.assertTrue(any(f == 'file.txt' for f in os.listdir(d)))
+                with open(f'{d}/file.txt', 'rt') as f:
+                    self.assertEqual(f.read(), 'Guess who\'s back')
+            # contents *are* updated
+            self.assertEqual(len(os.listdir(d)), 1)
+            self.assertEqual(os.listdir(d)[0], 'file.txt')
+            with open(f'{d}/file.txt', 'rt') as f:
+                self.assertEqual(f.read(), 'Shady\'s back')
+
+            try:
+                with pt.io.finalized_autoopen(f'{d}/file.txt', 't') as f:
+                    f.write('Back again')
+                    self.assertEqual(len(os.listdir(d)), 2)
+                    self.assertTrue(any(f.startswith('.file.txt.tmp.') for f in os.listdir(d)))
+                    self.assertTrue(any(f == 'file.txt' for f in os.listdir(d)))
+                    with open(f'{d}/file.txt', 'rt') as f:
+                        self.assertEqual(f.read(), 'Shady\'s back')
+                    raise Exception("test")
+            except Exception as e:
+                if e.args[0] != 'test':
+                    raise # raise any error but our test error
+            # contents *aren't* updated
+            self.assertEqual(len(os.listdir(d)), 1)
+            self.assertEqual(os.listdir(d)[0], 'file.txt')
+            with open(f'{d}/file.txt', 'rt') as f:
+                self.assertEqual(f.read(), 'Shady\'s back')
 
     def test_read_results_topic_merging(self):
         orig_results = pd.DataFrame({

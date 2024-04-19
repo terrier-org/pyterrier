@@ -63,7 +63,7 @@ def find_files(dir):
 @contextmanager
 def _finalized_open_base(path: str, mode: str, open_fn) -> io.IOBase:
     assert mode in ('b', 't') # must supply either binary or text mode
-    prefix = f'.{os.path.basename(path)}.'
+    prefix = f'.{os.path.basename(path)}.tmp.'
     dirname = os.path.dirname(path)
     try:
         fd, path_tmp = tempfile.mkstemp(prefix=prefix, dir=dirname)
@@ -133,7 +133,7 @@ def finalized_autoopen(path: str, mode: str):
 
 @contextmanager
 def finalized_directory(path: str) -> str:
-    prefix = f'.{os.path.basename(path)}.'
+    prefix = f'.{os.path.basename(path)}.tmp.'
     dirname = os.path.dirname(path)
     try:
         path_tmp = tempfile.mkdtemp(prefix=prefix, dir=dirname)
