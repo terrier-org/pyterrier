@@ -148,11 +148,13 @@ class Artifact(ABC):
 
     @classmethod
     def from_dataset(cls, dataset: str, variant: str, *, expected_sha256: Optional[str] = None) -> 'Artifact':
+        hf_repo = 'macavaney/pyterrier-from-dataset'
         branch = f'{dataset}.{variant}'
-        return cls.from_url(f'hf:macavaney/pyterrier-from-dataset@{branch}')
+        return cls.from_url(f'hf:{hf_repo}@{branch}', expected_sha256=expected_sha256)
 
 
 from_url = Artifact.from_url
+from_dataset = Artifact.from_dataset
 
 
 def load_metadata(path: str) -> Dict:
