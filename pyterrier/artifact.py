@@ -103,10 +103,10 @@ class Artifact(ABC):
                 with pt.io.open_or_download_stream(f'{url}.json', verbose=False) as fin:
                     download_info = json.load(fin)
                 if 'expected_sha256' in download_info:
-                    new_expected_sha256 = download_info['expected_sha256']
+                    new_expected_sha256 = download_info['expected_sha256'].lower()
                     if expected_sha256 is not None:
                         assert expected_sha256.lower() == new_expected_sha256
-                    expected_sha256 = expected_sha256
+                    expected_sha256 = new_expected_sha256
                 if 'total_size' in download_info:
                     # TODO: make sure there's available space on the disk for this
                     pass
