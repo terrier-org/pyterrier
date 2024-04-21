@@ -141,7 +141,7 @@ def finalized_directory(path: str) -> str:
         os.chmod(path_tmp, 0o777) # default directory umask
     except:
         try:
-            shutil.rmdir(path_tmp)
+            shutil.rmtree(path_tmp)
         except:
             raise
         raise
@@ -513,6 +513,74 @@ class TqdmSha256BufferedReader(io.BufferedIOBase):
     def close(self) -> None:
         self.pbar.close()
         self.reader.close()
+
+
+class TqdmSha256BufferedSequenceReader(io.BufferedIOBase):
+    def __init__(self, readers):
+        self.readers = readers
+        self.x = next(self.readers)
+        self.reader = self.x.__enter__()
+        self.pbar = self.reader.pbar
+        self.seek = self.reader.seek
+        self.tell = self.reader.tell
+        self.seekable = self.reader.seekable
+        self.readable = self.reader.readable
+        self.writable = self.reader.writable
+        self.flush = self.reader.flush
+        self.isatty = self.reader.isatty
+        self.close = self.reader.close
+        self.sha256 = sha256()
+
+    def read1(self, size: int = -1) -> bytes:
+        if size == -1:
+            size = DEFAULT_CHUNK_SIZE
+        chunk = self.reader.read1(min(size, DEFAULT_CHUNK_SIZE))
+        if len(chunk) == 0:
+            self.reader.close()
+            try:
+                self.x = next(self.readers)
+            except StopIteration:
+                return chunk
+            self.reader = self.x.__enter__()
+            self.pbar = self.reader.pbar
+            self.seek = self.reader.seek
+            self.tell = self.reader.tell
+            self.seekable = self.reader.seekable
+            self.readable = self.reader.readable
+            self.writable = self.reader.writable
+            self.flush = self.reader.flush
+            self.isatty = self.reader.isatty
+            self.close = self.reader.close
+            chunk = self.reader.read1(min(size, DEFAULT_CHUNK_SIZE))
+        self.sha256.update(chunk)
+        return chunk
+
+    def read(self, size: int = -1) -> bytes:
+        chunk = b''
+        if size == -1:
+            size = DEFAULT_CHUNK_SIZE
+        while len(chunk) < size and self.reader is not None:
+            chunk += self.reader.read(size - len(chunk))
+            if len(chunk) < size:
+                self.reader.close()
+                try:
+                    self.x = next(self.readers)
+                except StopIteration:
+                    self.x = None
+                    self.reader = None
+                    return chunk
+                self.reader = self.x.__enter__()
+                self.pbar = self.reader.pbar
+                self.seek = self.reader.seek
+                self.tell = self.reader.tell
+                self.seekable = self.reader.seekable
+                self.readable = self.reader.readable
+                self.writable = self.reader.writable
+                self.flush = self.reader.flush
+                self.isatty = self.reader.isatty
+                self.close = self.reader.close
+        self.sha256.update(chunk)
+        return chunk
 
 
 class Sha256BufferedWriter(io.BufferedIOBase):

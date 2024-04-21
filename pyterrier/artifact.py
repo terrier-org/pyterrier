@@ -99,6 +99,7 @@ class Artifact(ABC):
 
         if not os.path.exists(path):
             # try to load the package metadata file (if it exists)
+            download_info = {}
             try:
                 with pt.io.open_or_download_stream(f'{url}.json', verbose=False) as fin:
                     download_info = json.load(fin)
@@ -123,7 +124,13 @@ class Artifact(ABC):
                     json.dump({'url': url}, metadata_out)
                 metadata_out.write('\n')
 
-                fin = stack.enter_context(pt.io.open_or_download_stream(url, expected_sha256=expected_sha256))
+                if 'segments' in download_info:
+                    # the file is segmented -- use a sequence reader to stitch them back together
+                    # TODO: still need to verify sha256 in this case
+                    fin = stack.enter_context(pt.io.TqdmSha256BufferedSequenceReader(
+                        (pt.io.open_or_download_stream(f'{url}.{i}') for i in range(len(download_info['segments'])))))
+                else:
+                    fin = stack.enter_context(pt.io.open_or_download_stream(url, expected_sha256=expected_sha256))
                 cin = fin
                 if parsed_url.path.endswith('.lz4'):
                     cin = stack.enter_context(LZ4FrameFile(fin))
