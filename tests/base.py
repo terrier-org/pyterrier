@@ -16,7 +16,8 @@ class BaseTestCase(unittest.TestCase):
         if terrier_helper_version is not None:
             print("Testing with Terrier Helper version " + terrier_helper_version)
         if not pt.started():
-            pt.init(version=terrier_version, logging="DEBUG", jvm_opts=['-ea'], helper_version=terrier_helper_version)
+            pt.init(version=terrier_version, logging="DEBUG", helper_version=terrier_helper_version)
+            # jvm_opts=['-ea'] can be added here to ensure that all Java assertions are met
         self.here = os.path.dirname(os.path.realpath(__file__))
         assert "version" in pt.init_args
         assert pt.init_args["version"] == terrier_version

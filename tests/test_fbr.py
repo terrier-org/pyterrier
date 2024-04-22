@@ -154,8 +154,6 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
         resultF = fbr.search("chemical")
         pd.set_option('display.max_columns', None)
 
-        print(resultP)
-        print(resultF)
         self.assertEqual(resultP.iloc[0].docno, resultF.iloc[0].docno)
         self.assertEqual(resultP.iloc[0].score, resultF.iloc[0].score)
         self.assertEqual(resultP.iloc[0].features[0], resultF.iloc[0].features[0])
