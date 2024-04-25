@@ -76,5 +76,8 @@ setup(
         'pyterrier.artifact': [
             'terrier = pyterrier.terrier:TerrierIndex',
         ],
+        'pyterrier.artifact.metadata_adapter': [
+            'terrier = pyterrier.terrier_metadata_adapter:terrier_artifact_metadata_adapter',
+        ],
     },
 )

@@ -2,9 +2,9 @@ import contextlib
 import json
 import os
 import tarfile
-from abc import ABC, abstractmethod
+from pathlib import Path
 from hashlib import sha256
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 from urllib.parse import urlparse
 
 from lz4.frame import LZ4FrameFile
@@ -12,7 +12,7 @@ from lz4.frame import LZ4FrameFile
 import pyterrier as pt
 
 
-class Artifact(ABC):
+class Artifact:
     """Base class for PyTerrier artifacts.
 
     An artifact is a component stored on disk, such as an index.
@@ -20,20 +20,8 @@ class Artifact(ABC):
     Artifacts usually act as factories for transformers that use them. For example, an index artifact
     may provide a `.retriever()` method that returns a transformer that searches the index.
     """
-
-    @classmethod
-    @abstractmethod
-    def _try_load(cls, path: str, metadata: Dict) -> Optional['Artifact']:
-        """Return the artifact loaded with this sublass if it supports the artifact at the specified path.
-
-        Args:
-            path: The path of the artifact on disk.
-            metadata: The loaded meta.json file of the artifact, if available.
-
-        Returns:
-            The loaded artifact, or None if this subclass does not support the artifact at the specified path.
-        """
-        pass
+    def __init__(self, path: Union[Path, str]):
+        self.path: Path = Path(path)
 
     @classmethod
     def load(cls, path: str) -> 'Artifact':
@@ -178,13 +166,14 @@ def load_metadata(path: str) -> Dict:
         with open(metadata_file, 'rt') as f:
             return json.load(f)
 
-    # Hack! Assume some metadata based on the presence of some well-known files
-    if os.path.exists(os.path.join(path, 'data.properties')):
-        return {
-            'type': 'sparse_index',
-            'format': 'terrier',
-        }
+    return {}
 
+
+def _metadata_adapter(path):
+    directory_listing = os.listdir(path)
+    for entry_point in pt.io.entry_points('pyterrier.artifact.metadata_adapter'):
+        if (metadata := entry_point.load()(path, directory_listing)) is not None:
+            return metadata
     return {}
 
 
@@ -205,33 +194,24 @@ def load(path: str) -> Artifact:
     """
     metadata = load_metadata(path)
 
-    # called Artifact.load(path), so try to find a supporting artifact
-    entry_points = list(pt.io.entry_points('pyterrier.artifact'))
+    if 'format' not in metadata:
+        metadata.update(_metadata_adapter(path))
 
-    if 'type' in metadata and 'format' in metadata:
-        # if the metadata includes type and format, first try to find the
-        # specific artifact class via the entry_point names
-        artifact_key = '{type}.{format}'.format(**metadata)
-        keyed_entry_points = [ep for ep in entry_points if ep.name == artifact_key]
-        for entry_point in keyed_entry_points:
+    if 'format' in metadata:
+        entry_points = list(pt.io.entry_points('pyterrier.artifact'))
+        matching_entry_points = [ep for ep in entry_points if ep.name == metadata['format']]
+        for entry_point in matching_entry_points:
             artifact_cls = entry_point.load()
-            artifact = artifact_cls._try_load(path, metadata)
-            if artifact is not None:
-                return artifact
-        # not found via key, fall back on trying other types. No need to try
-        # the types we already checked.
-        entry_points = [ep for ep in entry_points if ep.name != artifact_key]
-
-    # See which artifact type supports this artifact
-    for entry_point in entry_points:
-        artifact_cls = entry_point.load()
-        artifact = artifact_cls._try_load(path, metadata)
-        # TODO: add better logging & error message if nothing ever found
-        if artifact is not None:
-            return artifact
+            return artifact_cls(path)
 
     # coudn't find an implementation that supports this artifact
-    raise ValueError(f'No implementation found that supports the artifact at {path_repr(path)}.')
+    error = [
+        f'No implementation found that supports the artifact at {path_repr(path)}.',
+        f'type={metadata.get("type", "(unknown)")}, format={metadata.get("format", "(unknown)")}.'
+    ]
+    if 'package_hint' in metadata:
+        error.append(f'Do you need to `pip install {metadata["package_hint"]}`?')
+    raise ValueError('\n'.join(error))
 
 
 def build_package(artifact_path: str, package_path: Optional[str] = None, verbose: bool = True) -> str:
