@@ -621,6 +621,12 @@ class FeaturesBatchRetrieve(BatchRetrieve):
             self.wmodel = kwargs["wmodel"]
         if "wmodel" in controls:
             self.wmodel = controls["wmodel"]
+        
+        # check for terrier-core#246 bug usiung FatFull
+        if self.wmodel is not None:    
+            from . import check_version
+            assert check_version(5.9), "Terrier 5.9 is required for this functionality, see https://github.com/terrier-org/terrier-core/pull/246"
+            
         if threads > 1:
             raise ValueError("Multi-threaded retrieval not yet supported by FeaturesBatchRetrieve")
         
