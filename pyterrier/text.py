@@ -520,8 +520,8 @@ class SlidingWindowPassager(Transformer):
                         newRows.append(newRow)
                         passageCount+=1
         newDF = pd.DataFrame(newRows)
-        newDF['query'].fillna('',inplace=True)
-        newDF[self.text_attr].fillna('',inplace=True)
-        newDF['qid'].fillna('',inplace=True)
+        newDF['query'] = newDF['query'].fillna('')
+        newDF[self.text_attr] = newDF[self.text_attr].fillna('')
+        newDF['qid'] = newDF['qid'].fillna('')
         newDF.reset_index(inplace=True,drop=True)
         return newDF
