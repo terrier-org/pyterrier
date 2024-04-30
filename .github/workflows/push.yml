@@ -23,11 +23,6 @@ jobs:
               python-version: '3.9'
               java: 11
               terrier: 'snapshot'
-        #   - os: 'self-hosted' # our m1 runner, only one setting
-        #     python-version: '3.9'
-        #     java: 11
-        #     architecture: 'arm'
-        #     terrier: 'snapshot'
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -65,7 +60,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ${{ env.pythonLocation }}
-        key: ${{ env.pythonLocation }}-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements-test.txt') }}
+        key: ${{ runner.os }}-${{ env.pythonLocation }}-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements-test.txt') }}
 
     - name: Install Python dependencies
       run: |
