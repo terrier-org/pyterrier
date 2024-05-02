@@ -363,15 +363,17 @@ class TestExperiment(TempDirTestCase):
         dataset = pt.get_dataset("vaswani")
         res1 = pt.BatchRetrieve(dataset.get_index(), wmodel="BM25")(dataset.get_topics().head(10))
         res2 = pt.BatchRetrieve(dataset.get_index(), wmodel="DPH")(dataset.get_topics().head(10))
-        for corr in ['hs', 'bonferroni', 'holm-sidak']:            
+        baseline = 0
+        for corr in ['hs', 'bonferroni', 'hommel']:
             df = pt.Experiment(
                 [res1, res2], 
                 dataset.get_topics().head(10), 
                 dataset.get_qrels(),
                 eval_metrics=["map", "ndcg"], 
-                baseline=0, correction='hs')
+                baseline=baseline, correction=corr)
             self.assertTrue("map +" in df.columns)
             self.assertTrue("map -" in df.columns)
             self.assertTrue("map p-value" in df.columns)
             self.assertTrue("map p-value corrected" in df.columns)
             self.assertTrue("map reject" in df.columns)
+            self.assertFalse(any(df["map p-value corrected"].drop(df.index[baseline]).isna()))
