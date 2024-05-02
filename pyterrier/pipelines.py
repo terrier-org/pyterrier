@@ -561,8 +561,11 @@ def Experiment(
             for pcol in p_col_names:
                 pcol_reject = pcol.replace("p-value", "reject")
                 pcol_corrected = pcol + " corrected"                
-                reject, corrected, _, _ = statsmodels.stats.multitest.multipletests(df[pcol], alpha=correction_alpha, method=correction)
+                reject, corrected, _, _ = statsmodels.stats.multitest.multipletests(df[pcol].drop(baseline), alpha=correction_alpha, method=correction)
                 insert_pos = df.columns.get_loc(pcol)
+                # add reject/corrected values for the baseline
+                reject = np.insert(reject, baseline, False)
+                corrected = np.insert(corrected, baseline, np.nan)
                 # add extra columns, put place directly after the p-value column
                 df.insert(insert_pos+1, pcol_reject, reject)
                 df.insert(insert_pos+2, pcol_corrected, corrected)
