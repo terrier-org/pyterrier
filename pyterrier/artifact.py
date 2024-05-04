@@ -46,10 +46,7 @@ class Artifact:
         else:
             # called SomeArtifact.load(path), so load this specific artifact
             # TODO: add error message if not loaded
-            artifact = cls._try_load(path, load_metadata())
-            if artifact is not None:
-                return artifact
-            raise ValueError(f'{cls} does not support the artifact at {path_repr(path)}.')
+            return cls(path)
 
     @classmethod
     def from_url(cls, url: str, *, expected_sha256: Optional[str] = None) -> 'Artifact':
@@ -140,6 +137,27 @@ class Artifact:
         branch = f'{dataset}.{variant}'
         return cls.from_url(f'hf:{hf_repo}@{branch}', expected_sha256=expected_sha256)
 
+    def to_hf(self, repo, branch='main'):
+        from huggingface_hub import create_repo, create_branch, upload_folder
+        from huggingface_hub.utils import HfHubHTTPError
+        with tempfile.TemporaryDirectory() as d:
+            build_package(self.path, os.path.join(d, 'artifact.tar.lz4'))
+            try:
+                create_repo(repo, repo_type='dataset')
+            except HfHubHTTPError as e:
+                if e.server_message != 'You already created this dataset repo':
+                    raise
+            try:
+                create_branch(repo, repo_type='dataset', branch=branch)
+            except HfHubHTTPError as e:
+                if not e.server_message.startswith('Reference already exists:'):
+                    raise
+            upload_folder(
+                repo_id=repo,
+                folder_path=d,
+                repo_type='dataset',
+                revision=branch,
+            )
 
 from_url = Artifact.from_url
 from_dataset = Artifact.from_dataset

@@ -602,7 +602,7 @@ class Sha256BufferedWriter(io.BufferedIOBase):
 
 
 def path_is_under_base(path: str, base: str) -> bool:
-    return os.path.realpath(os.path.abspath(os.path.join(base, path))).startswith(base)
+    return os.path.realpath(os.path.abspath(os.path.join(base, path))).startswith(os.path.realpath(base))
 
 
 def byte_count_to_human_readable(byte_count: float) -> str:
