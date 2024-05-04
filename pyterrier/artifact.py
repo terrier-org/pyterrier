@@ -6,6 +6,7 @@ from pathlib import Path
 from hashlib import sha256
 from typing import Dict, Optional, Union
 from urllib.parse import urlparse
+import tempfile
 
 from lz4.frame import LZ4FrameFile
 
