@@ -44,6 +44,7 @@ Welcome to PyTerrier's documentation!
 
    OpenNIR <https://opennir.net/>
    PyTerrier_T5 <https://github.com/terrierteam/pyterrier_t5>
+   PyTerrier_GenRank <https://github.com/emory-irlab/pyterrier_genrank>
    PyTerrier_ColBERT <https://github.com/terrierteam/pyterrier_colbert>
    PyTerrier_ANCE <https://github.com/terrierteam/pyterrier_ance>
    PyTerrier_doc2query <https://github.com/terrierteam/pyterrier_doc2query>
