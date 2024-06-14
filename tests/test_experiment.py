@@ -152,7 +152,10 @@ class TestExperiment(TempDirTestCase):
         # check save_dir files are there
         self.assertTrue(os.path.exists(os.path.join(self.test_dir, "BR(DPH).res.gz")))
         self.assertTrue(os.path.exists(os.path.join(self.test_dir, "BR(BM25).res.gz")))
-        df2 = pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], save_dir=self.test_dir)
+        with self.assertRaises(ValueError):
+            # reuse only kicks in when save_mode is set.
+            df2 = pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], save_dir=self.test_dir)
+        df2 = pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], save_dir=self.test_dir, save_mode='reuse')
         # a successful experiment using save_dir should be faster
         self.assertTrue(df2.iloc[0]["mrt"] < df1.iloc[0]["mrt"])
         
