@@ -1,6 +1,6 @@
 from typing import Callable, Any, Dict, Union, Sequence
 from .apply_base import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyGenericTransformer, Transformer
-from nptyping import NDArray
+import numpy.typing as npt
 import pandas as pd
 
 def _bind(instance, func, as_name=None):
@@ -88,7 +88,7 @@ def doc_score(fn : Union[Callable[[pd.Series], float], Callable[[pd.DataFrame], 
     """
     return ApplyDocumentScoringTransformer(fn, *args, batch_size=batch_size, **kwargs)
 
-def doc_features(fn : Callable[[pd.Series], NDArray[Any]], *args, **kwargs) -> Transformer:
+def doc_features(fn : Callable[[pd.Series], npt.NDArray[Any]], *args, **kwargs) -> Transformer:
     """
         Create a transformer that takes as input a ranked documents dataframe, and applies the supplied function to each document to compute feature scores. 
 
