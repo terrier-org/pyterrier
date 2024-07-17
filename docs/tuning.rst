@@ -115,6 +115,8 @@ and a ``'w.'`` control for each field (controlling the weight). Fields are numbe
 
 The following is an example of scanning the parameters of BM25F for an index with two fields::
 
+    from numpy import arange  # gives a list of values in an interval
+
     # check your index has exactly 2 fields
     assert 2 == index.getCollectionStatistics().getNumberOfFields()
 
@@ -130,11 +132,11 @@ The following is an example of scanning the parameters of BM25F for an index wit
         bm25f, 
         # you can name more parameters here and their values to try
         {bm25f : {
-            'w.0' : np.arange(0, 1.1, 0.1)}, # np.arange gives a list of values in an interval
-            'w.1' : np.arange(0, 1.1, 0.1)},
-            'c.0' : np.arange(0, 1.1, 0.1)},
-            'c.1' : np.arange(0, 1.1, 0.1)},
-        },
+            'w.0' : arange(0, 1.1, 0.1),
+            'w.1' : arange(0, 1.1, 0.1),
+            'c.0' : arange(0, 1.1, 0.1),
+            'c.1' : arange(0, 1.1, 0.1),
+        }},
         topics,
         qrels,
         ['map']
