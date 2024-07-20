@@ -7,6 +7,11 @@ from tqdm.auto import tqdm
 
 # definitive API used by others, now available before pt.init
 from .transformer import Transformer, Estimator, Indexer
+from . import utils
+from . import java
+
+from .batchretrieve import BatchRetrieve
+TerrierRetrieve = BatchRetrieve # BatchRetrieve is an alias to TerrierRetrieve
 
 import importlib
 
@@ -184,8 +189,6 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     globals()["list_datasets"] = list_datasets
     globals()["find_datasets"] = find_datasets
     # .batchretrieve
-    globals()["BatchRetrieve"] = BatchRetrieve
-    globals()["TerrierRetrieve"] = BatchRetrieve  # TerrierRetrieve is an alias to BatchRetrieve
     globals()["Indexer"] = Indexer
     globals()["FeaturesBatchRetrieve"] = FeaturesBatchRetrieve
     # .index
@@ -270,18 +273,17 @@ def started():
     """
     return(firstInit)
 
+@java.required()
 def version():
     """
         Returns the version string from the underlying Terrier platform.
     """
-    from jnius import autoclass
-    return autoclass("org.terrier.Version").VERSION
+    return java.autoclass("org.terrier.Version").VERSION
 
 def check_version(min, helper=False):
     """
         Returns True iff the underlying Terrier version is no older than the requested version.
     """
-    from jnius import autoclass
     from packaging.version import Version
     min = Version(str(min))
     currentVer = Version((_helper_version if helper else version()).replace("-SNAPSHOT", ""))

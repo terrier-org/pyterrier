@@ -1,14 +1,14 @@
-from jnius import autoclass, cast
 from typing import Union
 import pandas as pd
 import numpy as np
-from . import tqdm, check_version, Transformer
+from . import tqdm, Transformer
 from warnings import warn
 from .datasets import Dataset
 from .transformer import Symbol
 from .model import coerce_queries_dataframe, FIRST_RANK
 import concurrent
 from concurrent.futures import ThreadPoolExecutor
+import pyterrier as pt
 
 def importProps():
     from . import properties as props
@@ -24,7 +24,6 @@ def _matchop(query):
     return False
 
 def _function2wmodel(function):
-    from . import autoclass
     from jnius import PythonJavaClass, java_method
 
     class PythonWmodelFunction(PythonJavaClass):
@@ -46,11 +45,11 @@ def _function2wmodel(function):
             extend(use_dill=False)
             # keep both python and java representations around to prevent them being GCd in respective VMs 
             self.pbyterep = pickle.dumps(self.fn)
-            self.jbyterep = autoclass("java.nio.ByteBuffer").wrap(self.pbyterep)
+            self.jbyterep = pt.java.autoclass("java.nio.ByteBuffer").wrap(self.pbyterep)
             return self.jbyterep
 
     callback = PythonWmodelFunction(function)
-    wmodel = autoclass("org.terrier.python.CallableWeightingModel")( callback )
+    wmodel = pt.java.autoclass("org.terrier.python.CallableWeightingModel")( callback )
     return callback, wmodel
 
 def _mergeDicts(defaults, settings):
@@ -60,14 +59,14 @@ def _mergeDicts(defaults, settings):
     return KV
 
 def _parse_index_like(index_location):
-    JIR = autoclass('org.terrier.querying.IndexRef')
-    JI = autoclass('org.terrier.structures.Index')
+    JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
+    JI = pt.java.autoclass('org.terrier.structures.Index')
     from .index import TerrierIndexer
 
     if isinstance(index_location, JIR):
         return index_location
     if isinstance(index_location, JI):
-        return cast('org.terrier.structures.Index', index_location).getIndexRef()
+        return pt.java.cast('org.terrier.structures.Index', index_location).getIndexRef()
     if isinstance(index_location, str) or issubclass(type(index_location), TerrierIndexer):
         if issubclass(type(index_location), TerrierIndexer):
             return JIR.of(index_location.path)
@@ -87,6 +86,7 @@ class BatchRetrieveBase(Transformer, Symbol):
     Attributes:
         verbose(bool): If True transform method will display progress
     """
+    @pt.java.required()
     def __init__(self, verbose=0, **kwargs):
         super().__init__(kwargs)
         self.verbose = verbose
@@ -203,16 +203,15 @@ class BatchRetrieve(BatchRetrieveBase):
                 metadata(list): What metadata to retrieve
         """
         super().__init__(kwargs)
-        from . import autoclass
         self.indexref = _parse_index_like(index_location)
-        self.appSetup = autoclass('org.terrier.utility.ApplicationSetup')
+        self.appSetup = pt.java.autoclass('org.terrier.utility.ApplicationSetup')
         self.properties = _mergeDicts(BatchRetrieve.default_properties, properties)
-        self.concurrentIL = autoclass("org.terrier.structures.ConcurrentIndexLoader")
-        if check_version(5.5) and "SimpleDecorateProcess" not in self.properties["querying.processes"]:
+        self.concurrentIL = pt.java.autoclass("org.terrier.structures.ConcurrentIndexLoader")
+        if pt.check_version(5.5) and "SimpleDecorateProcess" not in self.properties["querying.processes"]:
             self.properties["querying.processes"] += ",decorate:SimpleDecorateProcess"
         self.metadata = metadata
         self.threads = threads
-        self.RequestContextMatching = autoclass("org.terrier.python.RequestContextMatching")
+        self.RequestContextMatching = pt.java.autoclass("org.terrier.python.RequestContextMatching")
         self.search_context = {}
 
         if props is None:
@@ -231,7 +230,7 @@ class BatchRetrieve(BatchRetrieveBase):
                 self._callback = callback
                 self.search_context['context_wmodel'] = wmodelinstance
                 self.controls['context_wmodel'] = 'on'
-            elif isinstance(wmodel, autoclass("org.terrier.matching.models.WeightingModel")):
+            elif isinstance(wmodel, pt.java.autoclass("org.terrier.matching.models.WeightingModel")):
                 self.search_context['context_wmodel'] = wmodel
                 self.controls['context_wmodel'] = 'on'
             else:
@@ -239,7 +238,7 @@ class BatchRetrieve(BatchRetrieveBase):
                   
         if self.threads > 1:
             warn("Multi-threaded retrieval is experimental, YMMV.")
-            assert check_version(5.5), "Terrier 5.5 is required for multi-threaded retrieval"
+            assert pt.check_version(5.5), "Terrier 5.5 is required for multi-threaded retrieval"
 
             # we need to see if our indexref is concurrent. if not, we upgrade it using ConcurrentIndexLoader
             # this will upgrade the underlying index too.
@@ -256,8 +255,8 @@ class BatchRetrieve(BatchRetrieveBase):
                 raise ValueError("num_results must be None, 0 or positive")
 
 
-        MF = autoclass('org.terrier.querying.ManagerFactory')
-        self.RequestContextMatching = autoclass("org.terrier.python.RequestContextMatching")
+        MF = pt.java.autoclass('org.terrier.querying.ManagerFactory')
+        self.RequestContextMatching = pt.java.autoclass("org.terrier.python.RequestContextMatching")
         self.manager = MF._from_(self.indexref)
     
     def get_parameter(self, name : str):
@@ -394,7 +393,7 @@ class BatchRetrieve(BatchRetrieveBase):
         scores_provided = "score" in queries.columns
         input_results = None
         if docno_provided or docid_provided:
-            assert check_version(5.3)
+            assert pt.check_version(5.3)
             input_results = queries
 
             # query is optional, and functionally dependent on qid.
@@ -489,7 +488,7 @@ class TextIndexProcessor(Transformer):
         self.verbose = verbose
 
     def transform(self, topics_and_res):
-        from . import DFIndexer, autoclass, IndexFactory
+        from . import DFIndexer, IndexFactory
         from .index import IndexingType
         documents = topics_and_res[["docno", self.body_attr]].drop_duplicates(subset="docno")
         indexref = DFIndexer(None, type=IndexingType.MEMORY, verbose=self.verbose).index(documents[self.body_attr], documents["docno"])
@@ -505,7 +504,7 @@ class TextIndexProcessor(Transformer):
             index = index_docs
         else:
             index_background = IndexFactory.of(self.background_indexref)
-            index = autoclass("org.terrier.python.IndexWithBackground")(index_docs, index_background)          
+            index = pt.java.autoclass("org.terrier.python.IndexWithBackground")(index_docs, index_background)          
 
         topics = topics_and_res[["qid", "query"]].dropna(axis=0, subset=["query"]).drop_duplicates()
         
@@ -624,8 +623,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         
         # check for terrier-core#246 bug usiung FatFull
         if self.wmodel is not None:    
-            from . import check_version
-            assert check_version(5.9), "Terrier 5.9 is required for this functionality, see https://github.com/terrier-org/terrier-core/pull/246"
+            assert pt.check_version(5.9), "Terrier 5.9 is required for this functionality, see https://github.com/terrier-org/terrier-core/pull/246"
             
         if threads > 1:
             raise ValueError("Multi-threaded retrieval not yet supported by FeaturesBatchRetrieve")
@@ -694,15 +692,14 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         scores_provided = "score" in queries.columns
         if docno_provided or docid_provided:
             #re-ranking mode
-            from . import check_version
-            assert check_version(5.3)
+            assert pt.check_version(5.3)
             input_results = queries
 
             # query is optional, and functionally dependent on qid.
             # Hence as long as one row has the query for each qid, 
             # the rest can be None
             queries = input_results[["qid", "query"]].dropna(axis=0, subset=["query"]).drop_duplicates()
-            RequestContextMatching = autoclass("org.terrier.python.RequestContextMatching")
+            RequestContextMatching = pt.java.autoclass("org.terrier.python.RequestContextMatching")
 
             if not scores_provided and self.wmodel is None:
                 raise ValueError("We're in re-ranking mode, but input does not have scores, and wmodel is None")
@@ -762,8 +759,8 @@ class FeaturesBatchRetrieve(BatchRetrieve):
                 srq.setControl("matching", ",".join(["FatFeaturedScoringMatching","ScoringMatchingWithFat", srq.getControl("matching")]))
             
             self.manager.runSearchRequest(srq)
-            srq = cast('org.terrier.querying.Request', srq)
-            fres = cast('org.terrier.learning.FeaturedResultSet', srq.getResultSet())
+            srq = pt.java.cast('org.terrier.querying.Request', srq)
+            fres = pt.java.cast('org.terrier.learning.FeaturedResultSet', srq.getResultSet())
             feat_names = fres.getFeatureNames()
 
             docids=fres.getDocids()

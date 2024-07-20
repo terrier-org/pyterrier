@@ -8,7 +8,7 @@ from typing import Union, Tuple, Iterator, Dict, Any, List
 from warnings import warn
 import requests
 from .io import autoopen, touch
-from . import tqdm, HOME_DIR
+import pyterrier as pt
 import tarfile
 from warnings import warn
 
@@ -123,7 +123,7 @@ class RemoteDataset(Dataset):
 
     def _configure(self, **kwargs):
         from os.path import expanduser
-        pt_home = HOME_DIR
+        pt_home = pt.HOME_DIR
         if pt_home is None:
             from os.path import expanduser
             userhome = expanduser("~")
@@ -148,7 +148,7 @@ class RemoteDataset(Dataset):
                 r = requests.get(url, allow_redirects=True, stream=True, **kwargs)
                 r.raise_for_status()
                 total = int(r.headers.get('content-length', 0))
-                with pt.io.finalized_open(filename, 'b') as file, tqdm(
+                with pt.io.finalized_open(filename, 'b') as file, pt.tqdm(
                         desc=basename,
                         total=total,
                         unit='iB',
@@ -411,7 +411,7 @@ class IRDSDataset(Dataset):
         
         # tqdm support
         if verbose:
-            it = tqdm(it, desc=f'{self._irds_id} documents', total=total)
+            it = pt.tqdm(it, desc=f'{self._irds_id} documents', total=total)
 
         # rewrite to follow pyterrier std
         def gen():

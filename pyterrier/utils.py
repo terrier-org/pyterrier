@@ -1,3 +1,7 @@
+from typing import Callable, Tuple
+from functools import wraps
+from importlib.metadata import EntryPoint
+from importlib.metadata import entry_points as eps
 import pandas as pd
 from collections import defaultdict
 from deprecated import deprecated
@@ -72,3 +76,36 @@ class Utils:
     def mean_of_measures(result, measures=None, num_q = None):
         from .pipelines import _mean_of_measures
         return _mean_of_measures(result, measures=measures, num_q=num_q)
+
+
+def once() -> Callable:
+    """
+    Wraps a function that can only be called once. Subsequent calls will raise an error.
+    """
+    def _once(fn: Callable) -> Callable:
+        called = False
+
+        @wraps(fn)
+        def _wrapper(*args, **kwargs):
+            nonlocal called
+            if called:
+                raise ValueError(f"{fn.__name__} has already been run")
+            # how to handle errors?
+            res = fn(*args, **kwargs)
+            called = True
+            return res
+        _wrapper.called = lambda: called  # type: ignore
+        return _wrapper
+    return _once
+
+
+def entry_points(group: str) -> Tuple[EntryPoint, ...]:
+    """
+    A shim for Python<=3.X to support importlib.metadata.entry_points(group).
+
+    See <https://docs.python.org/3/library/importlib.metadata.html#entry-points> for more details.
+    """
+    try:
+        return tuple(eps(group=group))
+    except TypeError:
+        return tuple(eps().get(group, tuple()))

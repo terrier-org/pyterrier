@@ -70,6 +70,11 @@ setup(
         "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
         "Operating System :: OS Independent",
     ],
+    entry_points={
+        'pyterrier.java.init': [
+            'legacy_init = pyterrier:java._legacy_init',
+        ],
+    },
     install_requires=requirements,
     python_requires='>=3.8',
 )
