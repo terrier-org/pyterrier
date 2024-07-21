@@ -399,3 +399,17 @@ SUPPORTED_RESULTS_FORMATS = {
     "letor" : (_read_results_letor, _write_results_letor),
     "minimal" : (None, _write_results_minimal)
 }
+
+
+def pyterrier_home() -> str:
+    """
+    Returns pyterrier's home directory. By default this is ~/.pyterrier, but it can also be set with the PYTERRIER_HOME
+    env variable.
+    """
+    if "PYTERRIER_HOME" in os.environ:
+        home = os.environ["PYTERRIER_HOME"]
+    else:
+        home = os.path.expanduser('~/.pyterrier')
+    if not os.path.exists(home):
+        os.makedirs(home)
+    return home

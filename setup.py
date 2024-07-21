@@ -71,8 +71,14 @@ setup(
         "Operating System :: OS Independent",
     ],
     entry_points={
-        'pyterrier.java.init': [
-            'legacy_init = pyterrier:java._legacy_init',
+        'pyterrier.java.pre_init': [
+            'terrier = pyterrier:terrier._java_pre_init',
+        ],
+        'pyterrier.java.post_init': [
+            'terrier = pyterrier:terrier._java_post_init',
+            'index = pyterrier:index._java_post_init',
+            'rewrite = pyterrier:rewrite._java_post_init',
+            'legacy = pyterrier:java._legacy_post_init',
         ],
     },
     install_requires=requirements,

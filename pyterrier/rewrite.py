@@ -1,5 +1,4 @@
 import pyterrier as pt
-from jnius import cast
 import pandas as pd
 from .batchretrieve import _parse_index_like
 from . import Transformer
@@ -9,11 +8,20 @@ from warnings import warn
 from typing import List,Union
 from types import FunctionType
 
-TerrierQLParser = pt.autoclass("org.terrier.querying.TerrierQLParser")()
-TerrierQLToMatchingQueryTerms = pt.autoclass("org.terrier.querying.TerrierQLToMatchingQueryTerms")()
-QueryResultSet = pt.autoclass("org.terrier.matching.QueryResultSet")
-DependenceModelPreProcess = pt.autoclass("org.terrier.querying.DependenceModelPreProcess")
 
+TerrierQLParser = None
+TerrierQLToMatchingQueryTerms = None
+QueryResultSet = None
+DependenceModelPreProcess = None
+def _java_post_init(jnius):
+    global TerrierQLParser
+    global TerrierQLToMatchingQueryTerms
+    global QueryResultSet
+    global DependenceModelPreProcess
+    TerrierQLParser = pt.java.autoclass("org.terrier.querying.TerrierQLParser")()
+    TerrierQLToMatchingQueryTerms = pt.java.autoclass("org.terrier.querying.TerrierQLToMatchingQueryTerms")()
+    QueryResultSet = pt.java.autoclass("org.terrier.matching.QueryResultSet")
+    DependenceModelPreProcess = pt.java.autoclass("org.terrier.querying.DependenceModelPreProcess")
 
 
 _terrier_prf_package_loaded = False
@@ -300,7 +308,7 @@ class QueryExpansion(Transformer):
             qid = row.qid
             query = row.query
             srq = self.manager.newSearchRequest(qid, query)
-            rq = cast("org.terrier.querying.Request", srq)
+            rq = pt.java.cast("org.terrier.querying.Request", srq)
             self.qe.configureIndex(rq.getIndex())
             self._configure_request(rq)
 

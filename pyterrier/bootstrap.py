@@ -3,7 +3,6 @@ from typing import Union, List
 
 stdout_ref = None
 stderr_ref = None
-TERRIER_PKG = "org.terrier"
 SAVED_FNS=[]
 
 class IndexFactory:
@@ -124,11 +123,6 @@ class IndexFactory:
             return IndexFactory._load_into_memory(index, structures=memory)
         return IndexFactory._load_into_memory(index)
 
-def logging(level):
-    from jnius import autoclass
-    autoclass("org.terrier.python.PTUtils").setLogLevel(level, None)
-# make an alias
-_logging = logging
 
 def new_indexref(s):
     from . import IndexRef
@@ -338,54 +332,6 @@ def setup_jnius():
         'get_corpus_iter' : _index_corpusiter
     }
 
-def setup_terrier(file_path, terrier_version=None, helper_version=None, boot_packages=[], force_download=True):
-    """
-    Download Terrier's jar file for the given version at the given file_path
-    Called by pt.init()
-
-    Args:
-        file_path(str): Where to download
-        terrier_version(str): Which version of Terrier - None is latest release; "snapshot" uses Jitpack to download a build of the current Github 5.x branch.
-        helper_version(str): Which version of the helper - None is latest
-    """
-    # If version is not specified, find newest and download it
-    if terrier_version is None:
-        terrier_version = mavenresolver.latest_version_num(TERRIER_PKG, "terrier-assemblies")
-    else:
-        terrier_version = str(terrier_version) # just in case its a float
-    # obtain the fat jar from Maven
-    # "snapshot" means use Jitpack.io to get a build of the current
-    # 5.x branch from Github - see https://jitpack.io/#terrier-org/terrier-core/5.x-SNAPSHOT
-    if terrier_version == "snapshot":
-        trJar = mavenresolver.downloadfile("com.github.terrier-org.terrier-core", "terrier-assemblies", "5.x-SNAPSHOT", file_path, "jar-with-dependencies", force_download=force_download)
-    else:
-        trJar = mavenresolver.downloadfile(TERRIER_PKG, "terrier-assemblies", terrier_version, file_path, "jar-with-dependencies")
-
-    # now the helper classes
-    if helper_version is None:
-        helper_version = mavenresolver.latest_version_num(TERRIER_PKG, "terrier-python-helper")
-    else:
-        helper_version = str(helper_version) # just in case its a float
-    helperJar = mavenresolver.downloadfile(TERRIER_PKG, "terrier-python-helper", helper_version, file_path, "jar")
-
-    classpath=[trJar, helperJar]
-    for b in boot_packages:
-        parts = b.split(":")
-        if len(parts)  < 2 or len(parts) > 4:
-            raise ValueError("Invalid format for package %s" % b)
-        group = parts[0]
-        pkg = parts[1]
-        filetype = "jar"
-        version = None
-        if len(parts) > 2:
-            version = parts[2]
-            if len(parts) > 3:
-                filetype = parts[3]
-        #print((group, pkg, filetype, version))
-        filename = mavenresolver.downloadfile(group, pkg, version, file_path, filetype)
-        classpath.append(filename)
-
-    return classpath, helper_version
 
 def is_windows() -> bool:
     import platform

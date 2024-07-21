@@ -2,7 +2,6 @@
 This file contains all the indexers.
 """
 
-from jnius import autoclass, PythonJavaClass, java_method, cast
 from enum import Enum
 import pandas as pd
 from . import Indexer
@@ -19,6 +18,7 @@ from deprecated import deprecated
 from collections import deque
 from typing import List, Dict, Union, Any
 import more_itertools
+import pyterrier as pt
 
 StringReader = None
 HashMap = None
@@ -41,6 +41,11 @@ CLITool = None
 IndexRef = None
 StructureMerger = None
 BlockStructureMerger = None
+DocListIterator = None
+PythonListIterator = None
+FlatJSONDocumentIterator = None
+TQDMCollection = None
+TQDMSizeCollection = None
 
 # for backward compatibility
 class IterDictIndexerBase(Indexer):
@@ -51,8 +56,8 @@ class IterDictIndexerBase(Indexer):
 # lastdoc ensures that a Document instance from a Collection is not GCd before Java has used it.
 lastdoc=None
 
-def run_autoclass():
-    from . import check_version
+def _java_post_init(jnius):
+    autoclass = pt.java.autoclass
     global StringReader
     global HashMap
     global TaggedDocument
@@ -74,6 +79,11 @@ def run_autoclass():
     global IndexRef
     global StructureMerger
     global BlockStructureMerger
+    global DocListIterator
+    global PythonListIterator
+    global FlatJSONDocumentIterator
+    global TQDMCollection
+    global TQDMSizeCollection
 
     StringReader = autoclass("java.io.StringReader")
     HashMap = autoclass("java.util.HashMap")
@@ -86,7 +96,7 @@ def run_autoclass():
     BlockIndexer = autoclass("org.terrier.structures.indexing.classical.BlockIndexer")
     BasicSinglePassIndexer = autoclass("org.terrier.structures.indexing.singlepass.BasicSinglePassIndexer")
     BlockSinglePassIndexer = autoclass("org.terrier.structures.indexing.singlepass.BlockSinglePassIndexer")
-    BasicMemoryIndexer = autoclass("org.terrier.realtime.memory.MemoryIndexer" if check_version("5.7") else "org.terrier.python.MemoryIndexer")
+    BasicMemoryIndexer = autoclass("org.terrier.realtime.memory.MemoryIndexer" if pt.check_version("5.7") else "org.terrier.python.MemoryIndexer")
     Collection = autoclass("org.terrier.indexing.Collection")
     Arrays = autoclass("java.util.Arrays")
     Array = autoclass('java.lang.reflect.Array')
@@ -97,15 +107,218 @@ def run_autoclass():
     StructureMerger = autoclass("org.terrier.structures.merging.StructureMerger")
     BlockStructureMerger = autoclass("org.terrier.structures.merging.BlockStructureMerger")
 
+    class DocListIterator(jnius.PythonJavaClass):
+        dpl_class = autoclass("org.terrier.structures.indexing.DocumentPostingList")
+        tuple_class = autoclass("org.terrier.structures.collections.MapEntry")
+        __javainterfaces__ = [
+            'java/util/Iterator',
+        ]
+
+        def __init__(self, pyiterator):
+            self.pyiterator = pyiterator
+            self.hasnext = True
+            self.lastdoc = None
+            import pyterrier as pt
+            self.tr57 = not pt.check_version("5.8")
+
+        @staticmethod 
+        def pyDictToMap(a_dict): #returns Map<String,String>
+            rtr = HashMap()
+            for k,v in a_dict.items():
+                rtr.put(k, v)
+            return rtr
+
+        def pyDictToMapEntry(self,doc_dict : Dict[str,Any]): #returns Map.Entry<Map<String,String>, DocumentPostingList>>
+            dpl = DocListIterator.dpl_class()
+            # this works around a bug in the counting of doc lengths in Tr 5.7
+            if self.tr57:
+                for t, tf in doc_dict["toks"].items():
+                    for i in range(int(tf)):
+                        dpl.insert(t)
+            else: # this code for 5.8 onwards
+                for t, tf in doc_dict["toks"].items():
+                    dpl.insert(int(tf), t)
+            
+            # we cant make the toks column into the metaindex as it isnt a string. remove it.
+            del doc_dict["toks"]
+            return DocListIterator.tuple_class(DocListIterator.pyDictToMap(doc_dict), dpl)
+
+        @jnius.java_method('()Z')
+        def hasNext(self):
+            return self.hasnext
+
+        @jnius.java_method('()Ljava/lang/Object;')
+        def next(self):
+            try:
+                doc_dict = next(self.pyiterator)
+            except StopIteration as se:
+                self.hasnext = False
+                # terrier will ignore a null return from an iterator
+                return None
+            # keep this around to prevent being GCd before Java can read it
+            self.lastdoc = self.pyDictToMapEntry(doc_dict)
+            return self.lastdoc
+            
+
+    class TQDMCollection(jnius.PythonJavaClass):
+        __javainterfaces__ = ['org/terrier/indexing/Collection']
+
+        def __init__(self, collection):
+            super(TQDMCollection, self).__init__()
+            assert isinstance(collection, autoclass("org.terrier.indexing.MultiDocumentFileCollection"))
+            self.collection = collection
+            size = self.collection.FilesToProcess.size()
+            from . import tqdm
+            self.pbar = tqdm(total=size, unit="files")
+            self.last = -1
+        
+        @jnius.java_method('()Z')
+        def nextDocument(self):
+            rtr = self.collection.nextDocument()
+            filenum = self.collection.FileNumber
+            if filenum > self.last:
+                self.pbar.update(filenum - self.last)
+                self.last = filenum
+            return rtr
+
+        @jnius.java_method('()V')
+        def reset(self):
+            self.pbar.reset()
+            self.collection.reset()
+
+        @jnius.java_method('()V')
+        def close(self):
+            self.pbar.close()
+            self.collection.close()
+
+        @jnius.java_method('()Z')
+        def endOfCollection(self):
+            return self.collection.endOfCollection()
+
+        @jnius.java_method('()Lorg/terrier/indexing/Document;')
+        def getDocument(self):
+            global lastdoc
+            lastdoc = self.collection.getDocument()
+            return lastdoc
+
+    class PythonListIterator(jnius.PythonJavaClass):
+        __javainterfaces__ = ['java/util/Iterator']
+
+        def __init__(self, text, meta, convertFn, len=None, index=0):
+            super(PythonListIterator, self).__init__()
+            self.text = text
+            self.meta = meta
+            self.index = index
+            self.convertFn = convertFn
+            if len is None:
+                self.len = len(self.text)
+            else:
+                self.len = len
+
+        @jnius.java_method('()V')
+        def remove():
+            # 1
+            pass
+
+        @jnius.java_method('(Ljava/util/function/Consumer;)V')
+        def forEachRemaining(action):
+            # 1
+            pass
+
+        @jnius.java_method('()Z')
+        def hasNext(self):
+            return self.index < self.len
+
+        @jnius.java_method('()Ljava/lang/Object;')
+        def next(self):
+            text = self.text[self.index]
+            meta = self.meta.__next__()
+            self.index += 1
+            global lastdoc
+            if self.convertFn is not None:
+                lastdoc = self.convertFn(text, meta)
+            else:
+                lastdoc = [text, meta]
+            return lastdoc
+
+    class FlatJSONDocumentIterator(jnius.PythonJavaClass):
+        __javainterfaces__ = ['java/util/Iterator']
+
+        def __init__(self, it):
+            super(FlatJSONDocumentIterator, self).__init__()
+            self._it = it
+            # easiest way to support hasNext is just to start consuming right away, I think
+            self._next = next(self._it, StopIteration)
+
+        @jnius.java_method('()V')
+        def remove():
+            # 1
+            pass
+
+        @jnius.java_method('(Ljava/util/function/Consumer;)V')
+        def forEachRemaining(action):
+            # 1
+            pass
+
+        @jnius.java_method('()Z')
+        def hasNext(self):
+            return self._next is not StopIteration
+
+        @jnius.java_method('()Ljava/lang/Object;')
+        def next(self):
+            result = self._next
+            self._next = next(self._it, StopIteration)
+            if result is not StopIteration:
+                global lastdoc
+                lastdoc = FlatJSONDocument(json.dumps(result))
+                return lastdoc
+            return None
+
+    class TQDMSizeCollection(jnius.PythonJavaClass):
+        __javainterfaces__ = ['org/terrier/indexing/Collection']
+
+        def __init__(self, collection, total):
+            super(TQDMSizeCollection, self).__init__()
+            self.collection = collection
+            from . import tqdm
+            self.pbar = tqdm(total=total, unit="documents")
+        
+        @jnius.java_method('()Z')
+        def nextDocument(self):
+            rtr = self.collection.nextDocument()
+            self.pbar.update()
+            return rtr
+
+        @jnius.java_method('()V')
+        def reset(self):
+            self.pbar.reset()
+            self.collection.reset()
+
+        @jnius.java_method('()V')
+        def close(self):
+            self.pbar.close()
+            self.collection.close()
+
+        @jnius.java_method('()Z')
+        def endOfCollection(self):
+            return self.collection.endOfCollection()
+
+        @jnius.java_method('()Lorg/terrier/indexing/Document;')
+        def getDocument(self):
+            global lastdoc
+            lastdoc = self.collection.getDocument()
+            return lastdoc
+
+
+
 type_to_class = {
     'trec' : 'org.terrier.indexing.TRECCollection',
     'trecweb' : 'org.terrier.indexing.TRECWebCollection',
     'warc' : 'org.terrier.indexing.WARC10Collection'
 }
 
+@pt.java.required()
 def createCollection(files_path : List[str], coll_type : str = 'trec', props = {}):
-    if StringReader is None:
-            run_autoclass()
     if coll_type in type_to_class:
         collectionClzName = type_to_class[coll_type]
     else:
@@ -115,15 +328,15 @@ def createCollection(files_path : List[str], coll_type : str = 'trec', props = {
     for k, v in props.items():
         _props[k] = v
     ApplicationSetup.getProperties().putAll(_props)
-    cls_string = autoclass("java.lang.String")._class
-    cls_list = autoclass("java.util.List")._class
+    cls_string = pt.java.autoclass("java.lang.String")._class
+    cls_list = pt.java.autoclass("java.util.List")._class
     if len(files_path) == 0:
         raise ValueError("list files_path cannot be empty")
     asList = createAsList(files_path)
-    colObj = autoclass("org.terrier.indexing.CollectionFactory").loadCollections(
+    colObj = pt.java.autoclass("org.terrier.indexing.CollectionFactory").loadCollections(
         collectionClzName,
         [cls_list, cls_string, cls_string, cls_string],
-        [asList, autoclass("org.terrier.utility.TagSet").TREC_DOC_TAGS, "", ""])
+        [asList, pt.java.autoclass("org.terrier.utility.TagSet").TREC_DOC_TAGS, "", ""])
     return colObj
 
 def treccollection2textgen(
@@ -321,6 +534,7 @@ class TerrierStemmer(Enum):
         if isinstance(this, str):
             return this
 
+    @pt.java.required()
     def stem(self, tok):
         if self not in _stemmer_cache:
             clz_name = self._to_class(self)
@@ -334,7 +548,7 @@ class TerrierStemmer(Enum):
                     clz_name = f'org.terrier.terms.{clz_name}'
                  # stemmers are termpipeline objects, and these have chained constructors
                  # pass None to use the appropriate constructor
-                _stemmer_cache[self] = autoclass(clz_name)(None)
+                _stemmer_cache[self] = pt.java.autoclass(clz_name)(None)
         return _stemmer_cache[self].stem(tok)
 
 class TerrierStopwords(Enum):
@@ -374,8 +588,7 @@ class TerrierStopwords(Enum):
 
             # this hook updates the index's properties to handle the python stopwords list
             def _hook(pyindexer, index):
-                from . import cast
-                pindex = cast("org.terrier.structures.PropertiesIndex", index)
+                pindex = pt.java.cast("org.terrier.structures.PropertiesIndex", index)
                 # store the stopwords into the Index's properties
                 pindex.setIndexProperty("pyterrier.stopwords", ",".join(stopword_list_esc))
 
@@ -461,8 +674,6 @@ class TerrierIndexer:
             tokeniser (TerrierTokeniser): the stemmer to apply. Default is ``TerrierTokeniser.english``.
             type (IndexingType): the specific indexing procedure to use. Default is ``IndexingType.CLASSIC``.
         """
-        if StringReader is None:
-            run_autoclass()
         if type is IndexingType.MEMORY:
             self.path = None
         else:
@@ -640,7 +851,6 @@ class DFIndexUtils:
 
     @staticmethod
     def get_column_lengths(df):
-        import math
         meta2len = dict([(v, df[v].apply(lambda r: len(str(r)) if r!=None else 0).max())for v in df.columns.values])
         # nan values can arise if df is empty. Here we take a metalength of 1 instead.
         meta2len = {k : 1 if math.isnan(l) else l for k, l in meta2len.items()}
@@ -648,8 +858,6 @@ class DFIndexUtils:
 
     @staticmethod
     def create_javaDocIterator(text, *args, **kwargs):
-        if HashMap is None:
-            run_autoclass()
 
         all_metadata = {}
         for i, arg in enumerate(args):
@@ -702,6 +910,7 @@ class DFIndexer(TerrierIndexer):
     Use this Indexer if you wish to index a pandas.Dataframe
 
     """
+    @pt.java.required()
     def index(self, text, *args, **kwargs):
         """
         Index the specified
@@ -722,11 +931,11 @@ class DFIndexer(TerrierIndexer):
         self.meta = meta_lengths
         
         # make a Collection class for Terrier
-        javaDocCollection = autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
+        javaDocCollection = pt.java.autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
         if self.verbose:
             javaDocCollection = TQDMSizeCollection(javaDocCollection, len(text)) 
         index = self.createIndexer()
-        index.index(autoclass("org.terrier.python.PTUtils").makeCollection(javaDocCollection))
+        index.index(pt.java.autoclass("org.terrier.python.PTUtils").makeCollection(javaDocCollection))
         global lastdoc
         lastdoc = None
         javaDocCollection.close()
@@ -740,80 +949,6 @@ class DFIndexer(TerrierIndexer):
             return index.getIndex().getIndexRef()
         return IndexRef.of(self.index_dir + "/data.properties")
 
-class PythonListIterator(PythonJavaClass):
-    __javainterfaces__ = ['java/util/Iterator']
-
-    def __init__(self, text, meta, convertFn, len=None, index=0):
-        super(PythonListIterator, self).__init__()
-        self.text = text
-        self.meta = meta
-        self.index = index
-        self.convertFn = convertFn
-        if len is None:
-            self.len = len(self.text)
-        else:
-            self.len = len
-
-    @java_method('()V')
-    def remove():
-        # 1
-        pass
-
-    @java_method('(Ljava/util/function/Consumer;)V')
-    def forEachRemaining(action):
-        # 1
-        pass
-
-    @java_method('()Z')
-    def hasNext(self):
-        return self.index < self.len
-
-    @java_method('()Ljava/lang/Object;')
-    def next(self):
-        text = self.text[self.index]
-        meta = self.meta.__next__()
-        self.index += 1
-        global lastdoc
-        if self.convertFn is not None:
-            lastdoc = self.convertFn(text, meta)
-        else:
-            lastdoc = [text, meta]
-        return lastdoc
-
-class FlatJSONDocumentIterator(PythonJavaClass):
-    __javainterfaces__ = ['java/util/Iterator']
-
-    def __init__(self, it):
-        super(FlatJSONDocumentIterator, self).__init__()
-        if FlatJSONDocument is None:
-            run_autoclass()
-        self._it = it
-        # easiest way to support hasNext is just to start consuming right away, I think
-        self._next = next(self._it, StopIteration)
-
-    @java_method('()V')
-    def remove():
-        # 1
-        pass
-
-    @java_method('(Ljava/util/function/Consumer;)V')
-    def forEachRemaining(action):
-        # 1
-        pass
-
-    @java_method('()Z')
-    def hasNext(self):
-        return self._next is not StopIteration
-
-    @java_method('()Ljava/lang/Object;')
-    def next(self):
-        result = self._next
-        self._next = next(self._it, StopIteration)
-        if result is not StopIteration:
-            global lastdoc
-            lastdoc = FlatJSONDocument(json.dumps(result))
-            return lastdoc
-        return None
 
 class _BaseIterDictIndexer(TerrierIndexer, Indexer):
     def __init__(self, index_path, *args, meta = {'docno' : 20}, meta_reverse=['docno'], pretokenised=False, threads=1, **kwargs):
@@ -916,6 +1051,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
     Use this Indexer if you wish to index an iter of dicts (possibly with multiple fields).
     This version is used for Windows -- which doesn't support the faster fifo implementation.
     """
+    @pt.java.required()
     def index(self, it, fields=('text',), meta=None, meta_lengths=None, threads=None):
         """
         Index the specified iter of dicts with the (optional) specified fields
@@ -953,7 +1089,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
 
             # we need to prevent collectionIterator from being GCd
             collectionIterator = FlatJSONDocumentIterator(self._filter_iterable(it, fields))
-            javaDocCollection = autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
+            javaDocCollection = pt.java.autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
             # remove once 5.7 is now the minimum version
             from . import check_version
             indexer.index(javaDocCollection if check_version("5.7") else [javaDocCollection])
@@ -970,7 +1106,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
             from . import IndexFactory
             indexref = IndexRef.of(self.index_dir + "/data.properties")
             if len(self.cleanup_hooks) > 0:
-                sindex = autoclass("org.terrier.structures.Index")
+                sindex = pt.java.autoclass("org.terrier.structures.Index")
                 sindex.setIndexLoadingProfileAsRetrieval(False)
                 index = IndexFactory.of(indexref)
                 for hook in self.cleanup_hooks:
@@ -986,6 +1122,7 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
     This version is optimized by using multiple threads and POSIX fifos to tranfer data,
     which ends up being much faster.
     """
+    @pt.java.required()
     def index(self, it, fields=('text',), meta=None, meta_lengths=None):
         """
         Index the specified iter of dicts with the (optional) specified fields
@@ -996,11 +1133,11 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
             meta(list[str]): keys to be considered as metdata
             meta_lengths(list[int]): length of metadata, defaults to 512 characters
         """
-        CollectionFromDocumentIterator = autoclass("org.terrier.python.CollectionFromDocumentIterator")
-        JsonlDocumentIterator = autoclass("org.terrier.python.JsonlDocumentIterator")
+        CollectionFromDocumentIterator = pt.java.autoclass("org.terrier.python.CollectionFromDocumentIterator")
+        JsonlDocumentIterator = pt.java.autoclass("org.terrier.python.JsonlDocumentIterator")
         if self.pretokenised:
-            JsonlTokenisedIterator = autoclass("org.terrier.python.JsonlPretokenisedIterator")
-        ParallelIndexer = autoclass("org.terrier.python.ParallelIndexer")
+            JsonlTokenisedIterator = pt.java.autoclass("org.terrier.python.JsonlPretokenisedIterator")
+        ParallelIndexer = pt.java.autoclass("org.terrier.python.ParallelIndexer")
 
         if meta is not None:
             warn('specifying meta and meta_lengths in IterDictIndexer.index() is deprecated, use constructor instead', DeprecationWarning, 2)
@@ -1059,7 +1196,7 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
         indexref = IndexRef.of(self.index_dir + "/data.properties")
         
         if len(self.cleanup_hooks) > 0:
-            sindex = autoclass("org.terrier.structures.Index")
+            sindex = pt.java.autoclass("org.terrier.structures.Index")
             sindex.setIndexLoadingProfileAsRetrieval(False)
             index = IndexFactory.of(indexref)
             sindex.setIndexLoadingProfileAsRetrieval(True)
@@ -1143,7 +1280,7 @@ class TRECCollectionIndexer(TerrierIndexer):
         self.meta_reverse = meta_reverse
         self.meta_tags = meta_tags
     
-
+    @pt.java.required()
     def index(self, files_path : Union[str,List[str]]):
         """
         Index the specified TREC formatted files
@@ -1158,15 +1295,14 @@ class TRECCollectionIndexer(TerrierIndexer):
         _TaggedDocumentSetup(self.meta, self.meta_tags)
 
         colObj = createCollection(files_path, self.collection)
-        if self.verbose and isinstance(colObj, autoclass("org.terrier.indexing.MultiDocumentFileCollection")):
-            colObj = cast("org.terrier.indexing.MultiDocumentFileCollection", colObj)
+        if self.verbose and isinstance(colObj, pt.java.autoclass("org.terrier.indexing.MultiDocumentFileCollection")):
+            colObj = pt.java.cast("org.terrier.indexing.MultiDocumentFileCollection", colObj)
             colObj = TQDMCollection(colObj)
-        import pyterrier as pt
         # remove once 5.7 is now the minimum version
         if pt.check_version("5.7"):
             index.index(colObj)
         else:
-            index.index(autoclass("org.terrier.python.PTUtils").makeCollection(colObj))
+            index.index(pt.java.autoclass("org.terrier.python.PTUtils").makeCollection(colObj))
         global lastdoc
         lastdoc = None
         colObj.close()
@@ -1226,133 +1362,3 @@ class FilesIndexer(TerrierIndexer):
         if self.type is IndexingType.MEMORY:
             return index.getIndex().getIndexRef()
         return IndexRef.of(self.index_dir + "/data.properties")
-
-class TQDMSizeCollection(PythonJavaClass):
-    __javainterfaces__ = ['org/terrier/indexing/Collection']
-
-    def __init__(self, collection, total):
-        super(TQDMSizeCollection, self).__init__()
-        self.collection = collection
-        from . import tqdm
-        self.pbar = tqdm(total=total, unit="documents")
-    
-    @java_method('()Z')
-    def nextDocument(self):
-        rtr = self.collection.nextDocument()
-        self.pbar.update()
-        return rtr
-
-    @java_method('()V')
-    def reset(self):
-        self.pbar.reset()
-        self.collection.reset()
-
-    @java_method('()V')
-    def close(self):
-        self.pbar.close()
-        self.collection.close()
-
-    @java_method('()Z')
-    def endOfCollection(self):
-        return self.collection.endOfCollection()
-
-    @java_method('()Lorg/terrier/indexing/Document;')
-    def getDocument(self):
-        global lastdoc
-        lastdoc = self.collection.getDocument()
-        return lastdoc
-        
-class DocListIterator(PythonJavaClass):
-    dpl_class = autoclass("org.terrier.structures.indexing.DocumentPostingList")
-    tuple_class = autoclass("org.terrier.structures.collections.MapEntry")
-    __javainterfaces__ = [
-        'java/util/Iterator',
-    ]
-
-    def __init__(self, pyiterator):
-        self.pyiterator = pyiterator
-        self.hasnext = True
-        self.lastdoc = None
-        import pyterrier as pt
-        self.tr57 = not pt.check_version("5.8")
-
-    @staticmethod 
-    def pyDictToMap(a_dict): #returns Map<String,String>
-        rtr = HashMap()
-        for k,v in a_dict.items():
-            rtr.put(k, v)
-        return rtr
-
-    def pyDictToMapEntry(self,doc_dict : Dict[str,Any]): #returns Map.Entry<Map<String,String>, DocumentPostingList>>
-        dpl = DocListIterator.dpl_class()
-        # this works around a bug in the counting of doc lengths in Tr 5.7
-        if self.tr57:
-            for t, tf in doc_dict["toks"].items():
-                for i in range(int(tf)):
-                    dpl.insert(t)
-        else: # this code for 5.8 onwards
-            for t, tf in doc_dict["toks"].items():
-                dpl.insert(int(tf), t)
-        
-        # we cant make the toks column into the metaindex as it isnt a string. remove it.
-        del doc_dict["toks"]
-        return DocListIterator.tuple_class(DocListIterator.pyDictToMap(doc_dict), dpl)
-
-    @java_method('()Z')
-    def hasNext(self):
-        return self.hasnext
-
-    @java_method('()Ljava/lang/Object;')
-    def next(self):
-        try:
-            doc_dict = next(self.pyiterator)
-        except StopIteration as se:
-            self.hasnext = False
-            # terrier will ignore a null return from an iterator
-            return None
-        # keep this around to prevent being GCd before Java can read it
-        self.lastdoc = self.pyDictToMapEntry(doc_dict)
-        return self.lastdoc
-        
-
-class TQDMCollection(PythonJavaClass):
-    __javainterfaces__ = ['org/terrier/indexing/Collection']
-
-    def __init__(self, collection):
-        super(TQDMCollection, self).__init__()
-        assert isinstance(collection, autoclass("org.terrier.indexing.MultiDocumentFileCollection"))
-        self.collection = collection
-        size = self.collection.FilesToProcess.size()
-        from . import tqdm
-        self.pbar = tqdm(total=size, unit="files")
-        self.last = -1
-    
-    @java_method('()Z')
-    def nextDocument(self):
-        rtr = self.collection.nextDocument()
-        filenum = self.collection.FileNumber
-        if filenum > self.last:
-            self.pbar.update(filenum - self.last)
-            self.last = filenum
-        return rtr
-
-    @java_method('()V')
-    def reset(self):
-        self.pbar.reset()
-        self.collection.reset()
-
-    @java_method('()V')
-    def close(self):
-        self.pbar.close()
-        self.collection.close()
-
-    @java_method('()Z')
-    def endOfCollection(self):
-        return self.collection.endOfCollection()
-
-    @java_method('()Lorg/terrier/indexing/Document;')
-    def getDocument(self):
-        global lastdoc
-        lastdoc = self.collection.getDocument()
-        return lastdoc
-        

@@ -1,7 +1,11 @@
 from xml.dom import minidom
 import urllib.request
+from packaging.version import Version
+from pathlib import Path
 import wget
 import os
+import re
+import pyterrier as pt
 
 MAVEN_BASE_URL = "https://repo1.maven.org/maven2/"
 JITPACK_BASE_URL = "https://jitpack.io/"
@@ -63,9 +67,28 @@ def latest_version_num(orgName, packageName):
         return("-SNAPSHOT")
 
     url_str = MAVEN_BASE_URL + orgName + "/" + packageName + "/maven-metadata.xml"
-    with urllib.request.urlopen(url_str) as url:
-        xml_str = url.read()
+    try:
+        with urllib.request.urlopen(url_str) as url:
+            xml_str = url.read()
+    except urllib.error.URLError:
+        # no internet connection, use the latest version found locally.
+        version = latest_local_version_num(packageName)
+        if version is None:
+            raise # version not found, re-raise the URLError error
+        else:
+            return version
     xmldoc = minidom.parseString(xml_str)
     obs_values = xmldoc.getElementsByTagName("latest")
     version = obs_values[0].firstChild.nodeValue
-    return(version)
+    return version
+
+
+def latest_local_version_num(packageName):
+    versions = []
+    for jar_path in Path(pt.io.pyterrier_home()).glob(f'{packageName}-*.jar'):
+        match = re.search(rf'{packageName}-([0-9]+(\.[0-9]+)+).*.jar', jar_path.name)
+        if match:
+            versions.append(Version(match.group(1)))
+    if len(versions) > 0:
+        return str(max(versions))
+    return None # no local version found

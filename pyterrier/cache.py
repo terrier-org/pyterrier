@@ -1,6 +1,6 @@
 from . import Transformer
 import hashlib
-from . import HOME_DIR
+import pyterrier as pt
 import os
 from os import path
 import pandas as pd
@@ -28,7 +28,7 @@ def sizeof_fmt(num):
 
 def init():
     global CACHE_DIR
-    CACHE_DIR = path.join(HOME_DIR,"transformer_cache") 
+    CACHE_DIR = path.join(pt.io.pyterrier_home(), "transformer_cache") 
 
 def list_cache():
     if CACHE_DIR is None:

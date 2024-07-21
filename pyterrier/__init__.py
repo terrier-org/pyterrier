@@ -1,48 +1,61 @@
 __version__ = "0.10.1"
 
 import os
+from deprecated import deprecated
 
-from .bootstrap import _logging, setup_terrier, setup_jnius, is_windows
+from .bootstrap import setup_jnius, is_windows
 from tqdm.auto import tqdm
 
 # definitive API used by others, now available before pt.init
 from .transformer import Transformer, Estimator, Indexer
 from . import utils
 from . import java
+from . import terrier
+
+from . import anserini
+from . import cache
+from . import debug
+from . import index
+from . import io
+from . import measures
+from . import model
+from . import new
+from . import ltr
+from . import parallel
+from . import pipelines
+from . import rewrite
+from . import text
+from . import transformer
+from .datasets import get_dataset, find_datasets, list_datasets
+
+from .batchretrieve import BatchRetrieve, FeaturesBatchRetrieve
+from .utils import Utils
+from .bootstrap import IndexFactory
+from .index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, IndexingType, TerrierStemmer, TerrierStopwords, TerrierTokeniser
+from .pipelines import Experiment, GridScan, GridSearch, KFoldGridSearch, Evaluate
 
 from .batchretrieve import BatchRetrieve
 TerrierRetrieve = BatchRetrieve # BatchRetrieve is an alias to TerrierRetrieve
 
 import importlib
 
-#sub modules
-anserini = None
-apply = None
-cache = None
-debug = None
-index = None
-io = None
-ltr = None
-measures = None
-model = None
-new = None
-parallel = None
-pipelines = None
-rewrite = None
-text = None
-transformer = None
-
 
 file_path = os.path.dirname(os.path.abspath(__file__))
-firstInit = False
+
+# will be set in java._legacy_post_init once java is loaded
 ApplicationSetup = None
-IndexFactory = None
-IndexRef = None
 properties = None
+
+# will be set in terrier._java_post_init once java is loaded
+IndexRef = None
 HOME_DIR = None
-init_args ={}
+
+# TODO
+init_args = {}
 _helper_version = None
 
+
+@java.before_init()
 def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, logging='WARN', home_dir=None, boot_packages=[], tqdm=None, no_download=False,helper_version = None):
     """
     Function necessary to be called before Terrier classes and methods can be used.
@@ -81,91 +94,31 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     are in the  "~/.pyterrier" (if they are not present, they will be downloaded the first time). Then you should set their versions when calling ``init()`` function. For example:
     ``pt.init(version = 5.5, helper_version = "0.0.6")``.
     """
-    global firstInit
-    if firstInit:
-        raise RuntimeError("pt.init() has already been called. Check pt.started() before calling pt.init()")
+
+    # Set the corresponding options
+    java.set_memory_limit(mem)
+    for package in boot_packages:
+        java.add_package(*package.split(':')) # format: org:package:version:filetype (where version and filetype are optional)
+    for opt in jvm_opts:
+        java.add_option(opt)
+    terrier.set_version(version)
+    terrier.set_helper_version(helper_version)
+    set_tqdm(tqdm)
+
+    # TODO: missing no_download. Is this something like pt.java.set_offline(True)?
+
+    java.init()
+
+    java.set_log_level(logging)
 
     # check python version
+    # TODO: does this belong in init or somewhere else?
     import platform
     from packaging.version import Version
     if Version(platform.python_version()) < Version('3.7.0'):
         raise RuntimeError("From PyTerrier 0.8, Python 3.7 minimum is required, you currently have %s" % platform.python_version())
 
-    set_tqdm(tqdm)
-
-    global ApplicationSetup
-    global properties
-    global file_path
-    global HOME_DIR
-
-    # we keep a local directory
-    if home_dir is not None:
-        HOME_DIR = home_dir
-    elif "PYTERRIER_HOME" in os.environ:
-        HOME_DIR = os.environ["PYTERRIER_HOME"]
-    else:
-        from os.path import expanduser
-        userhome = expanduser("~")
-        HOME_DIR = os.path.join(userhome, ".pyterrier")
-    if not os.path.exists(HOME_DIR):
-        os.mkdir(HOME_DIR)
-
-    # get the initial classpath for the JVM
-    classpathTrJars, hlpr_ver = setup_terrier(HOME_DIR, version, helper_version = helper_version, boot_packages=boot_packages, force_download=not no_download)
-    global _helper_version
-    _helper_version = hlpr_ver
-    
-    if is_windows():
-        if "JAVA_HOME" in os.environ:
-            java_home =  os.environ["JAVA_HOME"]
-            fix = '%s\\jre\\bin\\server\\;%s\\jre\\bin\\client\\;%s\\bin\\server\\' % (java_home, java_home, java_home)
-            os.environ["PATH"] = os.environ["PATH"] + ";" + fix
-
-    # Import pyjnius and other classes
-    import jnius_config
-    for jar in classpathTrJars:
-        jnius_config.add_classpath(jar)
-    if jvm_opts is not None:
-        for opt in jvm_opts:
-            jnius_config.add_options(opt)
-    if mem is not None:
-        jnius_config.add_options('-Xmx' + str(mem) + 'm')
-    from jnius import autoclass, cast
-
-    # we only accept Java version 11 and newer; so anything starting 1. or 9. is too old
-    java_version = autoclass("java.lang.System").getProperty("java.version")
-    if java_version.startswith("1.") or java_version.startswith("9."):
-        raise RuntimeError("Pyterrier requires Java 11 or newer, we only found Java version %s;"
-            +" install a more recent Java, or change os.environ['JAVA_HOME'] to point to the proper Java installation",
-            java_version)
-    
-    tr_version = autoclass('org.terrier.Version')
-    version_string = tr_version.VERSION
-    if "BUILD_DATE" in dir(tr_version):
-        version_string += " (built by %s on %s)" % (tr_version.BUILD_USER, tr_version.BUILD_DATE)
-    import sys
-    print("PyTerrier %s has loaded Terrier %s and terrier-helper %s\n" % (__version__, version_string, _helper_version), file=sys.stderr)
-    properties = autoclass('java.util.Properties')()
-    ApplicationSetup = autoclass('org.terrier.utility.ApplicationSetup')
-
-    from .batchretrieve import BatchRetrieve, FeaturesBatchRetrieve
-    from .utils import Utils
-    from .bootstrap import IndexFactory
-    from .datasets import get_dataset, find_datasets, list_datasets
-    from .index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, IndexingType, TerrierStemmer, TerrierStopwords, TerrierTokeniser
-    from .pipelines import Experiment, GridScan, GridSearch, KFoldGridSearch, Evaluate
-
     # Make imports global
-    globals()["autoclass"] = autoclass
-    globals()["cast"] = cast
-    globals()["ApplicationSetup"] = ApplicationSetup
-
-    # apply is an object, not a module, as it also has __get_attr__() implemented
-    from .apply import _apply
-    globals()['apply'] = _apply()
-
-    for sub_module_name in ['anserini', 'cache', 'debug', 'index', 'io', 'measures', 'model', 'new', 'ltr', 'parallel', 'pipelines', 'rewrite', 'text', 'transformer']:
-        globals()[sub_module_name] = importlib.import_module('.' + sub_module_name, package='pyterrier') 
 
     # append the python helpers
     if packages is None:
@@ -180,38 +133,8 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     if redirect_io:
         # this ensures that the python stdout/stderr and the Java are matched
         redirect_stdouterr()
-    init_args["logging"] = logging
-    _logging(logging)
-    setup_jnius()
 
-    # .datasets
-    globals()["get_dataset"] = get_dataset
-    globals()["list_datasets"] = list_datasets
-    globals()["find_datasets"] = find_datasets
-    # .batchretrieve
-    globals()["Indexer"] = Indexer
-    globals()["FeaturesBatchRetrieve"] = FeaturesBatchRetrieve
-    # .index
-    globals()["TRECCollectionIndexer"] = TRECCollectionIndexer
-    globals()["FilesIndexer"] = FilesIndexer
-    globals()["DFIndexer"] = DFIndexer
-    globals()["DFIndexUtils"] = DFIndexUtils
-    globals()["IterDictIndexer"] = IterDictIndexer
-    globals()["IndexFactory"] = IndexFactory
-    globals()["IndexRef"] = autoclass("org.terrier.querying.IndexRef")
-    globals()["IndexingType"] = IndexingType
-    globals()["TerrierStemmer"] = TerrierStemmer
-    globals()["TerrierStopwords"] = TerrierStopwords
-    globals()["TerrierTokeniser"] = TerrierTokeniser
-    # .pipelines etc
-    globals()["Experiment"] = Experiment
-    globals()["Evaluate"] = Evaluate
-    globals()["GridScan"] = GridScan
-    globals()["GridSearch"] = GridSearch
-    globals()["KFoldGridSearch"] = KFoldGridSearch
-    globals()["Utils"] = Utils
-    
-    
+    setup_jnius()
     
     # we save the pt.init() arguments so that other processes,
     # started by joblib or ray can booted with same options
@@ -223,7 +146,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     init_args["home_dir"] = home_dir
     init_args["boot_packages"] = boot_packages
     init_args["tqdm"] = tqdm
-    firstInit = True
+
 
 def set_tqdm(type):
     """
@@ -271,7 +194,7 @@ def started():
             if not pt.started():
                 pt.init()
     """
-    return(firstInit)
+    return java.started()
 
 @java.required()
 def version():
@@ -296,6 +219,9 @@ def redirect_stdouterr():
     from . import bootstrap
     bootstrap.redirect_stdouterr()
 
+
+@java.required()
+@deprecated(version="0.11", reason="Use pt.java.set_log_level() instead")
 def logging(level):
     """
         Set the logging level. Equivalent to setting the logging= parameter to init().
@@ -307,9 +233,10 @@ def logging(level):
          - `'DEBUG'`: show debugging, information, warnings and error messages
 
     """
-    from . import bootstrap
-    bootstrap.logging(level)
+    java.set_log_level(level)
 
+
+@java.required()
 def set_property(k, v):
     """
         Allows to set a property in Terrier's global properties configuration. Example::
@@ -326,6 +253,8 @@ def set_property(k, v):
     properties[str(k)] = str(v)
     ApplicationSetup.bootstrapInitialisation(properties)
 
+
+@java.required()
 def set_properties(kwargs):
     """
         Allows to set many properties in Terrier's global properties configuration
@@ -334,25 +263,28 @@ def set_properties(kwargs):
         properties[str(key)] = str(value)
     ApplicationSetup.bootstrapInitialisation(properties)
 
+
+@java.required()
 def run(cmd, args=[]):
     """
         Allows to run a Terrier executable class, i.e. one that can be access from the `bin/terrier` commandline programme.
     """
-    from jnius import autoclass
-    autoclass("org.terrier.applications.CLITool").main([cmd] + args)
+    java.autoclass("org.terrier.applications.CLITool").main([cmd] + args)
 
+
+@java.required()
 def extend_classpath(mvnpackages):
     """
         Allows to add packages to Terrier's classpath after the JVM has started.
     """
-    assert check_version(5.3), "Terrier 5.3 required for this functionality"
     if isinstance(mvnpackages, str):
         mvnpackages = [mvnpackages]
-    from jnius import autoclass, cast
-    thelist = autoclass("java.util.ArrayList")()
-    for pkg in mvnpackages:
-        thelist.add(pkg)
-    mvnr = ApplicationSetup.getPlugin("MavenResolver")
-    assert mvnr is not None
-    mvnr = cast("org.terrier.utility.MavenResolver", mvnr)
-    mvnr.addDependencies(thelist)
+    for package in mvnpackages:
+        terrier.extend_package(package)
+
+
+# apply is an object, not a module, as it also has __get_attr__() implemented
+def _():
+    from .apply import _apply
+    globals()['apply'] = _apply()
+_()
