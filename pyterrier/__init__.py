@@ -101,7 +101,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
         java.add_package(*package.split(':')) # format: org:package:version:filetype (where version and filetype are optional)
     for opt in jvm_opts:
         java.add_option(opt)
-    terrier.set_version(version)
+    terrier.set_terrier_version(version)
     terrier.set_helper_version(helper_version)
     set_tqdm(tqdm)
 
