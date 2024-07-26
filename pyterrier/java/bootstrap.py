@@ -125,8 +125,7 @@ class IndexFactory:
 
 
 def new_indexref(s):
-    from . import IndexRef
-    return IndexRef.of(s)
+    return pt.IndexRef.of(s)
 
 def new_wmodel(bytes):
     from . import autoclass
