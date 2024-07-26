@@ -1,4 +1,3 @@
-from . import mavenresolver
 from typing import Union, List
 
 stdout_ref = None

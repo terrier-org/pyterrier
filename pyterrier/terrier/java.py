@@ -1,7 +1,6 @@
 import sys
 from typing import Optional
 import pyterrier as pt
-from pyterrier import mavenresolver
 
 TERRIER_PKG = "org.terrier"
 
@@ -56,7 +55,7 @@ def _pre_init(jnius_config):
     """
     # If version is not specified, find newest and download it
     if _CONFIGURATION['terrier_version'] is None:
-        terrier_version = mavenresolver.latest_version_num(TERRIER_PKG, "terrier-assemblies")
+        terrier_version = pt.java.mavenresolver.latest_version_num(TERRIER_PKG, "terrier-assemblies")
     else:
         terrier_version = str(_CONFIGURATION['terrier_version']) # just in case its a float
 
@@ -64,14 +63,14 @@ def _pre_init(jnius_config):
     # "snapshot" means use Jitpack.io to get a build of the current
     # 5.x branch from Github - see https://jitpack.io/#terrier-org/terrier-core/5.x-SNAPSHOT
     if terrier_version == "snapshot":
-        trJar = mavenresolver.downloadfile("com.github.terrier-org.terrier-core", "terrier-assemblies", "5.x-SNAPSHOT", pt.io.pyterrier_home(), "jar-with-dependencies", force_download=_CONFIGURATION['force_download'])
+        trJar = pt.java.mavenresolver.downloadfile("com.github.terrier-org.terrier-core", "terrier-assemblies", "5.x-SNAPSHOT", pt.io.pyterrier_home(), "jar-with-dependencies", force_download=_CONFIGURATION['force_download'])
     else:
-        trJar = mavenresolver.downloadfile(TERRIER_PKG, "terrier-assemblies", terrier_version, pt.io.pyterrier_home(), "jar-with-dependencies")
+        trJar = pt.java.mavenresolver.downloadfile(TERRIER_PKG, "terrier-assemblies", terrier_version, pt.io.pyterrier_home(), "jar-with-dependencies")
     pt.java.add_jar(trJar)
 
     # now the helper classes
     if _CONFIGURATION['helper_version'] is None or _CONFIGURATION['helper_version'] == 'snapshot':
-        helper_version = mavenresolver.latest_version_num(TERRIER_PKG, "terrier-python-helper")
+        helper_version = pt.java.mavenresolver.latest_version_num(TERRIER_PKG, "terrier-python-helper")
     else:
         helper_version = str(_CONFIGURATION['helper_version']) # just in case its a float
     _resolved_helper_version = helper_version

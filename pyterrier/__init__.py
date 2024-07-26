@@ -3,12 +3,14 @@ __version__ = "0.10.1"
 import os
 from deprecated import deprecated
 
-from .bootstrap import setup_jnius, is_windows
+from pyterrier import utils
+from pyterrier.utils import Utils
+
+from pyterrier.java.bootstrap import setup_jnius, is_windows
 from tqdm.auto import tqdm
 
 # definitive API used by others, now available before pt.init
 from .transformer import Transformer, Estimator, Indexer
-from . import utils
 from . import java
 from . import terrier
 
@@ -29,8 +31,7 @@ from . import transformer
 from .datasets import get_dataset, find_datasets, list_datasets
 
 from .batchretrieve import BatchRetrieve, FeaturesBatchRetrieve
-from .utils import Utils
-from .bootstrap import IndexFactory
+from pyterrier.java.bootstrap import IndexFactory
 from .index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, IndexingType, TerrierStemmer, TerrierStopwords, TerrierTokeniser
 from .pipelines import Experiment, GridScan, GridSearch, KFoldGridSearch, Evaluate
 
@@ -220,8 +221,7 @@ def redirect_stdouterr():
     """
         Ensure that stdout and stderr have been redirected. Equivalent to setting the redirect_io parameter to init() as `True`.
     """
-    from . import bootstrap
-    bootstrap.redirect_stdouterr()
+    java.bootstrap.redirect_stdouterr()
 
 
 @java.required()

@@ -1,9 +1,9 @@
 from functools import wraps
 import os
 from typing import Callable, Optional, Dict
-from pyterrier import mavenresolver
-
 import pyterrier as pt
+from pyterrier.java import bootstrap
+from pyterrier.java import mavenresolver
 
 
 _started = False

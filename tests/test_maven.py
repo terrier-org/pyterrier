@@ -1,5 +1,5 @@
 
-from pyterrier import mavenresolver
+from pyterrier.java import mavenresolver
 import unittest
 import shutil
 import tempfile
