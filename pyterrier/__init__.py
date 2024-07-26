@@ -208,8 +208,12 @@ def check_version(min, helper=False):
         Returns True iff the underlying Terrier version is no older than the requested version.
     """
     from packaging.version import Version
+    from . import terrier
+    currentVer = terrier._resolved_helper_version if helper else version()
+    assert currentVer is not None, "Could not obtain Terrier version (helpher=%s)" % str(helper)
+    currentVer = Version(currentVer.replace("-SNAPSHOT", ""))
+
     min = Version(str(min))
-    currentVer = Version((_helper_version if helper else version()).replace("-SNAPSHOT", ""))
     return currentVer >= min
 
 def redirect_stdouterr():
