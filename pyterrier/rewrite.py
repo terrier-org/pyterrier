@@ -1,6 +1,5 @@
 import pyterrier as pt
 import pandas as pd
-from .batchretrieve import _parse_index_like
 from . import Transformer
 from .index import TerrierTokeniser
 from . import tqdm
@@ -212,7 +211,7 @@ class QueryExpansion(Transformer):
             self.qe = pt.autoclass(qeclass)()
         else:
             self.qe = qeclass
-        self.indexref = _parse_index_like(index_like)
+        self.indexref = pt.terrier.retriever._parse_index_like(index_like)
         self.properties = properties
         for k,v in properties.items():
             pt.ApplicationSetup.setProperty(k, str(v))

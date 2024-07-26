@@ -1,4 +1,5 @@
 from typing import Union, List
+import pyterrier as pt
 
 stdout_ref = None
 stderr_ref = None
@@ -141,8 +142,7 @@ def new_callable_wmodel(byterep):
     #we need to prevent these functions from being GCd.
     global SAVED_FNS
     SAVED_FNS.append(fn)
-    from .batchretrieve import _function2wmodel
-    callback, wmodel = _function2wmodel(fn)
+    callback, wmodel = pt.terrier.retriever._function2wmodel(fn)
     SAVED_FNS.append(callback)
     #print("Stored lambda fn  %s and callback in SAVED_FNS, now %d stored" % (str(fn), len(SAVED_FNS)))
     return wmodel

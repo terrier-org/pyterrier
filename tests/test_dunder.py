@@ -8,9 +8,8 @@ class TestDunder(TempDirTestCase):
     def test_callable_wmodel_dunders(self):
         testPosting = pt.autoclass("org.terrier.structures.postings.BasicPostingImpl")(0,1)
 
-        from pyterrier.batchretrieve import _function2wmodel
         lambdafn = lambda keyFreq, posting, entryStats, collStats: posting.getFrequency()
-        callback, wmodel = _function2wmodel(lambdafn)
+        callback, wmodel = pt.terrier.retriever._function2wmodel(lambdafn)
         
         from pyterrier.java.bootstrap import javabytebuffer2array
         byterep = javabytebuffer2array(wmodel.scoringClass.serializeFn())

@@ -1,6 +1,6 @@
 from .model import coerce_queries_dataframe
 
-from .batchretrieve import BatchRetrieveBase
+from pyterrier.terrier.retriever import BatchRetrieveBase
 from warnings import warn
 import pandas as pd
 from . import tqdm

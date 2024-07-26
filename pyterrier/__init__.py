@@ -6,13 +6,18 @@ from deprecated import deprecated
 from pyterrier import utils
 from pyterrier.utils import Utils
 
-from pyterrier.java.bootstrap import setup_jnius, is_windows
-from tqdm.auto import tqdm
-
 # definitive API used by others, now available before pt.init
 from .transformer import Transformer, Estimator, Indexer
-from . import java
-from . import terrier
+
+from pyterrier import java
+from pyterrier.java.bootstrap import setup_jnius, is_windows
+
+from pyterrier import terrier
+from pyterrier.terrier import BatchRetrieve, TerrierRetrieve, FeaturesBatchRetrieve
+
+from tqdm.auto import tqdm
+
+
 
 from . import anserini
 from . import cache
@@ -30,13 +35,10 @@ from . import text
 from . import transformer
 from .datasets import get_dataset, find_datasets, list_datasets
 
-from .batchretrieve import BatchRetrieve, FeaturesBatchRetrieve
+
 from pyterrier.java.bootstrap import IndexFactory
 from .index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, IndexingType, TerrierStemmer, TerrierStopwords, TerrierTokeniser
 from .pipelines import Experiment, GridScan, GridSearch, KFoldGridSearch, Evaluate
-
-from .batchretrieve import BatchRetrieve
-TerrierRetrieve = BatchRetrieve # BatchRetrieve is an alias to TerrierRetrieve
 
 import importlib
 

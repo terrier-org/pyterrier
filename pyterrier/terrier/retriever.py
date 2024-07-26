@@ -1,17 +1,16 @@
 from typing import Union
 import pandas as pd
 import numpy as np
-from . import tqdm, Transformer
 from warnings import warn
-from .datasets import Dataset
-from .transformer import Symbol
-from .model import coerce_queries_dataframe, FIRST_RANK
+from pyterrier.datasets import Dataset
+from pyterrier.transformer import Symbol
+from pyterrier.model import coerce_queries_dataframe, FIRST_RANK
 import concurrent
 from concurrent.futures import ThreadPoolExecutor
 import pyterrier as pt
 
 def importProps():
-    from . import properties as props
+    from pyterrier import properties as props
     # Make import global
     globals()["props"] = props
 props = None
@@ -61,7 +60,7 @@ def _mergeDicts(defaults, settings):
 def _parse_index_like(index_location):
     JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
     JI = pt.java.autoclass('org.terrier.structures.Index')
-    from .index import TerrierIndexer
+    from pyterrier.index import TerrierIndexer
 
     if isinstance(index_location, JIR):
         return index_location
@@ -79,7 +78,7 @@ def _parse_index_like(index_location):
         or an pyterrier.index.TerrierIndexer object'''
     )
 
-class BatchRetrieveBase(Transformer, Symbol):
+class BatchRetrieveBase(pt.Transformer, Symbol):
     """
     A base class for retrieval
 
@@ -95,10 +94,10 @@ def _from_dataset(dataset : Union[str,Dataset],
             clz,
             variant : str = None, 
             version='latest',            
-            **kwargs) -> Transformer:
+            **kwargs) -> pt.Transformer:
 
-    from . import get_dataset
-    from .io import autoopen
+    from pyterrier import get_dataset
+    from pyterrier.io import autoopen
     import os
     import json
     
@@ -221,7 +220,7 @@ class BatchRetrieve(BatchRetrieveBase):
         
         self.controls = _mergeDicts(BatchRetrieve.default_controls, controls)
         if wmodel is not None:
-            from .transformer import is_lambda, is_function
+            from pyterrier.transformer import is_lambda, is_function
             if isinstance(wmodel, str):
                 self.controls["wmodel"] = wmodel
             elif is_lambda(wmodel) or is_function(wmodel):
@@ -427,7 +426,7 @@ class BatchRetrieve(BatchRetrieveBase):
                 # as these futures complete, wait and add their results
                 iter = concurrent.futures.as_completed(future_results)
                 if self.verbose:
-                    iter = tqdm(iter, desc=str(self), total=queries.shape[0], unit="q")
+                    iter = pt.tqdm(iter, desc=str(self), total=queries.shape[0], unit="q")
                 
                 for future in iter:
                     res = future.result()
@@ -435,7 +434,7 @@ class BatchRetrieve(BatchRetrieveBase):
         else:
             iter = queries.itertuples()
             if self.verbose:
-                iter = tqdm(iter, desc=str(self), total=queries.shape[0], unit="q")
+                iter = pt.tqdm(iter, desc=str(self), total=queries.shape[0], unit="q")
             for row in iter:
                 res = self._retrieve_one(row, input_results, docno_provided=docno_provided, docid_provided=docid_provided, scores_provided=scores_provided)
                 results.extend(res)
@@ -465,7 +464,7 @@ class BatchRetrieve(BatchRetrieveBase):
 
 
 
-class TextIndexProcessor(Transformer):
+class TextIndexProcessor(pt.Transformer):
     '''
         Creates a new MemoryIndex based on the contents of documents passed to it.
         It then creates a new instance of the innerclass and passes the topics to that.
@@ -488,8 +487,8 @@ class TextIndexProcessor(Transformer):
         self.verbose = verbose
 
     def transform(self, topics_and_res):
-        from . import DFIndexer, IndexFactory
-        from .index import IndexingType
+        from pyterrier import DFIndexer, IndexFactory
+        from pyterrier.index import IndexingType
         documents = topics_and_res[["docno", self.body_attr]].drop_duplicates(subset="docno")
         indexref = DFIndexer(None, type=IndexingType.MEMORY, verbose=self.verbose).index(documents[self.body_attr], documents["docno"])
         docno2docid = { docno:id for id, docno in enumerate(documents["docno"]) }
@@ -714,7 +713,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
             queries['qid'] = queries['qid'].astype(str)
 
         newscores=[]
-        for row in tqdm(queries.itertuples(), desc=str(self), total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
+        for row in pt.tqdm(queries.itertuples(), desc=str(self), total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
             qid = str(row.qid)
             query = row.query
             if len(query) == 0:
@@ -798,9 +797,8 @@ class FeaturesBatchRetrieve(BatchRetrieve):
 rewrites_setup = False
 
 def setup_rewrites():
-    from .batchretrieve import BatchRetrieve, FeaturesBatchRetrieve
-    from .transformer import rewrite_rules
-    from .ops import FeatureUnionPipeline, ComposedPipeline
+    from pyterrier.transformer import rewrite_rules
+    from pyterrier.ops import FeatureUnionPipeline, ComposedPipeline
     from matchpy import ReplacementRule, Wildcard, Pattern, CustomConstraint
     #three arbitrary "things".
     x = Wildcard.dot('x')
