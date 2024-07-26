@@ -1,7 +1,7 @@
 import sys
 from typing import Optional
 import pyterrier as pt
-from . import mavenresolver
+from pyterrier import mavenresolver
 
 TERRIER_PKG = "org.terrier"
 
@@ -43,7 +43,7 @@ def enable_prf(version: Optional[str] = None):
 
 
 
-def _java_pre_init(jnius_config):
+def _pre_init(jnius_config):
     global _resolved_helper_version
     """
     Download Terrier's jar file for the given version at the given file_path
@@ -78,7 +78,7 @@ def _java_pre_init(jnius_config):
     pt.java.add_package(TERRIER_PKG, "terrier-python-helper", helper_version)
 
 
-def _java_post_init(jnius):
+def _post_init(jnius):
     tr_version = pt.java.autoclass('org.terrier.Version')
 
     version_string = tr_version.VERSION
