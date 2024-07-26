@@ -1,6 +1,6 @@
 from functools import wraps
 import os
-from typing import Callable, Optional
+from typing import Callable, Optional, Dict
 from pyterrier import mavenresolver
 
 import pyterrier as pt
@@ -169,3 +169,22 @@ def set_log_level(level):
     _log_level = level
     if started():
         autoclass("org.terrier.python.PTUtils").setLogLevel(level, None)
+
+
+class JavaClasses:
+    def __init__(self, mapping: Dict[str, str]):
+        self._mapping = mapping
+
+    def __dir__(self):
+        return list(self._mapping.keys())
+
+    @required(raise_on_not_started=True)
+    def __getattr__(self, key):
+        if key not in self._mapping:
+            return AttributeError(f'{self} has no attribute {key!r}')
+        return autoclass(self._mapping[key])
+
+
+J = pt.java.JavaClasses({
+    'ArrayList': 'java.util.ArrayList',
+})

@@ -97,9 +97,15 @@ def extend_package(package):
         Allows to add packages to Terrier's classpath after the JVM has started.
     """
     assert pt.check_version(5.3), "Terrier 5.3 required for this functionality"
-    package_list = pt.java.autoclass("java.util.ArrayList")()
+    package_list = pt.java.J.ArrayList()
     package_list.add(package)
     mvnr = pt.ApplicationSetup.getPlugin("MavenResolver")
     assert mvnr is not None
     mvnr = pt.java.cast("org.terrier.utility.MavenResolver", mvnr)
     mvnr.addDependencies(package_list)
+
+
+# Terrier-specific classes
+J = pt.java.JavaClasses({
+    'IndexRef': 'org.terrier.querying.IndexRef',
+})
