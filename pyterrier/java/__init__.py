@@ -49,6 +49,7 @@ def init() -> None:
     import jnius
     _started = True
 
+    bootstrap.setup_jnius()
     set_log_level(_log_level)
 
     java_version = autoclass("java.lang.System").getProperty("java.version")
