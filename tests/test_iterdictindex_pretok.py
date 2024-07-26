@@ -12,7 +12,6 @@ from .base import TempDirTestCase, BaseTestCase
 class TestIterDictIndexerPreTok(TempDirTestCase):
 
     def test_dpl(self):
-        pt.index.run_autoclass()
         it1 = [
             {'docno': 'd1', 'url': 'url1', "toks" : {"a" : 1, "b" : 2}}
         ]
