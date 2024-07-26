@@ -185,6 +185,6 @@ class JavaClasses:
         return autoclass(self._mapping[key])
 
 
-J = pt.java.JavaClasses({
+J = JavaClasses({
     'ArrayList': 'java.util.ArrayList',
 })
