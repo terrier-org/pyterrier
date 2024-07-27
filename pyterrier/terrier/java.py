@@ -78,16 +78,14 @@ def _pre_init(jnius_config):
 
 
 def _post_init(jnius):
-    tr_version = pt.java.autoclass('org.terrier.Version')
-
-    version_string = tr_version.VERSION
-    if "BUILD_DATE" in dir(tr_version):
-        version_string += f" (built by {tr_version.BUILD_USER} on {tr_version.BUILD_DATE})"
+    version_string = J.Version.VERSION
+    if "BUILD_DATE" in dir(J.Version):
+        version_string += f" (built by {J.Version.BUILD_USER} on {J.Version.BUILD_DATE})"
 
     print(f"PyTerrier {pt.__version__} has loaded Terrier {version_string} and "
           f"terrier-helper {_resolved_helper_version}\n", file=sys.stderr)
 
-    pt.IndexRef = pt.java.autoclass("org.terrier.querying.IndexRef")
+    pt.IndexRef = J.IndexRef
 
 
 @pt.java.required()
@@ -107,4 +105,6 @@ def extend_package(package):
 # Terrier-specific classes
 J = pt.java.JavaClasses({
     'IndexRef': 'org.terrier.querying.IndexRef',
+    'Version': 'org.terrier.Version',
+    'Tokenizer': 'org.terrier.indexing.tokenisation.Tokeniser',
 })

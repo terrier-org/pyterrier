@@ -204,7 +204,7 @@ def version():
     """
         Returns the version string from the underlying Terrier platform.
     """
-    return java.autoclass("org.terrier.Version").VERSION
+    return terrier.J.Version.VERSION
 
 def check_version(min, helper=False):
     """

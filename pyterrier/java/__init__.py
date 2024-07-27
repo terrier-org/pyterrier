@@ -11,8 +11,8 @@ _started = False
 
 def _legacy_post_init(jnius):
     pt.HOME_DIR = pt.io.pyterrier_home()
-    pt.properties = autoclass('java.util.Properties')()
-    pt.ApplicationSetup = autoclass('org.terrier.utility.ApplicationSetup')
+    pt.properties = J.Properties()
+    pt.ApplicationSetup = J.ApplicationSetup
     pt.ApplicationSetup.bootstrapInitialisation(pt.properties)
     pt.autoclass = jnius.autoclass
     pt.cast = jnius.cast
@@ -170,12 +170,13 @@ def set_log_level(level):
     global _log_level
     _log_level = level
     if started():
-        autoclass("org.terrier.python.PTUtils").setLogLevel(level, None)
+        J.PTUtils.setLogLevel(level, None)
 
 
 class JavaClasses:
     def __init__(self, mapping: Dict[str, str]):
         self._mapping = mapping
+        self._cache = {}
 
     def __dir__(self):
         return list(self._mapping.keys())
@@ -184,9 +185,14 @@ class JavaClasses:
     def __getattr__(self, key):
         if key not in self._mapping:
             return AttributeError(f'{self} has no attribute {key!r}')
-        return autoclass(self._mapping[key])
+        if key not in self._cache:
+            self._cache[key] = autoclass(self._mapping[key])
+        return self._cache[key]
 
 
 J = JavaClasses({
     'ArrayList': 'java.util.ArrayList',
+    'Properties': 'java.util.Properties',
+    'ApplicationSetup': 'org.terrier.utility.ApplicationSetup',
+    'PTUtils': 'org.terrier.python.PTUtils',
 })
