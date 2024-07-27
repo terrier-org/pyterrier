@@ -9,6 +9,7 @@ from .transformer import Symbol
 from .model import coerce_queries_dataframe, FIRST_RANK
 import concurrent
 from concurrent.futures import ThreadPoolExecutor
+import pyterrier as pt
 
 def importProps():
     from . import properties as props
@@ -68,6 +69,8 @@ def _parse_index_like(index_location):
         return index_location
     if isinstance(index_location, JI):
         return cast('org.terrier.structures.Index', index_location).getIndexRef()
+    if isinstance(index_location, pt.terrier.TerrierIndex):
+        return index_location.get_index_ref()
     if isinstance(index_location, str) or issubclass(type(index_location), TerrierIndexer):
         if issubclass(type(index_location), TerrierIndexer):
             return JIR.of(index_location.path)
