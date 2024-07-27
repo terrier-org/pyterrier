@@ -131,9 +131,7 @@ from pyterrier.java.config import configure
 
 @before_init()
 def add_jar(jar_path):
-    jars = configure()['jars']
-    jars.append(jar_path)
-    configure(jars=jars)
+    configure.append('jars', jar_path)
 
 
 @before_init()
@@ -151,9 +149,7 @@ def set_memory_limit(mem: Optional[float]):
 
 @before_init()
 def add_option(option: str):
-    options = configure()['options']
-    options.append(option)
-    configure(options=options)
+    configure.append('options', option)
 
 
 def set_log_level(level):
