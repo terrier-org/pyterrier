@@ -1,22 +1,36 @@
 from typing import Dict, Any
 from copy import deepcopy
-from pyterrier import java
 
 _CONFIGS = {}
+
+class Configuration:
+    def __init__(self, name):
+        self.name = name
+
+    def get(self, key):
+        return self()[key]
+
+    def set(self, key, value):
+        self()(**{key: value})
+
+    def append(self, key, value):
+        res = self.get(key)
+        res.append(value)
+        self(**{key: res})
+
+    def __call__(self, **settings: Any):
+        for key, value in settings.items():
+            if key not in _CONFIGS[self.name]:
+                raise AttributeError(f'{key!r} not defined as a java setting for {self.name!r}')
+            _CONFIGS[self.name][key] = value
+        return deepcopy(_CONFIGS[self.name])
+
 
 def register(name, config: Dict[str, Any]):
     assert name not in _CONFIGS
     _CONFIGS[name] = deepcopy(config)
+    return Configuration(name)
 
-    @java.before_init()
-    def _configure(**settings: Any):
-        for key, value in settings.items():
-            if key not in _CONFIGS[name]:
-                raise AttributeError(f'{key!r} not defined as a java setting for {name!r}')
-            _CONFIGS[name][key] = value
-        return deepcopy(_CONFIGS[name])
-
-    return _configure
 
 configure = register('pyterrier.java', {
     'jars': [],
@@ -25,8 +39,10 @@ configure = register('pyterrier.java', {
     'log_level': 'WARN',
 })
 
+
 def get_configs():
     return deepcopy(_CONFIGS)
+
 
 def set_configs(configs: Dict[str, Dict[str, Any]]):
     for key, value in configs.items():
