@@ -4,9 +4,6 @@ from typing import Callable, Optional, Dict
 import pyterrier as pt
 from pyterrier.java import bootstrap
 from pyterrier.java import mavenresolver
-from pyterrier.java import config
-from pyterrier.java.config import configure
-
 
 _started = False
 
@@ -128,6 +125,8 @@ def cast(*args, **kwargs):
 
 
 # config
+from pyterrier.java import config
+from pyterrier.java.config import configure
 
 
 @before_init()
