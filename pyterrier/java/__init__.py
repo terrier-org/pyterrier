@@ -13,6 +13,7 @@ def _legacy_post_init(jnius):
     pt.HOME_DIR = pt.io.pyterrier_home()
     pt.properties = autoclass('java.util.Properties')()
     pt.ApplicationSetup = autoclass('org.terrier.utility.ApplicationSetup')
+    pt.ApplicationSetup.bootstrapInitialisation(pt.properties)
     pt.autoclass = jnius.autoclass
     pt.cast = jnius.cast
 
