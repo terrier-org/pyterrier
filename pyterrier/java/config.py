@@ -28,6 +28,6 @@ configure = register('pyterrier.java', {
 def get_configs():
     return deepcopy(_CONFIGS)
 
-def set_configs(configs):
-    for key, value in configs:
+def set_configs(configs: Dict[str, Dict[str, Any]]):
+    for key, value in configs.items():
         _CONFIGS[key] = value
