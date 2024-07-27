@@ -24,8 +24,6 @@ class AnseriniTestCase(unittest.TestCase):
         if not pt.started():
             pt.init(version=terrier_version, logging="DEBUG", boot_packages=["io.anserini:anserini:%s:fatjar" % anserini_version])
         self.here = os.path.dirname(os.path.realpath(__file__))
-        assert "version" in pt.init_args
-        assert pt.init_args["version"] == terrier_version
 
     def test_anserini_vaswani(self):
         self.skip_pyserini()

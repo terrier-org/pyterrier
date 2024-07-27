@@ -23,10 +23,6 @@ class BaseTestCase(unittest.TestCase):
             # jvm_opts=['-ea'] can be added here to ensure that all Java assertions are met
         self.here = os.path.dirname(os.path.realpath(__file__))
 
-        # check that pt.init() is saving its arguments
-        assert "version" in pt.init_args
-        assert pt.init_args["version"] == terrier_version
-
 
     def skip_windows(self):
         if BaseTestCase.is_windows():

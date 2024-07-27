@@ -4,6 +4,8 @@ from typing import Callable, Optional, Dict
 import pyterrier as pt
 from pyterrier.java import bootstrap
 from pyterrier.java import mavenresolver
+from pyterrier.java import config
+from pyterrier.java.config import configure
 
 
 _started = False
@@ -38,22 +40,24 @@ def init() -> None:
         _pre_init = entry_point.load()
         _pre_init(jnius_config)
 
-    if _mem is not None:
-        jnius_config.add_options('-Xmx' + str(_mem) + 'm')
+    cfg = configure()
 
-    for opt in _options:
+    if cfg['mem'] is not None:
+        jnius_config.add_options('-Xmx' + str(cfg['mem']) + 'm')
+
+    for opt in cfg['options']:
         jnius_config.add_options(opt)
 
-    for jar in _jars:
+    for jar in cfg['jars']:
         jnius_config.add_classpath(jar)
 
     import jnius
     _started = True
 
     bootstrap.setup_jnius()
-    set_log_level(_log_level)
+    set_log_level(cfg['log_level'])
 
-    java_version = autoclass("java.lang.System").getProperty("java.version")
+    java_version = J.System.getProperty("java.version")
     if java_version.startswith("1.") or java_version.startswith("9."):
         raise RuntimeError(f"Pyterrier requires Java 11 or newer, we only found Java version {java_version};"
             + " install a more recent Java, or change os.environ['JAVA_HOME'] to point to the proper Java installation")
@@ -123,17 +127,14 @@ def cast(*args, **kwargs):
     return jnius.cast(*args, **kwargs)
 
 
-# Settings
+# config
 
-
-_jars = []
-_options = []
-_mem = None
-_log_level = 'WARN'
 
 @before_init()
 def add_jar(jar_path):
-    _jars.append(jar_path)
+    jars = configure()['jars']
+    jars.append(jar_path)
+    configure(jars=jars)
 
 
 @before_init()
@@ -146,13 +147,14 @@ def add_package(org_name: str = None, package_name: str = None, version: str = N
 
 @before_init()
 def set_memory_limit(mem: Optional[float]):
-    global _mem
-    _mem = mem
+    configure(mem=mem)
 
 
 @before_init()
 def add_option(option: str):
-    _options.append(option)
+    options = configure()['options']
+    options.append(option)
+    configure(options=options)
 
 
 def set_log_level(level):
@@ -167,9 +169,9 @@ def set_log_level(level):
         
         Unlike other java settings, this can be changed either before or after init() has been called.
     """
-    global _log_level
-    _log_level = level
-    if started():
+    if not started():
+        configure(log_level=level)
+    else:
         J.PTUtils.setLogLevel(level, None)
 
 
@@ -195,4 +197,5 @@ J = JavaClasses({
     'Properties': 'java.util.Properties',
     'ApplicationSetup': 'org.terrier.utility.ApplicationSetup',
     'PTUtils': 'org.terrier.python.PTUtils',
+    'System': 'java.lang.System',
 })

@@ -1,6 +1,7 @@
 from . import Transformer
 import pandas as pd
 import pyterrier as pt
+from warnings import warn
 
 SUPPORTED_BACKENDS=["joblib", "ray"]
 
@@ -31,6 +32,15 @@ def _pt_init(args):
         from warnings import warn
         warn("Avoiding reinit of PyTerrier")
 
+
+def _java_init_with_configs(configs) -> None:
+    if not pt.java.started():
+        pt.java.config.set_configs(configs)
+        pt.java.init()
+    else:
+        warn("Avoiding reinit of PyTerrier")
+
+
 def _check_ray():
     try:
         import ray
@@ -52,13 +62,13 @@ def parallel_lambda(function, inputs, jobs, backend='joblib'):
 
 def _parallel_lambda_ray(function, inputs, jobs):
     from ray.util.multiprocessing import Pool
-    with Pool(jobs, lambda args: pt.init(**args), pt.init_args) as pool:
+    with Pool(jobs, _java_init_with_configs, pt.java.config.get_configs()) as pool:
         return pool.map(function, inputs)
 
 def _parallel_lambda_joblib(function, inputs, jobs):
     from joblib import Parallel, delayed
     with Parallel(n_jobs=jobs) as parallel:
-        parallel_mp = _joblib_with_initializer(parallel, _pt_init, pt.init_args)
+        parallel_mp = _joblib_with_initializer(parallel, _java_init_with_configs, pt.java.config.get_configs())
         return parallel_mp(
             delayed(function)(input) for input in inputs)
         
@@ -80,12 +90,12 @@ class PoolParallelTransformer(Transformer):
     def _transform_joblib(self, splits):
         from joblib import Parallel, delayed
         with Parallel(n_jobs=self.n_jobs) as parallel:
-            results = _joblib_with_initializer(parallel, _pt_init, pt.init_args)(delayed(self.parent)(topics) for topics in splits)
+            results = _joblib_with_initializer(parallel, _java_init_with_configs, pt.java.config.get_configs())(delayed(self.parent)(topics) for topics in splits)
             return pd.concat(results)
         
     def _transform_ray(self, splits):
         from ray.util.multiprocessing import Pool
-        with Pool(self.n_jobs, _pt_init, pt.init_args) as pool:
+        with Pool(self.n_jobs, _java_init_with_configs, pt.java.config.get_configs()) as pool:
             results = pool.map(lambda topics : self.parent(topics), splits)
             return pd.concat(results)
 
