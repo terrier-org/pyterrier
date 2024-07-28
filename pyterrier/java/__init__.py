@@ -42,9 +42,12 @@ def init() -> None:
     if cfg['mem'] is not None:
         jnius_config.add_options('-Xmx' + str(cfg['mem']) + 'm')
 
+    from warnings import warn
+    warn(f'options: {cfg['options']}')
     for opt in cfg['options']:
         jnius_config.add_options(opt)
 
+    warn(f'jars: {cfg['jars']}')
     for jar in cfg['jars']:
         jnius_config.add_classpath(jar)
 
