@@ -69,8 +69,6 @@ def _pre_init(jnius_config):
 
 
 def _post_init(jnius):
-    pt.IndexRef = J.IndexRef
-
     jnius.protocol_map["org.terrier.structures.postings.IterablePosting"] = {
         '__iter__': lambda self: self,
         '__next__': lambda self: _iterableposting_next(self),
@@ -118,11 +116,13 @@ def _post_init(jnius):
         'get_corpus_iter' : _index_corpusiter
     }
 
+    pt.IndexRef = J.IndexRef
+
     version_string = J.Version.VERSION
     if "BUILD_DATE" in dir(J.Version):
         version_string += f" (built by {J.Version.BUILD_USER} on {J.Version.BUILD_DATE})"
 
-    print(f"X PyTerrier {pt.__version__} has loaded Terrier {version_string} and "
+    print(f"PyTerrier {pt.__version__} has loaded Terrier {version_string} and "
           f"terrier-helper {_resolved_helper_version}\n", file=sys.stderr)
 
 

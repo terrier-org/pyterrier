@@ -38,7 +38,6 @@ Array = None
 ApplicationSetup = None
 Properties = None
 CLITool = None
-IndexRef = None
 StructureMerger = None
 BlockStructureMerger = None
 DocListIterator = None
@@ -76,7 +75,6 @@ def _java_post_init(jnius):
     global ApplicationSetup
     global Properties
     global CLITool
-    global IndexRef
     global StructureMerger
     global BlockStructureMerger
     global DocListIterator
@@ -103,7 +101,6 @@ def _java_post_init(jnius):
     ApplicationSetup = autoclass('org.terrier.utility.ApplicationSetup')
     Properties = autoclass('java.util.Properties')
     CLITool = autoclass("org.terrier.applications.CLITool")
-    IndexRef = autoclass('org.terrier.querying.IndexRef')
     StructureMerger = autoclass("org.terrier.structures.merging.StructureMerger")
     BlockStructureMerger = autoclass("org.terrier.structures.merging.BlockStructureMerger")
 
@@ -947,7 +944,7 @@ class DFIndexer(TerrierIndexer):
 
         if self.type is IndexingType.MEMORY:
             return index.getIndex().getIndexRef()
-        return IndexRef.of(self.index_dir + "/data.properties")
+        return pt.terrier.J.IndexRef.of(self.index_dir + "/data.properties")
 
 
 class _BaseIterDictIndexer(TerrierIndexer, Indexer):
@@ -1104,7 +1101,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
             indexref = index.getIndexRef()
         else:
             from . import IndexFactory
-            indexref = IndexRef.of(self.index_dir + "/data.properties")
+            indexref = pt.terrier.J.IndexRef.of(self.index_dir + "/data.properties")
             if len(self.cleanup_hooks) > 0:
                 sindex = pt.java.autoclass("org.terrier.structures.Index")
                 sindex.setIndexLoadingProfileAsRetrieval(False)
@@ -1193,7 +1190,7 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
             
         indexref = None
         from . import IndexFactory
-        indexref = IndexRef.of(self.index_dir + "/data.properties")
+        indexref = pt.terrier.J.IndexRef.of(self.index_dir + "/data.properties")
         
         if len(self.cleanup_hooks) > 0:
             sindex = pt.java.autoclass("org.terrier.structures.Index")
@@ -1313,7 +1310,7 @@ class TRECCollectionIndexer(TerrierIndexer):
 
         if self.type is IndexingType.MEMORY:
             return index.getIndex().getIndexRef()
-        return IndexRef.of(self.index_dir + "/data.properties")
+        return pt.terrier.J.IndexRef.of(self.index_dir + "/data.properties")
 
 class FilesIndexer(TerrierIndexer):
     '''
@@ -1361,4 +1358,4 @@ class FilesIndexer(TerrierIndexer):
 
         if self.type is IndexingType.MEMORY:
             return index.getIndex().getIndexRef()
-        return IndexRef.of(self.index_dir + "/data.properties")
+        return pt.terrier.J.IndexRef.of(self.index_dir + "/data.properties")
