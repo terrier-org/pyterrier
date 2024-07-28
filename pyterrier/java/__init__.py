@@ -1,6 +1,7 @@
 from functools import wraps
 import os
 from typing import Callable, Optional, Dict
+from warnings import warn
 import pyterrier as pt
 from pyterrier.java import bootstrap
 from pyterrier.java import mavenresolver
@@ -197,3 +198,17 @@ J = JavaClasses({
     'PTUtils': 'org.terrier.python.PTUtils',
     'System': 'java.lang.System',
 })
+
+
+# Parallel
+
+def parallel_init(configs) -> None:
+    if not pt.java.started():
+        warn(f'Starting java parallel with configs {configs}')
+        pt.java.config.set_configs(configs)
+        pt.java.init()
+    else:
+        warn("Avoiding reinit of PyTerrier")
+
+def parallel_init_args() -> None:
+    return (config.get_configs(),)
