@@ -1,6 +1,6 @@
 import pyterrier as pt
-from pyterrier.java import required
-from typing import Dict
+from pyterrier.java import required, before_init, started, configure, mavenresolver
+from typing import Dict, Optional
 
 
 stdout_ref = None
@@ -76,6 +76,47 @@ def bytebuffer_to_array(buffer):
     return bytearray([ unsign(buffer.get(offset)) for offset in range(buffer.capacity()) ])
 
 
+@before_init()
+def add_jar(jar_path):
+    configure.append('jars', jar_path)
+
+
+@before_init()
+def add_package(org_name: str = None, package_name: str = None, version: str = None, file_type='jar'):
+    if version is None or version == 'snapshot':
+        version = mavenresolver.latest_version_num(org_name, package_name)
+    file_name = mavenresolver.downloadfile(org_name, package_name, version, pt.io.pyterrier_home(), file_type)
+    add_jar(file_name)
+
+
+@before_init()
+def set_memory_limit(mem: Optional[float]):
+    configure(mem=mem)
+
+
+@before_init()
+def add_option(option: str):
+    configure.append('options', option)
+
+
+def set_log_level(level):
+    """
+        Set the logging level. The following string values are allowed, corresponding
+        to Java logging levels:
+        
+         - `'ERROR'`: only show error messages
+         - `'WARN'`: only show warnings and error messages (default)
+         - `'INFO'`: show information, warnings and error messages
+         - `'DEBUG'`: show debugging, information, warnings and error messages
+        
+        Unlike other java settings, this can be changed either before or after init() has been called.
+    """
+    if not started():
+        configure(log_level=level)
+    else:
+        J.PTUtils.setLogLevel(level, None)
+
+
 class JavaClasses:
     def __init__(self, mapping: Dict[str, str]):
         self._mapping = mapping
@@ -91,3 +132,12 @@ class JavaClasses:
         if key not in self._cache:
             self._cache[key] = pt.java.autoclass(self._mapping[key])
         return self._cache[key]
+
+
+J = JavaClasses({
+    'ArrayList': 'java.util.ArrayList',
+    'Properties': 'java.util.Properties',
+    'ApplicationSetup': 'org.terrier.utility.ApplicationSetup',
+    'PTUtils': 'org.terrier.python.PTUtils',
+    'System': 'java.lang.System',
+})
