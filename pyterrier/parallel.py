@@ -97,7 +97,7 @@ class PoolParallelTransformer(Transformer):
         rtr = None
         if self.backend == 'joblib':
             rtr =  self._transform_joblib(splits)
-        if self.backend == 'ray':
+        elif self.backend == 'ray':
             rtr = self._transform_ray(splits)
         else:
             raise RuntimeError(f'Unsupported backend: {self.backend}')
