@@ -289,4 +289,6 @@ J = pt.java.JavaClasses({
     'Version': 'org.terrier.Version',
     'Tokenizer': 'org.terrier.indexing.tokenisation.Tokeniser',
     'Serialization': 'org.terrier.python.Serialization',
+    'IndexOnDisk': 'org.terrier.structures.IndexOnDisk',
+    'IndexFactory': 'org.terrier.structures.IndexFactory',
 })
