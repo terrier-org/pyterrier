@@ -38,12 +38,3 @@ configure = register('pyterrier.java', {
     'mem': None,
     'log_level': 'WARN',
 })
-
-
-def get_configs():
-    return deepcopy(_CONFIGS)
-
-
-def set_configs(configs: Dict[str, Dict[str, Any]]):
-    for key, value in configs.items():
-        _CONFIGS[key] = value

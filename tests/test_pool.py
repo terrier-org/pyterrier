@@ -38,13 +38,7 @@ class TestPool(BaseTestCase):
 #         # multiprocess uses dill instead of pickle to serialize Python objects. https://jstaf.github.io/hpc-python/parallel/
 #         from multiprocess import Pool
 
-#         def starter(configs): 
-#             if not pt.java.started():
-#                 print("pt booted")
-#                 pt.java.config.set_configs(configs)
-#                 pt.java.init()
-        
-#         with Pool(None, starter, pt.java.config.get_configs(), 1) as pool:
+#         with Pool(None, pt.java.parallel_init, pt.java.parallel_init_args(), 1) as pool:
 #             for res in pool.map(lambda topics : br(topics), [t, t, t]):
 #                 pd.testing.assert_frame_equal(res1, res)
 
@@ -71,7 +65,7 @@ class TestPool(BaseTestCase):
 
 #         from joblib import Parallel, delayed
 #         with Parallel(n_jobs=2) as parallel:
-#             results = _joblib_with_initializer(parallel, lambda configs: _java_init_with_configs(configs), pt.java.config.get_configs())(delayed(br)(topics) for topics in [t,t,t])
+#             results = _joblib_with_initializer(parallel, pt.java.parallel_init, pt.java.parallel_init_args())(delayed(br)(topics) for topics in [t,t,t])
 #             self.assertTrue(3, len(results))
 #             for res in results:
 #                 res = res.sort_values(["qid", "docno"])

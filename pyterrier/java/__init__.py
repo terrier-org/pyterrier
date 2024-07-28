@@ -1,6 +1,7 @@
 from functools import wraps
+from copy import deepcopy
 import os
-from typing import Callable, Optional, Dict
+from typing import Callable, Optional, Dict, Tuple, Any
 from warnings import warn
 import pyterrier as pt
 from pyterrier.java import bootstrap
@@ -202,13 +203,17 @@ J = JavaClasses({
 
 # Parallel
 
-def parallel_init(configs) -> None:
-    if not pt.java.started():
-        warn(f'Starting java parallel with configs {configs}')
-        pt.java.config.set_configs(configs)
-        pt.java.init()
-    else:
-        warn("Avoiding reinit of PyTerrier")
+def parallel_init(started: bool, configs: Dict[str, Dict[str, Any]]) -> None:
+    if started:
+        if not pt.java.started():
+            warn(f'Starting java parallel with configs {configs}')
+            config._CONFIGS = configs
+            init()
+        else:
+            warn("Avoiding reinit of PyTerrier")
 
-def parallel_init_args() -> None:
-    return (config.get_configs(),)
+def parallel_init_args() -> Tuple[bool, Dict[str, Dict[str, Any]]]:
+    return (
+        started(),
+        deepcopy(config._CONFIGS),
+    )
