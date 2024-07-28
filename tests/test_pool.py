@@ -28,19 +28,19 @@ class TestPool(BaseTestCase):
 #         self.assertEqual(len(res), len(res2))
 #         pd.testing.assert_frame_equal(res, res2)
 
-    def test_br_multiprocess(self):
-        return
-        vaswani = pt.datasets.get_dataset("vaswani")
-        br = pt.BatchRetrieve(vaswani.get_index(), wmodel="BM25", controls={"c" : 0.75}, num_results=15)
-        t = vaswani.get_topics().head()
-        res1 = br(t)
-        # Fortunately, there is a fork of the multiprocessing module called multiprocess that works just fine .... 
-        # multiprocess uses dill instead of pickle to serialize Python objects. https://jstaf.github.io/hpc-python/parallel/
-        from multiprocess import Pool
-
-        with Pool(None, pt.java.parallel_init, pt.java.parallel_init_args(), 1) as pool:
-            for res in pool.map(lambda topics : br(topics), [t, t, t]):
-                pd.testing.assert_frame_equal(res1, res)
+#     def test_br_multiprocess(self):
+#         return
+#         vaswani = pt.datasets.get_dataset("vaswani")
+#         br = pt.BatchRetrieve(vaswani.get_index(), wmodel="BM25", controls={"c" : 0.75}, num_results=15)
+#         t = vaswani.get_topics().head()
+#         res1 = br(t)
+#         # Fortunately, there is a fork of the multiprocessing module called multiprocess that works just fine .... 
+#         # multiprocess uses dill instead of pickle to serialize Python objects. https://jstaf.github.io/hpc-python/parallel/
+#         from multiprocess import Pool
+# 
+#         with Pool(None, pt.java.parallel_init, pt.java.parallel_init_args(), 1) as pool:
+#             for res in pool.map(lambda topics : br(topics), [t, t, t]):
+#                 pd.testing.assert_frame_equal(res1, res)
 
 #     def test_br_ray(self):
 #         self.skipTest("disabling ray")
@@ -54,20 +54,20 @@ class TestPool(BaseTestCase):
 #                 res = res.sort_values(["qid", "docno"])
 #                 pd.testing.assert_frame_equal(res1, res)
 
-#     def test_br_joblib(self):
-#         self.skip_windows()
-#         from pyterrier.parallel import _joblib_with_initializer, _java_init_with_configs
+    def test_br_joblib(self):
+        self.skip_windows()
+        from pyterrier.parallel import _joblib_with_initializer
 
-#         vaswani = pt.datasets.get_dataset("vaswani")
-#         br = pt.BatchRetrieve(vaswani.get_index(), wmodel="BM25", controls={"c" : 0.75}, num_results=15)
-#         t = vaswani.get_topics().head()
-#         res1 = br(t).sort_values(["qid", "docno"])
+        vaswani = pt.datasets.get_dataset("vaswani")
+        br = pt.BatchRetrieve(vaswani.get_index(), wmodel="BM25", controls={"c" : 0.75}, num_results=15)
+        t = vaswani.get_topics().head()
+        res1 = br(t).sort_values(["qid", "docno"])
 
-#         from joblib import Parallel, delayed
-#         with Parallel(n_jobs=2) as parallel:
-#             results = _joblib_with_initializer(parallel, pt.java.parallel_init, pt.java.parallel_init_args())(delayed(br)(topics) for topics in [t,t,t])
-#             self.assertTrue(3, len(results))
-#             for res in results:
-#                 res = res.sort_values(["qid", "docno"])
-#                 pd.testing.assert_frame_equal(res1, res)
+        from joblib import Parallel, delayed
+        with Parallel(n_jobs=2) as parallel:
+            results = _joblib_with_initializer(parallel, pt.java.parallel_init, pt.java.parallel_init_args())(delayed(br)(topics) for topics in [t,t,t])
+            self.assertTrue(3, len(results))
+            for res in results:
+                res = res.sort_values(["qid", "docno"])
+                pd.testing.assert_frame_equal(res1, res)
         
