@@ -13,6 +13,7 @@ jobs:
   build:
     
     strategy:
+      fail-fast: false
       matrix:
         python-version: ['3.8', '3.11']
         java: [11, 13]
