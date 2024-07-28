@@ -130,10 +130,8 @@ def _new_indexref(s):
     return pt.IndexRef.of(s)
 
 
-def _new_wmodel(bytes):
-    from . import autoclass
-    serUtils = autoclass("org.terrier.python.Serialization")
-    return serUtils.deserialize(bytes, autoclass("org.terrier.utility.ApplicationSetup").getClass("org.terrier.matching.models.WeightingModel") )
+def _new_wmodel(b):
+    return J.Serialization.deserialize(b, pt.ApplicationSetup.getClass("org.terrier.matching.models.WeightingModel"))
 
 
 def _new_callable_wmodel(byterep):
@@ -200,7 +198,6 @@ def _callable_wmodel_reduce(self):
 
 
 def _index_add(self, other):
-    from . import autoclass
     fields_1 = self.getCollectionStatistics().getNumberOfFields()
     fields_2 = self.getCollectionStatistics().getNumberOfFields()
     if fields_1 != fields_2:
@@ -209,8 +206,7 @@ def _index_add(self, other):
     blocks_2 = other.getCollectionStatistics().hasPositions()
     if blocks_1 != blocks_2:
         raise ValueError("Cannot document-wise merge indices with and without positions (%r vs %r)" % (blocks_1, blocks_2))
-    multiindex_cls = autoclass("org.terrier.realtime.multi.MultiIndex")
-    return multiindex_cls([self, other], blocks_1, fields_1 > 0)
+    return J.MultiIndex([self, other], blocks_1, fields_1 > 0)
 
 
 def _index_corpusiter(self, return_toks=True):
@@ -223,7 +219,6 @@ def _index_corpusiter(self, return_toks=True):
             yield {k : item[keys_offset[k]] for k in keys_offset}
 
     def _index_corpusiter_direct_pretok(self):
-        import sys
         MIN_PYTHON = (3, 8)
         if sys.version_info < MIN_PYTHON:
             raise NotImplementedError("Sorry, Python 3.8+ is required for this functionality")
@@ -291,4 +286,5 @@ J = pt.java.JavaClasses({
     'Serialization': 'org.terrier.python.Serialization',
     'IndexOnDisk': 'org.terrier.structures.IndexOnDisk',
     'IndexFactory': 'org.terrier.structures.IndexFactory',
+    'MultiIndex': 'org.terrier.realtime.multi.MultiIndex',
 })
