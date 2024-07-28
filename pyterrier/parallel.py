@@ -15,11 +15,12 @@ def _joblib_with_initializer(p, _f_init, args=None):
     if args is None:
         f_init = _f_init
     else:
-        f_init = lambda: _f_init(args)
+        def f_init():
+            _f_init(*args)
     def new_init():
         origin_init()
         f_init()
-    p.with_initializer=True
+    p.with_initializer = True
     p._backend._workers._initializer = new_init if callable(origin_init) else f_init
     return p
 
