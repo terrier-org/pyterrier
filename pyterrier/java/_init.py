@@ -12,9 +12,6 @@ _started = False
 
 def _post_init(jnius):
     pt.HOME_DIR = pt.io.pyterrier_home()
-    pt.properties = pt.java.J.Properties()
-    pt.ApplicationSetup = pt.java.J.ApplicationSetup
-    pt.ApplicationSetup.bootstrapInitialisation(pt.properties)
     pt.autoclass = jnius.autoclass
     pt.cast = jnius.cast
 

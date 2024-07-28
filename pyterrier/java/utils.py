@@ -142,7 +142,6 @@ class JavaClasses:
 J = JavaClasses({
     'ArrayList': 'java.util.ArrayList',
     'Properties': 'java.util.Properties',
-    'ApplicationSetup': 'org.terrier.utility.ApplicationSetup',
     'PTUtils': 'org.terrier.python.PTUtils',
     'System': 'java.lang.System',
 })

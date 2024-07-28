@@ -8,6 +8,8 @@ _SAVED_FNS = []
 
 _resolved_helper_version = None
 
+_properties = None
+
 configure = pt.java.config.register('pt.terrier.java', {
     'terrier_version': None,
     'helper_version': None,
@@ -69,6 +71,8 @@ def _pre_init(jnius_config):
 
 
 def _post_init(jnius):
+    global _properties
+
     jnius.protocol_map["org.terrier.structures.postings.IterablePosting"] = {
         '__iter__': lambda self: self,
         '__next__': lambda self: _iterableposting_next(self),
@@ -117,6 +121,9 @@ def _post_init(jnius):
     }
 
     pt.IndexRef = J.IndexRef
+    _properties = pt.properties = pt.java.J.Properties()
+    pt.ApplicationSetup = J.ApplicationSetup
+    J.ApplicationSetup.bootstrapInitialisation(_properties)
 
     version_string = J.Version.VERSION
     if "BUILD_DATE" in dir(J.Version):
@@ -131,7 +138,7 @@ def _new_indexref(s):
 
 
 def _new_wmodel(b):
-    return J.Serialization.deserialize(b, pt.ApplicationSetup.getClass("org.terrier.matching.models.WeightingModel"))
+    return J.Serialization.deserialize(b, J.ApplicationSetup.getClass("org.terrier.matching.models.WeightingModel"))
 
 
 def _new_callable_wmodel(byterep):
@@ -272,14 +279,51 @@ def extend_package(package):
     assert pt.check_version(5.3), "Terrier 5.3 required for this functionality"
     package_list = pt.java.J.ArrayList()
     package_list.add(package)
-    mvnr = pt.ApplicationSetup.getPlugin("MavenResolver")
+    mvnr = J.ApplicationSetup.getPlugin("MavenResolver")
     assert mvnr is not None
     mvnr = pt.java.cast("org.terrier.utility.MavenResolver", mvnr)
     mvnr.addDependencies(package_list)
 
 
+@pt.java.required()
+def set_property(k, v):
+    """
+        Allows to set a property in Terrier's global properties configuration. Example::
+
+            pt.set_property("termpipelines", "")
+
+        While Terrier has a variety of properties -- as discussed in its 
+        `indexing <https://github.com/terrier-org/terrier-core/blob/5.x/doc/configure_indexing.md>`_ 
+        and `retrieval <https://github.com/terrier-org/terrier-core/blob/5.x/doc/configure_retrieval.md>`_ 
+        configuration guides -- in PyTerrier, we aim to expose Terrier configuration through appropriate 
+        methods or arguments. So this method should be seen as a safety-valve - a way to override the 
+        Terrier configuration not explicitly supported by PyTerrier.
+    """
+    _properties[str(k)] = str(v)
+    J.ApplicationSetup.bootstrapInitialisation(_properties)
+
+
+@pt.java.required()
+def set_properties(kwargs):
+    """
+        Allows to set many properties in Terrier's global properties configuration
+    """
+    for key, value in kwargs.items():
+        _properties[str(key)] = str(value)
+    J.ApplicationSetup.bootstrapInitialisation(_properties)
+
+
+@pt.java.required()
+def run(cmd, args=[]):
+    """
+        Allows to run a Terrier executable class, i.e. one that can be access from the `bin/terrier` commandline programme.
+    """
+    J.CLITool.main([cmd] + args)
+
+
 # Terrier-specific classes
 J = pt.java.JavaClasses({
+    'ApplicationSetup': 'org.terrier.utility.ApplicationSetup',
     'IndexRef': 'org.terrier.querying.IndexRef',
     'Version': 'org.terrier.Version',
     'Tokenizer': 'org.terrier.indexing.tokenisation.Tokeniser',

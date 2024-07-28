@@ -12,7 +12,7 @@ from .transformer import Transformer, Estimator, Indexer
 from pyterrier import java
 
 from pyterrier import terrier
-from pyterrier.terrier import BatchRetrieve, TerrierRetrieve, FeaturesBatchRetrieve, IndexFactory
+from pyterrier.terrier import BatchRetrieve, TerrierRetrieve, FeaturesBatchRetrieve, IndexFactory, set_property, set_properties, run
 
 from tqdm.auto import tqdm
 
@@ -114,8 +114,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     # Import other java packages
     if packages:
         pkgs_string = ",".join(packages)
-        properties.put("terrier.mvn.coords", pkgs_string)
-    ApplicationSetup.bootstrapInitialisation(properties)
+        set_property("terrier.mvn.coords", pkgs_string)
 
 
 def set_tqdm(type):
@@ -207,42 +206,6 @@ def logging(level):
 
     """
     java.set_log_level(level)
-
-
-@java.required()
-def set_property(k, v):
-    """
-        Allows to set a property in Terrier's global properties configuration. Example::
-
-            pt.set_property("termpipelines", "")
-
-        While Terrier has a variety of properties -- as discussed in its 
-        `indexing <https://github.com/terrier-org/terrier-core/blob/5.x/doc/configure_indexing.md>`_ 
-        and `retrieval <https://github.com/terrier-org/terrier-core/blob/5.x/doc/configure_retrieval.md>`_ 
-        configuration guides -- in PyTerrier, we aim to expose Terrier configuration through appropriate 
-        methods or arguments. So this method should be seen as a safety-valve - a way to override the 
-        Terrier configuration not explicitly supported by PyTerrier.
-    """
-    properties[str(k)] = str(v)
-    ApplicationSetup.bootstrapInitialisation(properties)
-
-
-@java.required()
-def set_properties(kwargs):
-    """
-        Allows to set many properties in Terrier's global properties configuration
-    """
-    for key, value in kwargs.items():
-        properties[str(key)] = str(value)
-    ApplicationSetup.bootstrapInitialisation(properties)
-
-
-@java.required()
-def run(cmd, args=[]):
-    """
-        Allows to run a Terrier executable class, i.e. one that can be access from the `bin/terrier` commandline programme.
-    """
-    java.terrier.J.CLITool.main([cmd] + args)
 
 
 @java.required()
