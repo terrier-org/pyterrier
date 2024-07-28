@@ -69,13 +69,6 @@ def _pre_init(jnius_config):
 
 
 def _post_init(jnius):
-    version_string = J.Version.VERSION
-    if "BUILD_DATE" in dir(J.Version):
-        version_string += f" (built by {J.Version.BUILD_USER} on {J.Version.BUILD_DATE})"
-
-    print(f"PyTerrier {pt.__version__} has loaded Terrier {version_string} and "
-          f"terrier-helper {_resolved_helper_version}\n", file=sys.stderr)
-
     pt.IndexRef = J.IndexRef
 
     jnius.protocol_map["org.terrier.structures.postings.IterablePosting"] = {
@@ -124,6 +117,13 @@ def _post_init(jnius):
         # get_corpus_iter returns a yield generator that return {"docno": "d1", "toks" : {'a' : 1}}
         'get_corpus_iter' : _index_corpusiter
     }
+
+    version_string = J.Version.VERSION
+    if "BUILD_DATE" in dir(J.Version):
+        version_string += f" (built by {J.Version.BUILD_USER} on {J.Version.BUILD_DATE})"
+
+    print(f"X PyTerrier {pt.__version__} has loaded Terrier {version_string} and "
+          f"terrier-helper {_resolved_helper_version}\n", file=sys.stderr)
 
 
 def _new_indexref(s):
