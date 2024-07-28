@@ -4,9 +4,7 @@ import os
 from typing import Callable, Optional, Dict, Tuple, Any
 from warnings import warn
 import pyterrier as pt
-from pyterrier.java import bootstrap
 from pyterrier.java import mavenresolver
-from pyterrier.java.utils import redirect_stdouterr, bytebuffer_to_array
 
 _started = False
 
@@ -72,7 +70,6 @@ def init() -> None:
     import jnius
     _started = True
 
-    bootstrap.setup_jnius()
     set_log_level(cfg['log_level'])
 
     java_version = J.System.getProperty("java.version")
@@ -189,6 +186,10 @@ def set_log_level(level):
         configure(log_level=level)
     else:
         J.PTUtils.setLogLevel(level, None)
+
+
+# Utils
+from pyterrier.java.utils import redirect_stdouterr, bytebuffer_to_array
 
 
 # Classes

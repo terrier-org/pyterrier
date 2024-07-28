@@ -207,7 +207,7 @@ def redirect_stdouterr():
     """
         Ensure that stdout and stderr have been redirected. Equivalent to setting the redirect_io parameter to init() as `True`.
     """
-    java.bootstrap.redirect_stdouterr()
+    java.redirect_stdouterr()
 
 
 @java.required()

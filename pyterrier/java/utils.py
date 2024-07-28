@@ -1,4 +1,5 @@
 import pyterrier as pt
+from pyterrier.java import required
 from typing import Dict
 
 
@@ -83,7 +84,7 @@ class JavaClasses:
     def __dir__(self):
         return list(self._mapping.keys())
 
-    @pt.java.required(raise_on_not_started=True)
+    @required(raise_on_not_started=True)
     def __getattr__(self, key):
         if key not in self._mapping:
             return AttributeError(f'{self} has no attribute {key!r}')
