@@ -57,8 +57,7 @@ class IndexFactory:
                 }
             }
 
-        from . import cast
-        pindex = cast("org.terrier.structures.IndexOnDisk", index)
+        pindex = pt.java.cast("org.terrier.structures.IndexOnDisk", index)
         load_profile = pindex.getIndexLoadingProfileAsRetrieval()
         dirty_structures = set()
         for s in structures:
