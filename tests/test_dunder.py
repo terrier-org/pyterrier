@@ -11,8 +11,7 @@ class TestDunder(TempDirTestCase):
         lambdafn = lambda keyFreq, posting, entryStats, collStats: posting.getFrequency()
         callback, wmodel = pt.terrier.retriever._function2wmodel(lambdafn)
         
-        from pyterrier.java.bootstrap import javabytebuffer2array
-        byterep = javabytebuffer2array(wmodel.scoringClass.serializeFn())
+        byterep = pt.java.bytebuffer_to_array(wmodel.scoringClass.serializeFn())
         import dill as pickle
         from dill import extend
         #see https://github.com/SeldonIO/alibi/issues/447#issuecomment-881552005

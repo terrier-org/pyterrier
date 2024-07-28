@@ -6,6 +6,7 @@ from warnings import warn
 import pyterrier as pt
 from pyterrier.java import bootstrap
 from pyterrier.java import mavenresolver
+from pyterrier.java.utils import redirect_stdouterr, bytebuffer_to_array
 
 _started = False
 
@@ -18,6 +19,21 @@ def _legacy_post_init(jnius):
     pt.autoclass = jnius.autoclass
     pt.cast = jnius.cast
 
+    jnius.protocol_map['java.util.Map$Entry'] = {
+        '__getitem__' : _mapentry_getitem,
+        '__iter__' : lambda self: iter([self.getKey(), self.getValue()]),
+        '__len__' : lambda self: 2
+    }
+
+
+# Map$Entry can be decoded like a tuple
+def _mapentry_getitem(self, i):
+    if i == 0:
+        return self.getKey()
+    if i == 1:
+        return self.getValue()
+    raise IndexError()
+
 
 @pt.utils.once()
 def init() -> None:
@@ -27,7 +43,7 @@ def init() -> None:
     #     warnings.warn('pyterrier[java] not installed; no need to run pt.java.init()')
     #     return
 
-    if pt.is_windows():
+    if pt.utils.is_windows():
         if "JAVA_HOME" in os.environ:
             java_home =  os.environ["JAVA_HOME"]
             fix = f'{java_home}\\jre\\bin\\server\\;{java_home}\\jre\\bin\\client\\;{java_home}\\bin\\server\\'
@@ -175,22 +191,9 @@ def set_log_level(level):
         J.PTUtils.setLogLevel(level, None)
 
 
-class JavaClasses:
-    def __init__(self, mapping: Dict[str, str]):
-        self._mapping = mapping
-        self._cache = {}
+# Classes
 
-    def __dir__(self):
-        return list(self._mapping.keys())
-
-    @required(raise_on_not_started=True)
-    def __getattr__(self, key):
-        if key not in self._mapping:
-            return AttributeError(f'{self} has no attribute {key!r}')
-        if key not in self._cache:
-            self._cache[key] = autoclass(self._mapping[key])
-        return self._cache[key]
-
+from pyterrier.java.utils import JavaClasses
 
 J = JavaClasses({
     'ArrayList': 'java.util.ArrayList',

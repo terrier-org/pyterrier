@@ -10,10 +10,9 @@ from pyterrier.utils import Utils
 from .transformer import Transformer, Estimator, Indexer
 
 from pyterrier import java
-from pyterrier.java.bootstrap import setup_jnius, is_windows
 
 from pyterrier import terrier
-from pyterrier.terrier import BatchRetrieve, TerrierRetrieve, FeaturesBatchRetrieve
+from pyterrier.terrier import BatchRetrieve, TerrierRetrieve, FeaturesBatchRetrieve, IndexFactory
 
 from tqdm.auto import tqdm
 
@@ -36,7 +35,6 @@ from . import transformer
 from .datasets import get_dataset, find_datasets, list_datasets
 
 
-from pyterrier.java.bootstrap import IndexFactory
 from .index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, IndexingType, TerrierStemmer, TerrierStopwords, TerrierTokeniser
 from .pipelines import Experiment, GridScan, GridSearch, KFoldGridSearch, Evaluate
 
@@ -135,8 +133,6 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     if redirect_io:
         # this ensures that the python stdout/stderr and the Java are matched
         redirect_stdouterr()
-
-    setup_jnius()
 
 
 def set_tqdm(type):

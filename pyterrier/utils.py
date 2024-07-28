@@ -1,4 +1,5 @@
 from typing import Callable, Tuple
+import platform
 from functools import wraps
 from importlib.metadata import EntryPoint
 from importlib.metadata import entry_points as eps
@@ -109,3 +110,7 @@ def entry_points(group: str) -> Tuple[EntryPoint, ...]:
         return tuple(eps(group=group))
     except TypeError:
         return tuple(eps().get(group, tuple()))
+
+
+def is_windows() -> bool:
+    return platform.system() == 'Windows'

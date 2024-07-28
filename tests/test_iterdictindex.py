@@ -25,7 +25,7 @@ class TestIterDictIndexer(TempDirTestCase):
             pt.index._IterDictIndexer_fifo(self.test_dir, type=index_type, threads=4, meta=meta),
             pt.index._IterDictIndexer_nofifo(self.test_dir, type=index_type, meta=meta),
         ]
-        if BaseTestCase.is_windows():
+        if pt.utils.is_windows():
            indexers = [indexers[-1]] 
         for indexer in indexers:
             with self.subTest(indexer=indexer):

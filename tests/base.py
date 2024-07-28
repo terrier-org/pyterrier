@@ -25,20 +25,15 @@ class BaseTestCase(unittest.TestCase):
 
 
     def skip_windows(self):
-        if BaseTestCase.is_windows():
+        if pt.utils.is_windows():
             self.skipTest("Test disabled on Windows")
 
-    @staticmethod
-    def is_windows() -> bool:
-        import platform
-        return platform.system() == 'Windows'
 
 class TempDirTestCase(BaseTestCase):
     def setUp(self):
         self.test_dir = tempfile.mkdtemp()
 
     def tearDown(self):
-        import shutil
         try:
             shutil.rmtree(self.test_dir)
         except:

@@ -4,6 +4,8 @@ import pyterrier as pt
 
 TERRIER_PKG = "org.terrier"
 
+_SAVED_FNS = []
+
 _resolved_helper_version = None
 
 configure = pt.java.config.register('pt.terrier.java', {
@@ -76,6 +78,196 @@ def _post_init(jnius):
 
     pt.IndexRef = J.IndexRef
 
+    jnius.protocol_map["org.terrier.structures.postings.IterablePosting"] = {
+        '__iter__': lambda self: self,
+        '__next__': lambda self: _iterableposting_next(self),
+        '__str__': lambda self: self.toString()
+    }
+
+    jnius.protocol_map["org.terrier.structures.CollectionStatistics"] = {
+        '__str__': lambda self: self.toString()
+    }
+
+    jnius.protocol_map["org.terrier.structures.LexiconEntry"] = {
+        '__str__': lambda self: self.toString()
+    }
+
+    jnius.protocol_map["org.terrier.structures.Lexicon"] = {
+        '__getitem__': _lexicon_getitem,
+        '__contains__': lambda self, term: self.getLexiconEntry(term) is not None,
+        '__len__': lambda self: self.numberOfEntries()
+    }
+
+    jnius.protocol_map["org.terrier.querying.IndexRef"] = {
+        '__reduce__' : _index_ref_reduce,
+        '__getstate__' : lambda self : None,
+    }
+
+    jnius.protocol_map["org.terrier.matching.models.WeightingModel"] = {
+        '__reduce__' : _wmodel_reduce,
+        '__getstate__' : lambda self : None,
+    }
+
+    jnius.protocol_map["org.terrier.python.CallableWeightingModel"] = {
+        '__reduce__' : _callable_wmodel_reduce,
+        '__getstate__' : lambda self : None,
+    }
+
+    jnius.protocol_map["org.terrier.structures.Index"] = {
+        # this means that len(index) returns the number of documents in the index
+        '__len__': lambda self: self.getCollectionStatistics().getNumberOfDocuments(),
+
+        # document-wise composition of indices: adding more documents to an index, by merging two indices with 
+        # different numbers of documents. This implemented by the overloading the `+` Python operator
+        '__add__': _index_add,
+
+        # get_corpus_iter returns a yield generator that return {"docno": "d1", "toks" : {'a' : 1}}
+        'get_corpus_iter' : _index_corpusiter
+    }
+
+
+def _new_indexref(s):
+    return pt.IndexRef.of(s)
+
+
+def _new_wmodel(bytes):
+    from . import autoclass
+    serUtils = autoclass("org.terrier.python.Serialization")
+    return serUtils.deserialize(bytes, autoclass("org.terrier.utility.ApplicationSetup").getClass("org.terrier.matching.models.WeightingModel") )
+
+
+def _new_callable_wmodel(byterep):
+    import dill as pickle
+    from dill import extend
+    #see https://github.com/SeldonIO/alibi/issues/447#issuecomment-881552005
+    extend(use_dill=False)            
+    fn = pickle.loads(byterep)
+    #we need to prevent these functions from being GCd.
+    global _SAVED_FNS
+    _SAVED_FNS.append(fn)
+    callback, wmodel = pt.terrier.retriever._function2wmodel(fn)
+    _SAVED_FNS.append(callback)
+    #print("Stored lambda fn  %s and callback in SAVED_FNS, now %d stored" % (str(fn), len(SAVED_FNS)))
+    return wmodel
+
+
+def _iterableposting_next(self):
+    ''' dunder method for iterating IterablePosting '''
+    nextid = self.next()
+    # 2147483647 is IP.EOL. fix this once static fields can be read from instances.
+    if 2147483647 == nextid:
+        raise StopIteration()
+    return self
+
+
+def _lexicon_getitem(self, term):
+    ''' dunder method for accessing Lexicon '''
+    rtr = self.getLexiconEntry(term)
+    if rtr is None:
+        raise KeyError()
+    return rtr
+
+
+def _index_ref_reduce(self):
+    return (
+        _new_indexref,
+        (str(self.toString()),),
+        None
+    )
+
+
+# handles the pickling of WeightingModel classes, which are themselves usually Serializable in Java
+def _wmodel_reduce(self):
+    serialized = bytes(J.Serialization.serialize(self))
+    return (
+        _new_wmodel,
+        (serialized, ),
+        None
+    )
+
+
+def _callable_wmodel_reduce(self):
+    # get bytebuffer representation of lambda
+    # convert bytebyffer to python bytearray
+    serlzd = self.scoringClass.serializeFn()
+    bytesrep = pt.java.bytebuffer_to_array(serlzd)
+    del(serlzd)
+    return (
+        _new_callable_wmodel,
+        (bytesrep, ),
+        None
+    )
+
+
+def _index_add(self, other):
+    from . import autoclass
+    fields_1 = self.getCollectionStatistics().getNumberOfFields()
+    fields_2 = self.getCollectionStatistics().getNumberOfFields()
+    if fields_1 != fields_2:
+        raise ValueError("Cannot document-wise merge indices with different numbers of fields (%d vs %d)" % (fields_1, fields_2))
+    blocks_1 = self.getCollectionStatistics().hasPositions()
+    blocks_2 = other.getCollectionStatistics().hasPositions()
+    if blocks_1 != blocks_2:
+        raise ValueError("Cannot document-wise merge indices with and without positions (%r vs %r)" % (blocks_1, blocks_2))
+    multiindex_cls = autoclass("org.terrier.realtime.multi.MultiIndex")
+    return multiindex_cls([self, other], blocks_1, fields_1 > 0)
+
+
+def _index_corpusiter(self, return_toks=True):
+    def _index_corpusiter_meta(self):
+        meta_inputstream = self.getIndexStructureInputStream("meta")
+        keys = self.getMetaIndex().getKeys()
+        keys_offset = { k: offset for offset, k in enumerate(keys) }
+        while meta_inputstream.hasNext():
+            item = meta_inputstream.next()
+            yield {k : item[keys_offset[k]] for k in keys_offset}
+
+    def _index_corpusiter_direct_pretok(self):
+        import sys
+        MIN_PYTHON = (3, 8)
+        if sys.version_info < MIN_PYTHON:
+            raise NotImplementedError("Sorry, Python 3.8+ is required for this functionality")
+
+        meta_inputstream = self.getIndexStructureInputStream("meta")
+        keys = self.getMetaIndex().getKeys()
+        keys_offset = { k: offset for offset, k in enumerate(keys) }
+        keys_offset = {'docno' : keys_offset['docno'] }
+        direct_inputstream = self.getIndexStructureInputStream("direct")
+        lex = self.getLexicon()
+
+        ip = None
+        while (ip := direct_inputstream.getNextPostings()) is not None: # this is the next() method
+
+            # yield empty toks dicts for empty documents
+            for skipped in range(0, direct_inputstream.getEntriesSkipped()):
+                meta = meta_inputstream.next()
+                rtr = {k : meta[keys_offset[k]] for k in keys_offset}   
+                rtr['toks'] = {}
+                yield rtr
+
+            toks = {}
+            while ip.next() != ip.EOL:
+                t, _ = lex[ip.getId()]
+                toks[t] = ip.getFrequency()
+            meta = meta_inputstream.next()
+            rtr = {'toks' : toks}
+            rtr.update({k : meta[keys_offset[k]] for k in keys_offset})
+            yield rtr
+
+        # yield for trailing empty documents
+        for skipped in range(0, direct_inputstream.getEntriesSkipped()):
+            meta = meta_inputstream.next()
+            rtr = {k : meta[keys_offset[k]] for k in keys_offset}   
+            rtr['toks'] = {}
+            yield rtr
+    
+    if return_toks:
+        if not self.hasIndexStructureInputStream("direct"):
+            raise ValueError("No direct index input stream available, cannot use return_toks=True")
+        return _index_corpusiter_direct_pretok(self)
+    return _index_corpusiter_meta(self)
+
+
 
 @pt.java.required()
 def extend_package(package):
@@ -96,4 +288,5 @@ J = pt.java.JavaClasses({
     'IndexRef': 'org.terrier.querying.IndexRef',
     'Version': 'org.terrier.Version',
     'Tokenizer': 'org.terrier.indexing.tokenisation.Tokeniser',
+    'Serialization': 'org.terrier.python.Serialization',
 })
