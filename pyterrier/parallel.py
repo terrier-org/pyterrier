@@ -35,6 +35,7 @@ def _pt_init(args):
 
 def _java_init_with_configs(configs) -> None:
     if not pt.java.started():
+        warn(f'Starting java parallel with configs {configs}')
         pt.java.config.set_configs(configs)
         pt.java.init()
     else:
