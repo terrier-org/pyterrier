@@ -103,13 +103,23 @@ def once() -> Callable:
 def entry_points(group: str) -> Tuple[EntryPoint, ...]:
     """
     A shim for Python<=3.X to support importlib.metadata.entry_points(group).
+    Also ensures that no duplicates (by name) are returned.
 
     See <https://docs.python.org/3/library/importlib.metadata.html#entry-points> for more details.
     """
     try:
-        return tuple(eps(group=group))
+        orig_res = tuple(eps(group=group))
     except TypeError:
-        return tuple(eps().get(group, tuple()))
+        orig_res = tuple(eps().get(group, tuple()))
+
+    names = set()
+    res = []
+    for ep in orig_res:
+        if ep.name not in names:
+            res.append(ep)
+            names.add(ep.name)
+
+    return tuple(res)
 
 
 def is_windows() -> bool:

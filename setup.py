@@ -72,13 +72,13 @@ setup(
     ],
     entry_points={
         'pyterrier.java.pre_init': [
-            'terrier = pyterrier.terrier.java : _pre_init',
+            'terrier = pyterrier.terrier.java:_pre_init',
         ],
         'pyterrier.java.post_init': [
-            'legacy =  pyterrier.java : _legacy_post_init',
-            'terrier = pyterrier.terrier.java : _post_init',
-            'index =   pyterrier.index : _java_post_init',
-            'rewrite = pyterrier.rewrite : _java_post_init',
+            'core    = pyterrier.java._init:_post_init',
+            'terrier = pyterrier.terrier.java:_post_init',
+            'index   = pyterrier.index:_java_post_init',
+            'rewrite = pyterrier.rewrite:_java_post_init',
         ],
     },
     install_requires=requirements,
