@@ -1,4 +1,5 @@
 from typing import Union, List
+import pyterrier as pt
 
 
 class IndexFactory:
@@ -103,16 +104,14 @@ class IndexFactory:
             indexlike(str or IndexRef): Where is the index located
             memory(bool or List[str]): If the index should be loaded into memory. Use `True` for all structures, or a list of structure names.
         """
-        from . import autoclass
-        IOD = autoclass("org.terrier.structures.IndexOnDisk")
-        load_profile =  IOD.getIndexLoadingProfileAsRetrieval()
+        load_profile = pt.terrier.J.IndexOnDisk.getIndexLoadingProfileAsRetrieval()
 
         if memory or (isinstance(memory, list) and len(memory) > 0): #MEMORY CAN BE A LIST?
-            IOD.setIndexLoadingProfileAsRetrieval(False)
-        index = autoclass("org.terrier.structures.IndexFactory").of(indexlike)
+            pt.terrier.J.IndexOnDisk.setIndexLoadingProfileAsRetrieval(False)
+        index = pt.terrier.J.IndexFactory.of(indexlike)
         
         # noop if memory is False
-        IOD.setIndexLoadingProfileAsRetrieval(load_profile)
+        pt.terrier.J.IndexOnDisk.setIndexLoadingProfileAsRetrieval(load_profile)
         if not memory:
             return index
         if isinstance(memory, list):
