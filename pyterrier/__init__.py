@@ -1,22 +1,19 @@
 __version__ = "0.10.1"
 
-import os
 from deprecated import deprecated
 
 from pyterrier import utils
 from pyterrier.utils import Utils
 
-# definitive API used by others, now available before pt.init
 from .transformer import Transformer, Estimator, Indexer
 
 from pyterrier import java
+from pyterrier.java import started, redirect_stdouterr # for backward compat, maybe remove/deprecate some day?
 
 from pyterrier import terrier
 from pyterrier.terrier import BatchRetrieve, TerrierRetrieve, FeaturesBatchRetrieve, IndexFactory, set_property, set_properties, run
 
 from tqdm.auto import tqdm
-
-
 
 from . import anserini
 from . import cache
@@ -34,22 +31,17 @@ from . import text
 from . import transformer
 from .datasets import get_dataset, find_datasets, list_datasets
 
-
 from .index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, IndexingType, TerrierStemmer, TerrierStopwords, TerrierTokeniser
 from .pipelines import Experiment, GridScan, GridSearch, KFoldGridSearch, Evaluate
 
-import importlib
 
+# will be set in java._post_init once java is loaded
+HOME_DIR = None
 
-file_path = os.path.dirname(os.path.abspath(__file__))
-
-# will be set in java._legacy_post_init once java is loaded
+# will be set in terrier.java._post_init once java is loaded
+IndexRef = None
 ApplicationSetup = None
 properties = None
-
-# will be set in terrier._java_post_init once java is loaded
-IndexRef = None
-HOME_DIR = None
 
 # TODO
 _helper_version = None
@@ -155,16 +147,6 @@ def set_tqdm(type):
     tqdm.pandas()
     
 
-def started():
-    """
-        Returns `True` if `init()` has already been called, false otherwise. Typical usage::
-
-            import pyterrier as pt
-            if not pt.started():
-                pt.init()
-    """
-    return java.started()
-
 @java.required()
 def version():
     """
@@ -184,12 +166,6 @@ def check_version(min, helper=False):
 
     min = Version(str(min))
     return currentVer >= min
-
-def redirect_stdouterr():
-    """
-        Ensure that stdout and stderr have been redirected. Equivalent to setting the redirect_io parameter to init() as `True`.
-    """
-    java.redirect_stdouterr()
 
 
 @java.required()
