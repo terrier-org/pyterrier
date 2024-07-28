@@ -287,4 +287,5 @@ J = pt.java.JavaClasses({
     'IndexOnDisk': 'org.terrier.structures.IndexOnDisk',
     'IndexFactory': 'org.terrier.structures.IndexFactory',
     'MultiIndex': 'org.terrier.realtime.multi.MultiIndex',
+    'CLITool': 'org.terrier.applications.CLITool',
 })

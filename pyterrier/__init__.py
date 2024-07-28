@@ -97,6 +97,8 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
 
     # Set the corresponding options
     java.set_memory_limit(mem)
+    java.set_redirect_io(redirect_io)
+    java.set_log_level(logging)
     for package in boot_packages:
         java.add_package(*package.split(':')) # format: org:package:version:filetype (where version and filetype are optional)
     for opt in jvm_opts:
@@ -109,30 +111,11 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
 
     java.init()
 
-    java.set_log_level(logging)
-
-    # check python version
-    # TODO: does this belong in init or somewhere else?
-    import platform
-    from packaging.version import Version
-    if Version(platform.python_version()) < Version('3.7.0'):
-        raise RuntimeError("From PyTerrier 0.8, Python 3.7 minimum is required, you currently have %s" % platform.python_version())
-
-    # Make imports global
-
-    # append the python helpers
-    if packages is None:
-        packages = []
-
     # Import other java packages
-    if packages != []:
+    if packages:
         pkgs_string = ",".join(packages)
         properties.put("terrier.mvn.coords", pkgs_string)
     ApplicationSetup.bootstrapInitialisation(properties)
-
-    if redirect_io:
-        # this ensures that the python stdout/stderr and the Java are matched
-        redirect_stdouterr()
 
 
 def set_tqdm(type):
@@ -259,7 +242,7 @@ def run(cmd, args=[]):
     """
         Allows to run a Terrier executable class, i.e. one that can be access from the `bin/terrier` commandline programme.
     """
-    java.autoclass("org.terrier.applications.CLITool").main([cmd] + args)
+    java.terrier.J.CLITool.main([cmd] + args)
 
 
 @java.required()
@@ -273,8 +256,14 @@ def extend_classpath(mvnpackages):
         terrier.extend_package(package)
 
 
-# apply is an object, not a module, as it also has __get_attr__() implemented
 def _():
-    from .apply import _apply
+    # apply is an object, not a module, as it also has __get_attr__() implemented
+    from pyterrier.apply import _apply
     globals()['apply'] = _apply()
+
+    # check python version
+    import platform
+    from packaging.version import Version
+    if Version(platform.python_version()) < Version('3.7.0'):
+        raise RuntimeError("From PyTerrier 0.8, Python 3.7 minimum is required, you currently have %s" % platform.python_version())
 _()

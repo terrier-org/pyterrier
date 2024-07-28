@@ -69,6 +69,8 @@ def init() -> None:
     _started = True
 
     pt.java.set_log_level(cfg['log_level'])
+    if cfg['redirect_io']:
+        pt.java.redirect_stdouterr()
 
     java_version = pt.java.J.System.getProperty("java.version")
     if java_version.startswith("1.") or java_version.startswith("9."):

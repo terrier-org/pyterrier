@@ -99,6 +99,11 @@ def add_option(option: str):
     configure.append('options', option)
 
 
+@before_init()
+def set_redirect_io(redirect_io: bool):
+    configure(redirect_io=redirect_io)
+
+
 def set_log_level(level):
     """
         Set the logging level. The following string values are allowed, corresponding

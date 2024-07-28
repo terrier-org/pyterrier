@@ -37,4 +37,5 @@ configure = register('pyterrier.java', {
     'options': [],
     'mem': None,
     'log_level': 'WARN',
+    'redirect_io': True,
 })
