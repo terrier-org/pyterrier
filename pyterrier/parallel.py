@@ -92,14 +92,15 @@ class PoolParallelTransformer(Transformer):
             return pd.concat(results)
 
     def transform(self, topics_and_res):
-        from .model import split_df
-        splits = split_df(topics_and_res, self.n_jobs)
+        splits = pt.model.split_df(topics_and_res, self.n_jobs)
         
         rtr = None
         if self.backend == 'joblib':
             rtr =  self._transform_joblib(splits)
         if self.backend == 'ray':
             rtr = self._transform_ray(splits)
+        else:
+            raise RuntimeError(f'Unsupported backend: {self.backend}')
         return rtr
 
     def __repr__(self):
