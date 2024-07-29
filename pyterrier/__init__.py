@@ -38,9 +38,6 @@ IndexRef = None
 ApplicationSetup = None
 properties = None
 
-# TODO
-_helper_version = None
-
 
 @java.before_init
 def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, logging='WARN', home_dir=None, boot_packages=[], tqdm=None, no_download=False,helper_version = None):
