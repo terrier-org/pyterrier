@@ -119,7 +119,7 @@ def _post_init(jnius):
     }
 
     pt.IndexRef = J.IndexRef
-    _properties = pt.properties = pt.java.J.Properties()
+    _properties = pt.java.J.Properties()
     pt.ApplicationSetup = J.ApplicationSetup
     J.ApplicationSetup.bootstrapInitialisation(_properties)
 

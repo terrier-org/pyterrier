@@ -9,7 +9,7 @@ from pyterrier import java
 from pyterrier.java import started, redirect_stdouterr # for backward compat, maybe remove/deprecate some day?
 
 from pyterrier import terrier
-from pyterrier.terrier import BatchRetrieve, TerrierRetrieve, FeaturesBatchRetrieve, IndexFactory, set_property, set_properties, run, rewrite, index, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, IndexingType, TerrierStemmer, TerrierStopwords, TerrierTokeniser
+from pyterrier.terrier import BatchRetrieve, TerrierRetrieve, FeaturesBatchRetrieve, IndexFactory, run, rewrite, index, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, IndexingType, TerrierStemmer, TerrierStopwords, TerrierTokeniser
 
 from pyterrier import anserini
 from pyterrier import cache
@@ -36,7 +36,6 @@ HOME_DIR = None
 # will be set in terrier.java._post_init once java is loaded
 IndexRef = None
 ApplicationSetup = None
-properties = None
 
 
 @java.before_init
@@ -98,7 +97,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
     # Import other java packages
     if packages:
         pkgs_string = ",".join(packages)
-        set_property("terrier.mvn.coords", pkgs_string)
+        terrier.set_property("terrier.mvn.coords", pkgs_string)
 
 
 # deprecated functions explored to the main namespace, which will be removed in a future version
@@ -107,6 +106,8 @@ version = deprecated(version='0.11.0', reason="use pt.terrier.version() instead"
 check_version = deprecated(version='0.11.0', reason="use pt.terrier.check_version(...) instead")(terrier.check_version)
 extend_classpath = deprecated(version='0.11.0', reason="use pt.terrier.extend_classpath(...) instead")(terrier.extend_classpath)
 set_tqdm = deprecated(version='0.11.0', reason="use pt.utils.set_tqdm(...) instead")(utils.set_tqdm)
+set_property = deprecated(version='0.11.0', reason="use pt.terrier.set_property(...) instead")(terrier.set_property)
+set_properties = deprecated(version='0.11.0', reason="use pt.terrier.set_properties(...) instead")(terrier.set_properties)
 
 
 # Additional setup performed in a function to avoid polluting the namespace with other imports like platform
@@ -129,11 +130,11 @@ __all__ = [
     'text', 'transformer', 'datasets', 'get_dataset', 'find_datasets', 'list_datasets', 'Experiment', 'GridScan',
     'GridSearch', 'KFoldGridSearch', 'Evaluate',
     'utils', 'Utils', 'Transformer', 'Estimator', 'Indexer', 'started', 'redirect_stdouterr',
-    'BatchRetrieve', 'TerrierRetrieve', 'FeaturesBatchRetrieve', 'IndexFactory', 'set_property', 'set_properties',
+    'BatchRetrieve', 'TerrierRetrieve', 'FeaturesBatchRetrieve', 'IndexFactory',
     'run', 'rewrite', 'index', 'FilesIndexer', 'TRECCollectionIndexer', 'DFIndexer', 'DFIndexUtils', 'IterDictIndexer',
     'IndexingType', 'TerrierStemmer', 'TerrierStopwords', 'TerrierTokeniser',
-    'HOME_DIR', 'IndexRef', 'ApplicationSetup', 'properties', 'init',
+    'HOME_DIR', 'IndexRef', 'ApplicationSetup', 'properties', 'init', 'apply',
 
     # Deprecated:
-    'logging', 'version', 'check_version', 'extend_classpath', 'set_tqdm',
+    'logging', 'version', 'check_version', 'extend_classpath', 'set_tqdm', 'set_property', 'set_properties',
 ]

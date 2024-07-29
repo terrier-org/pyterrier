@@ -9,12 +9,6 @@ import concurrent
 from concurrent.futures import ThreadPoolExecutor
 import pyterrier as pt
 
-def importProps():
-    from pyterrier import properties as props
-    # Make import global
-    globals()["props"] = props
-props = None
-
 _matchops = ["#combine", "#uw", "#1", "#tag", "#prefix", "#band", "#base64", "#syn"]
 def _matchop(query):
     for m in _matchops:
@@ -213,8 +207,6 @@ class BatchRetrieve(BatchRetrieveBase):
         self.RequestContextMatching = pt.java.autoclass("org.terrier.python.RequestContextMatching")
         self.search_context = {}
 
-        if props is None:
-            importProps()
         for key, value in self.properties.items():
             self.appSetup.setProperty(str(key), str(value))
         
