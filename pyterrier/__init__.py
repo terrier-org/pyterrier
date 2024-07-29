@@ -3,9 +3,7 @@ __version__ = "0.10.1"
 from deprecated import deprecated
 
 from pyterrier import utils
-from pyterrier.utils import Utils
-
-from .transformer import Transformer, Estimator, Indexer
+from pyterrier.transformer import Transformer, Estimator, Indexer
 
 from pyterrier import java
 from pyterrier.java import started, redirect_stdouterr # for backward compat, maybe remove/deprecate some day?
@@ -14,24 +12,23 @@ from pyterrier import terrier
 from pyterrier.terrier import BatchRetrieve, TerrierRetrieve, FeaturesBatchRetrieve, IndexFactory, set_property, set_properties, run, rewrite, index, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, IndexingType, TerrierStemmer, TerrierStopwords, TerrierTokeniser
 
 from pyterrier import anserini
+from pyterrier import cache
+from pyterrier import debug
+from pyterrier import io
+from pyterrier import measures
+from pyterrier import model
+from pyterrier import new
+from pyterrier import ltr
+from pyterrier import parallel
+from pyterrier import pipelines
+from pyterrier import text
+from pyterrier import transformer
+from pyterrier import datasets
+from pyterrier.datasets import get_dataset, find_datasets, list_datasets
+from pyterrier.pipelines import Experiment, GridScan, GridSearch, KFoldGridSearch, Evaluate
 
-from tqdm.auto import tqdm
-
-from . import cache
-from . import debug
-from . import io
-from . import measures
-from . import model
-from . import new
-from . import ltr
-from . import parallel
-from . import pipelines
-from . import text
-from . import transformer
-from .datasets import get_dataset, find_datasets, list_datasets
-
-from .pipelines import Experiment, GridScan, GridSearch, KFoldGridSearch, Evaluate
-
+# old name
+Utils = utils
 
 # will be set in java._post_init once java is loaded
 HOME_DIR = None
@@ -107,7 +104,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
         set_property("terrier.mvn.coords", pkgs_string)
 
 
-def set_tqdm(type):
+def set_tqdm(type=None):
     """
         Set the tqdm progress bar type that Pyterrier will use internally.
         Many PyTerrier transformations can be expensive to apply in some settings - users can
@@ -204,4 +201,18 @@ def _():
     # apply is an object, not a module, as it also has __get_attr__() implemented
     from pyterrier.apply import _apply
     globals()['apply'] = _apply()
+
+    set_tqdm()
 _()
+
+__all__ = [
+    'java', 'terrier', 'anserini', 'cache', 'debug', 'io', 'measures', 'model', 'new', 'ltr', 'parallel', 'pipelines',
+    'text', 'transformer', 'datasets', 'get_dataset', 'find_datasets', 'list_datasets', 'Experiment', 'GridScan',
+    'GridSearch', 'KFoldGridSearch', 'Evaluate',
+    'utils', 'Utils', 'Transformer', 'Estimator', 'Indexer', 'started', 'redirect_stdouterr',
+    'BatchRetrieve', 'TerrierRetrieve', 'FeaturesBatchRetrieve', 'IndexFactory', 'set_property', 'set_properties',
+    'run', 'rewrite', 'index', 'FilesIndexer', 'TRECCollectionIndexer', 'DFIndexer', 'DFIndexUtils', 'IterDictIndexer',
+    'IndexingType', 'TerrierStemmer', 'TerrierStopwords', 'TerrierTokeniser',
+    'HOME_DIR', 'IndexRef', 'ApplicationSetup', 'properties', 'init', 'set_tqdm', 'version', 'check_version',
+    'logging', 'extend_classpath',
+]
