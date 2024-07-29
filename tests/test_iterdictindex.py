@@ -76,7 +76,7 @@ class TestIterDictIndexer(TempDirTestCase):
             {'docno': '3', 'url': 'url3', 'text': 'The body may perhaps compensates for the loss', 'title': 'Best of Viktor Prowoll'},
         ]
 
-        from pyterrier.index import FlatJSONDocumentIterator
+        from pyterrier.terrier import FlatJSONDocumentIterator
 
         it1 = itertools.islice(it, 1)
         jIter1 = FlatJSONDocumentIterator(it1)
