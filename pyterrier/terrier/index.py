@@ -21,9 +21,6 @@ from pyterrier.terrier.tokeniser import TerrierTokeniser
 from pyterrier.terrier.stopwords import TerrierStopwords
 
 
-# TODO: ensure functions are properly marked up with @pt.java.required
-
-
 # These classes are only defined after pt.java.init()
 DocListIterator = None
 PythonListIterator = None
@@ -335,6 +332,7 @@ def treccollection2textgen(
         yield rtr
     
 
+@pt.java.required
 def _TaggedDocumentSetup(
         meta : Dict[str,int],  #mapping from meta-key to length
         meta_tags : Dict[str,str] #mapping from meta-key to tag
@@ -356,6 +354,7 @@ def _TaggedDocumentSetup(
     pt.terrier.J.ApplicationSetup.setProperty("TaggedDocument.abstracts.tags.casesensitive", "false")
 
 
+@pt.java.required
 def _FileDocumentSetup(   
         meta : Dict[str,int],  #mapping from meta-key to length
         meta_tags : Dict[str,str] #mapping from meta-key to tag
@@ -381,7 +380,7 @@ def _FileDocumentSetup(
 
 
 
-
+@pt.java.required
 def createAsList(files_path : Union[str, List[str]]):
     """
     Helper method to be used by child indexers to add files to Java List
@@ -423,6 +422,7 @@ class TerrierIndexer:
             "trec.collection.class": "TRECCollection",
     }
 
+    @pt.java.required
     def __init__(self, index_path : str, *args, 
             blocks : bool = False, 
             overwrite: bool = False, 
@@ -629,6 +629,7 @@ class DFIndexUtils:
         meta2len = {k : 1 if math.isnan(l) else l for k, l in meta2len.items()}
         return meta2len
 
+    @pt.java.required
     @staticmethod
     def create_javaDocIterator(text, *args, **kwargs):
 
@@ -1104,6 +1105,7 @@ class FilesIndexer(TerrierIndexer):
         self.meta_reverse = meta_reverse
         self.meta_tags = meta_tags
 
+    @pt.java.required
     def index(self, files_path : Union[str,List[str]]):
         """
         Index the specified files.
