@@ -18,10 +18,12 @@ from collections import deque
 from typing import List, Dict, Union, Any
 import more_itertools
 import pyterrier as pt
+from pyterrier.terrier.stemmer import TerrierStemmer
+from pyterrier.terrier.tokeniser import TerrierTokeniser
+from pyterrier.terrier.stopwords import TerrierStopwords
 
 
 # TODO: ensure functions are properly marked up with @pt.java.required
-# TODO: some stuff doesn't seem like they belong here, like TerrierTokeniser and TerrierStopwords. Move this out?
 
 
 # These classes are only defined after pt.java.init()
@@ -409,168 +411,6 @@ class IndexingType(enum.Enum):
     SINGLEPASS = 2 #: A single-pass indexing regime, which builds an inverted index directly. No direct index structure is created. Typically is faster than classical indexing.
     MEMORY = 3 #: An in-memory index. No persistent index is created.
 
-_stemmer_cache = {}
-class TerrierStemmer(Enum):
-    """
-        This enum provides an API for the stemmers available in Terrier. The stemming configuration is saved in the index
-        and loaded at retrieval time. `Snowball <https://snowballstem.org/>`_ stemmers for various languages 
-        `are available in Terrier <http://terrier.org/docs/current/javadoc/org/terrier/terms/package-summary.html>`_.
-
-        It can also be used to access the stemmer::
-
-            stemmer = pt.TerrierStemmer.porter
-            stemmed_word = stemmer.stem('abandoned')
-
-    """
-    none = 'none' #: Apply no stemming
-    porter = 'porter' #: Apply Porter's English stemmer
-    weakporter = 'weakporter' #: Apply a weak version of Porter's English stemmer
-    # available snowball stemmers in Terrier
-    danish = 'danish' #: Snowball Danish stemmer
-    finnish = 'finnish' #: Snowball Finnish stemmer
-    german = 'german' #: Snowball German stemmer
-    hungarian = 'hungarian' #: Snowball Hungarian stemmer
-    norwegian = 'norwegian' #: Snowball Norwegian stemmer
-    portugese = 'portugese' #: Snowball Portuguese stemmer
-    swedish = 'swedish' #: Snowball Swedish stemmer
-    turkish = 'turkish' #: Snowball Turkish stemmer
-
-    @staticmethod
-    def _to_obj(this):
-        try:
-            return TerrierStemmer(this)
-        except ValueError:
-            return this
-
-    @staticmethod
-    def _to_class(this):
-        if this is None or this == TerrierStemmer.none:
-            return None
-        if this == TerrierStemmer.porter:
-            return 'PorterStemmer'
-        if this == TerrierStemmer.weakporter:
-            return 'WeakPorterStemmer'
-        
-        # snowball stemmers
-        if this == TerrierStemmer.danish:
-            return 'DanishSnowballStemmer'
-        if this == TerrierStemmer.finnish:
-            return 'FinnishSnowballStemmer'
-        if this == TerrierStemmer.german:
-            return 'GermanSnowballStemmer'
-        if this == TerrierStemmer.hungarian:
-            return 'HungarianSnowballStemmer'
-        if this == TerrierStemmer.norwegian:
-            return 'NorwegianSnowballStemmer'
-        if this == TerrierStemmer.portugese:
-            return 'PortugueseSnowballStemmer'
-        if this == TerrierStemmer.swedish:
-            return 'SwedishSnowballStemmer'
-        if this == TerrierStemmer.turkish:
-            return 'TurkishSnowballStemmer'
-
-        if isinstance(this, str):
-            return this
-
-    @pt.java.required
-    def stem(self, tok):
-        if self not in _stemmer_cache:
-            clz_name = self._to_class(self)
-            if clz_name is None:
-                class NoOpStem():
-                    def stem(self, word):
-                        return word
-                _stemmer_cache[self] = NoOpStem()
-            else:
-                if '.' not in clz_name:
-                    clz_name = f'org.terrier.terms.{clz_name}'
-                 # stemmers are termpipeline objects, and these have chained constructors
-                 # pass None to use the appropriate constructor
-                _stemmer_cache[self] = pt.java.autoclass(clz_name)(None)
-        return _stemmer_cache[self].stem(tok)
-
-class TerrierStopwords(Enum):
-    """
-        This enum provides an API for the stopword configuration used during indexing with Terrier
-    """
-
-    none = 'none' #: No Stemming
-    terrier = 'terrier' #: Apply Terrier's standard stopword list
-    custom = 'custom' #: Apply PyTerrierCustomStopwordList.Indexing for indexing, and PyTerrierCustomStopwordList.Retrieval for retrieval
-
-    @staticmethod
-    def _to_obj(this):
-        if isinstance(this, list):
-            rtr = TerrierStopwords('custom')
-            return rtr, list(this)
-        try:
-            return TerrierStopwords(this), None
-        except ValueError:
-            return this, None
-        
-    @staticmethod
-    def _indexing_config(this, stopword_list : Union[List[str], None], termpipelines : List[str], properties : Dict[str,str], hooks : List):
-        if this is None or this == TerrierStopwords.none:
-            pass
-        if this == TerrierStopwords.terrier:
-            termpipelines.append('Stopwords')
-        if this == TerrierStopwords.custom:
-            assert pt.terrier.check_version("5.8"), "Terrier 5.8 required"
-            assert stopword_list is not None, "expected to receive a stopword list"
-
-            stopword_list_esc = [t.replace(",", "\\,") for t in stopword_list ]
-
-            properties["pyterrier.stopwords"]  = ",".join(stopword_list_esc)
-            termpipelines.append('org.terrier.python.PyTerrierCustomStopwordList$Indexing')
-
-            # this hook updates the index's properties to handle the python stopwords list
-            def _hook(pyindexer, index):
-                pindex = pt.java.cast("org.terrier.structures.PropertiesIndex", index)
-                # store the stopwords into the Index's properties
-                pindex.setIndexProperty("pyterrier.stopwords", ",".join(stopword_list_esc))
-
-                # change the stopwords list implementation: the Indexing variant obtains
-                # stopwords from the global ApplicationSetup properties, while the 
-                # Retrieval variant obtains them from the *Index* properties instead
-                pindex.setIndexProperty("termpipelines", 
-                    pindex.getIndexProperty('termpipelines', None)
-                    .replace('org.terrier.python.PyTerrierCustomStopwordList$Indexing',
-                             'org.terrier.python.PyTerrierCustomStopwordList$Retrieval'))
-                pindex.flush()
-            hooks.append(_hook)
-
-class TerrierTokeniser(Enum):
-    """
-        This enum provides an API for the tokeniser configuration used during indexing with Terrier.
-    """
-
-    whitespace = 'whitespace' #: Tokenise on whitespace only
-    english = 'english' #: Terrier's standard tokeniser, designed for English
-    utf = 'utf' #: A variant of Terrier's standard tokeniser, similar to English, but with UTF support.
-    twitter = 'twitter' #: Like utf, but keeps hashtags etc
-    identity = 'identity' #: Performs no tokenisation - strings are kept as is. 
-
-    @staticmethod
-    def _to_obj(this):
-        try:
-            return TerrierTokeniser(this)
-        except ValueError:
-            return this
-
-    @staticmethod
-    def _to_class(this):
-        if this == TerrierTokeniser.whitespace:
-            return 'WhitespaceTokeniser'
-        if this == TerrierTokeniser.english:
-            return 'EnglishTokeniser'
-        if this == TerrierTokeniser.utf:
-            return 'UTFTokeniser'
-        if this == TerrierTokeniser.twitter:
-            return 'UTFTwitterTokeniser'
-        if this == TerrierTokeniser.identity:
-            return 'IdentityTokeniser'
-        if isinstance(this, str):
-            return this
 
 class TerrierIndexer:
     """
