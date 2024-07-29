@@ -128,12 +128,12 @@ class TestRewrite(TempDirTestCase):
         self.assertEqual(outputDF.iloc[3]["query"], "one two")
 
     def test_sdm_freq(self):
-        if not pt.check_version("5.3"):
+        if not pt.terrier.check_version("5.3"):
             self.skipTest("Requires Terrier 5.3")
         self._sdm(True)
 
     def test_sdm(self):
-        if not pt.check_version("5.3"):
+        if not pt.terrier.check_version("5.3"):
             self.skipTest("Requires Terrier 5.3")
         self._sdm(False)
 
@@ -289,7 +289,7 @@ class TestRewrite(TempDirTestCase):
         self.assertEqual('a b', pt.rewrite.tokenise(lambda q : q.split('/')).search("a/b").iloc[0].query)
 
     def test_qe(self):
-        if not pt.check_version("5.3"):
+        if not pt.terrier.check_version("5.3"):
             self.skipTest("Requires Terrier 5.3")
         dataset = pt.datasets.get_dataset("vaswani")
         indexref = dataset.get_index()

@@ -116,7 +116,7 @@ class SDM(pt.Transformer):
         self.verbose = 0
         self.prox_model = prox_model
         self.remove_stopwords = remove_stopwords
-        assert pt.check_version("5.3")
+        assert pt.terrier.check_version("5.3")
         self.ApplyTermPipeline_stopsonly = pt.terrier.J.ApplyTermPipeline('Stopwords')
 
     def __repr__(self):

@@ -1,4 +1,5 @@
 import sys
+from packaging.version import Version
 from typing import Optional
 import pyterrier as pt
 
@@ -273,7 +274,7 @@ def extend_package(package):
     """
         Allows to add packages to Terrier's classpath after the JVM has started.
     """
-    assert pt.check_version(5.3), "Terrier 5.3 required for this functionality"
+    assert check_version(5.3), "Terrier 5.3 required for this functionality"
     package_list = pt.java.J.ArrayList()
     package_list.add(package)
     mvnr = J.ApplicationSetup.getPlugin("MavenResolver")
@@ -318,6 +319,41 @@ def run(cmd, args=[]):
     J.CLITool.main([cmd] + args)
 
 
+@pt.java.required
+def version():
+    """
+        Returns the version string from the underlying Terrier platform.
+    """
+    return J.Version.VERSION
+
+
+@pt.java.required
+def check_version(min):
+    """
+        Returns True iff the underlying Terrier version is no older than the requested version.
+    """
+    current_ver = version()
+    assert current_ver is not None, "Could not obtain Terrier version"
+    current_ver = Version(current_ver.replace("-SNAPSHOT", ""))
+
+    min = Version(str(min))
+    return current_ver >= min
+
+
+@pt.java.required
+def check_helper_version(min):
+    """
+        Returns True iff the underlying Terrier helper version is no older than the requested version.
+    """
+    current_ver = configure['helper_version']
+    assert current_ver is not None, "Could not obtain Terrier helper version" 
+    current_ver = Version(current_ver.replace("-SNAPSHOT", ""))
+
+    min = Version(str(min))
+    return current_ver >= min
+
+
+
 # Terrier-specific classes
 J = pt.java.JavaClasses({
     'ApplicationSetup': 'org.terrier.utility.ApplicationSetup',
@@ -343,7 +379,7 @@ J = pt.java.JavaClasses({
     'BlockIndexer': 'org.terrier.structures.indexing.classical.BlockIndexer',
     'BasicSinglePassIndexer': 'org.terrier.structures.indexing.singlepass.BasicSinglePassIndexer',
     'BlockSinglePassIndexer': 'org.terrier.structures.indexing.singlepass.BlockSinglePassIndexer',
-    'BasicMemoryIndexer': lambda: 'org.terrier.realtime.memory.MemoryIndexer' if pt.check_version("5.7") else 'org.terrier.python.MemoryIndexer',
+    'BasicMemoryIndexer': lambda: 'org.terrier.realtime.memory.MemoryIndexer' if check_version("5.7") else 'org.terrier.python.MemoryIndexer',
     'Collection': 'org.terrier.indexing.Collection',
     'StructureMerger': 'org.terrier.structures.merging.StructureMerger',
     'BlockStructureMerger': 'org.terrier.structures.merging.BlockStructureMerger',

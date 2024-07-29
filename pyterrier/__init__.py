@@ -9,7 +9,7 @@ from pyterrier import java
 from pyterrier.java import started, redirect_stdouterr # for backward compat, maybe remove/deprecate some day?
 
 from pyterrier import terrier
-from pyterrier.terrier import BatchRetrieve, TerrierRetrieve, FeaturesBatchRetrieve, IndexFactory, set_property, set_properties, run, rewrite, index, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, IndexingType, TerrierStemmer, TerrierStopwords, TerrierTokeniser
+from pyterrier.terrier import BatchRetrieve, TerrierRetrieve, FeaturesBatchRetrieve, IndexFactory, set_property, set_properties, run, rewrite, index, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, IndexingType, TerrierStemmer, TerrierStopwords, TerrierTokeniser, version, check_version, check_helper_version
 
 from pyterrier import anserini
 from pyterrier import cache
@@ -140,27 +140,6 @@ def set_tqdm(type=None):
     else:
         raise ValueError("Unknown tqdm type %s" % str(type))
     tqdm.pandas()
-    
-
-@java.required
-def version():
-    """
-        Returns the version string from the underlying Terrier platform.
-    """
-    return terrier.J.Version.VERSION
-
-def check_version(min, helper=False):
-    """
-        Returns True iff the underlying Terrier version is no older than the requested version.
-    """
-    from packaging.version import Version
-    from . import terrier
-    currentVer = terrier.java._resolved_helper_version if helper else version()
-    assert currentVer is not None, "Could not obtain Terrier version (helpher=%s)" % str(helper)
-    currentVer = Version(currentVer.replace("-SNAPSHOT", ""))
-
-    min = Version(str(min))
-    return currentVer >= min
 
 
 @java.required
@@ -212,7 +191,7 @@ __all__ = [
     'utils', 'Utils', 'Transformer', 'Estimator', 'Indexer', 'started', 'redirect_stdouterr',
     'BatchRetrieve', 'TerrierRetrieve', 'FeaturesBatchRetrieve', 'IndexFactory', 'set_property', 'set_properties',
     'run', 'rewrite', 'index', 'FilesIndexer', 'TRECCollectionIndexer', 'DFIndexer', 'DFIndexUtils', 'IterDictIndexer',
-    'IndexingType', 'TerrierStemmer', 'TerrierStopwords', 'TerrierTokeniser',
-    'HOME_DIR', 'IndexRef', 'ApplicationSetup', 'properties', 'init', 'set_tqdm', 'version', 'check_version',
+    'IndexingType', 'TerrierStemmer', 'TerrierStopwords', 'TerrierTokeniser', 'version',
+    'HOME_DIR', 'IndexRef', 'ApplicationSetup', 'properties', 'init', 'set_tqdm', 'version', 'check_version', 'check_helper_version',
     'logging', 'extend_classpath',
 ]

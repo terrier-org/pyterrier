@@ -58,7 +58,7 @@ def _java_post_init(jnius):
             self.pyiterator = pyiterator
             self.hasnext = True
             self.lastdoc = None
-            self.tr57 = not pt.check_version("5.8")
+            self.tr57 = not pt.terrier.check_version("5.8")
 
         @staticmethod 
         def pyDictToMap(a_dict): #returns Map<String,String>
@@ -515,7 +515,7 @@ class TerrierStopwords(Enum):
         if this == TerrierStopwords.terrier:
             termpipelines.append('Stopwords')
         if this == TerrierStopwords.custom:
-            assert pt.check_version("5.8"), "Terrier 5.8 required"
+            assert pt.terrier.check_version("5.8"), "Terrier 5.8 required"
             assert stopword_list is not None, "expected to receive a stopword list"
 
             stopword_list_esc = [t.replace(",", "\\,") for t in stopword_list ]
@@ -903,7 +903,7 @@ class _BaseIterDictIndexer(TerrierIndexer, pt.Indexer):
         self.meta_reverse = meta_reverse
         self.pretokenised = pretokenised
         if self.pretokenised:
-            assert pt.check_version(5.7), "Terrier too old, this requires 5.7"
+            assert pt.terrier.check_version(5.7), "Terrier too old, this requires 5.7"
             # we disable stemming and stopwords for pretokenised indices
             self.stemmer = None
             self.stopwords = None
@@ -1027,7 +1027,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
             collectionIterator = FlatJSONDocumentIterator(self._filter_iterable(it, fields))
             javaDocCollection = pt.java.autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
             # remove once 5.7 is now the minimum version
-            indexer.index(javaDocCollection if pt.check_version("5.7") else [javaDocCollection])
+            indexer.index(javaDocCollection if pt.terrier.check_version("5.7") else [javaDocCollection])
             global lastdoc
             lastdoc = None
             self.index_called = True
@@ -1232,7 +1232,7 @@ class TRECCollectionIndexer(TerrierIndexer):
             colObj = pt.java.cast("org.terrier.indexing.MultiDocumentFileCollection", colObj)
             colObj = TQDMCollection(colObj)
         # remove once 5.7 is now the minimum version
-        if pt.check_version("5.7"):
+        if pt.terrier.check_version("5.7"):
             index.index(colObj)
         else:
             index.index(pt.java.autoclass("org.terrier.python.PTUtils").makeCollection(colObj))
@@ -1283,7 +1283,7 @@ class FilesIndexer(TerrierIndexer):
         
         simpleColl = pt.terrier.J.SimpleFileCollection(asList, False)
         # remove once 5.7 is now the minimum version
-        index.index(simpleColl if pt.check_version("5.7") else [simpleColl])
+        index.index(simpleColl if pt.terrier.check_version("5.7") else [simpleColl])
         global lastdoc
         lastdoc = None
         self.index_called = True

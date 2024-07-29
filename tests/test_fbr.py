@@ -24,7 +24,7 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
         
 
     def test_fbr_reranking(self):
-        if not pt.check_version("5.4"):
+        if not pt.terrier.check_version("5.4"):
             self.skipTest("Requires Terrier 5.4")
         # this test examines the use of ScoringMatchingWithFat 
         JIR = pt.autoclass('org.terrier.querying.IndexRef')
@@ -67,7 +67,7 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
         self.assertEqual(result1F1_map, result2F1_map)
 
     def test_fbr_reranking2(self):
-        if not pt.check_version("5.4"):
+        if not pt.terrier.check_version("5.4"):
             self.skipTest("Requires Terrier 5.4")
         # this test examines the use of ScoringMatchingWithFat, using a particular case known to with Terrier 5.3 
         JIR = pt.autoclass('org.terrier.querying.IndexRef')

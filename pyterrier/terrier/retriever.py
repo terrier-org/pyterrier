@@ -206,7 +206,7 @@ class BatchRetrieve(BatchRetrieveBase):
         self.appSetup = pt.java.autoclass('org.terrier.utility.ApplicationSetup')
         self.properties = _mergeDicts(BatchRetrieve.default_properties, properties)
         self.concurrentIL = pt.java.autoclass("org.terrier.structures.ConcurrentIndexLoader")
-        if pt.check_version(5.5) and "SimpleDecorateProcess" not in self.properties["querying.processes"]:
+        if pt.terrier.check_version(5.5) and "SimpleDecorateProcess" not in self.properties["querying.processes"]:
             self.properties["querying.processes"] += ",decorate:SimpleDecorateProcess"
         self.metadata = metadata
         self.threads = threads
@@ -237,7 +237,7 @@ class BatchRetrieve(BatchRetrieveBase):
                   
         if self.threads > 1:
             warn("Multi-threaded retrieval is experimental, YMMV.")
-            assert pt.check_version(5.5), "Terrier 5.5 is required for multi-threaded retrieval"
+            assert pt.terrier.check_version(5.5), "Terrier 5.5 is required for multi-threaded retrieval"
 
             # we need to see if our indexref is concurrent. if not, we upgrade it using ConcurrentIndexLoader
             # this will upgrade the underlying index too.
@@ -392,7 +392,7 @@ class BatchRetrieve(BatchRetrieveBase):
         scores_provided = "score" in queries.columns
         input_results = None
         if docno_provided or docid_provided:
-            assert pt.check_version(5.3)
+            assert pt.terrier.check_version(5.3)
             input_results = queries
 
             # query is optional, and functionally dependent on qid.
@@ -622,7 +622,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         
         # check for terrier-core#246 bug usiung FatFull
         if self.wmodel is not None:    
-            assert pt.check_version(5.9), "Terrier 5.9 is required for this functionality, see https://github.com/terrier-org/terrier-core/pull/246"
+            assert pt.terrier.check_version(5.9), "Terrier 5.9 is required for this functionality, see https://github.com/terrier-org/terrier-core/pull/246"
             
         if threads > 1:
             raise ValueError("Multi-threaded retrieval not yet supported by FeaturesBatchRetrieve")
@@ -691,7 +691,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         scores_provided = "score" in queries.columns
         if docno_provided or docid_provided:
             #re-ranking mode
-            assert pt.check_version(5.3)
+            assert pt.terrier.check_version(5.3)
             input_results = queries
 
             # query is optional, and functionally dependent on qid.

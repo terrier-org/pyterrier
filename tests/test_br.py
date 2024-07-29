@@ -24,7 +24,7 @@ def parse_query_result(filename):
 class TestBatchRetrieve(BaseTestCase):
 
     def test_candidate_set_one_doc(self):
-        if not pt.check_version("5.3"):
+        if not pt.terrier.check_version("5.3"):
             self.skipTest("Requires Terrier 5.3")
         indexloc = self.here + "/fixtures/index/data.properties"
         # docid 50 == docno 51
@@ -108,7 +108,7 @@ class TestBatchRetrieve(BaseTestCase):
         self.assertEqual(0, len(result))
 
     def test_candidate_set_two_doc(self):
-        if not pt.check_version("5.3"):
+        if not pt.terrier.check_version("5.3"):
             self.skipTest("Requires Terrier 5.3")
 
         indexloc = self.here + "/fixtures/index/data.properties"
@@ -178,7 +178,7 @@ class TestBatchRetrieve(BaseTestCase):
         result = retr.transform(input)
         self.assertEqual(len(result), 10)
 
-        if not pt.check_version("5.5"):
+        if not pt.terrier.check_version("5.5"):
             return
 
         retr = pt.BatchRetrieve(indexref, num_results=1001)        
@@ -208,7 +208,7 @@ class TestBatchRetrieve(BaseTestCase):
 
     def test_threading_manualref(self):
         
-        if not pt.check_version("5.5"):
+        if not pt.terrier.check_version("5.5"):
             self.skipTest("Requires Terrier 5.5")
 
         topics = pt.get_dataset("vaswani").get_topics().head(8)
@@ -225,7 +225,7 @@ class TestBatchRetrieve(BaseTestCase):
         result = retr.transform(topics)
 
     def test_threading_selfupgrade(self):
-        if not pt.check_version("5.5"):
+        if not pt.terrier.check_version("5.5"):
             self.skipTest("Requires Terrier 5.5")
 
         topics = pt.get_dataset("vaswani").get_topics().head(10)
@@ -238,7 +238,7 @@ class TestBatchRetrieve(BaseTestCase):
 
     def test_terrier_retrieve_alias(self):
         # based off test_candidate_set_one_doc
-        if not pt.check_version("5.3"):
+        if not pt.terrier.check_version("5.3"):
             self.skipTest("Requires Terrier 5.3")
         indexloc = self.here + "/fixtures/index/data.properties"
         # docid 50 == docno 51

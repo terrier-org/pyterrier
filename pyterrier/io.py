@@ -300,7 +300,7 @@ def read_topics(filename, format="trec", **kwargs):
 
 @pt.java.required
 def _read_topics_trec(file_path, doc_tag="TOP", id_tag="NUM", whitelist=["TITLE"], blacklist=["DESC","NARR"]):
-    assert pt.check_version("5.3")
+    assert pt.terrier.check_version("5.3")
     trecquerysource = pt.java.autoclass('org.terrier.applications.batchquerying.TRECQuery')
     tqs = trecquerysource(
         [file_path], doc_tag, id_tag, whitelist, blacklist,
@@ -359,7 +359,7 @@ def _read_topics_singleline(filepath, tokenise=True):
         pandas.Dataframe with columns=['qid','query']
     """
     rows = []
-    assert pt.check_version("5.3")
+    assert pt.terrier.check_version("5.3")
     slqIter = pt.java.autoclass("org.terrier.applications.batchquerying.SingleLineTRECQuery")(filepath, tokenise)
     for q in slqIter:
         rows.append([slqIter.getQueryId(), q])
