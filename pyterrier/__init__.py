@@ -89,7 +89,7 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
         java.add_option(opt)
     terrier.set_terrier_version(version)
     terrier.set_helper_version(helper_version)
-    set_tqdm(tqdm)
+    utils.set_tqdm(tqdm)
 
     # TODO: missing no_download. Is this something like pt.java.set_offline(True)?
 
@@ -101,49 +101,12 @@ def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, log
         set_property("terrier.mvn.coords", pkgs_string)
 
 
-def set_tqdm(type=None):
-    """
-        Set the tqdm progress bar type that Pyterrier will use internally.
-        Many PyTerrier transformations can be expensive to apply in some settings - users can
-        view progress by using the verbose=True kwarg to many classes, such as BatchRetrieve.
-
-        The `tqdm <https://tqdm.github.io/>`_ progress bar can be made prettier when using appropriately configured Jupyter notebook setups.
-        We use this automatically when Google Colab is detected.
-
-        Allowable options for type are:
-
-         - `'tqdm'`: corresponds to the standard text progresss bar, ala `from tqdm import tqdm`.
-         - `'notebook'`: corresponds to a notebook progress bar, ala `from tqdm.notebook import tqdm`
-         - `'auto'`: allows tqdm to decide on the progress bar type, ala `from tqdm.auto import tqdm`. Note that this works fine on Google Colab, but not on Jupyter unless the `ipywidgets have been installed <https://ipywidgets.readthedocs.io/en/stable/user_install.html>`_.
-    """
-    global tqdm
-
-    import sys
-    if type is None:
-        if 'google.colab' in sys.modules:
-            type = 'notebook'
-        else:
-            type = 'tqdm'
-    
-    if type == 'tqdm':
-        from tqdm import tqdm as bartype
-        tqdm = bartype
-    elif type == 'notebook':
-        from tqdm.notebook import tqdm as bartype
-        tqdm = bartype
-    elif type == 'auto':
-        from tqdm.auto import tqdm as bartype
-        tqdm = bartype
-    else:
-        raise ValueError("Unknown tqdm type %s" % str(type))
-    tqdm.pandas()
-
-
 # deprecated functions explored to the main namespace, which will be removed in a future version
 logging = deprecated(version='0.11.0', reason="use pt.java.set_log_level(...) instead")(java.set_log_level)
 version = deprecated(version='0.11.0', reason="use pt.terrier.version() instead")(terrier.version)
 check_version = deprecated(version='0.11.0', reason="use pt.terrier.check_version(...) instead")(terrier.check_version)
 extend_classpath = deprecated(version='0.11.0', reason="use pt.terrier.extend_classpath(...) instead")(terrier.extend_classpath)
+set_tqdm = deprecated(version='0.11.0', reason="use pt.utils.set_tqdm(...) instead")(utils.set_tqdm)
 
 
 # Additional setup performed in a function to avoid polluting the namespace with other imports like platform
@@ -158,7 +121,7 @@ def _():
     from pyterrier.apply import _apply
     globals()['apply'] = _apply()
 
-    set_tqdm()
+    utils.set_tqdm()
 _()
 
 __all__ = [
@@ -169,6 +132,8 @@ __all__ = [
     'BatchRetrieve', 'TerrierRetrieve', 'FeaturesBatchRetrieve', 'IndexFactory', 'set_property', 'set_properties',
     'run', 'rewrite', 'index', 'FilesIndexer', 'TRECCollectionIndexer', 'DFIndexer', 'DFIndexUtils', 'IterDictIndexer',
     'IndexingType', 'TerrierStemmer', 'TerrierStopwords', 'TerrierTokeniser',
-    'HOME_DIR', 'IndexRef', 'ApplicationSetup', 'properties', 'init', 'set_tqdm', 'version', 'check_version',
-    'logging', 'extend_classpath',
+    'HOME_DIR', 'IndexRef', 'ApplicationSetup', 'properties', 'init',
+
+    # Deprecated:
+    'logging', 'version', 'check_version', 'extend_classpath', 'set_tqdm',
 ]

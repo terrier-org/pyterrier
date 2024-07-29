@@ -1,3 +1,4 @@
+import sys
 from typing import Callable, Tuple
 import platform
 from functools import wraps
@@ -6,6 +7,7 @@ from importlib.metadata import entry_points as eps
 import pandas as pd
 from collections import defaultdict
 from deprecated import deprecated
+import pyterrier as pt
 
 
 @deprecated(version="0.9")
@@ -124,3 +126,38 @@ def is_windows() -> bool:
 
 def noop(*args, **kwargs):
     pass
+
+
+def set_tqdm(type=None):
+    """
+        Set the tqdm progress bar type that Pyterrier will use internally.
+        Many PyTerrier transformations can be expensive to apply in some settings - users can
+        view progress by using the verbose=True kwarg to many classes, such as BatchRetrieve.
+
+        The `tqdm <https://tqdm.github.io/>`_ progress bar can be made prettier when using appropriately configured Jupyter notebook setups.
+        We use this automatically when Google Colab is detected.
+
+        Allowable options for type are:
+
+         - `'tqdm'`: corresponds to the standard text progresss bar, ala `from tqdm import tqdm`.
+         - `'notebook'`: corresponds to a notebook progress bar, ala `from tqdm.notebook import tqdm`
+         - `'auto'`: allows tqdm to decide on the progress bar type, ala `from tqdm.auto import tqdm`. Note that this works fine on Google Colab, but not on Jupyter unless the `ipywidgets have been installed <https://ipywidgets.readthedocs.io/en/stable/user_install.html>`_.
+    """
+    if type is None:
+        if 'google.colab' in sys.modules:
+            type = 'notebook'
+        else:
+            type = 'tqdm'
+    
+    if type == 'tqdm':
+        from tqdm import tqdm as bartype
+        pt.tqdm = bartype
+    elif type == 'notebook':
+        from tqdm.notebook import tqdm as bartype
+        pt.tqdm = bartype
+    elif type == 'auto':
+        from tqdm.auto import tqdm as bartype
+        pt.tqdm = bartype
+    else:
+        raise ValueError(f"Unknown tqdm type {type}")
+    pt.tqdm.pandas()
