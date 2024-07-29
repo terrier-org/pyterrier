@@ -195,6 +195,7 @@ def extend_classpath(mvnpackages):
         terrier.extend_package(package)
 
 
+# Additional setup performed in a function to avoid polluting the namespace with other imports
 def _():
     # apply is an object, not a module, as it also has __get_attr__() implemented
     from pyterrier.apply import _apply
