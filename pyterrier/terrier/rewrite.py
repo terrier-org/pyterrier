@@ -298,7 +298,7 @@ class QueryExpansion(pt.Transformer):
             rq.setResultSet(self._populate_resultset(topics_and_res, qid, rq.getIndex()))
 
             
-            pt.terrier.J.TerrierQLParser.process(None, rq)
+            pt.terrier.J.TerrierQLParser().process(None, rq)
             pt.terrier.J.TerrierQLToMatchingQueryTerms().process(None, rq)
             # how to make sure this happens/doesnt happen when appropriate.
             self.applytp.process(None, rq)
