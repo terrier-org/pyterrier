@@ -1,5 +1,3 @@
-import re
-import math
 import numpy as np
 import pandas as pd
 from typing import List, Sequence
@@ -70,6 +68,7 @@ def query_columns(df : pd.DataFrame, qid=True) -> Sequence[str]:
         rtr.append("qid")
     if "query" in columns:
         rtr.append("query")
+    import re
     query_col_re = re.compile('^query_[\\d]+')
     for c in columns:
         if query_col_re.search(c):
@@ -223,6 +222,8 @@ def split_df(df : pd.DataFrame, N) -> List[pd.DataFrame]:
         type = "D"
     else:
         raise ValueError("Dataframe is not of type D,Q,R")
+    
+    from math import ceil
 
     def chunks(df, n):
         """Yield successive n-sized chunks from df."""
@@ -230,13 +231,13 @@ def split_df(df : pd.DataFrame, N) -> List[pd.DataFrame]:
             yield df.iloc[ i: min(len(df),i + n)]
     
     if type == "Q" or type == "D":         
-        splits = list( chunks(df, math.ceil(len(df)/N)))
+        splits = list( chunks(df, ceil(len(df)/N)))
         return splits
 
     rtr = []
     grouper = df.groupby("qid")
     this_group = []
-    chunk_size = math.ceil(len(grouper)/N)
+    chunk_size = ceil(len(grouper)/N)
     for qid, group in grouper:
         this_group.append(group)
         if len(this_group) == chunk_size:
