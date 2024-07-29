@@ -1,6 +1,6 @@
 import sys
 from packaging.version import Version
-from typing import Optional
+from typing import Optional, Union, List
 import pyterrier as pt
 
 TERRIER_PKG = "org.terrier"
@@ -270,13 +270,16 @@ def _index_corpusiter(self, return_toks=True):
 
 
 @pt.java.required
-def extend_package(package):
+def extend_classpath(packages: Union[str, List[str]]):
     """
         Allows to add packages to Terrier's classpath after the JVM has started.
     """
+    if isinstance(packages, str):
+        packages = [packages]
     assert check_version(5.3), "Terrier 5.3 required for this functionality"
     package_list = pt.java.J.ArrayList()
-    package_list.add(package)
+    for package in packages:
+        package_list.add(package)
     mvnr = J.ApplicationSetup.getPlugin("MavenResolver")
     assert mvnr is not None
     mvnr = pt.java.cast("org.terrier.utility.MavenResolver", mvnr)

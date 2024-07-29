@@ -9,7 +9,7 @@ from pyterrier import java
 from pyterrier.java import started, redirect_stdouterr # for backward compat, maybe remove/deprecate some day?
 
 from pyterrier import terrier
-from pyterrier.terrier import BatchRetrieve, TerrierRetrieve, FeaturesBatchRetrieve, IndexFactory, set_property, set_properties, run, rewrite, index, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, IndexingType, TerrierStemmer, TerrierStopwords, TerrierTokeniser, version, check_version, check_helper_version
+from pyterrier.terrier import BatchRetrieve, TerrierRetrieve, FeaturesBatchRetrieve, IndexFactory, set_property, set_properties, run, rewrite, index, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, IndexingType, TerrierStemmer, TerrierStopwords, TerrierTokeniser
 
 from pyterrier import anserini
 from pyterrier import cache
@@ -142,31 +142,11 @@ def set_tqdm(type=None):
     tqdm.pandas()
 
 
-@java.required
-@deprecated(version="0.11", reason="Use pt.java.set_log_level() instead")
-def logging(level):
-    """
-        Set the logging level. Equivalent to setting the logging= parameter to init().
-        The following string values are allowed, corresponding to Java logging levels:
-        
-         - `'ERROR'`: only show error messages
-         - `'WARN'`: only show warnings and error messages (default)
-         - `'INFO'`: show information, warnings and error messages
-         - `'DEBUG'`: show debugging, information, warnings and error messages
-
-    """
-    java.set_log_level(level)
-
-
-@java.required
-def extend_classpath(mvnpackages):
-    """
-        Allows to add packages to Terrier's classpath after the JVM has started.
-    """
-    if isinstance(mvnpackages, str):
-        mvnpackages = [mvnpackages]
-    for package in mvnpackages:
-        terrier.extend_package(package)
+# deprecated functions explored to the main namespace, which will be removed in a future version
+logging = deprecated(version='0.11.0', reason="use pt.java.set_log_level(...) instead")(java.set_log_level)
+version = deprecated(version='0.11.0', reason="use pt.terrier.version() instead")(terrier.version)
+check_version = deprecated(version='0.11.0', reason="use pt.terrier.check_version(...) instead")(terrier.check_version)
+extend_classpath = deprecated(version='0.11.0', reason="use pt.terrier.extend_classpath(...) instead")(terrier.extend_classpath)
 
 
 # Additional setup performed in a function to avoid polluting the namespace with other imports like platform
@@ -191,7 +171,7 @@ __all__ = [
     'utils', 'Utils', 'Transformer', 'Estimator', 'Indexer', 'started', 'redirect_stdouterr',
     'BatchRetrieve', 'TerrierRetrieve', 'FeaturesBatchRetrieve', 'IndexFactory', 'set_property', 'set_properties',
     'run', 'rewrite', 'index', 'FilesIndexer', 'TRECCollectionIndexer', 'DFIndexer', 'DFIndexUtils', 'IterDictIndexer',
-    'IndexingType', 'TerrierStemmer', 'TerrierStopwords', 'TerrierTokeniser', 'version',
-    'HOME_DIR', 'IndexRef', 'ApplicationSetup', 'properties', 'init', 'set_tqdm', 'version', 'check_version', 'check_helper_version',
+    'IndexingType', 'TerrierStemmer', 'TerrierStopwords', 'TerrierTokeniser',
+    'HOME_DIR', 'IndexRef', 'ApplicationSetup', 'properties', 'init', 'set_tqdm', 'version', 'check_version',
     'logging', 'extend_classpath',
 ]
