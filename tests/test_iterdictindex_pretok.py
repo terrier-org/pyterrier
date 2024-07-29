@@ -19,7 +19,7 @@ class TestIterDictIndexerPreTok(TempDirTestCase):
             {'docno': 'd1', 'url': 'url1', "toks" : {"a" : 1, "b" : 2}},
             {'docno': 'd2', 'url': 'url1', "toks" : {"a" : 1, "b" : 1}}
         ]
-        from pyterrier.index import DocListIterator
+        from pyterrier.terrier.index import DocListIterator
         
         iterator =  DocListIterator(iter(it1))
         self.assertTrue(iterator.hasNext())
