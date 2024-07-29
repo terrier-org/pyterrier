@@ -1,14 +1,12 @@
-
-from . import Transformer, Estimator
-from .apply import doc_score, doc_features
-from .model import add_ranks
 from typing import Sequence, Union, Tuple
-import numpy as np, pandas as pd
+import numpy as np
+import pandas as pd
+import pyterrier as pt
 
 FeatureList = Union[Sequence[int], int]
 
 
-class AblateFeatures(Transformer):
+class AblateFeatures(pt.Transformer):
     
     def __init__(self, fids: FeatureList):
         self.fids = fids if isinstance(fids, list) else [fids]
@@ -27,7 +25,7 @@ class AblateFeatures(Transformer):
         topics_and_res["features"] = topics_and_res.apply(_reset, axis=1)
         return topics_and_res
 
-class KeepFeatures(Transformer):
+class KeepFeatures(pt.Transformer):
     
     def __init__(self, fids : FeatureList):
         self.fids = fids if isinstance(fids, list) else [fids]
@@ -40,7 +38,7 @@ class KeepFeatures(Transformer):
         topics_and_res["features"] = topics_and_res.apply(lambda row: row["features"][self.fids], axis=1)
         return topics_and_res
 
-class RegressionTransformer(Estimator):
+class RegressionTransformer(pt.Estimator):
     """
     This class simplifies the use of Scikit-learn's techniques for learning-to-rank.
     """
@@ -93,7 +91,7 @@ class RegressionTransformer(Estimator):
                 raise ValueError("Expected %d features, but found %d features" % (len(self.learner.feature_importances_), found_numf))
 
         test_DF["score"] = self.learner.predict(np.stack(test_DF["features"].values))
-        return add_ranks(test_DF)
+        return pt.model.add_ranks(test_DF)
 
 class LTRTransformer(RegressionTransformer):
     """
@@ -146,7 +144,7 @@ class LTRTransformer(RegressionTransformer):
         )
         self.num_f = tr_res.iloc[0].features.shape[0]
 
-class FastRankEstimator(Estimator):
+class FastRankEstimator(pt.Estimator):
     """
     This class simplifies the use of FastRank's techniques for learning-to-rank.
     """
@@ -212,9 +210,9 @@ class FastRankEstimator(Estimator):
         rtr = dataset.predict_scores(self.model)
         scores = [rtr[i] for i in range(len(rtr))]
         test_DF["score"] = scores
-        return add_ranks(test_DF)
+        return pt.model.add_ranks(test_DF)
 
-def ablate_features(fids : FeatureList) -> Transformer:
+def ablate_features(fids : FeatureList) -> pt.Transformer:
     """
         Ablates features (sets feature value to 0) from a pipeline. This is useful for 
         performing feature ablation studies, whereby a feature is removed from the pipeline
@@ -225,7 +223,7 @@ def ablate_features(fids : FeatureList) -> Transformer:
     """
     return AblateFeatures(fids)
 
-def keep_features(fids : FeatureList) -> Transformer:
+def keep_features(fids : FeatureList) -> pt.Transformer:
     """
         Reduces the features in a pipeline to only those mentioned. This is useful for 
         performing feature ablation studies, whereby only some features are kept 
@@ -236,7 +234,7 @@ def keep_features(fids : FeatureList) -> Transformer:
     """
     return KeepFeatures(fids)
 
-def feature_to_score(fid : int) -> Transformer:
+def feature_to_score(fid : int) -> pt.Transformer:
     """
         Applies a specified feature for ranking. Useful for evaluating which of a number of 
         pre-computed features are useful for ranking. 
@@ -244,9 +242,9 @@ def feature_to_score(fid : int) -> Transformer:
         Args: 
             fid: a single feature id that should be kept
     """
-    return doc_score(lambda row : row["features"][fid])
+    return pt.apply.doc_score(lambda row : row["features"][fid])
 
-def apply_learned_model(learner, form : str = 'regression', **kwargs) -> Transformer:
+def apply_learned_model(learner, form : str = 'regression', **kwargs) -> pt.Transformer:
     """
         Results in a transformer that can take in documents that have a "features" column,
         and pass that to the specified learner via its transform() function, to obtain the
@@ -267,7 +265,7 @@ def apply_learned_model(learner, form : str = 'regression', **kwargs) -> Transfo
         return FastRankEstimator(learner, **kwargs)
     return RegressionTransformer(learner, **kwargs)
 
-def score_to_feature() -> Transformer:
+def score_to_feature() -> pt.Transformer:
     """
         Takes the document's "score" from the score attribute, and uses it as a single feature. 
         In particular, a feature union operator does not use any score of the documents in the
@@ -284,4 +282,4 @@ def score_to_feature() -> Transformer:
             three_features = cands >> (bm25f  **  pl2f ** pt.ltr.score_to_feature())  
 
     """
-    return doc_features(lambda row : np.array(row["score"]))
+    return pt.apply.doc_features(lambda row : np.array(row["score"]))
