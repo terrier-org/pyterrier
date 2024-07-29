@@ -1,5 +1,5 @@
 import pyterrier as pt
-from pyterrier.java import required, before_init, started, configure, mavenresolver
+from pyterrier.java import required_raise, before_init, started, configure, mavenresolver
 from typing import Dict, Optional
 
 
@@ -76,12 +76,12 @@ def bytebuffer_to_array(buffer):
     return bytearray([ unsign(buffer.get(offset)) for offset in range(buffer.capacity()) ])
 
 
-@before_init()
+@before_init
 def add_jar(jar_path):
     configure.append('jars', jar_path)
 
 
-@before_init()
+@before_init
 def add_package(org_name: str = None, package_name: str = None, version: str = None, file_type='jar'):
     if version is None or version == 'snapshot':
         version = mavenresolver.latest_version_num(org_name, package_name)
@@ -89,17 +89,17 @@ def add_package(org_name: str = None, package_name: str = None, version: str = N
     add_jar(file_name)
 
 
-@before_init()
+@before_init
 def set_memory_limit(mem: Optional[float]):
     configure(mem=mem)
 
 
-@before_init()
+@before_init
 def add_option(option: str):
     configure.append('options', option)
 
 
-@before_init()
+@before_init
 def set_redirect_io(redirect_io: bool):
     configure(redirect_io=redirect_io)
 
@@ -130,7 +130,7 @@ class JavaClasses:
     def __dir__(self):
         return list(self._mapping.keys())
 
-    @required(raise_on_not_started=True)
+    @required_raise
     def __getattr__(self, key):
         if key not in self._mapping:
             return AttributeError(f'{self} has no attribute {key!r}')

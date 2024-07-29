@@ -314,7 +314,7 @@ type_to_class = {
     'warc' : 'org.terrier.indexing.WARC10Collection'
 }
 
-@pt.java.required()
+@pt.java.required
 def createCollection(files_path : List[str], coll_type : str = 'trec', props = {}):
     if coll_type in type_to_class:
         collectionClzName = type_to_class[coll_type]
@@ -531,7 +531,7 @@ class TerrierStemmer(Enum):
         if isinstance(this, str):
             return this
 
-    @pt.java.required()
+    @pt.java.required
     def stem(self, tok):
         if self not in _stemmer_cache:
             clz_name = self._to_class(self)
@@ -907,7 +907,7 @@ class DFIndexer(TerrierIndexer):
     Use this Indexer if you wish to index a pandas.Dataframe
 
     """
-    @pt.java.required()
+    @pt.java.required
     def index(self, text, *args, **kwargs):
         """
         Index the specified
@@ -1048,7 +1048,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
     Use this Indexer if you wish to index an iter of dicts (possibly with multiple fields).
     This version is used for Windows -- which doesn't support the faster fifo implementation.
     """
-    @pt.java.required()
+    @pt.java.required
     def index(self, it, fields=('text',), meta=None, meta_lengths=None, threads=None):
         """
         Index the specified iter of dicts with the (optional) specified fields
@@ -1119,7 +1119,7 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
     This version is optimized by using multiple threads and POSIX fifos to tranfer data,
     which ends up being much faster.
     """
-    @pt.java.required()
+    @pt.java.required
     def index(self, it, fields=('text',), meta=None, meta_lengths=None):
         """
         Index the specified iter of dicts with the (optional) specified fields
@@ -1277,7 +1277,7 @@ class TRECCollectionIndexer(TerrierIndexer):
         self.meta_reverse = meta_reverse
         self.meta_tags = meta_tags
     
-    @pt.java.required()
+    @pt.java.required
     def index(self, files_path : Union[str,List[str]]):
         """
         Index the specified TREC formatted files

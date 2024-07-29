@@ -18,17 +18,17 @@ configure = pt.java.config.register('pt.terrier.java', {
 })
 
 
-@pt.java.before_init()
+@pt.java.before_init
 def set_terrier_version(version: Optional[str] = None):
     configure(terrier_version=version)
 
 
-@pt.java.before_init()
+@pt.java.before_init
 def set_helper_version(version: Optional[str] = None):
     configure(helper_version=version)
 
 
-@pt.java.before_init()
+@pt.java.before_init
 def enable_prf(version: Optional[str] = None):
     pt.java.add_package('com.github.terrierteam', 'terrier-prf', version)
 
@@ -271,7 +271,7 @@ def _index_corpusiter(self, return_toks=True):
 
 
 
-@pt.java.required()
+@pt.java.required
 def extend_package(package):
     """
         Allows to add packages to Terrier's classpath after the JVM has started.
@@ -285,7 +285,7 @@ def extend_package(package):
     mvnr.addDependencies(package_list)
 
 
-@pt.java.required()
+@pt.java.required
 def set_property(k, v):
     """
         Allows to set a property in Terrier's global properties configuration. Example::
@@ -303,7 +303,7 @@ def set_property(k, v):
     J.ApplicationSetup.bootstrapInitialisation(_properties)
 
 
-@pt.java.required()
+@pt.java.required
 def set_properties(kwargs):
     """
         Allows to set many properties in Terrier's global properties configuration
@@ -313,7 +313,7 @@ def set_properties(kwargs):
     J.ApplicationSetup.bootstrapInitialisation(_properties)
 
 
-@pt.java.required()
+@pt.java.required
 def run(cmd, args=[]):
     """
         Allows to run a Terrier executable class, i.e. one that can be access from the `bin/terrier` commandline programme.

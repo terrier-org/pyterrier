@@ -48,7 +48,7 @@ properties = None
 _helper_version = None
 
 
-@java.before_init()
+@java.before_init
 def init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, logging='WARN', home_dir=None, boot_packages=[], tqdm=None, no_download=False,helper_version = None):
     """
     Function necessary to be called before Terrier classes and methods can be used.
@@ -148,7 +148,7 @@ def set_tqdm(type):
     tqdm.pandas()
     
 
-@java.required()
+@java.required
 def version():
     """
         Returns the version string from the underlying Terrier platform.
@@ -169,7 +169,7 @@ def check_version(min, helper=False):
     return currentVer >= min
 
 
-@java.required()
+@java.required
 @deprecated(version="0.11", reason="Use pt.java.set_log_level() instead")
 def logging(level):
     """
@@ -185,7 +185,7 @@ def logging(level):
     java.set_log_level(level)
 
 
-@java.required()
+@java.required
 def extend_classpath(mvnpackages):
     """
         Allows to add packages to Terrier's classpath after the JVM has started.

@@ -8,7 +8,7 @@ class AnseriniBatchRetrieve(pt.Transformer):
     """
         Allows retrieval from an Anserini index. To use this class, you must first enable anserini using `pt.anserini.enable()`.
     """
-    @required()
+    @required
     def __init__(self, index_location, k=1000, wmodel="BM25", verbose=False):
         """
             Construct an AnseriniBatchRetrieve retrieve from pyserini.search.lucene.LuceneSearcher. 

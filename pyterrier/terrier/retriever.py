@@ -85,7 +85,7 @@ class BatchRetrieveBase(pt.Transformer, Symbol):
     Attributes:
         verbose(bool): If True transform method will display progress
     """
-    @pt.java.required()
+    @pt.java.required
     def __init__(self, verbose=0, **kwargs):
         super().__init__(kwargs)
         self.verbose = verbose

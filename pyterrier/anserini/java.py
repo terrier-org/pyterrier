@@ -1,6 +1,6 @@
 import os
 from glob import glob
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 from functools import wraps
 import pyterrier as pt
 
@@ -61,27 +61,29 @@ def _get_pyserini_jar() -> Optional[str]:
     latest_jar = max(paths, key=os.path.getctime)
     return latest_jar
 
-
-@pt.java.before_init()
+@pt.java.before_init
 def set_version(version: str):
     configure.set('version', version)
 
 
-def required() -> Callable:
+def required(fn: Optional[Callable] = None) -> Union[Callable, bool]:
     """
-    Wraps a function that requires pyserini to be installed before running (raises error if not installed). If the JVM
-    has not yet been started, it runs pt.java.init(), too, similar to pt.java.required().
+    Can act as either a standalone function or a function wrapper.
+    Requires pyserini to be installed (raises error if not installed). If the JVM has not yet been started, it runs
+    pt.java.init(), too, similar to pt.java.required().
     """
-    def _required(fn: Callable) -> Callable:
-        @wraps(fn)
-        def _wrapper(*args, **kwargs):
-            if not is_installed():
-                raise RuntimeError('pyserini required to use pyterrier.anserini. `pip install pyserini` and try again.')
-            if not pt.java.started():
-                pt.java.init()
-            return fn(*args, **kwargs)
-        return _wrapper
-    return _required
+    if fn is None:
+        return required(pt.utils.noop)()
+
+    @wraps(fn)
+    def _wrapper(*args, **kwargs):
+        if not is_installed():
+            raise RuntimeError('pyserini required to use pyterrier.anserini. `pip install pyserini` and try again.')
+        if not pt.java.started():
+            pt.java.init()
+        return fn(*args, **kwargs)
+
+    return _wrapper
 
 
 J = pt.java.JavaClasses({

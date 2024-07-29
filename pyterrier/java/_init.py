@@ -1,7 +1,7 @@
 import os
 from warnings import warn
 from functools import wraps
-from typing import Dict, Any, Tuple, Callable
+from typing import Dict, Any, Tuple, Callable, Optional, Union
 from copy import deepcopy
 import pyterrier as pt
 import pyterrier.java.config
@@ -86,38 +86,53 @@ def started() -> bool:
     return _started
 
 
-def required(raise_on_not_started: bool = False) -> Callable:
+def required(fn: Optional[Callable] = None) -> Union[Callable, bool]:
     """
-    Wraps a function that requires the Java Virtual Machine to be started before running. If the JVM has not yet
-    been started, it runs pt.java.init() or raises an error, depending on the value of raise_on_not_started.
+    Requires the Java Virtual Machine to be started. If the JVM has not yet been started, it runs pt.java.init().
+
+    Can be used as either a standalone function or a function decorator.
     """
-    def _required(fn: Callable) -> Callable:
-        @wraps(fn)
-        def _wrapper(*args, **kwargs):
-            if not started():
-                if raise_on_not_started:
-                    raise RuntimeError(f'You need to call pt.java.init() required before you can call {fn}')
-                else:
-                    init()
-            return fn(*args, **kwargs)
-        return _wrapper
-    return _required
+    if fn is None:
+        return required(pt.utils.noop)()
+
+    @wraps(fn)
+    def _wrapper(*args, **kwargs):
+        if not started():
+            init()
+        return fn(*args, **kwargs)
+    return _wrapper
 
 
+def required_raise(fn: Optional[Callable] = None) -> Union[Callable, bool]:
+    """
+    Similar to `pt.java.required`, but raises an error if called before pt.java.init().
+    """
+    if fn is None:
+        return required_raise(pt.utils.noop)()
 
-def before_init() -> Callable:
+    @wraps(fn)
+    def _wrapper(*args, **kwargs):
+        if not started():
+            raise RuntimeError(f'You need to call pt.java.init() required before you can call {fn}')
+        return fn(*args, **kwargs)
+    return _wrapper
+
+
+def before_init(fn: Optional[Callable] = None) -> Union[Callable, bool]:
     """
-    Wraps a function that can only be run before the Java Virtual Machine has started. If the JVM has already started,
-    an error is raised.
+    If the JVM has already started, an error is raised.
+
+    Can be used as either a standalone function or a function decorator.
     """
-    def _before_init(fn: Callable) -> Callable:
-        @wraps(fn)
-        def _wrapper(*args, **kwargs):
-            if started():
-                raise RuntimeError(f'You need to call pt.java.init() required before you can call {fn}')
-            return fn(*args, **kwargs)
-        return _wrapper
-    return _before_init
+    if fn is None:
+        return before_init(pt.utils.noop)()
+
+    @wraps(fn)
+    def _wrapper(*args, **kwargs):
+        if started():
+            raise RuntimeError(f'You need to call pt.java.init() required before you can call {fn}')
+        return fn(*args, **kwargs)
+    return _wrapper
 
 
 def parallel_init(started: bool, configs: Dict[str, Dict[str, Any]]) -> None:
@@ -137,7 +152,7 @@ def parallel_init_args() -> Tuple[bool, Dict[str, Dict[str, Any]]]:
     )
 
 
-@required(raise_on_not_started=True)
+@required_raise
 def autoclass(*args, **kwargs):
     """
     Wraps jnius.autoclass once java has started. Raises an error if called before pt.java.init() is called.
@@ -146,7 +161,7 @@ def autoclass(*args, **kwargs):
     return jnius.autoclass(*args, **kwargs)
 
 
-@required(raise_on_not_started=True)
+@required_raise
 def cast(*args, **kwargs):
     """
     Wraps jnius.cast once java has started. Raises an error if called before pt.java.init() is called.

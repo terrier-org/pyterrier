@@ -1,7 +1,9 @@
+from functools import partial
 from typing import Callable, Any, Dict, Union, Sequence
-from .apply_base import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyGenericTransformer, Transformer
 import numpy.typing as npt
 import pandas as pd
+import pyterrier as pt
+from pyterrier.apply_base import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyGenericTransformer
 
 def _bind(instance, func, as_name=None):
     """
@@ -15,7 +17,7 @@ def _bind(instance, func, as_name=None):
     setattr(instance, as_name, bound_method)
     return bound_method
 
-def query(fn : Callable[[pd.Series], str], *args, **kwargs) -> Transformer:
+def query(fn : Callable[[pd.Series], str], *args, **kwargs) -> pt.Transformer:
     """
         Create a transformer that takes as input a query, and applies a supplied function to compute a new query formulation.
 
@@ -57,7 +59,7 @@ def query(fn : Callable[[pd.Series], str], *args, **kwargs) -> Transformer:
     """
     return ApplyQueryTransformer(fn, *args, **kwargs)
 
-def doc_score(fn : Union[Callable[[pd.Series], float], Callable[[pd.DataFrame], Sequence[float]]], *args, batch_size=None, **kwargs) -> Transformer:
+def doc_score(fn : Union[Callable[[pd.Series], float], Callable[[pd.DataFrame], Sequence[float]]], *args, batch_size=None, **kwargs) -> pt.Transformer:
     """
         Create a transformer that takes as input a ranked documents dataframe, and applies a supplied function to compute a new score.
         Ranks are automatically computed. doc_score() can operate row-wise, or batch-wise, depending on whether batch_size is set.
@@ -88,7 +90,7 @@ def doc_score(fn : Union[Callable[[pd.Series], float], Callable[[pd.DataFrame], 
     """
     return ApplyDocumentScoringTransformer(fn, *args, batch_size=batch_size, **kwargs)
 
-def doc_features(fn : Callable[[pd.Series], npt.NDArray[Any]], *args, **kwargs) -> Transformer:
+def doc_features(fn : Callable[[pd.Series], npt.NDArray[Any]], *args, **kwargs) -> pt.Transformer:
     """
         Create a transformer that takes as input a ranked documents dataframe, and applies the supplied function to each document to compute feature scores. 
 
@@ -117,7 +119,7 @@ def doc_features(fn : Callable[[pd.Series], npt.NDArray[Any]], *args, **kwargs) 
     """
     return ApplyDocFeatureTransformer(fn, *args, **kwargs)
 
-def rename(columns : Dict[str,str], *args, errors='raise', **kwargs) -> Transformer:
+def rename(columns : Dict[str,str], *args, errors='raise', **kwargs) -> pt.Transformer:
     """
         Creates a transformer that renames columns in a dataframe. 
 
@@ -131,7 +133,7 @@ def rename(columns : Dict[str,str], *args, errors='raise', **kwargs) -> Transfor
     """
     return ApplyGenericTransformer(lambda df: df.rename(columns=columns, errors=errors), *args, **kwargs)
 
-def generic(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, batch_size=None, **kwargs) -> Transformer:
+def generic(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, batch_size=None, **kwargs) -> pt.Transformer:
     """
         Create a transformer that changes the input dataframe to another dataframe in an unspecified way.
 
@@ -154,7 +156,7 @@ def generic(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, batch_size=None,
     """
     return ApplyGenericTransformer(fn, *args, batch_size=batch_size, **kwargs)
 
-def by_query(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, batch_size=None, **kwargs) -> Transformer:
+def by_query(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, batch_size=None, **kwargs) -> pt.Transformer:
     """
         As `pt.apply.generic()` except that fn receives a dataframe for one query at at time, rather than all results at once.
         If batch_size is set, fn will receive no more than batch_size documents for any query. The verbose kwargs controls whether
@@ -173,10 +175,9 @@ class _apply:
         _bind(self, lambda self, fn, *args, **kwargs : generic(fn, *args, **kwargs), as_name='generic')
     
     def __getattr__(self, item):
-        from functools import partial
         return partial(generic_apply, item)
 
-def generic_apply(name, *args, drop=False, **kwargs) -> Transformer:
+def generic_apply(name, *args, drop=False, **kwargs) -> pt.Transformer:
     if drop:
         return ApplyGenericTransformer(lambda df : df.drop(name, axis=1), *args, **kwargs) 
     
