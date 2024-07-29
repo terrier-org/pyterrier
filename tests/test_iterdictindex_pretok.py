@@ -84,7 +84,7 @@ class TestIterDictIndexerPreTok(TempDirTestCase):
         if not pt.check_version("5.7") or not pt.check_version("0.0.7", helper=True):
             self.skipTest("Requires Terrier 5.7 and helper 0.0.7")
         
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         # Test both versions: _fifo (for UNIX) and _nofifo (for Windows)
         indexers = [
             pt.index._IterDictIndexer_fifo(self.test_dir, type=index_type, meta=meta, pretokenised=True),
@@ -129,7 +129,7 @@ class TestIterDictIndexerPreTok(TempDirTestCase):
             os.mkdir(self.test_dir)
 
     def test_pretok_createindex1_basic(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         from jnius import JavaException
         try:
             self._make_pretok_index(1, IndexingType.CLASSIC)
@@ -138,11 +138,11 @@ class TestIterDictIndexerPreTok(TempDirTestCase):
             raise ja
 
     def test_pretok_createindex2_basic(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_pretok_index(2, IndexingType.CLASSIC)
 
     def test_pretok_createindex1_single_pass(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         from jnius import JavaException
         try:
             self._make_pretok_index(1, IndexingType.SINGLEPASS)
@@ -151,7 +151,7 @@ class TestIterDictIndexerPreTok(TempDirTestCase):
             raise ja
 
     def test_pretok_createindex2_single_pass(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         from jnius import JavaException
         try:
             self._make_pretok_index(2, IndexingType.SINGLEPASS)

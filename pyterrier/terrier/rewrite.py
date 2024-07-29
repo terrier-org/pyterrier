@@ -98,8 +98,7 @@ def reset() -> pt.Transformer:
             fullranker = firststage >> pt.rewrite.reset() >> secondstage
 
     """
-    from .model import pop_queries
-    return pt.apply.generic(lambda topics: pop_queries(topics))
+    return pt.apply.generic(lambda topics: pt.model.pop_queries(topics))
 
 class SDM(pt.Transformer):
     '''
@@ -125,8 +124,7 @@ class SDM(pt.Transformer):
 
     def transform(self, topics_and_res):
         results = []
-        from .model import ranked_documents_to_queries, push_queries
-        queries = ranked_documents_to_queries(topics_and_res)
+        queries = pt.model.ranked_documents_to_queries(topics_and_res)
 
         # instantiate the DependenceModelPreProcess, specifying a proximity model if specified
         sdm = pt.terrier.J.DependenceModelPreProcess() if self.prox_model is None else pt.terrier.J.DependenceModelPreProcess(self.prox_model)
@@ -164,7 +162,7 @@ class SDM(pt.Transformer):
             results.append([qid, new_query])
         new_queries = pd.DataFrame(results, columns=["qid", "query"])
         # restore any other columns, e.g. put back docs if we are re-ranking
-        return new_queries.merge(push_queries(topics_and_res, inplace=True) , on="qid")
+        return new_queries.merge(pt.model.push_queries(topics_and_res, inplace=True) , on="qid")
 
 class SequentialDependence(SDM):
     '''
@@ -285,8 +283,7 @@ class QueryExpansion(pt.Transformer):
 
         results = []
 
-        from .model import push_queries, ranked_documents_to_queries
-        queries = ranked_documents_to_queries(topics_and_res)
+        queries = pt.model.ranked_documents_to_queries(topics_and_res)
         #queries = topics_and_res[query_columns(topics_and_res, qid=True)].dropna(axis=0, subset=query_columns(topics_and_res, qid=False)).drop_duplicates()
                 
         for row in pt.tqdm(queries.itertuples(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
@@ -317,7 +314,7 @@ class QueryExpansion(pt.Transformer):
             new_query = new_query[:-1]
             results.append([qid, new_query])
         new_queries = pd.DataFrame(results, columns=["qid", "query"])
-        return push_queries(queries, inplace=True).merge(new_queries, on="qid")
+        return pt.model.push_queries(queries, inplace=True).merge(new_queries, on="qid")
 
 class DFRQueryExpansion(QueryExpansion):
 
@@ -485,14 +482,13 @@ class _StashResults(pt.Transformer):
         self.clear = clear
 
     def transform(self, topics_and_res: pd.DataFrame) -> pd.DataFrame:
-        from .model import document_columns, query_columns
         if "stashed_results_0" in topics_and_res.columns:
             raise ValueError("Cannot apply pt.rewrite.stash_results() more than once")
-        doc_cols = document_columns(topics_and_res)
+        doc_cols = pt.model.document_columns(topics_and_res)
         
         rtr =  []
         if self.clear:
-            query_cols = query_columns(topics_and_res)            
+            query_cols = pt.model.query_columns(topics_and_res)            
             for qid, groupDf in topics_and_res.groupby("qid"):
                 documentsDF = groupDf[doc_cols]
                 queryDf = groupDf[query_cols].iloc[0]
@@ -519,8 +515,7 @@ class _ResetResults(pt.Transformer):
     def transform(self, topics_with_saved_docs : pd.DataFrame) -> pd.DataFrame:
         if "stashed_results_0" not in topics_with_saved_docs.columns:
             raise ValueError("Cannot apply pt.rewrite.reset_results() without pt.rewrite.stash_results() - column stashed_results_0 not found")
-        from .model import query_columns
-        query_cols = query_columns(topics_with_saved_docs)
+        query_cols = pt.model.query_columns(topics_with_saved_docs)
         rtr = []
         for row in topics_with_saved_docs.itertuples():
             docsdf = pd.DataFrame.from_records(row.stashed_results_0)
@@ -585,15 +580,13 @@ class _LinearRewriteMix(pt.Transformer):
             row["query_1"])
 
     def transform(self, topics_and_res):
-        from .model import push_queries
-        
         fn = None
         if self.format == "terrierql":
             fn = self._terrierql
         elif self.format == "matchopql":
             fn = self._matchopql
 
-        newDF = push_queries(topics_and_res)
+        newDF = pt.model.push_queries(topics_and_res)
         newDF["query"] = newDF.apply(fn, axis=1)
         return newDF
 

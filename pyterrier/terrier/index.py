@@ -58,7 +58,6 @@ def _java_post_init(jnius):
             self.pyiterator = pyiterator
             self.hasnext = True
             self.lastdoc = None
-            import pyterrier as pt
             self.tr57 = not pt.check_version("5.8")
 
         @staticmethod 
@@ -108,8 +107,7 @@ def _java_post_init(jnius):
             assert isinstance(collection, pt.java.autoclass("org.terrier.indexing.MultiDocumentFileCollection"))
             self.collection = collection
             size = self.collection.FilesToProcess.size()
-            from . import tqdm
-            self.pbar = tqdm(total=size, unit="files")
+            self.pbar = pt.tqdm(total=size, unit="files")
             self.last = -1
         
         @jnius.java_method('()Z')
@@ -220,8 +218,7 @@ def _java_post_init(jnius):
         def __init__(self, collection, total):
             super(TQDMSizeCollection, self).__init__()
             self.collection = collection
-            from . import tqdm
-            self.pbar = tqdm(total=total, unit="documents")
+            self.pbar = pt.tqdm(total=total, unit="documents")
         
         @jnius.java_method('()Z')
         def nextDocument(self):
@@ -518,8 +515,7 @@ class TerrierStopwords(Enum):
         if this == TerrierStopwords.terrier:
             termpipelines.append('Stopwords')
         if this == TerrierStopwords.custom:
-            from . import check_version
-            assert check_version("5.8"), "Terrier 5.8 required"
+            assert pt.check_version("5.8"), "Terrier 5.8 required"
             assert stopword_list is not None, "expected to receive a stopword list"
 
             stopword_list_esc = [t.replace(",", "\\,") for t in stopword_list ]
@@ -907,8 +903,7 @@ class _BaseIterDictIndexer(TerrierIndexer, pt.Indexer):
         self.meta_reverse = meta_reverse
         self.pretokenised = pretokenised
         if self.pretokenised:
-            from pyterrier import check_version
-            assert check_version(5.7), "Terrier too old, this requires 5.7"
+            assert pt.check_version(5.7), "Terrier too old, this requires 5.7"
             # we disable stemming and stopwords for pretokenised indices
             self.stemmer = None
             self.stopwords = None
@@ -1032,8 +1027,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
             collectionIterator = FlatJSONDocumentIterator(self._filter_iterable(it, fields))
             javaDocCollection = pt.java.autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
             # remove once 5.7 is now the minimum version
-            from . import check_version
-            indexer.index(javaDocCollection if check_version("5.7") else [javaDocCollection])
+            indexer.index(javaDocCollection if pt.check_version("5.7") else [javaDocCollection])
             global lastdoc
             lastdoc = None
             self.index_called = True
@@ -1044,12 +1038,11 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
             index = indexer.getIndex()
             indexref = index.getIndexRef()
         else:
-            from . import IndexFactory
             indexref = pt.terrier.J.IndexRef.of(self.index_dir + "/data.properties")
             if len(self.cleanup_hooks) > 0:
                 sindex = pt.java.autoclass("org.terrier.structures.Index")
                 sindex.setIndexLoadingProfileAsRetrieval(False)
-                index = IndexFactory.of(indexref)
+                index = pt.terrier.IndexFactory.of(indexref)
                 for hook in self.cleanup_hooks:
                     hook(self, index)
                 sindex.setIndexLoadingProfileAsRetrieval(True)
@@ -1133,13 +1126,12 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
                 ParallelIndexer.buildParallel(j_collections, self.index_dir, Indexer, Merger)
             
         indexref = None
-        from . import IndexFactory
         indexref = pt.terrier.J.IndexRef.of(self.index_dir + "/data.properties")
         
         if len(self.cleanup_hooks) > 0:
             sindex = pt.java.autoclass("org.terrier.structures.Index")
             sindex.setIndexLoadingProfileAsRetrieval(False)
-            index = IndexFactory.of(indexref)
+            index = pt.terrier.IndexFactory.of(indexref)
             sindex.setIndexLoadingProfileAsRetrieval(True)
 
             for hook in self.cleanup_hooks:
@@ -1291,8 +1283,7 @@ class FilesIndexer(TerrierIndexer):
         
         simpleColl = pt.terrier.J.SimpleFileCollection(asList, False)
         # remove once 5.7 is now the minimum version
-        from . import check_version
-        index.index(simpleColl if check_version("5.7") else [simpleColl])
+        index.index(simpleColl if pt.check_version("5.7") else [simpleColl])
         global lastdoc
         lastdoc = None
         self.index_called = True

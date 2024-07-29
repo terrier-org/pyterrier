@@ -488,7 +488,7 @@ class TextIndexProcessor(pt.Transformer):
 
     def transform(self, topics_and_res):
         from pyterrier import DFIndexer, IndexFactory
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         documents = topics_and_res[["docno", self.body_attr]].drop_duplicates(subset="docno")
         indexref = DFIndexer(None, type=IndexingType.MEMORY, verbose=self.verbose).index(documents[self.body_attr], documents["docno"])
         docno2docid = { docno:id for id, docno in enumerate(documents["docno"]) }

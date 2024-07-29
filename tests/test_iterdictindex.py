@@ -18,7 +18,7 @@ class TestIterDictIndexer(TempDirTestCase):
         return indexref
 
     def _make_check_index(self, n, index_type, fields=('text',), meta=('docno', 'url', 'title')):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         # Test both versions: _fifo (for UNIX) and _nofifo (for Windows)
         indexers = [
             pt.index._IterDictIndexer_fifo(self.test_dir, type=index_type, meta=meta),
@@ -93,61 +93,61 @@ class TestIterDictIndexer(TempDirTestCase):
         self.assertFalse(jIter1.hasNext())
 
     def test_createindex1(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(1, IndexingType.CLASSIC)
 
     def test_createindex2(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(2, IndexingType.CLASSIC)
 
     def test_createindex3(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(3, IndexingType.CLASSIC)
 
     def test_createindex1_single_pass(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(1, IndexingType.SINGLEPASS)
 
     def test_createindex2_single_pass(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(2, IndexingType.SINGLEPASS)
 
     def test_createindex3_single_pass(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(3, IndexingType.SINGLEPASS)
 
     # Issue #43
 
     # def test_createindex3_memory(self):
-    #     from pyterrier.index import IndexingType
+    #     from pyterrier.terrier.index import IndexingType
     #     self._make_check_index(3, IndexingType.MEMORY)
 
     # def test_createindex1_2fields_memory(self):
-    #     from pyterrier.index import IndexingType
+    #     from pyterrier.terrier.index import IndexingType
     #     self._make_check_index(1, IndexingType.MEMORY, fields=['text', 'title'])
 
     def test_createindex1_2fields(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(1, IndexingType.CLASSIC, fields=['text', 'title'])
 
     def test_createindex2_2fields(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(2, IndexingType.CLASSIC, fields=['text', 'title'])
 
     def test_createindex3_2fields(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(3, IndexingType.CLASSIC, fields=['text', 'title'])
 
     def test_createindex1_single_pass_2fields(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(1, IndexingType.SINGLEPASS, fields=['text', 'title'])
 
     def test_createindex2_single_pass_2fields(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(2, IndexingType.SINGLEPASS, fields=['text', 'title'])
 
     def test_createindex3_single_pass_2fields(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(3, IndexingType.SINGLEPASS, fields=['text', 'title'])
 
     def test_meta_init(self):
