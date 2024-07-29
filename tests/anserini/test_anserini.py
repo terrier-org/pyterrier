@@ -6,12 +6,9 @@ ANSERINI_VERSION="0.22.0"
 class AnseriniTestCase(unittest.TestCase):
 
     def skip_pyserini(self):
-        try:
-            import pyserini.setup
-            pt.anserini._init_anserini()
-        except BaseException as e:
+        if not pt.anserini.is_installed():
             if os.environ.get("ANSERINI_TESTING", None) is not None:
-                raise e
+                raise RuntimeError('pyserini not installed')
             else:
                 self.skipTest("Test disabled due to lack of Pyserini")
 

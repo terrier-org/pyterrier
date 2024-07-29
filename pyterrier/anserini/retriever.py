@@ -1,53 +1,15 @@
-from .model import coerce_queries_dataframe
-
-from pyterrier.terrier.retriever import BatchRetrieveBase
 from warnings import warn
 import pandas as pd
-from . import tqdm
-
-anserini_monkey=False
-def _init_anserini():
-    global anserini_monkey
-    if anserini_monkey:
-        return
-
-    # jnius monkypatching
-    import jnius_config
-    anserini_found = False
-    for j in jnius_config.get_classpath():
-        if "anserini" in j:
-            anserini_found = True
-            break
-    assert anserini_found, 'Anserini jar not found: you should start PyTerrier, e.g. with '\
-        + 'pt.init(boot_packages=["io.anserini:anserini:0.22.0:fatjar"])'
-    import pyserini.setup
-    pyserini.setup.configure_classpath = lambda x: x
-    jnius_config.set_classpath = lambda x: x
-    anserini_monkey = True
-    return
-
-    #this is the Anserini early rank cutoff rule
-    from matchpy import Wildcard, ReplacementRule, Pattern
-    from .transformer import RankCutoffTransformer, rewrite_rules
-    x = Wildcard.dot('x')
-    _brAnserini = Wildcard.symbol('_brAnserini', AnseriniBatchRetrieve)
-
-    def set_k(_brAnserini, x):
-        _brAnserini.k = int(x.value)
-        return _brAnserini
-
-    rewrite_rules.append(ReplacementRule(
-            Pattern(RankCutoffTransformer(_brAnserini, x) ),
-            set_k
-    ))
+import pyterrier as pt
+from pyterrier.anserini.java import required
 
 
-
-class AnseriniBatchRetrieve(BatchRetrieveBase):
+class AnseriniBatchRetrieve(pt.Transformer):
     """
-        Allows retrieval from an Anserini index. To use this class, PyTerrier should have been started using `pt.init(boot_packages=["io.anserini:anserini:0.22.0:fatjar"])`.
+        Allows retrieval from an Anserini index. To use this class, you must first enable anserini using `pt.anserini.enable()`.
     """
-    def __init__(self, index_location, k=1000, wmodel="BM25", **kwargs):
+    @required()
+    def __init__(self, index_location, k=1000, wmodel="BM25", verbose=False):
         """
             Construct an AnseriniBatchRetrieve retrieve from pyserini.search.lucene.LuceneSearcher. 
 
@@ -61,33 +23,26 @@ class AnseriniBatchRetrieve(BatchRetrieveBase):
                  *  `"TFIDF"` - Lucene's `ClassicSimilarity <https://lucene.apache.org/core/8_1_0/core/org/apache/lucene/search/similarities/ClassicSimilarity.html>`_.
                 k(int): number of results to return. Default is 1000.
         """
-        super().__init__(kwargs)
         self.index_location = index_location
         self.k = k
-        _init_anserini()
+        self.wmodel = wmodel
+        self.verbose = verbose
         from pyserini.search.lucene import LuceneSearcher
         self.searcher = LuceneSearcher(index_location)
-        self.wmodel = wmodel
         self._setsimilarty(wmodel)
 
     def __reduce__(self):
         return (
             self.__class__,
-            (self.index_location, self.k, self.wmodel),
+            (self.index_location, self.k, self.wmodel, self.verbose),
             self.__getstate__()
         )
 
     def __getstate__(self): 
-        return  {
-                'k' : self.k, 
-                'wmodel' : self.wmodel, 
-                'index_location' : self.index_location,
-                }
+        return  {}
 
     def __setstate__(self, d): 
-        self.k = d["k"]
-        self.wmodel = d["wmodel"]
-        self.index_location = d["index_location"]
+        pass
 
     def _setsimilarty(self, wmodel):
         if wmodel == "BM25":
@@ -95,19 +50,17 @@ class AnseriniBatchRetrieve(BatchRetrieveBase):
         elif wmodel == "QLD":
             self.searcher.object.set_qld(1000.0)
         elif wmodel == "TFIDF":
-            from jnius import autoclass
-            self.searcher.object.similarty = autoclass("org.apache.lucene.search.similarities.ClassicSimilarity")()
+            self.searcher.object.similarty = pt.anserini.J.ClassicSimilarity()
         else:
             raise ValueError("wmodel %s not support in AnseriniBatchRetrieve" % wmodel) 
 
     def _getsimilarty(self, wmodel):
-        from jnius import autoclass
         if wmodel == "BM25":
-            return autoclass("org.apache.lucene.search.similarities.BM25Similarity")(0.9, 0.4)#(self.searcher.object.bm25_k1, self.searcher.object.bm25_b)
+            return pt.anserini.J.BM25Similarity(0.9, 0.4)#(self.searcher.object.bm25_k1, self.searcher.object.bm25_b)
         elif wmodel == "QLD":
-            return autoclass("org.apache.lucene.search.similarities.LMDirichletSimilarity")(1000.0)# (self.searcher.object.ql_mu)
+            return pt.anserini.J.LMDirichletSimilarity(1000.0)# (self.searcher.object.ql_mu)
         elif wmodel == "TFIDF":
-            return autoclass("org.apache.lucene.search.similarities.ClassicSimilarity")()
+            return pt.anserini.J.ClassicSimilarity()
         else:
             raise ValueError("wmodel %s not support in AnseriniBatchRetrieve" % wmodel) 
 
@@ -130,19 +83,18 @@ class AnseriniBatchRetrieve(BatchRetrieveBase):
         results=[]
         if not isinstance(queries, pd.DataFrame):
             warn(".transform() should be passed a dataframe. Use .search() to execute a single query.", DeprecationWarning, 2)
-            queries=coerce_queries_dataframe(queries)
+            queries=pt.model.coerce_queries_dataframe(queries)
         docno_provided = "docno" in queries.columns
         docid_provided = "docid" in queries.columns
         if docid_provided and not docno_provided:
             raise KeyError("Anserini doesnt expose Lucene's internal docids, you need the docnos")
         if docno_provided: #we are re-ranking
-            from . import autoclass
-            indexreaderutils = autoclass("io.anserini.index.IndexReaderUtils")
+            indexreaderutils = pt.anserini.J.IndexReaderUtils
             indexreader = self.searcher.object.reader
             rank = 0
             last_qid = None
             sim = self._getsimilarty(self.wmodel)
-            for row in tqdm(queries.itertuples(), desc=self.name, total=queries.shape[0], unit="d") if self.verbose else queries.itertuples():
+            for row in pt.tqdm(queries.itertuples(), desc=self.name, total=queries.shape[0], unit="d") if self.verbose else queries.itertuples():
                 qid = str(row.qid)
                 query = row.query
                 docno = row.docno
@@ -153,7 +105,7 @@ class AnseriniBatchRetrieve(BatchRetrieveBase):
                 results.append([qid, query, docno, rank, score])
 
         else: #we are searching, no candidate set provided
-            for row in tqdm(queries.itertuples(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
+            for row in pt.tqdm(queries.itertuples(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
                 rank = 0
                 qid = str(row.qid)
                 query = row.query

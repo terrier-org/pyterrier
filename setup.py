@@ -73,12 +73,14 @@ setup(
     entry_points={
         'pyterrier.java.pre_init': [
             'terrier = pyterrier.terrier.java:_pre_init',
+            'anserini = pyterrier.anserini.java:_pre_init',
         ],
         'pyterrier.java.post_init': [
             'core    = pyterrier.java._init:_post_init',
             'terrier = pyterrier.terrier.java:_post_init',
             'index   = pyterrier.index:_java_post_init',
             'rewrite = pyterrier.rewrite:_java_post_init',
+            'anserini = pyterrier.anserini.java:_post_init',
         ],
     },
     install_requires=requirements,

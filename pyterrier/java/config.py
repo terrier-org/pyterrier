@@ -11,7 +11,7 @@ class Configuration:
         return self()[key]
 
     def set(self, key, value):
-        self()(**{key: value})
+        self(**{key: value})
 
     def append(self, key, value):
         res = self.get(key)

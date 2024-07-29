@@ -124,3 +124,7 @@ def entry_points(group: str) -> Tuple[EntryPoint, ...]:
 
 def is_windows() -> bool:
     return platform.system() == 'Windows'
+
+
+def noop(*args, **kwargs):
+    pass

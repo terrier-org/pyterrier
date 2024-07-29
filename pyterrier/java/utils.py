@@ -85,7 +85,7 @@ def add_jar(jar_path):
 def add_package(org_name: str = None, package_name: str = None, version: str = None, file_type='jar'):
     if version is None or version == 'snapshot':
         version = mavenresolver.latest_version_num(org_name, package_name)
-    file_name = mavenresolver.downloadfile(org_name, package_name, version, pt.io.pyterrier_home(), file_type)
+    file_name = mavenresolver.get_package_jar(org_name, package_name, version, pt.io.pyterrier_home(), file_type)
     add_jar(file_name)
 
 

@@ -56,9 +56,9 @@ def _pre_init(jnius_config):
     # "snapshot" means use Jitpack.io to get a build of the current
     # 5.x branch from Github - see https://jitpack.io/#terrier-org/terrier-core/5.x-SNAPSHOT
     if terrier_version == "snapshot":
-        trJar = pt.java.mavenresolver.downloadfile("com.github.terrier-org.terrier-core", "terrier-assemblies", "5.x-SNAPSHOT", pt.io.pyterrier_home(), "jar-with-dependencies", force_download=cfg['force_download'])
+        trJar = pt.java.mavenresolver.get_package_jar("com.github.terrier-org.terrier-core", "terrier-assemblies", "5.x-SNAPSHOT", pt.io.pyterrier_home(), "jar-with-dependencies", force_download=cfg['force_download'])
     else:
-        trJar = pt.java.mavenresolver.downloadfile(TERRIER_PKG, "terrier-assemblies", terrier_version, pt.io.pyterrier_home(), "jar-with-dependencies")
+        trJar = pt.java.mavenresolver.get_package_jar(TERRIER_PKG, "terrier-assemblies", terrier_version, pt.io.pyterrier_home(), "jar-with-dependencies")
     pt.java.add_jar(trJar)
 
     # now the helper classes

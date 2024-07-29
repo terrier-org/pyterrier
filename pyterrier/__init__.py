@@ -13,9 +13,10 @@ from pyterrier.java import started, redirect_stdouterr # for backward compat, ma
 from pyterrier import terrier
 from pyterrier.terrier import BatchRetrieve, TerrierRetrieve, FeaturesBatchRetrieve, IndexFactory, set_property, set_properties, run
 
+from pyterrier import anserini
+
 from tqdm.auto import tqdm
 
-from . import anserini
 from . import cache
 from . import debug
 from . import index

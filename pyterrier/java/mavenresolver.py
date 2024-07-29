@@ -11,7 +11,7 @@ MAVEN_BASE_URL = "https://repo1.maven.org/maven2/"
 JITPACK_BASE_URL = "https://jitpack.io/"
 
 # obtain a file from maven
-def downloadfile(orgName, packageName, version, file_path, artifact="jar", force_download=False):
+def get_package_jar(orgName, packageName, version, file_path, artifact="jar", force_download=False):
     orgName = orgName.replace(".", "/")
     suffix = ""
     ext = "jar"
