@@ -1,15 +1,15 @@
-import pyterrier as pt
 from pyterrier.datasets import IRDSDataset
 import more_itertools
 from collections import defaultdict
 import re
-from pyterrier.model import add_ranks
-import pandas as pd
 import numpy as np
+import pandas as pd
 from typing import List, Union
 from warnings import warn
+import pyterrier as pt
 
 
+@pt.java.required
 def get_text(
         indexlike, 
         metadata : Union[str,List[str]] = "body", 
@@ -33,9 +33,8 @@ def get_text(
             >> pt.text.scorer(wmodel="DPH") )
 
     """
-    import pyterrier as pt
-    JIR = pt.autoclass('org.terrier.querying.IndexRef')
-    JI = pt.autoclass('org.terrier.structures.Index')
+    JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
+    JI = pt.java.autoclass('org.terrier.structures.Index')
 
     if isinstance(metadata, str):
         metadata = [metadata]
@@ -81,7 +80,6 @@ def _add_text_terrier_metaindex(index, metadata):
         docids = res.docid.values.tolist()
         # indexed by docid then keys
         allmeta = metaindex.getItems(metadata, docids)
-        import numpy as np
         # get transpose to make easier for insertion back into dataframe?
         allmeta = np.array(allmeta).T
         for i, k in enumerate(metadata):
@@ -303,7 +301,6 @@ def snippets(
         retr_pipe = br >> pt.text.snippets(psg_scorer)
 
     """
-    import pyterrier as pt
     tsp = (
         pt.apply.rename({'qid' : 'oldqid'}) 
         >> pt.apply.qid(lambda row: row['oldqid'] + '-' + row['docno']) 
@@ -313,7 +310,6 @@ def snippets(
     )
 
     def _qbsjoin(docres):
-        import pandas as pd
         if len(docres) == 0:
             docres[summary_attr] = pd.Series(dtype='str')
             return docres     
@@ -360,19 +356,17 @@ class DePassager(pt.Transformer):
 
         if self.agg == 'mean':
             rtr = topics_and_res.groupby(['qid', 'olddocno'])['score'].mean().reset_index().rename(columns={'olddocno' : 'docno'})
-            from .model import query_columns
             #add query columns back
-            rtr = rtr.merge(topics_and_res[query_columns(topics_and_res)].drop_duplicates(), on='qid')
+            rtr = rtr.merge(topics_and_res[pt.model.query_columns(topics_and_res)].drop_duplicates(), on='qid')
 
         if self.agg == 'kmaxavg':
             rtr = topics_and_res.groupby(['qid', 'olddocno'])['score'].apply(lambda ser: ser.nlargest(self.K).mean()).reset_index().rename(columns={'olddocno' : 'docno'})
-            from .model import query_columns
             #add query columns back
-            rtr = rtr.merge(topics_and_res[query_columns(topics_and_res)].drop_duplicates(), on='qid')
+            rtr = rtr.merge(topics_and_res[pt.model.query_columns(topics_and_res)].drop_duplicates(), on='qid')
 
         if "docid" in rtr.columns:
             rtr = rtr.drop(columns=['docid'])
-        rtr = add_ranks(rtr)
+        rtr = pt.model.add_ranks(rtr)
         return rtr
 
 class KMaxAvgPassage(DePassager):
@@ -480,8 +474,7 @@ class SlidingWindowPassager(pt.Transformer):
         if len(df) == 0:
             return pd.DataFrame(columns=['qid', 'query', 'docno', self.text_attr, 'score', 'rank'])
     
-        from pyterrier import tqdm
-        with tqdm('passsaging', total=len(df), desc='passaging', leave=False) as pbar:
+        with pt.tqdm('passsaging', total=len(df), desc='passaging', leave=False) as pbar:
             for index, row in df.iterrows():
                 pbar.update(1)
                 qid = row['qid']
