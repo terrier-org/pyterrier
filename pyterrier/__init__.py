@@ -11,7 +11,7 @@ from pyterrier import java
 from pyterrier.java import started, redirect_stdouterr # for backward compat, maybe remove/deprecate some day?
 
 from pyterrier import terrier
-from pyterrier.terrier import BatchRetrieve, TerrierRetrieve, FeaturesBatchRetrieve, IndexFactory, set_property, set_properties, run
+from pyterrier.terrier import BatchRetrieve, TerrierRetrieve, FeaturesBatchRetrieve, IndexFactory, set_property, set_properties, run, rewrite, index, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, IndexingType, TerrierStemmer, TerrierStopwords, TerrierTokeniser
 
 from pyterrier import anserini
 
@@ -19,7 +19,6 @@ from tqdm.auto import tqdm
 
 from . import cache
 from . import debug
-from . import index
 from . import io
 from . import measures
 from . import model
@@ -27,12 +26,10 @@ from . import new
 from . import ltr
 from . import parallel
 from . import pipelines
-from . import rewrite
 from . import text
 from . import transformer
 from .datasets import get_dataset, find_datasets, list_datasets
 
-from .index import Indexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, IndexingType, TerrierStemmer, TerrierStopwords, TerrierTokeniser
 from .pipelines import Experiment, GridScan, GridSearch, KFoldGridSearch, Evaluate
 
 

@@ -332,4 +332,30 @@ J = pt.java.JavaClasses({
     'IndexFactory': 'org.terrier.structures.IndexFactory',
     'MultiIndex': 'org.terrier.realtime.multi.MultiIndex',
     'CLITool': 'org.terrier.applications.CLITool',
+    'ApplyTermPipeline': 'org.terrier.querying.ApplyTermPipeline',
+    'ManagerFactory': 'org.terrier.querying.ManagerFactory',
+    'Request': 'org.terrier.querying.Request',
+
+    # Indexing
+    'TaggedDocument': 'org.terrier.indexing.TaggedDocument',
+    'FlatJSONDocument': 'org.terrier.indexing.FlatJSONDocument',
+    'Tokeniser': 'org.terrier.indexing.tokenisation.Tokeniser',
+    'TRECCollection': 'org.terrier.indexing.TRECCollection',
+    'SimpleFileCollection': 'org.terrier.indexing.SimpleFileCollection',
+    'BasicIndexer': 'org.terrier.structures.indexing.classical.BasicIndexer',
+    'BlockIndexer': 'org.terrier.structures.indexing.classical.BlockIndexer',
+    'BasicSinglePassIndexer': 'org.terrier.structures.indexing.singlepass.BasicSinglePassIndexer',
+    'BlockSinglePassIndexer': 'org.terrier.structures.indexing.singlepass.BlockSinglePassIndexer',
+    'BasicMemoryIndexer': 'org.terrier.realtime.memory.MemoryIndexer" if pt.check_version("5.7") else "org.terrier.python.MemoryIndexer',
+    'Collection': 'org.terrier.indexing.Collection',
+    'StructureMerger': 'org.terrier.structures.merging.StructureMerger',
+    'BlockStructureMerger': 'org.terrier.structures.merging.BlockStructureMerger',
+
+    # PRF
+    'TerrierQLParser': 'org.terrier.querying.TerrierQLParser',
+    'TerrierQLToMatchingQueryTerms': 'org.terrier.querying.TerrierQLToMatchingQueryTerms',
+    'QueryResultSet': 'org.terrier.matching.QueryResultSet',
+    'DependenceModelPreProcess': 'org.terrier.querying.DependenceModelPreProcess',
+    'RM3': 'org.terrier.querying.RM3',
+    'AxiomaticQE': 'org.terrier.querying.AxiomaticQE',
 })

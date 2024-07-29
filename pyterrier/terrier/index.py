@@ -4,7 +4,6 @@ This file contains all the indexers.
 
 from enum import Enum
 import pandas as pd
-from . import Indexer
 import os
 import enum
 import json
@@ -20,26 +19,12 @@ from typing import List, Dict, Union, Any
 import more_itertools
 import pyterrier as pt
 
-StringReader = None
-HashMap = None
-TaggedDocument = None
-FlatJSONDocument = None
-Tokeniser = None
-TRECCollection = None
-SimpleFileCollection = None
-BasicIndexer = None
-BlockIndexer = None
-Collection = None
-BasicSinglePassIndexer = None
-BlockSinglePassIndexer = None
-BasicMemoryIndexer = None
-Arrays = None
-Array = None
-ApplicationSetup = None
-Properties = None
-CLITool = None
-StructureMerger = None
-BlockStructureMerger = None
+
+# TODO: ensure functions are properly marked up with @pt.java.required
+# TODO: some stuff doesn't seem like they belong here, like TerrierTokeniser and TerrierStopwords. Move this out?
+
+
+# These classes are only defined after pt.java.init()
 DocListIterator = None
 PythonListIterator = None
 FlatJSONDocumentIterator = None
@@ -47,66 +32,24 @@ TQDMCollection = None
 TQDMSizeCollection = None
 
 # for backward compatibility
-class IterDictIndexerBase(Indexer):
+class IterDictIndexerBase(pt.Indexer):
     @deprecated(version="0.9", reason="Use pt.Indexer instead of IterDictIndexerBase")
     def __init__(self, *args, **kwargs):
-        super(Indexer, self).__init__(*args, **kwargs)
+        super(pt.Indexer, self).__init__(*args, **kwargs)
 
 # lastdoc ensures that a Document instance from a Collection is not GCd before Java has used it.
-lastdoc=None
+lastdoc = None
 
 def _java_post_init(jnius):
-    autoclass = pt.java.autoclass
-    global StringReader
-    global HashMap
-    global TaggedDocument
-    global FlatJSONDocument
-    global Tokeniser
-    global TRECCollection
-    global SimpleFileCollection
-    global BasicIndexer
-    global BlockIndexer
-    global BasicSinglePassIndexer
-    global BlockSinglePassIndexer
-    global BasicMemoryIndexer
-    global Collection
-    global Arrays
-    global Array
-    global ApplicationSetup
-    global Properties
-    global CLITool
-    global StructureMerger
-    global BlockStructureMerger
     global DocListIterator
     global PythonListIterator
     global FlatJSONDocumentIterator
     global TQDMCollection
     global TQDMSizeCollection
 
-    StringReader = autoclass("java.io.StringReader")
-    HashMap = autoclass("java.util.HashMap")
-    TaggedDocument = autoclass("org.terrier.indexing.TaggedDocument")
-    FlatJSONDocument = autoclass("org.terrier.indexing.FlatJSONDocument")
-    Tokeniser = autoclass("org.terrier.indexing.tokenisation.Tokeniser")
-    TRECCollection = autoclass("org.terrier.indexing.TRECCollection")
-    SimpleFileCollection = autoclass("org.terrier.indexing.SimpleFileCollection")
-    BasicIndexer = autoclass("org.terrier.structures.indexing.classical.BasicIndexer")
-    BlockIndexer = autoclass("org.terrier.structures.indexing.classical.BlockIndexer")
-    BasicSinglePassIndexer = autoclass("org.terrier.structures.indexing.singlepass.BasicSinglePassIndexer")
-    BlockSinglePassIndexer = autoclass("org.terrier.structures.indexing.singlepass.BlockSinglePassIndexer")
-    BasicMemoryIndexer = autoclass("org.terrier.realtime.memory.MemoryIndexer" if pt.check_version("5.7") else "org.terrier.python.MemoryIndexer")
-    Collection = autoclass("org.terrier.indexing.Collection")
-    Arrays = autoclass("java.util.Arrays")
-    Array = autoclass('java.lang.reflect.Array')
-    ApplicationSetup = autoclass('org.terrier.utility.ApplicationSetup')
-    Properties = autoclass('java.util.Properties')
-    CLITool = autoclass("org.terrier.applications.CLITool")
-    StructureMerger = autoclass("org.terrier.structures.merging.StructureMerger")
-    BlockStructureMerger = autoclass("org.terrier.structures.merging.BlockStructureMerger")
-
     class DocListIterator(jnius.PythonJavaClass):
-        dpl_class = autoclass("org.terrier.structures.indexing.DocumentPostingList")
-        tuple_class = autoclass("org.terrier.structures.collections.MapEntry")
+        dpl_class = pt.java.autoclass("org.terrier.structures.indexing.DocumentPostingList")
+        tuple_class = pt.java.autoclass("org.terrier.structures.collections.MapEntry")
         __javainterfaces__ = [
             'java/util/Iterator',
         ]
@@ -120,7 +63,7 @@ def _java_post_init(jnius):
 
         @staticmethod 
         def pyDictToMap(a_dict): #returns Map<String,String>
-            rtr = HashMap()
+            rtr = pt.java.J.HashMap()
             for k,v in a_dict.items():
                 rtr.put(k, v)
             return rtr
@@ -162,7 +105,7 @@ def _java_post_init(jnius):
 
         def __init__(self, collection):
             super(TQDMCollection, self).__init__()
-            assert isinstance(collection, autoclass("org.terrier.indexing.MultiDocumentFileCollection"))
+            assert isinstance(collection, pt.java.autoclass("org.terrier.indexing.MultiDocumentFileCollection"))
             self.collection = collection
             size = self.collection.FilesToProcess.size()
             from . import tqdm
@@ -267,7 +210,7 @@ def _java_post_init(jnius):
             self._next = next(self._it, StopIteration)
             if result is not StopIteration:
                 global lastdoc
-                lastdoc = FlatJSONDocument(json.dumps(result))
+                lastdoc = pt.terrier.J.FlatJSONDocument(json.dumps(result))
                 return lastdoc
             return None
 
@@ -321,10 +264,10 @@ def createCollection(files_path : List[str], coll_type : str = 'trec', props = {
     else:
         collectionClzName = coll_type
     collectionClzName = collectionClzName.split(",")
-    _props = HashMap()
+    _props = pt.java.J.HashMap()
     for k, v in props.items():
         _props[k] = v
-    ApplicationSetup.getProperties().putAll(_props)
+    pt.terrier.J.ApplicationSetup.getProperties().putAll(_props)
     cls_string = pt.java.autoclass("java.lang.String")._class
     cls_list = pt.java.autoclass("java.util.List")._class
     if len(files_path) == 0:
@@ -336,6 +279,7 @@ def createCollection(files_path : List[str], coll_type : str = 'trec', props = {
         [asList, pt.java.autoclass("org.terrier.utility.TagSet").TREC_DOC_TAGS, "", ""])
     return colObj
 
+@pt.java.required
 def treccollection2textgen(
         files : List[str], 
         meta : List[str] = ["docno"], 
@@ -408,13 +352,13 @@ def _TaggedDocumentSetup(
     abstract_names=meta_tags.keys()
     abstract_lengths=[str(meta[name]) for name in abstract_names]
 
-    ApplicationSetup.setProperty("TaggedDocument.abstracts", ",".join(abstract_names))
+    pt.terrier.J.ApplicationSetup.setProperty("TaggedDocument.abstracts", ",".join(abstract_names))
     # The tags from which to save the text. ELSE is special tag name, which means anything not consumed by other tags.
-    ApplicationSetup.setProperty("TaggedDocument.abstracts.tags", ",".join(abstract_tags))
+    pt.terrier.J.ApplicationSetup.setProperty("TaggedDocument.abstracts.tags", ",".join(abstract_tags))
     # The max lengths of the abstracts. Abstracts will be truncated to this length. Defaults to empty.
-    ApplicationSetup.setProperty("TaggedDocument.abstracts.lengths", ",".join(abstract_lengths))
+    pt.terrier.J.ApplicationSetup.setProperty("TaggedDocument.abstracts.lengths", ",".join(abstract_lengths))
     # Should the tags from which we create abstracts be case-sensitive
-    ApplicationSetup.setProperty("TaggedDocument.abstracts.tags.casesensitive", "false")
+    pt.terrier.J.ApplicationSetup.setProperty("TaggedDocument.abstracts.tags.casesensitive", "false")
 
 
 def _FileDocumentSetup(   
@@ -437,8 +381,8 @@ def _FileDocumentSetup(
 
     abstract_length = meta[meta_name_for_abstract]
 
-    ApplicationSetup.setProperty("FileDocument.abstract", meta_name_for_abstract)
-    ApplicationSetup.setProperty("FileDocument.abstract.length", str(abstract_length))
+    pt.terrier.J.ApplicationSetup.setProperty("FileDocument.abstract", meta_name_for_abstract)
+    pt.terrier.J.ApplicationSetup.setProperty("FileDocument.abstract.length", str(abstract_length))
 
 
 
@@ -450,9 +394,9 @@ def createAsList(files_path : Union[str, List[str]]):
         Created Java List
     """
     if isinstance(files_path, str):
-        asList = Arrays.asList(files_path)
+        asList = pt.java.J.Arrays.asList(files_path)
     elif isinstance(files_path, list):
-        asList = Arrays.asList(*files_path)
+        asList = pt.java.J.Arrays.asList(*files_path)
     else:
         raise ValueError(f"{files_path}: {type(files_path)} must be a List[str] or str")
     return asList
@@ -684,7 +628,7 @@ class TerrierIndexer:
         self.stemmer = TerrierStemmer._to_obj(stemmer)
         self.stopwords, self.stopword_list = TerrierStopwords._to_obj(stopwords)
         self.tokeniser = TerrierTokeniser._to_obj(tokeniser)
-        self.properties = Properties()
+        self.properties = pt.java.J.Properties()
         self.setProperties(**self.default_properties)
         self.overwrite = overwrite
         self.verbose = verbose
@@ -739,7 +683,7 @@ class TerrierIndexer:
         """
         
         Indexer, _ = self.indexerAndMergerClasses()
-        if Indexer is BasicMemoryIndexer:
+        if Indexer is pt.terrier.J.BasicMemoryIndexer:
             index = Indexer()
         else:
             index = Indexer(self.index_dir, "data")
@@ -781,28 +725,28 @@ class TerrierIndexer:
             self.properties['tokeniser'] = TerrierTokeniser._to_class(self.tokeniser)
 
         # inform terrier of all properties
-        ApplicationSetup.getProperties().putAll(self.properties)
+        pt.terrier.J.ApplicationSetup.getProperties().putAll(self.properties)
 
         # now create the indexers 
         if self.type is IndexingType.SINGLEPASS:
             if self.blocks:
-                Indexer = BlockSinglePassIndexer
-                Merger = BlockStructureMerger
+                Indexer = pt.terrier.J.BlockSinglePassIndexer
+                Merger = pt.terrier.J.BlockStructureMerger
             else:
-                Indexer = BasicSinglePassIndexer
-                Merger = StructureMerger
+                Indexer = pt.terrier.J.BasicSinglePassIndexer
+                Merger = pt.terrier.J.StructureMerger
         elif self.type is IndexingType.CLASSIC:
             if self.blocks:
-                Indexer = BlockIndexer
-                Merger = BlockStructureMerger
+                Indexer = pt.terrier.J.BlockIndexer
+                Merger = pt.terrier.J.BlockStructureMerger
             else:
-                Indexer = BasicIndexer
-                Merger = StructureMerger
+                Indexer = pt.terrier.J.BasicIndexer
+                Merger = pt.terrier.J.StructureMerger
         elif self.type is IndexingType.MEMORY:
             if self.blocks:
                 raise Exception("Memory indexing with positions not yet implemented")
             else:
-                Indexer = BasicMemoryIndexer
+                Indexer = pt.terrier.J.BasicMemoryIndexer
                 Merger = None
         else:
             raise Exception("Unknown indexer type")
@@ -816,7 +760,7 @@ class TerrierIndexer:
         Note:
             Does not work with notebooks at the moment
         """
-        CLITool.main(["indexstats", "-I" + self.path])
+        pt.terrier.J.CLITool.main(["indexstats", "-I" + self.path])
 
     def getIndexUtil(self, util):
         """
@@ -841,7 +785,7 @@ class TerrierIndexer:
         """
         if not util.startswith("-"):
             util = "-" + util
-        CLITool.main(["indexutil", "-I" + self.path, util])
+        pt.terrier.J.CLITool.main(["indexutil", "-I" + self.path, util])
 
 
 class DFIndexUtils:
@@ -884,12 +828,12 @@ class DFIndexUtils:
         def convertDoc(text_row, meta_column):
             if text_row is None:
                 text_row = ""
-            hashmap = HashMap()
+            hashmap = pt.java.J.HashMap()
             for column, value in meta_column[1].items():
                 if value is None:
                     value = ""
                 hashmap.put(column, value)
-            return TaggedDocument(StringReader(text_row), hashmap, Tokeniser.getTokeniser())
+            return pt.terrier.J.TaggedDocument(pt.java.J.StringReader(text_row), hashmap, pt.terrier.J.Tokeniser.getTokeniser())
             
         df = pd.DataFrame.from_dict(all_metadata, orient="columns")
         lengths = DFIndexUtils.get_column_lengths(df)
@@ -947,7 +891,7 @@ class DFIndexer(TerrierIndexer):
         return pt.terrier.J.IndexRef.of(self.index_dir + "/data.properties")
 
 
-class _BaseIterDictIndexer(TerrierIndexer, Indexer):
+class _BaseIterDictIndexer(TerrierIndexer, pt.Indexer):
     def __init__(self, index_path, *args, meta = {'docno' : 20}, meta_reverse=['docno'], pretokenised=False, threads=1, **kwargs):
         """
         
@@ -956,7 +900,7 @@ class _BaseIterDictIndexer(TerrierIndexer, Indexer):
             meta(Dict[str,int]): What metadata for each document to record in the index, and what length to reserve. Metadata fields will be truncated to this length. Defaults to `{"docno" : 20}`.
             meta_reverse(List[str]): What metadata shoudl we be able to resolve back to a docid. Defaults to `["docno"]`,      
         """
-        Indexer.__init__(self)
+        pt.Indexer.__init__(self)
         TerrierIndexer.__init__(self, index_path, *args, **kwargs)
         self.threads = threads
         self.meta = meta
@@ -1149,7 +1093,7 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
         Indexer, Merger = self.indexerAndMergerClasses()
 
         assert self.threads > 0, "threads must be positive"
-        if Indexer is BasicMemoryIndexer:
+        if Indexer is pt.terrier.J.BasicMemoryIndexer:
             assert self.threads == 1, 'IterDictIndexer does not support multiple threads for IndexingType.MEMORY'
         if self.threads > 1:
             warn('Using multiple threads results in a non-deterministic ordering of document in the index. For deterministic behavior, use threads=1')
@@ -1172,7 +1116,7 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
             threading.Thread(target=self._write_fifos, args=(self._filter_iterable(it, fields), fifos), daemon=True).start()
 
             # Different process for memory indexer (still taking advantage of faster fifos)
-            if Indexer is BasicMemoryIndexer:
+            if Indexer is pt.terrier.J.BasicMemoryIndexer:
                 indexer = Indexer()
                 if self.pretokenised:
                     indexer.indexDocuments(j_collections)
@@ -1345,7 +1289,7 @@ class FilesIndexer(TerrierIndexer):
         _TaggedDocumentSetup(self.meta, self.meta_tags)
         _FileDocumentSetup(self.meta, self.meta_tags)
         
-        simpleColl = SimpleFileCollection(asList, False)
+        simpleColl = pt.terrier.J.SimpleFileCollection(asList, False)
         # remove once 5.7 is now the minimum version
         from . import check_version
         index.index(simpleColl if check_version("5.7") else [simpleColl])

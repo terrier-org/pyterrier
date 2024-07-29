@@ -144,4 +144,8 @@ J = JavaClasses({
     'Properties': 'java.util.Properties',
     'PTUtils': 'org.terrier.python.PTUtils',
     'System': 'java.lang.System',
+    'StringReader': 'java.io.StringReader',
+    'HashMap': 'java.util.HashMap',
+    'Arrays': 'java.util.Arrays',
+    'Array': 'java.lang.reflect.Array',
 })
