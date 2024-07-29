@@ -386,6 +386,17 @@ J = pt.java.JavaClasses({
     'Collection': 'org.terrier.indexing.Collection',
     'StructureMerger': 'org.terrier.structures.merging.StructureMerger',
     'BlockStructureMerger': 'org.terrier.structures.merging.BlockStructureMerger',
+    'DocumentPostingList': 'org.terrier.structures.indexing.DocumentPostingList',
+    'MapEntry': 'org.terrier.structures.collections.MapEntry',
+    'MultiDocumentFileCollection': 'org.terrier.indexing.MultiDocumentFileCollection',
+    'CollectionFactory': 'org.terrier.indexing.CollectionFactory',
+    'TagSet': 'org.terrier.utility.TagSet',
+    'CollectionFromDocumentIterator': 'org.terrier.python.CollectionFromDocumentIterator',
+    'PTUtils': 'org.terrier.python.PTUtils',
+    'Index': 'org.terrier.structures.Index',
+    'JsonlDocumentIterator': 'org.terrier.python.JsonlDocumentIterator',
+    'JsonlPretokenisedIterator': 'org.terrier.python.JsonlPretokenisedIterator',
+    'ParallelIndexer': 'org.terrier.python.ParallelIndexer',
 
     # PRF
     'TerrierQLParser': 'org.terrier.querying.TerrierQLParser',

@@ -1,11 +1,9 @@
 """
 This file contains all the indexers.
 """
-
 from enum import Enum
 import pandas as pd
 import os
-import enum
 import json
 import tempfile
 import contextlib
@@ -50,8 +48,6 @@ def _java_post_init(jnius):
     global TQDMSizeCollection
 
     class DocListIterator(jnius.PythonJavaClass):
-        dpl_class = pt.java.autoclass("org.terrier.structures.indexing.DocumentPostingList")
-        tuple_class = pt.java.autoclass("org.terrier.structures.collections.MapEntry")
         __javainterfaces__ = [
             'java/util/Iterator',
         ]
@@ -70,7 +66,7 @@ def _java_post_init(jnius):
             return rtr
 
         def pyDictToMapEntry(self,doc_dict : Dict[str,Any]): #returns Map.Entry<Map<String,String>, DocumentPostingList>>
-            dpl = DocListIterator.dpl_class()
+            dpl = pt.terrier.J.DocumentPostingList()
             # this works around a bug in the counting of doc lengths in Tr 5.7
             if self.tr57:
                 for t, tf in doc_dict["toks"].items():
@@ -82,7 +78,7 @@ def _java_post_init(jnius):
             
             # we cant make the toks column into the metaindex as it isnt a string. remove it.
             del doc_dict["toks"]
-            return DocListIterator.tuple_class(DocListIterator.pyDictToMap(doc_dict), dpl)
+            return pt.terrier.J.MapEntry(DocListIterator.pyDictToMap(doc_dict), dpl)
 
         @jnius.java_method('()Z')
         def hasNext(self):
@@ -106,7 +102,7 @@ def _java_post_init(jnius):
 
         def __init__(self, collection):
             super(TQDMCollection, self).__init__()
-            assert isinstance(collection, pt.java.autoclass("org.terrier.indexing.MultiDocumentFileCollection"))
+            assert isinstance(collection, pt.terrier.J.MultiDocumentFileCollection)
             self.collection = collection
             size = self.collection.FilesToProcess.size()
             self.pbar = pt.tqdm(total=size, unit="files")
@@ -267,15 +263,15 @@ def createCollection(files_path : List[str], coll_type : str = 'trec', props = {
     for k, v in props.items():
         _props[k] = v
     pt.terrier.J.ApplicationSetup.getProperties().putAll(_props)
-    cls_string = pt.java.autoclass("java.lang.String")._class
-    cls_list = pt.java.autoclass("java.util.List")._class
+    cls_string = pt.java.J.String._class
+    cls_list = pt.java.J.List._class
     if len(files_path) == 0:
         raise ValueError("list files_path cannot be empty")
     asList = createAsList(files_path)
-    colObj = pt.java.autoclass("org.terrier.indexing.CollectionFactory").loadCollections(
+    colObj = pt.terrier.J.CollectionFactory.loadCollections(
         collectionClzName,
         [cls_list, cls_string, cls_string, cls_string],
-        [asList, pt.java.autoclass("org.terrier.utility.TagSet").TREC_DOC_TAGS, "", ""])
+        [asList, pt.terrier.J.TagSet.TREC_DOC_TAGS, "", ""])
     return colObj
 
 @pt.java.required
@@ -401,7 +397,7 @@ def createAsList(files_path : Union[str, List[str]]):
     return asList
 
 # Using enum class create enumerations
-class IndexingType(enum.Enum):
+class IndexingType(Enum):
     """
         This enum is used to determine the type of index built by Terrier. The default is CLASSIC. For more information,
         see the relevant Terrier `indexer <https://terrier-core.readthedocs.io/en/latest/indexer_details.html>`_
@@ -708,11 +704,11 @@ class DFIndexer(TerrierIndexer):
         self.meta = meta_lengths
         
         # make a Collection class for Terrier
-        javaDocCollection = pt.java.autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
+        javaDocCollection = pt.terrier.J.CollectionFromDocumentIterator(collectionIterator)
         if self.verbose:
             javaDocCollection = TQDMSizeCollection(javaDocCollection, len(text)) 
         index = self.createIndexer()
-        index.index(pt.java.autoclass("org.terrier.python.PTUtils").makeCollection(javaDocCollection))
+        index.index(pt.terrier.J.PTUtils.makeCollection(javaDocCollection))
         global lastdoc
         lastdoc = None
         javaDocCollection.close()
@@ -865,7 +861,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
 
             # we need to prevent collectionIterator from being GCd
             collectionIterator = FlatJSONDocumentIterator(self._filter_iterable(it, fields))
-            javaDocCollection = pt.java.autoclass("org.terrier.python.CollectionFromDocumentIterator")(collectionIterator)
+            javaDocCollection = pt.terrier.J.CollectionFromDocumentIterator(collectionIterator)
             # remove once 5.7 is now the minimum version
             indexer.index(javaDocCollection if pt.terrier.check_version("5.7") else [javaDocCollection])
             global lastdoc
@@ -880,7 +876,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
         else:
             indexref = pt.terrier.J.IndexRef.of(self.index_dir + "/data.properties")
             if len(self.cleanup_hooks) > 0:
-                sindex = pt.java.autoclass("org.terrier.structures.Index")
+                sindex = pt.terrier.J.Index
                 sindex.setIndexLoadingProfileAsRetrieval(False)
                 index = pt.terrier.IndexFactory.of(indexref)
                 for hook in self.cleanup_hooks:
@@ -907,11 +903,11 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
             meta(list[str]): keys to be considered as metdata
             meta_lengths(list[int]): length of metadata, defaults to 512 characters
         """
-        CollectionFromDocumentIterator = pt.java.autoclass("org.terrier.python.CollectionFromDocumentIterator")
-        JsonlDocumentIterator = pt.java.autoclass("org.terrier.python.JsonlDocumentIterator")
+        CollectionFromDocumentIterator = pt.terrier.J.CollectionFromDocumentIterator
+        JsonlDocumentIterator = pt.terrier.J.JsonlDocumentIterator
         if self.pretokenised:
-            JsonlTokenisedIterator = pt.java.autoclass("org.terrier.python.JsonlPretokenisedIterator")
-        ParallelIndexer = pt.java.autoclass("org.terrier.python.ParallelIndexer")
+            JsonlTokenisedIterator = pt.terrier.J.JsonlPretokenisedIterator
+        ParallelIndexer = pt.terrier.J.ParallelIndexer
 
         if meta is not None:
             warn('specifying meta and meta_lengths in IterDictIndexer.index() is deprecated, use constructor instead', DeprecationWarning, 2)
@@ -969,7 +965,7 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
         indexref = pt.terrier.J.IndexRef.of(self.index_dir + "/data.properties")
         
         if len(self.cleanup_hooks) > 0:
-            sindex = pt.java.autoclass("org.terrier.structures.Index")
+            sindex = pt.terrier.J.Index
             sindex.setIndexLoadingProfileAsRetrieval(False)
             index = pt.terrier.IndexFactory.of(indexref)
             sindex.setIndexLoadingProfileAsRetrieval(True)
@@ -1068,14 +1064,14 @@ class TRECCollectionIndexer(TerrierIndexer):
         _TaggedDocumentSetup(self.meta, self.meta_tags)
 
         colObj = createCollection(files_path, self.collection)
-        if self.verbose and isinstance(colObj, pt.java.autoclass("org.terrier.indexing.MultiDocumentFileCollection")):
+        if self.verbose and isinstance(colObj, pt.terrier.J.MultiDocumentFileCollection):
             colObj = pt.java.cast("org.terrier.indexing.MultiDocumentFileCollection", colObj)
             colObj = TQDMCollection(colObj)
         # remove once 5.7 is now the minimum version
         if pt.terrier.check_version("5.7"):
             index.index(colObj)
         else:
-            index.index(pt.java.autoclass("org.terrier.python.PTUtils").makeCollection(colObj))
+            index.index(pt.terrier.J.PTUtils.makeCollection(colObj))
         global lastdoc
         lastdoc = None
         colObj.close()

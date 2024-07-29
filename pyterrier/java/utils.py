@@ -151,4 +151,6 @@ J = JavaClasses({
     'HashMap': 'java.util.HashMap',
     'Arrays': 'java.util.Arrays',
     'Array': 'java.lang.reflect.Array',
+    'String': 'java.lang.String',
+    'List': 'java.util.List',
 })
