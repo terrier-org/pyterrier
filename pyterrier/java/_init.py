@@ -51,22 +51,20 @@ def init() -> None:
         _pre_init = entry_point.load()
         _pre_init(jnius_config)
 
-    cfg = pt.java.configure()
+    if pt.java.configure['mem'] is not None:
+        jnius_config.add_options('-Xmx' + str(pt.java.configure['mem']) + 'm')
 
-    if cfg['mem'] is not None:
-        jnius_config.add_options('-Xmx' + str(cfg['mem']) + 'm')
-
-    for opt in cfg['options']:
+    for opt in pt.java.configure['options']:
         jnius_config.add_options(opt)
 
-    for jar in cfg['jars']:
+    for jar in pt.java.configure['jars']:
         jnius_config.add_classpath(jar)
 
     import jnius
     _started = True
 
-    pt.java.set_log_level(cfg['log_level'])
-    if cfg['redirect_io']:
+    pt.java.set_log_level(pt.java.configure['log_level'])
+    if pt.java.configure['redirect_io']:
         pt.java.redirect_stdouterr()
 
     java_version = pt.java.J.System.getProperty("java.version")

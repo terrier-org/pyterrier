@@ -6,8 +6,6 @@ TERRIER_PKG = "org.terrier"
 
 _SAVED_FNS = []
 
-_resolved_helper_version = None
-
 _properties = None
 
 configure = pt.java.config.register('pt.terrier.java', {
@@ -20,12 +18,12 @@ configure = pt.java.config.register('pt.terrier.java', {
 
 @pt.java.before_init
 def set_terrier_version(version: Optional[str] = None):
-    configure(terrier_version=version)
+    configure['terrier_version'] = version
 
 
 @pt.java.before_init
 def set_helper_version(version: Optional[str] = None):
-    configure(helper_version=version)
+    configure['helper_version'] = version
 
 
 @pt.java.before_init
@@ -35,7 +33,6 @@ def enable_prf(version: Optional[str] = None):
 
 
 def _pre_init(jnius_config):
-    global _resolved_helper_version
     """
     Download Terrier's jar file for the given version at the given file_path
     Called by pt.init()
@@ -46,27 +43,27 @@ def _pre_init(jnius_config):
         helper_version(str): Which version of the helper - None is latest
     """
     # If version is not specified, find newest and download it
-    cfg = configure()
-    if cfg['terrier_version'] is None:
+    if configure['terrier_version'] is None:
         terrier_version = pt.java.mavenresolver.latest_version_num(TERRIER_PKG, "terrier-assemblies")
     else:
-        terrier_version = str(cfg['terrier_version']) # just in case its a float
+        terrier_version = str(configure['terrier_version']) # just in case its a float
+    configure['terrier_version'] = terrier_version # save this specific version
 
     # obtain the fat jar from Maven
     # "snapshot" means use Jitpack.io to get a build of the current
     # 5.x branch from Github - see https://jitpack.io/#terrier-org/terrier-core/5.x-SNAPSHOT
     if terrier_version == "snapshot":
-        trJar = pt.java.mavenresolver.get_package_jar("com.github.terrier-org.terrier-core", "terrier-assemblies", "5.x-SNAPSHOT", pt.io.pyterrier_home(), "jar-with-dependencies", force_download=cfg['force_download'])
+        trJar = pt.java.mavenresolver.get_package_jar("com.github.terrier-org.terrier-core", "terrier-assemblies", "5.x-SNAPSHOT", pt.io.pyterrier_home(), "jar-with-dependencies", force_download=configure['force_download'])
     else:
         trJar = pt.java.mavenresolver.get_package_jar(TERRIER_PKG, "terrier-assemblies", terrier_version, pt.io.pyterrier_home(), "jar-with-dependencies")
     pt.java.add_jar(trJar)
 
     # now the helper classes
-    if cfg['helper_version'] is None or cfg['helper_version'] == 'snapshot':
+    if configure['helper_version'] is None or configure['helper_version'] == 'snapshot':
         helper_version = pt.java.mavenresolver.latest_version_num(TERRIER_PKG, "terrier-python-helper")
     else:
-        helper_version = str(cfg['helper_version']) # just in case its a float
-    _resolved_helper_version = helper_version
+        helper_version = str(configure['helper_version']) # just in case its a float
+    configure['helper_version'] = helper_version # save this specific version
     pt.java.add_package(TERRIER_PKG, "terrier-python-helper", helper_version)
 
 
@@ -130,7 +127,7 @@ def _post_init(jnius):
         version_string += f" (built by {J.Version.BUILD_USER} on {J.Version.BUILD_DATE})"
 
     print(f"PyTerrier {pt.__version__} has loaded Terrier {version_string} and "
-          f"terrier-helper {_resolved_helper_version}\n", file=sys.stderr)
+          f"terrier-helper {configure['helper_version']}\n", file=sys.stderr)
 
 
 def _new_indexref(s):

@@ -91,7 +91,7 @@ def add_package(org_name: str = None, package_name: str = None, version: str = N
 
 @before_init
 def set_memory_limit(mem: Optional[float]):
-    configure(mem=mem)
+    configure['mem'] = mem
 
 
 @before_init
@@ -101,7 +101,7 @@ def add_option(option: str):
 
 @before_init
 def set_redirect_io(redirect_io: bool):
-    configure(redirect_io=redirect_io)
+    configure['redirect_io'] = redirect_io
 
 
 def set_log_level(level):
@@ -117,7 +117,7 @@ def set_log_level(level):
         Unlike other java settings, this can be changed either before or after init() has been called.
     """
     if not started():
-        configure(log_level=level)
+        configure['log_level'] = level
     else:
         J.PTUtils.setLogLevel(level, None)
 

@@ -8,7 +8,7 @@ class Configuration:
         self.name = name
 
     def get(self, key):
-        return self()[key]
+        return deepcopy(_CONFIGS[self.name][key])
 
     def set(self, key, value):
         self(**{key: value})
@@ -17,6 +17,12 @@ class Configuration:
         res = self.get(key)
         res.append(value)
         self(**{key: res})
+
+    def __getitem__(self, key):
+        return self.get(key)
+
+    def __setitem__(self, key, value):
+        self.set(key, value)
 
     def __call__(self, **settings: Any):
         for key, value in settings.items():

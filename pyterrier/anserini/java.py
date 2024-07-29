@@ -15,11 +15,11 @@ def _pre_init(jnius_config):
         # pyserini not installed, do nothing
         return
 
-    if configure.get('version') is None:
+    if configure['version'] is None:
         jar = _get_pyserini_jar()
     else:
         # download and use the anserini version specified by the user
-        jar = pt.java.mavenresolver.get_package_jar('io.anserini', "anserini", configure.get('version'), 'fatjar')
+        jar = pt.java.mavenresolver.get_package_jar('io.anserini', "anserini", configure['version'], 'fatjar')
 
     if jar is None:
         raise RuntimeError('Could not find anserini jar')
@@ -63,7 +63,7 @@ def _get_pyserini_jar() -> Optional[str]:
 
 @pt.java.before_init
 def set_version(version: str):
-    configure.set('version', version)
+    configure['version'] = version
 
 
 def required(fn: Optional[Callable] = None) -> Union[Callable, bool]:
