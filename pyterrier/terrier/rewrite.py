@@ -198,7 +198,7 @@ class QueryExpansion(pt.Transformer):
         self.indexref = pt.terrier.retriever._parse_index_like(index_like)
         self.properties = properties
         for k,v in properties.items():
-            pt.ApplicationSetup.setProperty(k, str(v))
+            pt.terrier.J.ApplicationSetup.setProperty(k, str(v))
         self.applytp = pt.terrier.J.ApplyTermPipeline()
         self.fb_terms = fb_terms
         self.fb_docs = fb_docs

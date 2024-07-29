@@ -18,7 +18,7 @@ configure = pt.java.config.register('pt.terrier.java', {
 
 
 @pt.java.before_init
-def set_terrier_version(version: Optional[str] = None):
+def set_version(version: Optional[str] = None):
     configure['terrier_version'] = version
 
 

@@ -119,13 +119,7 @@ class RemoteDataset(Dataset):
         self.password = None
 
     def _configure(self, **kwargs):
-        from os.path import expanduser
-        pt_home = pt.HOME_DIR
-        if pt_home is None:
-            from os.path import expanduser
-            userhome = expanduser("~")
-            pt_home = os.path.join(userhome, ".pyterrier")
-        self.corpus_home = os.path.join(pt_home, "corpora", self.name)
+        self.corpus_home = os.path.join(pt.io.pyterrier_home(), "corpora", self.name)
         if 'user' in kwargs:
             self.user = kwargs['user']
             self.password = kwargs['password']

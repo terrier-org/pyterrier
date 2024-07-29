@@ -24,14 +24,6 @@ def _joblib_with_initializer(p, _f_init, args=None):
     p._backend._workers._initializer = new_init if callable(origin_init) else f_init
     return p
 
-def _pt_init(args):
-    import pyterrier as pt
-    if not pt.started():
-        pt.init(no_download=True, **args)
-    else:
-        from warnings import warn
-        warn("Avoiding reinit of PyTerrier")
-
 
 def _check_ray():
     try:

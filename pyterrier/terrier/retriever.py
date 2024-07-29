@@ -197,7 +197,6 @@ class BatchRetrieve(BatchRetrieveBase):
         """
         super().__init__(kwargs)
         self.indexref = _parse_index_like(index_location)
-        self.appSetup = pt.java.autoclass('org.terrier.utility.ApplicationSetup')
         self.properties = _mergeDicts(BatchRetrieve.default_properties, properties)
         self.concurrentIL = pt.java.autoclass("org.terrier.structures.ConcurrentIndexLoader")
         if pt.terrier.check_version(5.5) and "SimpleDecorateProcess" not in self.properties["querying.processes"]:
@@ -208,7 +207,7 @@ class BatchRetrieve(BatchRetrieveBase):
         self.search_context = {}
 
         for key, value in self.properties.items():
-            self.appSetup.setProperty(str(key), str(value))
+            pt.terrier.J.ApplicationSetup.setProperty(str(key), str(value))
         
         self.controls = _mergeDicts(BatchRetrieve.default_controls, controls)
         if wmodel is not None:
@@ -287,7 +286,7 @@ class BatchRetrieve(BatchRetrieveBase):
         self.search_context = d["context"]
         self.properties.update(d["properties"])
         for key,value in d["properties"].items():
-            self.appSetup.setProperty(key, str(value))
+            pt.terrier.J.ApplicationSetup.setProperty(key, str(value))
 
     def _retrieve_one(self, row, input_results=None, docno_provided=False, docid_provided=False, scores_provided=False):
         rank = FIRST_RANK
@@ -645,7 +644,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         self.wmodel = d["wmodel"]
         self.properties.update(d["properties"])
         for key,value in d["properties"].items():
-            self.appSetup.setProperty(key, str(value))
+            pt.terrier.J.ApplicationSetup.setProperty(key, str(value))
         #TODO consider the context state?
 
     @staticmethod 

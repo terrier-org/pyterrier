@@ -188,7 +188,7 @@ class TestIterDictIndexer(TempDirTestCase):
         self.assertEqual("", index.getIndexProperty("termpipelines", "bla"))
         self.assertTrue("før" in index.getLexicon())
         # restore setting after test
-        pt.ApplicationSetup.setProperty("termpipelines", "Stopwords,PorterStemmer")
+        pt.terrier.J.ApplicationSetup.setProperty("termpipelines", "Stopwords,PorterStemmer")
 
     def test_check_customstops(self):
         if not pt.check_version("5.8"):
@@ -249,7 +249,7 @@ class TestIterDictIndexer(TempDirTestCase):
                 self.assertTrue("r" in index.getLexicon())
 
                 # restore setting after test
-                pt.ApplicationSetup.setProperty("termpipelines", "Stopwords,PorterStemmer")
+                pt.terrier.J.ApplicationSetup.setProperty("termpipelines", "Stopwords,PorterStemmer")
                 self.assertEqual("", index.getIndexProperty("termpipelines", "bla"))
 
     def test_check_weakstemmer(self):
@@ -267,7 +267,7 @@ class TestIterDictIndexer(TempDirTestCase):
                 self.assertEqual(3, index.getDocumentIndex().getDocumentLength(0)) #ran money playing
                 index = pt.cast("org.terrier.structures.IndexOnDisk", index)
                 # restore setting after test
-                pt.ApplicationSetup.setProperty("termpipelines", "Stopwords,PorterStemmer")
+                pt.terrier.J.ApplicationSetup.setProperty("termpipelines", "Stopwords,PorterStemmer")
                 self.assertEqual("Stopwords,WeakPorterStemmer", index.getIndexProperty("termpipelines", "bla"))
 
 if __name__ == "__main__":
