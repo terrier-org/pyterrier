@@ -193,15 +193,15 @@ def extend_classpath(mvnpackages):
         terrier.extend_package(package)
 
 
-# Additional setup performed in a function to avoid polluting the namespace with other imports
+# Additional setup performed in a function to avoid polluting the namespace with other imports like platform
 def _():
-    # apply is an object, not a module, as it also has __get_attr__() implemented
-    from pyterrier.apply import _apply
-    globals()['apply'] = _apply()
-
     # check python version
     import platform
     from packaging.version import Version
     if Version(platform.python_version()) < Version('3.7.0'):
         raise RuntimeError("From PyTerrier 0.8, Python 3.7 minimum is required, you currently have %s" % platform.python_version())
+
+    # apply is an object, not a module, as it also has __get_attr__() implemented
+    from pyterrier.apply import _apply
+    globals()['apply'] = _apply()
 _()

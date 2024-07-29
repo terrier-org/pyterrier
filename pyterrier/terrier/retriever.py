@@ -60,7 +60,7 @@ def _mergeDicts(defaults, settings):
 def _parse_index_like(index_location):
     JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
     JI = pt.java.autoclass('org.terrier.structures.Index')
-    from pyterrier.index import TerrierIndexer
+    from pyterrier.terrier import TerrierIndexer
 
     if isinstance(index_location, JIR):
         return index_location

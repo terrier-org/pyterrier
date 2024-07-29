@@ -4,7 +4,7 @@ from pyterrier.terrier.java import configure, set_terrier_version, set_helper_ve
 from pyterrier.terrier.retriever import BatchRetrieve, FeaturesBatchRetrieve
 from pyterrier.terrier.index_factory import IndexFactory
 from pyterrier.terrier import index
-from pyterrier.terrier.index import FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, IndexingType, TerrierStemmer, TerrierStopwords, TerrierTokeniser
+from pyterrier.terrier.index import TerrierIndexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, IndexingType, TerrierStemmer, TerrierStopwords, TerrierTokeniser
 from pyterrier.terrier import rewrite
 
 TerrierRetrieve = BatchRetrieve # BatchRetrieve is an alias to TerrierRetrieve
@@ -18,7 +18,7 @@ __all__ = [
     'BatchRetrieve', 'TerrierRetrieve', 'FeaturesBatchRetrieve',
 
     # indexing
-    'index', 'FilesIndexer', 'TRECCollectionIndexer', 'DFIndexer', 'DFIndexUtils', 'IterDictIndexer', 'IndexingType', 'TerrierStemmer', 'TerrierStopwords', 'TerrierTokeniser',
+    'index', 'TerrierIndexer', 'FilesIndexer', 'TRECCollectionIndexer', 'DFIndexer', 'DFIndexUtils', 'IterDictIndexer', 'IndexingType', 'TerrierStemmer', 'TerrierStopwords', 'TerrierTokeniser',
 
     # rewriting
     'rewrite',

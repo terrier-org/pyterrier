@@ -346,7 +346,7 @@ J = pt.java.JavaClasses({
     'BlockIndexer': 'org.terrier.structures.indexing.classical.BlockIndexer',
     'BasicSinglePassIndexer': 'org.terrier.structures.indexing.singlepass.BasicSinglePassIndexer',
     'BlockSinglePassIndexer': 'org.terrier.structures.indexing.singlepass.BlockSinglePassIndexer',
-    'BasicMemoryIndexer': 'org.terrier.realtime.memory.MemoryIndexer" if pt.check_version("5.7") else "org.terrier.python.MemoryIndexer',
+    'BasicMemoryIndexer': lambda: 'org.terrier.realtime.memory.MemoryIndexer' if pt.check_version("5.7") else 'org.terrier.python.MemoryIndexer',
     'Collection': 'org.terrier.indexing.Collection',
     'StructureMerger': 'org.terrier.structures.merging.StructureMerger',
     'BlockStructureMerger': 'org.terrier.structures.merging.BlockStructureMerger',

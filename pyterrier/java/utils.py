@@ -135,7 +135,10 @@ class JavaClasses:
         if key not in self._mapping:
             return AttributeError(f'{self} has no attribute {key!r}')
         if key not in self._cache:
-            self._cache[key] = pt.java.autoclass(self._mapping[key])
+            clz = self._mapping[key]
+            if callable(clz):
+                clz = clz()
+            self._cache[key] = pt.java.autoclass(clz)
         return self._cache[key]
 
 
