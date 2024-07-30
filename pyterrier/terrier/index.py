@@ -631,8 +631,8 @@ class DFIndexUtils:
         meta2len = {k : 1 if math.isnan(l) else l for k, l in meta2len.items()}
         return meta2len
 
-    @pt.java.required
     @staticmethod
+    @pt.java.required
     def create_javaDocIterator(text, *args, **kwargs):
         HashMap = pt.java.J.HashMap
         TaggedDocument = pt.terrier.J.TaggedDocument
