@@ -14,13 +14,14 @@ class AnseriniTestCase(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(AnseriniTestCase, self).__init__(*args, **kwargs)
-        anserini_version = os.environ.get("ANSERINI_VERSION", ANSERINI_VERSION)
-        terrier_version = os.environ.get("TERRIER_VERSION", None)
-        if terrier_version is not None:
-            print("Testing with Terrier version " + terrier_version)
-        if not pt.started():
-            pt.init(version=terrier_version, logging="DEBUG", boot_packages=["io.anserini:anserini:%s:fatjar" % anserini_version])
-        self.here = os.path.dirname(os.path.realpath(__file__))
+        if pt.anserini.is_installed():
+            anserini_version = os.environ.get("ANSERINI_VERSION", ANSERINI_VERSION)
+            terrier_version = os.environ.get("TERRIER_VERSION", None)
+            if terrier_version is not None:
+                print("Testing with Terrier version " + terrier_version)
+            if not pt.started():
+                pt.init(version=terrier_version, logging="DEBUG", boot_packages=["io.anserini:anserini:%s:fatjar" % anserini_version])
+            self.here = os.path.dirname(os.path.realpath(__file__))
 
     def test_anserini_vaswani(self):
         self.skip_pyserini()
