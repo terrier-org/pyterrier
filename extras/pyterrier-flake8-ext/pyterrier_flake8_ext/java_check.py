@@ -7,25 +7,25 @@ class JavaCheck:
     """McCabe cyclomatic complexity checker."""
     name = 'javacheck'
     version = pyterrier_flake8_ext.__version__
-    _code = 'PT100'
-    _error_tmpl = "PT100 {} uses java but is not annotated with @pt.java.required"
+    _missing_anno_tmpl = "PT100 {} uses java but is not annotated with @pt.java.required"
+    _extra_anno_tmpl = "PT101 {} is annotated with @pt.java.required but doesn't use java"
 
     def __init__(self, tree: ast.AST):
         self.tree = tree
 
     def run(self) -> Generator[Tuple[int, int, str, Type[Any]], None, None]:
         yield from self._run(self.tree)
-        # with open('deleteme/x.pkl', 'ab') as fout:
-        #     pickle.dump(self.tree, fout)
-        # print(self.tree)
 
     def _run(self, node: ast.AST, context: List[str] = []) -> Generator[Tuple[int, int, str, Type[Any]], None, None]:
         if isinstance(node, ast.FunctionDef):
-            if not self._has_java_required(node):
-                java_usage = self._uses_java(node)
-                if java_usage:
-                    text = self._error_tmpl.format('.'.join(context + [node.name]))
-                    yield java_usage.lineno, java_usage.col_offset, text, type(self)
+            java_usage = self._uses_java(node)
+            has_java_anno = self._has_java_required(node)
+            if not has_java_anno and java_usage:
+                text = self._missing_anno_tmpl.format('.'.join(context + [node.name]))
+                yield java_usage.lineno, java_usage.col_offset, text, type(self)
+            elif has_java_anno and not java_usage:
+                text = self._extra_anno_tmpl.format('.'.join(context + [node.name]))
+                yield node.lineno, node.col_offset, text, type(self)
 
         if isinstance(node, ast.FunctionDef):
             context = context + [node.name]
