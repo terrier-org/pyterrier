@@ -20,7 +20,7 @@ jobs:
         terrier: ['snapshot'] #'5.3', '5.4-SNAPSHOT', 
         include:
             - os: 'macos-latest'
-              python-version: '3.9'
+              python-version: '3.8'
               java: 11
               terrier: 'snapshot'
 
