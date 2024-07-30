@@ -4,25 +4,7 @@ from typing import List,Union
 from types import FunctionType
 import pyterrier as pt
 from pyterrier.terrier.index import TerrierTokeniser
-
-# TODO: replace _check_terrier_prf with a @pt.terrier.java.required_prf or similar
-# TODO: make sure @pt.java.required on all necessary functions
-
-_terrier_prf_package_loaded = False
-_terrier_prf_message = 'terrier-prf jar not found: you should start PyTerrier with '\
-    + 'pt.init(boot_packages=["com.github.terrierteam:terrier-prf:-SNAPSHOT"])'
-
-def _check_terrier_prf():
-    import jnius_config
-    global _terrier_prf_package_loaded
-    if _terrier_prf_package_loaded:
-        return
-    
-    for j in jnius_config.get_classpath():
-        if "terrier-prf" in j:
-            _terrier_prf_package_loaded = True
-            break
-    assert _terrier_prf_package_loaded, _terrier_prf_message
+from pyterrier.terrier.java import prf_required
 
 @pt.java.required
 def tokenise(tokeniser : Union[str,TerrierTokeniser,FunctionType] = 'english', matchop=False) -> pt.Transformer:
@@ -394,6 +376,7 @@ class RM3(QueryExpansion):
                         )
  
     '''
+    @prf_required
     def __init__(self, *args, fb_terms=10, fb_docs=3, fb_lambda=0.6, **kwargs):
         """
         Args:
@@ -402,7 +385,6 @@ class RM3(QueryExpansion):
             fb_docs(int): number of feedback documents to consider. Terrier's default setting is 3 feedback documents.
             fb_lambda(float): lambda in RM3, i.e. importance of relevance model viz feedback model. Defaults to 0.6.
         """
-        _check_terrier_prf()
         rm = pt.terrier.J.RM3()
         self.fb_lambda = fb_lambda
         kwargs["qeclass"] = rm
@@ -440,6 +422,7 @@ class AxiomaticQE(QueryExpansion):
          - fb_terms(int): number of feedback terms. Defaults to 10
          - fb_docs(int): number of feedback documents. Defaults to 3
     '''
+    @prf_required
     def __init__(self, *args, fb_terms=10, fb_docs=3, **kwargs):
         """
         Args:
@@ -447,7 +430,6 @@ class AxiomaticQE(QueryExpansion):
             fb_terms(int): number of terms to add to the query. Terrier's default setting is 10 expansion terms.
             fb_docs(int): number of feedback documents to consider. Terrier's default setting is 3 feedback documents.
         """
-        _check_terrier_prf()
         rm = pt.terrier.J.AxiomaticQE()
         self.fb_terms = fb_terms
         self.fb_docs = fb_docs

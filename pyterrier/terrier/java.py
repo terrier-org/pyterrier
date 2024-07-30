@@ -1,6 +1,7 @@
 import sys
+from functools import wraps
 from packaging.version import Version
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Callable
 import pyterrier as pt
 
 TERRIER_PKG = "org.terrier"
@@ -14,6 +15,7 @@ configure = pt.java.config.register('pt.terrier.java', {
     'helper_version': None,
     'boot_packages': [],
     'force_download': True,
+    'prf_version': None,
 })
 
 
@@ -28,8 +30,32 @@ def set_helper_version(version: Optional[str] = None):
 
 
 @pt.java.before_init
-def enable_prf(version: Optional[str] = None):
-    pt.java.add_package('com.github.terrierteam', 'terrier-prf', version)
+def enable_prf(version: Optional[str] = '-SNAPSHOT'):
+    configure['prf_version'] = version
+
+
+def prf_required(fn: Optional[Callable] = None) -> Union[Callable, bool]:
+    """
+    Requires prf to be enabled (raises error if not enabled).
+
+    Can be used as either a standalone function or a function/class @decorator. When used as a class decorator, it
+    is applied to all methods defined by the class.
+    """
+    if fn is None: # standalone call
+        return prf_required(pt.utils.noop)()
+
+    if isinstance(fn, type): # wrapping a class
+        for name, value in pt.utils.get_class_methods(fn):
+            setattr(fn, name, prf_required(value))
+        return fn
+
+    else: # wrapping a function
+        @wraps(fn)
+        def _wrapper(*args, **kwargs):
+            if not configure['prf_version']:
+                raise RuntimeError('you need to call pt.terrier.enable_prf() before java is loaded to use this function.')
+            return fn(*args, **kwargs)
+        return _wrapper
 
 
 
@@ -66,6 +92,9 @@ def _pre_init(jnius_config):
         helper_version = str(configure['helper_version']) # just in case its a float
     configure['helper_version'] = helper_version # save this specific version
     pt.java.add_package(TERRIER_PKG, "terrier-python-helper", helper_version)
+
+    if configure['prf_version'] is not None:
+        pt.java.add_package('com.github.terrierteam', 'terrier-prf', configure['prf_version'])
 
 
 @pt.java.required_raise
