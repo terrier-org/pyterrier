@@ -216,8 +216,8 @@ def legacy_init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=Tr
     pt.terrier.set_helper_version(helper_version)
     if tqdm is not None:
         pt.utils.set_tqdm(tqdm)
-
-    # TODO: missing no_download. Is this something like pt.java.set_offline(True)?
+    if no_download:
+        pt.java.mavenresolver.offline()
 
     pt.java.init()
 
