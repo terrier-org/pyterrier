@@ -1,3 +1,4 @@
+import sys
 import inspect
 import os
 from warnings import warn
@@ -124,9 +125,17 @@ def init() -> None:
         raise RuntimeError(f"Pyterrier requires Java 11 or newer, we only found Java version {java_version};"
             + " install a more recent Java, or change os.environ['JAVA_HOME'] to point to the proper Java installation")
 
+    message = []
     for entry_point in pt.utils.entry_points('pyterrier.java.post_init'):
         _post_init = entry_point.load()
-        _post_init(jnius)
+        msg = _post_init(jnius)
+        if msg is None:
+            message.append(entry_point.name)
+        elif msg is False:
+            pass
+        else:
+            message.append(f'{entry_point.name} [{msg}]')
+    sys.stderr.write('Java started with: ' + ', '.join(message) + '\n')
 
 
 def parallel_init(started: bool, configs: Dict[str, Dict[str, Any]]) -> None:

@@ -144,8 +144,7 @@ def _post_init(jnius):
     if "BUILD_DATE" in dir(J.Version):
         version_string += f" (built by {J.Version.BUILD_USER} on {J.Version.BUILD_DATE})"
 
-    print(f"PyTerrier {pt.__version__} has loaded Terrier {version_string} and "
-          f"terrier-helper {configure['helper_version']}\n", file=sys.stderr)
+    return f"version={version_string}, helper_version={configure['helper_version']}"
 
 
 def _new_indexref(s):

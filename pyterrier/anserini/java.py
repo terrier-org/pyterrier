@@ -31,7 +31,7 @@ def _pre_init(jnius_config):
 def _post_init(jnius):
     if not is_installed():
         # pyserini not installed, do nothing
-        return
+        return False
 
     # Temporarily disable the configure_classpath while pyserini is init'd, otherwise it will try to reconfigure jnius
     import pyserini.setup
