@@ -17,7 +17,10 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: pt.java.required checks
+    - name: Install
       run: |
         pip install flake8 ./extras/pyterrier-flake8-ext/
-        flake8 pyterrier --select=PT --show-source --statistics --count
+
+    - name: pt.java.required checks
+      run: |
+        flake8 ./pyterrier --select=PT --show-source --statistics --count
