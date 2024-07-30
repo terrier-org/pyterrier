@@ -68,6 +68,7 @@ def _pre_init(jnius_config):
     pt.java.add_package(TERRIER_PKG, "terrier-python-helper", helper_version)
 
 
+@pt.java.required_raise
 def _post_init(jnius):
     global _properties
 
@@ -135,6 +136,7 @@ def _new_indexref(s):
     return pt.IndexRef.of(s)
 
 
+@pt.java.required
 def _new_wmodel(b):
     return J.Serialization.deserialize(b, J.ApplicationSetup.getClass("org.terrier.matching.models.WeightingModel"))
 
@@ -180,6 +182,7 @@ def _index_ref_reduce(self):
 
 
 # handles the pickling of WeightingModel classes, which are themselves usually Serializable in Java
+@pt.java.required
 def _wmodel_reduce(self):
     serialized = bytes(J.Serialization.serialize(self))
     return (
@@ -202,6 +205,7 @@ def _callable_wmodel_reduce(self):
     )
 
 
+@pt.java.required
 def _index_add(self, other):
     fields_1 = self.getCollectionStatistics().getNumberOfFields()
     fields_2 = self.getCollectionStatistics().getNumberOfFields()
@@ -330,7 +334,6 @@ def version():
     return J.Version.VERSION
 
 
-@pt.java.required
 def check_version(min):
     """
         Returns True iff the underlying Terrier version is no older than the requested version.
@@ -343,7 +346,6 @@ def check_version(min):
     return current_ver >= min
 
 
-@pt.java.required
 def check_helper_version(min):
     """
         Returns True iff the underlying Terrier helper version is no older than the requested version.

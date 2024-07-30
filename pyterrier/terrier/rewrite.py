@@ -24,6 +24,7 @@ def _check_terrier_prf():
             break
     assert _terrier_prf_package_loaded, _terrier_prf_message
 
+@pt.java.required
 def tokenise(tokeniser : Union[str,TerrierTokeniser,FunctionType] = 'english', matchop=False) -> pt.Transformer:
     """
 
@@ -100,6 +101,7 @@ def reset() -> pt.Transformer:
     """
     return pt.apply.generic(lambda topics: pt.model.pop_queries(topics))
 
+@pt.java.required
 class SDM(pt.Transformer):
     '''
         Implements the sequential dependence model, which Terrier supports using its
@@ -110,7 +112,6 @@ class SDM(pt.Transformer):
         The original query is saved in the `"query_0"` column, which can be restored using `pt.rewrite.reset()`.
     '''
 
-    @pt.java.required
     def __init__(self, verbose = 0, remove_stopwords = True, prox_model = None, **kwargs):
         super().__init__(**kwargs)
         self.verbose = 0
@@ -174,7 +175,8 @@ class SequentialDependence(SDM):
         The original query is saved in the `"query_0"` column, which can be restored using `pt.rewrite.reset()`.
     '''
     pass
-    
+
+@pt.java.required
 class QueryExpansion(pt.Transformer):
     '''
         A base class for applying different types of query expansion using Terrier's classes.
@@ -187,7 +189,6 @@ class QueryExpansion(pt.Transformer):
          
     '''
 
-    @pt.java.required
     def __init__(self, index_like, fb_terms=10, fb_docs=3, qeclass="org.terrier.querying.QueryExpansion", verbose=0, properties={}, **kwargs):
         super().__init__(**kwargs)
         self.verbose = verbose
@@ -367,6 +368,7 @@ class KLQueryExpansion(DFRQueryExpansion):
         kwargs["qemodel"] = "KL"
         super().__init__(*args, **kwargs)
 
+@pt.java.required
 class RM3(QueryExpansion):
     '''
         Performs query expansion using RM3 relevance models. RM3 relies on an external Terrier plugin, 
@@ -424,6 +426,7 @@ class RM3(QueryExpansion):
         self.qe.fbDocs = self.fb_docs
         return super().transform(queries_and_docs)
 
+@pt.java.required
 class AxiomaticQE(QueryExpansion):
     '''
         Performs query expansion using axiomatic query expansion. This class relies on an external Terrier plugin, 

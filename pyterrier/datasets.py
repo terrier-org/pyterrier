@@ -365,6 +365,14 @@ class RemoteDataset(Dataset):
         return self.locations['info_url'] if "info_url" in self.locations else None
 
 
+@pt.java.required
+def _pt_tokeniser():
+    tokeniser = pt.terrier.J.Tokenizer.getTokeniser()
+    def pt_tokenise(text):
+        return ' '.join(tokeniser.getTokens(text))
+    return pt_tokenise
+
+
 class IRDSDataset(Dataset):
     def __init__(self, irds_id, defer_load=False):
         self._irds_id = irds_id
@@ -447,11 +455,8 @@ class IRDSDataset(Dataset):
 
         # apply pyterrier tokenisation (otherwise the queries may not play well with batchretrieve)
         if tokenise_query and 'query' in df:
-            pt.java.required() # java is required for this path
-            tokeniser = pt.terrier.J.Tokenizer.getTokeniser()
-            def pt_tokenise(text):
-                return ' '.join(tokeniser.getTokens(text))
-            df['query'] = df['query'].apply(pt_tokenise)
+            tokeniser = _pt_tokeniser()
+            df['query'] = df['query'].apply(tokeniser)
         return df
 
     def get_topics_lang(self):

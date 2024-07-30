@@ -2,6 +2,7 @@ from typing import Union, List
 import pyterrier as pt
 
 
+@pt.java.required
 class IndexFactory:
     """
     The ``of()`` method of this factory class allows to load a Terrier `Index <http://terrier.org/docs/current/javadoc/org/terrier/structures/Index.html>`_.

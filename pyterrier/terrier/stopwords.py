@@ -23,12 +23,14 @@ class TerrierStopwords(Enum):
             return this, None
         
     @staticmethod
+    @pt.java.required
     def _indexing_config(this, stopword_list : Union[List[str], None], termpipelines : List[str], properties : Dict[str,str], hooks : List):
         if this is None or this == TerrierStopwords.none:
             pass
         if this == TerrierStopwords.terrier:
             termpipelines.append('Stopwords')
         if this == TerrierStopwords.custom:
+            cst = pt.java.cast
             assert pt.terrier.check_version("5.8"), "Terrier 5.8 required"
             assert stopword_list is not None, "expected to receive a stopword list"
 
@@ -39,7 +41,7 @@ class TerrierStopwords(Enum):
 
             # this hook updates the index's properties to handle the python stopwords list
             def _hook(pyindexer, index):
-                pindex = pt.java.cast("org.terrier.structures.PropertiesIndex", index)
+                pindex = cst("org.terrier.structures.PropertiesIndex", index)
                 # store the stopwords into the Index's properties
                 pindex.setIndexProperty("pyterrier.stopwords", ",".join(stopword_list_esc))
 

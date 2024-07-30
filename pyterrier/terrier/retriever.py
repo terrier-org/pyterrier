@@ -16,9 +16,11 @@ def _matchop(query):
             return True
     return False
 
+@pt.java.required
 def _function2wmodel(function):
     from jnius import PythonJavaClass, java_method
 
+    @pt.java.required
     class PythonWmodelFunction(PythonJavaClass):
         __javainterfaces__ = ['org/terrier/python/CallableWeightingModel$Callback']
 
@@ -51,6 +53,7 @@ def _mergeDicts(defaults, settings):
         KV.update(settings)
     return KV
 
+@pt.java.required
 def _parse_index_like(index_location):
     JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
     JI = pt.java.autoclass('org.terrier.structures.Index')
@@ -79,7 +82,6 @@ class BatchRetrieveBase(pt.Transformer, Symbol):
     Attributes:
         verbose(bool): If True transform method will display progress
     """
-    @pt.java.required
     def __init__(self, verbose=0, **kwargs):
         super().__init__(kwargs)
         self.verbose = verbose
@@ -113,6 +115,7 @@ def _from_dataset(dataset : Union[str,Dataset],
             kwargs = args
     return clz(indexref, **kwargs)   
                 
+@pt.java.required
 class BatchRetrieve(BatchRetrieveBase):
     """
     Use this class for retrieval by Terrier
@@ -454,7 +457,7 @@ class BatchRetrieve(BatchRetrieveBase):
         self.controls[str(control)] = str(value)
 
 
-
+@pt.java.required
 class TextIndexProcessor(pt.Transformer):
     '''
         Creates a new MemoryIndex based on the contents of documents passed to it.
@@ -533,6 +536,7 @@ class TextIndexProcessor(pt.Transformer):
             raise ValueError("returns attribute should be docs of queries")
         return inner_res
 
+
 class TextScorer(TextIndexProcessor):
     """
         A re-ranker class, which takes the queries and the contents of documents, indexes the contents of the documents using a MemoryIndex, and performs ranking of those documents with respect to the queries.
@@ -574,6 +578,8 @@ class TextScorer(TextIndexProcessor):
     def __init__(self, takes="docs", **kwargs):
         super().__init__(BatchRetrieve, takes=takes, **kwargs)
 
+
+@pt.java.required
 class FeaturesBatchRetrieve(BatchRetrieve):
     """
     Use this class for retrieval with multiple features

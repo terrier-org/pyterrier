@@ -1,5 +1,6 @@
+import inspect
 import sys
-from typing import Callable, Tuple
+from typing import Callable, Tuple, List
 import platform
 from functools import wraps
 from importlib.metadata import EntryPoint
@@ -161,3 +162,20 @@ def set_tqdm(type=None):
     else:
         raise ValueError(f"Unknown tqdm type {type}")
     pt.tqdm.pandas()
+
+
+def get_class_methods(cls) -> List[str]:
+    """
+    Returns methods defined directly by the provided class. This will ignore inherited methods unless they are
+    overridden by this class.
+    """
+    all_attrs = inspect.getmembers(cls, predicate=inspect.isfunction)
+
+    base_attrs = set()
+    for base in cls.__bases__:
+        base_attrs.update(name for name, _ in inspect.getmembers(base, predicate=inspect.isfunction))
+    
+    # Filter out methods that are in base classes and not overridden in the subclass
+    class_methods = [name for name, func in all_attrs if name not in base_attrs or func.__qualname__.split('.')[0] == cls.__name__]
+    
+    return class_methods

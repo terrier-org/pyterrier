@@ -44,6 +44,7 @@ def _java_post_init(jnius):
     global TQDMCollection
     global TQDMSizeCollection
 
+    @pt.java.required
     class DocListIterator(jnius.PythonJavaClass):
         __javainterfaces__ = [
             'java/util/Iterator',
@@ -93,7 +94,7 @@ def _java_post_init(jnius):
             self.lastdoc = self.pyDictToMapEntry(doc_dict)
             return self.lastdoc
             
-
+    @pt.java.required
     class TQDMCollection(jnius.PythonJavaClass):
         __javainterfaces__ = ['org/terrier/indexing/Collection']
 
@@ -174,6 +175,7 @@ def _java_post_init(jnius):
                 lastdoc = [text, meta]
             return lastdoc
 
+    @pt.java.required
     class FlatJSONDocumentIterator(jnius.PythonJavaClass):
         __javainterfaces__ = ['java/util/Iterator']
 
@@ -271,7 +273,7 @@ def createCollection(files_path : List[str], coll_type : str = 'trec', props = {
         [asList, pt.terrier.J.TagSet.TREC_DOC_TAGS, "", ""])
     return colObj
 
-@pt.java.required
+
 def treccollection2textgen(
         files : List[str], 
         meta : List[str] = ["docno"], 
@@ -407,6 +409,7 @@ class IndexingType(Enum):
     MEMORY = 3 #: An in-memory index. No persistent index is created.
 
 
+@pt.java.required
 class TerrierIndexer:
     """
     This is the super class for all of the Terrier-based indexers exposed by PyTerrier. It hosts common configuration
@@ -422,7 +425,6 @@ class TerrierIndexer:
             "trec.collection.class": "TRECCollection",
     }
 
-    @pt.java.required
     def __init__(self, index_path : str, *args, 
             blocks : bool = False, 
             overwrite: bool = False, 
@@ -632,6 +634,10 @@ class DFIndexUtils:
     @pt.java.required
     @staticmethod
     def create_javaDocIterator(text, *args, **kwargs):
+        HashMap = pt.java.J.HashMap
+        TaggedDocument = pt.terrier.J.TaggedDocument
+        StringReader = pt.java.J.StringReader
+        tokeniser = pt.terrier.J.Tokeniser.getTokeniser()
 
         all_metadata = {}
         for i, arg in enumerate(args):
@@ -661,12 +667,12 @@ class DFIndexUtils:
         def convertDoc(text_row, meta_column):
             if text_row is None:
                 text_row = ""
-            hashmap = pt.java.J.HashMap()
+            hashmap = HashMap()
             for column, value in meta_column[1].items():
                 if value is None:
                     value = ""
                 hashmap.put(column, value)
-            return pt.terrier.J.TaggedDocument(pt.java.J.StringReader(text_row), hashmap, pt.terrier.J.Tokeniser.getTokeniser())
+            return TaggedDocument(StringReader(text_row), hashmap, tokeniser)
             
         df = pd.DataFrame.from_dict(all_metadata, orient="columns")
         lengths = DFIndexUtils.get_column_lengths(df)

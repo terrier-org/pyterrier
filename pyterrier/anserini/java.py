@@ -1,4 +1,5 @@
 import os
+import inspect
 from glob import glob
 from typing import Callable, Optional, Union
 from functools import wraps
@@ -68,22 +69,29 @@ def set_version(version: str):
 
 def required(fn: Optional[Callable] = None) -> Union[Callable, bool]:
     """
-    Can act as either a standalone function or a function wrapper.
     Requires pyserini to be installed (raises error if not installed). If the JVM has not yet been started, it runs
     pt.java.init(), too, similar to pt.java.required().
+
+    Can be used as either a standalone function or a function/class @decorator. When used as a class decorator, it
+    is applied to all methods defined by the class.
     """
-    if fn is None:
+    if fn is None: # standalone call
         return required(pt.utils.noop)()
 
-    @wraps(fn)
-    def _wrapper(*args, **kwargs):
-        if not is_installed():
-            raise RuntimeError('pyserini required to use pyterrier.anserini. `pip install pyserini` and try again.')
-        if not pt.java.started():
-            pt.java.init()
-        return fn(*args, **kwargs)
+    if isinstance(fn, type): # wrapping a class
+        for name in pt.utils.get_class_methods(fn):
+            setattr(fn, name, required(getattr(fn, name)))
+        return fn
 
-    return _wrapper
+    else: # wrapping a function
+        @wraps(fn)
+        def _wrapper(*args, **kwargs):
+            if not is_installed():
+                raise RuntimeError('pyserini required to use pyterrier.anserini. `pip install pyserini` and try again.')
+            if not pt.java.started():
+                pt.java.init()
+            return fn(*args, **kwargs)
+        return _wrapper
 
 
 J = pt.java.JavaClasses({

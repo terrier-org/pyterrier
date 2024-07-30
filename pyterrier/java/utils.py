@@ -1,5 +1,5 @@
 import pyterrier as pt
-from pyterrier.java import required_raise, before_init, started, configure, mavenresolver
+from pyterrier.java import required_raise, required, before_init, started, configure, mavenresolver
 from typing import Dict, Optional
 
 
@@ -12,6 +12,7 @@ def _is_binary(f):
     return isinstance(f, (io.RawIOBase, io.BufferedIOBase))
 
 
+@required
 def redirect_stdouterr():
     from jnius import autoclass, PythonJavaClass, java_method
 
@@ -119,7 +120,7 @@ def set_log_level(level):
     if not started():
         configure['log_level'] = level
     else:
-        J.PTUtils.setLogLevel(level, None)
+        J.PTUtils.setLogLevel(level, None) # noqa: PT100 handled by started() check above
 
 
 class JavaClasses:
