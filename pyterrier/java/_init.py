@@ -29,8 +29,8 @@ def required(fn: Optional[Callable] = None) -> Union[Callable, bool]:
         return required(pt.utils.noop)()
 
     if isinstance(fn, type): # wrapping a class
-        for name in pt.utils.get_class_methods(fn):
-            setattr(fn, name, required(getattr(fn, name)))
+        for name, value in pt.utils.get_class_methods(fn):
+            setattr(fn, name, required(value))
         return fn
 
     else: # wrapping a function
