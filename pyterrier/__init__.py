@@ -6,7 +6,6 @@ from pyterrier import utils
 from pyterrier.transformer import Transformer, Estimator, Indexer
 
 from pyterrier import java
-from pyterrier.java import redirect_stdouterr # for backward compat, maybe remove/deprecate some day?
 
 from pyterrier import terrier
 from pyterrier.terrier import BatchRetrieve, TerrierRetrieve, FeaturesBatchRetrieve, IndexFactory, run, rewrite, index, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, IndexingType, TerrierStemmer, TerrierStopwords, TerrierTokeniser
@@ -44,6 +43,9 @@ extend_classpath = deprecated(version='0.11.0', reason="use pt.terrier.extend_cl
 set_tqdm = deprecated(version='0.11.0', reason="use pt.utils.set_tqdm(...) instead")(utils.set_tqdm)
 set_property = deprecated(version='0.11.0', reason="use pt.terrier.set_property(...) instead")(terrier.set_property)
 set_properties = deprecated(version='0.11.0', reason="use pt.terrier.set_properties(...) instead")(terrier.set_properties)
+redirect_stdouterr = deprecated(version='0.11.0', reason="use pt.java.redirect_stdouterr(...) instead")(java.redirect_stdouterr)
+autoclass = deprecated(version='0.11.0', reason="use pt.java.autoclass(...) instead")(java.autoclass)
+cast = deprecated(version='0.11.0', reason="use pt.java.cast(...) instead")(java.cast)
 
 
 # Additional setup performed in a function to avoid polluting the namespace with other imports like platform
@@ -65,7 +67,7 @@ __all__ = [
     'java', 'terrier', 'anserini', 'cache', 'debug', 'io', 'measures', 'model', 'new', 'ltr', 'parallel', 'pipelines',
     'text', 'transformer', 'datasets', 'get_dataset', 'find_datasets', 'list_datasets', 'Experiment', 'GridScan',
     'GridSearch', 'KFoldGridSearch', 'Evaluate',
-    'utils', 'Utils', 'Transformer', 'Estimator', 'Indexer', 'redirect_stdouterr',
+    'utils', 'Utils', 'Transformer', 'Estimator', 'Indexer',
     'BatchRetrieve', 'TerrierRetrieve', 'FeaturesBatchRetrieve', 'IndexFactory',
     'run', 'rewrite', 'index', 'FilesIndexer', 'TRECCollectionIndexer', 'DFIndexer', 'DFIndexUtils', 'IterDictIndexer',
     'IndexingType', 'TerrierStemmer', 'TerrierStopwords', 'TerrierTokeniser',
@@ -73,4 +75,5 @@ __all__ = [
 
     # Deprecated:
     'init', 'started', 'logging', 'version', 'check_version', 'extend_classpath', 'set_tqdm', 'set_property', 'set_properties',
+    'redirect_stdouterr', 'autoclass', 'cast',
 ]
