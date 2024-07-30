@@ -18,6 +18,7 @@ def started() -> bool:
     return _started
 
 
+@pt.utils.pre_invocation_decorator
 def required(fn: Optional[Callable] = None) -> Union[Callable, bool]:
     """
     Requires the Java Virtual Machine to be started. If the JVM has not yet been started, it runs pt.java.init().
@@ -25,21 +26,8 @@ def required(fn: Optional[Callable] = None) -> Union[Callable, bool]:
     Can be used as either a standalone function or a function/class @decorator. When used as a class decorator, it
     is applied to all methods defined by the class.
     """
-    if fn is None: # standalone call
-        return required(pt.utils.noop)()
-
-    if isinstance(fn, type): # wrapping a class
-        for name, value in pt.utils.get_class_methods(fn):
-            setattr(fn, name, required(value))
-        return fn
-
-    else: # wrapping a function
-        @wraps(fn)
-        def _wrapper(*args, **kwargs):
-            if not started():
-                init()
-            return fn(*args, **kwargs)
-        return _wrapper
+    if not started():
+        init()
 
 
 def required_raise(fn: Optional[Callable] = None) -> Union[Callable, bool]:

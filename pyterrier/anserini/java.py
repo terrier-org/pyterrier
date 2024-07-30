@@ -67,7 +67,8 @@ def set_version(version: str):
     configure['version'] = version
 
 
-def required(fn: Optional[Callable] = None) -> Union[Callable, bool]:
+@pt.utils.pre_invocation_decorator
+def required() -> Union[Callable, bool]:
     """
     Requires pyserini to be installed (raises error if not installed). If the JVM has not yet been started, it runs
     pt.java.init(), too, similar to pt.java.required().
@@ -75,23 +76,10 @@ def required(fn: Optional[Callable] = None) -> Union[Callable, bool]:
     Can be used as either a standalone function or a function/class @decorator. When used as a class decorator, it
     is applied to all methods defined by the class.
     """
-    if fn is None: # standalone call
-        return required(pt.utils.noop)()
-
-    if isinstance(fn, type): # wrapping a class
-        for name, value in pt.utils.get_class_methods(fn):
-            setattr(fn, name, required(value))
-        return fn
-
-    else: # wrapping a function
-        @wraps(fn)
-        def _wrapper(*args, **kwargs):
-            if not is_installed():
-                raise RuntimeError('pyserini required to use pyterrier.anserini. `pip install pyserini` and try again.')
-            if not pt.java.started():
-                pt.java.init()
-            return fn(*args, **kwargs)
-        return _wrapper
+    if not is_installed():
+        raise RuntimeError('pyserini required to use pyterrier.anserini. `pip install pyserini` and try again.')
+    if not pt.java.started():
+        pt.java.init()
 
 
 J = pt.java.JavaClasses({

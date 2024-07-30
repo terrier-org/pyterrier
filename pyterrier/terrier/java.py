@@ -34,6 +34,7 @@ def enable_prf(version: Optional[str] = '-SNAPSHOT'):
     configure['prf_version'] = version
 
 
+@pt.utils.pre_invocation_decorator
 def prf_required(fn: Optional[Callable] = None) -> Union[Callable, bool]:
     """
     Requires prf to be enabled (raises error if not enabled).
@@ -41,22 +42,8 @@ def prf_required(fn: Optional[Callable] = None) -> Union[Callable, bool]:
     Can be used as either a standalone function or a function/class @decorator. When used as a class decorator, it
     is applied to all methods defined by the class.
     """
-    if fn is None: # standalone call
-        return prf_required(pt.utils.noop)()
-
-    if isinstance(fn, type): # wrapping a class
-        for name, value in pt.utils.get_class_methods(fn):
-            setattr(fn, name, prf_required(value))
-        return fn
-
-    else: # wrapping a function
-        @wraps(fn)
-        def _wrapper(*args, **kwargs):
-            if not configure['prf_version']:
-                raise RuntimeError('you need to call pt.terrier.enable_prf() before java is loaded to use this function.')
-            return fn(*args, **kwargs)
-        return _wrapper
-
+    if not configure['prf_version']:
+        raise RuntimeError('you need to call pt.terrier.enable_prf() before java is loaded to use this function.')
 
 
 def _pre_init(jnius_config):
