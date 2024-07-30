@@ -7,8 +7,9 @@ class JavaCheck:
     """McCabe cyclomatic complexity checker."""
     name = 'javacheck'
     version = pyterrier_flake8_ext.__version__
-    _missing_anno_tmpl = "PT100 {} uses java but is not annotated with @pt.java.required"
-    _extra_anno_tmpl = "PT101 {} is annotated with @pt.java.required but doesn't use java"
+    _missing_anno_tmpl = "PT100 {} uses java but is not decorated with @pt.java.required"
+    _extra_anno_tmpl = "PT101 {} is decorated with @pt.java.required but doesn't use java"
+    _required_order = "PT102 {} is decorated with @pt.java.required but isn't the last decorator"
 
     def __init__(self, tree: ast.AST):
         self.tree = tree
@@ -19,6 +20,10 @@ class JavaCheck:
     def _run(self, node: ast.AST, context: List[str] = []) -> Generator[Tuple[int, int, str, Type[Any]], None, None]:
         if isinstance(node, ast.FunctionDef) or isinstance(node, ast.ClassDef):
             has_java_anno, hard_require = self._has_java_required(node)
+            if has_java_anno:
+                err = self._required_order_error(node)
+                if err:
+                    yield err
             java_usage = None
             if isinstance(node, ast.FunctionDef):
                 for child in node.body:
@@ -75,6 +80,19 @@ class JavaCheck:
                 if decorator.attr == '__required__soft':
                     return True, False
         return False, False
+
+    def _required_order_error(self, function: ast.FunctionDef) -> Optional[Tuple[int, int, str, Type[Any]]]:
+        for i, decorator in enumerate(function.decorator_list):
+            is_last = i == len(function.decorator_list) - 1
+            if isinstance(decorator, ast.Name):
+                if decorator.id in ('required', 'required_raise') and not is_last:
+                    text = self._required_order.format(function.name)
+                    return decorator.lineno, decorator.col_offset, text, type(self)
+            elif isinstance(decorator, ast.Attribute) and not is_last:
+                if decorator.attr in ('required', 'required_raise'):
+                    text = self._required_order.format(function.name)
+                    return decorator.lineno, decorator.col_offset, text, type(self)
+        return None
 
     def _uses_java(self, node: ast.AST) -> Optional[ast.AST]:
         if isinstance(node, ast.Name):
