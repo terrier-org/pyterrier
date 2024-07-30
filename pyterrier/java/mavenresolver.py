@@ -58,7 +58,9 @@ def online(is_online: bool = True):
 
 
 # obtain a file from maven
-def get_package_jar(orgName, packageName, version, file_path, artifact="jar", force_download=False):
+def get_package_jar(orgName, packageName, version, file_path=None, artifact="jar", force_download=False):
+    if file_path is None:
+        file_path = pt.io.pyterrier_home()
     orgName = orgName.replace(".", "/")
     suffix = ""
     ext = "jar"

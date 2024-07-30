@@ -67,21 +67,23 @@ def _pre_init(jnius_config):
     # "snapshot" means use Jitpack.io to get a build of the current
     # 5.x branch from Github - see https://jitpack.io/#terrier-org/terrier-core/5.x-SNAPSHOT
     if terrier_version == "snapshot":
-        trJar = pt.java.mavenresolver.get_package_jar("com.github.terrier-org.terrier-core", "terrier-assemblies", "5.x-SNAPSHOT", pt.io.pyterrier_home(), "jar-with-dependencies", force_download=configure['force_download'])
+        trJar = pt.java.mavenresolver.get_package_jar("com.github.terrier-org.terrier-core", "terrier-assemblies", "5.x-SNAPSHOT", artifact="jar-with-dependencies", force_download=configure['force_download'])
     else:
-        trJar = pt.java.mavenresolver.get_package_jar(TERRIER_PKG, "terrier-assemblies", terrier_version, pt.io.pyterrier_home(), "jar-with-dependencies")
-    pt.java.add_jar(trJar)
+        trJar = pt.java.mavenresolver.get_package_jar(TERRIER_PKG, "terrier-assemblies", terrier_version, artifact="jar-with-dependencies")
+    jnius_config.add_classpath(trJar)
 
     # now the helper classes
     if configure['helper_version'] is None or configure['helper_version'] == 'snapshot':
         helper_version = pt.java.mavenresolver.latest_version_num(TERRIER_PKG, "terrier-python-helper")
+        configure['helper_version'] = helper_version # save this specific version
     else:
         helper_version = str(configure['helper_version']) # just in case its a float
-    configure['helper_version'] = helper_version # save this specific version
-    pt.java.add_package(TERRIER_PKG, "terrier-python-helper", helper_version)
+    helper_jar = pt.java.mavenresolver.get_package_jar(TERRIER_PKG, 'terrier-python-helper', helper_version)
+    jnius_config.add_classpath(helper_jar)
 
     if configure['prf_version'] is not None:
-        pt.java.add_package('com.github.terrierteam', 'terrier-prf', configure['prf_version'])
+        prf_jar = pt.java.mavenresolver.get_package_jar('com.github.terrierteam', 'terrier-prf', configure['prf_version'])
+        jnius_config.add_classpath(prf_jar)
 
 
 @pt.java.required_raise
@@ -144,7 +146,10 @@ def _post_init(jnius):
     if "BUILD_DATE" in dir(J.Version):
         version_string += f" (built by {J.Version.BUILD_USER} on {J.Version.BUILD_DATE})"
 
-    return f"version={version_string}, helper_version={configure['helper_version']}"
+    res = f"version={version_string}, helper_version={configure['helper_version']}"
+    if configure['prf_version'] is not None:
+        res += f" prf_version={configure['prf_version']}"
+    return res
 
 
 def _new_indexref(s):

@@ -20,7 +20,7 @@ def _pre_init(jnius_config):
         jar = _get_pyserini_jar()
     else:
         # download and use the anserini version specified by the user
-        jar = pt.java.mavenresolver.get_package_jar('io.anserini', "anserini", configure['version'], 'fatjar')
+        jar = pt.java.mavenresolver.get_package_jar('io.anserini', "anserini", configure['version'], artifact='fatjar')
 
     if jar is None:
         raise RuntimeError('Could not find anserini jar')
