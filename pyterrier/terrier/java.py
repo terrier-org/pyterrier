@@ -146,6 +146,7 @@ class TerrierInit(pt.java.JavaInitializer):
         pt.ApplicationSetup = J.ApplicationSetup
         J.ApplicationSetup.bootstrapInitialisation(_properties)
 
+    @pt.java.required_raise
     def message(self):
         version_string = J.Version.VERSION
         if "BUILD_DATE" in dir(J.Version):
