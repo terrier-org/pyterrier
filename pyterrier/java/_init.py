@@ -11,19 +11,41 @@ _started = False
 
 
 class JavaInitializer:
+    """
+    A `JavaInitializer` manages the initilization of a module that uses java components. The two main methods are
+    `pre_init` and `post_init`, which perform configuration before and after the JVM has started, respectively.
+    """
+
     def priority(self) -> int:
+        """
+        Returns the priority of this initializer. A lower priority is executed first.
+        """
         return 0
 
     def condition(self) -> bool:
+        """
+        Returns True if the initializer should be run. Otherwise False.
+        """
         return True
 
     def pre_init(self, jnius_config) -> None:
+        """
+        Called before the JVM is started. `jnius_config` is the `jnius_config` module, whic can be used to configure
+        java, such as by adding jars to the classpath.
+        """
         pass
 
     def post_init(self, jnius) -> None:
+        """
+        Called after the JVM has started. `jnius` is the `jnius` module, which can be used to interact with java.
+        """
         pass
 
     def message(self) -> Optional[str]:
+        """
+        Returns a message to be displayed after the JVM has started alongside the name of the entry point. If None,
+        only the entry point name will be displayed.
+        """
         return None
 
 

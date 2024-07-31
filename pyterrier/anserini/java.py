@@ -1,8 +1,6 @@
 import os
-import inspect
 from glob import glob
 from typing import Callable, Optional, Union
-from functools import wraps
 import pyterrier as pt
 
 
