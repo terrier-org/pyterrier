@@ -63,12 +63,11 @@ class TestIterDictIndexerPreTok(TempDirTestCase):
         ]
 
         import json
-        from pyterrier import autoclass
         testfile = os.path.join(self.test_dir, "test.json")
         with open(testfile, 'wt') as file:
             for doc in it:
                 file.write(json.dumps(doc))
-        jparserCls = autoclass("org.terrier.python.JsonlPretokenisedIterator")
+        jparserCls = pt.java.autoclass("org.terrier.python.JsonlPretokenisedIterator")
         jparser = jparserCls(testfile)
         self.assertTrue(jparser.hasNext())
         nextRow = jparser.next()
@@ -120,7 +119,7 @@ class TestIterDictIndexerPreTok(TempDirTestCase):
                 post.next()
                 self.assertEqual(1, post.frequency)
 
-                pindex = pt.cast("org.terrier.structures.PropertiesIndex", index)
+                pindex = pt.java.cast("org.terrier.structures.PropertiesIndex", index)
                 self.assertEqual("", pindex.getIndexProperty("termpipelines", "BLA"))
 
                 index.close()

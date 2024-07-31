@@ -184,7 +184,7 @@ class TestIterDictIndexer(TempDirTestCase):
         indexer = pt.IterDictIndexer(self.test_dir, stemmer=None, stopwords=None, tokeniser="UTFTokeniser")
         indexref = indexer.index(it)
         index = pt.IndexFactory.of(indexref)
-        index = pt.cast("org.terrier.structures.IndexOnDisk", index)
+        index = pt.java.cast("org.terrier.structures.IndexOnDisk", index)
         self.assertEqual("", index.getIndexProperty("termpipelines", "bla"))
         self.assertTrue("før" in index.getLexicon())
         # restore setting after test
@@ -201,7 +201,7 @@ class TestIterDictIndexer(TempDirTestCase):
         indexer = pt.IterDictIndexer(self.test_dir, tokeniser=pt.TerrierTokeniser.utf, stemmer=pt.TerrierStemmer.none, stopwords=['møney', 'crashing', ','], overwrite=True)
         indexref = indexer.index(it)
         index = pt.IndexFactory.of(indexref)
-        index = pt.cast("org.terrier.structures.IndexOnDisk", index)
+        index = pt.java.cast("org.terrier.structures.IndexOnDisk", index)
         self.assertIn(member="PyTerrierCustomStopwordList$Retrieval", container=index.getIndexProperty("termpipelines", "bla"))
         self.assertIsNotNone(index.getIndexProperty('pyterrier.stopwords', None))
 
@@ -210,7 +210,7 @@ class TestIterDictIndexer(TempDirTestCase):
         self.assertTrue("crashing" in index.getIndexProperty('pyterrier.stopwords', None))
 
         # lets validate the actual stopword list as parsed from the property
-        actual_stopwords = pt.autoclass("org.terrier.python.PyTerrierCustomStopwordList$Retrieval")()
+        actual_stopwords = pt.java.autoclass("org.terrier.python.PyTerrierCustomStopwordList$Retrieval")()
         actual_stopwords.setIndex(index)
         self.assertEqual(3, actual_stopwords.stopWords.size())
         self.assertTrue(actual_stopwords.stopWords.contains(","))
@@ -240,7 +240,7 @@ class TestIterDictIndexer(TempDirTestCase):
                 indexer = pt.IterDictIndexer(self.test_dir, stemmer=setting[0], stopwords=setting[1], overwrite=True)
                 indexref = indexer.index(it)
                 index = pt.IndexFactory.of(indexref)
-                index = pt.cast("org.terrier.structures.IndexOnDisk", index)
+                index = pt.java.cast("org.terrier.structures.IndexOnDisk", index)
                 self.assertEqual("", index.getIndexProperty("termpipelines", "bla"))
                 self.assertEqual(11, index.getDocumentIndex().getDocumentLength(0))
                 
@@ -265,7 +265,7 @@ class TestIterDictIndexer(TempDirTestCase):
                 indexref = indexer.index(it)
                 index = pt.IndexFactory.of(indexref)
                 self.assertEqual(3, index.getDocumentIndex().getDocumentLength(0)) #ran money playing
-                index = pt.cast("org.terrier.structures.IndexOnDisk", index)
+                index = pt.java.cast("org.terrier.structures.IndexOnDisk", index)
                 # restore setting after test
                 pt.terrier.J.ApplicationSetup.setProperty("termpipelines", "Stopwords,PorterStemmer")
                 self.assertEqual("Stopwords,WeakPorterStemmer", index.getIndexProperty("termpipelines", "bla"))

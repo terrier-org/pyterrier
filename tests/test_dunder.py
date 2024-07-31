@@ -6,7 +6,7 @@ from .base import TempDirTestCase
 class TestDunder(TempDirTestCase):
 
     def test_callable_wmodel_dunders(self):
-        testPosting = pt.autoclass("org.terrier.structures.postings.BasicPostingImpl")(0,1)
+        testPosting = pt.java.autoclass("org.terrier.structures.postings.BasicPostingImpl")(0,1)
 
         lambdafn = lambda keyFreq, posting, entryStats, collStats: posting.getFrequency()
         callback, wmodel = pt.terrier.retriever._function2wmodel(lambdafn)
@@ -45,11 +45,11 @@ class TestDunder(TempDirTestCase):
 
     def test_wmodel_dunders(self):
 
-        wmodel = pt.autoclass("org.terrier.matching.models.BM25")()
+        wmodel = pt.java.autoclass("org.terrier.matching.models.BM25")()
         wmodel.__reduce__()
         wmodel.__getstate__()
         rtr = wmodel.__reduce__()
-        pt.cast("org.terrier.matching.models.BM25", rtr[0](*rtr[1]))
+        pt.java.cast("org.terrier.matching.models.BM25", rtr[0](*rtr[1]))
         import pickle
         #import dill as pickle
         #check the byte array is picklable

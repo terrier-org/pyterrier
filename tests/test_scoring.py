@@ -10,7 +10,7 @@ import os
 class TestScoring(TempDirTestCase):
 
     def test_scoring_text(self):
-        pt.logging("DEBUG")
+        pt.java.set_log_level("DEBUG")
         dataset = pt.get_dataset("vaswani")
         indexer = pt.TRECCollectionIndexer(
             self.test_dir, 
