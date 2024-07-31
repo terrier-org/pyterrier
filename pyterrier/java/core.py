@@ -1,23 +1,16 @@
 import os
 from pyterrier.java import required_raise, required, before_init, started, mavenresolver, JavaClasses, JavaInitializer, register_config
-from typing import Dict, Optional
+from typing import Optional
 import pyterrier as pt
 
 
-stdout_ref = None
-stderr_ref = None
+_stdout_ref = None
+_stderr_ref = None
 
 
-
-configure = register_config('pyterrier.java', {
-    'jars': [],
-    'options': [],
-    'mem': None,
-    'log_level': 'WARN',
-    'redirect_io': True,
-})
-
-
+# ----------------------------------------------------------
+# Java Initialization
+# ----------------------------------------------------------
 
 class CoreInit(JavaInitializer):
     def priority(self) -> int:
@@ -111,22 +104,22 @@ def redirect_stdouterr():
                 return self.pystream.write(bytes([chara]))
             return self.pystream.write(chr(chara))
 
-    # we need to hold lifetime references to stdout_ref/stderr_ref, to ensure
+    # we need to hold lifetime references to _stdout_ref/_stderr_ref, to ensure
     # they arent GCd. This prevents a crash when Java callsback to  GCd py obj
 
-    global stdout_ref
-    global stderr_ref
+    global _stdout_ref
+    global _stderr_ref
     import sys
-    stdout_ref = MyOut(sys.stdout)
-    stderr_ref = MyOut(sys.stderr)
+    _stdout_ref = MyOut(sys.stdout)
+    _stderr_ref = MyOut(sys.stderr)
     jls = autoclass("java.lang.System")
     jls.setOut(
         autoclass('java.io.PrintStream')(
-            autoclass('org.terrier.python.ProxyableOutputStream')(stdout_ref),
+            autoclass('org.terrier.python.ProxyableOutputStream')(_stdout_ref),
             signature="(Ljava/io/OutputStream;)V"))
     jls.setErr(
         autoclass('java.io.PrintStream')(
-            autoclass('org.terrier.python.ProxyableOutputStream')(stderr_ref),
+            autoclass('org.terrier.python.ProxyableOutputStream')(_stderr_ref),
             signature="(Ljava/io/OutputStream;)V"))
 
 
@@ -135,6 +128,19 @@ def bytebuffer_to_array(buffer):
     def unsign(signed):
         return signed + 256 if signed < 0 else signed
     return bytearray([ unsign(buffer.get(offset)) for offset in range(buffer.capacity()) ])
+
+
+# ----------------------------------------------------------
+# Configuration
+# ----------------------------------------------------------
+
+configure = register_config('pyterrier.java', {
+    'jars': [],
+    'options': [],
+    'mem': None,
+    'log_level': 'WARN',
+    'redirect_io': True,
+})
 
 
 @before_init
@@ -182,6 +188,10 @@ def set_log_level(level):
     else:
         J.PTUtils.setLogLevel(level, None) # noqa: PT100 handled by started() check above
 
+
+# ----------------------------------------------------------
+# Common classes (accessible via pt.java.J.[ClassName])
+# ----------------------------------------------------------
 
 J = JavaClasses({
     'ArrayList': 'java.util.ArrayList',

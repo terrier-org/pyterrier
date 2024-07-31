@@ -5,54 +5,19 @@ from typing import Dict, Any, Tuple, Callable, Optional, Union
 from copy import deepcopy
 import pyterrier as pt
 
+
 _started = False
 _configs = {}
 
-class JavaInitializer:
-    """
-    A `JavaInitializer` manages the initilization of a module that uses java components. The two main methods are
-    `pre_init` and `post_init`, which perform configuration before and after the JVM has started, respectively.
-    """
 
-    def priority(self) -> int:
-        """
-        Returns the priority of this initializer. A lower priority is executed first.
-        """
-        return 0
-
-    def condition(self) -> bool:
-        """
-        Returns True if the initializer should be run. Otherwise False.
-        """
-        return True
-
-    def pre_init(self, jnius_config) -> None:
-        """
-        Called before the JVM is started. `jnius_config` is the `jnius_config` module, whic can be used to configure
-        java, such as by adding jars to the classpath.
-        """
-        pass
-
-    def post_init(self, jnius) -> None:
-        """
-        Called after the JVM has started. `jnius` is the `jnius` module, which can be used to interact with java.
-        """
-        pass
-
-    def message(self) -> Optional[str]:
-        """
-        Returns a message to be displayed after the JVM has started alongside the name of the entry point. If None,
-        only the entry point name will be displayed.
-        """
-        return None
-
-
-def started() -> bool:
-    """
-    Returns True if pt.java.init() has been called. Otherwise False.
-    """
-    return _started
-
+# ----------------------------------------------------------
+# Decorators
+# ----------------------------------------------------------
+# These functions wrap functions/classes to enforce certain
+# behavior regarding Java. For instance @pt.java.required
+# automatically starts java before it's invoked (if it's not
+# already started).
+# ----------------------------------------------------------
 
 @pt.utils.pre_invocation_decorator
 def required(fn: Optional[Callable] = None) -> Union[Callable, bool]:
@@ -62,7 +27,7 @@ def required(fn: Optional[Callable] = None) -> Union[Callable, bool]:
     Can be used as either a standalone function or a function/class @decorator. When used as a class decorator, it
     is applied to all methods defined by the class.
     """
-    if not started():
+    if not _started:
         init()
 
 
@@ -97,27 +62,40 @@ def before_init(fn: Optional[Callable] = None) -> Union[Callable, bool]:
         return fn(*args, **kwargs)
     return _wrapper
 
-class JavaClasses:
-    def __init__(self, mapping: Dict[str, str]):
-        self._mapping = mapping
-        self._cache = {}
 
-    def __dir__(self):
-        return list(self._mapping.keys())
+# ----------------------------------------------------------
+# Jnius Wrappers
+# ----------------------------------------------------------
+# These functions wrap jnius to make sure that java is
+# running before they're called. Doing it this way allows
+# functions to import them before java is loaded.
+# ----------------------------------------------------------
 
-    @required_raise
-    def __getattr__(self, key):
-        if key not in self._mapping:
-            return AttributeError(f'{self} has no attribute {key!r}')
-        if key not in self._cache:
-            clz = self._mapping[key]
-            if callable(clz):
-                clz = clz()
-            self._cache[key] = pt.java.autoclass(clz)
-        return self._cache[key]
+@required_raise
+def autoclass(*args, **kwargs):
+    """
+    Wraps jnius.autoclass once java has started. Raises an error if called before pt.java.init() is called.
+    """
+    import jnius # noqa: PT100
+    return jnius.autoclass(*args, **kwargs) # noqa: PT100
 
 
+@required_raise
+def cast(*args, **kwargs):
+    """
+    Wraps jnius.cast once java has started. Raises an error if called before pt.java.init() is called.
+    """
+    import jnius # noqa: PT100
+    return jnius.cast(*args, **kwargs) # noqa: PT100
 
+
+# ----------------------------------------------------------
+# Init
+# ----------------------------------------------------------
+# This function (along with legacy_init) loads all modules
+# registered via pyterrier.java.init entry points and starts
+# the JVM.
+# ----------------------------------------------------------
 
 @pt.utils.once()
 def init() -> None:
@@ -160,42 +138,6 @@ def init() -> None:
         else:
             message.append(f' - {name} [{msg}]\n')
     sys.stderr.write('Java started and loaded:\n' + ''.join(message))
-
-
-def parallel_init(started: bool, configs: Dict[str, Dict[str, Any]]) -> None:
-    global _configs
-    if started:
-        if not pt.java.started():
-            warn(f'Starting java parallel with configs {configs}')
-            _configs = configs
-            init()
-        else:
-            warn("Avoiding reinit of PyTerrier")
-
-
-def parallel_init_args() -> Tuple[bool, Dict[str, Dict[str, Any]]]:
-    return (
-        started(),
-        deepcopy(_configs),
-    )
-
-
-@required_raise
-def autoclass(*args, **kwargs):
-    """
-    Wraps jnius.autoclass once java has started. Raises an error if called before pt.java.init() is called.
-    """
-    import jnius # noqa: PT100
-    return jnius.autoclass(*args, **kwargs) # noqa: PT100
-
-
-@required_raise
-def cast(*args, **kwargs):
-    """
-    Wraps jnius.cast once java has started. Raises an error if called before pt.java.init() is called.
-    """
-    import jnius # noqa: PT100
-    return jnius.cast(*args, **kwargs) # noqa: PT100
 
 
 @before_init
@@ -261,6 +203,88 @@ def legacy_init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=Tr
         pt.terrier.set_property("terrier.mvn.coords", pkgs_string)
 
 
+def started() -> bool:
+    """
+    Returns True if pt.java.init() has been called. Otherwise False.
+    """
+    return _started
+
+
+class JavaInitializer:
+    """
+    A `JavaInitializer` manages the initilization of a module that uses java components. The two main methods are
+    `pre_init` and `post_init`, which perform configuration before and after the JVM has started, respectively.
+    """
+
+    def priority(self) -> int:
+        """
+        Returns the priority of this initializer. A lower priority is executed first.
+        """
+        return 0
+
+    def condition(self) -> bool:
+        """
+        Returns True if the initializer should be run. Otherwise False.
+        """
+        return True
+
+    def pre_init(self, jnius_config) -> None:
+        """
+        Called before the JVM is started. `jnius_config` is the `jnius_config` module, whic can be used to configure
+        java, such as by adding jars to the classpath.
+        """
+        pass
+
+    def post_init(self, jnius) -> None:
+        """
+        Called after the JVM has started. `jnius` is the `jnius` module, which can be used to interact with java.
+        """
+        pass
+
+    def message(self) -> Optional[str]:
+        """
+        Returns a message to be displayed after the JVM has started alongside the name of the entry point. If None,
+        only the entry point name will be displayed.
+        """
+        return None
+
+
+# ----------------------------------------------------------
+# Parallel
+# ----------------------------------------------------------
+# These functions are for working in parallel mode, e.g.,
+# with multiprocessing. They help restarting and configure
+# the JVM the same way it was when it was started in the
+# parent process
+# ----------------------------------------------------------
+
+def parallel_init(started: bool, configs: Dict[str, Dict[str, Any]]) -> None:
+    global _configs
+    if started:
+        if not pt.java.started():
+            warn(f'Starting java parallel with configs {configs}')
+            _configs = configs
+            init()
+        else:
+            warn("Avoiding reinit of PyTerrier")
+
+
+def parallel_init_args() -> Tuple[bool, Dict[str, Dict[str, Any]]]:
+    return (
+        started(),
+        deepcopy(_configs),
+    )
+
+
+# ----------------------------------------------------------
+# Configuration Utils
+# ----------------------------------------------------------
+# We need a global store of all java-related configurations
+# so that when running in paralle, we can set everying back
+# up the same way it started. These utils help manage this
+# gloabal configuration.
+# ----------------------------------------------------------
+
 class Configuration:
     def __init__(self, name):
         self.name = name
@@ -298,3 +322,31 @@ def register_config(name, config: Dict[str, Any]):
     assert name not in _configs
     _configs[name] = deepcopy(config)
     return Configuration(name)
+
+
+# ----------------------------------------------------------
+# Java Classes
+# ----------------------------------------------------------
+# This class enables the lazy loading of java classes. It
+# helps avod needing a ton of autclass() statements to
+# pre-load Java classes.
+# ----------------------------------------------------------
+
+class JavaClasses:
+    def __init__(self, mapping: Dict[str, str]):
+        self._mapping = mapping
+        self._cache = {}
+
+    def __dir__(self):
+        return list(self._mapping.keys())
+
+    @required_raise
+    def __getattr__(self, key):
+        if key not in self._mapping:
+            return AttributeError(f'{self} has no attribute {key!r}')
+        if key not in self._cache:
+            clz = self._mapping[key]
+            if callable(clz):
+                clz = clz()
+            self._cache[key] = pt.java.autoclass(clz)
+        return self._cache[key]
