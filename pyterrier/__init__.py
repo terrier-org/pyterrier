@@ -29,7 +29,7 @@ from pyterrier.pipelines import Experiment, GridScan, GridSearch, KFoldGridSearc
 # old name
 Utils = utils
 
-# will be set in terrier.java._post_init once java is loaded
+# will be set in terrier.terrier.java once java is loaded
 IndexRef = None
 
 

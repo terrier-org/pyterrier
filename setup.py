@@ -72,7 +72,7 @@ setup(
     ],
     entry_points={
         'pyterrier.java.init': [
-            'pyterrier.java          = pyterrier.java._init:CoreInit',
+            'pyterrier.java          = pyterrier.java:CoreInit',
             'pyterrier.terrier.java  = pyterrier.terrier.java:TerrierInit',
             'pyterrier.anserini.java = pyterrier.anserini.java:AnseriniInit',
         ],

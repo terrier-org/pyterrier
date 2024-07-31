@@ -5,7 +5,7 @@ from typing import Callable, Optional, Union, Tuple
 import pyterrier as pt
 
 
-configure = pt.java.config.register('pyterrier.anserini', {
+configure = pt.java.register_config('pyterrier.anserini', {
     'version': None,
 })
 

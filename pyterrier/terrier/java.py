@@ -11,7 +11,7 @@ _SAVED_FNS = []
 
 _properties = None
 
-configure = pt.java.config.register('pt.terrier.java', {
+configure = pt.java.register_config('pt.terrier.java', {
     'terrier_version': None,
     'helper_version': None,
     'boot_packages': [],

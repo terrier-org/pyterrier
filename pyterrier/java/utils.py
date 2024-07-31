@@ -1,127 +1,101 @@
+import sys
+from warnings import warn
+from functools import wraps
+from typing import Dict, Any, Tuple, Callable, Optional, Union
+from copy import deepcopy
 import pyterrier as pt
-from pyterrier.java import required_raise, required, before_init, started, configure, mavenresolver
-from typing import Dict, Optional
 
+_started = False
+_configs = {}
 
-stdout_ref = None
-stderr_ref = None
-
-
-def _is_binary(f):
-    import io
-    return isinstance(f, (io.RawIOBase, io.BufferedIOBase))
-
-
-@required
-def redirect_stdouterr():
-    from jnius import autoclass, PythonJavaClass, java_method
-
-    # TODO: encodings may be a probem here
-    class MyOut(PythonJavaClass):
-        __javainterfaces__ = ['org.terrier.python.OutputStreamable']
-
-        def __init__(self, pystream):
-            super(MyOut, self).__init__()
-            self.pystream = pystream
-            self.binary = _is_binary(pystream)
-
-        @java_method('()V')
-        def close(self):
-            self.pystream.close()
-
-        @java_method('()V')
-        def flush(self):
-            self.pystream.flush()
-
-        @java_method('([B)V', name='write')
-        def writeByteArray(self, byteArray):
-            # TODO probably this could be faster.
-            for c in byteArray:
-                self.writeChar(c)
-
-        @java_method('([BII)V', name='write')
-        def writeByteArrayIntInt(self, byteArray, offset, length):
-            # TODO probably this could be faster.
-            for i in range(offset, offset + length):
-                self.writeChar(byteArray[i])
-
-        @java_method('(I)V', name='write')
-        def writeChar(self, chara):
-            if self.binary:
-                return self.pystream.write(bytes([chara]))
-            return self.pystream.write(chr(chara))
-
-    # we need to hold lifetime references to stdout_ref/stderr_ref, to ensure
-    # they arent GCd. This prevents a crash when Java callsback to  GCd py obj
-
-    global stdout_ref
-    global stderr_ref
-    import sys
-    stdout_ref = MyOut(sys.stdout)
-    stderr_ref = MyOut(sys.stderr)
-    jls = autoclass("java.lang.System")
-    jls.setOut(
-        autoclass('java.io.PrintStream')(
-            autoclass('org.terrier.python.ProxyableOutputStream')(stdout_ref),
-            signature="(Ljava/io/OutputStream;)V"))
-    jls.setErr(
-        autoclass('java.io.PrintStream')(
-            autoclass('org.terrier.python.ProxyableOutputStream')(stderr_ref),
-            signature="(Ljava/io/OutputStream;)V"))
-
-
-def bytebuffer_to_array(buffer):
-    assert buffer is not None
-    def unsign(signed):
-        return signed + 256 if signed < 0 else signed
-    return bytearray([ unsign(buffer.get(offset)) for offset in range(buffer.capacity()) ])
-
-
-@before_init
-def add_jar(jar_path):
-    configure.append('jars', jar_path)
-
-
-@before_init
-def add_package(org_name: str = None, package_name: str = None, version: str = None, file_type='jar'):
-    if version is None or version == 'snapshot':
-        version = mavenresolver.latest_version_num(org_name, package_name)
-    file_name = mavenresolver.get_package_jar(org_name, package_name, version, artifact=file_type)
-    add_jar(file_name)
-
-
-@before_init
-def set_memory_limit(mem: Optional[float]):
-    configure['mem'] = mem
-
-
-@before_init
-def add_option(option: str):
-    configure.append('options', option)
-
-
-@before_init
-def set_redirect_io(redirect_io: bool):
-    configure['redirect_io'] = redirect_io
-
-
-def set_log_level(level):
+class JavaInitializer:
     """
-        Set the logging level. The following string values are allowed, corresponding
-        to Java logging levels:
-        
-         - `'ERROR'`: only show error messages
-         - `'WARN'`: only show warnings and error messages (default)
-         - `'INFO'`: show information, warnings and error messages
-         - `'DEBUG'`: show debugging, information, warnings and error messages
-        
-        Unlike other java settings, this can be changed either before or after init() has been called.
+    A `JavaInitializer` manages the initilization of a module that uses java components. The two main methods are
+    `pre_init` and `post_init`, which perform configuration before and after the JVM has started, respectively.
+    """
+
+    def priority(self) -> int:
+        """
+        Returns the priority of this initializer. A lower priority is executed first.
+        """
+        return 0
+
+    def condition(self) -> bool:
+        """
+        Returns True if the initializer should be run. Otherwise False.
+        """
+        return True
+
+    def pre_init(self, jnius_config) -> None:
+        """
+        Called before the JVM is started. `jnius_config` is the `jnius_config` module, whic can be used to configure
+        java, such as by adding jars to the classpath.
+        """
+        pass
+
+    def post_init(self, jnius) -> None:
+        """
+        Called after the JVM has started. `jnius` is the `jnius` module, which can be used to interact with java.
+        """
+        pass
+
+    def message(self) -> Optional[str]:
+        """
+        Returns a message to be displayed after the JVM has started alongside the name of the entry point. If None,
+        only the entry point name will be displayed.
+        """
+        return None
+
+
+def started() -> bool:
+    """
+    Returns True if pt.java.init() has been called. Otherwise False.
+    """
+    return _started
+
+
+@pt.utils.pre_invocation_decorator
+def required(fn: Optional[Callable] = None) -> Union[Callable, bool]:
+    """
+    Requires the Java Virtual Machine to be started. If the JVM has not yet been started, it runs pt.java.init().
+
+    Can be used as either a standalone function or a function/class @decorator. When used as a class decorator, it
+    is applied to all methods defined by the class.
     """
     if not started():
-        configure['log_level'] = level
-    else:
-        J.PTUtils.setLogLevel(level, None) # noqa: PT100 handled by started() check above
+        init()
 
+
+def required_raise(fn: Optional[Callable] = None) -> Union[Callable, bool]:
+    """
+    Similar to `pt.java.required`, but raises an error if called before pt.java.init().
+    """
+    if fn is None:
+        return required_raise(pt.utils.noop)()
+
+    @wraps(fn)
+    def _wrapper(*args, **kwargs):
+        if not started():
+            raise RuntimeError(f'You need to call pt.java.init() required before you can call {fn}')
+        return fn(*args, **kwargs)
+    return _wrapper
+
+
+def before_init(fn: Optional[Callable] = None) -> Union[Callable, bool]:
+    """
+    If the JVM has already started, an error is raised.
+
+    Can be used as either a standalone function or a function decorator.
+    """
+    if fn is None:
+        return before_init(pt.utils.noop)()
+
+    @wraps(fn)
+    def _wrapper(*args, **kwargs):
+        if started():
+            raise RuntimeError(f'You can only call {fn} before either you start using java or call pt.java.init()')
+        return fn(*args, **kwargs)
+    return _wrapper
 
 class JavaClasses:
     def __init__(self, mapping: Dict[str, str]):
@@ -143,15 +117,184 @@ class JavaClasses:
         return self._cache[key]
 
 
-J = JavaClasses({
-    'ArrayList': 'java.util.ArrayList',
-    'Properties': 'java.util.Properties',
-    'PTUtils': 'org.terrier.python.PTUtils',
-    'System': 'java.lang.System',
-    'StringReader': 'java.io.StringReader',
-    'HashMap': 'java.util.HashMap',
-    'Arrays': 'java.util.Arrays',
-    'Array': 'java.lang.reflect.Array',
-    'String': 'java.lang.String',
-    'List': 'java.util.List',
-})
+
+
+@pt.utils.once()
+def init() -> None:
+    global _started
+    # TODO: if we make java optional some day, should check here that it's installed. E.g.,
+    # if find_spec('jnius_config') is None:
+    #     warnings.warn('pyterrier[java] not installed; no need to run pt.java.init()')
+    #     return
+
+    # TODO: what about errors during init? What happens to _started? Etc.
+
+    initalizers = []
+    for entry_point in pt.utils.entry_points('pyterrier.java.init'):
+        initalizer = entry_point.load()()
+        if initalizer.condition():
+            initalizers.append((entry_point.name, initalizer))
+
+    # sort by priority
+    initalizers = sorted(initalizers, key=lambda i: i[1].priority())
+
+    import jnius_config
+
+    # run pre-initialization setup
+    for _, initializer in initalizers:
+        initializer.pre_init(jnius_config)
+
+    import jnius # noqa: PT100 
+    _started = True
+
+    # run post-initialization setup
+    for _, initializer in initalizers:
+        initializer.post_init(jnius)
+
+    # build "Java started" message
+    message = []
+    for name, initializer in initalizers:
+        msg = initializer.message()
+        if msg is None:
+            message.append(f' - {name}\n')
+        else:
+            message.append(f' - {name} [{msg}]\n')
+    sys.stderr.write('Java started and loaded:\n' + ''.join(message))
+
+
+def parallel_init(started: bool, configs: Dict[str, Dict[str, Any]]) -> None:
+    global _configs
+    if started:
+        if not pt.java.started():
+            warn(f'Starting java parallel with configs {configs}')
+            _configs = configs
+            init()
+        else:
+            warn("Avoiding reinit of PyTerrier")
+
+
+def parallel_init_args() -> Tuple[bool, Dict[str, Dict[str, Any]]]:
+    return (
+        started(),
+        deepcopy(_configs),
+    )
+
+
+@required_raise
+def autoclass(*args, **kwargs):
+    """
+    Wraps jnius.autoclass once java has started. Raises an error if called before pt.java.init() is called.
+    """
+    import jnius # noqa: PT100
+    return jnius.autoclass(*args, **kwargs) # noqa: PT100
+
+
+@required_raise
+def cast(*args, **kwargs):
+    """
+    Wraps jnius.cast once java has started. Raises an error if called before pt.java.init() is called.
+    """
+    import jnius # noqa: PT100
+    return jnius.cast(*args, **kwargs) # noqa: PT100
+
+
+@before_init
+def legacy_init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, logging='WARN', home_dir=None, boot_packages=[], tqdm=None, no_download=False,helper_version = None):
+    """
+    Function that can be called before Terrier classes and methods can be used.
+    Loads the Terrier .jar file and imports classes. Also finds the correct version of Terrier to download if no version is specified.
+
+    Args:
+        version(str): Which version of Terrier to download. Default is `None`.
+
+         * If None, find the newest Terrier released version in MavenCentral and download it.
+         * If `"snapshot"`, will download the latest build from `Jitpack <https://jitpack.io/>`_.
+
+        mem(str): Maximum memory allocated for the Java virtual machine heap in MB. Corresponds to java `-Xmx` commandline argument. Default is 1/4 of physical memory.
+        boot_packages(list(str)): Extra maven package coordinates files to load before starting Java. Default=`[]`. There is more information about loading packages in the `Terrier documentation <https://github.com/terrier-org/terrier-core/blob/5.x/doc/terrier_develop.md>`_
+        packages(list(str)): Extra maven package coordinates files to load, using the Terrier classloader. Default=`[]`. See also `boot_packages` above.
+        jvm_opts(list(str)): Extra options to pass to the JVM. Default=`[]`. For instance, you may enable Java assertions by setting `jvm_opts=['-ea']`
+        redirect_io(boolean): If True, the Java `System.out` and `System.err` will be redirected to Pythons sys.out and sys.err. Default=True.
+        logging(str): the logging level to use:
+
+         * Can be one of `'INFO'`, `'DEBUG'`, `'TRACE'`, `'WARN'`, `'ERROR'`. The latter is the quietest.
+         * Default is `'WARN'`.
+
+        home_dir(str): the home directory to use. Default to PYTERRIER_HOME environment variable.
+        tqdm: The `tqdm <https://tqdm.github.io/>`_ instance to use for progress bars within PyTerrier. Defaults to tqdm.tqdm. Available options are `'tqdm'`, `'auto'` or `'notebook'`.
+        helper_version(str): Which version of the helper.
+
+   
+    **Locating the Terrier .jar file:** PyTerrier is not tied to a specific version of Terrier and will automatically locate and download a recent Terrier .jar file. However, inevitably, some functionalities will require more recent Terrier versions. 
+    
+     * If set, PyTerrier uses the `version` init kwarg to determine the .jar file to look for.
+     * If the `version` init kwarg is not set, Terrier will query MavenCentral to determine the latest Terrier release.
+     * If `version` is set to `"snapshot"`, the latest .jar file build derived from the `Terrier Github repository <https://github.com/terrier-org/terrier-core/>`_ will be downloaded from `Jitpack <https://jitpack.io/>`_.
+     * Otherwise the local (`~/.mvn`) and MavenCentral repositories are searched for the jar file at the given version.
+    In this way, the default setting is to download the latest release of Terrier from MavenCentral. The user is also able to use a locally installed copy in their private Maven repository, or track the latest build of Terrier from Jitpack.
+    
+    If you wish to run PyTerrier in an offline enviroment, you should ensure that the "terrier-assemblies-{your version}-jar-with-dependencies.jar" and "terrier-python-helper-{your helper version}.jar"
+    are in the  "~/.pyterrier" (if they are not present, they will be downloaded the first time). Then you should set their versions when calling ``init()`` function. For example:
+    ``pt.init(version = 5.5, helper_version = "0.0.6")``.
+    """
+
+    # Set the corresponding options
+    pt.java.set_memory_limit(mem)
+    pt.java.set_redirect_io(redirect_io)
+    pt.java.set_log_level(logging)
+    for package in boot_packages:
+        pt.java.add_package(*package.split(':')) # format: org:package:version:filetype (where version and filetype are optional)
+    for opt in jvm_opts:
+        pt.java.add_option(opt)
+    pt.terrier.set_version(version)
+    pt.terrier.set_helper_version(helper_version)
+    if tqdm is not None:
+        pt.utils.set_tqdm(tqdm)
+    if no_download:
+        pt.java.mavenresolver.offline()
+
+    pt.java.init()
+
+    # Import other java packages
+    if packages:
+        pkgs_string = ",".join(packages)
+        pt.terrier.set_property("terrier.mvn.coords", pkgs_string)
+
+
+class Configuration:
+    def __init__(self, name):
+        self.name = name
+
+    def get(self, key):
+        return deepcopy(_configs[self.name][key])
+
+    @before_init
+    def set(self, key, value):
+        self(**{key: value})
+
+    def append(self, key, value):
+        res = self.get(key)
+        res.append(value)
+        self(**{key: res})
+
+    def __getitem__(self, key):
+        return self.get(key)
+
+    @before_init
+    def __setitem__(self, key, value):
+        self.set(key, value)
+
+    def __call__(self, **settings: Any):
+        if started() and any(settings):
+            raise RuntimeError('You cannot change java settings after java has started')
+        for key, value in settings.items():
+            if key not in _configs[self.name]:
+                raise AttributeError(f'{key!r} not defined as a java setting for {self.name!r}')
+            _configs[self.name][key] = value
+        return deepcopy(_configs[self.name])
+
+
+def register_config(name, config: Dict[str, Any]):
+    assert name not in _configs
+    _configs[name] = deepcopy(config)
+    return Configuration(name)
