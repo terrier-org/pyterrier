@@ -137,16 +137,16 @@ def _init(trigger=None):
     # build "Java started" message
     message = []
     if trigger:
-        message.append(f'Java started (triggered by {trigger}) and loaded:\n')
+        message.append(f'Java started (triggered by {trigger}) and loaded: ')
     else:
-        message.append('Java started and loaded:\n')
+        message.append('Java started and loaded: ')
     for name, initializer in initalizers:
         msg = initializer.message()
         if msg is None:
-            message.append(f' - {name}\n')
+            message.append(name)
         else:
-            message.append(f' - {name} [{msg}]\n')
-    sys.stderr.write(''.join(message))
+            message.append(f'{name} [{msg}]')
+    sys.stderr.write(message[0] + ', '.join(message[1:]) + '\n')
 
 
 @before_init
