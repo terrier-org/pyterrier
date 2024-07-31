@@ -17,6 +17,9 @@ class CoreInit(JavaInitializer):
         return -100 # run this initializer before anything else
 
     def pre_init(self, jnius_config):
+        if configure['java_home']:
+            os.environ['JAVA_HOME'] = configure['java_home']
+
         if pt.utils.is_windows():
             if "JAVA_HOME" in os.environ:
                 java_home =  os.environ["JAVA_HOME"]
@@ -140,6 +143,7 @@ configure = register_config('pyterrier.java', {
     'mem': None,
     'log_level': 'WARN',
     'redirect_io': True,
+    'java_home': None,
 })
 
 
@@ -170,6 +174,15 @@ def add_option(option: str):
 def set_redirect_io(redirect_io: bool):
     configure['redirect_io'] = redirect_io
 
+
+@before_init
+def set_java_home(java_home: str):
+    """
+    Sets the directory to search when loading Java.
+
+    Note that you can achieve the same outcome by setting the `JAVA_HOME` environment variable.
+    """
+    configure['java_home'] = java_home
 
 def set_log_level(level):
     """
