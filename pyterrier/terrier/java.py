@@ -1,6 +1,7 @@
+import os
 import sys
 import json
-from functools import wraps
+from pathlib import Path
 from packaging.version import Version
 from typing import Optional, Union, List, Callable, Dict, Any
 import pyterrier as pt
@@ -58,6 +59,13 @@ class TerrierInit(pt.java.JavaInitializer):
             terrier_version(str): Which version of Terrier - None is latest release; "snapshot" uses Jitpack to download a build of the current Github 5.x branch.
             helper_version(str): Which version of the helper - None is latest
         """
+        properties_file = Path(pt.io.pyterrier_home()) / 'etc' / 'terrier.default.properties'
+        if not properties_file.exists():
+            properties_file.parent.mkdir(parents=True, exist_ok=True)
+            with properties_file.open('wt') as fout:
+                fout.write(_DEFAULT_PROPERTIES)
+        jnius_config.add_options(f'-Dterrier.setup={properties_file}')
+
         # If version is not specified, find newest and download it
         if configure['terrier_version'] is None:
             terrier_version = pt.java.mavenresolver.latest_version_num(TERRIER_PKG, "terrier-assemblies")
@@ -641,3 +649,40 @@ J = pt.java.JavaClasses({
     'RM3': 'org.terrier.querying.RM3',
     'AxiomaticQE': 'org.terrier.querying.AxiomaticQE',
 })
+
+
+# Pulled from <https://github.com/terrier-org/terrier-core/blob/5.x/modules/core/src/main/resources/terrier.default.properties>
+_DEFAULT_PROPERTIES = """
+#default controls for manager
+querying.processes=terrierql:TerrierQLParser,parsecontrols:TerrierQLToControls,parseql:TerrierQLToMatchingQueryTerms,matchopql:MatchingOpQLParser,applypipeline:ApplyTermPipeline,localmatching:LocalManager$ApplyLocalMatching,qe:QueryExpansion,labels:org.terrier.learning.LabelDecorator,filters:LocalManager$PostFilterProcess,decorate:SimpleDecorateProcess
+#default controls for the web-based interface. SimpleDecorate
+#is the simplest metadata decorator. For more control, see Decorate.
+querying.postfilters=decorate:SimpleDecorate,site:SiteFilter,scope:Scope
+
+#default and allowed controls
+querying.default.controls=wmodel:DPH,parsecontrols:on,parseql:on,applypipeline:on,terrierql:on,localmatching:on,filters:on,decorate:on,decorate_batch:on
+querying.allowed.controls=scope,qe,qemodel,start,end,site,scope
+
+#the processing stages a term goes through
+termpipelines=Stopwords,PorterStemmer
+
+#document tags specification
+#for processing the contents of
+#the documents, ignoring DOCHDR
+TrecDocTags.doctag=DOC
+TrecDocTags.idtag=DOCNO
+TrecDocTags.skip=DOCHDR
+#set to true if the tags can be of various case
+TrecDocTags.casesensitive=false
+
+
+#starting from Terrier 5.3, we assume that documents are in UTF-8
+trec.encoding=UTF-8
+
+
+#query tags specification
+TrecQueryTags.doctag=TOP
+TrecQueryTags.idtag=NUM
+TrecQueryTags.process=TOP,NUM,TITLE
+TrecQueryTags.skip=DESC,NARR
+"""
