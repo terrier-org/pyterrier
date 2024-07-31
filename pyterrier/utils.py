@@ -189,15 +189,12 @@ def get_class_methods(cls) -> List[Tuple[str, Callable]]:
 
 def pre_invocation_decorator(decorator):
     """
-    Builds a decorator function that funs the decoraded code before running the wrapped function. It can run as a
-    standalone function, a function @decorator, or a class @decorator. When used as a class decorator, it is applied to
-    all functions defined by the class.
+    Builds a decorator function that runs the decoraded code before running the wrapped function. It can run as a
+    function @decorator, or a class @decorator. When used as a class decorator, it is applied to all functions defined
+    by the class.
     """
     @wraps(decorator)
     def _decorator_wrapper(fn):
-        if fn is None: # standalone call
-            return _decorator_wrapper(pt.utils.noop)()
-
         if isinstance(fn, type): # wrapping a class
             for name, value in pt.utils.get_class_methods(fn):
                 setattr(fn, name, _decorator_wrapper(value))
@@ -206,7 +203,7 @@ def pre_invocation_decorator(decorator):
         else: # wrapping a function
             @wraps(fn)
             def _wrapper(*args, **kwargs):
-                decorator()
+                decorator(fn)
                 return fn(*args, **kwargs)
             return _wrapper
     return _decorator_wrapper

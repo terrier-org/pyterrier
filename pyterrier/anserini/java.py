@@ -71,12 +71,12 @@ def set_version(version: str):
 
 
 @pt.utils.pre_invocation_decorator
-def required() -> Union[Callable, bool]:
+def required(fn: Callable):
     """
     Requires pyserini to be installed (raises error if not installed). If the JVM has not yet been started, it runs
     pt.java.init(), too, similar to pt.java.required().
 
-    Can be used as either a standalone function or a function/class @decorator. When used as a class decorator, it
+    Can be used as a function/class @decorator. When used as a class decorator, it
     is applied to all methods defined by the class.
     """
     if not is_installed():

@@ -36,11 +36,11 @@ def enable_prf(version: Optional[str] = '-SNAPSHOT'):
 
 
 @pt.utils.pre_invocation_decorator
-def prf_required(fn: Optional[Callable] = None) -> Union[Callable, bool]:
+def prf_required(fn: Callable):
     """
     Requires prf to be enabled (raises error if not enabled).
 
-    Can be used as either a standalone function or a function/class @decorator. When used as a class decorator, it
+    Can be used as a function/class @decorator. When used as a class decorator, it
     is applied to all methods defined by the class.
     """
     if not configure['prf_version']:

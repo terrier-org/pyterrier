@@ -20,15 +20,16 @@ _configs = {}
 # ----------------------------------------------------------
 
 @pt.utils.pre_invocation_decorator
-def required(fn: Optional[Callable] = None) -> Union[Callable, bool]:
+def required(fn: Callable):
     """
     Requires the Java Virtual Machine to be started. If the JVM has not yet been started, it runs pt.java.init().
 
-    Can be used as either a standalone function or a function/class @decorator. When used as a class decorator, it
+    Can be used as a function/class @decorator. When used as a class decorator, it
     is applied to all methods defined by the class.
     """
     if not _started:
-        init()
+        trigger = fn.__qualname__ if hasattr(fn, '__qualname__') else fn.__name__
+        _init(trigger=trigger)
 
 
 def required_raise(fn: Optional[Callable] = None) -> Union[Callable, bool]:
@@ -97,8 +98,12 @@ def cast(*args, **kwargs):
 # the JVM.
 # ----------------------------------------------------------
 
-@pt.utils.once()
 def init() -> None:
+    _init()
+
+
+@pt.utils.once()
+def _init(trigger=None):
     global _started
     # TODO: if we make java optional some day, should check here that it's installed. E.g.,
     # if find_spec('jnius_config') is None:
@@ -131,13 +136,17 @@ def init() -> None:
 
     # build "Java started" message
     message = []
+    if trigger:
+        message.append(f'Java started (triggered by {trigger}) and loaded:\n')
+    else:
+        message.append('Java started and loaded:\n')
     for name, initializer in initalizers:
         msg = initializer.message()
         if msg is None:
             message.append(f' - {name}\n')
         else:
             message.append(f' - {name} [{msg}]\n')
-    sys.stderr.write('Java started and loaded:\n' + ''.join(message))
+    sys.stderr.write(''.join(message))
 
 
 @before_init
@@ -262,9 +271,8 @@ def parallel_init(started: bool, configs: Dict[str, Dict[str, Any]]) -> None:
     global _configs
     if started:
         if not pt.java.started():
-            warn(f'Starting java parallel with configs {configs}')
             _configs = configs
-            init()
+            _init(trigger='parallel_init')
         else:
             warn("Avoiding reinit of PyTerrier")
 
