@@ -1,5 +1,4 @@
 import sys
-import inspect
 import os
 from warnings import warn
 from functools import wraps
@@ -9,6 +8,23 @@ import pyterrier as pt
 
 
 _started = False
+
+
+class JavaInitializer:
+    def priority(self) -> int:
+        return 0
+
+    def condition(self) -> bool:
+        return True
+
+    def pre_init(self, jnius_config) -> None:
+        pass
+
+    def post_init(self, jnius) -> None:
+        pass
+
+    def message(self) -> Optional[str]:
+        return None
 
 
 def started() -> bool:
@@ -62,16 +78,43 @@ def before_init(fn: Optional[Callable] = None) -> Union[Callable, bool]:
     return _wrapper
 
 
-@required_raise
-def _post_init(jnius):
-    pt.autoclass = jnius.autoclass
-    pt.cast = jnius.cast
+class CoreInit(JavaInitializer):
+    def priority(self) -> int:
+        return -100 # run this initializer before anything else
 
-    jnius.protocol_map['java.util.Map$Entry'] = {
-        '__getitem__' : _mapentry_getitem,
-        '__iter__' : lambda self: iter([self.getKey(), self.getValue()]),
-        '__len__' : lambda self: 2
-    }
+    def pre_init(self, jnius_config):
+        if pt.utils.is_windows():
+            if "JAVA_HOME" in os.environ:
+                java_home =  os.environ["JAVA_HOME"]
+                fix = f'{java_home}\\jre\\bin\\server\\;{java_home}\\jre\\bin\\client\\;{java_home}\\bin\\server\\'
+                os.environ["PATH"] = os.environ["PATH"] + ";" + fix
+
+        if pt.java.configure['mem'] is not None:
+            jnius_config.add_options('-Xmx' + str(pt.java.configure['mem']) + 'm')
+
+        for opt in pt.java.configure['options']:
+            jnius_config.add_options(opt)
+
+        for jar in pt.java.configure['jars']:
+            jnius_config.add_classpath(jar)
+
+    @required_raise
+    def post_init(self, jnius):
+        pt.java.set_log_level(pt.java.configure['log_level'])
+
+        if pt.java.configure['redirect_io']:
+            pt.java.redirect_stdouterr()
+
+        java_version = pt.java.J.System.getProperty("java.version")
+        if java_version.startswith("1.") or java_version.startswith("9."):
+            raise RuntimeError(f"Pyterrier requires Java 11 or newer, we only found Java version {java_version};"
+                + " install a more recent Java, or change os.environ['JAVA_HOME'] to point to the proper Java installation")
+
+        jnius.protocol_map['java.util.Map$Entry'] = {
+            '__getitem__' : _mapentry_getitem,
+            '__iter__' : lambda self: iter([self.getKey(), self.getValue()]),
+            '__len__' : lambda self: 2
+        }
 
 
 # Map$Entry can be decoded like a tuple
@@ -91,50 +134,37 @@ def init() -> None:
     #     warnings.warn('pyterrier[java] not installed; no need to run pt.java.init()')
     #     return
 
-    if pt.utils.is_windows():
-        if "JAVA_HOME" in os.environ:
-            java_home =  os.environ["JAVA_HOME"]
-            fix = f'{java_home}\\jre\\bin\\server\\;{java_home}\\jre\\bin\\client\\;{java_home}\\bin\\server\\'
-            os.environ["PATH"] = os.environ["PATH"] + ";" + fix
+    initalizers = []
+    for entry_point in pt.utils.entry_points('pyterrier.java.init'):
+        initalizer = entry_point.load()()
+        if initalizer.condition():
+            initalizers.append((entry_point.name, initalizer))
+
+    # sort by priority
+    initalizers = sorted(initalizers, key=lambda i: i[1].priority())
 
     import jnius_config
 
-    for entry_point in pt.utils.entry_points('pyterrier.java.pre_init'):
-        _pre_init = entry_point.load()
-        _pre_init(jnius_config)
-
-    if pt.java.configure['mem'] is not None:
-        jnius_config.add_options('-Xmx' + str(pt.java.configure['mem']) + 'm')
-
-    for opt in pt.java.configure['options']:
-        jnius_config.add_options(opt)
-
-    for jar in pt.java.configure['jars']:
-        jnius_config.add_classpath(jar)
+    # run pre-initialization setup
+    for _, initializer in initalizers:
+        initializer.pre_init(jnius_config)
 
     import jnius # noqa: PT100 
     _started = True
 
-    pt.java.set_log_level(pt.java.configure['log_level'])
-    if pt.java.configure['redirect_io']:
-        pt.java.redirect_stdouterr()
+    # run post-initialization setup
+    for _, initializer in initalizers:
+        initializer.post_init(jnius)
 
-    java_version = pt.java.J.System.getProperty("java.version")
-    if java_version.startswith("1.") or java_version.startswith("9."):
-        raise RuntimeError(f"Pyterrier requires Java 11 or newer, we only found Java version {java_version};"
-            + " install a more recent Java, or change os.environ['JAVA_HOME'] to point to the proper Java installation")
-
+    # build "Java started" message
     message = []
-    for entry_point in pt.utils.entry_points('pyterrier.java.post_init'):
-        _post_init = entry_point.load()
-        msg = _post_init(jnius)
+    for name, initializer in initalizers:
+        msg = initializer.message()
         if msg is None:
-            message.append(f' - {entry_point.name}\n')
-        elif msg is False:
-            pass
+            message.append(f' - {name}\n')
         else:
-            message.append(f' - {entry_point.name} [{msg}]')
-    sys.stderr.write('Java started and loaded:\n' + ''.join(message) + '\n')
+            message.append(f' - {name} [{msg}]\n')
+    sys.stderr.write('Java started and loaded:\n' + ''.join(message))
 
 
 def parallel_init(started: bool, configs: Dict[str, Dict[str, Any]]) -> None:

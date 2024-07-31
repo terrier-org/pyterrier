@@ -11,36 +11,31 @@ configure = pt.java.config.register('pyterrier.anserini', {
 })
 
 
-def _pre_init(jnius_config):
-    if not is_installed():
-        # pyserini not installed, do nothing
-        return
+class AnseriniInit(pt.java.JavaInitializer):
+    def condition(self):
+        return is_installed()
 
-    if configure['version'] is None:
-        jar = _get_pyserini_jar()
-    else:
-        # download and use the anserini version specified by the user
-        jar = pt.java.mavenresolver.get_package_jar('io.anserini', "anserini", configure['version'], artifact='fatjar')
+    def pre_init(self, jnius_config):
+        if configure['version'] is None:
+            jar = _get_pyserini_jar()
+        else:
+            # download and use the anserini version specified by the user
+            jar = pt.java.mavenresolver.get_package_jar('io.anserini', "anserini", configure['version'], artifact='fatjar')
 
-    if jar is None:
-        raise RuntimeError('Could not find anserini jar')
-    else:
-        jnius_config.add_classpath(jar)
+        if jar is None:
+            raise RuntimeError('Could not find anserini jar')
+        else:
+            jnius_config.add_classpath(jar)
 
-
-def _post_init(jnius):
-    if not is_installed():
-        # pyserini not installed, do nothing
-        return False
-
-    # Temporarily disable the configure_classpath while pyserini is init'd, otherwise it will try to reconfigure jnius
-    import pyserini.setup
-    _configure_classpath = pyserini.setup.configure_classpath
-    try:
-        pyserini.setup.configure_classpath = pt.utils.noop
-        import pyserini.search.lucene # load the package
-    finally:
-        pyserini.setup.configure_classpath = _configure_classpath
+    def post_init(self, jnius):
+        # Temporarily disable the configure_classpath while pyserini is init'd, otherwise it will try to reconfigure jnius
+        import pyserini.setup
+        _configure_classpath = pyserini.setup.configure_classpath
+        try:
+            pyserini.setup.configure_classpath = pt.utils.noop
+            import pyserini.search.lucene # load the package
+        finally:
+            pyserini.setup.configure_classpath = _configure_classpath
 
 
 def is_installed():

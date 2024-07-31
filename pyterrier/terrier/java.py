@@ -1,7 +1,8 @@
 import sys
+import json
 from functools import wraps
 from packaging.version import Version
-from typing import Optional, Union, List, Callable
+from typing import Optional, Union, List, Callable, Dict, Any
 import pyterrier as pt
 
 TERRIER_PKG = "org.terrier"
@@ -46,110 +47,321 @@ def prf_required(fn: Optional[Callable] = None) -> Union[Callable, bool]:
         raise RuntimeError('you need to call pt.terrier.enable_prf() before java is loaded to use this function.')
 
 
-def _pre_init(jnius_config):
-    """
-    Download Terrier's jar file for the given version at the given file_path
-    Called by pt.init()
+class TerrierInit(pt.java.JavaInitializer):
+    def pre_init(self, jnius_config):
+        """
+        Download Terrier's jar file for the given version at the given file_path
+        Called by pt.init()
 
-    Args:
-        file_path(str): Where to download
-        terrier_version(str): Which version of Terrier - None is latest release; "snapshot" uses Jitpack to download a build of the current Github 5.x branch.
-        helper_version(str): Which version of the helper - None is latest
-    """
-    # If version is not specified, find newest and download it
-    if configure['terrier_version'] is None:
-        terrier_version = pt.java.mavenresolver.latest_version_num(TERRIER_PKG, "terrier-assemblies")
-    else:
-        terrier_version = str(configure['terrier_version']) # just in case its a float
-    configure['terrier_version'] = terrier_version # save this specific version
+        Args:
+            file_path(str): Where to download
+            terrier_version(str): Which version of Terrier - None is latest release; "snapshot" uses Jitpack to download a build of the current Github 5.x branch.
+            helper_version(str): Which version of the helper - None is latest
+        """
+        # If version is not specified, find newest and download it
+        if configure['terrier_version'] is None:
+            terrier_version = pt.java.mavenresolver.latest_version_num(TERRIER_PKG, "terrier-assemblies")
+        else:
+            terrier_version = str(configure['terrier_version']) # just in case its a float
+        configure['terrier_version'] = terrier_version # save this specific version
 
-    # obtain the fat jar from Maven
-    # "snapshot" means use Jitpack.io to get a build of the current
-    # 5.x branch from Github - see https://jitpack.io/#terrier-org/terrier-core/5.x-SNAPSHOT
-    if terrier_version == "snapshot":
-        trJar = pt.java.mavenresolver.get_package_jar("com.github.terrier-org.terrier-core", "terrier-assemblies", "5.x-SNAPSHOT", artifact="jar-with-dependencies", force_download=configure['force_download'])
-    else:
-        trJar = pt.java.mavenresolver.get_package_jar(TERRIER_PKG, "terrier-assemblies", terrier_version, artifact="jar-with-dependencies")
-    jnius_config.add_classpath(trJar)
+        # obtain the fat jar from Maven
+        # "snapshot" means use Jitpack.io to get a build of the current
+        # 5.x branch from Github - see https://jitpack.io/#terrier-org/terrier-core/5.x-SNAPSHOT
+        if terrier_version == "snapshot":
+            trJar = pt.java.mavenresolver.get_package_jar("com.github.terrier-org.terrier-core", "terrier-assemblies", "5.x-SNAPSHOT", artifact="jar-with-dependencies", force_download=configure['force_download'])
+        else:
+            trJar = pt.java.mavenresolver.get_package_jar(TERRIER_PKG, "terrier-assemblies", terrier_version, artifact="jar-with-dependencies")
+        jnius_config.add_classpath(trJar)
 
-    # now the helper classes
-    if configure['helper_version'] is None or configure['helper_version'] == 'snapshot':
-        helper_version = pt.java.mavenresolver.latest_version_num(TERRIER_PKG, "terrier-python-helper")
-        configure['helper_version'] = helper_version # save this specific version
-    else:
-        helper_version = str(configure['helper_version']) # just in case its a float
-    helper_jar = pt.java.mavenresolver.get_package_jar(TERRIER_PKG, 'terrier-python-helper', helper_version)
-    jnius_config.add_classpath(helper_jar)
+        # now the helper classes
+        if configure['helper_version'] is None or configure['helper_version'] == 'snapshot':
+            helper_version = pt.java.mavenresolver.latest_version_num(TERRIER_PKG, "terrier-python-helper")
+            configure['helper_version'] = helper_version # save this specific version
+        else:
+            helper_version = str(configure['helper_version']) # just in case its a float
+        helper_jar = pt.java.mavenresolver.get_package_jar(TERRIER_PKG, 'terrier-python-helper', helper_version)
+        jnius_config.add_classpath(helper_jar)
 
-    if configure['prf_version'] is not None:
-        prf_jar = pt.java.mavenresolver.get_package_jar('com.github.terrierteam', 'terrier-prf', configure['prf_version'])
-        jnius_config.add_classpath(prf_jar)
+        if configure['prf_version'] is not None:
+            prf_jar = pt.java.mavenresolver.get_package_jar('com.github.terrierteam', 'terrier-prf', configure['prf_version'])
+            jnius_config.add_classpath(prf_jar)
 
 
-@pt.java.required_raise
-def _post_init(jnius):
-    global _properties
+    @pt.java.required_raise
+    def post_init(self, jnius):
+        global _properties
 
-    jnius.protocol_map["org.terrier.structures.postings.IterablePosting"] = {
-        '__iter__': lambda self: self,
-        '__next__': lambda self: _iterableposting_next(self),
-        '__str__': lambda self: self.toString()
-    }
+        jnius.protocol_map["org.terrier.structures.postings.IterablePosting"] = {
+            '__iter__': lambda self: self,
+            '__next__': lambda self: _iterableposting_next(self),
+            '__str__': lambda self: self.toString()
+        }
 
-    jnius.protocol_map["org.terrier.structures.CollectionStatistics"] = {
-        '__str__': lambda self: self.toString()
-    }
+        jnius.protocol_map["org.terrier.structures.CollectionStatistics"] = {
+            '__str__': lambda self: self.toString()
+        }
 
-    jnius.protocol_map["org.terrier.structures.LexiconEntry"] = {
-        '__str__': lambda self: self.toString()
-    }
+        jnius.protocol_map["org.terrier.structures.LexiconEntry"] = {
+            '__str__': lambda self: self.toString()
+        }
 
-    jnius.protocol_map["org.terrier.structures.Lexicon"] = {
-        '__getitem__': _lexicon_getitem,
-        '__contains__': lambda self, term: self.getLexiconEntry(term) is not None,
-        '__len__': lambda self: self.numberOfEntries()
-    }
+        jnius.protocol_map["org.terrier.structures.Lexicon"] = {
+            '__getitem__': _lexicon_getitem,
+            '__contains__': lambda self, term: self.getLexiconEntry(term) is not None,
+            '__len__': lambda self: self.numberOfEntries()
+        }
 
-    jnius.protocol_map["org.terrier.querying.IndexRef"] = {
-        '__reduce__' : _index_ref_reduce,
-        '__getstate__' : lambda self : None,
-    }
+        jnius.protocol_map["org.terrier.querying.IndexRef"] = {
+            '__reduce__' : _index_ref_reduce,
+            '__getstate__' : lambda self : None,
+        }
 
-    jnius.protocol_map["org.terrier.matching.models.WeightingModel"] = {
-        '__reduce__' : _wmodel_reduce,
-        '__getstate__' : lambda self : None,
-    }
+        jnius.protocol_map["org.terrier.matching.models.WeightingModel"] = {
+            '__reduce__' : _wmodel_reduce,
+            '__getstate__' : lambda self : None,
+        }
 
-    jnius.protocol_map["org.terrier.python.CallableWeightingModel"] = {
-        '__reduce__' : _callable_wmodel_reduce,
-        '__getstate__' : lambda self : None,
-    }
+        jnius.protocol_map["org.terrier.python.CallableWeightingModel"] = {
+            '__reduce__' : _callable_wmodel_reduce,
+            '__getstate__' : lambda self : None,
+        }
 
-    jnius.protocol_map["org.terrier.structures.Index"] = {
-        # this means that len(index) returns the number of documents in the index
-        '__len__': lambda self: self.getCollectionStatistics().getNumberOfDocuments(),
+        jnius.protocol_map["org.terrier.structures.Index"] = {
+            # this means that len(index) returns the number of documents in the index
+            '__len__': lambda self: self.getCollectionStatistics().getNumberOfDocuments(),
 
-        # document-wise composition of indices: adding more documents to an index, by merging two indices with 
-        # different numbers of documents. This implemented by the overloading the `+` Python operator
-        '__add__': _index_add,
+            # document-wise composition of indices: adding more documents to an index, by merging two indices with 
+            # different numbers of documents. This implemented by the overloading the `+` Python operator
+            '__add__': _index_add,
 
-        # get_corpus_iter returns a yield generator that return {"docno": "d1", "toks" : {'a' : 1}}
-        'get_corpus_iter' : _index_corpusiter
-    }
+            # get_corpus_iter returns a yield generator that return {"docno": "d1", "toks" : {'a' : 1}}
+            'get_corpus_iter' : _index_corpusiter
+        }
 
-    pt.IndexRef = J.IndexRef
-    _properties = pt.java.J.Properties()
-    pt.ApplicationSetup = J.ApplicationSetup
-    J.ApplicationSetup.bootstrapInitialisation(_properties)
+        self._post_init_index(jnius)
 
-    version_string = J.Version.VERSION
-    if "BUILD_DATE" in dir(J.Version):
-        version_string += f" (build: {J.Version.BUILD_USER} {J.Version.BUILD_DATE})"
+        pt.IndexRef = J.IndexRef
+        _properties = pt.java.J.Properties()
+        pt.ApplicationSetup = J.ApplicationSetup
+        J.ApplicationSetup.bootstrapInitialisation(_properties)
 
-    res = f"version={version_string}, helper_version={configure['helper_version']}"
-    if configure['prf_version'] is not None:
-        res += f" prf_version={configure['prf_version']}"
-    return res
+    def message(self):
+        version_string = J.Version.VERSION
+        if "BUILD_DATE" in dir(J.Version):
+            version_string += f" (build: {J.Version.BUILD_USER} {J.Version.BUILD_DATE})"
+
+        res = f"version={version_string}, helper_version={configure['helper_version']}"
+        if configure['prf_version'] is not None:
+            res += f" prf_version={configure['prf_version']}"
+
+        return res
+
+    def _post_init_index(self, jnius):
+        @pt.java.required
+        class DocListIterator(jnius.PythonJavaClass):
+            __javainterfaces__ = [
+                'java/util/Iterator',
+            ]
+
+            def __init__(self, pyiterator):
+                self.pyiterator = pyiterator
+                self.hasnext = True
+                self.lastdoc = None
+                self.tr57 = not pt.terrier.check_version("5.8")
+
+            @staticmethod 
+            def pyDictToMap(a_dict): #returns Map<String,String>
+                rtr = pt.java.J.HashMap()
+                for k,v in a_dict.items():
+                    rtr.put(k, v)
+                return rtr
+
+            def pyDictToMapEntry(self,doc_dict : Dict[str,Any]): #returns Map.Entry<Map<String,String>, DocumentPostingList>>
+                dpl = pt.terrier.J.DocumentPostingList()
+                # this works around a bug in the counting of doc lengths in Tr 5.7
+                if self.tr57:
+                    for t, tf in doc_dict["toks"].items():
+                        for i in range(int(tf)):
+                            dpl.insert(t)
+                else: # this code for 5.8 onwards
+                    for t, tf in doc_dict["toks"].items():
+                        dpl.insert(int(tf), t)
+                
+                # we cant make the toks column into the metaindex as it isnt a string. remove it.
+                del doc_dict["toks"]
+                return pt.terrier.J.MapEntry(DocListIterator.pyDictToMap(doc_dict), dpl)
+
+            @jnius.java_method('()Z')
+            def hasNext(self):
+                return self.hasnext
+
+            @jnius.java_method('()Ljava/lang/Object;')
+            def next(self):
+                try:
+                    doc_dict = next(self.pyiterator)
+                except StopIteration as se:
+                    self.hasnext = False
+                    # terrier will ignore a null return from an iterator
+                    return None
+                # keep this around to prevent being GCd before Java can read it
+                self.lastdoc = self.pyDictToMapEntry(doc_dict)
+                return self.lastdoc
+                
+        @pt.java.required
+        class TQDMCollection(jnius.PythonJavaClass):
+            __javainterfaces__ = ['org/terrier/indexing/Collection']
+
+            def __init__(self, collection):
+                super(TQDMCollection, self).__init__()
+                assert isinstance(collection, pt.terrier.J.MultiDocumentFileCollection)
+                self.collection = collection
+                size = self.collection.FilesToProcess.size()
+                self.pbar = pt.tqdm(total=size, unit="files")
+                self.last = -1
+            
+            @jnius.java_method('()Z')
+            def nextDocument(self):
+                rtr = self.collection.nextDocument()
+                filenum = self.collection.FileNumber
+                if filenum > self.last:
+                    self.pbar.update(filenum - self.last)
+                    self.last = filenum
+                return rtr
+
+            @jnius.java_method('()V')
+            def reset(self):
+                self.pbar.reset()
+                self.collection.reset()
+
+            @jnius.java_method('()V')
+            def close(self):
+                self.pbar.close()
+                self.collection.close()
+
+            @jnius.java_method('()Z')
+            def endOfCollection(self):
+                return self.collection.endOfCollection()
+
+            @jnius.java_method('()Lorg/terrier/indexing/Document;')
+            def getDocument(self):
+                global lastdoc
+                lastdoc = self.collection.getDocument()
+                return lastdoc
+
+        class PythonListIterator(jnius.PythonJavaClass):
+            __javainterfaces__ = ['java/util/Iterator']
+
+            def __init__(self, text, meta, convertFn, len=None, index=0):
+                super(PythonListIterator, self).__init__()
+                self.text = text
+                self.meta = meta
+                self.index = index
+                self.convertFn = convertFn
+                if len is None:
+                    self.len = len(self.text)
+                else:
+                    self.len = len
+
+            @jnius.java_method('()V')
+            def remove():
+                # 1
+                pass
+
+            @jnius.java_method('(Ljava/util/function/Consumer;)V')
+            def forEachRemaining(action):
+                # 1
+                pass
+
+            @jnius.java_method('()Z')
+            def hasNext(self):
+                return self.index < self.len
+
+            @jnius.java_method('()Ljava/lang/Object;')
+            def next(self):
+                text = self.text[self.index]
+                meta = self.meta.__next__()
+                self.index += 1
+                global lastdoc
+                if self.convertFn is not None:
+                    lastdoc = self.convertFn(text, meta)
+                else:
+                    lastdoc = [text, meta]
+                return lastdoc
+
+        @pt.java.required
+        class FlatJSONDocumentIterator(jnius.PythonJavaClass):
+            __javainterfaces__ = ['java/util/Iterator']
+
+            def __init__(self, it):
+                super(FlatJSONDocumentIterator, self).__init__()
+                self._it = it
+                # easiest way to support hasNext is just to start consuming right away, I think
+                self._next = next(self._it, StopIteration)
+
+            @jnius.java_method('()V')
+            def remove():
+                # 1
+                pass
+
+            @jnius.java_method('(Ljava/util/function/Consumer;)V')
+            def forEachRemaining(action):
+                # 1
+                pass
+
+            @jnius.java_method('()Z')
+            def hasNext(self):
+                return self._next is not StopIteration
+
+            @jnius.java_method('()Ljava/lang/Object;')
+            def next(self):
+                result = self._next
+                self._next = next(self._it, StopIteration)
+                if result is not StopIteration:
+                    global lastdoc
+                    lastdoc = pt.terrier.J.FlatJSONDocument(json.dumps(result))
+                    return lastdoc
+                return None
+
+        class TQDMSizeCollection(jnius.PythonJavaClass):
+            __javainterfaces__ = ['org/terrier/indexing/Collection']
+
+            def __init__(self, collection, total):
+                super(TQDMSizeCollection, self).__init__()
+                self.collection = collection
+                self.pbar = pt.tqdm(total=total, unit="documents")
+            
+            @jnius.java_method('()Z')
+            def nextDocument(self):
+                rtr = self.collection.nextDocument()
+                self.pbar.update()
+                return rtr
+
+            @jnius.java_method('()V')
+            def reset(self):
+                self.pbar.reset()
+                self.collection.reset()
+
+            @jnius.java_method('()V')
+            def close(self):
+                self.pbar.close()
+                self.collection.close()
+
+            @jnius.java_method('()Z')
+            def endOfCollection(self):
+                return self.collection.endOfCollection()
+
+            @jnius.java_method('()Lorg/terrier/indexing/Document;')
+            def getDocument(self):
+                global lastdoc
+                lastdoc = self.collection.getDocument()
+                return lastdoc
+
+        pt.terrier.index.DocListIterator = DocListIterator
+        pt.terrier.index.PythonListIterator = PythonListIterator
+        pt.terrier.index.FlatJSONDocumentIterator = FlatJSONDocumentIterator
+        pt.terrier.index.TQDMCollection = TQDMCollection
+        pt.terrier.index.TQDMSizeCollection = TQDMSizeCollection
 
 
 def _new_indexref(s):

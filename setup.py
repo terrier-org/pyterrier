@@ -71,15 +71,10 @@ setup(
         "Operating System :: OS Independent",
     ],
     entry_points={
-        'pyterrier.java.pre_init': [
-            'pyterrier.terrier.java  = pyterrier.terrier.java:_pre_init',
-            'pyterrier.anserini.java = pyterrier.anserini.java:_pre_init',
-        ],
-        'pyterrier.java.post_init': [
-            'pyterrier.java          = pyterrier.java._init:_post_init',
-            'pyterrier.terrier.java  = pyterrier.terrier.java:_post_init',
-            'pyterrier.terrier.index = pyterrier.terrier.index:_java_post_init',
-            'pyterrier.anserini.java = pyterrier.anserini.java:_post_init',
+        'pyterrier.java.init': [
+            'pyterrier.java          = pyterrier.java._init:CoreInit',
+            'pyterrier.terrier.java  = pyterrier.terrier.java:TerrierInit',
+            'pyterrier.anserini.java = pyterrier.anserini.java:AnseriniInit',
         ],
     },
     install_requires=requirements,
