@@ -156,6 +156,8 @@ def init() -> None:
     #     warnings.warn('pyterrier[java] not installed; no need to run pt.java.init()')
     #     return
 
+    # TODO: what about errors during init? What happens to _started? Etc.
+
     initalizers = []
     for entry_point in pt.utils.entry_points('pyterrier.java.init'):
         initalizer = entry_point.load()()

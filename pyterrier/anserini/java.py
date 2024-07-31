@@ -1,6 +1,7 @@
 import os
+from pathlib import Path
 from glob import glob
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, Tuple
 import pyterrier as pt
 
 
@@ -10,15 +11,20 @@ configure = pt.java.config.register('pyterrier.anserini', {
 
 
 class AnseriniInit(pt.java.JavaInitializer):
+    def __init__(self):
+        self._message = None
+
     def condition(self):
         return is_installed()
 
     def pre_init(self, jnius_config):
         if configure['version'] is None:
-            jar = _get_pyserini_jar()
+            jar, version = _get_pyserini_jar()
+            self._message = f"version={version} (from pyserini package)"
         else:
             # download and use the anserini version specified by the user
             jar = pt.java.mavenresolver.get_package_jar('io.anserini', "anserini", configure['version'], artifact='fatjar')
+            self._message = f"version={configure['version']} (local cache)"
 
         if jar is None:
             raise RuntimeError('Could not find anserini jar')
@@ -35,6 +41,9 @@ class AnseriniInit(pt.java.JavaInitializer):
         finally:
             pyserini.setup.configure_classpath = _configure_classpath
 
+    def message(self):
+        return self._message
+
 
 def is_installed():
     try:
@@ -44,16 +53,17 @@ def is_installed():
     return True
 
 
-def _get_pyserini_jar() -> Optional[str]:
+def _get_pyserini_jar() -> Optional[Tuple[str, str]]:
     # find the anserini jar distributed with pyserini
     # Adapted from pyserini/setup.py and pyserini/pyclass.py
     import pyserini.setup
     jar_root = os.path.join(os.path.split(pyserini.setup.__file__)[0], 'resources/jars/')
     paths = glob(os.path.join(jar_root, 'anserini-*-fatjar.jar'))
     if not paths:
-        return None
+        return None, None
     latest_jar = max(paths, key=os.path.getctime)
-    return latest_jar
+    version = Path(latest_jar).name.split('-')[-2]
+    return latest_jar, version
 
 @pt.java.before_init
 def set_version(version: str):
