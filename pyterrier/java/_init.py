@@ -6,7 +6,6 @@ from functools import wraps
 from typing import Dict, Any, Tuple, Callable, Optional, Union
 from copy import deepcopy
 import pyterrier as pt
-import pyterrier.java.config
 
 
 _started = False
@@ -130,19 +129,19 @@ def init() -> None:
         _post_init = entry_point.load()
         msg = _post_init(jnius)
         if msg is None:
-            message.append(entry_point.name)
+            message.append(f' - {entry_point.name}\n')
         elif msg is False:
             pass
         else:
-            message.append(f'{entry_point.name} [{msg}]')
-    sys.stderr.write('Java started with: ' + ', '.join(message) + '\n')
+            message.append(f' - {entry_point.name} [{msg}]')
+    sys.stderr.write('Java started and loaded:\n' + ''.join(message) + '\n')
 
 
 def parallel_init(started: bool, configs: Dict[str, Dict[str, Any]]) -> None:
     if started:
         if not pt.java.started():
             warn(f'Starting java parallel with configs {configs}')
-            pyterrier.java.config._CONFIGS = configs
+            pt.java.config._CONFIGS = configs
             init()
         else:
             warn("Avoiding reinit of PyTerrier")
@@ -151,7 +150,7 @@ def parallel_init(started: bool, configs: Dict[str, Dict[str, Any]]) -> None:
 def parallel_init_args() -> Tuple[bool, Dict[str, Dict[str, Any]]]:
     return (
         started(),
-        deepcopy(pyterrier.java.config._CONFIGS),
+        deepcopy(pt.java.config._CONFIGS),
     )
 
 

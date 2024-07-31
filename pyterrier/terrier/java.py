@@ -144,7 +144,7 @@ def _post_init(jnius):
 
     version_string = J.Version.VERSION
     if "BUILD_DATE" in dir(J.Version):
-        version_string += f" (built by {J.Version.BUILD_USER} on {J.Version.BUILD_DATE})"
+        version_string += f" (build: {J.Version.BUILD_USER} {J.Version.BUILD_DATE})"
 
     res = f"version={version_string}, helper_version={configure['helper_version']}"
     if configure['prf_version'] is not None:
