@@ -112,26 +112,30 @@ def _init(trigger=None):
 
     # TODO: what about errors during init? What happens to _started? Etc.
 
-    initalizers = []
+    initializers = []
     for entry_point in pt.utils.entry_points('pyterrier.java.init'):
         initalizer = entry_point.load()()
         if initalizer.condition():
-            initalizers.append((entry_point.name, initalizer))
+            initializers.append((entry_point.name, initalizer))
+
+    if len(initializers) == 0:
+        raise RuntimeError('No Java initializers found. This is likely a configuration issue with the package. '
+                           'If installed using `pip install -e .` or `python setup.py develop`, try reinstalling.')
 
     # sort by priority
-    initalizers = sorted(initalizers, key=lambda i: i[1].priority())
+    initializers = sorted(initializers, key=lambda i: i[1].priority())
 
     import jnius_config
 
     # run pre-initialization setup
-    for _, initializer in initalizers:
+    for _, initializer in initializers:
         initializer.pre_init(jnius_config)
 
     import jnius # noqa: PT100 
     _started = True
 
     # run post-initialization setup
-    for _, initializer in initalizers:
+    for _, initializer in initializers:
         initializer.post_init(jnius)
 
     # build "Java started" message
@@ -140,7 +144,7 @@ def _init(trigger=None):
         message.append(f'Java started (triggered by {trigger}) and loaded: ')
     else:
         message.append('Java started and loaded: ')
-    for name, initializer in initalizers:
+    for name, initializer in initializers:
         msg = initializer.message()
         if msg is None:
             message.append(name)
