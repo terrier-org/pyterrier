@@ -12,7 +12,7 @@ _stderr_ref = None
 # Java Initialization
 # ----------------------------------------------------------
 
-class CoreInit(JavaInitializer):
+class CoreJavaInit(JavaInitializer):
     def priority(self) -> int:
         return -100 # run this initializer before anything else
 

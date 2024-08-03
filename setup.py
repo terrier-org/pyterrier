@@ -72,9 +72,9 @@ setup(
     ],
     entry_points={
         'pyterrier.java.init': [
-            'pyterrier.java          = pyterrier.java:CoreInit',
-            'pyterrier.terrier.java  = pyterrier.terrier.java:TerrierInit',
-            'pyterrier.anserini.java = pyterrier.anserini.java:AnseriniInit',
+            'pyterrier.java          = pyterrier.java:CoreJavaInit',
+            'pyterrier.terrier.java  = pyterrier.terrier.java:TerrierJavaInit',
+            'pyterrier.anserini.java = pyterrier.anserini.java:AnseriniJavaInit',
         ],
     },
     install_requires=requirements,

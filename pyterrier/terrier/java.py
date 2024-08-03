@@ -48,7 +48,7 @@ def prf_required(fn: Callable):
         raise RuntimeError('you need to call pt.terrier.enable_prf() before java is loaded to use this function.')
 
 
-class TerrierInit(pt.java.JavaInitializer):
+class TerrierJavaInit(pt.java.JavaInitializer):
     def pre_init(self, jnius_config):
         # Make sure the terrier.default.properties file exists and is registered as an option, which avoids an annoying
         # "No etc/terrier.properties, using terrier.default.properties for bootstrap configuration." message.

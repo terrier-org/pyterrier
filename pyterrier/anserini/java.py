@@ -10,7 +10,7 @@ configure = pt.java.register_config('pyterrier.anserini', {
 })
 
 
-class AnseriniInit(pt.java.JavaInitializer):
+class AnseriniJavaInit(pt.java.JavaInitializer):
     def __init__(self):
         self._message = None
 
