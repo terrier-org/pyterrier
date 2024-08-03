@@ -50,16 +50,6 @@ def prf_required(fn: Callable):
 
 class TerrierInit(pt.java.JavaInitializer):
     def pre_init(self, jnius_config):
-        """
-        Download Terrier's jar file for the given version at the given file_path
-        Called by pt.init()
-
-        Args:
-            file_path(str): Where to download
-            terrier_version(str): Which version of Terrier - None is latest release; "snapshot" uses Jitpack to download a build of the current Github 5.x branch.
-            helper_version(str): Which version of the helper - None is latest
-        """
-
         # Make sure the terrier.default.properties file exists and is registered as an option, which avoids an annoying
         # "No etc/terrier.properties, using terrier.default.properties for bootstrap configuration." message.
         properties_file = Path(pt.io.pyterrier_home()) / 'etc' / 'terrier.default.properties'

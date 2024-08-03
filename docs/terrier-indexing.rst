@@ -31,7 +31,6 @@ TRECCollectionIndexer
 Example indexing the TREC WT2G corpus::
 
     import pyterrier as pt
-    pt.init()
     # list of filenames to index
     files = pt.io.find_files("/path/to/WT2G/wt2g-corpus/")
 

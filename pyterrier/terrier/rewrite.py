@@ -354,8 +354,8 @@ class KLQueryExpansion(DFRQueryExpansion):
 class RM3(QueryExpansion):
     '''
         Performs query expansion using RM3 relevance models. RM3 relies on an external Terrier plugin, 
-        `terrier-prf <https://github.com/terrierteam/terrier-prf/>`_. You should start PyTerrier with 
-        `pt.init(boot_packages=["com.github.terrierteam:terrier-prf:-SNAPSHOT"])`.
+        `terrier-prf <https://github.com/terrierteam/terrier-prf/>`_. You need to call ``pt.terrier.enable_prf()``
+        before RM3 is available.
 
         This transformer must be followed by a Terrier Retrieve() transformer.
         The original query is saved in the `"query_0"` column, which can be restored using `pt.rewrite.reset()`.
@@ -412,8 +412,8 @@ class RM3(QueryExpansion):
 class AxiomaticQE(QueryExpansion):
     '''
         Performs query expansion using axiomatic query expansion. This class relies on an external Terrier plugin, 
-        `terrier-prf <https://github.com/terrierteam/terrier-prf/>`_. You should start PyTerrier with 
-        `pt.init(boot_packages=["com.github.terrierteam:terrier-prf:-SNAPSHOT"])`.
+        `terrier-prf <https://github.com/terrierteam/terrier-prf/>`_. You need to call ``pt.terrier.enable_prf()``
+        before AxiomaticQE is available.
 
         This transformer must be followed by a Terrier Retrieve() transformer.
         The original query is saved in the `"query_0"` column, which can be restored using `pt.rewrite.reset()`.
