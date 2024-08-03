@@ -350,6 +350,7 @@ class KLQueryExpansion(DFRQueryExpansion):
         kwargs["qemodel"] = "KL"
         super().__init__(*args, **kwargs)
 
+@prf_required
 @pt.java.required
 class RM3(QueryExpansion):
     '''
@@ -376,7 +377,6 @@ class RM3(QueryExpansion):
                         )
  
     '''
-    @prf_required
     def __init__(self, *args, fb_terms=10, fb_docs=3, fb_lambda=0.6, **kwargs):
         """
         Args:
@@ -408,6 +408,7 @@ class RM3(QueryExpansion):
         self.qe.fbDocs = self.fb_docs
         return super().transform(queries_and_docs)
 
+@prf_required
 @pt.java.required
 class AxiomaticQE(QueryExpansion):
     '''
@@ -422,7 +423,6 @@ class AxiomaticQE(QueryExpansion):
          - fb_terms(int): number of feedback terms. Defaults to 10
          - fb_docs(int): number of feedback documents. Defaults to 3
     '''
-    @prf_required
     def __init__(self, *args, fb_terms=10, fb_docs=3, **kwargs):
         """
         Args:

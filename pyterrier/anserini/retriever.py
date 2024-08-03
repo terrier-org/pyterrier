@@ -1,10 +1,11 @@
 from warnings import warn
 import pandas as pd
 import pyterrier as pt
-from pyterrier.anserini.java import required
+from pyterrier.anserini.java import pyserini_required
 
 
-@required
+@pyserini_required
+@pt.java.required
 class AnseriniBatchRetrieve(pt.Transformer):
     """
         Allows retrieval from an Anserini index. To use this class, you must first enable anserini using `pt.anserini.enable()`.
