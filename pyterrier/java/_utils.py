@@ -345,7 +345,7 @@ def register_config(name, config: Dict[str, Any]):
 # ----------------------------------------------------------
 
 class JavaClasses:
-    def __init__(self, mapping: Dict[str, str]):
+    def __init__(self, **mapping: Union[str, Callable[[], str]]):
         self._mapping = mapping
         self._cache = {}
 

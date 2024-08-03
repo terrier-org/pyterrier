@@ -206,15 +206,15 @@ def set_log_level(level):
 # Common classes (accessible via pt.java.J.[ClassName])
 # ----------------------------------------------------------
 
-J = JavaClasses({
-    'ArrayList': 'java.util.ArrayList',
-    'Properties': 'java.util.Properties',
-    'PTUtils': 'org.terrier.python.PTUtils',
-    'System': 'java.lang.System',
-    'StringReader': 'java.io.StringReader',
-    'HashMap': 'java.util.HashMap',
-    'Arrays': 'java.util.Arrays',
-    'Array': 'java.lang.reflect.Array',
-    'String': 'java.lang.String',
-    'List': 'java.util.List',
-})
+J = JavaClasses(
+    ArrayList = 'java.util.ArrayList',
+    Properties = 'java.util.Properties',
+    PTUtils = 'org.terrier.python.PTUtils',
+    System = 'java.lang.System',
+    StringReader = 'java.io.StringReader',
+    HashMap = 'java.util.HashMap',
+    Arrays = 'java.util.Arrays',
+    Array = 'java.lang.reflect.Array',
+    String = 'java.lang.String',
+    List = 'java.util.List',
+)

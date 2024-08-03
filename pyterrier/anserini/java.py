@@ -85,9 +85,9 @@ def required(fn: Callable):
         pt.java.init()
 
 
-J = pt.java.JavaClasses({
-    'ClassicSimilarity': 'org.apache.lucene.search.similarities.ClassicSimilarity',
-    'BM25Similarity': 'org.apache.lucene.search.similarities.BM25Similarity',
-    'LMDirichletSimilarity': 'org.apache.lucene.search.similarities.LMDirichletSimilarity',
-    'IndexReaderUtils': 'io.anserini.index.IndexReaderUtils',
-})
+J = pt.java.JavaClasses(
+    ClassicSimilarity = 'org.apache.lucene.search.similarities.ClassicSimilarity',
+    BM25Similarity = 'org.apache.lucene.search.similarities.BM25Similarity',
+    LMDirichletSimilarity = 'org.apache.lucene.search.similarities.LMDirichletSimilarity',
+    IndexReaderUtils = 'io.anserini.index.IndexReaderUtils',
+)
