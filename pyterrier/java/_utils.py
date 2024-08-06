@@ -292,7 +292,7 @@ def parallel_init_args() -> Tuple[bool, Dict[str, Dict[str, Any]]]:
 # Configuration Utils
 # ----------------------------------------------------------
 # We need a global store of all java-related configurations
-# so that when running in paralle, we can set everying back
+# so that when running in parallel, we can set everying back
 # up the same way it started. These utils help manage this
 # gloabal configuration.
 # ----------------------------------------------------------
@@ -340,7 +340,7 @@ def register_config(name, config: Dict[str, Any]):
 # Java Classes
 # ----------------------------------------------------------
 # This class enables the lazy loading of java classes. It
-# helps avod needing a ton of autclass() statements to
+# helps avoid needing a ton of autclass() statements to
 # pre-load Java classes.
 # ----------------------------------------------------------
 
