@@ -1,5 +1,5 @@
 import sys
-from warnings import warn
+import warnings
 from functools import wraps
 from typing import Dict, Any, Tuple, Callable, Optional, Union
 from copy import deepcopy
@@ -154,7 +154,7 @@ def _init(trigger=None):
 
 
 @before_init
-def legacy_init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, logging='WARN', home_dir=None, boot_packages=[], tqdm=None, no_download=False,helper_version = None):
+def legacy_init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, logging='WARN', home_dir=None, boot_packages=[], tqdm=None, no_download=False, helper_version = None):
     """
     Function that can be called before Terrier classes and methods can be used.
     Loads the Terrier .jar file and imports classes. Also finds the correct version of Terrier to download if no version is specified.
@@ -193,27 +193,64 @@ def legacy_init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=Tr
     ``pt.init(version = 5.5, helper_version = "0.0.6")``.
     """
 
+    deprecated_calls = []
+
     # Set the corresponding options
-    pt.java.set_memory_limit(mem)
-    pt.java.set_redirect_io(redirect_io)
-    pt.java.set_log_level(logging)
+    if mem is not None:
+        pt.java.set_memory_limit(mem)
+        deprecated_calls.append(f'pt.java.set_memory_limit({mem!r})')
+
+    if not redirect_io:
+        pt.java.set_redirect_io(redirect_io)
+        deprecated_calls.append(f'pt.java.set_redirect_io({redirect_io!r})')
+
+    if logging != 'WARN':
+        pt.java.set_log_level(logging)
+        deprecated_calls.append(f'pt.java.set_log_level({logging!r})')
+
     for package in boot_packages:
         pt.java.add_package(*package.split(':')) # format: org:package:version:filetype (where version and filetype are optional)
+        deprecated_calls.append(f'pt.java.add_package({package!r})')
+
     for opt in jvm_opts:
         pt.java.add_option(opt)
-    pt.terrier.set_version(version)
-    pt.terrier.set_helper_version(helper_version)
+        deprecated_calls.append(f'pt.java.add_option({opt!r})')
+
+    if version is not None:
+        pt.terrier.set_version(version)
+        deprecated_calls.append(f'pt.terrier.set_version({version!r})')
+
+    if helper_version is not None:
+        pt.terrier.set_helper_version(helper_version)
+        deprecated_calls.append(f'pt.terrier.set_helper_version({helper_version!r})')
+
     if tqdm is not None:
         pt.utils.set_tqdm(tqdm)
+        deprecated_calls.append(f'pt.utils.set_tqdm({tqdm!r})')
+
     if no_download:
         pt.java.mavenresolver.offline()
+        deprecated_calls.append('pt.java.mavenresolver.offline()')
 
     pt.java.init()
+    deprecated_calls.append('pt.java.init()')
 
     # Import other java packages
     if packages:
         pkgs_string = ",".join(packages)
         pt.terrier.set_property("terrier.mvn.coords", pkgs_string)
+        deprecated_calls.append(f'pt.terrier.set_property("terrier.mvn.coords", {pkgs_string!r})')
+
+    # Warning to give new initialization
+    deprecated_message = 'Call to deprecated method pt.init(). Deprecated since version 0.11.0.'
+    if len(deprecated_calls) > 1: # called setup other than pt.java.init()
+        deprecated_message = deprecated_message + '\nThe following code will have the same effect:'
+    else: # only called pt.java.init()
+        deprecated_message = deprecated_message + '\njava is now started automatically with default settings. To force initialization early, run:'
+    deprecated_message = '\n'.join([deprecated_message] + deprecated_calls)
+    with warnings.catch_warnings():
+        warnings.simplefilter('once', DeprecationWarning) # DeprecationWarning hidden by default, @deprecated does this to show the messages
+        warnings.warn(deprecated_message, category=DeprecationWarning, stacklevel=3) # stacklevel=3 prints wherever this call comes from, rather than here, see @deprecated source
 
 
 def started() -> bool:
@@ -278,7 +315,7 @@ def parallel_init(started: bool, configs: Dict[str, Dict[str, Any]]) -> None:
             _configs = configs
             _init(trigger='parallel_init')
         else:
-            warn("Avoiding reinit of PyTerrier")
+            warnings.warn("Avoiding reinit of PyTerrier")
 
 
 def parallel_init_args() -> Tuple[bool, Dict[str, Dict[str, Any]]]:

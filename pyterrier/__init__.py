@@ -34,7 +34,7 @@ IndexRef = None
 
 
 # deprecated functions explored to the main namespace, which will be removed in a future version
-init = deprecated(version='0.11.0', reason='No longer needed, java is started automatically. To force initialization early, use pt.java.init() instead.')(java.legacy_init)
+init = java.legacy_init # java.legacy_init raises a deprecated warning internally
 started = deprecated(version='0.11.0', reason="use pt.java.started() instead")(java.started)
 logging = deprecated(version='0.11.0', reason="use pt.java.set_log_level(...) instead")(java.set_log_level)
 version = deprecated(version='0.11.0', reason="use pt.terrier.version() instead")(terrier.version)
