@@ -154,7 +154,7 @@ def _init(trigger=None):
 
 
 @before_init
-def legacy_init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, logging='WARN', home_dir=None, boot_packages=[], tqdm=None, no_download=False,helper_version = None):
+def legacy_init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=True, logging='WARN', home_dir=None, boot_packages=[], tqdm=None, no_download=False, helper_version = None):
     """
     Function that can be called before Terrier classes and methods can be used.
     Loads the Terrier .jar file and imports classes. Also finds the correct version of Terrier to download if no version is specified.
@@ -194,19 +194,41 @@ def legacy_init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=Tr
     """
 
     # Set the corresponding options
-    pt.java.set_memory_limit(mem)
+    if mem is None:
+        pt.java.set_memory_limit(mem)
+        warn("Use pt.java.set_memory_limit(%s) " % str(mem), DeprecationWarning)
+    
     pt.java.set_redirect_io(redirect_io)
+    if not redirect_io:
+        warn("Use pt.java.set_redirect_io(%s) " % str(redirect_io), DeprecationWarning)
+    
     pt.java.set_log_level(logging)
+    if logging != 'WARN':
+        warn("Use pt.java.set_log_level(%s) " % str(logging), DeprecationWarning)
+
     for package in boot_packages:
         pt.java.add_package(*package.split(':')) # format: org:package:version:filetype (where version and filetype are optional)
+        warn("Use pt.java.add_package(%s) " % str(package), DeprecationWarning)
+
     for opt in jvm_opts:
         pt.java.add_option(opt)
+        warn("Use pt.java.add_option(%s) " % str(jvm_opts), DeprecationWarning)
+    
     pt.terrier.set_version(version)
+    if version is not None:
+        warn("Use pt.terrier.set_version(%s) " % str(version), DeprecationWarning)
+
     pt.terrier.set_helper_version(helper_version)
+    if helper_version is not None:
+        warn("Use pt.terrier.set_helper_version(%s) " % str(helper_version), DeprecationWarning)
+
     if tqdm is not None:
         pt.utils.set_tqdm(tqdm)
+        warn("Use pt.utils.set_tqdm(%s) " % str(tqdm), DeprecationWarning)
+
     if no_download:
         pt.java.mavenresolver.offline()
+        warn("Use pt.java.mavenresolver.offline()", DeprecationWarning)
 
     pt.java.init()
 
@@ -214,6 +236,7 @@ def legacy_init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=Tr
     if packages:
         pkgs_string = ",".join(packages)
         pt.terrier.set_property("terrier.mvn.coords", pkgs_string)
+        warnings.warn("Use pt.terrier.set_property('terrier.mvn.coords', '%s')" % pkgs_string, DeprecationWarning)
 
 
 def started() -> bool:
