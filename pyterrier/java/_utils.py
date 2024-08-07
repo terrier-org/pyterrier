@@ -233,7 +233,7 @@ def legacy_init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=Tr
         deprecated_calls.append('pt.java.mavenresolver.offline()')
 
     pt.java.init()
-    deprecated_calls.append('pt.java.init()')
+    deprecated_calls.append('pt.java.init() # optional, forces java initialisation')
 
     # Import other java packages
     if packages:
@@ -246,7 +246,7 @@ def legacy_init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=Tr
     if len(deprecated_calls) > 1: # called setup other than pt.java.init()
         deprecated_message = deprecated_message + '\nThe following code will have the same effect:'
     else: # only called pt.java.init()
-        deprecated_message = deprecated_message + '\njava is now started automatically with default settings. To force initialization early, run:'
+        deprecated_message = deprecated_message + '\njava is now started automatically with default settings. To force initialisation early, run:'
     deprecated_message = '\n'.join([deprecated_message] + deprecated_calls)
     with warnings.catch_warnings():
         warnings.simplefilter('once', DeprecationWarning) # DeprecationWarning hidden by default, @deprecated does this to show the messages
