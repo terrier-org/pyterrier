@@ -200,9 +200,9 @@ class FeatureUnionPipeline(NAryTransformerBase):
         Implements the feature union operator.
 
         Example::
-            cands = pt.BatchRetrieve(index wmodel="BM25")
-            pl2f = pt.BatchRetrieve(index wmodel="PL2F")
-            bm25f = pt.BatchRetrieve(index wmodel="BM25F")
+            cands = pt.terrier.Retrieve(index wmodel="BM25")
+            pl2f = pt.terrier.Retrieve(index wmodel="PL2F")
+            bm25f = pt.terrier.Retrieve(index wmodel="BM25F")
             pipe = cands >> (pl2f ** bm25f)
     """
     name = "FUnion"

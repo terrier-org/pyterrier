@@ -14,7 +14,7 @@ PyTerrier makes it easy to formulate learning to rank pipelines. Conceptually, l
 
 PyTerrier allows each of these phases to be expressed as transformers, and for them to be composed into a full pipeline.  
 
-In particular, conventional retrieval transformers (such as `pt.BatchRetrieve`) can be used for the first phase.
+In particular, conventional retrieval transformers (such as `pt.terrier.Retrieve`) can be used for the first phase.
 To permit the second phase, PyTerrier data model allows for a `"features"` column to be associated to each retrieved document. 
 Such features can be generated using specialised transformers, or by combining other re-ranking transformers using the  `**`
 feature-union operator; Lastly, to facilitate the final phase, we provide easy ways to integrate PyTerrier pipelines with standard learning libraries
@@ -34,9 +34,9 @@ PyTerrier's main way to faciliate calculating and intgrating extra features is t
 the candidate set should be identified using the BM25 weighting model, and then additional features computed using the
 Tf and PL2 models::
 
-    bm25 = pt.BatchRetrieve(index, wmodel="BM25")
-    tf = pt.BatchRetrieve(index, wmodel="Tf")
-    pl2 = pt.BatchRetrieve(index, wmodel="PL2")
+    bm25 = pt.terrier.Retrieve(index, wmodel="BM25")
+    tf = pt.terrier.Retrieve(index, wmodel="Tf")
+    pl2 = pt.terrier.Retrieve(index, wmodel="PL2")
     pipeline = bm25 >> (tf ** pl2)
 
 The output of the bm25 ranker would look like:

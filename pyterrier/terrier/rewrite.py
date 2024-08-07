@@ -19,22 +19,22 @@ def tokenise(tokeniser : Union[str,TerrierTokeniser,FunctionType] = 'english', m
     
     Example - use default tokeniser::
 
-        pipe = pt.rewrite.tokenise() >> pt.BatchRetrieve()
+        pipe = pt.rewrite.tokenise() >> pt.terrier.Retrieve()
         pipe.search("Question with 'capitals' and other stuff?")
     
     Example - roll your own tokeniser::
 
-        poortokenisation = pt.rewrite.tokenise(lambda query: query.split(" ")) >> pt.BatchRetrieve()
+        poortokenisation = pt.rewrite.tokenise(lambda query: query.split(" ")) >> pt.terrier.Retrieve()
 
     Example - for non-English languages, tokenise on standard UTF non-alphanumeric characters::
 
-        utftokenised = pt.rewrite.tokenise(pt.TerrierTokeniser.utf)) >> pt.BatchRetrieve()
-        utftokenised = pt.rewrite.tokenise("utf")) >> pt.BatchRetrieve()
+        utftokenised = pt.rewrite.tokenise(pt.TerrierTokeniser.utf)) >> pt.terrier.Retrieve()
+        utftokenised = pt.rewrite.tokenise("utf")) >> pt.terrier.Retrieve()
 
     Example - tokenising queries using a `HuggingFace tokenizer <https://huggingface.co/docs/transformers/fast_tokenizers>`_ ::
 
         # this assumes the index was created in a pretokenised manner
-        br = pt.BatchRetrieve(indexref)
+        br = pt.terrier.Retrieve(indexref)
         tok = AutoTokenizer.from_pretrained("bert-base-uncased")
         query_toks = pt.rewrite.tokenise(tok.tokenize, matchop=True)
         retr_pipe = query_toks >> br
@@ -58,7 +58,7 @@ def tokenise(tokeniser : Union[str,TerrierTokeniser,FunctionType] = 'english', m
 
     def _join_str_matchop(input : List[str]):
         assert not isinstance(input, str), "Expected a list of strings"
-        return ' '.join(map(pt.BatchRetrieve.matchop, input))
+        return ' '.join(map(pt.terrier.Retrieve.matchop, input))
     
     if matchop:
         return pt.apply.query(lambda r: _join_str_matchop(_query_fn(r.query)))
@@ -76,7 +76,7 @@ def reset() -> pt.Transformer:
 
         Example::
 
-            firststage = pt.rewrite.SDM() >> pt.BatchRetrieve(index, wmodel="DPH")
+            firststage = pt.rewrite.SDM() >> pt.terrier.Retrieve(index, wmodel="DPH")
             secondstage = pyterrier_bert.cedr.CEDRPipeline()
             fullranker = firststage >> pt.rewrite.reset() >> secondstage
 
@@ -368,7 +368,7 @@ class RM3(QueryExpansion):
 
         Example:: 
 
-            bm25 = pt.BatchRetrieve(index, wmodel="BM25")
+            bm25 = pt.terrier.Retrieve(index, wmodel="BM25")
             rm3_pipe = bm25 >> pt.rewrite.RM3(index) >> bm25
             pt.Experiment([bm25, rm3_pipe],
                         dataset.get_topics(),
