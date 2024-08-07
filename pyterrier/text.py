@@ -160,7 +160,7 @@ def scorer(*args, **kwargs) -> pt.Transformer:
         textscorerTfIdf = pt.text.scorer(body_attr="text", wmodel="TF_IDF", background_index=index)
 
     """
-    return pt.terrier.retriever.TextScorer(*args, **kwargs)
+    return pt.terrier.retrieve.TextScorer(*args, **kwargs)
 
 def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='title', tokenizer=None, **kwargs) -> pt.Transformer:
     r"""

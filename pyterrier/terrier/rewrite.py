@@ -178,7 +178,7 @@ class QueryExpansion(pt.Transformer):
             self.qe = pt.java.autoclass(qeclass)()
         else:
             self.qe = qeclass
-        self.indexref = pt.terrier.retriever._parse_index_like(index_like)
+        self.indexref = pt.terrier.retrieve._parse_index_like(index_like)
         self.properties = properties
         for k,v in properties.items():
             pt.terrier.J.ApplicationSetup.setProperty(k, str(v))

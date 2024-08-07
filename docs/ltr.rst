@@ -64,17 +64,17 @@ the `"features"` column, as follows:
 FeaturesBatchRetrieve
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When executing the pipeline above, the re-ranking of the documents again can be slow, as each separate BatchRetrieve
-object has to re-access the inverted index. For this reason, PyTerrier provides a class called FeaturesBatchRetrieve,
+When executing the pipeline above, the re-ranking of the documents again can be slow, as each separate Retrieve
+object has to re-access the inverted index. For this reason, PyTerrier provides a class called FeaturesRetrieve,
 which allows multiple query dependent features to be calculated at once, by virtue of Terrier's Fat framework.
 
-.. autoclass:: pyterrier.FeaturesBatchRetrieve
+.. autoclass:: pyterrier.terrier.FeaturesRetrieve
     :members: transform 
 
 An equivalent pipeline to the example above would be::
 
     #pipeline = bm25 >> (tf ** pl2)
-    pipeline = pt.FeaturesBatchRetrieve(index, wmodel="BM25", features=["WMODEL:Tf", "WMODEL:PL2"])
+    pipeline = pyterrier.terrier.FeaturesRetrieve(index, wmodel="BM25", features=["WMODEL:Tf", "WMODEL:PL2"])
 
 
 Apply Functions for Custom Features
