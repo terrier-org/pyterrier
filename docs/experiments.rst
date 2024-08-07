@@ -27,8 +27,8 @@ Getting average effectiveness over a set of topics::
     # vaswani dataset provides an index, topics and qrels
 
     # lets generate two BRs to compare
-    tfidf = pt.BatchRetrieve(dataset.get_index(), wmodel="TF_IDF")
-    bm25 = pt.BatchRetrieve(dataset.get_index(), wmodel="BM25")
+    tfidf = pt.terrier.Retrieve(dataset.get_index(), wmodel="TF_IDF")
+    bm25 = pt.terrier.Retrieve(dataset.get_index(), wmodel="BM25")
 
     pt.Experiment(
         [tfidf, bm25],

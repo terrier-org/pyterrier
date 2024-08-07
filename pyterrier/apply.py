@@ -43,12 +43,12 @@ def query(fn : Callable[[pd.Series], str], *args, **kwargs) -> pt.Transformer:
                 return " ".join(terms)
 
             # a query rewriting transformer that applies the _remove_stops to each row of an input dataframe
-            p1 = pt.apply.query(_remove_stops) >> pt.BatchRetrieve(index, wmodel="DPH")
+            p1 = pt.apply.query(_remove_stops) >> pt.terrier.Retrieve(index, wmodel="DPH")
 
             # an equivalent query rewriting transformer using an anonymous lambda function
             p2 = pt.apply.query(
                     lambda q :  " ".join([t for t in q["query"].split(" ") if t not in stops ])
-                ) >> pt.BatchRetrieve(index, wmodel="DPH")
+                ) >> pt.terrier.Retrieve(index, wmodel="DPH")
 
         In both of the example pipelines above (`p1` and `p2`), the exact topics are not known until the pipeline is invoked, e.g.
         by using `p1.transform(topics)` on a topics dataframe, or within a `pt.Experiment()`. When the pipeline 
@@ -75,7 +75,7 @@ def doc_score(fn : Union[Callable[[pd.Series], float], Callable[[pd.DataFrame], 
         Example (Row-wise)::
 
             # this transformer will subtract 5 from the score of each document
-            p = pt.BatchRetrieve(index, wmodel="DPH") >> 
+            p = pt.terrier.Retrieve(index, wmodel="DPH") >> 
                 pt.apply.doc_score(lambda doc : doc["score"] -5)
 
         Can be used in batch-wise manner, which is particularly useful for appling neural models. In this case,
@@ -85,7 +85,7 @@ def doc_score(fn : Union[Callable[[pd.Series], float], Callable[[pd.DataFrame], 
                 # returns series of lengths
                 return df.text.str.len()
             
-            pipe = pt.BatchRetrieve(index) >> pt.apply.doc_score(_doclen, batch_size=128)
+            pipe = pt.terrier.Retrieve(index) >> pt.apply.doc_score(_doclen, batch_size=128)
 
     """
     return ApplyDocumentScoringTransformer(fn, *args, batch_size=batch_size, **kwargs)
@@ -113,7 +113,7 @@ def doc_features(fn : Callable[[pd.Series], npt.NDArray[Any]], *args, **kwargs) 
                 f2 = len(content.split(" "))
                 return np.array([f1, f2])
 
-            p = pt.BatchRetrieve(index, wmodel="BM25") >> 
+            p = pt.terrier.Retrieve(index, wmodel="BM25") >> 
                 pt.apply.doc_features(_features )
 
     """
@@ -129,7 +129,7 @@ def rename(columns : Dict[str,str], *args, errors='raise', **kwargs) -> pt.Trans
 
         Example::
             
-            pipe = pt.BatchRetrieve(index, metadata=["docno", "body"]) >> pt.apply.rename({'body':'text'})
+            pipe = pt.terrier.Retrieve(index, metadata=["docno", "body"]) >> pt.apply.rename({'body':'text'})
     """
     return ApplyGenericTransformer(lambda df: df.rename(columns=columns, errors=errors), *args, **kwargs)
 
@@ -151,7 +151,7 @@ def generic(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, batch_size=None,
             # this transformer will remove all documents at rank greater than 2.
 
             # this pipeline would remove all but the first two documents from a result set
-            pipe = pt.BatchRetrieve(index) >> pt.apply.generic(lambda res : res[res["rank"] < 2])
+            pipe = pt.terrier.Retrieve(index) >> pt.apply.generic(lambda res : res[res["rank"] < 2])
 
     """
     return ApplyGenericTransformer(fn, *args, batch_size=batch_size, **kwargs)

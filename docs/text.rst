@@ -53,12 +53,12 @@ all document fields, not just those that were included as meta fields when index
 Examples::
 
     # the following pipelines are equivalent
-    pipe1 = pt.BatchRetrieve(index, metadata=["docno", "body"])
+    pipe1 = pt.terrier.Retrieve(index, metadata=["docno", "body"])
 
-    pipe2 = pt.BatchRetrieve(index) >> pt.text.get_text(index, "body")
+    pipe2 = pt.terrier.Retrieve(index) >> pt.text.get_text(index, "body")
 
     dataset = pt.get_dataset('irds:vaswani')
-    pipe3 = pt.BatchRetrieve(index) >> pt.text.get_text(dataset, "text")
+    pipe3 = pt.terrier.Retrieve(index) >> pt.text.get_text(dataset, "text")
 
 
 .. autofunction:: pyterrier.text.get_text()

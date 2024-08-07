@@ -331,7 +331,7 @@ def parallel_init_args() -> Tuple[bool, Dict[str, Dict[str, Any]]]:
 # We need a global store of all java-related configurations
 # so that when running in parallel, we can set everying back
 # up the same way it started. These utils help manage this
-# gloabal configuration.
+# global configuration.
 # ----------------------------------------------------------
 
 class Configuration:

@@ -51,7 +51,7 @@ A dataframe representing which documents are retrieved and scored for a given qu
 
 Note that rank is computed by sorting by qid ascending, then score descending. The first rank for each query is 0. The `pyterrier.model.add_rank()` function is used for adding the rank column. 
 
-Optional columns might support additional transformers, such as text (for the contents of the documents), url or title columns. Their presence can facilitate more advanced transformers, such as BERT-based transformers which operate on the raw text of the documents. For instance, if the Terrier index has additional metadata attributes, these can be included by BatchRetrieve using the `metadata` kwarg, i.e. `pt.BatchRetrieve(index, metadata=["docno", "title", "body"])`. 
+Optional columns might support additional transformers, such as text (for the contents of the documents), url or title columns. Their presence can facilitate more advanced transformers, such as BERT-based transformers which operate on the raw text of the documents. For instance, if the Terrier index has additional metadata attributes, these can be included by BatchRetrieve using the `metadata` kwarg, i.e. `pt.terrier.Retrieve(index, metadata=["docno", "title", "body"])`. 
 
 Note that the retrieved documents is a subset of the cartesian product of documents and queries; it is important that the query (text) attribute is present for at least ONE document rather than all documents for a given query.
 
