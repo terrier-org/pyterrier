@@ -40,3 +40,4 @@ class TempDirTestCase(BaseTestCase):
             pass
 
     
+parallel_test = unittest.skipIf(os.environ.get("PARALLEL_TESTING") is None, "Parallel test disabled, enable with PARALLEL_TESTING=1")
