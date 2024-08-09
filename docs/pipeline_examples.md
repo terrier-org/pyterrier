@@ -46,10 +46,9 @@ pipe = (pt.BatchRetrieve(wikipedia_index, wmodel="BM25") >>
 
 ### RM3 Query Expansion
 
-We also provide RM3 query expansion, by virtue of an external plugin to Terrier called [terrier-prf](https://github.com/terrierteam/terrier-prf). This needs to be load at initialisation time.
+We also provide RM3 query expansion, using an external plugin to Terrier called [terrier-prf](https://github.com/terrierteam/terrier-prf).
 
 ```python
-pt.init(boot_packages=["com.github.terrierteam:terrier-prf:-SNAPSHOT"])
 pipe = (pt.BatchRetrieve(indexref, wmodel="BM25") >> 
     pt.rewrite.RM3(indexref) >> 
     pt.BatchRetrieve(indexref, wmodel="BM25")

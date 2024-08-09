@@ -30,7 +30,7 @@ For instance, to create a re-ranking pipeline that re-scores the top 100 BM25 do
 BatchRetrieve
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autoclass:: pyterrier.BatchRetrieve
+.. autoclass:: pyterrier.terrier.BatchRetrieve
     :members: transform, from_dataset
 
 
@@ -119,7 +119,7 @@ for the documents, and these are then scored.
 Optionally, an index-like object can be specified as the `background_index` kwarg, which will be used for
 the collection statistics (e.g. term frequencies, document lengths etc. 
 
-.. autoclass:: pyterrier.batchretrieve.TextScorer
+.. autoclass:: pyterrier.terrier.TextScorer
 
 Non-English Retrieval
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

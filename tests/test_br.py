@@ -24,7 +24,7 @@ def parse_query_result(filename):
 class TestBatchRetrieve(BaseTestCase):
 
     def test_candidate_set_one_doc(self):
-        if not pt.check_version("5.3"):
+        if not pt.terrier.check_version("5.3"):
             self.skipTest("Requires Terrier 5.3")
         indexloc = self.here + "/fixtures/index/data.properties"
         # docid 50 == docno 51
@@ -89,7 +89,7 @@ class TestBatchRetrieve(BaseTestCase):
     def test_br_mem(self):
         indexloc = self.here + "/fixtures/index/data.properties"
         memindex = pt.IndexFactory.of(indexloc, memory=True)
-        pindex = pt.cast("org.terrier.structures.IndexOnDisk", memindex)
+        pindex = pt.java.cast("org.terrier.structures.IndexOnDisk", memindex)
         self.assertEqual("fileinmem", pindex.getIndexProperty("index.lexicon.data-source", "notfound"))
         retr = pt.BatchRetrieve(memindex)
         retr.search("chemical reactions")
@@ -108,7 +108,7 @@ class TestBatchRetrieve(BaseTestCase):
         self.assertEqual(0, len(result))
 
     def test_candidate_set_two_doc(self):
-        if not pt.check_version("5.3"):
+        if not pt.terrier.check_version("5.3"):
             self.skipTest("Requires Terrier 5.3")
 
         indexloc = self.here + "/fixtures/index/data.properties"
@@ -149,7 +149,7 @@ class TestBatchRetrieve(BaseTestCase):
         jindex.close()
 
     def test_two_term_query_correct_qid_docid_score(self):
-        JIR = pt.autoclass('org.terrier.querying.IndexRef')
+        JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of(self.here + "/fixtures/index/data.properties")
         retr = pt.BatchRetrieve(indexref)
         input = pd.DataFrame([["1", "Stability"], ["2", "Generator"]], columns=['qid', 'query'])
@@ -171,14 +171,14 @@ class TestBatchRetrieve(BaseTestCase):
             self.assertAlmostEqual(row['score'], exp_result[index][2])
 
     def test_num_results(self):
-        JIR = pt.autoclass('org.terrier.querying.IndexRef')
+        JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of(self.here+"/fixtures/index/data.properties")
         retr = pt.BatchRetrieve(indexref, num_results=10)
         input=pd.DataFrame([["1", "Stability"]],columns=['qid','query'])
         result = retr.transform(input)
         self.assertEqual(len(result), 10)
 
-        if not pt.check_version("5.5"):
+        if not pt.terrier.check_version("5.5"):
             return
 
         retr = pt.BatchRetrieve(indexref, num_results=1001)        
@@ -186,8 +186,8 @@ class TestBatchRetrieve(BaseTestCase):
         self.assertEqual(len(result), 1001)
 
     def test_num_manual_wmodel(self):
-        JIR = pt.autoclass('org.terrier.querying.IndexRef')
-        Tf = pt.autoclass("org.terrier.matching.models.Tf")()
+        JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
+        Tf = pt.java.autoclass("org.terrier.matching.models.Tf")()
         indexref = JIR.of(self.here+"/fixtures/index/data.properties")
         from jnius import JavaException
         try:
@@ -208,13 +208,13 @@ class TestBatchRetrieve(BaseTestCase):
 
     def test_threading_manualref(self):
         
-        if not pt.check_version("5.5"):
+        if not pt.terrier.check_version("5.5"):
             self.skipTest("Requires Terrier 5.5")
 
         topics = pt.get_dataset("vaswani").get_topics().head(8)
 
         #this test ensures that we operate when the indexref is specified to be concurrent 
-        JIR = pt.autoclass('org.terrier.querying.IndexRef')
+        JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of("concurrent:" + self.here+"/fixtures/index/data.properties")
         retr = pt.BatchRetrieve(indexref, threads=4)
         result = retr.transform(topics)
@@ -225,20 +225,20 @@ class TestBatchRetrieve(BaseTestCase):
         result = retr.transform(topics)
 
     def test_threading_selfupgrade(self):
-        if not pt.check_version("5.5"):
+        if not pt.terrier.check_version("5.5"):
             self.skipTest("Requires Terrier 5.5")
 
         topics = pt.get_dataset("vaswani").get_topics().head(10)
 
         #this test ensures we can upgrade the indexref to be concurrent
-        JIR = pt.autoclass('org.terrier.querying.IndexRef')
+        JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of(self.here+"/fixtures/index/data.properties")
         retr = pt.BatchRetrieve(indexref, threads=5)
         result = retr.transform(topics)
 
     def test_terrier_retrieve_alias(self):
         # based off test_candidate_set_one_doc
-        if not pt.check_version("5.3"):
+        if not pt.terrier.check_version("5.3"):
             self.skipTest("Requires Terrier 5.3")
         indexloc = self.here + "/fixtures/index/data.properties"
         # docid 50 == docno 51

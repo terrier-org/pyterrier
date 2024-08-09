@@ -83,7 +83,7 @@ class TestPickle(TempDirTestCase):
         self._br(joblib, wmodel=lambda keyFreq, posting, entryStats, collStats: posting.getFrequency())
 
     def test_br_pickle_straightwmodel(self):
-        self._br(pickle, wmodel=pt.autoclass("org.terrier.matching.models.BM25")())
+        self._br(pickle, wmodel=pt.java.autoclass("org.terrier.matching.models.BM25")())
 
     def test_br_joblib(self):
         import joblib

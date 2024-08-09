@@ -1,0 +1,26 @@
+name: Code Style Checks
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: 'ubuntu-latest'
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install
+      run: |
+        pip install flake8 ./extras/pyterrier-flake8-ext/
+
+    - name: pt.java.required checks
+      run: |
+        flake8 ./pyterrier --select=PT --show-source --statistics --count

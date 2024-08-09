@@ -1,20 +1,13 @@
-from jnius import autoclass, cast
 from typing import Union
 import pandas as pd
 import numpy as np
-from . import tqdm, check_version, Transformer
 from warnings import warn
-from .datasets import Dataset
-from .transformer import Symbol
-from .model import coerce_queries_dataframe, FIRST_RANK
+from pyterrier.datasets import Dataset
+from pyterrier.transformer import Symbol
+from pyterrier.model import coerce_queries_dataframe, FIRST_RANK
 import concurrent
 from concurrent.futures import ThreadPoolExecutor
-
-def importProps():
-    from . import properties as props
-    # Make import global
-    globals()["props"] = props
-props = None
+import pyterrier as pt
 
 _matchops = ["#combine", "#uw", "#1", "#tag", "#prefix", "#band", "#base64", "#syn"]
 def _matchop(query):
@@ -23,10 +16,11 @@ def _matchop(query):
             return True
     return False
 
+@pt.java.required
 def _function2wmodel(function):
-    from . import autoclass
     from jnius import PythonJavaClass, java_method
 
+    @pt.java.required
     class PythonWmodelFunction(PythonJavaClass):
         __javainterfaces__ = ['org/terrier/python/CallableWeightingModel$Callback']
 
@@ -46,11 +40,11 @@ def _function2wmodel(function):
             extend(use_dill=False)
             # keep both python and java representations around to prevent them being GCd in respective VMs 
             self.pbyterep = pickle.dumps(self.fn)
-            self.jbyterep = autoclass("java.nio.ByteBuffer").wrap(self.pbyterep)
+            self.jbyterep = pt.java.autoclass("java.nio.ByteBuffer").wrap(self.pbyterep)
             return self.jbyterep
 
     callback = PythonWmodelFunction(function)
-    wmodel = autoclass("org.terrier.python.CallableWeightingModel")( callback )
+    wmodel = pt.java.autoclass("org.terrier.python.CallableWeightingModel")( callback )
     return callback, wmodel
 
 def _mergeDicts(defaults, settings):
@@ -59,15 +53,16 @@ def _mergeDicts(defaults, settings):
         KV.update(settings)
     return KV
 
+@pt.java.required
 def _parse_index_like(index_location):
-    JIR = autoclass('org.terrier.querying.IndexRef')
-    JI = autoclass('org.terrier.structures.Index')
-    from .index import TerrierIndexer
+    JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
+    JI = pt.java.autoclass('org.terrier.structures.Index')
+    from pyterrier.terrier import TerrierIndexer
 
     if isinstance(index_location, JIR):
         return index_location
     if isinstance(index_location, JI):
-        return cast('org.terrier.structures.Index', index_location).getIndexRef()
+        return pt.java.cast('org.terrier.structures.Index', index_location).getIndexRef()
     if isinstance(index_location, str) or issubclass(type(index_location), TerrierIndexer):
         if issubclass(type(index_location), TerrierIndexer):
             return JIR.of(index_location.path)
@@ -80,7 +75,7 @@ def _parse_index_like(index_location):
         or an pyterrier.index.TerrierIndexer object'''
     )
 
-class BatchRetrieveBase(Transformer, Symbol):
+class BatchRetrieveBase(pt.Transformer, Symbol):
     """
     A base class for retrieval
 
@@ -95,10 +90,10 @@ def _from_dataset(dataset : Union[str,Dataset],
             clz,
             variant : str = None, 
             version='latest',            
-            **kwargs) -> Transformer:
+            **kwargs) -> pt.Transformer:
 
-    from . import get_dataset
-    from .io import autoopen
+    from pyterrier import get_dataset
+    from pyterrier.io import autoopen
     import os
     import json
     
@@ -120,6 +115,7 @@ def _from_dataset(dataset : Union[str,Dataset],
             kwargs = args
     return clz(indexref, **kwargs)   
                 
+@pt.java.required
 class BatchRetrieve(BatchRetrieveBase):
     """
     Use this class for retrieval by Terrier
@@ -203,26 +199,22 @@ class BatchRetrieve(BatchRetrieveBase):
                 metadata(list): What metadata to retrieve
         """
         super().__init__(kwargs)
-        from . import autoclass
         self.indexref = _parse_index_like(index_location)
-        self.appSetup = autoclass('org.terrier.utility.ApplicationSetup')
         self.properties = _mergeDicts(BatchRetrieve.default_properties, properties)
-        self.concurrentIL = autoclass("org.terrier.structures.ConcurrentIndexLoader")
-        if check_version(5.5) and "SimpleDecorateProcess" not in self.properties["querying.processes"]:
+        self.concurrentIL = pt.java.autoclass("org.terrier.structures.ConcurrentIndexLoader")
+        if pt.terrier.check_version(5.5) and "SimpleDecorateProcess" not in self.properties["querying.processes"]:
             self.properties["querying.processes"] += ",decorate:SimpleDecorateProcess"
         self.metadata = metadata
         self.threads = threads
-        self.RequestContextMatching = autoclass("org.terrier.python.RequestContextMatching")
+        self.RequestContextMatching = pt.java.autoclass("org.terrier.python.RequestContextMatching")
         self.search_context = {}
 
-        if props is None:
-            importProps()
         for key, value in self.properties.items():
-            self.appSetup.setProperty(str(key), str(value))
+            pt.terrier.J.ApplicationSetup.setProperty(str(key), str(value))
         
         self.controls = _mergeDicts(BatchRetrieve.default_controls, controls)
         if wmodel is not None:
-            from .transformer import is_lambda, is_function
+            from pyterrier.transformer import is_lambda, is_function
             if isinstance(wmodel, str):
                 self.controls["wmodel"] = wmodel
             elif is_lambda(wmodel) or is_function(wmodel):
@@ -231,7 +223,7 @@ class BatchRetrieve(BatchRetrieveBase):
                 self._callback = callback
                 self.search_context['context_wmodel'] = wmodelinstance
                 self.controls['context_wmodel'] = 'on'
-            elif isinstance(wmodel, autoclass("org.terrier.matching.models.WeightingModel")):
+            elif isinstance(wmodel, pt.java.autoclass("org.terrier.matching.models.WeightingModel")):
                 self.search_context['context_wmodel'] = wmodel
                 self.controls['context_wmodel'] = 'on'
             else:
@@ -239,7 +231,7 @@ class BatchRetrieve(BatchRetrieveBase):
                   
         if self.threads > 1:
             warn("Multi-threaded retrieval is experimental, YMMV.")
-            assert check_version(5.5), "Terrier 5.5 is required for multi-threaded retrieval"
+            assert pt.terrier.check_version(5.5), "Terrier 5.5 is required for multi-threaded retrieval"
 
             # we need to see if our indexref is concurrent. if not, we upgrade it using ConcurrentIndexLoader
             # this will upgrade the underlying index too.
@@ -256,8 +248,8 @@ class BatchRetrieve(BatchRetrieveBase):
                 raise ValueError("num_results must be None, 0 or positive")
 
 
-        MF = autoclass('org.terrier.querying.ManagerFactory')
-        self.RequestContextMatching = autoclass("org.terrier.python.RequestContextMatching")
+        MF = pt.java.autoclass('org.terrier.querying.ManagerFactory')
+        self.RequestContextMatching = pt.java.autoclass("org.terrier.python.RequestContextMatching")
         self.manager = MF._from_(self.indexref)
     
     def get_parameter(self, name : str):
@@ -297,7 +289,7 @@ class BatchRetrieve(BatchRetrieveBase):
         self.search_context = d["context"]
         self.properties.update(d["properties"])
         for key,value in d["properties"].items():
-            self.appSetup.setProperty(key, str(value))
+            pt.terrier.J.ApplicationSetup.setProperty(key, str(value))
 
     def _retrieve_one(self, row, input_results=None, docno_provided=False, docid_provided=False, scores_provided=False):
         rank = FIRST_RANK
@@ -394,7 +386,7 @@ class BatchRetrieve(BatchRetrieveBase):
         scores_provided = "score" in queries.columns
         input_results = None
         if docno_provided or docid_provided:
-            assert check_version(5.3)
+            assert pt.terrier.check_version(5.3)
             input_results = queries
 
             # query is optional, and functionally dependent on qid.
@@ -428,7 +420,7 @@ class BatchRetrieve(BatchRetrieveBase):
                 # as these futures complete, wait and add their results
                 iter = concurrent.futures.as_completed(future_results)
                 if self.verbose:
-                    iter = tqdm(iter, desc=str(self), total=queries.shape[0], unit="q")
+                    iter = pt.tqdm(iter, desc=str(self), total=queries.shape[0], unit="q")
                 
                 for future in iter:
                     res = future.result()
@@ -436,7 +428,7 @@ class BatchRetrieve(BatchRetrieveBase):
         else:
             iter = queries.itertuples()
             if self.verbose:
-                iter = tqdm(iter, desc=str(self), total=queries.shape[0], unit="q")
+                iter = pt.tqdm(iter, desc=str(self), total=queries.shape[0], unit="q")
             for row in iter:
                 res = self._retrieve_one(row, input_results, docno_provided=docno_provided, docid_provided=docid_provided, scores_provided=scores_provided)
                 results.extend(res)
@@ -465,8 +457,8 @@ class BatchRetrieve(BatchRetrieveBase):
         self.controls[str(control)] = str(value)
 
 
-
-class TextIndexProcessor(Transformer):
+@pt.java.required
+class TextIndexProcessor(pt.Transformer):
     '''
         Creates a new MemoryIndex based on the contents of documents passed to it.
         It then creates a new instance of the innerclass and passes the topics to that.
@@ -489,8 +481,8 @@ class TextIndexProcessor(Transformer):
         self.verbose = verbose
 
     def transform(self, topics_and_res):
-        from . import DFIndexer, autoclass, IndexFactory
-        from .index import IndexingType
+        from pyterrier import DFIndexer, IndexFactory
+        from pyterrier.terrier.index import IndexingType
         documents = topics_and_res[["docno", self.body_attr]].drop_duplicates(subset="docno")
         indexref = DFIndexer(None, type=IndexingType.MEMORY, verbose=self.verbose).index(documents[self.body_attr], documents["docno"])
         docno2docid = { docno:id for id, docno in enumerate(documents["docno"]) }
@@ -505,7 +497,7 @@ class TextIndexProcessor(Transformer):
             index = index_docs
         else:
             index_background = IndexFactory.of(self.background_indexref)
-            index = autoclass("org.terrier.python.IndexWithBackground")(index_docs, index_background)          
+            index = pt.java.autoclass("org.terrier.python.IndexWithBackground")(index_docs, index_background)          
 
         topics = topics_and_res[["qid", "query"]].dropna(axis=0, subset=["query"]).drop_duplicates()
         
@@ -543,6 +535,7 @@ class TextIndexProcessor(Transformer):
         else:
             raise ValueError("returns attribute should be docs of queries")
         return inner_res
+
 
 class TextScorer(TextIndexProcessor):
     """
@@ -585,6 +578,8 @@ class TextScorer(TextIndexProcessor):
     def __init__(self, takes="docs", **kwargs):
         super().__init__(BatchRetrieve, takes=takes, **kwargs)
 
+
+@pt.java.required
 class FeaturesBatchRetrieve(BatchRetrieve):
     """
     Use this class for retrieval with multiple features
@@ -624,8 +619,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         
         # check for terrier-core#246 bug usiung FatFull
         if self.wmodel is not None:    
-            from . import check_version
-            assert check_version(5.9), "Terrier 5.9 is required for this functionality, see https://github.com/terrier-org/terrier-core/pull/246"
+            assert pt.terrier.check_version(5.9), "Terrier 5.9 is required for this functionality, see https://github.com/terrier-org/terrier-core/pull/246"
             
         if threads > 1:
             raise ValueError("Multi-threaded retrieval not yet supported by FeaturesBatchRetrieve")
@@ -656,7 +650,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         self.wmodel = d["wmodel"]
         self.properties.update(d["properties"])
         for key,value in d["properties"].items():
-            self.appSetup.setProperty(key, str(value))
+            pt.terrier.J.ApplicationSetup.setProperty(key, str(value))
         #TODO consider the context state?
 
     @staticmethod 
@@ -694,15 +688,14 @@ class FeaturesBatchRetrieve(BatchRetrieve):
         scores_provided = "score" in queries.columns
         if docno_provided or docid_provided:
             #re-ranking mode
-            from . import check_version
-            assert check_version(5.3)
+            assert pt.terrier.check_version(5.3)
             input_results = queries
 
             # query is optional, and functionally dependent on qid.
             # Hence as long as one row has the query for each qid, 
             # the rest can be None
             queries = input_results[["qid", "query"]].dropna(axis=0, subset=["query"]).drop_duplicates()
-            RequestContextMatching = autoclass("org.terrier.python.RequestContextMatching")
+            RequestContextMatching = pt.java.autoclass("org.terrier.python.RequestContextMatching")
 
             if not scores_provided and self.wmodel is None:
                 raise ValueError("We're in re-ranking mode, but input does not have scores, and wmodel is None")
@@ -717,7 +710,7 @@ class FeaturesBatchRetrieve(BatchRetrieve):
             queries['qid'] = queries['qid'].astype(str)
 
         newscores=[]
-        for row in tqdm(queries.itertuples(), desc=str(self), total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
+        for row in pt.tqdm(queries.itertuples(), desc=str(self), total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
             qid = str(row.qid)
             query = row.query
             if len(query) == 0:
@@ -762,8 +755,8 @@ class FeaturesBatchRetrieve(BatchRetrieve):
                 srq.setControl("matching", ",".join(["FatFeaturedScoringMatching","ScoringMatchingWithFat", srq.getControl("matching")]))
             
             self.manager.runSearchRequest(srq)
-            srq = cast('org.terrier.querying.Request', srq)
-            fres = cast('org.terrier.learning.FeaturedResultSet', srq.getResultSet())
+            srq = pt.java.cast('org.terrier.querying.Request', srq)
+            fres = pt.java.cast('org.terrier.learning.FeaturedResultSet', srq.getResultSet())
             feat_names = fres.getFeatureNames()
 
             docids=fres.getDocids()
@@ -801,9 +794,8 @@ class FeaturesBatchRetrieve(BatchRetrieve):
 rewrites_setup = False
 
 def setup_rewrites():
-    from .batchretrieve import BatchRetrieve, FeaturesBatchRetrieve
-    from .transformer import rewrite_rules
-    from .ops import FeatureUnionPipeline, ComposedPipeline
+    from pyterrier.transformer import rewrite_rules
+    from pyterrier.ops import FeatureUnionPipeline, ComposedPipeline
     from matchpy import ReplacementRule, Wildcard, Pattern, CustomConstraint
     #three arbitrary "things".
     x = Wildcard.dot('x')

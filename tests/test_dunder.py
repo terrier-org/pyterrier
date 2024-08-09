@@ -6,14 +6,12 @@ from .base import TempDirTestCase
 class TestDunder(TempDirTestCase):
 
     def test_callable_wmodel_dunders(self):
-        testPosting = pt.autoclass("org.terrier.structures.postings.BasicPostingImpl")(0,1)
+        testPosting = pt.java.autoclass("org.terrier.structures.postings.BasicPostingImpl")(0,1)
 
-        from pyterrier.batchretrieve import _function2wmodel
         lambdafn = lambda keyFreq, posting, entryStats, collStats: posting.getFrequency()
-        callback, wmodel = _function2wmodel(lambdafn)
+        callback, wmodel = pt.terrier.retriever._function2wmodel(lambdafn)
         
-        from pyterrier.bootstrap import javabytebuffer2array
-        byterep = javabytebuffer2array(wmodel.scoringClass.serializeFn())
+        byterep = pt.java.bytebuffer_to_array(wmodel.scoringClass.serializeFn())
         import dill as pickle
         from dill import extend
         #see https://github.com/SeldonIO/alibi/issues/447#issuecomment-881552005
@@ -47,11 +45,11 @@ class TestDunder(TempDirTestCase):
 
     def test_wmodel_dunders(self):
 
-        wmodel = pt.autoclass("org.terrier.matching.models.BM25")()
+        wmodel = pt.java.autoclass("org.terrier.matching.models.BM25")()
         wmodel.__reduce__()
         wmodel.__getstate__()
         rtr = wmodel.__reduce__()
-        pt.cast("org.terrier.matching.models.BM25", rtr[0](*rtr[1]))
+        pt.java.cast("org.terrier.matching.models.BM25", rtr[0](*rtr[1]))
         import pickle
         #import dill as pickle
         #check the byte array is picklable

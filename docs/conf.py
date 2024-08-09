@@ -21,7 +21,6 @@ import sphinx_rtd_theme
 # -- Dataset table listing -----------------------------------------------------
 import pyterrier as pt
 import textwrap
-pt.init()
 
 from extras import generate_includes
 if not "QUICK" in os.environ:

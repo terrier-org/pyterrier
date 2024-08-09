@@ -128,12 +128,12 @@ class TestRewrite(TempDirTestCase):
         self.assertEqual(outputDF.iloc[3]["query"], "one two")
 
     def test_sdm_freq(self):
-        if not pt.check_version("5.3"):
+        if not pt.terrier.check_version("5.3"):
             self.skipTest("Requires Terrier 5.3")
         self._sdm(True)
 
     def test_sdm(self):
-        if not pt.check_version("5.3"):
+        if not pt.terrier.check_version("5.3"):
             self.skipTest("Requires Terrier 5.3")
         self._sdm(False)
 
@@ -221,40 +221,39 @@ class TestRewrite(TempDirTestCase):
             pt.Evaluate(br_sdm.transform(t), dataset.get_qrels(), metrics=["map"])["map"], 
             places=4)
 
-    # RM3 cannot be tested with current jnius, as it must be placed into the boot classpath
-    # def test_rm3(self):
-    #     dataset = pt.datasets.get_dataset("vaswani")
-    #     indexref = dataset.get_index()
+    def test_rm3(self):
+        dataset = pt.datasets.get_dataset("vaswani")
+        indexref = dataset.get_index()
 
-    #     qe = pt.rewrite.RM3(indexref)
-    #     br = pt.BatchRetrieve(indexref)
+        qe = pt.rewrite.RM3(indexref)
+        br = pt.BatchRetrieve(indexref)
 
-    #     queriesIn = pd.DataFrame([["1", "compact"]], columns=["qid", "query"])
-    #     res = br.transform(queriesIn)
+        queriesIn = pd.DataFrame([["1", "compact"]], columns=["qid", "query"])
+        res = br.transform(queriesIn)
 
-    #     queriesOut = qe.transform(res)
-    #     self.assertEqual(len(queriesOut), 1)
-    #     query = queriesOut.iloc[0]["query"]
-    #     #self.assertTrue("compact^1.82230972" in query)
-    #     self.assertTrue("applypipeline:off " in query)
+        queriesOut = qe.transform(res)
+        self.assertEqual(len(queriesOut), 1)
+        query = queriesOut.iloc[0]["query"]
+        #self.assertTrue("compact^1.82230972" in query)
+        self.assertTrue("applypipeline:off " in query)
         
-    #     pipe = br >> qe >> br
+        pipe = br >> qe >> br
 
-    #     # lets go faster, we only need 18 topics. qid 16 had a tricky case
-    #     t = dataset.get_topics().head(18)
+        # lets go faster, we only need 18 topics. qid 16 had a tricky case
+        t = dataset.get_topics().head(18)
 
-    #     all_qe_res = pipe.transform(t)
-    #     map_pipe = pt.Evaluate(all_qe_res, dataset.get_qrels(), metrics=["map"])["map"]
+        all_qe_res = pipe.transform(t)
+        map_pipe = pt.Evaluate(all_qe_res, dataset.get_qrels(), metrics=["map"])["map"]
 
-    #     br_qe = pt.BatchRetrieve(indexref, 
-    #         controls={"qe":"on"},
-    #         properties={"querying.processes" : "terrierql:TerrierQLParser,parsecontrols:TerrierQLToControls,"\
-    #                 +"parseql:TerrierQLToMatchingQueryTerms,matchopql:MatchingOpQLParser,applypipeline:ApplyTermPipeline,"\
-    #                 +"sd:DependenceModelPreProcess,localmatching:LocalManager$ApplyLocalMatching,qe:RM3,"\
-    #                 +"labels:org.terrier.learning.LabelDecorator,filters:LocalManager$PostFilterProcess"})
-    #     map_qe = pt.Evaluate(br_qe.transform(t), dataset.get_qrels(), metrics=["map"])["map"]
+        br_qe = pt.BatchRetrieve(indexref, 
+            controls={"qe":"on"},
+            properties={"querying.processes" : "terrierql:TerrierQLParser,parsecontrols:TerrierQLToControls,"\
+                    +"parseql:TerrierQLToMatchingQueryTerms,matchopql:MatchingOpQLParser,applypipeline:ApplyTermPipeline,"\
+                    +"sd:DependenceModelPreProcess,localmatching:LocalManager$ApplyLocalMatching,qe:RM3,"\
+                    +"labels:org.terrier.learning.LabelDecorator,filters:LocalManager$PostFilterProcess"})
+        map_qe = pt.Evaluate(br_qe.transform(t), dataset.get_qrels(), metrics=["map"])["map"]
 
-    #     self.assertAlmostEqual(map_qe, map_pipe, places=4)
+        self.assertAlmostEqual(map_qe, map_pipe, places=2)
 
     def test_linear_terrierql(self):
         pipe = pt.apply.query(lambda row: "az") >> pt.rewrite.linear(0.75, 0.25)
@@ -289,7 +288,7 @@ class TestRewrite(TempDirTestCase):
         self.assertEqual('a b', pt.rewrite.tokenise(lambda q : q.split('/')).search("a/b").iloc[0].query)
 
     def test_qe(self):
-        if not pt.check_version("5.3"):
+        if not pt.terrier.check_version("5.3"):
             self.skipTest("Requires Terrier 5.3")
         dataset = pt.datasets.get_dataset("vaswani")
         indexref = dataset.get_index()

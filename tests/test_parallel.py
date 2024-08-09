@@ -1,7 +1,8 @@
-from .base import BaseTestCase
+from .base import BaseTestCase, parallel_test
 import pyterrier as pt
 class TestParallel(BaseTestCase):
 
+    @parallel_test
     def test_parallel_joblib_experiment(self):
         self.skip_windows()
         dataset = pt.get_dataset("vaswani")
@@ -14,6 +15,7 @@ class TestParallel(BaseTestCase):
         )
         self.assertEqual(df.iloc[0]["map"], df.iloc[1]["map"])
 
+    @parallel_test
     def test_parallel_joblib_experiment_br_callback(self):
         self.skip_windows()
         dataset = pt.get_dataset("vaswani")
@@ -27,6 +29,7 @@ class TestParallel(BaseTestCase):
         )
         self.assertEqual(df.iloc[0]["map"], df.iloc[1]["map"])
 
+    @parallel_test
     def test_parallel_joblib_ops(self):
         self.skip_windows()
         dataset = pt.get_dataset("vaswani")

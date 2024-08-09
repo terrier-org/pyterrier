@@ -18,14 +18,14 @@ class TestIterDictIndexer(TempDirTestCase):
         return indexref
 
     def _make_check_index(self, n, index_type, fields=('text',), meta=('docno', 'url', 'title')):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         # Test both versions: _fifo (for UNIX) and _nofifo (for Windows)
         indexers = [
             pt.index._IterDictIndexer_fifo(self.test_dir, type=index_type, meta=meta),
             pt.index._IterDictIndexer_fifo(self.test_dir, type=index_type, threads=4, meta=meta),
             pt.index._IterDictIndexer_nofifo(self.test_dir, type=index_type, meta=meta),
         ]
-        if BaseTestCase.is_windows():
+        if pt.utils.is_windows():
            indexers = [indexers[-1]] 
         for indexer in indexers:
             with self.subTest(indexer=indexer):
@@ -76,7 +76,7 @@ class TestIterDictIndexer(TempDirTestCase):
             {'docno': '3', 'url': 'url3', 'text': 'The body may perhaps compensates for the loss', 'title': 'Best of Viktor Prowoll'},
         ]
 
-        from pyterrier.index import FlatJSONDocumentIterator
+        from pyterrier.terrier.index import FlatJSONDocumentIterator
 
         it1 = itertools.islice(it, 1)
         jIter1 = FlatJSONDocumentIterator(it1)
@@ -93,61 +93,61 @@ class TestIterDictIndexer(TempDirTestCase):
         self.assertFalse(jIter1.hasNext())
 
     def test_createindex1(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(1, IndexingType.CLASSIC)
 
     def test_createindex2(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(2, IndexingType.CLASSIC)
 
     def test_createindex3(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(3, IndexingType.CLASSIC)
 
     def test_createindex1_single_pass(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(1, IndexingType.SINGLEPASS)
 
     def test_createindex2_single_pass(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(2, IndexingType.SINGLEPASS)
 
     def test_createindex3_single_pass(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(3, IndexingType.SINGLEPASS)
 
     # Issue #43
 
     # def test_createindex3_memory(self):
-    #     from pyterrier.index import IndexingType
+    #     from pyterrier.terrier.index import IndexingType
     #     self._make_check_index(3, IndexingType.MEMORY)
 
     # def test_createindex1_2fields_memory(self):
-    #     from pyterrier.index import IndexingType
+    #     from pyterrier.terrier.index import IndexingType
     #     self._make_check_index(1, IndexingType.MEMORY, fields=['text', 'title'])
 
     def test_createindex1_2fields(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(1, IndexingType.CLASSIC, fields=['text', 'title'])
 
     def test_createindex2_2fields(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(2, IndexingType.CLASSIC, fields=['text', 'title'])
 
     def test_createindex3_2fields(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(3, IndexingType.CLASSIC, fields=['text', 'title'])
 
     def test_createindex1_single_pass_2fields(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(1, IndexingType.SINGLEPASS, fields=['text', 'title'])
 
     def test_createindex2_single_pass_2fields(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(2, IndexingType.SINGLEPASS, fields=['text', 'title'])
 
     def test_createindex3_single_pass_2fields(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(3, IndexingType.SINGLEPASS, fields=['text', 'title'])
 
     def test_meta_init(self):
@@ -184,14 +184,14 @@ class TestIterDictIndexer(TempDirTestCase):
         indexer = pt.IterDictIndexer(self.test_dir, stemmer=None, stopwords=None, tokeniser="UTFTokeniser")
         indexref = indexer.index(it)
         index = pt.IndexFactory.of(indexref)
-        index = pt.cast("org.terrier.structures.IndexOnDisk", index)
+        index = pt.java.cast("org.terrier.structures.IndexOnDisk", index)
         self.assertEqual("", index.getIndexProperty("termpipelines", "bla"))
         self.assertTrue("før" in index.getLexicon())
         # restore setting after test
-        pt.ApplicationSetup.setProperty("termpipelines", "Stopwords,PorterStemmer")
+        pt.terrier.J.ApplicationSetup.setProperty("termpipelines", "Stopwords,PorterStemmer")
 
     def test_check_customstops(self):
-        if not pt.check_version("5.8"):
+        if not pt.terrier.check_version("5.8"):
             self.skipTest("Requires Terrier 5.8")
         it = [
             {'docno': '1', 'url': 'url1', 'text': 'He ran out of møney, so he had to stop playing', 'title': 'Woes of playing poker'},
@@ -201,7 +201,7 @@ class TestIterDictIndexer(TempDirTestCase):
         indexer = pt.IterDictIndexer(self.test_dir, tokeniser=pt.TerrierTokeniser.utf, stemmer=pt.TerrierStemmer.none, stopwords=['møney', 'crashing', ','], overwrite=True)
         indexref = indexer.index(it)
         index = pt.IndexFactory.of(indexref)
-        index = pt.cast("org.terrier.structures.IndexOnDisk", index)
+        index = pt.java.cast("org.terrier.structures.IndexOnDisk", index)
         self.assertIn(member="PyTerrierCustomStopwordList$Retrieval", container=index.getIndexProperty("termpipelines", "bla"))
         self.assertIsNotNone(index.getIndexProperty('pyterrier.stopwords', None))
 
@@ -210,7 +210,7 @@ class TestIterDictIndexer(TempDirTestCase):
         self.assertTrue("crashing" in index.getIndexProperty('pyterrier.stopwords', None))
 
         # lets validate the actual stopword list as parsed from the property
-        actual_stopwords = pt.autoclass("org.terrier.python.PyTerrierCustomStopwordList$Retrieval")()
+        actual_stopwords = pt.java.autoclass("org.terrier.python.PyTerrierCustomStopwordList$Retrieval")()
         actual_stopwords.setIndex(index)
         self.assertEqual(3, actual_stopwords.stopWords.size())
         self.assertTrue(actual_stopwords.stopWords.contains(","))
@@ -240,7 +240,7 @@ class TestIterDictIndexer(TempDirTestCase):
                 indexer = pt.IterDictIndexer(self.test_dir, stemmer=setting[0], stopwords=setting[1], overwrite=True)
                 indexref = indexer.index(it)
                 index = pt.IndexFactory.of(indexref)
-                index = pt.cast("org.terrier.structures.IndexOnDisk", index)
+                index = pt.java.cast("org.terrier.structures.IndexOnDisk", index)
                 self.assertEqual("", index.getIndexProperty("termpipelines", "bla"))
                 self.assertEqual(11, index.getDocumentIndex().getDocumentLength(0))
                 
@@ -249,7 +249,7 @@ class TestIterDictIndexer(TempDirTestCase):
                 self.assertTrue("r" in index.getLexicon())
 
                 # restore setting after test
-                pt.ApplicationSetup.setProperty("termpipelines", "Stopwords,PorterStemmer")
+                pt.terrier.J.ApplicationSetup.setProperty("termpipelines", "Stopwords,PorterStemmer")
                 self.assertEqual("", index.getIndexProperty("termpipelines", "bla"))
 
     def test_check_weakstemmer(self):
@@ -265,9 +265,9 @@ class TestIterDictIndexer(TempDirTestCase):
                 indexref = indexer.index(it)
                 index = pt.IndexFactory.of(indexref)
                 self.assertEqual(3, index.getDocumentIndex().getDocumentLength(0)) #ran money playing
-                index = pt.cast("org.terrier.structures.IndexOnDisk", index)
+                index = pt.java.cast("org.terrier.structures.IndexOnDisk", index)
                 # restore setting after test
-                pt.ApplicationSetup.setProperty("termpipelines", "Stopwords,PorterStemmer")
+                pt.terrier.J.ApplicationSetup.setProperty("termpipelines", "Stopwords,PorterStemmer")
                 self.assertEqual("Stopwords,WeakPorterStemmer", index.getIndexProperty("termpipelines", "bla"))
 
 if __name__ == "__main__":

@@ -131,7 +131,7 @@ class TestIndexOp(TempDirTestCase):
         self.assertEqual(len(index1) + len(index2), len(comb_index))
         
         # Instantiate writer object and write merged index to disk
-        writer = pt.autoclass("org.terrier.structures.indexing.DiskIndexWriter")(new_disk_index_loc, "data")
+        writer = pt.java.autoclass("org.terrier.structures.indexing.DiskIndexWriter")(new_disk_index_loc, "data")
         writer.write(comb_index)
 
         new_disk_index = pt.IndexFactory.of(new_disk_index_loc)

@@ -12,7 +12,6 @@ from .base import TempDirTestCase, BaseTestCase
 class TestIterDictIndexerPreTok(TempDirTestCase):
 
     def test_dpl(self):
-        pt.index.run_autoclass()
         it1 = [
             {'docno': 'd1', 'url': 'url1', "toks" : {"a" : 1, "b" : 2}}
         ]
@@ -20,7 +19,7 @@ class TestIterDictIndexerPreTok(TempDirTestCase):
             {'docno': 'd1', 'url': 'url1', "toks" : {"a" : 1, "b" : 2}},
             {'docno': 'd2', 'url': 'url1', "toks" : {"a" : 1, "b" : 1}}
         ]
-        from pyterrier.index import DocListIterator
+        from pyterrier.terrier.index import DocListIterator
         
         iterator =  DocListIterator(iter(it1))
         self.assertTrue(iterator.hasNext())
@@ -56,7 +55,7 @@ class TestIterDictIndexerPreTok(TempDirTestCase):
 
     
     def test_json_pretok_iterator(self):
-        if not pt.check_version("5.7") or not pt.check_version("0.0.7", helper=True):
+        if not pt.terrier.check_version("5.7") or not pt.terrier.check_helper_version("0.0.7"):
             raise SkipTest("Requires Terrier 5.7 and helper 0.0.7")
 
         it = [
@@ -64,12 +63,11 @@ class TestIterDictIndexerPreTok(TempDirTestCase):
         ]
 
         import json
-        from pyterrier import autoclass
         testfile = os.path.join(self.test_dir, "test.json")
         with open(testfile, 'wt') as file:
             for doc in it:
                 file.write(json.dumps(doc))
-        jparserCls = autoclass("org.terrier.python.JsonlPretokenisedIterator")
+        jparserCls = pt.java.autoclass("org.terrier.python.JsonlPretokenisedIterator")
         jparser = jparserCls(testfile)
         self.assertTrue(jparser.hasNext())
         nextRow = jparser.next()
@@ -82,17 +80,17 @@ class TestIterDictIndexerPreTok(TempDirTestCase):
         self.assertEqual(1, pl.getFrequency("a"))
 
     def _make_pretok_index(self, n, index_type, meta=('docno', 'url')):
-        if not pt.check_version("5.7") or not pt.check_version("0.0.7", helper=True):
+        if not pt.terrier.check_version("5.7") or not pt.terrier.check_helper_version("0.0.7"):
             self.skipTest("Requires Terrier 5.7 and helper 0.0.7")
         
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         # Test both versions: _fifo (for UNIX) and _nofifo (for Windows)
         indexers = [
             pt.index._IterDictIndexer_fifo(self.test_dir, type=index_type, meta=meta, pretokenised=True),
             pt.index._IterDictIndexer_fifo(self.test_dir, type=index_type, threads=4, meta=meta, pretokenised=True),
             pt.index._IterDictIndexer_nofifo(self.test_dir, type=index_type, meta=meta, pretokenised=True),
         ]
-        if BaseTestCase.is_windows():
+        if pt.utils.is_windows():
            indexers = [indexers[-1]] 
         for indexer in indexers:
             with self.subTest(indexer=indexer):
@@ -121,7 +119,7 @@ class TestIterDictIndexerPreTok(TempDirTestCase):
                 post.next()
                 self.assertEqual(1, post.frequency)
 
-                pindex = pt.cast("org.terrier.structures.PropertiesIndex", index)
+                pindex = pt.java.cast("org.terrier.structures.PropertiesIndex", index)
                 self.assertEqual("", pindex.getIndexProperty("termpipelines", "BLA"))
 
                 index.close()
@@ -130,7 +128,7 @@ class TestIterDictIndexerPreTok(TempDirTestCase):
             os.mkdir(self.test_dir)
 
     def test_pretok_createindex1_basic(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         from jnius import JavaException
         try:
             self._make_pretok_index(1, IndexingType.CLASSIC)
@@ -139,11 +137,11 @@ class TestIterDictIndexerPreTok(TempDirTestCase):
             raise ja
 
     def test_pretok_createindex2_basic(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_pretok_index(2, IndexingType.CLASSIC)
 
     def test_pretok_createindex1_single_pass(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         from jnius import JavaException
         try:
             self._make_pretok_index(1, IndexingType.SINGLEPASS)
@@ -152,7 +150,7 @@ class TestIterDictIndexerPreTok(TempDirTestCase):
             raise ja
 
     def test_pretok_createindex2_single_pass(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         from jnius import JavaException
         try:
             self._make_pretok_index(2, IndexingType.SINGLEPASS)

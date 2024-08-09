@@ -7,6 +7,7 @@ from . import Transformer
 from .model import coerce_dataframe_types
 import ir_measures
 from ir_measures.measures import BaseMeasure 
+import pyterrier as pt
 MEASURE_TYPE=Union[str,BaseMeasure]
 MEASURES_TYPE=Sequence[MEASURE_TYPE]
 
@@ -154,8 +155,7 @@ def _run_and_evaluate(
     from .io import read_results, write_results
 
     if pbar is None:
-        from . import tqdm
-        pbar = tqdm(disable=True)
+        pbar = pt.tqdm(disable=True)
 
     metrics, rev_mapping = _convert_measures(metrics)
     qrels = qrels.rename(columns={'qid': 'query_id', 'docno': 'doc_id', 'label': 'relevance'})
@@ -448,7 +448,6 @@ def Experiment(
         eval_metrics.remove("mrt")
 
     # progress bar construction
-    from . import tqdm
     tqdm_args={
         'disable' : not verbose,
         'unit' : 'system',
@@ -461,7 +460,7 @@ def Experiment(
         # round number of batches up for each system
         tqdm_args['total'] = math.ceil((len(topics) / batch_size)) * len(retr_systems)
 
-    with tqdm(**tqdm_args) as pbar:
+    with pt.tqdm(**tqdm_args) as pbar:
         # run and evaluate each system
         for name, system in zip(names, retr_systems):
             save_file = None
@@ -844,7 +843,7 @@ def GridScan(
 
     """
     import itertools
-    from . import Utils, tqdm
+    from . import Utils
 
     if verbose and jobs > 1:
         from warnings import warn
@@ -891,7 +890,7 @@ def GridScan(
     eval_list = []
     #for each combination of parameter values
     if jobs == 1:
-        for v in tqdm(combinations, total=len(combinations), desc="GridScan", mininterval=0.3) if verbose else combinations:
+        for v in pt.tqdm(combinations, total=len(combinations), desc="GridScan", mininterval=0.3) if verbose else combinations:
             parameter_list, eval_scores = _evaluate_one_setting(keys, v)
             eval_list.append( (parameter_list, eval_scores) )
     else:

@@ -1,5 +1,5 @@
 
-from pyterrier import mavenresolver
+from pyterrier.java import mavenresolver
 import unittest
 import shutil
 import tempfile
@@ -28,11 +28,11 @@ class TestMaven(unittest.TestCase):
 
     def testDownload(self):
         ver = mavenresolver.latest_version_num("org.terrier", "terrier-python-helper")
-        jar = mavenresolver.downloadfile("org.terrier", "terrier-python-helper", ver, self.test_dir)
+        jar = mavenresolver.get_package_jar("org.terrier", "terrier-python-helper", ver, self.test_dir)
         self.assertTrue(path.exists(jar))
 
     def testJitpack(self):
-        jar = mavenresolver.downloadfile("com.github.terrierteam", "terrier-ciff", "-SNAPSHOT", self.test_dir)
+        jar = mavenresolver.get_package_jar("com.github.terrierteam", "terrier-ciff", "-SNAPSHOT", self.test_dir)
         self.assertTrue(path.exists(jar))
 
 if __name__ == "__main__":

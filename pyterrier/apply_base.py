@@ -1,7 +1,7 @@
 from .transformer import Transformer
-from . import tqdm
 from .model import add_ranks, split_df
 import pandas as pd
+import pyterrier as pt
 
 class ApplyTransformerBase(Transformer):
     """
@@ -34,12 +34,11 @@ class ApplyForEachQuery(ApplyTransformerBase):
 
         import math, pandas as pd
         from pyterrier.model import split_df
-        from . import tqdm
 
         it = res.groupby("qid")
         lastqid = None
         if self.verbose:
-            it = tqdm(it, unit='query')
+            it = pt.tqdm(it, unit='query')
         try:
             if self.batch_size is None:
                 query_dfs = []
@@ -109,7 +108,7 @@ class ApplyDocumentScoringTransformer(ApplyTransformerBase):
             outputRes["score"] = pd.Series(dtype='float64')
             return outputRes
         if self.verbose:
-            tqdm.pandas(desc="pt.apply.doc_score", unit="d")
+            pt.tqdm.pandas(desc="pt.apply.doc_score", unit="d")
             outputRes["score"] = outputRes.progress_apply(fn, axis=1).astype('float64')
         else:
             outputRes["score"] = outputRes.apply(fn, axis=1).astype('float64')
@@ -132,10 +131,9 @@ class ApplyDocumentScoringTransformer(ApplyTransformerBase):
 
         import math
         from .model import split_df
-        from . import tqdm
         num_chunks = math.ceil( len(inputRes) / self.batch_size )
         iterator = split_df(inputRes, num_chunks)
-        iterator = tqdm(iterator, desc="pt.apply", unit='row')
+        iterator = pt.tqdm(iterator, desc="pt.apply", unit='row')
         rtr = pd.concat([self._transform_batchwise(chunk_df) for chunk_df in iterator])
         rtr = add_ranks(rtr)
         return rtr
@@ -166,7 +164,7 @@ class ApplyDocFeatureTransformer(ApplyTransformerBase):
         fn = self.fn
         outputRes = inputRes.copy()
         if self.verbose:
-            tqdm.pandas(desc="pt.apply.doc_features", unit="d")
+            pt.tqdm.pandas(desc="pt.apply.doc_features", unit="d")
             outputRes["features"] = outputRes.progress_apply(fn, axis=1)
         else:
             outputRes["features"] = outputRes.apply(fn, axis=1)
@@ -212,7 +210,7 @@ class ApplyQueryTransformer(ApplyTransformerBase):
             outputRes = inputRes.copy()
         try:
             if self.verbose:
-                tqdm.pandas(desc="pt.apply.query", unit="d")
+                pt.tqdm.pandas(desc="pt.apply.query", unit="d")
                 outputRes["query"] = outputRes.progress_apply(fn, axis=1)
             else:
                 outputRes["query"] = outputRes.apply(fn, axis=1)
@@ -263,11 +261,10 @@ class ApplyGenericTransformer(ApplyTransformerBase):
         # batching
         import math, pandas as pd
         from pyterrier.model import split_df
-        from . import tqdm
         num_chunks = math.ceil( len(inputRes) / self.batch_size )
         iterator = split_df(inputRes, num_chunks)
         if self.verbose:
-            iterator = tqdm(iterator, desc="pt.apply", unit='row') 
+            iterator = pt.tqdm(iterator, desc="pt.apply", unit='row') 
         rtr = pd.concat([self.fn(chunk_df) for chunk_df in iterator])
         return rtr
 

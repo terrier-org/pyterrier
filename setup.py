@@ -70,6 +70,13 @@ setup(
         "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
         "Operating System :: OS Independent",
     ],
+    entry_points={
+        'pyterrier.java.init': [
+            'pyterrier.java          = pyterrier.java:CoreJavaInit',
+            'pyterrier.terrier.java  = pyterrier.terrier.java:TerrierJavaInit',
+            'pyterrier.anserini.java = pyterrier.anserini.java:AnseriniJavaInit',
+        ],
+    },
     install_requires=requirements,
     python_requires='>=3.8',
 )

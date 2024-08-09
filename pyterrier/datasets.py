@@ -1,5 +1,4 @@
 import urllib.request
-import wget
 import os
 import pandas as pd
 from .transformer import is_lambda
@@ -8,11 +7,9 @@ from typing import Union, Tuple, Iterator, Dict, Any, List
 from warnings import warn
 import requests
 from .io import autoopen, touch
-from . import tqdm, HOME_DIR
+import pyterrier as pt
 import tarfile
-from warnings import warn
 
-import pyterrier
 
 TERRIER_DATA_BASE="http://data.terrier.org/indices/"
 STANDARD_TERRIER_INDEX_FILES = [
@@ -122,20 +119,13 @@ class RemoteDataset(Dataset):
         self.password = None
 
     def _configure(self, **kwargs):
-        from os.path import expanduser
-        pt_home = HOME_DIR
-        if pt_home is None:
-            from os.path import expanduser
-            userhome = expanduser("~")
-            pt_home = os.path.join(userhome, ".pyterrier")
-        self.corpus_home = os.path.join(pt_home, "corpora", self.name)
+        self.corpus_home = os.path.join(pt.io.pyterrier_home(), "corpora", self.name)
         if 'user' in kwargs:
             self.user = kwargs['user']
             self.password = kwargs['password']
 
     @staticmethod
     def download(URLs : Union[str,List[str]], filename : str, **kwargs):
-        import pyterrier as pt
         basename = os.path.basename(filename)
 
         if isinstance(URLs, str):
@@ -148,7 +138,7 @@ class RemoteDataset(Dataset):
                 r = requests.get(url, allow_redirects=True, stream=True, **kwargs)
                 r.raise_for_status()
                 total = int(r.headers.get('content-length', 0))
-                with pt.io.finalized_open(filename, 'b') as file, tqdm(
+                with pt.io.finalized_open(filename, 'b') as file, pt.tqdm(
                         desc=basename,
                         total=total,
                         unit='iB',
@@ -331,7 +321,6 @@ class RemoteDataset(Dataset):
         return True
 
     def get_corpus(self, **kwargs):
-        import pyterrier as pt
         return list(filter(lambda f : not f.endswith(".complete"), pt.io.find_files(self._get_all_files("corpus", **kwargs))))
 
     def get_corpus_iter(self, **kwargs):
@@ -345,14 +334,12 @@ class RemoteDataset(Dataset):
         return None
 
     def get_qrels(self, variant=None):
-        import pyterrier as pt
         filename, type = self._get_one_file("qrels", variant)
         if type == "direct":
             return filename 
         return pt.io.read_qrels(filename)
 
     def get_topics(self, variant=None, **kwargs):
-        import pyterrier as pt
         file, filetype = self._get_one_file("topics", variant)
         if filetype is None or filetype in pt.io.SUPPORTED_TOPICS_FORMATS:
             return pt.io.read_topics(file, format=filetype, **kwargs)
@@ -366,18 +353,24 @@ class RemoteDataset(Dataset):
         return None
 
     def get_index(self, variant=None, **kwargs):
-        import pyterrier as pt
         if self.name == "50pct" and variant is None:
             variant="ex1"
         thedir = self._get_all_files("index", variant=variant, **kwargs)
         return thedir
-        #return pt.autoclass("org.terrier.querying.IndexRef").of(os.path.join(thedir, "data.properties"))
 
     def __repr__(self):
         return "RemoteDataset for %s, with %s" % (self.name, str(list(self.locations.keys())))
 
     def info_url(self):
         return self.locations['info_url'] if "info_url" in self.locations else None
+
+
+@pt.java.required
+def _pt_tokeniser():
+    tokeniser = pt.terrier.J.Tokenizer.getTokeniser()
+    def pt_tokenise(text):
+        return ' '.join(tokeniser.getTokens(text))
+    return pt_tokenise
 
 
 class IRDSDataset(Dataset):
@@ -411,7 +404,7 @@ class IRDSDataset(Dataset):
         
         # tqdm support
         if verbose:
-            it = tqdm(it, desc=f'{self._irds_id} documents', total=total)
+            it = pt.tqdm(it, desc=f'{self._irds_id} documents', total=total)
 
         # rewrite to follow pyterrier std
         def gen():
@@ -462,12 +455,8 @@ class IRDSDataset(Dataset):
 
         # apply pyterrier tokenisation (otherwise the queries may not play well with batchretrieve)
         if tokenise_query and 'query' in df:
-            import pyterrier as pt
-            tokeniser = pt.autoclass("org.terrier.indexing.tokenisation.Tokeniser").getTokeniser()
-            def pt_tokenise(text):
-                return ' '.join(tokeniser.getTokens(text))
-            df['query'] = df['query'].apply(pt_tokenise)
-
+            tokeniser = _pt_tokeniser()
+            df['query'] = df['query'].apply(tokeniser)
         return df
 
     def get_topics_lang(self):
@@ -744,7 +733,6 @@ MSMARCOv2_PASSAGE_FILES = {
 
 # remove WT- prefix from topics
 def remove_prefix(self, component, variant):
-    import pyterrier as pt
     topics_file, type = self._get_one_file("topics_prefixed", variant)
     if type in pt.io.SUPPORTED_TOPICS_FORMATS:
         topics = pt.io.read_topics(topics_file, type)
@@ -756,7 +744,6 @@ def remove_prefix(self, component, variant):
 
 # a function to fix the namedpage TREC Web tracks 2001 and 2002
 def parse_desc_only(self, component, variant):
-    import pyterrier as pt
     file, type = self._get_one_file("topics_desc_only", variant=variant)
     topics = pt.io.read_topics(file, format="trec", whitelist=["DESC"], blacklist=None)
     topics["qid"] = topics.apply(lambda row: row["qid"].replace("NP", ""), axis=1)
@@ -1034,7 +1021,7 @@ VASWANI_FILES = {
     #"index":
     #    [(filename, VASWANI_INDEX_BASE + filename) for filename in STANDARD_TERRIER_INDEX_FILES + ["data.meta-0.fsomapfile"]],
     "info_url" : "http://ir.dcs.gla.ac.uk/resources/test_collections/npl/",
-    "corpus_iter" : lambda dataset, **kwargs : pyterrier.index.treccollection2textgen(dataset.get_corpus(), num_docs=11429, verbose=kwargs.get("verbose", False))
+    "corpus_iter" : lambda dataset, **kwargs : pt.index.treccollection2textgen(dataset.get_corpus(), num_docs=11429, verbose=kwargs.get("verbose", False))
 }
 
 DATASET_MAP = {

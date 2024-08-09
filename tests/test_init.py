@@ -5,5 +5,5 @@ from .base import BaseTestCase
 class TestInit(BaseTestCase):
 
     def test_set_property(self):
-        pt.set_property("arbitrary.property", 40)
-        self.assertEqual("40", pt.ApplicationSetup.appProperties.getProperty("arbitrary.property", "none"))
+        pt.terrier.set_property("arbitrary.property", 40)
+        self.assertEqual("40", pt.terrier.J.ApplicationSetup.appProperties.getProperty("arbitrary.property", "none"))
