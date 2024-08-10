@@ -40,7 +40,7 @@ This transfomer is only compatible with BatchRetrieve, as Terrier supports the `
 Example::
 
     sdm = pt.rewrite.SequentialDependence()
-    dph = pt.terrier.Retrieve(index, wmodel="DPH")
+    dph = pt.terrier.Retriever(index, wmodel="DPH")
     pipeline = sdm >> dph
 
 References:
@@ -61,7 +61,7 @@ and returns a dataframe with  `["qid", "query"]`.
 Example::
 
     bo1 = pt.rewrite.Bo1QueryExpansion(index)
-    dph = pt.terrier.Retrieve(index, wmodel="DPH")
+    dph = pt.terrier.Retriever(index, wmodel="DPH")
     pipelineQE = dph >> bo1 >> dph
 
 View the expansion terms::
@@ -77,7 +77,7 @@ View the expansion terms::
 Note that it is also possible to configure BatchRetrieve to perform QE directly using controls,
 which will result in identical retrieval effectiveness::
 
-    pipelineQE = pt.terrier.Retrieve(index, wmodel="DPH", controls={"qemodel" : "Bo1", "qe" : "on"})
+    pipelineQE = pt.terrier.Retriever(index, wmodel="DPH", controls={"qemodel" : "Bo1", "qe" : "on"})
 
 However, using `pt.rewrite.Bo1QueryExpansion` is preferable as:
 
@@ -161,7 +161,7 @@ This can be attained in PyTerrier through use of `stash_results()` and `reset_re
 
     # index: the corpus you are ranking
 
-    dph = pt.terrier.Retrieve(index)
+    dph = pt.terrier.Retriever(index)
     Pipe = dph 
         >> pt.rewrite.stash_results(clear=False)
         >> pt.rewrite.RM3(index)
@@ -193,17 +193,17 @@ Example: Collection Enrichment as a re-ranker::
     # index: the corpus you are ranking
     # wiki_index: index of Wikipedia, used for enrichment
 
-    dph = pt.terrier.Retrieve(index)
+    dph = pt.terrier.Retriever(index)
     Pipe = dph 
         >> pt.rewrite.stash_results()          
-        >> pt.terrier.Retrieve(wiki_index)
+        >> pt.terrier.Retriever(wiki_index)
         >> pt.rewrite.RM3(wiki_index)
         >> pt.rewrite.reset_results()
         >> dph
 
 In general, collection enrichment describes conducting a PRF query expansion process on an external corpus (often Wikipedia), 
 before applying the reformulated query to the main corpus. Collection enrichment can be used for improving a first pass 
-retrieval (`pt.terrier.Retrieve(wiki_index) >> pt.rewrite.RM3(wiki_index) >> pt.terrier.Retrieve(main_index)`). Instead, the particular 
+retrieval (`pt.terrier.Retriever(wiki_index) >> pt.rewrite.RM3(wiki_index) >> pt.terrier.Retriever(main_index)`). Instead, the particular 
 example shown above applies collection enrichment as a re-ranker.
 
 

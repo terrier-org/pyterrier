@@ -156,9 +156,9 @@ class Retrieve(BatchRetrieveBase):
         Examples::
 
             dataset = pt.get_dataset("vaswani")
-            bm25 = pt.terrier.Retrieve.from_dataset(dataset, "terrier_stemmed", wmodel="BM25")
+            bm25 = pt.terrier.Retriever.from_dataset(dataset, "terrier_stemmed", wmodel="BM25")
             #or
-            bm25 = pt.terrier.Retrieve.from_dataset("vaswani", "terrier_stemmed", wmodel="BM25")
+            bm25 = pt.terrier.Retriever.from_dataset("vaswani", "terrier_stemmed", wmodel="BM25")
 
         **Index Variants**:
 
@@ -586,7 +586,7 @@ class TextScorer(TextIndexProcessor):
 
 
 @pt.java.required
-class FeaturesRetrieve(Retrieve):
+class FeaturesRetriever(Retrieve):
     """
     Use this class for retrieval with multiple features
     """
@@ -610,8 +610,8 @@ class FeaturesRetrieve(Retrieve):
                 verbose(bool): If True transform method will display progress
                 num_results(int): Number of results to retrieve. 
         """
-        controls = _mergeDicts(FeaturesRetrieve.FBR_default_controls, controls)
-        properties = _mergeDicts(FeaturesRetrieve.FBR_default_properties, properties)
+        controls = _mergeDicts(FeaturesRetriever.FBR_default_controls, controls)
+        properties = _mergeDicts(FeaturesRetriever.FBR_default_properties, properties)
         self.features = features
         properties["fat.featured.scoring.matching.features"] = ";".join(features)
 
@@ -664,14 +664,14 @@ class FeaturesRetrieve(Retrieve):
             variant : str = None, 
             version='latest',            
             **kwargs):
-        return _from_dataset(dataset, variant=variant, version=version, clz=FeaturesRetrieve, **kwargs)
+        return _from_dataset(dataset, variant=variant, version=version, clz=FeaturesRetriever, **kwargs)
 
     @staticmethod 
     def from_dataset(dataset : Union[str,Dataset], 
             variant : str = None, 
             version='latest',            
             **kwargs):
-        return _from_dataset(dataset, variant=variant, version=version, clz=FeaturesRetrieve, **kwargs)
+        return _from_dataset(dataset, variant=variant, version=version, clz=FeaturesRetriever, **kwargs)
 
     def transform(self, queries):
         """
@@ -811,7 +811,7 @@ def setup_rewrites():
     # two different match retrives
     _br1 = Wildcard.symbol('_br1', Retrieve)
     _br2 = Wildcard.symbol('_br2', Retrieve)
-    _fbr = Wildcard.symbol('_fbr', FeaturesRetrieve)
+    _fbr = Wildcard.symbol('_fbr', FeaturesRetriever)
     
     # batch retrieves for the same index
     BR_index_matches = CustomConstraint(lambda _br1, _br2: _br1.indexref == _br2.indexref)
@@ -848,7 +848,7 @@ def setup_rewrites():
     # rewrite batch a feature union of BRs into an FBR
     rewrite_rules.append(ReplacementRule(
         Pattern(FeatureUnionPipeline(_br1, _br2), BR_index_matches),
-        lambda _br1, _br2: FeaturesRetrieve(_br1.indexref, ["WMODEL:" + _br1.controls["wmodel"], "WMODEL:" + _br2.controls["wmodel"]])
+        lambda _br1, _br2: FeaturesRetriever(_br1.indexref, ["WMODEL:" + _br1.controls["wmodel"], "WMODEL:" + _br2.controls["wmodel"]])
     ))
 
     def push_fbr_earlier(_br1, _fbr):

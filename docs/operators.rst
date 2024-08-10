@@ -187,7 +187,7 @@ Rank Cutoff (`%`)
 
 The `%` operator is called rank cutoff, and limits the number of results for each query::
 
-    pipe1 = pt.terrier.Retrieve(index, "BM25") % 2
+    pipe1 = pt.terrier.Retriever(index, "BM25") % 2
 
 **Example:**
 

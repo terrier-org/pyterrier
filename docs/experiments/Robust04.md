@@ -34,10 +34,10 @@ Here we define and evaluate standard weighting models.
 
 ```python
 
-BM25 = pt.terrier.Retrieve(index, wmodel="BM25")
-DPH  = pt.terrier.Retrieve(index, wmodel="DPH")
-PL2  = pt.terrier.Retrieve(index, wmodel="PL2")
-DLM  = pt.terrier.Retrieve(index, wmodel="DirichletLM")
+BM25 = pt.terrier.Retriever(index, wmodel="BM25")
+DPH  = pt.terrier.Retriever(index, wmodel="DPH")
+PL2  = pt.terrier.Retriever(index, wmodel="PL2")
+DLM  = pt.terrier.Retriever(index, wmodel="DirichletLM")
 
 pt.Experiment(
     [BM25, DPH, PL2, DLM],

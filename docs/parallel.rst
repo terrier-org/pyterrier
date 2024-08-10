@@ -26,7 +26,7 @@ Parallelisation using Joblib
 
 A transformer pipeline can be parallelised by using the .parallel() transformer method::
 
-    dph = pt.terrier.Retrieve(index, wmodel='DPH')
+    dph = pt.terrier.Retriever(index, wmodel='DPH')
     dph_fast = dph.parallel(2)
 
 In this way, any set of queries passed to dph_fast will be separated into two partitions, based on qid, and executed on dph.
@@ -40,7 +40,7 @@ a similar way as for joblib::
 
     import ray
     ray.init() #configure Ray as per your cluster setup
-    dph = pt.terrier.Retrieve(index, wmodel='DPH')
+    dph = pt.terrier.Retriever(index, wmodel='DPH')
     dph_fast = dph.parallel(2, backend='ray')
 
 In particular, `ray.init()` must have been called before calling `.parallel()`.
@@ -51,7 +51,7 @@ What to Parallelise
 Only transformers that can be `pickled <https://docs.python.org/3/library/pickle.html>`_. Transformers that use native code
 may not be possible to pickle. Some standard PyTerrier transformers have additional support for parallelisation:
 
- - Terrier retrieval: pt.terrier.Retrieve(), pt.FeaturesBatchRetrieve()
+ - Terrier retrieval: pt.terrier.Retriever(), pt.FeaturesBatchRetrieve()
  - Anserini retrieval: pt.anserini.AnseriniBatchRetrieve()
 
 Pure python transformers, such as `pt.text.sliding()` are picklable. However, parallelising only `pt.text.sliding()` may not produce
@@ -61,14 +61,14 @@ Entire transformer pipelines (i.e. combined using operators) can be pickled and 
 the most inefficient component of your process, while also minimising the amount of data being transferred between processes. For instance,
 consider the following pipeline::
 
-    pipe = pt.terrier.Retrieve(index, metadata=["docno", "text"] >> pt.text.sliding() >> pt.text.scorer() >> pt.text.max_passage()
+    pipe = pt.terrier.Retriever(index, metadata=["docno", "text"] >> pt.text.sliding() >> pt.text.scorer() >> pt.text.max_passage()
 
 While BatchRetrieve might represent the slowest component of the pipeline, it might make sense to parallelise pipe as a whole,
 rather than just BatchRetrieve, as then only the queries and final results  need to be passed betwene processes. Indeed among the
 following semantically equivalent pipelines, we expect `parallel_pipe0`  and `parallel_pipe2`  to be faster than `parallel_pipe1`::
 
-    parallel_pipe0 = pt.terrier.Retrieve(index, metadata=["docno", "text"]).parallel() >> pt.text.sliding() >> pt.text.scorer() >> pt.text.max_passage()
-    parallel_pipe1 = ( pt.terrier.Retrieve(index, metadata=["docno", "text"]).parallel() >> pt.text.sliding() ).parallel(2)  >> pt.text.max_passage()
+    parallel_pipe0 = pt.terrier.Retriever(index, metadata=["docno", "text"]).parallel() >> pt.text.sliding() >> pt.text.scorer() >> pt.text.max_passage()
+    parallel_pipe1 = ( pt.terrier.Retriever(index, metadata=["docno", "text"]).parallel() >> pt.text.sliding() ).parallel(2)  >> pt.text.max_passage()
     parallel_pipe2 = pipe.parallel(2)
 
 
@@ -84,5 +84,5 @@ Outlook
 =======
 
 We expect to integate parallelisation at different parts of the PyTerrier platform, such as for conducting a gridsearch. Moreover, we hope 
-that proper integration of multi-threaded retrieval in pt.terrier.Retrieve() (while requires upstream improvements in the underlying Terrier platform) 
+that proper integration of multi-threaded retrieval in pt.terrier.Retriever() (while requires upstream improvements in the underlying Terrier platform) 
 will reduce the need for this form of parallelisation.

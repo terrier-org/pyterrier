@@ -39,7 +39,7 @@ When using BatchRetrieve, the `b` parameter of the BM25 weighting model can be c
 We must give this control an initial value when contructing the BatchRetrieve instance. Thereafter, the GridSearch
 parameter dictionary can be constructed by refering to the instance of transformer that has that parameter::
 
-    BM25 = pt.terrier.Retrieve(index, wmodel="BM25", controls={"bm25.b" : 0.75})
+    BM25 = pt.terrier.Retriever(index, wmodel="BM25", controls={"bm25.b" : 0.75})
     pt.GridSearch(
         BM25,  
         {BM25 : {"c" : [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1 ]}}
@@ -49,7 +49,7 @@ parameter dictionary can be constructed by refering to the instance of transform
 
 Terrier's BM25 also responds to controls named `"bm25.k_1"` and  `"bm25.k_3"`, such that all three controls can be tuned concurrently::
 
-    BM25 = pt.terrier.Retrieve(index, wmodel="BM25", controls={"bm25.b" : 0.75, "bm25.k_1": 0.75, "bm25.k_3": 0.75})
+    BM25 = pt.terrier.Retriever(index, wmodel="BM25", controls={"bm25.b" : 0.75, "bm25.k_1": 0.75, "bm25.k_3": 0.75})
     pt.GridSearch(
         BM25,  
         {BM25: {"bm25.b"  : [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1 ],
@@ -72,7 +72,7 @@ of feedback documents and expansion terms, namely:
 
 A full tuning of BM25 and RM3 can be achieved as thus::
 
-    bm25_for_qe = pt.terrier.Retrieve(index, wmodel="BM25", controls={"bm25.b" : 0.75})
+    bm25_for_qe = pt.terrier.Retriever(index, wmodel="BM25", controls={"bm25.b" : 0.75})
     rm3 = pt.rewrite.RM3(index, fb_terms=10, fb_docs=3)
     pipe_qe = bm25_for_qe >> rm3 >> bm25_for_qe
 
@@ -121,7 +121,7 @@ The following is an example of scanning the parameters of BM25F for an index wit
     assert 2 == index.getCollectionStatistics().getNumberOfFields()
 
     # instantiate BatchRetrieve for BM25F
-    bm25f = pt.terrier.Retrieve(
+    bm25f = pt.terrier.Retriever(
         index, 
         wmodel = 'BM25F', 
         controls = {'w.0' : 1, 'w.1' : 1, 'c.0' : 0.4, 'c.1' : 0.4}

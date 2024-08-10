@@ -9,7 +9,7 @@ class TestDunder(TempDirTestCase):
         testPosting = pt.java.autoclass("org.terrier.structures.postings.BasicPostingImpl")(0,1)
 
         lambdafn = lambda keyFreq, posting, entryStats, collStats: posting.getFrequency()
-        callback, wmodel = pt.terrier.retrieve._function2wmodel(lambdafn)
+        callback, wmodel = pt.terrier.retriever._function2wmodel(lambdafn)
         
         byterep = pt.java.bytebuffer_to_array(wmodel.scoringClass.serializeFn())
         import dill as pickle

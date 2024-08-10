@@ -384,7 +384,7 @@ def _new_callable_wmodel(byterep):
     #we need to prevent these functions from being GCd.
     global _SAVED_FNS
     _SAVED_FNS.append(fn)
-    callback, wmodel = pt.terrier.retrieve._function2wmodel(fn)
+    callback, wmodel = pt.terrier.retriever._function2wmodel(fn)
     _SAVED_FNS.append(callback)
     #print("Stored lambda fn  %s and callback in SAVED_FNS, now %d stored" % (str(fn), len(SAVED_FNS)))
     return wmodel

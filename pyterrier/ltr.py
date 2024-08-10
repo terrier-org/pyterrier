@@ -276,9 +276,9 @@ def score_to_feature() -> Transformer:
 
         Example::
 
-            cands = pt.terrier.Retrieve(index, wmodel="BM25")
-            bm25f = pt.terrier.Retrieve(index, wmodel="BM25F")
-            pl2f = pt.terrier.Retrieve(index, wmodel="PL2F")
+            cands = pt.terrier.Retriever(index, wmodel="BM25")
+            bm25f = pt.terrier.Retriever(index, wmodel="BM25F")
+            pl2f = pt.terrier.Retriever(index, wmodel="PL2F")
             
             two_features = cands >> (bm25f  **  pl2f)
             three_features = cands >> (bm25f  **  pl2f ** pt.ltr.score_to_feature())  

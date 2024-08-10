@@ -28,7 +28,7 @@ IndexRefs can also be obtained from a PyTerrier dataset::
 
 IndexRef objects can be directly passed to BatchRetrieve::
 
-    pt.terrier.Retrieve(indexref).search("chemical reactions")
+    pt.terrier.Retriever(indexref).search("chemical reactions")
 
 If you want to access the underlying data structures, you need to use IndexFactory, using the indexref, or the string location:: 
     

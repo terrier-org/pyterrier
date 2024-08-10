@@ -78,7 +78,7 @@ class ApplyDocumentScoringTransformer(ApplyTransformerBase):
             def _score_fn(row):
                 return float(row["url".count("/")])
             
-            pipe = pt.terrier.Retrieve(index) >> pt.apply.doc_score(_score_fn)
+            pipe = pt.terrier.Retriever(index) >> pt.apply.doc_score(_score_fn)
 
         Can be used in batching manner, which is particularly useful for appling neural models. In this case,
         the scoring function receives a dataframe, rather than a single row::
@@ -86,7 +86,7 @@ class ApplyDocumentScoringTransformer(ApplyTransformerBase):
             def _doclen(df):
                 return df.text.str.len()
             
-            pipe = pt.terrier.Retrieve(index) >> pt.apply.doc_score(_doclen)
+            pipe = pt.terrier.Retriever(index) >> pt.apply.doc_score(_doclen)
 
     """
     def __init__(self, fn,  *args, batch_size=None, **kwargs):
@@ -148,7 +148,7 @@ class ApplyDocFeatureTransformer(ApplyTransformerBase):
             def _feature_fn(row):
                 return numpy.array([len(row["url"], row["url".count("/")])
             
-            pipe = pt.terrier.Retrieve(index) >> pt.apply.doc_features(_feature_fn) >> pt.LTRpipeline(xgBoost())
+            pipe = pt.terrier.Retriever(index) >> pt.apply.doc_features(_feature_fn) >> pt.LTRpipeline(xgBoost())
     """
     def __init__(self, fn,  *args, **kwargs):
         """
@@ -180,11 +180,11 @@ class ApplyQueryTransformer(ApplyTransformerBase):
             def _rewriting_fn(row):
                 return row["query"] + " extra words"
             
-            pipe = pt.apply.query(_rewriting_fn) >> pt.terrier.Retrieve(index)
+            pipe = pt.apply.query(_rewriting_fn) >> pt.terrier.Retriever(index)
 
         Similarly, a lambda function can also be used::
 
-            pipe = pt.apply.query(lambda row: row["query"] + " extra words") >> pt.terrier.Retrieve(index)
+            pipe = pt.apply.query(lambda row: row["query"] + " extra words") >> pt.terrier.Retriever(index)
 
         In the resulting dataframe, the previous query for each row can be found in the query_0 column.
 
@@ -238,7 +238,7 @@ class ApplyGenericTransformer(ApplyTransformerBase):
         # this pipeline would remove all but the first two documents from a result set
         lp = ApplyGenericTransformer(lambda res : res[res["rank"] < 2])
 
-        pipe = pt.terrier.Retrieve(index) >> lp
+        pipe = pt.terrier.Retriever(index) >> lp
 
     """
 

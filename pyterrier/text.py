@@ -28,7 +28,7 @@ def get_text(
 
     Example::
 
-        pipe = ( pt.terrier.Retrieve(index, wmodel="DPH")
+        pipe = ( pt.terrier.Retriever(index, wmodel="DPH")
             >> pt.text.get_text(index)
             >> pt.text.scorer(wmodel="DPH") )
 
@@ -160,7 +160,7 @@ def scorer(*args, **kwargs) -> pt.Transformer:
         textscorerTfIdf = pt.text.scorer(body_attr="text", wmodel="TF_IDF", background_index=index)
 
     """
-    return pt.terrier.retrieve.TextScorer(*args, **kwargs)
+    return pt.terrier.retriever.TextScorer(*args, **kwargs)
 
 def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='title', tokenizer=None, **kwargs) -> pt.Transformer:
     r"""
@@ -188,7 +188,7 @@ def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='ti
     
     Example::
     
-        pipe = ( pt.terrier.Retrieve(index, wmodel="DPH", metadata=["docno", "body"]) 
+        pipe = ( pt.terrier.Retriever(index, wmodel="DPH", metadata=["docno", "body"]) 
             >> pt.text.sliding(length=128, stride=64, prepend_attr=None) 
             >> pt.text.scorer(wmodel="DPH") 
             >> pt.text.max_passage() )
@@ -196,7 +196,7 @@ def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='ti
         # tokenizer model 
         from transformers import AutoTokenizer
         tok = AutoTokenizer.from_pretrained("bert-base-uncased")
-        pipe = (pt.terrier.Retrieve(index, wmodel="DPH", metadata=["docno", "body"])
+        pipe = (pt.terrier.Retriever(index, wmodel="DPH", metadata=["docno", "body"])
             >> pt.text.sliding(length=128, stride=64, prepend_attr=None, tokenizer=tok)
             >> pt.text.scorer(wmodel="DPH")
             >> pt.text.max_passage() )
@@ -289,7 +289,7 @@ def snippets(
     Example::
 
         # retrieve documents with text
-        br = pt.terrier.Retrieve(index, metadata=['docno', 'text'])
+        br = pt.terrier.Retriever(index, metadata=['docno', 'text'])
 
         # use Tf as a passage scorer on sliding window passages 
         psg_scorer = ( 

@@ -49,8 +49,8 @@ def experiment_includes():
                 os.path.join(tempfile.gettempdir(), "vaswani_index")
             ).index(pt.get_dataset('vaswani').get_corpus_iter())
 
-    tfidf = pt.terrier.Retrieve(indexref, wmodel="TF_IDF")
-    bm25 = pt.terrier.Retrieve(indexref, wmodel="BM25")
+    tfidf = pt.terrier.Retriever(indexref, wmodel="TF_IDF")
+    bm25 = pt.terrier.Retriever(indexref, wmodel="BM25")
 
     table = pt.Experiment(
         [tfidf, bm25],

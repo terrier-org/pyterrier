@@ -653,7 +653,7 @@ def KFoldGridSearch(
 
     Consider tuning PL2 where folds of queries are pre-determined::
 
-        pl2 = pt.terrier.Retrieve(index, wmodel="PL2", controls={'c' : 1})
+        pl2 = pt.terrier.Retriever(index, wmodel="PL2", controls={'c' : 1})
         tuned_pl2, _ = pt.KFoldGridSearch(
             pl2, 
             {pl2 : {'c' : [0.1, 1, 5, 10, 20, 100]}}, 
@@ -827,7 +827,7 @@ def GridScan(
     Example::
 
         # graph how PL2's c parameter affects MAP
-        pl2 = pt.terrier.Retrieve(index, wmodel="PL2", controls={'c' : 1})
+        pl2 = pt.terrier.Retriever(index, wmodel="PL2", controls={'c' : 1})
         rtr = pt.GridScan(
             pl2, 
             {pl2 : {'c' : [0.1, 1, 5, 10, 20, 100]}}, 

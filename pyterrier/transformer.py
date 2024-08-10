@@ -64,8 +64,8 @@ class Transformer:
         This can be useful for adding the candidate ranking score
         as a feature in for learning-to-rank::
 
-            bm25 = pt.terrier.Retrieve(index, wmodel="BM25")
-            two_feat_pipe = bm25 >> pt.Transformer.identify() ** pt.terrier.Retrieve(index, wmodel="PL2")
+            bm25 = pt.terrier.Retriever(index, wmodel="BM25")
+            two_feat_pipe = bm25 >> pt.Transformer.identify() ** pt.terrier.Retriever(index, wmodel="PL2")
         
         This will return a pipeline that produces a score column (BM25), but also has a features column containing
         BM25 and PL2 scores.
@@ -155,7 +155,7 @@ class Transformer:
 
             Example::
 
-                bm25 = pt.terrier.Retrieve(index, wmodel="BM25")
+                bm25 = pt.terrier.Retriever(index, wmodel="BM25")
                 res = bm25.search("example query")
 
                 # is equivalent to
