@@ -1,46 +1,38 @@
-from .transformer import Transformer, Estimator, get_transformer, Scalar
+from .transformer import Transformer, Estimator, get_transformer
 from .model import add_ranks
-from matchpy import Operation, Arity
+from collections import deque
 from warnings import warn
-from typing import Iterable
+from typing import Iterable, List, Optional, Protocol, runtime_checkable
+from itertools import chain
 import pandas as pd
 
-class BinaryTransformerBase(Transformer,Operation):
-    """
-        A base class for all operator transformers that can combine the input of exactly 2 transformers. 
-    """
-    arity = Arity.binary
-
-    def __init__(self, operands, **kwargs):
-        assert 2 == len(operands)
-        super().__init__(operands=operands,  **kwargs)
-        self.left = operands[0]
-        self.right = operands[1]
-
-class NAryTransformerBase(Transformer,Operation):
+class NAryTransformerBase(Transformer):
     """
         A base class for all operator transformers that can combine the input of 2 or more transformers. 
     """
-    arity = Arity.polyadic
-
-    def __init__(self, operands, **kwargs):
-        super().__init__(operands=operands, **kwargs)
-        models = operands
-        self.models = list( map(lambda x : get_transformer(x, stacklevel=6), models) )
+    def __init__(self, *transformers: Transformer):
+        assert len(transformers) > 0
+        # Flatten out multiple layers of the same NAryTransformer into one
+        transformers = chain.from_iterable(
+            (t._transformers if isinstance(t, type(self)) else [t])
+            for t in transformers
+        )
+        # Coerce datatypes
+        self._transformers = tuple(get_transformer(x, stacklevel=6) for x in transformers)
 
     def __getitem__(self, number) -> Transformer:
         """
             Allows access to the ith transformer.
         """
-        return self.models[number]
+        return self._transformers[number]
 
     def __len__(self) -> int:
         """
             Returns the number of transformers in the operator.
         """
-        return len(self.models)
+        return len(self._transformers)
 
-class SetUnionTransformer(BinaryTransformerBase):
+class SetUnionTransformer(Transformer):
     """      
         This operator makes a retrieval set that includes documents that occur in the union (either) of both retrieval sets. 
         For instance, let left and right be pandas dataframes, both with the columns = [qid, query, docno, score], 
@@ -49,7 +41,9 @@ class SetUnionTransformer(BinaryTransformerBase):
                 
         In case of duplicated both containing (qid, docno), only the first occurrence will be used.
     """
-    name = "Union"
+    def __init__(self, left: Transformer, right: Transformer):
+        self.left = left
+        self.right = right
 
     def transform(self, topics):
         res1 = self.left.transform(topics)
@@ -65,7 +59,7 @@ class SetUnionTransformer(BinaryTransformerBase):
         rtr.drop(columns=["score", "rank"], inplace=True, errors='ignore')
         return rtr
 
-class SetIntersectionTransformer(BinaryTransformerBase):
+class SetIntersectionTransformer(Transformer):
     """
         This operator makes a retrieval set that only includes documents that occur in the intersection of both retrieval sets. 
         For instance, let left and right be pandas dataframes, both with the columns = [qid, query, docno, score], 
@@ -74,8 +68,10 @@ class SetIntersectionTransformer(BinaryTransformerBase):
                 
         For columns other than (qid, docno), only the left value will be used.
     """
-    name = "Intersect"
-    
+    def __init__(self, left: Transformer, right: Transformer):
+        self.left = left
+        self.right = right
+
     def transform(self, topics):
         res1 = self.left.transform(topics)
         res2 = self.right.transform(topics)  
@@ -96,12 +92,14 @@ class SetIntersectionTransformer(BinaryTransformerBase):
 
         return rtr
 
-class CombSumTransformer(BinaryTransformerBase):
+class CombSumTransformer(Transformer):
     """
         Adds the scores of documents from two different retrieval transformers.
         Documents not present in one transformer are given a score of 0.
     """
-    name = "Sum"
+    def __init__(self, left: Transformer, right: Transformer):
+        self.left = left
+        self.right = right
 
     def transform(self, topics_and_res):
         res1 = self.left.transform(topics_and_res)
@@ -115,9 +113,12 @@ class CombSumTransformer(BinaryTransformerBase):
         merged = add_ranks(merged)
         return merged
 
-class ConcatenateTransformer(BinaryTransformerBase):
-    name = "Concat"
+class ConcatenateTransformer(Transformer):
     epsilon = 0.0001
+
+    def __init__(self, left: Transformer, right: Transformer):
+        self.left = left
+        self.right = right
 
     def transform(self, topics_and_res):
         import pandas as pd
@@ -152,48 +153,42 @@ class ConcatenateTransformer(BinaryTransformerBase):
         rtr = add_ranks(rtr)
         return rtr
 
-class ScalarProductTransformer(BinaryTransformerBase):
+class ScalarProductTransformer(Transformer):
     """
         Multiplies the retrieval score by a scalar
     """
-    arity = Arity.binary
-    name = "ScalarProd"
+    def __init__(self, scalar: float):
+        self.scalar = scalar
 
-    def __init__(self, operands, **kwargs):
-        super().__init__(operands, **kwargs)
-        self.transformer = operands[0]
-        self.scalar = operands[1]
-
-    def transform(self, topics_and_res):
-        res = self.transformer.transform(topics_and_res)
-        res["score"] = self.scalar * res["score"]
+    def transform(self, inp):
+        out = inp.assign(score=inp["score"] * self.scalar)
         if self.scalar < 0:
-            res = add_ranks(res)
+            out = add_ranks(out)
+        return out
+
+    def __repr__(self):
+        return f'ScalarProductTransformer({self.scalar!r})'
+
+class RankCutoffTransformer(Transformer):
+    """
+        Filters the input by rank<k for each query in the input
+    """
+    def __init__(self, k: int = 1000):
+        self.k = k
+
+    def transform(self, inp):
+        assert 'rank' in inp.columns, "require rank to be present in the result set"
+        res = inp[inp["rank"] < self.k]
+        res = res.reset_index(drop=True)
         return res
 
-class RankCutoffTransformer(BinaryTransformerBase):
-    """
-        Applies a rank cutoff for each query
-    """
-    arity = Arity.binary
-    name = "RankCutoff"
+    def __repr__(self):
+        return f'RankCutoffTransformer({self.k!r})'
 
-    def __init__(self, operands, **kwargs):
-        operands = [operands[0], Scalar(str(operands[1]), operands[1])] if isinstance(operands[1], int) else operands
-        super().__init__(operands, **kwargs)
-        self.transformer = operands[0]
-        self.cutoff = operands[1]
-        if self.cutoff.value % 10 == 9:
-            warn("Rank cutoff off-by-one bug #66 now fixed, but you used a cutoff ending in 9. Please check your cutoff value. ", DeprecationWarning, 2)
-
-    def transform(self, topics_and_res):
-        res = self.transformer.transform(topics_and_res)
-        if not "rank" in res.columns:
-            assert False, "require rank to be present in the result set"
-
-        # this assumes that the minimum rank cutoff is model.FIRST_RANK, i.e. 0
-        res = res[res["rank"] < self.cutoff.value]
-        return res
+    def fuse_left(self, left: Transformer) -> Optional[Transformer]:
+        # If the preceding component supports a native rank cutoff (via fuse_rank_cutoff), apply it.
+        if isinstance(left, SupportsFuseRankCutoff):
+            return left.fuse_rank_cutoff(self.k)
 
 class FeatureUnionPipeline(NAryTransformerBase):
     """
@@ -205,8 +200,6 @@ class FeatureUnionPipeline(NAryTransformerBase):
             bm25f = pt.terrier.Retriever(index wmodel="BM25F")
             pipe = cands >> (pl2f ** bm25f)
     """
-    name = "FUnion"
-
     def transform(self, inputRes):
         if not "docno" in inputRes.columns and "docid" in inputRes.columns:
             raise ValueError("FeatureUnion operates as a re-ranker, but input did not have either "
@@ -222,7 +215,7 @@ class FeatureUnionPipeline(NAryTransformerBase):
         
         all_results = []
 
-        for i, m in enumerate(self.models):
+        for i, m in enumerate(self._transformers):
             #IMPORTANT this .copy() is important, in case an operand transformer changes inputRes
             results = m.transform(inputRes.copy())
             if len(results) == 0 and num_results != 0:
@@ -232,7 +225,7 @@ class FeatureUnionPipeline(NAryTransformerBase):
             all_results.append( results )
 
     
-        for i, (m, res) in enumerate(zip(self.models, all_results)):
+        for i, (m, res) in enumerate(zip(self._transformers, all_results)):
             #IMPORTANT: dont do this BEFORE calling subsequent feature unions
             if not "features" in res.columns:
                 if not "score" in res.columns:
@@ -294,6 +287,9 @@ class FeatureUnionPipeline(NAryTransformerBase):
         assert not "features_y" in final_DF.columns 
         return final_DF
 
+    def __repr__(self):
+        return '(' + ' ** '.join([str(t) for t in self._transformers]) + ')'
+
 class ComposedPipeline(NAryTransformerBase):
     """ 
         This class allows pipeline components to be chained together using the "then" operator.
@@ -304,11 +300,9 @@ class ComposedPipeline(NAryTransformerBase):
         >>> # OR
         >>> # we can even use lambdas as transformers
         >>> comp = ComposedPipeline([DPH_br, lambda res : res[res["rank"] < 2]])
-        >>> # this is equivelent
-        >>> # comp = DPH_br >> lambda res : res[res["rank"] < 2]]
+        >>> #this is equivelent
+        >>> #comp = DPH_br >> lambda res : res[res["rank"] < 2]]
     """
-    name = "Compose"
-
     def index(self, iter : Iterable[dict], batch_size=100):
         """
         This methods implements indexing pipelines. It is responsible for calling the transform_iter() method of its 
@@ -316,12 +310,12 @@ class ComposedPipeline(NAryTransformerBase):
         """
         from more_itertools import chunked
         
-        if len(self.models) > 2:
+        if len(self._transformers) > 2:
             #this compose could have > 2 models. we need a composite transform() on all but the last
-            prev_transformer = ComposedPipeline(self.models[0:-1])
+            prev_transformer = ComposedPipeline(*self._transformers[0:-1])
         else:
-            prev_transformer = self.models[0]
-        last_transformer = self.models[-1]
+            prev_transformer = self._transformers[0]
+        last_transformer = self._transformers[-1]
         
         def gen():
             for batch in chunked(iter, batch_size):
@@ -330,10 +324,11 @@ class ComposedPipeline(NAryTransformerBase):
                     yield row._asdict()
         return last_transformer.index(gen()) 
 
-    def transform(self, topics):
-        for m in self.models:
-            topics = m.transform(topics)
-        return topics
+    def transform(self, inp):
+        out = inp
+        for m in self._transformers:
+            out = m.transform(out)
+        return out
 
     def fit(self, topics_or_res_tr, qrels_tr, topics_or_res_va=None, qrels_va=None):
         """
@@ -341,7 +336,7 @@ class ComposedPipeline(NAryTransformerBase):
         all EstimatorBase be composed with a TransformerBase. It will execute any pre-requisite
         transformers BEFORE executing the fitting the stage.
         """
-        for m in self.models:
+        for m in self._transformers:
             if isinstance(m, Estimator):
                 m.fit(topics_or_res_tr, qrels_tr, topics_or_res_va, qrels_va)
             else:
@@ -349,3 +344,86 @@ class ComposedPipeline(NAryTransformerBase):
                 # validation is optional for some learners
                 if topics_or_res_va is not None:
                     topics_or_res_va = m.transform(topics_or_res_va)
+
+    def __repr__(self):
+        return '(' + ' >> '.join([str(t) for t in self._transformers]) + ')'
+
+    def compile(self) -> Transformer:
+        """
+            Returns a new transformer that fuses adjacent transformers where possible.
+        """
+        out = deque()
+        inp = deque(self._transformers)
+        while inp:
+            right = inp.popleft()
+            if out and isinstance(out[-1], SupportsFuseRight) and (fused_right := out[-1].fuse_right(right)) is not None:
+                out.pop()
+                inp.appendleft(fused_right)
+            elif out and isinstance(right, SupportsFuseLeft) and (fused_left := right.fuse_left(out[-1])) is not None:
+                out.pop()
+                inp.appendleft(fused_left)
+            else:
+                out.append(right)
+        if len(out) == 1:
+            return out[0]
+        return ComposedPipeline(*out)
+
+
+@runtime_checkable
+class SupportsFuseLeft(Protocol):
+    def fuse_left(self, left: 'Transformer') -> Optional['Transformer']:
+        """Fuses this transformer with a transformer that immediately precedes this one in a pipeline.
+
+        The new transformer should have the same effect as performing the two transformers in sequence, i.e.,
+        `pipeline_unfused` and `pipeline_fused` in the following example should provide the same results for
+        any input.
+
+        ```
+        >>> pipeline_unfused = left >> self
+        >>> pipeline_fused = self.fuse_left(left)
+        ```
+
+        A fused transformer should be more efficient than the unfused version. For instance, a retriever
+        followed by a rank cutoff can be fused to perform the rank cutoff during retrieval.
+
+        Returns:
+            A new transformer that is the result of merging this transformer with the left transformer,
+            or none if the merge is not possible.
+        """
+
+
+@runtime_checkable
+class SupportsFuseRight(Protocol):
+    def fuse_right(self, right: 'Transformer') -> Optional['Transformer']:
+        """Fuses this transformer with a transformer that immediately follows this one in a pipeline.
+
+        The new transformer should have the same effect as performing the two transformers in sequence, i.e.,
+        `pipeline_unfused` and `pipeline_fused` in the following example should provide the same results for
+        any input.
+
+        ```
+        >>> pipeline_unfused = self >> right
+        >>> pipeline_fused = self.fuse_right(right)
+        ```
+
+        A fused transformer should be more efficient than the unfused version. For instance, a retriever
+        followed by a rank cutoff can be fused to perform the rank cutoff during retrieval.
+
+        Returns:
+            A new transformer that is the result of merging this transformer with the right transformer,
+            or none if the merge is not possible.
+        """
+
+
+@runtime_checkable
+class SupportsFuseRankCutoff(Protocol):
+    def fuse_rank_cutoff(self, k: int) -> Optional['Transformer']:
+        """Fuses this transformer with a following RankCutoffTransformer.
+
+        This method should return a new transformer that applies the new rank cutoff value k.
+
+        Note that if the transformer currently applies a stricter rank cutoff than the one provided, it should not be
+        relaxed. In this case, it is preferred to return `self`.
+
+        If the fusion is not possible, `None` should be returned.
+        """

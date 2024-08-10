@@ -88,22 +88,19 @@ class TestOperators(BaseTestCase):
         combined123_c_C = combined123_c.compile()
 
 
-        self.assertEqual(2, len(combined12.models))
-        self.assertEqual(2, len(combined23.models))
-        self.assertEqual(2, len(combined12.models))
-        self.assertEqual(2, len(combined23.models))
+        self.assertEqual(2, len(combined12))
+        self.assertEqual(2, len(combined23))
+        self.assertEqual(2, len(combined12))
+        self.assertEqual(2, len(combined23))
 
         for C in [combined123_a_C, combined123_b_C, combined123_c_C]:
-            self.assertEqual(3, len(C.models))
-            self.assertEqual("ComposedPipeline(UniformTransformer(), UniformTransformer(), UniformTransformer())",
-                C.__repr__())
+            self.assertEqual(3, len(C))
+            self.assertEqual("(UniformTransformer() >> UniformTransformer() >> UniformTransformer())", repr(C))
         
         # finally check recursive application
         C4 = (mock1 >> mock2 >> mock3 >> mock4).compile()
-        self.assertEqual(
-            "ComposedPipeline(UniformTransformer(), UniformTransformer(), UniformTransformer(), UniformTransformer())", 
-            C4.__repr__())
-        self.assertEqual(4, len(C4.models))
+        self.assertEqual("(UniformTransformer() >> UniformTransformer() >> UniformTransformer() >> UniformTransformer())", repr(C4))
+        self.assertEqual(4, len(C4))
 
 
     def test_mul(self):
@@ -272,22 +269,17 @@ class TestOperators(BaseTestCase):
         BM25 = pt.terrier.Retriever(index, wmodel="BM25")
         TF_IDF = pt.terrier.Retriever(index, wmodel="TF_IDF")
         PL2 = pt.terrier.Retriever(index, wmodel="PL2")
-        pipe = BM25 >> (pt.transformer.IdentityTransformer() ** TF_IDF ** PL2)
+        expression = BM25 >> (pt.transformer.IdentityTransformer() ** TF_IDF ** PL2)
 
-        def _check(expression):
-            self.assertEqual(2, len(expression))
-            self.assertEqual(2, len(expression[1]))
-            print("funion outer %d" % id(expression[1]))
-            print("funion inner %d" % id(expression[1][1]))
-            
-            #print(repr(pipe))
-            res = expression.transform(dataset.get_topics().head(2))
-            self.assertTrue("features" in res.columns)
-            self.assertFalse("features_x" in res.columns)
-            self.assertFalse("features_y" in res.columns)
-            print(res.iloc[0]["features"])
-            self.assertEqual(3, len(res.iloc[0]["features"]))
-        _check(pipe)
+        self.assertEqual(2, len(expression))
+        self.assertEqual(3, len(expression[1]))
+
+        res = expression.transform(dataset.get_topics().head(2))
+        self.assertTrue("features" in res.columns)
+        self.assertFalse("features_x" in res.columns)
+        self.assertFalse("features_y" in res.columns)
+        print(res.iloc[0]["features"])
+        self.assertEqual(3, len(res.iloc[0]["features"]))
 
 
     def test_feature_union_multi(self):
@@ -335,18 +327,15 @@ class TestOperators(BaseTestCase):
         )
         
         
-        self.assertEqual(2, len(mock12a.models))
-        self.assertEqual(2, len(mock12a.models))
-        pt.terrier.retriever.setup_rewrites()
+        self.assertEqual(2, len(mock12a))
+        self.assertEqual(2, len(mock12a))
 
         mock123_simple = mock123a.compile()
         self.assertIsNotNone(mock123_simple)
-        self.assertEqual(
-            "FeatureUnionPipeline(UniformTransformer(), UniformTransformer(), UniformTransformer())", 
-            mock123_simple.__repr__())
+        self.assertEqual("(UniformTransformer() ** UniformTransformer() ** UniformTransformer())", repr(mock123_simple))
         #
         #
-        self.assertEqual(3, len(mock123_simple.models))
+        self.assertEqual(3, len(mock123_simple))
 
         def _test_expression(expression):
             # we dont need an input, as both Identity transformers will return anyway

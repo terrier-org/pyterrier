@@ -1,9 +1,8 @@
 import types
-from matchpy import Wildcard, Symbol, Operation, Arity
 from warnings import warn
 import pandas as pd
 from deprecated import deprecated
-from typing import Iterable, Iterator, Union
+from typing import Iterable, Iterator, Union, Optional
 from . import __version__
 
 LAMBDA = lambda:0
@@ -23,9 +22,6 @@ def get_transformer(v, stacklevel=1):
         Used to coerce functions, lambdas etc into transformers 
     """
 
-    if isinstance(v, Wildcard):
-        # get out of jail for matchpy
-        return v
     if is_transformer(v):
         return v
     if is_lambda(v):
@@ -43,11 +39,6 @@ def get_transformer(v, stacklevel=1):
 
 rewrite_rules = []
 
-
-class Scalar(Symbol):
-    def __init__(self, name, value):
-        super().__init__(name)
-        self.value = value
 
 class Transformer:
     name = "Transformer"
@@ -172,13 +163,14 @@ class Transformer:
         return rtr
 
     def compile(self) -> 'Transformer':
+        """Returns an optimized transformer, if possible, to improve performance.
+
+        For instance, a pipeline of transformers can be optimized by fusing adjacent transformers.
+
+        Returns:
+            A new transformer that is equivalent to this transformer, but optimized.
         """
-        Rewrites this pipeline by applying of the Matchpy rules in rewrite_rules. Pipeline
-        optimisation is discussed in the `ICTIR 2020 paper on PyTerrier <https://arxiv.org/abs/2007.14271>`_.
-        """
-        from matchpy import replace_all
-        print("Applying %d rules" % len(rewrite_rules))
-        return replace_all(self, rewrite_rules)
+        return self # by default, nothing to compile
 
     def parallel(self, N : int, backend='joblib') -> 'Transformer':
         """
@@ -242,12 +234,12 @@ class Transformer:
     def __mul__(self, rhs : Union[float,int]) -> 'Transformer':
         assert isinstance(rhs, int) or isinstance(rhs, float)
         from .ops import ScalarProductTransformer
-        return ScalarProductTransformer(self, rhs)
+        return self >> ScalarProductTransformer(rhs)
 
     def __rmul__(self, lhs : Union[float,int]) -> 'Transformer':
         assert isinstance(lhs, int) or isinstance(lhs, float)
         from .ops import ScalarProductTransformer
-        return ScalarProductTransformer(self, lhs)
+        return self >> ScalarProductTransformer(lhs)
 
     def __or__(self, right : 'Transformer') -> 'Transformer':
         from .ops import SetUnionTransformer
@@ -260,7 +252,7 @@ class Transformer:
     def __mod__(self, right : int) -> 'Transformer':
         assert isinstance(right, int)
         from .ops import RankCutoffTransformer
-        return RankCutoffTransformer(self, right)
+        return self >> RankCutoffTransformer(right)
 
     def __xor__(self, right : 'Transformer') -> 'Transformer':
         from .ops import ConcatenateTransformer
@@ -314,31 +306,25 @@ class EstimatorBase(Estimator):
     def __init__(self, *args, **kwargs):
         super(Estimator, self).__init__(*args, **kwargs)
 
-class IdentityTransformer(Transformer, Operation):
+class IdentityTransformer(Transformer):
     """
         A transformer that returns exactly the same as its input.
     """
-    arity = Arity.nullary
-
     def __init__(self, *args, **kwargs):
         super(IdentityTransformer, self).__init__(*args, **kwargs)
     
     def transform(self, topics):
         return topics
 
-class SourceTransformer(Transformer, Operation):
+class SourceTransformer(Transformer):
     """
     A Transformer that can be used when results have been saved in a dataframe.
     It will select results on qid.
     If a column is in the dataframe passed in the constructor, this will override any
     column in the topics dataframe passed to the transform() method.
     """
-    arity = Arity.nullary
-
-    def __init__(self, rtr, **kwargs):
-        super().__init__(operands=[], **kwargs)
-        self.operands=[]
-        self.df = rtr[0]
+    def __init__(self, df):
+        self.df = df
         assert "qid" in self.df.columns
     
     def transform(self, topics):
@@ -356,18 +342,17 @@ class SourceTransformer(Transformer, Operation):
         rtr = topics[keeping].merge(self.df, on="qid")
         return rtr
 
-class UniformTransformer(Transformer, Operation):
+class UniformTransformer(Transformer):
     """
         A transformer that returns the same dataframe every time transform()
         is called. This class is useful for testing. 
     """
-    arity = Arity.nullary
-
-    def __init__(self, rtr, **kwargs):
-        super().__init__(operands=[], **kwargs)
-        self.operands=[]
-        self.rtr = rtr[0]
+    def __init__(self, rtr):
+        self.rtr = rtr
     
     def transform(self, topics):
         rtr = self.rtr.copy()
         return rtr
+
+    def __repr__(self):
+        return 'UniformTransformer()'
