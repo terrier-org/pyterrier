@@ -823,6 +823,18 @@ class FeaturesRetriever(Retriever):
                 wmodel=left.controls['wmodel'],
             )
 
+    def fuse_rank_cutoff(self, k: int) -> Optional[pt.Transformer]:
+        """
+        Support fusing with RankCutoffTransformer.
+        """
+        if self.controls.get('end', float('inf')) < k:
+            return self # the applied rank cutoff is greater than the one already applied
+        if self.wmodel is None:
+            return None # not a retriever
+        # apply the new k as num_results
+        return FeaturesBatchRetrieve(self.indexref, self.features, controls=self.controls, properties=self.properties,
+            threads=self.threads, wmodel=self.wmodel, verbose=self.verbose, num_results=k)
+
 def setup_rewrites():
     from pyterrier.transformer import rewrite_rules
     from pyterrier.ops import FeatureUnionPipeline, ComposedPipeline
