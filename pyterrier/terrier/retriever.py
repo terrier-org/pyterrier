@@ -626,7 +626,7 @@ class FeaturesRetriever(Retriever):
 
         # record the weighting model
         self.wmodel = None
-        if "wmodel" in kwargs:
+        if "wmodel" in kwargs and kwargs['wmodel'] is not None:
             assert isinstance(kwargs["wmodel"], str), "Non-string weighting models not yet supported by FBR"
             self.wmodel = kwargs["wmodel"]
         if "wmodel" in controls:
