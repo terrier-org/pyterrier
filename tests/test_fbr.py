@@ -21,7 +21,6 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
         compiled = (pipe_raw % 2).compile()
         print(repr(compiled))
         res4 = compiled(input)
-        
 
     def test_fbr_reranking(self):
         if not pt.terrier.check_version("5.4"):

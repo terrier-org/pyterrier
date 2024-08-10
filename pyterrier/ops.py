@@ -287,6 +287,26 @@ class FeatureUnionPipeline(NAryTransformerBase):
         assert not "features_y" in final_DF.columns 
         return final_DF
 
+    def compile(self) -> Transformer:
+        """
+            Returns a new transformer that fuses feature unions where possible.
+        """
+        out = deque()
+        inp = deque([t.compile() for t in self._transformers])
+        while inp:
+            right = inp.popleft()
+            if out and isinstance(out[-1], SupportsFuseFeatureUnion) and (fused := out[-1].fuse_feature_union(right, is_left=True)) is not None:
+                out.pop()
+                inp.appendleft(fused)
+            elif out and isinstance(right, SupportsFuseFeatureUnion) and (fused := right.fuse_feature_union(out[-1], is_left=False)) is not None:
+                out.pop()
+                inp.appendleft(fused)
+            else:
+                out.append(right)
+        if len(out) == 1:
+            return out[0]
+        return FeatureUnionPipeline(*out)
+
     def __repr__(self):
         return '(' + ' ** '.join([str(t) for t in self._transformers]) + ')'
 
@@ -353,15 +373,15 @@ class ComposedPipeline(NAryTransformerBase):
             Returns a new transformer that fuses adjacent transformers where possible.
         """
         out = deque()
-        inp = deque(self._transformers)
+        inp = deque([t.compile() for t in self._transformers])
         while inp:
             right = inp.popleft()
-            if out and isinstance(out[-1], SupportsFuseRight) and (fused_right := out[-1].fuse_right(right)) is not None:
+            if out and isinstance(out[-1], SupportsFuseRight) and (fused := out[-1].fuse_right(right)) is not None:
                 out.pop()
-                inp.appendleft(fused_right)
-            elif out and isinstance(right, SupportsFuseLeft) and (fused_left := right.fuse_left(out[-1])) is not None:
+                inp.appendleft(fused)
+            elif out and isinstance(right, SupportsFuseLeft) and (fused := right.fuse_left(out[-1])) is not None:
                 out.pop()
-                inp.appendleft(fused_left)
+                inp.appendleft(fused)
             else:
                 out.append(right)
         if len(out) == 1:
@@ -426,4 +446,16 @@ class SupportsFuseRankCutoff(Protocol):
         relaxed. In this case, it is preferred to return `self`.
 
         If the fusion is not possible, `None` should be returned.
+        """
+
+
+@runtime_checkable
+class SupportsFuseFeatureUnion(Protocol):
+    def fuse_feature_union(self, other: 'Transformer', is_left: bool) -> Optional['Transformer']:
+        """Fuses this transformer with another one that provides features.
+
+        This method should return a new transformer that is equivalent to performing self ** other, or `None`
+        if the fusion is not possible.
+
+        is_left is True if self's features are to the left of other's. Otherwise, self's features are to the right.
         """

@@ -459,6 +459,17 @@ class Retriever(pt.Transformer):
         return BatchRetrieve(self.indexref, controls=self.controls, properties=self.properties, metadata=self.metadata,
             num_results=k, wmodel=self.controls["wmodel"], threads=self.threads, verbose=self.verbose)
 
+    def fuse_feature_union(self, other: pt.Transformer, is_left: bool) -> Optional[pt.Transformer]:
+        if isinstance(other, BatchRetrieve) and \
+           self.indexref == other.indexref and \
+           self.controls.get('context_wmodel') != 'on' and \
+           other.controls.get('context_wmodel') != 'on':
+            features = ["WMODEL:" + self.controls['wmodel'], "WMODEL:" + other.controls['wmodel']] if is_left else ["WMODEL:" + other.controls['wmodel'], "WMODEL:" + self.controls['wmodel']]
+            controls = dict(self.controls)
+            del controls['wmodel']
+            return FeaturesBatchRetrieve(self.indexref, features, controls=controls, properties=self.properties,
+                metadata=self.metadata, threads=self.threads, verbose=self.verbose)
+
 
 @pt.java.required
 class TextIndexProcessor(pt.Transformer):
@@ -835,26 +846,19 @@ class FeaturesRetriever(Retriever):
         return FeaturesBatchRetrieve(self.indexref, self.features, controls=self.controls, properties=self.properties,
             threads=self.threads, wmodel=self.wmodel, verbose=self.verbose, num_results=k)
 
-def setup_rewrites():
-    from pyterrier.transformer import rewrite_rules
-    from pyterrier.ops import FeatureUnionPipeline, ComposedPipeline
-    from matchpy import ReplacementRule, Wildcard, Pattern, CustomConstraint
-    #three arbitrary "things".
-    x = Wildcard.dot('x')
-    xs = Wildcard.plus('xs')
-    y = Wildcard.dot('y')
-    z = Wildcard.dot('z')
-    # two different match retrives
-    _br1 = Wildcard.symbol('_br1', Retriever)
-    _br2 = Wildcard.symbol('_br2', Retriever)
-    _fbr = Wildcard.symbol('_fbr', FeaturesRetriever)
-    
-    # batch retrieves for the same index
-    BR_index_matches = CustomConstraint(lambda _br1, _br2: _br1.indexref == _br2.indexref)
-    BR_FBR_index_matches = CustomConstraint(lambda _br1, _fbr: _br1.indexref == _fbr.indexref)
+    def fuse_feature_union(self, other: pt.Transformer, is_left: bool) -> Optional[pt.Transformer]:
+        if isinstance(other, FeaturesBatchRetrieve) and \
+           self.indexref == other.indexref and \
+           self.wmodel is None  and \
+           other.wmodel is None:
+            features = self.features + other.features if is_left else other.features + self.features
+            return FeaturesBatchRetrieve(self.indexref, features, controls=self.controls, properties=self.properties,
+                threads=self.threads, wmodel=self.wmodel, verbose=self.verbose)
 
-    # rewrite batch a feature union of BRs into an FBR
-    rewrite_rules.append(ReplacementRule(
-        Pattern(FeatureUnionPipeline(_br1, _br2), BR_index_matches),
-        lambda _br1, _br2: FeaturesRetriever(_br1.indexref, ["WMODEL:" + _br1.controls["wmodel"], "WMODEL:" + _br2.controls["wmodel"]])
-    ))
+        if isinstance(other, BatchRetrieve) and \
+           self.indexref == other.indexref and \
+           self.wmodel is None  and \
+           other.controls.get('context_wmodel') != 'on':
+            features = self.features + ["WMODEL:" + other.controls['wmodel']] if is_left else ["WMODEL:" + other.controls['wmodel']] + self.features
+            return FeaturesBatchRetrieve(self.indexref, features, controls=self.controls, properties=self.properties,
+                threads=self.threads, wmodel=self.wmodel, verbose=self.verbose)

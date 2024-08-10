@@ -37,8 +37,6 @@ def get_transformer(v, stacklevel=1):
         return SourceTransformer(v)
     raise ValueError("Passed parameter %s of type %s cannot be coerced into a transformer" % (str(v), type(v)))
 
-rewrite_rules = []
-
 
 class Transformer:
     name = "Transformer"
