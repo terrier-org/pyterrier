@@ -133,7 +133,7 @@ def set_tqdm(type=None):
     """
         Set the tqdm progress bar type that Pyterrier will use internally.
         Many PyTerrier transformations can be expensive to apply in some settings - users can
-        view progress by using the verbose=True kwarg to many classes, such as BatchRetrieve.
+        view progress by using the verbose=True kwarg to many classes, such as terrier.Retriever.
 
         The `tqdm <https://tqdm.github.io/>`_ progress bar can be made prettier when using appropriately configured Jupyter notebook setups.
         We use this automatically when Google Colab is detected.

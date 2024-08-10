@@ -1,36 +1,36 @@
 Terrier Retrieval
 -----------------
 
-BatchRetrieve is one of the most commonly used PyTerrier objects. It represents a retrieval transformation, 
-in which queries are mapped to retrieved documents. BatchRetrieve uses a pre-existing Terrier index data
+terrier.Retriever is one of the most commonly used PyTerrier objects. It represents a retrieval transformation, 
+in which queries are mapped to retrieved documents. Retriever uses a pre-existing Terrier index data
 structure, typically saved on disk.
 
 
 Typical usage::
 
     index = pt.IndexFactory.of("/path/to/data.properties")
-    tf_idf = pt.BatchRetrieve(index, wmodel="TF_IDF")
-    bm25 = pt.BatchRetrieve(index, wmodel="BM25")
-    pl2 = pt.BatchRetrieve(index, wmodel="PL2")
+    tf_idf = pt.terrier.Retriever(index, wmodel="TF_IDF")
+    bm25 = pt.terrier.Retriever(index, wmodel="BM25")
+    pl2 = pt.terrier.Retriever(index, wmodel="PL2")
 
     pt.Experiment([tf_idf, bm25, pl2], topic, qrels, eval_metrics=["map"])
 
-As BatchRetrieve is a retrieval transformation, it takes as input dataframes with columns `["qid", "query"]`,
+As Retriever is a retrieval transformation, it takes as input dataframes with columns `["qid", "query"]`,
 and returns dataframes with columns `["qid", "query", "docno", "score", "rank"]`.
 
-However, BatchRetrieve can also act as a re-ranker. In this scenario, it takes as input dataframes with 
+However, Retriever can also act as a re-ranker. In this scenario, it takes as input dataframes with 
 columns `["qid", "query", "docno"]`, and returns dataframes with columns `["qid", "query", "docno", "score", "rank"]`.
 
 For instance, to create a re-ranking pipeline that re-scores the top 100 BM25 documents using PL2::
 
-    bm25 = pt.BatchRetrieve(index, wmodel="BM25")
-    pl2 = pt.BatchRetrieve(index, wmodel="PL2")
+    bm25 = pt.terrier.Retriever(index, wmodel="BM25")
+    pl2 = pt.terrier.Retriever(index, wmodel="PL2")
     pipeline = (bm25 % 100) >> pl2
 
-BatchRetrieve
+Retriever
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autoclass:: pyterrier.terrier.BatchRetrieve
+.. autoclass:: pyterrier.terrier.Retriever
     :members: transform, from_dataset
 
 
@@ -42,7 +42,7 @@ When using PyTerrier, we have to be aware of the underlying Terrier configuratio
 namely *properties* and *controls*. Properties are global configuration and were 
 traditionally configured by editing a `terrier.properties` file; In contrast, 
 controls are per-query configuration. In PyTerrier, we specify both when we construct
-the BatchRetrieve object:
+the Retriever object:
 
 Common controls:
  - `"wmodel"` - the name of the weighting model. (This can also be specified using the wmodel kwarg).
@@ -55,28 +55,28 @@ Common controls:
 Common properties:
  - `"termpipelines"` - the default Terrier term pipeline configuration is `"Stopwords,PorterStemmer"`.
    If you have created an index with a different configuration, you will need to set the  `"termpipelines"`
-   property for *each* BatchRetrieve constructed.
+   property for *each* Retriever constructed.
 
 **Examples**::
 
-    # these two BatchRetrieve instances are identical, using the same weighting model
-    bm25a = pt.BatchRetrieve(index, wmodel="BM25")
-    bm25b = pt.BatchRetrieve(index, controls={"wmodel":"BM25"})
+    # these two Retriever instances are identical, using the same weighting model
+    bm25a = pt.terrier.Retriever(index, wmodel="BM25")
+    bm25b = pt.terrier.Retriever(index, controls={"wmodel":"BM25"})
 
     # this one also applies query expansion inside Terrier
-    bm25_qe = pt.BatchRetrieve(index, wmodel="BM25", controls={"qe":"on", "qemodel" : "Bo1"})
+    bm25_qe = pt.terrier.Retriever(index, wmodel="BM25", controls={"qe":"on", "qemodel" : "Bo1"})
 
-    # when we introduce an unstemmed BatchRetrieve, we ensure to explicitly set the termpipelines
-    # for the other BatchRetrieve as well
-    bm25s_unstemmed = pt.BatchRetrieve(indexUS, wmodel="BM25", properties={"termpipelines" : ""})
-    bm25s_stemmed = pt.BatchRetrieve(indexSS, wmodel="BM25", properties={"termpipelines" : "Stopwords,PorterStemmer"})
+    # when we introduce an unstemmed Retriever, we ensure to explicitly set the termpipelines
+    # for the other Retriever as well
+    bm25s_unstemmed = pt.terrier.Retriever(indexUS, wmodel="BM25", properties={"termpipelines" : ""})
+    bm25s_stemmed = pt.terrier.Retriever(indexSS, wmodel="BM25", properties={"termpipelines" : "Stopwords,PorterStemmer"})
     
 
 
 Index-Like Objects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When working with Terrier indices, BatchRetrieve allows can make use of:
+When working with Terrier indices, Retriever allows can make use of:
 
  - a string representing an index, such as "/path/to/data.properties"
  - a Terrier `IndexRef <http://terrier.org/docs/current/javadoc/org/terrier/querying/IndexRef.html>`_ object, constructed from a string, but which may also hold a reference to the existing index.
@@ -87,26 +87,26 @@ Where possible, for faster reuse, load the actual Index.
 
 Bad Practice::
 
-    bm25 = pt.BatchRetrieve("/path/to/data.properties", wmodel="BM25")
-    pl2 = pt.BatchRetrieve("/path/to/data.properties", wmodel="PL2")
+    bm25 = pt.terrier.Retriever("/path/to/data.properties", wmodel="BM25")
+    pl2 = pt.terrier.Retriever("/path/to/data.properties", wmodel="PL2")
     # here, the same index must be loaded twice
 
 Good Practice::
 
     index = pt.IndexFactory.of("/path/to/data.properties")
-    bm25 = pt.BatchRetrieve(index, wmodel="BM25")
-    pl2 = pt.BatchRetrieve(index, wmodel="PL2")
-    # here, we share the index between two instances of BatchRetrieve
+    bm25 = pt.terrier.Retriever(index, wmodel="BM25")
+    pl2 = pt.terrier.Retriever(index, wmodel="PL2")
+    # here, we share the index between two instances of Retriever
 
 You can use the IndexFactory to specify that the index data structures to be loaded into memory::
 
     # load all structures into memory
     inmemindex = pt.IndexFactory.of("/path/to/data.properties", memory=True)
-    bm25_fast = pt.BatchRetrieve(inmemindex, wmodel="BM25")
+    bm25_fast = pt.terrier.Retriever(inmemindex, wmodel="BM25")
 
     # load just inverted and lexicon into memory
     inmem_inverted_index = pt.IndexFactory.of("/path/to/data.properties", memory=['inverted', 'lexicon'])
-    bm25_fast = pt.BatchRetrieve(inmem_inverted_index, wmodel="BM25")
+    bm25_fast = pt.terrier.Retriever(inmem_inverted_index, wmodel="BM25")
 
 
 TextScorer
@@ -138,16 +138,16 @@ unless the class name is fully qualified (e.g. `"com.example.MyTF"`).
 
 If you have your own Java weighting model instance (which extends the 
 `WeightingModel abstract class <http://terrier.org/docs/current/javadoc/org/terrier/matching/models/WeightingModel.html>`_, 
-you can load it and pass it directly to BatchRetrieve::
+you can load it and pass it directly to Retriever::
 
     mymodel = pt.autoclass("com.example.MyTF")()
-    retr = pt.BatchRetrieve(indexref, wmodel=mymodel)
+    retr = pt.terrier.Retriever(indexref, wmodel=mymodel)
 
 More usefully, it is possible to express a weighting model entirely in Python, as a function or a lambda expression, that can be
-used by Terrier for scoring. In this example, we create a Terrier BatchRetrieve instance that scores based solely on term frequency::
+used by Terrier for scoring. In this example, we create a Terrier Retriever instance that scores based solely on term frequency::
 
     Tf = lambda keyFreq, posting, entryStats, collStats: posting.getFrequency()
-    retr = pt.BatchRetrieve(indexref, wmodel=Tf)
+    retr = pt.terrier.Retriever(indexref, wmodel=Tf)
 
 All functions passed must accept 4 arguments, as follows:
 

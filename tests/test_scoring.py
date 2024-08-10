@@ -39,7 +39,7 @@ class TestScoring(TempDirTestCase):
         output1 = br1(input)
         self.assertTrue( "body" in output1.columns )
         input2 = output1[["qid", "query", "docno", "body"]]
-        br2 = pt.terrier.retriever.TextScorer(background_index=index, wmodel=wmodel, verbose=True)
+        br2 = pt.terrier.TextScorer(background_index=index, wmodel=wmodel, verbose=True)
         output2 = br2(input2)
         self.assertTrue( "score" in output2.columns )
 

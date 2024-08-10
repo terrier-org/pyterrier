@@ -61,7 +61,7 @@ describes how to manage this configuration.
 **Note:** Because these options affect the the JVM's settings, they need to be set before Java starts---for instance, at the top of
 a script/notebook before any Java components are loaded.
 
-**Starting Java.** PyTerrier will start java when you use a component that requires it, such as `BatchRetrieve`. However, sometimes
+**Starting Java.** PyTerrier will start java when you use a component that requires it, such as ``pt.terrier.Retriever``. However, sometimes
 you might want to start it early:
 
 .. autofunction:: pyterrier.java.init
