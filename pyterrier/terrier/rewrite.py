@@ -14,7 +14,7 @@ def tokenise(tokeniser : Union[str,TerrierTokeniser,FunctionType] = 'english', m
 
     Args:
         tokeniser(Union[str,TerrierTokeniser,FunctionType]): Defines what tokeniser should be used - either a Java tokeniser name in Terrier, a TerrierTokeniser instance, or a function that takes a str as input and returns a list of str.
-        matchop(bool): Whether query terms should be wrapped in matchops, to ensure they can be parsed by a Terrier BatchRetrieve transformer.
+        matchop(bool): Whether query terms should be wrapped in matchops, to ensure they can be parsed by a Terrier Retriever transformer.
     
     Example - use default tokeniser::
 

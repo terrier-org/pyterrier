@@ -31,7 +31,7 @@ qe = (pt.terrier.Retriever(indexref, wmodel="BM25") >>
 ```
 
 The QueryExpansion() object has the following constructor parameters:
- - `index_like` - which index you are using to obtain the contents of the documents. This should match the preceeding BatchRetrieve. 
+ - `index_like` - which index you are using to obtain the contents of the documents. This should match the preceeding Retriever. 
  - `fb_docs` - number of feedback documents to examine
  - `fb_terms` - number of feedback terms to add to the query
 

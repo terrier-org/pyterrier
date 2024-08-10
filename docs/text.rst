@@ -41,10 +41,10 @@ using IterDictIndexer::
 During retrieval you will need to have the text stored as an attribute in your dataframes.
 
 This can be achieved in one of several ways:
- - requesting document metadata when using `BatchRetrieve`
+ - requesting document metadata when using `Retriever`
  - adding document metadata later using `get_text()`
 
-BatchRetrieve accepts a `metadata` keyword-argument which allows for additional metadata attributes to be retrieved.
+Retriever accepts a `metadata` keyword-argument which allows for additional metadata attributes to be retrieved.
 
 Alternatively, the `pt.text.get_text()` transformer can be used, which can extract metadata from a Terrier index
 or IRDSDataset for documents already retrieved. The main advantage of using IRDSDataset is that it supports

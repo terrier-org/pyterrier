@@ -35,8 +35,8 @@ Examples
 Tuning BM25
 ~~~~~~~~~~~
 
-When using BatchRetrieve, the `b` parameter of the BM25 weighting model can be controled using the "bm25.b" control. 
-We must give this control an initial value when contructing the BatchRetrieve instance. Thereafter, the GridSearch
+When using Retriever, the `b` parameter of the BM25 weighting model can be controled using the "bm25.b" control. 
+We must give this control an initial value when contructing the Retriever instance. Thereafter, the GridSearch
 parameter dictionary can be constructed by refering to the instance of transformer that has that parameter::
 
     BM25 = pt.terrier.Retriever(index, wmodel="BM25", controls={"bm25.b" : 0.75})
@@ -120,7 +120,7 @@ The following is an example of scanning the parameters of BM25F for an index wit
     # check your index has exactly 2 fields
     assert 2 == index.getCollectionStatistics().getNumberOfFields()
 
-    # instantiate BatchRetrieve for BM25F
+    # instantiate Retriever for BM25F
     bm25f = pt.terrier.Retriever(
         index, 
         wmodel = 'BM25F', 

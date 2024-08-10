@@ -51,7 +51,7 @@ What to Parallelise
 Only transformers that can be `pickled <https://docs.python.org/3/library/pickle.html>`_. Transformers that use native code
 may not be possible to pickle. Some standard PyTerrier transformers have additional support for parallelisation:
 
- - Terrier retrieval: pt.terrier.Retriever(), pt.FeaturesBatchRetrieve()
+ - Terrier retrieval: pt.terrier.Retriever(), pt.terrier.FeaturesRetriever()
  - Anserini retrieval: pt.anserini.AnseriniBatchRetrieve()
 
 Pure python transformers, such as `pt.text.sliding()` are picklable. However, parallelising only `pt.text.sliding()` may not produce
@@ -63,8 +63,8 @@ consider the following pipeline::
 
     pipe = pt.terrier.Retriever(index, metadata=["docno", "text"] >> pt.text.sliding() >> pt.text.scorer() >> pt.text.max_passage()
 
-While BatchRetrieve might represent the slowest component of the pipeline, it might make sense to parallelise pipe as a whole,
-rather than just BatchRetrieve, as then only the queries and final results  need to be passed betwene processes. Indeed among the
+While ``Retriever`` might represent the slowest component of the pipeline, it might make sense to parallelise pipe as a whole,
+rather than just ``Retriever``, as then only the queries and final results  need to be passed betwene processes. Indeed among the
 following semantically equivalent pipelines, we expect `parallel_pipe0`  and `parallel_pipe2`  to be faster than `parallel_pipe1`::
 
     parallel_pipe0 = pt.terrier.Retriever(index, metadata=["docno", "text"]).parallel() >> pt.text.sliding() >> pt.text.scorer() >> pt.text.max_passage()

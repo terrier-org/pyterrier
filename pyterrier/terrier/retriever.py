@@ -123,7 +123,7 @@ def _from_dataset(dataset : Union[str,Dataset],
     raise ValueError("No .args.json files found for %s" % str(classnames))
                 
 @pt.java.required
-class Retrieve(BatchRetrieveBase):
+class Retriever(BatchRetrieveBase):
     """
     Use this class for retrieval by Terrier
     """
@@ -546,7 +546,7 @@ class TextIndexProcessor(pt.Transformer):
 class TextScorer(TextIndexProcessor):
     """
         A re-ranker class, which takes the queries and the contents of documents, indexes the contents of the documents using a MemoryIndex, and performs ranking of those documents with respect to the queries.
-        Unknown kwargs are passed to BatchRetrieve.
+        Unknown kwargs are passed to Retriever.
 
         Arguments:
             takes(str): configuration - what is needed as input: `"queries"`, or `"docs"`. Default is `"docs"` since v0.8.
