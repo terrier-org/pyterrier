@@ -17,7 +17,7 @@ configure = pt.java.register_config('pt.terrier.java', {
     'helper_version': None,
     'boot_packages': [],
     'force_download': True,
-    'prf_version': None,
+    'prf_version': '-SNAPSHOT',
 })
 
 
@@ -32,20 +32,8 @@ def set_helper_version(version: Optional[str] = None):
 
 
 @pt.java.before_init
-def enable_prf(version: Optional[str] = '-SNAPSHOT'):
+def set_prf_version(version: Optional[str] = None):
     configure['prf_version'] = version
-
-
-@pt.utils.pre_invocation_decorator
-def prf_required(fn: Callable):
-    """
-    Requires prf to be enabled (raises error if not enabled).
-
-    Can be used as a function/class @decorator. When used as a class decorator, it
-    is applied to all methods defined by the class.
-    """
-    if not configure['prf_version']:
-        raise RuntimeError('you need to call pt.terrier.enable_prf() before java is loaded to use this function.')
 
 
 class TerrierJavaInit(pt.java.JavaInitializer):
@@ -84,9 +72,8 @@ class TerrierJavaInit(pt.java.JavaInitializer):
         helper_jar = pt.java.mavenresolver.get_package_jar(TERRIER_PKG, 'terrier-python-helper', helper_version)
         jnius_config.add_classpath(helper_jar)
 
-        if configure['prf_version'] is not None:
-            prf_jar = pt.java.mavenresolver.get_package_jar('com.github.terrierteam', 'terrier-prf', configure['prf_version'])
-            jnius_config.add_classpath(prf_jar)
+        prf_jar = pt.java.mavenresolver.get_package_jar('com.github.terrierteam', 'terrier-prf', configure['prf_version'])
+        jnius_config.add_classpath(prf_jar)
 
 
     @pt.java.required_raise

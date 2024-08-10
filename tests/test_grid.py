@@ -1,6 +1,6 @@
 import pandas as pd
 import pyterrier as pt
-from .base import BaseTestCase
+from .base import BaseTestCase, parallel_test
 
 
 class TestGrid(BaseTestCase):
@@ -68,6 +68,7 @@ class TestGrid(BaseTestCase):
         self.assertTrue(isinstance(rtr, pd.DataFrame))
         #print(rtr)
 
+    @parallel_test
     def test_gridscan_joblib2(self):
         self.skip_windows()
         dataset = pt.get_dataset("vaswani")

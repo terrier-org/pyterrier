@@ -1,10 +1,11 @@
-from .base import BaseTestCase
+from .base import BaseTestCase, parallel_test
 import pandas as pd
 import pickle
 import pyterrier as pt
 import datetime
 class TestPool(BaseTestCase):
 
+    @parallel_test
     def test_br_parallel(self):
         self.skip_windows()
         vaswani = pt.datasets.get_dataset("vaswani")

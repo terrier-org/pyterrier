@@ -47,10 +47,8 @@ pipe = (pt.terrier.Retriever(wikipedia_index, wmodel="BM25") >>
 ### RM3 Query Expansion
 
 We also provide RM3 query expansion, using an external plugin to Terrier called [terrier-prf](https://github.com/terrierteam/terrier-prf).
-You need to call `pt.terrier.enable_prf()` to download and load this plugin.
 
 ```python
-pt.terrier.enable_prf() # This is required before Java starts
 pipe = (pt.terrier.Retriever(indexref, wmodel="BM25") >> 
     pt.rewrite.RM3(indexref) >> 
     pt.terrier.Retriever(indexref, wmodel="BM25")

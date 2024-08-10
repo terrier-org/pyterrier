@@ -91,7 +91,7 @@ These options adjust how the Terrier engine is loaded.
 
 .. autofunction:: pyterrier.terrier.set_version
 .. autofunction:: pyterrier.terrier.set_helper_version
-.. autofunction:: pyterrier.terrier.enable_prf
+.. autofunction:: pyterrier.terrier.set_prf_version
 .. autofunction:: pyterrier.terrier.set_property
 .. autofunction:: pyterrier.terrier.set_properties
 .. autofunction:: pyterrier.terrier.extend_classpath
