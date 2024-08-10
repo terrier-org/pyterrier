@@ -85,9 +85,9 @@ Its also possible to construct a transformer that makes a new column on a row-wi
 
 For instance, if the column you are creating is called rank_2, it might be created as follows::
 
-    pipe = pt.terrier.Retrieverr(index) >> pt.apply.rank_2(lambda row: row["rank"] * 2)
+    pipe = pt.terrier.Retriever(index) >> pt.apply.rank_2(lambda row: row["rank"] * 2)
 
 To create a transformer that drops a column, you can instead pass `drop=True` as a kwarg::
 
-    pipe = pt.terrier.Retrieverr(index, metadata=["docno", "text"] >> pt.text.scorer() >> pt.apply.text(drop=True)
+    pipe = pt.terrier.Retriever(index, metadata=["docno", "text"] >> pt.text.scorer() >> pt.apply.text(drop=True)
 

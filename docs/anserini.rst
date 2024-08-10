@@ -24,7 +24,7 @@ Comparative retrieval from Anserini and Terrier::
 
 AnseriniBatchRetrieve can also be used as a re-ranker::
 
-    BM25_tr = pt.terrier.Retrieverr(trIndex, wmodel="BM25")
+    BM25_tr = pt.terrier.Retriever(trIndex, wmodel="BM25")
     QLD_ai = pt.anserini.AnseriniBatchRetrieve(luceneIndex, wmodel="QLD")
 
     pipe = BM25_tr >> QLD_ai
