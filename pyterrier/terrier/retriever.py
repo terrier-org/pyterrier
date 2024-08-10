@@ -629,6 +629,8 @@ class FeaturesRetriever(Retriever):
             raise ValueError("Multi-threaded retrieval not yet supported by FeaturesRetriever")
         
         super().__init__(index_location, controls, properties, **kwargs)
+        if self.wmodel is None and 'wmodel' in self.controls:
+            del self.controls['wmodel'] # BatchRetrieve sets a default controls['wmodel'], we only want this
 
     def __reduce__(self):
         return (
@@ -805,6 +807,22 @@ class FeaturesRetriever(Retriever):
             return "TerrierFeatRetr(" + str(len(self.features)) + " features)"
         return "TerrierFeatRetr(" + self.controls["wmodel"] + " and " + str(len(self.features)) + " features)"
 
+    def fuse_left(self, left: pt.Transformer) -> Optional[pt.Transformer]:
+        # Can merge BatchRetrieve >> FeaturesBatchRetrieve into a single FeaturesBatchRetrieve that also retrieves
+        # if the indexref matches and the current FeaturesBatchRetrieve isn't already reranking.
+        if isinstance(left, BatchRetrieve) and \
+           self.indexref == left.indexref and \
+           left.controls.get('context_wmodel') != 'on' and \
+           self.wmodel is None:
+            return FeaturesBatchRetrieve(
+                self.indexref,
+                self.features,
+                controls=self.controls,
+                properties=self.properties,
+                threads=self.threads,
+                wmodel=left.controls['wmodel'],
+            )
+
 def setup_rewrites():
     from pyterrier.transformer import rewrite_rules
     from pyterrier.ops import FeatureUnionPipeline, ComposedPipeline
@@ -827,15 +845,4 @@ def setup_rewrites():
     rewrite_rules.append(ReplacementRule(
         Pattern(FeatureUnionPipeline(_br1, _br2), BR_index_matches),
         lambda _br1, _br2: FeaturesRetriever(_br1.indexref, ["WMODEL:" + _br1.controls["wmodel"], "WMODEL:" + _br2.controls["wmodel"]])
-    ))
-
-    def push_fbr_earlier(_br1, _fbr):
-        #TODO copy more attributes
-        _fbr.wmodel = _br1.controls["wmodel"]
-        return _fbr
-
-    # rewrite a BR followed by a FBR into a FBR
-    rewrite_rules.append(ReplacementRule(
-        Pattern(ComposedPipeline(_br1, _fbr), BR_FBR_index_matches),
-        push_fbr_earlier
     ))
