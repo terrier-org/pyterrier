@@ -106,11 +106,11 @@ def _from_dataset(dataset : Union[str,Dataset],
 
     classname = clz.__name__
     classnames = [classname]
-    if classname == 'Retrieve':
+    if classname == 'Retriever':
         classnames.append('BatchRetrieve')
     # we need to look for BatchRetrievel.args.json for legacy support
     for c in classnames:
-        # now look for, e.g., BatchRetrieve.args.json file, which will define the args for Retrieve, e.g. stemming
+        # now look for, e.g., BatchRetrieve.args.json file, which will define the args for Retriever, e.g. stemming
         indexdir = indexref #os.path.dirname(indexref.toString())
         argsfile = os.path.join(indexdir, classname + ".args.json")
         if os.path.exists(argsfile):
@@ -150,7 +150,7 @@ class Retriever(BatchRetrieveBase):
             version='latest',            
             **kwargs):
         """
-        Instantiates a Retrieve object from a pre-built index access via a dataset.
+        Instantiates a Retriever object from a pre-built index access via a dataset.
         Pre-built indices are ofen provided via the `Terrier Data Repository <http://data.terrier.org/>`_.
 
         Examples::
@@ -170,7 +170,7 @@ class Retriever(BatchRetrieveBase):
          - `terrier_unstemmed_text` - as per `terrier_stemmed`, but also containing the raw text of the documents
 
         """
-        return _from_dataset(dataset, variant=variant, version=version, clz=Retrieve, **kwargs)
+        return _from_dataset(dataset, variant=variant, version=version, clz=Retriever, **kwargs)
 
     #: default_controls(dict): stores the default controls
     default_controls = {
@@ -207,7 +207,7 @@ class Retriever(BatchRetrieveBase):
         """
         super().__init__(kwargs)
         self.indexref = _parse_index_like(index_location)
-        self.properties = _mergeDicts(Retrieve.default_properties, properties)
+        self.properties = _mergeDicts(Retriever.default_properties, properties)
         self.concurrentIL = pt.java.autoclass("org.terrier.structures.ConcurrentIndexLoader")
         if pt.terrier.check_version(5.5) and "SimpleDecorateProcess" not in self.properties["querying.processes"]:
             self.properties["querying.processes"] += ",decorate:SimpleDecorateProcess"
@@ -219,7 +219,7 @@ class Retriever(BatchRetrieveBase):
         for key, value in self.properties.items():
             pt.terrier.J.ApplicationSetup.setProperty(str(key), str(value))
         
-        self.controls = _mergeDicts(Retrieve.default_controls, controls)
+        self.controls = _mergeDicts(Retriever.default_controls, controls)
         if wmodel is not None:
             from pyterrier.transformer import is_lambda, is_function
             if isinstance(wmodel, str):
@@ -582,21 +582,21 @@ class TextScorer(TextIndexProcessor):
     """
 
     def __init__(self, takes="docs", **kwargs):
-        super().__init__(Retrieve, takes=takes, **kwargs)
+        super().__init__(Retriever, takes=takes, **kwargs)
 
 
 @pt.java.required
-class FeaturesRetriever(Retrieve):
+class FeaturesRetriever(Retriever):
     """
     Use this class for retrieval with multiple features
     """
 
     #: FBR_default_controls(dict): stores the default properties for a FBR
-    FBR_default_controls = Retrieve.default_controls.copy()
+    FBR_default_controls = Retriever.default_controls.copy()
     FBR_default_controls["matching"] = "FatFeaturedScoringMatching,org.terrier.matching.daat.FatFull"
     del FBR_default_controls["wmodel"]
     #: FBR_default_properties(dict): stores the default properties
-    FBR_default_properties = Retrieve.default_properties.copy()
+    FBR_default_properties = Retriever.default_properties.copy()
 
     def __init__(self, index_location, features, controls=None, properties=None, threads=1, **kwargs):
         """
@@ -628,7 +628,7 @@ class FeaturesRetriever(Retrieve):
             assert pt.terrier.check_version(5.9), "Terrier 5.9 is required for this functionality, see https://github.com/terrier-org/terrier-core/pull/246"
             
         if threads > 1:
-            raise ValueError("Multi-threaded retrieval not yet supported by FeaturesBatchRetrieve")
+            raise ValueError("Multi-threaded retrieval not yet supported by FeaturesRetriever")
         
         super().__init__(index_location, controls, properties, **kwargs)
 
@@ -709,8 +709,8 @@ class FeaturesRetriever(Retrieve):
             assert not scores_provided
 
             if self.wmodel is None:
-                raise ValueError("We're in retrieval mode (input columns were "+str(queries.columns)+"), but wmodel is None. FeaturesBatchRetrieve requires a wmodel be set for identifying the candidate set. "
-                    +" Hint: wmodel argument for FeaturesBatchRetrieve, e.g. FeaturesBatchRetrieve(index, features, wmodel=\"DPH\")")
+                raise ValueError("We're in retrieval mode (input columns were "+str(queries.columns)+"), but wmodel is None. FeaturesRetriever requires a wmodel be set for identifying the candidate set. "
+                    +" Hint: wmodel argument for FeaturesRetriever, e.g. FeaturesRetriever(index, features, wmodel=\"DPH\")")
 
         if queries["qid"].dtype == np.int64:
             queries['qid'] = queries['qid'].astype(str)
@@ -809,8 +809,8 @@ def setup_rewrites():
     y = Wildcard.dot('y')
     z = Wildcard.dot('z')
     # two different match retrives
-    _br1 = Wildcard.symbol('_br1', Retrieve)
-    _br2 = Wildcard.symbol('_br2', Retrieve)
+    _br1 = Wildcard.symbol('_br1', Retriever)
+    _br2 = Wildcard.symbol('_br2', Retriever)
     _fbr = Wildcard.symbol('_fbr', FeaturesRetriever)
     
     # batch retrieves for the same index
