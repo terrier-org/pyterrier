@@ -221,7 +221,8 @@ class TestRewrite(TempDirTestCase):
             pt.Evaluate(br_sdm.transform(t), dataset.get_qrels(), metrics=["map"])["map"], 
             places=4)
 
-    # RM3 cannot be tested with current jnius, as it must be placed into the boot classpath
+    # RM3 cannot be tested with current jnius, as it must be placed into the boot classpath
+    # As workaround for the moment, those RM3 tests are implemented in a single file tests/test_rewrite_rm3.py that is skipped when executing the complete pipeline, but are executed when run in isolation.
     # def test_rm3(self):
     #     dataset = pt.datasets.get_dataset("vaswani")
     #     indexref = dataset.get_index()
