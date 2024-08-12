@@ -225,6 +225,7 @@ class QueryExpansion(Transformer):
             qe = self.qe
         else:
             qe = self.qe.getClass().getName()
+
         return  {
                 'fb_terms' : self.fb_terms, 
                 'fb_docs' : self.fb_docs,
@@ -249,13 +250,13 @@ class QueryExpansion(Transformer):
         if "docid" in topics_and_res.columns:
             # we need .tolist() as jnius cannot convert numpy arrays
             docids = topics_and_res[topics_and_res["qid"] == qid]["docid"].values.tolist()
-            scores = [0.0] * len(docids)
+            scores = topics_and_res[topics_and_res["qid"] == qid]["score"].values.tolist()
             occurrences = [0] * len(docids)
 
         elif "docno" in topics_and_res.columns:
             docnos = topics_and_res[topics_and_res["qid"] == qid]["docno"].values
             docids = []
-            scores = []
+            scores = topics_and_res[topics_and_res["qid"] == qid]["score"].values
             occurrences = []
             metaindex = index.getMetaIndex()
             skipped = 0
@@ -265,7 +266,6 @@ class QueryExpansion(Transformer):
                     skipped +=1 
                 assert docid != -1, "could not match docno" + docno + " to a docid for query " + qid    
                 docids.append(docid)
-                scores.append(0.0)
                 occurrences.append(0)
             if skipped > 0:
                 if skipped == len(docnos):
