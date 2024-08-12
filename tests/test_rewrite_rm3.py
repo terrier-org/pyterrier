@@ -22,7 +22,39 @@ class TestRewriteRm3(TempDirTestCase):
     As workaround, the RM3 tests that can not be executed within the complete test suite are added to this dedicated file, so that they can be executed in isolation by running pytest tests/test_rewrite_rm3.py.
     """
 
-    @pytest.mark.skipif(not TERRIER_PRF_ON_CLASSPATH, reason="no way of currently testing this")
+    @pytest.mark.skipif(not TERRIER_PRF_ON_CLASSPATH, reason="This test only works in isolation when terrier-prf is on the jnius classpath.")
+    def test_rm3_expansion_for_query_compact_on_tf_idf(self):
+        # top-retrieval results of TF-IDF and BM25 below change, so the RM3 weights differ
+        expected = 'applypipeline:off equip^0.032653060 sideband^0.028571429 ferrit^0.028571429 modul^0.028571429 suppli^0.032653060 design^0.070748292 unit^0.032653060 anod^0.032653060 compact^0.680272102 stabil^0.032653060'
+        
+        indexref = pt.datasets.get_dataset("vaswani").get_index()
+        queriesIn = pd.DataFrame([["1", "compact"]], columns=["qid", "query"])
+
+        qe = pt.rewrite.RM3(indexref)
+        br = pt.BatchRetrieve(indexref, wmodel='TF_IDF')
+
+        actual = qe.transform(br.transform(queriesIn))
+
+        self.assertEqual(len(actual), 1)
+        self.assertEqual(expected, actual.iloc[0]["query"])
+
+    @pytest.mark.skipif(not TERRIER_PRF_ON_CLASSPATH, reason="This test only works in isolation when terrier-prf is on the jnius classpath.")
+    def test_rm3_expansion_for_query_compact_on_bm25(self):
+        # top-retrieval results of BM25 and TF-IDF above change, so the RM3 weights differ
+        expected = 'applypipeline:off equip^0.032653060 sideband^0.028571429 ferrit^0.028571429 modul^0.028571429 suppli^0.032653060 design^0.070748292 unit^0.032653060 anod^0.032653060 compact^0.680272102 stabil^0.032653060'
+        
+        indexref = pt.datasets.get_dataset("vaswani").get_index()
+        queriesIn = pd.DataFrame([["1", "compact"]], columns=["qid", "query"])
+
+        qe = pt.rewrite.RM3(indexref)
+        br = pt.BatchRetrieve(indexref, wmodel='BM25')
+
+        actual = qe.transform(br.transform(queriesIn))
+
+        self.assertEqual(len(actual), 1)
+        self.assertEqual(expected, actual.iloc[0]["query"])
+
+    @pytest.mark.skipif(not TERRIER_PRF_ON_CLASSPATH, reason="This test only works in isolation when terrier-prf is on the jnius classpath.")
     def test_rm3_end_to_end(self):
         """An end-to-end test, contrasting the smaller tests (that fail faster) from above.
         """
