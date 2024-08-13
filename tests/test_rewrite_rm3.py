@@ -152,6 +152,7 @@ class TestRewriteRm3(TempDirTestCase):
 
         self.assertAlmostEqual(map_qe, map_pipe, places=2)
 
+    @pytest.mark.skipif(not TERRIER_PRF_ON_CLASSPATH, reason="This test only works in isolation when terrier-prf is on the jnius classpath.")
     def test_scoring_rm3_qe(self):
         expected = 'applypipeline:off fox^0.600000024'
         input = pd.DataFrame([["q1", "fox", "d1", "all the fox were fox", 3], ["q1", "fox", "d2", "brown fox jumps", 2]], columns=["qid", "query", "docno", "body", "score"])
