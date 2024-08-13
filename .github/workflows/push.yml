@@ -82,6 +82,13 @@ jobs:
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         #flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
+    - name: RM3 unit tests
+      env:
+        TERRIER_VERSION: ${{ matrix.terrier }}
+      run: |
+        pytest -p no:faulthandler tests/test_rewrite_rm3.py
+        # Hide underlying Jnius problem by disabling faulthandler: https://github.com/pytest-dev/pytest/issues/7634
+
     - name: Flash unit tests
       env:
         TERRIER_VERSION: ${{ matrix.terrier }}
