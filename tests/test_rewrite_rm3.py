@@ -67,7 +67,6 @@ class TestRewriteRm3(TempDirTestCase):
         self.assertEqual(len(actual), 1)
         self.assertEqual(expected, actual.iloc[0]["query"])
 
-    @pytest.mark.skipif(not TERRIER_PRF_ON_CLASSPATH, reason="This test only works in isolation when terrier-prf is on the jnius classpath.")
     def test_kl_qe_expansion_for_query_compact_on_bm25(self):
         # just ensure that KLQueryExpansion results do not change
         expected = 'applypipeline:off compact^1.840895333 design^0.348370740 equip^0.000000000 purpos^0.000000000 instrument^0.000000000 ferrit^0.000000000 anod^0.000000000 aircraft^0.000000000 microwav^0.000000000 sideband^0.000000000'
@@ -83,7 +82,6 @@ class TestRewriteRm3(TempDirTestCase):
         self.assertEqual(len(actual), 1)
         self.assertEqual(expected, actual.iloc[0]["query"])
 
-    @pytest.mark.skipif(not TERRIER_PRF_ON_CLASSPATH, reason="This test only works in isolation when terrier-prf is on the jnius classpath.")
     def test_bo1_qe_expansion_for_query_compact_on_bm25(self):
         # just ensure that Bo1QueryExpansion results do not change
         expected = 'applypipeline:off compact^1.822309726 design^0.287992096 equip^0.000000000 purpos^0.000000000 instrument^0.000000000 ferrit^0.000000000 anod^0.000000000 aircraft^0.000000000 microwav^0.000000000 sideband^0.000000000'
@@ -99,7 +97,6 @@ class TestRewriteRm3(TempDirTestCase):
         self.assertEqual(len(actual), 1)
         self.assertEqual(expected, actual.iloc[0]["query"])
 
-    @pytest.mark.skipif(not TERRIER_PRF_ON_CLASSPATH, reason="This test only works in isolation when terrier-prf is on the jnius classpath.")
     def test_dfr_qe_expansion_for_query_compact_on_bm25(self):
         # just ensure that DFRQueryExpansion results do not change
         expected = 'applypipeline:off compact^1.822309726 design^0.287992096 equip^0.000000000 purpos^0.000000000 instrument^0.000000000 ferrit^0.000000000 anod^0.000000000 aircraft^0.000000000 microwav^0.000000000 sideband^0.000000000'
