@@ -5,10 +5,13 @@ from matchpy import *
 from .base import TempDirTestCase
 import pytest
 
-if not pt.started():
+if not pt.java.started():
     terrier_version = os.environ.get("TERRIER_VERSION", None)
     terrier_helper_version = os.environ.get("TERRIER_HELPER_VERSION", None)
-    pt.init(version=terrier_version, logging="DEBUG", helper_version=terrier_helper_version, boot_packages=["com.github.terrierteam:terrier-prf:-SNAPSHOT"])
+    pt.java.set_log_level('DEBUG')
+    pt.terrier.set_version(terrier_version)
+    pt.terrier.set_helper_version(terrier_helper_version)
+    pt.java.init() # optional, forces java initialisation
     TERRIER_PRF_ON_CLASSPATH = True
 else:
     TERRIER_PRF_ON_CLASSPATH = False
@@ -153,7 +156,7 @@ class TestRewriteRm3(TempDirTestCase):
     def test_scoring_rm3_qe(self):
         expected = 'applypipeline:off fox^0.600000024'
         input = pd.DataFrame([["q1", "fox", "d1", "all the fox were fox", 3], ["q1", "fox", "d2", "brown fox jumps", 2]], columns=["qid", "query", "docno", "body", "score"])
-        scorer = pt.batchretrieve.TextIndexProcessor(pt.rewrite.RM3, takes="docs", returns="queries")
+        scorer = pt.terrier.retriever.TextIndexProcessor(pt.rewrite.RM3, takes="docs", returns="queries")
         rtr = scorer(input)
         self.assertTrue("qid" in rtr.columns)
         self.assertTrue("query" in rtr.columns)
