@@ -209,9 +209,10 @@ def legacy_init(version=None, mem=None, packages=[], jvm_opts=[], redirect_io=Tr
         deprecated_calls.append(f'pt.java.set_log_level({logging!r})')
 
     for package in boot_packages:
+        # format: org:package:version:filetype (where version and filetype are optional)
         pkg_split = package.split(':')
-        pkg_string = ", ".join(f'"{w}"' for w in pkg_split)
-        pt.java.add_package(*pkg_split) # format: org:package:version:filetype (where version and filetype are optional)
+        pkg_string = ", ".join(f'{w!r}' for w in pkg_split)
+        pt.java.add_package(*pkg_split) 
         deprecated_calls.append(f'pt.java.add_package({pkg_string})')
 
     for opt in jvm_opts:
