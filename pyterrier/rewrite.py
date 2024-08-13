@@ -244,9 +244,9 @@ class QueryExpansion(Transformer):
 
     def _populate_resultset(self, topics_and_res, qid, index):
         
-        docids=None
-        scores=None
-        occurrences=None
+        docids = None
+        scores = None
+        occurrences = None
         if "docid" in topics_and_res.columns:
             # we need .tolist() as jnius cannot convert numpy arrays
             topics_and_res_for_qid = topics_and_res[topics_and_res["qid"] == qid]
@@ -261,19 +261,21 @@ class QueryExpansion(Transformer):
             docnos = topics_and_res_for_qid["docno"].values
             docids = []
             scores = []
+            _scores = [0.0] * len(docids)
             if self.requires_scores:
-                scores = topics_and_res_for_qid["score"].values.tolist()
+                _scores = topics_and_res_for_qid["score"].values.tolist()
 
             occurrences = []
             metaindex = index.getMetaIndex()
             skipped = 0
-            for docno in docnos:
+            for docno, docscore in zip(docnos, _scores):
                 docid = metaindex.getDocument("docno", docno)
                 if docid == -1:
                     skipped +=1 
                 assert docid != -1, "could not match docno" + docno + " to a docid for query " + qid    
                 docids.append(docid)
                 occurrences.append(0)
+                scores.append(docscore)
             if skipped > 0:
                 if skipped == len(docnos):
                     warn("*ALL* %d feedback docnos for qid %s could not be found in the index" % (skipped, qid))
