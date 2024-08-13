@@ -197,7 +197,7 @@ class QueryExpansion(Transformer):
          
     '''
 
-    def __init__(self, index_like, fb_terms=10, fb_docs=3, qeclass="org.terrier.querying.QueryExpansion", verbose=0, properties={}, **kwargs):
+    def __init__(self, index_like, fb_terms=10, fb_docs=3, qeclass="org.terrier.querying.QueryExpansion", verbose=0, properties={}, requires_scores=False, **kwargs):
         super().__init__(**kwargs)
         self.verbose = verbose
         if isinstance(qeclass, str):
@@ -211,6 +211,7 @@ class QueryExpansion(Transformer):
         self.applytp = pt.autoclass("org.terrier.querying.ApplyTermPipeline")()
         self.fb_terms = fb_terms
         self.fb_docs = fb_docs
+        self.requires_scores = requires_scores
         self.manager = pt.autoclass("org.terrier.querying.ManagerFactory")._from_(self.indexref)
 
     def __reduce__(self):
@@ -225,7 +226,6 @@ class QueryExpansion(Transformer):
             qe = self.qe
         else:
             qe = self.qe.getClass().getName()
-
         return  {
                 'fb_terms' : self.fb_terms, 
                 'fb_docs' : self.fb_docs,
@@ -250,13 +250,19 @@ class QueryExpansion(Transformer):
         if "docid" in topics_and_res.columns:
             # we need .tolist() as jnius cannot convert numpy arrays
             docids = topics_and_res[topics_and_res["qid"] == qid]["docid"].values.tolist()
-            scores = topics_and_res[topics_and_res["qid"] == qid]["score"].values.tolist()
+            scores = [0] * len(docids)
+            if self.requires_scores:
+                scores = topics_and_res[topics_and_res["qid"] == qid]["score"].values.tolist()
             occurrences = [0] * len(docids)
 
         elif "docno" in topics_and_res.columns:
             docnos = topics_and_res[topics_and_res["qid"] == qid]["docno"].values
             docids = []
-            scores = topics_and_res[topics_and_res["qid"] == qid]["score"].values
+            scores = []
+            docnos_to_scores = {i:0 for i in docnos}
+            if self.requires_scores:
+                docnos_to_scores = {i['docno']: i['score'] for _, i in topics_and_res[topics_and_res["qid"] == qid].iterrows()}
+
             occurrences = []
             metaindex = index.getMetaIndex()
             skipped = 0
@@ -266,6 +272,7 @@ class QueryExpansion(Transformer):
                     skipped +=1 
                 assert docid != -1, "could not match docno" + docno + " to a docid for query " + qid    
                 docids.append(docid)
+                scores.append(docnos_to_scores[docno])
                 occurrences.append(0)
             if skipped > 0:
                 if skipped == len(docnos):
@@ -414,7 +421,7 @@ class RM3(QueryExpansion):
         rm = pt.autoclass("org.terrier.querying.RM3")()
         self.fb_lambda = fb_lambda
         kwargs["qeclass"] = rm
-        super().__init__(*args, fb_terms=fb_terms, fb_docs=fb_docs, **kwargs)
+        super().__init__(*args, fb_terms=fb_terms, fb_docs=fb_docs, requires_scores=True, **kwargs)
 
     def __getstate__(self): 
         rtr = super().__getstate__()
