@@ -249,19 +249,20 @@ class QueryExpansion(Transformer):
         occurrences=None
         if "docid" in topics_and_res.columns:
             # we need .tolist() as jnius cannot convert numpy arrays
-            docids = topics_and_res[topics_and_res["qid"] == qid]["docid"].values.tolist()
+            topics_and_res_for_qid = topics_and_res[topics_and_res["qid"] == qid]
+            docids = topics_and_res_for_qid["docid"].values.tolist()
             scores = [0.0] * len(docids)
             if self.requires_scores:
-                scores = topics_and_res[topics_and_res["qid"] == qid]["score"].values.tolist()
+                scores = topics_and_res_for_qid["score"].values.tolist()
             occurrences = [0] * len(docids)
 
         elif "docno" in topics_and_res.columns:
-            docnos = topics_and_res[topics_and_res["qid"] == qid]["docno"].values
+            topics_and_res_for_qid = topics_and_res[topics_and_res["qid"] == qid]
+            docnos = topics_and_res_for_qid["docno"].values
             docids = []
             scores = []
-            docnos_to_scores = {i:0.0 for i in docnos}
             if self.requires_scores:
-                docnos_to_scores = {i['docno']: i['score'] for _, i in topics_and_res[topics_and_res["qid"] == qid].iterrows()}
+                scores = topics_and_res_for_qid["score"].values.tolist()
 
             occurrences = []
             metaindex = index.getMetaIndex()
@@ -272,7 +273,6 @@ class QueryExpansion(Transformer):
                     skipped +=1 
                 assert docid != -1, "could not match docno" + docno + " to a docid for query " + qid    
                 docids.append(docid)
-                scores.append(docnos_to_scores[docno])
                 occurrences.append(0)
             if skipped > 0:
                 if skipped == len(docnos):
