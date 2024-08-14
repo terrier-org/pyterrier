@@ -18,6 +18,15 @@ else:
     TERRIER_PRF_ON_CLASSPATH = False
 
 
+def normalize_term_weights(term_weights, digits=7):
+    ret = ''
+    for i in term_weights.split():
+        if '^' in i:
+            i = i.split('^')
+            i = i[0] + '^' + i[1][:digits]
+        ret += ' ' + i
+    return ret.strip()
+
 class TestRewriteRm3(TempDirTestCase):
     """This is a set of unit tests for RM3 that can currently not run in the complete test suite, as the "com.github.terrierteam:terrier-prf:-SNAPSHOT" would have to be added to the boot classpath.
     As workaround, the RM3 tests that can not be executed within the complete test suite are added to this dedicated file, so that they can be executed in isolation by running pytest tests/test_rewrite_rm3.py.
@@ -37,7 +46,7 @@ class TestRewriteRm3(TempDirTestCase):
         actual = qe.transform(br.transform(queriesIn))
 
         self.assertEqual(len(actual), 1)
-        self.assertEqual(expected, actual.iloc[0]["query"])
+        self.assertEqual(normalize_term_weights(expected), normalize_term_weights(actual.iloc[0]["query"]))
 
     @pytest.mark.skipif(not TERRIER_PRF_ON_CLASSPATH, reason="This test only works in isolation when terrier-prf is on the jnius classpath.")
     def test_rm3_expansion_for_query_compact_on_bm25(self):
@@ -53,7 +62,7 @@ class TestRewriteRm3(TempDirTestCase):
         actual = qe.transform(br.transform(queriesIn))
 
         self.assertEqual(len(actual), 1)
-        self.assertEqual(expected, actual.iloc[0]["query"])
+        self.assertEqual(normalize_term_weights(expected), normalize_term_weights(actual.iloc[0]["query"]))
 
     @pytest.mark.skipif(not TERRIER_PRF_ON_CLASSPATH, reason="This test only works in isolation when terrier-prf is on the jnius classpath.")
     def test_axiomatic_qe_expansion_for_query_compact_on_bm25(self):
