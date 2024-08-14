@@ -12,9 +12,20 @@ from pyterrier.terrier import rewrite
 from deprecated import deprecated
 
 
-TerrierRetrieve = deprecated(version='0.11.0', reason="use pt.terrier.Retriever() instead")(Retriever)
-BatchRetrieve = deprecated(version='0.11.0', reason="use pt.terrier.Retriever() instead")(Retriever)
-FeaturesBatchRetrieve = deprecated(version='0.11.0', reason="use pt.terrier.FeaturesRetriever() instead")(FeaturesRetriever)
+@deprecated(version='0.11.0', reason="use pt.terrier.Retriever() instead")
+class TerrierRetrieve(Retriever):
+    pass
+
+
+@deprecated(version='0.11.0', reason="use pt.terrier.Retriever() instead")
+class BatchRetrieve(Retriever):
+    pass
+
+
+@deprecated(version='0.11.0', reason="use pt.terrier.FeaturesRetriever() instead")
+class FeaturesBatchRetrieve(FeaturesRetriever):
+    pass
+
 
 __all__ = [
     # java stuff
