@@ -11,6 +11,7 @@ if not pt.java.started():
     pt.java.set_log_level('DEBUG')
     pt.terrier.set_version(terrier_version)
     pt.terrier.set_helper_version(terrier_helper_version)
+    pt.terrier.set_prf_version('rm_tiebreak-SNAPSHOT')
     pt.java.init() # optional, forces java initialisation
     TERRIER_PRF_ON_CLASSPATH = True
 else:
@@ -25,7 +26,7 @@ class TestRewriteRm3(TempDirTestCase):
     @pytest.mark.skipif(not TERRIER_PRF_ON_CLASSPATH, reason="This test only works in isolation when terrier-prf is on the jnius classpath.")
     def test_rm3_expansion_for_query_compact_on_tf_idf(self):
         # top-retrieval results of TF-IDF and BM25 below change, so the RM3 weights differ
-        expected = 'applypipeline:off equip^0.037346367 sideband^0.027371584 ferrit^0.027371584 modul^0.027371584 suppli^0.037346367 design^0.056739070 unit^0.037346367 anod^0.037346367 compact^0.674414337 stabil^0.037346367'
+        expected = 'applypipeline:off equip^0.037346367 ferrit^0.027371584 modul^0.027371584 suppli^0.037346367 design^0.056739070 microwav^0.027371584 anod^0.037346367 unit^0.037346367 compact^0.674414337 stabil^0.037346367'
         
         indexref = pt.datasets.get_dataset("vaswani").get_index()
         queriesIn = pd.DataFrame([["1", "compact"]], columns=["qid", "query"])
@@ -41,7 +42,7 @@ class TestRewriteRm3(TempDirTestCase):
     @pytest.mark.skipif(not TERRIER_PRF_ON_CLASSPATH, reason="This test only works in isolation when terrier-prf is on the jnius classpath.")
     def test_rm3_expansion_for_query_compact_on_bm25(self):
         # top-retrieval results of BM25 and TF-IDF above change, so the RM3 weights differ
-        expected = 'applypipeline:off equip^0.040264640 sideband^0.025508020 ferrit^0.025508020 modul^0.025508020 suppli^0.040264640 design^0.051008232 unit^0.040264640 anod^0.040264640 compact^0.671144485 stabil^0.040264640'
+        expected = 'applypipeline:off equip^0.040264644 ferrit^0.025508024 modul^0.025508024 suppli^0.040264644 design^0.051008239 microwav^0.025508024 anod^0.040264644 unit^0.040264644 compact^0.671144485 stabil^0.040264644'
         
         indexref = pt.datasets.get_dataset("vaswani").get_index()
         queriesIn = pd.DataFrame([["1", "compact"]], columns=["qid", "query"])
