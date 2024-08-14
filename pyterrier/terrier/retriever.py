@@ -588,17 +588,24 @@ class TextScorer(TextIndexProcessor):
 @pt.java.required
 class FeaturesRetriever(Retriever):
     """
-    Use this class for retrieval with multiple features
+    Use this class for retrieval with multiple features. Features, typically weighting model, are specificed in the ``features`` list specified in the constructor. An index must always be specified.
+
+    This class can behave in two ways:
+      - if a ``wmodel`` kwarg is supplied to the constructor, it acts as a retriever. The expected input columns are ['qid', 'query']. The output columns are ['qid', 'query', 'docno', 'score', 'rank', 'features']
+      - if a ``wmodel`` kwarg is not supplied, it acts as feature extractor. The expected input columns are ['qid', 'query', 'docno']. The output columns are ['qid', 'query', 'docno', 'features']
+
+    Two underlying retrieval methods are supported: 'fat' and 'docvectors', which can be selected using the ``method`` kwarg of the constructor.
+     - 'fat' is more efficient for doing retrieval directly followed by adding more features. It relies only on a single access to the inverted index. 
+     - 'docvectors' is more efficient for doing calculating features on an existing PyTerrier result set. It uses the direct index.
     """
 
     #: FBR_default_controls(dict): stores the default properties for a FBR
     FBR_default_controls = Retriever.default_controls.copy()
-    FBR_default_controls["matching"] = "FatFeaturedScoringMatching,org.terrier.matching.daat.FatFull"
     del FBR_default_controls["wmodel"]
     #: FBR_default_properties(dict): stores the default properties
     FBR_default_properties = Retriever.default_properties.copy()
 
-    def __init__(self, index_location, features, controls=None, properties=None, threads=1, **kwargs):
+    def __init__(self, index_location, features, controls=None, properties=None, threads=1, method='fat', **kwargs):
         """
             Init method
 
@@ -607,6 +614,7 @@ class FeaturesRetriever(Retriever):
                 features(list): List of features to use
                 controls(dict): A dictionary with the control names and values
                 properties(dict): A dictionary with the property keys and values
+                method(str): A string containing either 'fat' or 'docvectors'/'dv'
                 verbose(bool): If True transform method will display progress
                 num_results(int): Number of results to retrieve. 
         """
@@ -622,6 +630,16 @@ class FeaturesRetriever(Retriever):
             self.wmodel = kwargs["wmodel"]
         if "wmodel" in controls:
             self.wmodel = controls["wmodel"]
+
+        assert method in ['fat', 'docvectors', 'dv']
+        self.method = method
+
+        if self.method == 'fat':
+            controls["matching"] = "FatFeaturedScoringMatching,org.terrier.matching.daat.FatFull"
+        elif self.method in ['docvectors', 'dv']:
+            assert pt.terrier.check_version(5.10), "Terrier 5.10 is required for this docvectors-based feature retrieval"
+            # TODO check for direct index?
+            controls["matching"] = "DVFeaturedScoringMatching,org.terrier.matching.daat.Full"
         
         # check for terrier-core#246 bug usiung FatFull
         if self.wmodel is not None:    
@@ -645,7 +663,8 @@ class FeaturesRetriever(Retriever):
                 'properties' : self.properties, 
                 'metadata' : self.metadata,
                 'features' : self.features,
-                'wmodel' : self.wmodel
+                'wmodel' : self.wmodel,
+                'method' : self.method
                 #TODO consider the context state?
                 }
 
@@ -654,6 +673,7 @@ class FeaturesRetriever(Retriever):
         self.metadata = d["metadata"]
         self.features = d["features"]
         self.wmodel = d["wmodel"]
+        self.method = d['method']
         self.properties.update(d["properties"])
         for key,value in d["properties"].items():
             pt.terrier.J.ApplicationSetup.setProperty(key, str(value))
@@ -758,7 +778,10 @@ class FeaturesRetriever(Retriever):
                     else:
                         srq.setControl("wmodel", self.wmodel)
                 matching_config_factory.build()
-                srq.setControl("matching", ",".join(["FatFeaturedScoringMatching","ScoringMatchingWithFat", srq.getControl("matching")]))
+                if self.method == 'fat':
+                    srq.setControl("matching", ",".join(["FatFeaturedScoringMatching","ScoringMatchingWithFat", srq.getControl("matching")]))
+                elif self.method in ['docvectors', 'dv']:
+                    srq.setControl("matching", ",".join(["DVFeaturedScoringMatching", srq.getControl("matching")]))
             
             self.manager.runSearchRequest(srq)
             srq = pt.java.cast('org.terrier.querying.Request', srq)
