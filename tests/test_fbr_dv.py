@@ -12,5 +12,9 @@ class TestDVFeaturesBatchRetrieve(TestFeaturesBatchRetrieve):
         super().__init__(*args)
         self.method = 'dv'
 
+    def check_version(self):
+        if not pt.terrier.check_version("5.10"):
+            self.skipTest("Terrier 5.10 is required")
+
 if __name__ == "__main__":
     unittest.main()

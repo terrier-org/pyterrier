@@ -11,7 +11,11 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
         super().__init__(*args)
         self.method = 'fat'
 
+    def check_version(self):
+        pass
+
     def test_compile_to_fbr(self):
+        self.check_version()
         indexref = pt.IndexRef.of(self.here + "/fixtures/index/data.properties")
         # we only want a candidate set of 2 documents
         firstpass = pt.BatchRetrieve(indexref, wmodel="BM25")
@@ -30,6 +34,7 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
     def test_fbr_reranking2(self):
         if not pt.terrier.check_version("5.4"):
             self.skipTest("Requires Terrier 5.4")
+        self.check_version()
         # this test examines the use of ScoringMatchingWithFat, using a particular case known to with Terrier 5.3 
         JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of(self.here + "/fixtures/index/data.properties")
@@ -73,6 +78,7 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
     def test_fbr_reranking2(self):
         if not pt.terrier.check_version("5.4"):
             self.skipTest("Requires Terrier 5.4")
+        self.check_version()
         # this test examines the use of ScoringMatchingWithFat, using a particular case known to with Terrier 5.3 
         JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of(self.here + "/fixtures/index/data.properties")
@@ -108,6 +114,7 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
             self.assertAlmostEqual(result1F_map[docno], result2_map[docno], msg="feature score mismatch at rank %d for docno %s" % (rank, docno), places=4)
 
     def test_fbr_ltr(self):
+        self.check_version()
         JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of(self.here + "/fixtures/index/data.properties")
         retr = pt.FeaturesBatchRetrieve(indexref, ["WMODEL:PL2"], wmodel="DPH", method=self.method)
@@ -121,6 +128,7 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
         RandomForestClassifier(n_estimators=10).fit(np.stack(res["features"]), res["label"])
 
     def test_fbr(self):
+        self.check_version()
         JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of(self.here + "/fixtures/index/data.properties")
         retr = pt.FeaturesBatchRetrieve(indexref, ["WMODEL:PL2"], wmodel="DPH", method=self.method)
@@ -142,6 +150,7 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
             self.assertNotEqual(retrBasic.controls["matching"], "FatFeaturedScoringMatching,org.terrier.matching.daat.FatFull")
 
     def test_fbr_example(self):
+        self.check_version()
         JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of(self.here + "/fixtures/index/data.properties")
         index = pt.IndexFactory.of(indexref)
@@ -183,9 +192,10 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
             self.assertEqual(resultP.iloc[0].features[2], resultC.iloc[0].features[2])
 
     def test_fbr_empty(self):
+        self.check_version()
         JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of(self.here + "/fixtures/index/data.properties")
-        retr = pt.FeaturesBatchRetrieve(indexref, ["WMODEL:PL2"], wmodel="DPH")
+        retr = pt.FeaturesBatchRetrieve(indexref, ["WMODEL:PL2"], wmodel="DPH", method=self.method)
         input = pd.DataFrame([["1", ""]], columns=['qid', 'query'])
         with warnings.catch_warnings(record=True) as w:
             result = retr.transform(input)
