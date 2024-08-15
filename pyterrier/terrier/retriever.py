@@ -584,6 +584,8 @@ class TextScorer(TextIndexProcessor):
     def __init__(self, takes="docs", **kwargs):
         super().__init__(Retriever, takes=takes, **kwargs)
 
+#_DVFeaturesMatching = "DVFeaturedScoringMatching2"
+_DVFeaturesMatching = "DVFeaturedScoringMatching"
 
 @pt.java.required
 class FeaturesRetriever(Retriever):
@@ -639,7 +641,7 @@ class FeaturesRetriever(Retriever):
         elif self.method in ['docvectors', 'dv']:
             assert pt.terrier.check_version(5.10), "Terrier 5.10 is required for this docvectors-based feature retrieval"
             # TODO check for direct index?
-            controls["matching"] = "DVFeaturedScoringMatching,org.terrier.matching.daat.Full"
+            controls["matching"] = _DVFeaturesMatching + ",org.terrier.matching.daat.Full"
         
         # check for terrier-core#246 bug usiung FatFull
         if self.wmodel is not None:    
@@ -781,7 +783,7 @@ class FeaturesRetriever(Retriever):
                 if self.method == 'fat':
                     srq.setControl("matching", ",".join(["FatFeaturedScoringMatching","ScoringMatchingWithFat", srq.getControl("matching")]))
                 elif self.method in ['docvectors', 'dv']:
-                    srq.setControl("matching", ",".join(["DVFeaturedScoringMatching", srq.getControl("matching")]))
+                    srq.setControl("matching", ",".join([_DVFeaturesMatching, srq.getControl("matching")]))
             
             self.manager.runSearchRequest(srq)
             srq = pt.java.cast('org.terrier.querying.Request', srq)
