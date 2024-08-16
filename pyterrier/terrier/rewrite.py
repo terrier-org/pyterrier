@@ -170,7 +170,7 @@ class QueryExpansion(pt.Transformer):
          
     '''
 
-    def __init__(self, index_like, fb_terms=10, fb_docs=3, qeclass="org.terrier.querying.QueryExpansion", verbose=0, properties={}, **kwargs):
+    def __init__(self, index_like, fb_terms=10, fb_docs=3, qeclass="org.terrier.querying.QueryExpansion", verbose=0, properties={}, requires_scores=False, **kwargs):
         super().__init__(**kwargs)
         self.verbose = verbose
         if isinstance(qeclass, str):
@@ -185,6 +185,7 @@ class QueryExpansion(pt.Transformer):
         self.fb_terms = fb_terms
         self.fb_docs = fb_docs
         self.manager = pt.terrier.J.ManagerFactory._from_(self.indexref)
+        self.requires_scores = requires_scores
 
     def __reduce__(self):
         return (
@@ -216,30 +217,38 @@ class QueryExpansion(pt.Transformer):
 
     def _populate_resultset(self, topics_and_res, qid, index):
         
-        docids=None
-        scores=None
-        occurrences=None
+        docids = None
+        scores = None
+        occurrences = None
         if "docid" in topics_and_res.columns:
             # we need .tolist() as jnius cannot convert numpy arrays
-            docids = topics_and_res[topics_and_res["qid"] == qid]["docid"].values.tolist()
+            topics_and_res_for_qid = topics_and_res[topics_and_res["qid"] == qid]
+            docids = topics_and_res_for_qid["docid"].values.tolist()
             scores = [0.0] * len(docids)
+            if self.requires_scores:
+                scores = topics_and_res_for_qid["score"].values.tolist()
             occurrences = [0] * len(docids)
 
         elif "docno" in topics_and_res.columns:
-            docnos = topics_and_res[topics_and_res["qid"] == qid]["docno"].values
+            topics_and_res_for_qid = topics_and_res[topics_and_res["qid"] == qid]
+            docnos = topics_and_res_for_qid["docno"].values
             docids = []
             scores = []
+            _scores = [0.0] * len(docids)
+            if self.requires_scores:
+                _scores = topics_and_res_for_qid["score"].values.tolist()
+
             occurrences = []
             metaindex = index.getMetaIndex()
             skipped = 0
-            for docno in docnos:
+            for docno, docscore in zip(docnos, _scores):
                 docid = metaindex.getDocument("docno", docno)
                 if docid == -1:
                     skipped +=1 
                 assert docid != -1, "could not match docno" + docno + " to a docid for query " + qid    
                 docids.append(docid)
-                scores.append(0.0)
                 occurrences.append(0)
+                scores.append(docscore)
             if skipped > 0:
                 if skipped == len(docnos):
                     warn("*ALL* %d feedback docnos for qid %s could not be found in the index" % (skipped, qid))
@@ -384,7 +393,7 @@ class RM3(QueryExpansion):
         rm = pt.terrier.J.RM3()
         self.fb_lambda = fb_lambda
         kwargs["qeclass"] = rm
-        super().__init__(*args, fb_terms=fb_terms, fb_docs=fb_docs, **kwargs)
+        super().__init__(*args, fb_terms=fb_terms, fb_docs=fb_docs, requires_scores=True, **kwargs)
 
     def __getstate__(self): 
         rtr = super().__getstate__()

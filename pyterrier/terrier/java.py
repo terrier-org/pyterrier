@@ -23,17 +23,20 @@ configure = pt.java.register_config('pt.terrier.java', {
 
 @pt.java.before_init
 def set_version(version: Optional[str] = None):
-    configure['terrier_version'] = version
+    if version is not None:
+        configure['terrier_version'] = version
 
 
 @pt.java.before_init
 def set_helper_version(version: Optional[str] = None):
-    configure['helper_version'] = version
+    if version is not None:
+        configure['helper_version'] = version
 
 
 @pt.java.before_init
 def set_prf_version(version: Optional[str] = None):
-    configure['prf_version'] = version
+    if version is not None:
+        configure['prf_version'] = version
 
 
 class TerrierJavaInit(pt.java.JavaInitializer):
