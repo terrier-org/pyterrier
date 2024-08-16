@@ -13,30 +13,21 @@ _SAVED_FNS = []
 _properties = None
 
 configure = pt.java.register_config('pt.terrier.java', {
-    'terrier_version': None,
-    'helper_version': None,
+    'terrier_version': os.environ.get("TERRIER_VERSION") or None,
+    'helper_version': os.environ.get("TERRIER_HELPER_VERSION") or None,
     'boot_packages': [],
     'force_download': True,
     'prf_version': '-SNAPSHOT',
 })
 
-
 @pt.java.before_init
 def set_version(version: Optional[str] = None):
-    if version is not None:
-        configure['terrier_version'] = version
+    configure['terrier_version'] = version
 
 
 @pt.java.before_init
 def set_helper_version(version: Optional[str] = None):
-    if version is not None:
-        configure['helper_version'] = version
-
-
-@pt.java.before_init
-def set_prf_version(version: Optional[str] = None):
-    if version is not None:
-        configure['prf_version'] = version
+    configure['helper_version'] = version
 
 
 class TerrierJavaInit(pt.java.JavaInitializer):

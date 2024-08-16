@@ -18,8 +18,7 @@ class BaseTestCase(unittest.TestCase):
             if terrier_helper_version is not None:
                 print("Testing with Terrier Helper version " + terrier_helper_version)
             
-            pt.terrier.set_version(terrier_version)
-            pt.terrier.set_helper_version(terrier_helper_version)
+            pt.terrier.set_prf_version('rm_tiebreak-SNAPSHOT')
             pt.java.set_log_level("DEBUG")
             # pt.java.add_option('-ea') can be added here to ensure that all Java assertions are met
             pt.java.init()

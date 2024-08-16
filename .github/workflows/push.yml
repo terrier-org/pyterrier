@@ -85,13 +85,6 @@ jobs:
         pytest -p no:faulthandler tests/test_flash.py
         # Hide underlying Jnius problem by disabling faulthandler: https://github.com/pytest-dev/pytest/issues/7634
 
-    - name: RM3 unit tests
-      env:
-        TERRIER_VERSION: ${{ matrix.terrier }}
-      run: |
-        pytest -p no:faulthandler tests/test_rewrite_rm3.py
-        # Hide underlying Jnius problem by disabling faulthandler: https://github.com/pytest-dev/pytest/issues/7634
-
     - name: All unit tests
       env:
         TERRIER_VERSION: ${{ matrix.terrier }}
