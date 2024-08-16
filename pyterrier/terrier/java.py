@@ -30,6 +30,11 @@ def set_helper_version(version: Optional[str] = None):
     configure['helper_version'] = version
 
 
+@pt.java.before_init
+def set_prf_version(version: Optional[str] = None):
+    configure['prf_version'] = version
+
+
 class TerrierJavaInit(pt.java.JavaInitializer):
     def pre_init(self, jnius_config):
         # Make sure the terrier.default.properties file exists and is registered as an option, which avoids an annoying
