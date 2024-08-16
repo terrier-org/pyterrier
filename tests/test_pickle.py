@@ -104,7 +104,7 @@ class TestPickle(TempDirTestCase):
     def _qe(self, pickler):
         vaswani = pt.datasets.get_dataset("vaswani")
         index = vaswani.get_index()
-        bm25 = pt.BatchRetrieve(index, wmodel='BM25', controls={"c" : 0.75}, num_results=15)
+        bm25 = pt.terrier.Retriever(index, wmodel='BM25', controls={"c" : 0.75}, num_results=15)
         br = bm25 >> pt.rewrite.Bo1QueryExpansion(index) >> bm25
         q  = pd.DataFrame([["q1", "chemical"]], columns=["qid", "query"])
         res1 = br(q)
@@ -116,7 +116,7 @@ class TestPickle(TempDirTestCase):
     
     def _br(self, pickler, wmodel='BM25'):
         vaswani = pt.datasets.get_dataset("vaswani")
-        br = pt.BatchRetrieve(vaswani.get_index(), wmodel=wmodel, controls={"c" : 0.75}, num_results=15)
+        br = pt.terrier.Retriever(vaswani.get_index(), wmodel=wmodel, controls={"c" : 0.75}, num_results=15)
         q  = pd.DataFrame([["q1", "chemical"]], columns=["qid", "query"])
         res1 = br(q)
         byterep = pickler.dumps(br)
@@ -135,7 +135,7 @@ class TestPickle(TempDirTestCase):
 
     def _fbr(self, pickler):
         vaswani = pt.datasets.get_dataset("vaswani")
-        br = pt.FeaturesBatchRetrieve(vaswani.get_index(), wmodel="BM25", features=["WMODEL:DPH"], controls={"c" : 0.75}, num_results=15)
+        br = pt.terrier.FeaturesRetriever(vaswani.get_index(), wmodel="BM25", features=["WMODEL:DPH"], controls={"c" : 0.75}, num_results=15)
         q  = pd.DataFrame([["q1", "chemical"]], columns=["qid", "query"])
         res1 = br(q)
         byterep = pickler.dumps(br)
