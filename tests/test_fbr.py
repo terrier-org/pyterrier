@@ -10,10 +10,10 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
     def test_compile_to_fbr(self):
         indexref = pt.IndexRef.of(self.here + "/fixtures/index/data.properties")
         # we only want a candidate set of 2 documents
-        firstpass = pt.BatchRetrieve(indexref, wmodel="BM25")
-        pipe_f_fbr = firstpass >> pt.FeaturesBatchRetrieve(indexref, features=["WMODEL:DPH", "WMODEL:PL2"])
-        pipe_fbr = pt.FeaturesBatchRetrieve(indexref, wmodel="BM25", features=["WMODEL:DPH", "WMODEL:PL2"])
-        pipe_raw = firstpass >> ( pt.BatchRetrieve(indexref, wmodel="DPH") ** pt.BatchRetrieve(indexref, wmodel="PL2") )
+        firstpass = pt.terrier.Retriever(indexref, wmodel="BM25")
+        pipe_f_fbr = firstpass >> pt.terrier.FeaturesRetriever(indexref, features=["WMODEL:DPH", "WMODEL:PL2"])
+        pipe_fbr = pt.terrier.FeaturesRetriever(indexref, wmodel="BM25", features=["WMODEL:DPH", "WMODEL:PL2"])
+        pipe_raw = firstpass >> ( pt.terrier.Retriever(indexref, wmodel="DPH") ** pt.terrier.Retriever(indexref, wmodel="PL2") )
         input = pd.DataFrame([["1", "Stability"]], columns=['qid', 'query'])
         res1 = (pipe_f_fbr %2)(input)
         res2 = (pipe_fbr % 2)(input)
@@ -30,8 +30,8 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
         JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of(self.here + "/fixtures/index/data.properties")
         # we only want a candidate set of 2 documents
-        firstpass = pt.BatchRetrieve(indexref, wmodel="BM25") % 2
-        pipe = firstpass >> pt.FeaturesBatchRetrieve(indexref, features=["WMODEL:DPH", "WMODEL:PL2"])
+        firstpass = pt.terrier.Retriever(indexref, wmodel="BM25") % 2
+        pipe = firstpass >> pt.terrier.FeaturesRetriever(indexref, features=["WMODEL:DPH", "WMODEL:PL2"])
         input = pd.DataFrame([["1", "Stability"]], columns=['qid', 'query'])
 
         result0 = firstpass(input)
@@ -48,7 +48,7 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
         result1S_map = { row.docno : row.score for row in result.itertuples() }
         self.assertEqual(result0_map, result1S_map)
 
-        pipe_simple = firstpass >> (pt.BatchRetrieve(indexref, wmodel="DPH") ** pt.BatchRetrieve(indexref, wmodel="PL2"))
+        pipe_simple = firstpass >> (pt.terrier.Retriever(indexref, wmodel="DPH") ** pt.terrier.Retriever(indexref, wmodel="PL2"))
         result2 = pipe.transform(input)
         import numpy as np
         f1 = np.stack(result["features"].values)
@@ -73,9 +73,9 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
         JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of(self.here + "/fixtures/index/data.properties")
         # we only want a candidate set of 3 documents
-        firstpass = pt.BatchRetrieve(indexref, wmodel="BM25") % 3
-        pipe1 = firstpass >> pt.FeaturesBatchRetrieve(indexref, features=["WMODEL:PL2"])
-        pipe2 = firstpass >> pt.BatchRetrieve(indexref, wmodel="PL2")
+        firstpass = pt.terrier.Retriever(indexref, wmodel="BM25") % 3
+        pipe1 = firstpass >> pt.terrier.FeaturesRetriever(indexref, features=["WMODEL:PL2"])
+        pipe2 = firstpass >> pt.terrier.Retriever(indexref, wmodel="PL2")
         
         input = pd.DataFrame([["1", "Stability"]], columns=['qid', 'query'])
         result0 = firstpass.transform(input)
@@ -106,7 +106,7 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
     def test_fbr_ltr(self):
         JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of(self.here + "/fixtures/index/data.properties")
-        retr = pt.FeaturesBatchRetrieve(indexref, ["WMODEL:PL2"], wmodel="DPH")
+        retr = pt.terrier.FeaturesRetriever(indexref, ["WMODEL:PL2"], wmodel="DPH")
         topics = pt.io.read_topics(self.here + "/fixtures/vaswani_npl/query-text.trec").head(3)
         qrels = pt.io.read_qrels(self.here + "/fixtures/vaswani_npl/qrels")
         res = retr.transform(topics)
@@ -119,37 +119,42 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
     def test_fbr(self):
         JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of(self.here + "/fixtures/index/data.properties")
-        retr = pt.FeaturesBatchRetrieve(indexref, ["WMODEL:PL2"], wmodel="DPH")
-        input = pd.DataFrame([["1", "Stability"]], columns=['qid', 'query'])
-        result = retr.transform(input)
-        self.assertTrue("qid" in result.columns)
-        self.assertTrue("docno" in result.columns)
-        self.assertTrue("score" in result.columns)
-        self.assertTrue("features" in result.columns)
-        self.assertTrue(len(result) > 0)
-        self.assertEqual(result.iloc[0]["features"].size, 1)
 
-        input = pd.DataFrame([["1", "Stability", "u1"]], columns=['qid', 'query', 'username'])
-        result = retr.transform(input)
-        self.assertIn("username", result.columns)
+        for name, retr in [
+                ("FeaturesRetriever", pt.terrier.FeaturesRetriever(indexref, ["WMODEL:PL2"], wmodel="DPH")), 
+                ("FeaturesBatchRetrieve", pt.FeaturesBatchRetrieve(indexref, ["WMODEL:PL2"], wmodel="DPH"))
+            ]:
+            self.subTest(name)
+            input = pd.DataFrame([["1", "Stability"]], columns=['qid', 'query'])
+            result = retr.transform(input)
+            self.assertTrue("qid" in result.columns)
+            self.assertTrue("docno" in result.columns)
+            self.assertTrue("score" in result.columns)
+            self.assertTrue("features" in result.columns)
+            self.assertTrue(len(result) > 0)
+            self.assertEqual(result.iloc[0]["features"].size, 1)
 
-        retrBasic = pt.BatchRetrieve(indexref)
-        if "matching" in retrBasic.controls:
-            self.assertNotEqual(retrBasic.controls["matching"], "FatFeaturedScoringMatching,org.terrier.matching.daat.FatFull")
+            input = pd.DataFrame([["1", "Stability", "u1"]], columns=['qid', 'query', 'username'])
+            result = retr.transform(input)
+            self.assertIn("username", result.columns)
+
+            retrBasic = pt.terrier.Retriever(indexref)
+            if "matching" in retrBasic.controls:
+                self.assertNotEqual(retrBasic.controls["matching"], "FatFeaturedScoringMatching,org.terrier.matching.daat.FatFull")
 
     def test_fbr_example(self):
         JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of(self.here + "/fixtures/index/data.properties")
         index = pt.IndexFactory.of(indexref)
         # this ranker will make the candidate set of documents for each query
-        BM25 = pt.BatchRetrieve(index, wmodel="BM25")
+        BM25 = pt.terrier.Retriever(index, wmodel="BM25")
 
         # these rankers we will use to re-rank the BM25 results
-        TF_IDF =  pt.BatchRetrieve(index, wmodel="Dl")
-        PL2 =  pt.BatchRetrieve(index, wmodel="PL2")
+        TF_IDF =  pt.terrier.Retriever(index, wmodel="Dl")
+        PL2 =  pt.terrier.Retriever(index, wmodel="PL2")
 
         pipe =  (BM25 %2) >> (TF_IDF ** PL2)
-        fbr = pt.FeaturesBatchRetrieve(indexref, ["WMODEL:Dl", "WMODEL:PL2"], wmodel="BM25") % 2
+        fbr = pt.terrier.FeaturesRetriever(indexref, ["WMODEL:Dl", "WMODEL:PL2"], wmodel="BM25") % 2
         resultP = pipe.search("chemical")
         resultF = fbr.search("chemical")
         pd.set_option('display.max_columns', None)
@@ -169,7 +174,7 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
     def test_fbr_empty(self):
         JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of(self.here + "/fixtures/index/data.properties")
-        retr = pt.FeaturesBatchRetrieve(indexref, ["WMODEL:PL2"], wmodel="DPH")
+        retr = pt.terrier.FeaturesRetriever(indexref, ["WMODEL:PL2"], wmodel="DPH")
         input = pd.DataFrame([["1", ""]], columns=['qid', 'query'])
         with warnings.catch_warnings(record=True) as w:
             result = retr.transform(input)

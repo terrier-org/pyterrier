@@ -79,10 +79,10 @@ class TestRewrite(TempDirTestCase):
 
     def test_save_docs_CE(self):
         index = pt.get_dataset("vaswani").get_index()
-        dph = pt.BatchRetrieve(index, wmodel="DPH")
+        dph = pt.terrier.Retriever(index, wmodel="DPH")
         pipe = dph \
             >> pt.rewrite.stash_results() \
-            >> pt.BatchRetrieve(index, wmodel="BM25") \
+            >> pt.terrier.Retriever(index, wmodel="BM25") \
             >> pt.rewrite.Bo1QueryExpansion(index) \
             >> pt.rewrite.reset_results() \
             >> dph
@@ -95,19 +95,19 @@ class TestRewrite(TempDirTestCase):
         # check columns are passed through where we expect
         pipeP3 = dph \
             >> pt.rewrite.stash_results() \
-            >> pt.BatchRetrieve(index, wmodel="BM25")
+            >> pt.terrier.Retriever(index, wmodel="BM25")
         res3 = pipeP3.search("chemical reactions")
         self.assertIn("stashed_results_0", res3.columns)
         pipeP4 = dph \
             >> pt.rewrite.stash_results() \
-            >> pt.BatchRetrieve(index, wmodel="BM25") \
+            >> pt.terrier.Retriever(index, wmodel="BM25") \
             >> pt.rewrite.Bo1QueryExpansion(index)
         res4 = pipeP3.search("chemical reactions")
         self.assertIn("stashed_results_0", res4.columns)
     
     def test_save_docs_QE(self):
         index = pt.get_dataset("vaswani").get_index()
-        dph = pt.BatchRetrieve(index, wmodel="DPH")
+        dph = pt.terrier.Retriever(index, wmodel="DPH")
         pipe = dph \
             >> pt.rewrite.stash_results(clear=False) \
             >> pt.rewrite.Bo1QueryExpansion(index) \
@@ -183,7 +183,7 @@ class TestRewrite(TempDirTestCase):
         self.assertTrue("#combine" in query2)
         self.assertEqual(queriesOut.iloc[1]["query_0"], "compact memories")
         
-        br_normal = pt.BatchRetrieve(indexref)
+        br_normal = pt.terrier.Retriever(indexref)
         pipe = sdm >> br_normal
 
         #check that we can get a str()
@@ -195,7 +195,7 @@ class TestRewrite(TempDirTestCase):
 
 
         # this BR should do the same thing as the pipe, but natively in Terrier
-        br_sdm = pt.BatchRetrieve(indexref,
+        br_sdm = pt.terrier.Retriever(indexref,
             controls = {"sd" :"on"}, 
             properties={"querying.processes" : "terrierql:TerrierQLParser,parsecontrols:TerrierQLToControls,"\
                     +"parseql:TerrierQLToMatchingQueryTerms,matchopql:MatchingOpQLParser,applypipeline:ApplyTermPipeline,"\
@@ -237,7 +237,7 @@ class TestRewrite(TempDirTestCase):
         queriesIn = pd.DataFrame([["1", "compact"]], columns=["qid", "query"])
 
         qe = pt.rewrite.RM3(indexref)
-        br = pt.BatchRetrieve(indexref, wmodel='TF_IDF')
+        br = pt.terrier.Retriever(indexref, wmodel='TF_IDF')
 
         actual = qe.transform(br.transform(queriesIn))
 
@@ -252,7 +252,7 @@ class TestRewrite(TempDirTestCase):
         queriesIn = pd.DataFrame([["1", "compact"]], columns=["qid", "query"])
 
         qe = pt.rewrite.RM3(indexref)
-        br = pt.BatchRetrieve(indexref, wmodel='BM25')
+        br = pt.terrier.Retriever(indexref, wmodel='BM25')
 
         actual = qe.transform(br.transform(queriesIn))
 
@@ -267,7 +267,7 @@ class TestRewrite(TempDirTestCase):
         queriesIn = pd.DataFrame([["1", "compact"]], columns=["qid", "query"])
 
         qe = pt.rewrite.AxiomaticQE(indexref)
-        br = pt.BatchRetrieve(indexref, wmodel='BM25')
+        br = pt.terrier.Retriever(indexref, wmodel='BM25')
 
         actual = qe.transform(br.transform(queriesIn))
 
@@ -282,7 +282,7 @@ class TestRewrite(TempDirTestCase):
         queriesIn = pd.DataFrame([["1", "compact"]], columns=["qid", "query"])
 
         qe = pt.rewrite.KLQueryExpansion(indexref)
-        br = pt.BatchRetrieve(indexref, wmodel='BM25')
+        br = pt.terrier.Retriever(indexref, wmodel='BM25')
 
         actual = qe.transform(br.transform(queriesIn))
 
@@ -297,7 +297,7 @@ class TestRewrite(TempDirTestCase):
         queriesIn = pd.DataFrame([["1", "compact"]], columns=["qid", "query"])
 
         qe = pt.rewrite.Bo1QueryExpansion(indexref)
-        br = pt.BatchRetrieve(indexref, wmodel='BM25')
+        br = pt.terrier.Retriever(indexref, wmodel='BM25')
 
         actual = qe.transform(br.transform(queriesIn))
 
@@ -312,7 +312,7 @@ class TestRewrite(TempDirTestCase):
         queriesIn = pd.DataFrame([["1", "compact"]], columns=["qid", "query"])
 
         qe = pt.rewrite.DFRQueryExpansion(indexref)
-        br = pt.BatchRetrieve(indexref, wmodel='BM25')
+        br = pt.terrier.Retriever(indexref, wmodel='BM25')
 
         actual = qe.transform(br.transform(queriesIn))
 
@@ -326,7 +326,7 @@ class TestRewrite(TempDirTestCase):
         indexref = dataset.get_index()
 
         qe = pt.rewrite.RM3(indexref)
-        br = pt.BatchRetrieve(indexref)
+        br = pt.terrier.Retriever(indexref)
 
         queriesIn = pd.DataFrame([["1", "compact"]], columns=["qid", "query"])
         res = br.transform(queriesIn)
@@ -345,7 +345,7 @@ class TestRewrite(TempDirTestCase):
         all_qe_res = pipe.transform(t)
         map_pipe = pt.Evaluate(all_qe_res, dataset.get_qrels(), metrics=["map"])["map"]
 
-        br_qe = pt.BatchRetrieve(indexref, 
+        br_qe = pt.terrier.Retriever(indexref, 
             controls={"qe":"on"},
             properties={"querying.processes" : "terrierql:TerrierQLParser,parsecontrols:TerrierQLToControls,"\
                     +"parseql:TerrierQLToMatchingQueryTerms,matchopql:MatchingOpQLParser,applypipeline:ApplyTermPipeline,"\
@@ -412,7 +412,7 @@ class TestRewrite(TempDirTestCase):
         qrels = dataset.get_qrels()
 
         for qe in [qe3]:
-            br = pt.BatchRetrieve(index)
+            br = pt.terrier.Retriever(index)
 
             queriesIn = pd.DataFrame([["1", "compact"]], columns=["qid", "query"])
             res = br.transform(queriesIn)
@@ -433,7 +433,7 @@ class TestRewrite(TempDirTestCase):
             all_qe_res = pipe.transform(t)
             map_pipe = pt.Evaluate(all_qe_res, qrels, metrics=["map"])["map"]
 
-            br_qe = pt.BatchRetrieve(indexref, controls={"qe":"on"})
+            br_qe = pt.terrier.Retriever(indexref, controls={"qe":"on"})
             map_qe = pt.Evaluate(br_qe.transform(t), qrels, metrics=["map"])["map"]
 
             self.assertAlmostEqual(map_qe, map_pipe, places=4)

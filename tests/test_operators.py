@@ -263,9 +263,9 @@ class TestOperators(BaseTestCase):
     def test_feature_union_multi_actual(self):
         dataset = pt.get_dataset("vaswani")
         index = dataset.get_index()
-        BM25 = pt.BatchRetrieve(index, wmodel="BM25")
-        TF_IDF = pt.BatchRetrieve(index, wmodel="TF_IDF")
-        PL2 = pt.BatchRetrieve(index, wmodel="PL2")
+        BM25 = pt.terrier.Retriever(index, wmodel="BM25")
+        TF_IDF = pt.terrier.Retriever(index, wmodel="TF_IDF")
+        PL2 = pt.terrier.Retriever(index, wmodel="PL2")
         expression = BM25 >> (pt.transformer.IdentityTransformer() ** TF_IDF ** PL2)
 
         self.assertEqual(2, len(expression))

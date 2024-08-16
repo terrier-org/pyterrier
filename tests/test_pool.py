@@ -9,7 +9,7 @@ class TestPool(BaseTestCase):
     def test_br_parallel(self):
         self.skip_windows()
         vaswani = pt.datasets.get_dataset("vaswani")
-        br = pt.BatchRetrieve(vaswani.get_index()) %2
+        br = pt.terrier.Retriever(vaswani.get_index()) %2
         t = vaswani.get_topics()
         
         a = datetime.datetime.now()
@@ -32,7 +32,7 @@ class TestPool(BaseTestCase):
     def test_br_multiprocess(self):
         return
         vaswani = pt.datasets.get_dataset("vaswani")
-        br = pt.BatchRetrieve(vaswani.get_index(), wmodel="BM25", controls={"c" : 0.75}, num_results=15)
+        br = pt.terrier.Retriever(vaswani.get_index(), wmodel="BM25", controls={"c" : 0.75}, num_results=15)
         t = vaswani.get_topics().head()
         res1 = br(t)
         # Fortunately, there is a fork of the multiprocessing module called multiprocess that works just fine .... 
@@ -46,7 +46,7 @@ class TestPool(BaseTestCase):
     def test_br_ray(self):
         self.skipTest("disabling ray")
         vaswani = pt.datasets.get_dataset("vaswani")
-        br = pt.BatchRetrieve(vaswani.get_index(), wmodel="BM25", controls={"c" : 0.75}, num_results=15)
+        br = pt.terrier.Retriever(vaswani.get_index(), wmodel="BM25", controls={"c" : 0.75}, num_results=15)
         t = vaswani.get_topics().head()
         res1 = br(t).sort_values(["qid", "docno"])
         from ray.util.multiprocessing import Pool
@@ -60,7 +60,7 @@ class TestPool(BaseTestCase):
         from pyterrier.parallel import _joblib_with_initializer
 
         vaswani = pt.datasets.get_dataset("vaswani")
-        br = pt.BatchRetrieve(vaswani.get_index(), wmodel="BM25", controls={"c" : 0.75}, num_results=15)
+        br = pt.terrier.Retriever(vaswani.get_index(), wmodel="BM25", controls={"c" : 0.75}, num_results=15)
         t = vaswani.get_topics().head()
         res1 = br(t).sort_values(["qid", "docno"])
 

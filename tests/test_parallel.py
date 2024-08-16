@@ -6,7 +6,7 @@ class TestParallel(BaseTestCase):
     def test_parallel_joblib_experiment(self):
         self.skip_windows()
         dataset = pt.get_dataset("vaswani")
-        br = pt.BatchRetrieve(dataset.get_index())
+        br = pt.terrier.Retriever(dataset.get_index())
         df = pt.Experiment(
             [br, br.parallel(3)],
             dataset.get_topics(),
@@ -20,7 +20,7 @@ class TestParallel(BaseTestCase):
         self.skip_windows()
         dataset = pt.get_dataset("vaswani")
         Tf = lambda keyFreq, posting, entryStats, collStats: posting.getFrequency()
-        br = pt.BatchRetrieve(dataset.get_index(), wmodel=Tf)
+        br = pt.terrier.Retriever(dataset.get_index(), wmodel=Tf)
         df = pt.Experiment(
             [br, br.parallel(3)],
             dataset.get_topics().head(4),
@@ -34,8 +34,8 @@ class TestParallel(BaseTestCase):
         self.skip_windows()
         dataset = pt.get_dataset("vaswani")
         topics = dataset.get_topics().head(3)
-        dph = pt.BatchRetrieve(dataset.get_index())
-        tf = pt.BatchRetrieve(dataset.get_index(), wmodel="Tf")
+        dph = pt.terrier.Retriever(dataset.get_index())
+        tf = pt.terrier.Retriever(dataset.get_index(), wmodel="Tf")
         for pipe in [
             dph,
             dph % 10,
