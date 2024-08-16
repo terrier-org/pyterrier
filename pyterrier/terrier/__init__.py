@@ -14,17 +14,29 @@ from deprecated import deprecated
 
 @deprecated(version='0.11.0', reason="use pt.terrier.Retriever() instead")
 class TerrierRetrieve(Retriever):
-    pass
+    
+    @staticmethod
+    @deprecated(version='0.11.0', reason="use pt.terrier.Retriever.from_dataset() instead")
+    def from_dataset(*args, **kwargs):
+        return Retriever.from_dataset(*args, **kwargs)
 
 
 @deprecated(version='0.11.0', reason="use pt.terrier.Retriever() instead")
 class BatchRetrieve(Retriever):
-    pass
+
+    @staticmethod
+    @deprecated(version='0.11.0', reason="use pt.terrier.Retriever.from_dataset() instead")
+    def from_dataset(*args, **kwargs):
+        return Retriever.from_dataset(*args, **kwargs)
 
 
 @deprecated(version='0.11.0', reason="use pt.terrier.FeaturesRetriever() instead")
 class FeaturesBatchRetrieve(FeaturesRetriever):
-    pass
+    
+    @staticmethod
+    @deprecated(version='0.11.0', reason="use pt.terrier.FeaturesRetriever.from_dataset() instead")
+    def from_dataset(*args, **kwargs):
+        return FeaturesRetriever.from_dataset(*args, **kwargs)
 
 
 __all__ = [
