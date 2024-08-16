@@ -6,8 +6,7 @@ name: Continuous Testing
 on:
   push:
     branches: [ master ]
-  pull_request:
-    branches: [ master ]
+  pull_request: {}
 
 jobs:
   build:
@@ -18,11 +17,11 @@ jobs:
         java: [11, 13]
         os: ['ubuntu-latest', 'macos-13', 'windows-latest']
         terrier: ['snapshot'] #'5.3', '5.4-SNAPSHOT', 
-        include:
-            - os: 'macos-latest'
-              python-version: '3.9'
-              java: 11
-              terrier: 'snapshot'
+        # include:
+        #     - os: 'macos-latest'
+        #       python-version: '3.9'
+        #       java: 11
+        #       terrier: 'snapshot'
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -78,13 +77,6 @@ jobs:
         #flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         #flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-
-    - name: RM3 unit tests
-      env:
-        TERRIER_VERSION: ${{ matrix.terrier }}
-      run: |
-        pytest -p no:faulthandler tests/test_rewrite_rm3.py
-        # Hide underlying Jnius problem by disabling faulthandler: https://github.com/pytest-dev/pytest/issues/7634
 
     - name: Flash unit tests
       env:

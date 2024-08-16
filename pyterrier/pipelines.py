@@ -7,6 +7,7 @@ from . import Transformer
 from .model import coerce_dataframe_types
 import ir_measures
 from ir_measures.measures import BaseMeasure 
+import pyterrier as pt
 MEASURE_TYPE=Union[str,BaseMeasure]
 MEASURES_TYPE=Sequence[MEASURE_TYPE]
 
@@ -154,8 +155,7 @@ def _run_and_evaluate(
     from .io import read_results, write_results
 
     if pbar is None:
-        from . import tqdm
-        pbar = tqdm(disable=True)
+        pbar = pt.tqdm(disable=True)
 
     metrics, rev_mapping = _convert_measures(metrics)
     qrels = qrels.rename(columns={'qid': 'query_id', 'docno': 'doc_id', 'label': 'relevance'})
@@ -448,7 +448,6 @@ def Experiment(
         eval_metrics.remove("mrt")
 
     # progress bar construction
-    from . import tqdm
     tqdm_args={
         'disable' : not verbose,
         'unit' : 'system',
@@ -461,7 +460,7 @@ def Experiment(
         # round number of batches up for each system
         tqdm_args['total'] = math.ceil((len(topics) / batch_size)) * len(retr_systems)
 
-    with tqdm(**tqdm_args) as pbar:
+    with pt.tqdm(**tqdm_args) as pbar:
         # run and evaluate each system
         for name, system in zip(names, retr_systems):
             save_file = None
@@ -654,7 +653,7 @@ def KFoldGridSearch(
 
     Consider tuning PL2 where folds of queries are pre-determined::
 
-        pl2 = pt.BatchRetrieve(index, wmodel="PL2", controls={'c' : 1})
+        pl2 = pt.terrier.Retriever(index, wmodel="PL2", controls={'c' : 1})
         tuned_pl2, _ = pt.KFoldGridSearch(
             pl2, 
             {pl2 : {'c' : [0.1, 1, 5, 10, 20, 100]}}, 
@@ -804,7 +803,7 @@ def GridScan(
     must be specified. The trec_eval measure names can be optionally specified.
     The transformers being tuned, and their respective parameters are named in the param_dict. The parameter being
     varied must be changable using the :func:`set_parameter()` method. This means instance variables,
-    as well as controls in the case of BatchRetrieve.
+    as well as controls in the case of Retriever.
 
     Args:
         pipeline(Transformer): a transformer or pipeline
@@ -828,7 +827,7 @@ def GridScan(
     Example::
 
         # graph how PL2's c parameter affects MAP
-        pl2 = pt.BatchRetrieve(index, wmodel="PL2", controls={'c' : 1})
+        pl2 = pt.terrier.Retriever(index, wmodel="PL2", controls={'c' : 1})
         rtr = pt.GridScan(
             pl2, 
             {pl2 : {'c' : [0.1, 1, 5, 10, 20, 100]}}, 
@@ -844,7 +843,7 @@ def GridScan(
 
     """
     import itertools
-    from . import Utils, tqdm
+    from . import Utils
 
     if verbose and jobs > 1:
         from warnings import warn
@@ -853,7 +852,7 @@ def GridScan(
         metrics = [metrics]
 
     # Store the all parameter names and candidate values into a dictionary, keyed by a tuple of the transformer and the parameter name
-    # such as {(BatchRetrieve, 'wmodel'): ['BM25', 'PL2'], (BatchRetrieve, 'c'): [0.1, 0.2, 0.3], (Bla, 'lr'): [0.001, 0.01, 0.1]}
+    # such as {(Retriever, 'wmodel'): ['BM25', 'PL2'], (Retriever, 'c'): [0.1, 0.2, 0.3], (Bla, 'lr'): [0.001, 0.01, 0.1]}
     candi_dict={}
     for tran, param_set in params.items():
         for param_name, values in param_set.items():
@@ -879,7 +878,7 @@ def GridScan(
         # Set the parameter value in the corresponding transformer of the pipeline
         for (tran, param_name), value in params.items():
             tran.set_parameter(param_name, value)
-            # such as (BatchRetrieve, 'wmodel', 'BM25')
+            # such as (Retriever, 'wmodel', 'BM25')
             parameter_list.append( (tran, param_name, value) )
             
         time, eval_scores = _run_and_evaluate(pipeline, topics, qrels, metrics, perquery=False, batch_size=batch_size)
@@ -891,7 +890,7 @@ def GridScan(
     eval_list = []
     #for each combination of parameter values
     if jobs == 1:
-        for v in tqdm(combinations, total=len(combinations), desc="GridScan", mininterval=0.3) if verbose else combinations:
+        for v in pt.tqdm(combinations, total=len(combinations), desc="GridScan", mininterval=0.3) if verbose else combinations:
             parameter_list, eval_scores = _evaluate_one_setting(keys, v)
             eval_list.append( (parameter_list, eval_scores) )
     else:

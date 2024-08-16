@@ -41,10 +41,10 @@ using IterDictIndexer::
 During retrieval you will need to have the text stored as an attribute in your dataframes.
 
 This can be achieved in one of several ways:
- - requesting document metadata when using `BatchRetrieve`
+ - requesting document metadata when using `Retriever`
  - adding document metadata later using `get_text()`
 
-BatchRetrieve accepts a `metadata` keyword-argument which allows for additional metadata attributes to be retrieved.
+Retriever accepts a `metadata` keyword-argument which allows for additional metadata attributes to be retrieved.
 
 Alternatively, the `pt.text.get_text()` transformer can be used, which can extract metadata from a Terrier index
 or IRDSDataset for documents already retrieved. The main advantage of using IRDSDataset is that it supports
@@ -53,12 +53,12 @@ all document fields, not just those that were included as meta fields when index
 Examples::
 
     # the following pipelines are equivalent
-    pipe1 = pt.BatchRetrieve(index, metadata=["docno", "body"])
+    pipe1 = pt.terrier.Retriever(index, metadata=["docno", "body"])
 
-    pipe2 = pt.BatchRetrieve(index) >> pt.text.get_text(index, "body")
+    pipe2 = pt.terrier.Retriever(index) >> pt.text.get_text(index, "body")
 
     dataset = pt.get_dataset('irds:vaswani')
-    pipe3 = pt.BatchRetrieve(index) >> pt.text.get_text(dataset, "text")
+    pipe3 = pt.terrier.Retriever(index) >> pt.text.get_text(dataset, "text")
 
 
 .. autofunction:: pyterrier.text.get_text()

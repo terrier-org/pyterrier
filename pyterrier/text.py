@@ -1,21 +1,20 @@
-from pyterrier.transformer import Transformer
-from . import Transformer
 from pyterrier.datasets import IRDSDataset
 import more_itertools
 from collections import defaultdict
 import re
-from pyterrier.model import add_ranks
-import pandas as pd
 import numpy as np
+import pandas as pd
 from typing import List, Union
 from warnings import warn
+import pyterrier as pt
 
 
+@pt.java.required
 def get_text(
         indexlike, 
         metadata : Union[str,List[str]] = "body", 
         by_query : bool = False,
-        verbose : bool = False) -> Transformer:
+        verbose : bool = False) -> pt.Transformer:
     """
     A utility transformer for obtaining the text from the text of documents (or other document metadata) from Terrier's MetaIndex
     or an IRDSDataset docstore.
@@ -29,14 +28,13 @@ def get_text(
 
     Example::
 
-        pipe = ( pt.BatchRetrieve(index, wmodel="DPH")
+        pipe = ( pt.terrier.Retriever(index, wmodel="DPH")
             >> pt.text.get_text(index)
             >> pt.text.scorer(wmodel="DPH") )
 
     """
-    import pyterrier as pt
-    JIR = pt.autoclass('org.terrier.querying.IndexRef')
-    JI = pt.autoclass('org.terrier.structures.Index')
+    JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
+    JI = pt.java.autoclass('org.terrier.structures.Index')
 
     if isinstance(metadata, str):
         metadata = [metadata]
@@ -82,7 +80,6 @@ def _add_text_terrier_metaindex(index, metadata):
         docids = res.docid.values.tolist()
         # indexed by docid then keys
         allmeta = metaindex.getItems(metadata, docids)
-        import numpy as np
         # get transpose to make easier for insertion back into dataframe?
         allmeta = np.array(allmeta).T
         for i, k in enumerate(metadata):
@@ -129,7 +126,7 @@ def _add_text_irds_docstore(irds_dataset, metadata):
     return add_text_function_docids
 
 
-def scorer(*args, **kwargs) -> Transformer:
+def scorer(*args, **kwargs) -> pt.Transformer:
     """
     This allows scoring of the documents with respect to a query, without creating an index first. 
     This is an alias to pt.TextScorer(). Internally, a Terrier memory index is created, before being
@@ -163,10 +160,9 @@ def scorer(*args, **kwargs) -> Transformer:
         textscorerTfIdf = pt.text.scorer(body_attr="text", wmodel="TF_IDF", background_index=index)
 
     """
-    import pyterrier as pt
-    return pt.batchretrieve.TextScorer(*args, **kwargs)
+    return pt.terrier.retriever.TextScorer(*args, **kwargs)
 
-def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='title', tokenizer=None, **kwargs) -> Transformer:
+def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='title', tokenizer=None, **kwargs) -> pt.Transformer:
     r"""
     A useful transformer for splitting long documents into smaller passages within a pipeline. This applies a *sliding* window over the
     text, where each passage is the give number of tokens long. Passages can overlap, if the stride is set smaller than the length. In
@@ -192,7 +188,7 @@ def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='ti
     
     Example::
     
-        pipe = ( pt.BatchRetrieve(index, wmodel="DPH", metadata=["docno", "body"]) 
+        pipe = ( pt.terrier.Retriever(index, wmodel="DPH", metadata=["docno", "body"]) 
             >> pt.text.sliding(length=128, stride=64, prepend_attr=None) 
             >> pt.text.scorer(wmodel="DPH") 
             >> pt.text.max_passage() )
@@ -200,7 +196,7 @@ def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='ti
         # tokenizer model 
         from transformers import AutoTokenizer
         tok = AutoTokenizer.from_pretrained("bert-base-uncased")
-        pipe = (pt.BatchRetrieve(index, wmodel="DPH", metadata=["docno", "body"])
+        pipe = (pt.terrier.Retriever(index, wmodel="DPH", metadata=["docno", "body"])
             >> pt.text.sliding(length=128, stride=64, prepend_attr=None, tokenizer=tok)
             >> pt.text.scorer(wmodel="DPH")
             >> pt.text.max_passage() )
@@ -235,28 +231,28 @@ def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='ti
         **kwargs
     )
 
-def max_passage() -> Transformer:
+def max_passage() -> pt.Transformer:
     """
     Scores each document based on the maximum score of any constituent passage. Applied after a sliding window transformation
     has been scored.
     """
     return MaxPassage()
 
-def mean_passage() -> Transformer:
+def mean_passage() -> pt.Transformer:
     """
     Scores each document based on the mean score of all constituent passages. Applied after a sliding window transformation
     has been scored.
     """
     return MeanPassage()
 
-def first_passage() -> Transformer:
+def first_passage() -> pt.Transformer:
     """
     Scores each document based on score of the first passage of that document. Note that this transformer is rarely used in conjunction with
     the sliding window transformer, as all passages would required to be scored, only for the first one to be used.
     """
     return FirstPassage()
 
-def kmaxavg_passage(k : int) -> Transformer:
+def kmaxavg_passage(k : int) -> pt.Transformer:
     """
     Scores each document based on the average score of the top scoring k passages. Generalises combination of mean_passage()
     and max_passage(). Proposed in [Chen2020].
@@ -275,11 +271,11 @@ def slidingWindow(sequence : list, winSize : int, step : int) -> list:
     return [x for x in list(more_itertools.windowed(sequence,n=winSize, step=step)) if x[-1] is not None]
 
 def snippets(
-        text_scorer_pipe : Transformer, 
+        text_scorer_pipe : pt.Transformer, 
         text_attr : str = "text", 
         summary_attr : str = "summary", 
         num_psgs : int = 5, 
-        joinstr : str ='...') -> Transformer:
+        joinstr : str ='...') -> pt.Transformer:
     """
     Applies query-biased summarisation (snippet), by applying the specified text scoring pipeline.
 
@@ -293,7 +289,7 @@ def snippets(
     Example::
 
         # retrieve documents with text
-        br = pt.BatchRetrieve(index, metadata=['docno', 'text'])
+        br = pt.terrier.Retriever(index, metadata=['docno', 'text'])
 
         # use Tf as a passage scorer on sliding window passages 
         psg_scorer = ( 
@@ -305,7 +301,6 @@ def snippets(
         retr_pipe = br >> pt.text.snippets(psg_scorer)
 
     """
-    import pyterrier as pt
     tsp = (
         pt.apply.rename({'qid' : 'oldqid'}) 
         >> pt.apply.qid(lambda row: row['oldqid'] + '-' + row['docno']) 
@@ -315,7 +310,6 @@ def snippets(
     )
 
     def _qbsjoin(docres):
-        import pandas as pd
         if len(docres) == 0:
             docres[summary_attr] = pd.Series(dtype='str')
             return docres     
@@ -335,7 +329,7 @@ def snippets(
     return pt.apply.generic(_qbsjoin)   
 
 
-class DePassager(Transformer):
+class DePassager(pt.Transformer):
 
     def __init__(self, agg="max", **kwargs):
         super().__init__(**kwargs)
@@ -362,19 +356,17 @@ class DePassager(Transformer):
 
         if self.agg == 'mean':
             rtr = topics_and_res.groupby(['qid', 'olddocno'])['score'].mean().reset_index().rename(columns={'olddocno' : 'docno'})
-            from .model import query_columns
             #add query columns back
-            rtr = rtr.merge(topics_and_res[query_columns(topics_and_res)].drop_duplicates(), on='qid')
+            rtr = rtr.merge(topics_and_res[pt.model.query_columns(topics_and_res)].drop_duplicates(), on='qid')
 
         if self.agg == 'kmaxavg':
             rtr = topics_and_res.groupby(['qid', 'olddocno'])['score'].apply(lambda ser: ser.nlargest(self.K).mean()).reset_index().rename(columns={'olddocno' : 'docno'})
-            from .model import query_columns
             #add query columns back
-            rtr = rtr.merge(topics_and_res[query_columns(topics_and_res)].drop_duplicates(), on='qid')
+            rtr = rtr.merge(topics_and_res[pt.model.query_columns(topics_and_res)].drop_duplicates(), on='qid')
 
         if "docid" in rtr.columns:
             rtr = rtr.drop(columns=['docid'])
-        rtr = add_ranks(rtr)
+        rtr = pt.model.add_ranks(rtr)
         return rtr
 
 class KMaxAvgPassage(DePassager):
@@ -405,7 +397,7 @@ class MeanPassage(DePassager):
         super().__init__(**kwargs)
 
 
-class SlidingWindowPassager(Transformer):
+class SlidingWindowPassager(pt.Transformer):
 
     def __init__(self, text_attr='body', title_attr='title', passage_length=150, passage_stride=75, join=' ', prepend_title=True, tokenizer=None, **kwargs):
         super().__init__(**kwargs)
@@ -482,8 +474,7 @@ class SlidingWindowPassager(Transformer):
         if len(df) == 0:
             return pd.DataFrame(columns=['qid', 'query', 'docno', self.text_attr, 'score', 'rank'])
     
-        from pyterrier import tqdm
-        with tqdm('passsaging', total=len(df), desc='passaging', leave=False) as pbar:
+        with pt.tqdm('passsaging', total=len(df), desc='passaging', leave=False) as pbar:
             for index, row in df.iterrows():
                 pbar.update(1)
                 qid = row['qid']

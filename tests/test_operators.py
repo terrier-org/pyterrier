@@ -292,7 +292,6 @@ class TestOperators(BaseTestCase):
 
     def test_feature_union_multi(self):
         import pyterrier.ops as pto
-        import pyterrier.batchretrieve
         mock0 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 0], ["q1", "doc2", 0]], columns=["qid", "docno", "score"]), uniform=True)
 
         mock1 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 5], ["q1", "doc2", 0]], columns=["qid", "docno", "score"]), uniform=True)
@@ -338,7 +337,7 @@ class TestOperators(BaseTestCase):
         
         self.assertEqual(2, len(mock12a.models))
         self.assertEqual(2, len(mock12a.models))
-        pyterrier.batchretrieve.setup_rewrites()
+        pt.terrier.retriever.setup_rewrites()
 
         mock123_simple = mock123a.compile()
         self.assertIsNotNone(mock123_simple)

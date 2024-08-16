@@ -1,7 +1,7 @@
 from .transformer import Transformer
-from . import tqdm
 from .model import add_ranks, split_df
 import pandas as pd
+import pyterrier as pt
 
 class ApplyTransformerBase(Transformer):
     """
@@ -34,12 +34,11 @@ class ApplyForEachQuery(ApplyTransformerBase):
 
         import math, pandas as pd
         from pyterrier.model import split_df
-        from . import tqdm
 
         it = res.groupby("qid")
         lastqid = None
         if self.verbose:
-            it = tqdm(it, unit='query')
+            it = pt.tqdm(it, unit='query')
         try:
             if self.batch_size is None:
                 query_dfs = []
@@ -79,7 +78,7 @@ class ApplyDocumentScoringTransformer(ApplyTransformerBase):
             def _score_fn(row):
                 return float(row["url".count("/")])
             
-            pipe = pt.BatchRetrieve(index) >> pt.apply.doc_score(_score_fn)
+            pipe = pt.terrier.Retriever(index) >> pt.apply.doc_score(_score_fn)
 
         Can be used in batching manner, which is particularly useful for appling neural models. In this case,
         the scoring function receives a dataframe, rather than a single row::
@@ -87,7 +86,7 @@ class ApplyDocumentScoringTransformer(ApplyTransformerBase):
             def _doclen(df):
                 return df.text.str.len()
             
-            pipe = pt.BatchRetrieve(index) >> pt.apply.doc_score(_doclen)
+            pipe = pt.terrier.Retriever(index) >> pt.apply.doc_score(_doclen)
 
     """
     def __init__(self, fn,  *args, batch_size=None, **kwargs):
@@ -109,7 +108,7 @@ class ApplyDocumentScoringTransformer(ApplyTransformerBase):
             outputRes["score"] = pd.Series(dtype='float64')
             return outputRes
         if self.verbose:
-            tqdm.pandas(desc="pt.apply.doc_score", unit="d")
+            pt.tqdm.pandas(desc="pt.apply.doc_score", unit="d")
             outputRes["score"] = outputRes.progress_apply(fn, axis=1).astype('float64')
         else:
             outputRes["score"] = outputRes.apply(fn, axis=1).astype('float64')
@@ -132,10 +131,9 @@ class ApplyDocumentScoringTransformer(ApplyTransformerBase):
 
         import math
         from .model import split_df
-        from . import tqdm
         num_chunks = math.ceil( len(inputRes) / self.batch_size )
         iterator = split_df(inputRes, num_chunks)
-        iterator = tqdm(iterator, desc="pt.apply", unit='row')
+        iterator = pt.tqdm(iterator, desc="pt.apply", unit='row')
         rtr = pd.concat([self._transform_batchwise(chunk_df) for chunk_df in iterator])
         rtr = add_ranks(rtr)
         return rtr
@@ -150,7 +148,7 @@ class ApplyDocFeatureTransformer(ApplyTransformerBase):
             def _feature_fn(row):
                 return numpy.array([len(row["url"], row["url".count("/")])
             
-            pipe = pt.BatchRetrieve(index) >> pt.apply.doc_features(_feature_fn) >> pt.LTRpipeline(xgBoost())
+            pipe = pt.terrier.Retriever(index) >> pt.apply.doc_features(_feature_fn) >> pt.LTRpipeline(xgBoost())
     """
     def __init__(self, fn,  *args, **kwargs):
         """
@@ -166,7 +164,7 @@ class ApplyDocFeatureTransformer(ApplyTransformerBase):
         fn = self.fn
         outputRes = inputRes.copy()
         if self.verbose:
-            tqdm.pandas(desc="pt.apply.doc_features", unit="d")
+            pt.tqdm.pandas(desc="pt.apply.doc_features", unit="d")
             outputRes["features"] = outputRes.progress_apply(fn, axis=1)
         else:
             outputRes["features"] = outputRes.apply(fn, axis=1)
@@ -182,11 +180,11 @@ class ApplyQueryTransformer(ApplyTransformerBase):
             def _rewriting_fn(row):
                 return row["query"] + " extra words"
             
-            pipe = pt.apply.query(_rewriting_fn) >> pt.BatchRetrieve(index)
+            pipe = pt.apply.query(_rewriting_fn) >> pt.terrier.Retriever(index)
 
         Similarly, a lambda function can also be used::
 
-            pipe = pt.apply.query(lambda row: row["query"] + " extra words") >> pt.BatchRetrieve(index)
+            pipe = pt.apply.query(lambda row: row["query"] + " extra words") >> pt.terrier.Retriever(index)
 
         In the resulting dataframe, the previous query for each row can be found in the query_0 column.
 
@@ -212,7 +210,7 @@ class ApplyQueryTransformer(ApplyTransformerBase):
             outputRes = inputRes.copy()
         try:
             if self.verbose:
-                tqdm.pandas(desc="pt.apply.query", unit="d")
+                pt.tqdm.pandas(desc="pt.apply.query", unit="d")
                 outputRes["query"] = outputRes.progress_apply(fn, axis=1)
             else:
                 outputRes["query"] = outputRes.apply(fn, axis=1)
@@ -240,7 +238,7 @@ class ApplyGenericTransformer(ApplyTransformerBase):
         # this pipeline would remove all but the first two documents from a result set
         lp = ApplyGenericTransformer(lambda res : res[res["rank"] < 2])
 
-        pipe = pt.BatchRetrieve(index) >> lp
+        pipe = pt.terrier.Retriever(index) >> lp
 
     """
 
@@ -263,11 +261,10 @@ class ApplyGenericTransformer(ApplyTransformerBase):
         # batching
         import math, pandas as pd
         from pyterrier.model import split_df
-        from . import tqdm
         num_chunks = math.ceil( len(inputRes) / self.batch_size )
         iterator = split_df(inputRes, num_chunks)
         if self.verbose:
-            iterator = tqdm(iterator, desc="pt.apply", unit='row') 
+            iterator = pt.tqdm(iterator, desc="pt.apply", unit='row') 
         rtr = pd.concat([self.fn(chunk_df) for chunk_df in iterator])
         return rtr
 
