@@ -74,8 +74,8 @@ class TestBackground(BaseTestCase):
 
             from jnius import JavaException
             try:
-                br1 = pt.BatchRetrieve(index_small, wmodel="Tf")
-                brall = pt.BatchRetrieve(index_big, wmodel="Tf")
+                br1 = pt.terrier.Retriever(index_small, wmodel="Tf")
+                brall = pt.terrier.Retriever(index_big, wmodel="Tf")
                 with_doc = pd.DataFrame([["q1", q, "1048", 1047]], columns=["qid", "query", "docno", "docid"])
                 rtr1 = br1.search(q)
             except JavaException as ja:

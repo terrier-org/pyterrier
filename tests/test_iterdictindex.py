@@ -222,7 +222,7 @@ class TestIterDictIndexer(TempDirTestCase):
         
         # lets validate retrieval and the rest of the index
         self.assertFalse("møney" in index.getLexicon())
-        br = pt.BatchRetrieve(index)
+        br = pt.terrier.Retriever(index)
         res = br.search("crashing")
         self.assertEqual(0, len(res))
         res = br.search("møney")

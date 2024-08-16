@@ -34,7 +34,7 @@ class TestScoring(TempDirTestCase):
 
     def _test_scoring_text(self, dataset, index, wmodel):
         
-        br1 = pt.BatchRetrieve(index, wmodel=wmodel, metadata=["docno", "body"], num_results=5)
+        br1 = pt.terrier.Retriever(index, wmodel=wmodel, metadata=["docno", "body"], num_results=5)
         input = dataset.get_topics().head(10)
         output1 = br1(input)
         self.assertTrue( "body" in output1.columns )
