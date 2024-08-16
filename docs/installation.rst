@@ -6,7 +6,7 @@ PyTerrier is a declarative platform for information retrieval experiemnts in Pyt
 Pre-requisites
 ==============
 
-PyTerrier requires Python 3.7 or newer, and Java 11 or newer. PyTerrier is natively supported on Linux, Mac OS X and Windows. 
+PyTerrier requires Python 3.8 or newer, and Java 11 or newer. PyTerrier is natively supported on Linux, Mac OS X and Windows. 
 
 Installation
 ============
@@ -23,13 +23,13 @@ If you want the latest version of PyTerrier, you can install direct from the Git
 
 NB: There is no need to have a local installation of the Java component, Terrier. PyTerrier will download the latest release on startup.
 
-Installation Troubleshooting
-============
+Troubleshooting
+~~~~~~~~~~~~~~~
 
 We aim to ensure that there are pre-compiled binaries available for any dependencies with native components, for all supported Python versions and for all major platforms (Linux, macOS, Windows).
 One notable exception is Mac M1 etc., as there are no freely available GitHub Actions runners for M1. Mac M1 installs may require to compile some dependencies.
 
-If the installation failed due to `pyautocorpus` did not run successfully, you may need to install `pcre` to your machine.
+If the installation failed due to ``pyautocorpus`` did not run successfully, you may need to install ``pcre`` to your machine.
 
 macOS::
 
@@ -40,64 +40,76 @@ Linux::
     apt-get update -y
     apt-get install libpcre3-dev -y
 
-
-Configuration
-==============
-
-You must always start by importing PyTerrier and running init()::
-
-    import pyterrier as pt
-    pt.init()
-
-PyTerrier uses `PyJnius <https://github.com/kivy/pyjnius>`_ as a "glue" layer in order to call Terrier's Java classes. PyJnius will search 
-the usual places on your machine for a Java installation. If you have problems, set the `JAVA_HOME` environment variable::
-
-    import os
-    os.environ["JAVA_HOME"] = "/path/to/my/jdk"
-    import pyterrier as pt
-    pt.init()
-
-`pt.init()` has a multitude of options, for instance that can make PyTerrier more notebook friendly, or to change the underlying version of Terrier, as described below.
-
-For users with an M1 Mac or later models, it is necessary to install the SSL certificates to avoid certificate errors. 
+For users with an M1 Mac or later models, it is sometimes necessary to install the SSL certificates to avoid certificate errors. 
 To do this, locate the `Install Certificates.command` file within the `Application/Python[version]` directory. Once found, double-click on it to run the installation process.
 
-API Reference
-=============
+Runing PyTerrier
+================
 
-All usages of PyTerrier start by importing PyTerrier and starting it using the `init()` method::
+Once installed, you can get going with PyTerrier just by importing it. It's common to alias it as `pt` when importing::
 
     import pyterrier as pt
-    pt.init()
 
-PyTerrier uses some of the functionality of the Java-based `Terrier <http://terrier.org>`_ IR platform
-for indexing and retrieval functionality. Calling `pt.init()` downloads, if necessary, the Terrier jar 
-file, and starts the Java Virtual Machine (JVM). It also configures the Terrier so that it can be more 
-easily used from Python, such as redirecting the stdout and stderr streams, logging level etc.
+Java Configuration
+==================
 
-Below, there is more documentation about method related to starting Terrier using PyTerrier,
-and ways to change the configuration.
+PyTerrier integrates with several Java-based engines, such as Terrier. It uses `PyJnius <https://github.com/kivy/pyjnius>`_ as
+a "glue" layer in order to call these Java components. PyTerrier manages this for you automatically and uses reasonable defaults
+for the way it interacts with Java. However, sometimes you may need to modify the settings to work with your system. This section
+describes how to manage this configuration.
 
-Startup-related methods
-~~~~~~~~~~~~~~~~~~~~~~~
+**Note:** Because these options affect the the JVM's settings, they need to be set before Java starts---for instance, at the top of
+a script/notebook before any Java components are loaded.
 
-.. autofunction:: pyterrier.init()
+**Starting Java.** PyTerrier will start java when you use a component that requires it, such as ``pt.terrier.Retriever``. However, sometimes
+you might want to start it early:
 
-.. autofunction:: pyterrier.started()
+.. autofunction:: pyterrier.java.init
 
-.. autofunction:: pyterrier.run()
+You can also check if Java has been started (either automatically or by `pt.java.init()`):
 
-Methods to change PyTerrier configuration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autofunction:: pyterrier.java.started
 
-.. autofunction:: pyterrier.extend_classpath()
+**Java Home Path.** PyJnius will search the usual places on your machine for a Java installation. If you have problems, you can
+overrirde the java home path:
 
-.. autofunction:: pyterrier.logging()
+.. autofunction:: pyterrier.java.set_java_home
 
-.. autofunction:: pyterrier.redirect_stdouterr()
+**Other General Options.** The following are other options for configuring Java:
 
-.. autofunction:: pyterrier.set_property()
+.. autofunction:: pyterrier.java.add_jar
+.. autofunction:: pyterrier.java.add_package
+.. autofunction:: pyterrier.java.set_memory_limit
+.. autofunction:: pyterrier.java.set_redirect_io
+.. autofunction:: pyterrier.java.add_option
+.. autofunction:: pyterrier.java.set_log_level
 
-.. autofunction:: pyterrier.set_properties()
+Terrier Configuration
+~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pyterrier.set_tqdm()
+These options adjust how the Terrier engine is loaded.
+
+.. autofunction:: pyterrier.terrier.set_version
+.. autofunction:: pyterrier.terrier.set_helper_version
+.. autofunction:: pyterrier.terrier.set_prf_version
+.. autofunction:: pyterrier.terrier.set_property
+.. autofunction:: pyterrier.terrier.set_properties
+.. autofunction:: pyterrier.terrier.extend_classpath
+
+Anserini Configuration
+~~~~~~~~~~~~~~~~~~~~~~
+
+These options adjust how the Anserini engine is loaded. Note that the `pyserini` package needs to be
+installed to use PyTerrier's Anserini integration.
+
+.. autofunction:: pyterrier.anserini.set_version
+
+
+Note on Deprecated Java Configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Previous versions of PyTerrier required you to run ``pt.init()`` (often in a ``if pt.started()`` block)
+to configure Java and start using PyTerrier. This function still exists (it calls ``pt.java.init()``
+and associated other configuration methods), but is no longer needed and deprecated.
+
+Instead, PyTerrier now automatically loads Java when a function is called that needs it.

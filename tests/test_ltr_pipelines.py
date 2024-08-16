@@ -39,7 +39,6 @@ class TestLTRPipeline(BaseTestCase):
             'learning_rate': 0.1,
             'gamma': 1.0, 'min_child_weight': 0.1,
             'max_depth': 6,
-            'verbose': 2,
             'random_state': 42
         }
 

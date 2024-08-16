@@ -2,7 +2,7 @@ Query Rewriting & Expansion
 ---------------------------
 
 Query rewriting refers to changing the formulation of the query in order to improve the effectiveness of the
-search ranking. PyTerrier supplies a number of query rewriting transformers designed to work with BatchRetrieve.
+search ranking. PyTerrier supplies a number of query rewriting transformers designed to work with Retriever.
 
 Firstly, we differentiate between two forms of query rewriting:
 
@@ -32,7 +32,7 @@ For example, the query `pyterrier IR platform` would become `pyterrier IR platfo
 NB: Acutally, we have simplified the rewritten query - in practice, we also (a) set the weight of the proximity terms to be low using a `#combine()`
 operator and (b) set a proximity term weighting model.
 
-This transfomer is only compatible with BatchRetrieve, as Terrier supports the `#1` and `#uwN` complex query terms operators. The Terrier index must have blocks (positional information) recorded in the index.
+This transfomer is only compatible with Retriever, as Terrier supports the `#1` and `#uwN` complex query terms operators. The Terrier index must have blocks (positional information) recorded in the index.
 
 .. autoclass:: pyterrier.rewrite.SequentialDependence
     :members: transform
@@ -40,7 +40,7 @@ This transfomer is only compatible with BatchRetrieve, as Terrier supports the `
 Example::
 
     sdm = pt.rewrite.SequentialDependence()
-    dph = pt.BatchRetrieve(index, wmodel="DPH")
+    dph = pt.terrier.Retriever(index, wmodel="DPH")
     pipeline = sdm >> dph
 
 References:
@@ -61,7 +61,7 @@ and returns a dataframe with  `["qid", "query"]`.
 Example::
 
     bo1 = pt.rewrite.Bo1QueryExpansion(index)
-    dph = pt.BatchRetrieve(index, wmodel="DPH")
+    dph = pt.terrier.Retriever(index, wmodel="DPH")
     pipelineQE = dph >> bo1 >> dph
 
 View the expansion terms::
@@ -74,10 +74,10 @@ View the expansion terms::
 
 **Alternative Formulations**
 
-Note that it is also possible to configure BatchRetrieve to perform QE directly using controls,
+Note that it is also possible to configure Retriever to perform QE directly using controls,
 which will result in identical retrieval effectiveness::
 
-    pipelineQE = pt.BatchRetrieve(index, wmodel="DPH", controls={"qemodel" : "Bo1", "qe" : "on"})
+    pipelineQE = pt.terrier.Retriever(index, wmodel="DPH", controls={"qemodel" : "Bo1", "qe" : "on"})
 
 However, using `pt.rewrite.Bo1QueryExpansion` is preferable as:
 
@@ -161,7 +161,7 @@ This can be attained in PyTerrier through use of `stash_results()` and `reset_re
 
     # index: the corpus you are ranking
 
-    dph = pt.BatchRetrieve(index)
+    dph = pt.terrier.Retriever(index)
     Pipe = dph 
         >> pt.rewrite.stash_results(clear=False)
         >> pt.rewrite.RM3(index)
@@ -193,17 +193,17 @@ Example: Collection Enrichment as a re-ranker::
     # index: the corpus you are ranking
     # wiki_index: index of Wikipedia, used for enrichment
 
-    dph = pt.BatchRetrieve(index)
+    dph = pt.terrier.Retriever(index)
     Pipe = dph 
         >> pt.rewrite.stash_results()          
-        >> pt.BatchRetrieve(wiki_index)
+        >> pt.terrier.Retriever(wiki_index)
         >> pt.rewrite.RM3(wiki_index)
         >> pt.rewrite.reset_results()
         >> dph
 
 In general, collection enrichment describes conducting a PRF query expansion process on an external corpus (often Wikipedia), 
 before applying the reformulated query to the main corpus. Collection enrichment can be used for improving a first pass 
-retrieval (`pt.BatchRetrieve(wiki_index) >> pt.rewrite.RM3(wiki_index) >> pt.BatchRetrieve(main_index)`). Instead, the particular 
+retrieval (`pt.terrier.Retriever(wiki_index) >> pt.rewrite.RM3(wiki_index) >> pt.terrier.Retriever(main_index)`). Instead, the particular 
 example shown above applies collection enrichment as a re-ranker.
 
 
@@ -216,7 +216,7 @@ Summary of dataframe types:
 +--------------+-----------------------+-------------------------------------------+
 |stash_results |Q + "stashed_results_0"|qid, query, saved_docs_0                   |
 +--------------+-----------------------+-------------------------------------------+
-|BatchRetrieve |R + "stashed_results_0"|qid, query, docno, score, stashed_results_0|
+|Retriever     |R + "stashed_results_0"|qid, query, docno, score, stashed_results_0|
 +--------------+-----------------------+-------------------------------------------+
 |RM3           |Q + "stashed_results_0"|qid, query, query_0, stashed_results_0     |
 +--------------+-----------------------+-------------------------------------------+
@@ -225,5 +225,5 @@ Summary of dataframe types:
 |dph           |R                      |qid, query, docno, score, query_0          |
 +--------------+-----------------------+-------------------------------------------+
 
-In this example, we have a BatchRetrieve instance executed on the wiki_index before RM3, so we clear the
+In this example, we have a Retriever instance executed on the wiki_index before RM3, so we clear the
 document ranking columns when using `stash_results()`.

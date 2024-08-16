@@ -24,10 +24,10 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
         
 
     def test_fbr_reranking(self):
-        if not pt.check_version("5.4"):
+        if not pt.terrier.check_version("5.4"):
             self.skipTest("Requires Terrier 5.4")
         # this test examines the use of ScoringMatchingWithFat 
-        JIR = pt.autoclass('org.terrier.querying.IndexRef')
+        JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of(self.here + "/fixtures/index/data.properties")
         # we only want a candidate set of 2 documents
         firstpass = pt.BatchRetrieve(indexref, wmodel="BM25") % 2
@@ -67,10 +67,10 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
         self.assertEqual(result1F1_map, result2F1_map)
 
     def test_fbr_reranking2(self):
-        if not pt.check_version("5.4"):
+        if not pt.terrier.check_version("5.4"):
             self.skipTest("Requires Terrier 5.4")
         # this test examines the use of ScoringMatchingWithFat, using a particular case known to with Terrier 5.3 
-        JIR = pt.autoclass('org.terrier.querying.IndexRef')
+        JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of(self.here + "/fixtures/index/data.properties")
         # we only want a candidate set of 3 documents
         firstpass = pt.BatchRetrieve(indexref, wmodel="BM25") % 3
@@ -104,7 +104,7 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
             self.assertAlmostEqual(result1F_map[docno], result2_map[docno], msg="feature score mismatch at rank %d for docno %s" % (rank, docno), places=4)
 
     def test_fbr_ltr(self):
-        JIR = pt.autoclass('org.terrier.querying.IndexRef')
+        JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of(self.here + "/fixtures/index/data.properties")
         retr = pt.FeaturesBatchRetrieve(indexref, ["WMODEL:PL2"], wmodel="DPH")
         topics = pt.io.read_topics(self.here + "/fixtures/vaswani_npl/query-text.trec").head(3)
@@ -117,7 +117,7 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
         RandomForestClassifier(n_estimators=10).fit(np.stack(res["features"]), res["label"])
 
     def test_fbr(self):
-        JIR = pt.autoclass('org.terrier.querying.IndexRef')
+        JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of(self.here + "/fixtures/index/data.properties")
         retr = pt.FeaturesBatchRetrieve(indexref, ["WMODEL:PL2"], wmodel="DPH")
         input = pd.DataFrame([["1", "Stability"]], columns=['qid', 'query'])
@@ -137,8 +137,37 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
         if "matching" in retrBasic.controls:
             self.assertNotEqual(retrBasic.controls["matching"], "FatFeaturedScoringMatching,org.terrier.matching.daat.FatFull")
 
+    def test_fbr_example(self):
+        JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
+        indexref = JIR.of(self.here + "/fixtures/index/data.properties")
+        index = pt.IndexFactory.of(indexref)
+        # this ranker will make the candidate set of documents for each query
+        BM25 = pt.BatchRetrieve(index, wmodel="BM25")
+
+        # these rankers we will use to re-rank the BM25 results
+        TF_IDF =  pt.BatchRetrieve(index, wmodel="Dl")
+        PL2 =  pt.BatchRetrieve(index, wmodel="PL2")
+
+        pipe =  (BM25 %2) >> (TF_IDF ** PL2)
+        fbr = pt.FeaturesBatchRetrieve(indexref, ["WMODEL:Dl", "WMODEL:PL2"], wmodel="BM25") % 2
+        resultP = pipe.search("chemical")
+        resultF = fbr.search("chemical")
+        pd.set_option('display.max_columns', None)
+
+        self.assertEqual(resultP.iloc[0].docno, resultF.iloc[0].docno)
+        self.assertEqual(resultP.iloc[0].score, resultF.iloc[0].score)
+        self.assertEqual(resultP.iloc[0].features[0], resultF.iloc[0].features[0])
+        self.assertEqual(resultP.iloc[0].features[1], resultF.iloc[0].features[1])
+
+        pipeCompiled = pipe.compile()
+        resultC = pipeCompiled.search("chemical")
+        self.assertEqual(resultP.iloc[0].docno, resultC.iloc[0].docno)
+        self.assertEqual(resultP.iloc[0].score, resultC.iloc[0].score)
+        self.assertEqual(resultP.iloc[0].features[0], resultC.iloc[0].features[0])
+        self.assertEqual(resultP.iloc[0].features[1], resultC.iloc[0].features[1])
+
     def test_fbr_empty(self):
-        JIR = pt.autoclass('org.terrier.querying.IndexRef')
+        JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of(self.here + "/fixtures/index/data.properties")
         retr = pt.FeaturesBatchRetrieve(indexref, ["WMODEL:PL2"], wmodel="DPH")
         input = pd.DataFrame([["1", ""]], columns=['qid', 'query'])
