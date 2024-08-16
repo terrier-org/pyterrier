@@ -74,6 +74,10 @@ class TerrierJavaInit(pt.java.JavaInitializer):
         prf_jar = pt.java.mavenresolver.get_package_jar('com.github.terrierteam', 'terrier-prf', configure['prf_version'])
         jnius_config.add_classpath(prf_jar)
 
+        # This is for parallel -- it means that when re-configured in a parallel process, force_download will be False
+        # and mavenresolver will use the version that was just downloaded above (not try to do it again).
+        configure['force_download'] = False
+
 
     @pt.java.required_raise
     def post_init(self, jnius):
