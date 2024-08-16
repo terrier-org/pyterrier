@@ -7,22 +7,6 @@ import warnings
 
 class TestFeaturesBatchRetrieve(BaseTestCase):
 
-    def test_compile_to_fbr(self):
-        indexref = pt.IndexRef.of(self.here + "/fixtures/index/data.properties")
-        # we only want a candidate set of 2 documents
-        firstpass = pt.terrier.Retriever(indexref, wmodel="BM25")
-        pipe_f_fbr = firstpass >> pt.terrier.FeaturesRetriever(indexref, features=["WMODEL:DPH", "WMODEL:PL2"])
-        pipe_fbr = pt.terrier.FeaturesRetriever(indexref, wmodel="BM25", features=["WMODEL:DPH", "WMODEL:PL2"])
-        pipe_raw = firstpass >> ( pt.terrier.Retriever(indexref, wmodel="DPH") ** pt.terrier.Retriever(indexref, wmodel="PL2") )
-        input = pd.DataFrame([["1", "Stability"]], columns=['qid', 'query'])
-        res1 = (pipe_f_fbr %2)(input)
-        res2 = (pipe_fbr % 2)(input)
-        res3 = (pipe_raw % 2)(input)
-        compiled = (pipe_raw % 2).compile()
-        print(repr(compiled))
-        res4 = compiled(input)
-        
-
     def test_fbr_reranking(self):
         if not pt.terrier.check_version("5.4"):
             self.skipTest("Requires Terrier 5.4")
@@ -163,13 +147,6 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
         self.assertEqual(resultP.iloc[0].score, resultF.iloc[0].score)
         self.assertEqual(resultP.iloc[0].features[0], resultF.iloc[0].features[0])
         self.assertEqual(resultP.iloc[0].features[1], resultF.iloc[0].features[1])
-
-        pipeCompiled = pipe.compile()
-        resultC = pipeCompiled.search("chemical")
-        self.assertEqual(resultP.iloc[0].docno, resultC.iloc[0].docno)
-        self.assertEqual(resultP.iloc[0].score, resultC.iloc[0].score)
-        self.assertEqual(resultP.iloc[0].features[0], resultC.iloc[0].features[0])
-        self.assertEqual(resultP.iloc[0].features[1], resultC.iloc[0].features[1])
 
     def test_fbr_empty(self):
         JIR = pt.java.autoclass('org.terrier.querying.IndexRef')

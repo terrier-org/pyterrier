@@ -93,7 +93,7 @@ class TestOperators(BaseTestCase):
                 C.__repr__())
         
         # finally check recursive application
-        C4 = (mock1 >> mock2 >> mock3 >> mock4).compile()
+        C4 = mock1 >> mock2 >> mock3 >> mock4
         self.assertEqual(
             "ComposedPipeline(UniformTransformer(), UniformTransformer(), UniformTransformer(), UniformTransformer())", 
             C4.__repr__())
@@ -203,16 +203,14 @@ class TestOperators(BaseTestCase):
         mock2 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 10]], columns=["qid", "docno", "score"]), uniform=True)
         mock3 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 15]], columns=["qid", "docno", "score"]), uniform=True)
 
-        combined = mock1 + mock2 + mock3
-        for pipe in [combined, combined.compile()]:
+        pipe = mock1 + mock2 + mock3
+        # we dont need an input, as both Identity transformers will return anyway
+        rtr = pipe.transform(None)
 
-            # we dont need an input, as both Identity transformers will return anyway
-            rtr = pipe.transform(None)
-
-            self.assertEqual(1, len(rtr))
-            self.assertEqual("q1", rtr.iloc[0]["qid"])
-            self.assertEqual("doc1", rtr.iloc[0]["docno"])
-            self.assertEqual(30, rtr.iloc[0]["score"])
+        self.assertEqual(1, len(rtr))
+        self.assertEqual("q1", rtr.iloc[0]["qid"])
+        self.assertEqual("doc1", rtr.iloc[0]["docno"])
+        self.assertEqual(30, rtr.iloc[0]["score"])
 
 
     def test_union(self):

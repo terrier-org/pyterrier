@@ -42,7 +42,7 @@ class Transformer:
     name = "Transformer"
     """
         Base class for all transformers. Implements the various operators ``>>`` ``+`` ``*`` ``|`` ``&`` 
-        as well as ``search()`` for executing a single query and ``compile()`` for rewriting complex pipelines into more simples ones.
+        as well as ``search()`` for executing a single query.
     """
 
     @staticmethod

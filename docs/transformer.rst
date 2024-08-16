@@ -26,15 +26,6 @@ before returning it.
 | Q x D |  Q x Df |   1 to 1    | Feature scoring  | `pt.terrier.FeaturesRetriever()` |
 +-------+---------+-------------+------------------+----------------------------------+
 
-Optimisation
-============
-
-Some operators applied to transformer can be optimised by the underlying search engine - for instance, cutting a ranking 
-earlier. So while the following two pipelines are semantically equivalent, the latter might be more efficient::
-
-    pipe1 = pt.terrier.Retrieve(index, "BM25") % 10
-    pipe2 = pipe1.compile()
-
 Fitting
 =======
 When `fit()` is called on a pipeline, all estimators (transformers that also have a ``fit()`` method, as specified by 
