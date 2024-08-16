@@ -1,32 +1,29 @@
-from .transformer import Transformer, Estimator, get_transformer, Scalar
+from .transformer import Transformer, Estimator, get_transformer
 from .model import add_ranks
-from matchpy import Operation, Arity
 from warnings import warn
 from typing import Iterable
+from itertools import chain
 import pandas as pd
 
-class BinaryTransformerBase(Transformer,Operation):
+class BinaryTransformerBase(Transformer):
     """
         A base class for all operator transformers that can combine the input of exactly 2 transformers. 
     """
-    arity = Arity.binary
+    def __init__(self, left, right):
+        self.left = left
+        self.right = right
 
-    def __init__(self, operands, **kwargs):
-        assert 2 == len(operands)
-        super().__init__(operands=operands,  **kwargs)
-        self.left = operands[0]
-        self.right = operands[1]
-
-class NAryTransformerBase(Transformer,Operation):
+class NAryTransformerBase(Transformer):
     """
         A base class for all operator transformers that can combine the input of 2 or more transformers. 
     """
-    arity = Arity.polyadic
-
-    def __init__(self, operands, **kwargs):
-        super().__init__(operands=operands, **kwargs)
-        models = operands
-        self.models = list( map(lambda x : get_transformer(x, stacklevel=6), models) )
+    def __init__(self, *models):
+        # flatten models
+        models = chain.from_iterable(
+            (t.models if isinstance(t, type(self)) else [t])
+            for t in models
+        )
+        self.models = [get_transformer(m, stacklevel=6) for m in models]
 
     def __getitem__(self, number) -> Transformer:
         """
@@ -39,6 +36,9 @@ class NAryTransformerBase(Transformer,Operation):
             Returns the number of transformers in the operator.
         """
         return len(self.models)
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}(' + ', '.join(repr(m) for m in self.models) + ')'
 
 class SetUnionTransformer(BinaryTransformerBase):
     """      
@@ -152,47 +152,34 @@ class ConcatenateTransformer(BinaryTransformerBase):
         rtr = add_ranks(rtr)
         return rtr
 
-class ScalarProductTransformer(BinaryTransformerBase):
+class ScalarProductTransformer(Transformer):
     """
         Multiplies the retrieval score by a scalar
     """
-    arity = Arity.binary
-    name = "ScalarProd"
+    def __init__(self, scalar: float):
+        self.scalar = scalar
 
-    def __init__(self, operands, **kwargs):
-        super().__init__(operands, **kwargs)
-        self.transformer = operands[0]
-        self.scalar = operands[1]
-
-    def transform(self, topics_and_res):
-        res = self.transformer.transform(topics_and_res)
-        res["score"] = self.scalar * res["score"]
+    def transform(self, inp):
+        res = inp.assign(score=inp['score'] * self.scalar)
         if self.scalar < 0:
             res = add_ranks(res)
         return res
 
-class RankCutoffTransformer(BinaryTransformerBase):
+class RankCutoffTransformer(Transformer):
     """
         Applies a rank cutoff for each query
     """
-    arity = Arity.binary
-    name = "RankCutoff"
-
-    def __init__(self, operands, **kwargs):
-        operands = [operands[0], Scalar(str(operands[1]), operands[1])] if isinstance(operands[1], int) else operands
-        super().__init__(operands, **kwargs)
-        self.transformer = operands[0]
-        self.cutoff = operands[1]
-        if self.cutoff.value % 10 == 9:
+    def __init__(self, cutoff: int):
+        self.cutoff = cutoff
+        if self.cutoff % 10 == 9:
             warn("Rank cutoff off-by-one bug #66 now fixed, but you used a cutoff ending in 9. Please check your cutoff value. ", DeprecationWarning, 2)
 
-    def transform(self, topics_and_res):
-        res = self.transformer.transform(topics_and_res)
-        if not "rank" in res.columns:
+    def transform(self, inp):
+        if not "rank" in inp.columns:
             assert False, "require rank to be present in the result set"
 
         # this assumes that the minimum rank cutoff is model.FIRST_RANK, i.e. 0
-        res = res[res["rank"] < self.cutoff.value]
+        res = inp[inp["rank"] < self.cutoff]
         return res
 
 class FeatureUnionPipeline(NAryTransformerBase):

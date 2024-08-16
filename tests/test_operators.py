@@ -2,7 +2,6 @@ import pandas as pd
 import unittest
 import pyterrier as pt
 import warnings
-from matchpy import *
 from .base import BaseTestCase
 from pytest import warns
 
@@ -83,17 +82,12 @@ class TestOperators(BaseTestCase):
         combined123_b = mock1 >> mock2 >> mock3
         combined123_c = mock2 >> combined23
 
-        combined123_a_C = combined123_a.compile()
-        combined123_b_C = combined123_b.compile()
-        combined123_c_C = combined123_c.compile()
-
-
         self.assertEqual(2, len(combined12.models))
         self.assertEqual(2, len(combined23.models))
         self.assertEqual(2, len(combined12.models))
         self.assertEqual(2, len(combined23.models))
 
-        for C in [combined123_a_C, combined123_b_C, combined123_c_C]:
+        for C in [combined123_a, combined123_b, combined123_c]:
             self.assertEqual(3, len(C.models))
             self.assertEqual("ComposedPipeline(UniformTransformer(), UniformTransformer(), UniformTransformer())",
                 C.__repr__())
@@ -272,22 +266,17 @@ class TestOperators(BaseTestCase):
         BM25 = pt.BatchRetrieve(index, wmodel="BM25")
         TF_IDF = pt.BatchRetrieve(index, wmodel="TF_IDF")
         PL2 = pt.BatchRetrieve(index, wmodel="PL2")
-        pipe = BM25 >> (pt.transformer.IdentityTransformer() ** TF_IDF ** PL2)
+        expression = BM25 >> (pt.transformer.IdentityTransformer() ** TF_IDF ** PL2)
 
-        def _check(expression):
-            self.assertEqual(2, len(expression))
-            self.assertEqual(2, len(expression[1]))
-            print("funion outer %d" % id(expression[1]))
-            print("funion inner %d" % id(expression[1][1]))
-            
-            #print(repr(pipe))
-            res = expression.transform(dataset.get_topics().head(2))
-            self.assertTrue("features" in res.columns)
-            self.assertFalse("features_x" in res.columns)
-            self.assertFalse("features_y" in res.columns)
-            print(res.iloc[0]["features"])
-            self.assertEqual(3, len(res.iloc[0]["features"]))
-        _check(pipe)
+        self.assertEqual(2, len(expression))
+        self.assertEqual(3, len(expression[1]))
+
+        res = expression.transform(dataset.get_topics().head(2))
+        self.assertTrue("features" in res.columns)
+        self.assertFalse("features_x" in res.columns)
+        self.assertFalse("features_y" in res.columns)
+        print(res.iloc[0]["features"])
+        self.assertEqual(3, len(res.iloc[0]["features"]))
 
 
     def test_feature_union_multi(self):
@@ -337,7 +326,6 @@ class TestOperators(BaseTestCase):
         
         self.assertEqual(2, len(mock12a.models))
         self.assertEqual(2, len(mock12a.models))
-        pt.terrier.retriever.setup_rewrites()
 
         mock123_simple = mock123a.compile()
         self.assertIsNotNone(mock123_simple)

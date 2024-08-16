@@ -3,7 +3,6 @@ pandas
 wget
 tqdm
 pyjnius>=1.4.2
-matchpy
 deprecated
 chest
 scipy
