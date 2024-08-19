@@ -477,6 +477,7 @@ class DFIndexUtils:
                 ),
             lengths)
 
+@deprecated(version='0.11.0', reason="use pt.terrier.IterDictIndexer().index(dataframe.to_dict(orient='records')) instead")
 class DFIndexer(TerrierIndexer):
     """
     Use this Indexer if you wish to index a pandas.Dataframe
@@ -585,8 +586,13 @@ class _BaseIterDictIndexer(TerrierIndexer, pt.Indexer):
         else:
             all_fields = {'docno'} | set(indexed_fields) | set(self.meta.keys())
 
-        (first_doc,), it = more_itertools.spy(it) # peek at the first document and validate it
-        self._validate_doc_dict(first_doc)
+
+        if hasattr(it, '__len__') and len(it) == 0:
+            # we cannot validate an empty list
+            pass
+        else:
+            (first_doc,), it = more_itertools.spy(it) # peek at the first document and validate it
+            self._validate_doc_dict(first_doc)
 
         # important: return an iterator here, rather than make this function a generator,
         # to be sure that the validation above happens when _filter_iterable is called,

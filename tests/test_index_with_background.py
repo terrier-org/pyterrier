@@ -32,13 +32,13 @@ class TestBackground(BaseTestCase):
         import pandas as pd
         df1 = pd.DataFrame({
             'docno': ['1048'],
-            'body':
+            'text':
                 ['h  f  noise radiators in ground flashes of tropical lightning  a '+
                 'detailed analysis of h  f  noise sources in tropical ground flashes '+
                 'v  l  f  phase characteristics deduced from atmospheric waveforms']
         })
-        pd_indexer1 = pt.DFIndexer(tempfile.mkdtemp(), type=type)
-        indexref1 = pd_indexer1.index(df1["body"], df1["docno"])
+        pd_indexer1 = pt.IterDictIndexer(tempfile.mkdtemp(), type=type)
+        indexref1 = pd_indexer1.index(df1.to_dict(orient='records'))
         index1 = pt.IndexFactory.of(indexref1)
         
         has_direct1 = index1.hasIndexStructure("direct")
@@ -107,8 +107,8 @@ class TestBackground(BaseTestCase):
                  'The wave were crash on the shore; it was a',
                  'The body may perhaps compensates for the loss']
         })
-        pd_indexer1 = pt.DFIndexer(tempfile.mkdtemp(), type=type)
-        indexref1 = pd_indexer1.index(df1["text"], df1["docno"])
+        pd_indexer1 = pt.IterDictIndexer(tempfile.mkdtemp(), type=type)
+        indexref1 = pd_indexer1.index(df1.to_dict(orient='records'))
 
         df2 = pd.DataFrame({
             'docno': ['14'],
@@ -118,8 +118,8 @@ class TestBackground(BaseTestCase):
         from jnius import JavaException
         try:
 
-            pd_indexer2 = pt.DFIndexer(tempfile.mkdtemp(), type=type)
-            indexref2 = pd_indexer2.index(df2["text"], df2["docno"])
+            pd_indexer2 = pt.IterDictIndexer(tempfile.mkdtemp(), type=type)
+            indexref2 = pd_indexer2.index(df2.to_dict(orient='records'))
             
             index1 = pt.IndexFactory.of(indexref1)
             self.assertEqual(3, index1.getCollectionStatistics().getNumberOfDocuments())
