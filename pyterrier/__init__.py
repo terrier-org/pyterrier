@@ -76,8 +76,14 @@ def _():
     if Version(platform.python_version()) < Version('3.7.0'):
         raise RuntimeError("From PyTerrier 0.8, Python 3.7 minimum is required, you currently have %s" % platform.python_version())
 
-    # load modules defined as package entry points into the global pyterrier namespace
     globs = globals()
+
+    # Load the _apply object as pt.apply so that the dynamic __getattr__ methods work
+    from pyterrier.apply import _apply
+    globs['apply'] = _apply()
+    __all__.append('apply')
+
+    # load modules defined as package entry points into the global pyterrier namespace
     for entry_point in utils.entry_points('pyterrier.modules'):
         if entry_point.name in globs:
             warn(f'skipping loading {entry_point} because a module with this name is already loaded.')

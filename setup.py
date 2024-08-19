@@ -76,9 +76,6 @@ setup(
             'pyterrier.terrier.java  = pyterrier.terrier.java:TerrierJavaInit',
             'pyterrier.anserini.java = pyterrier.anserini.java:AnseriniJavaInit',
         ],
-        'pyterrier.modules': [
-            'apply = pyterrier.apply:_apply',
-        ]
     },
     install_requires=requirements,
     python_requires='>=3.8',
