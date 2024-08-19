@@ -10,8 +10,7 @@ There are four indexer classes:
 
  - You can create an index from TREC-formatted files, from a TREC test collection, using ``TRECCollectionIndexer``.
  - For indexing TXT, PDF, Microsoft Word files, etc files you can use ``FilesIndexer``.
- - For indexing Pandas Dataframe you can use ``DFIndexer``.
- - For any abitrary iterable dictionaries, you can use ``IterDictIndexer``.
+ - For any abitrary iterable dictionaries, or a Pandas Dataframes, you can use ``IterDictIndexer``.
 
 There are also different types of indexing supported in Terrier that are exposed in PyTerrier. We explain both the indexing types and the indexer classes below, with examples. Further worked examples of indexing are provided in the `example indexing notebook <https://github.com/terrier-org/pyterrier/blob/master/examples/notebooks/indexing.ipynb>`_.
 
@@ -48,31 +47,6 @@ FilesIndexer
 
 .. autoclass:: pyterrier.terrier.FilesIndexer
    :members: index
-
-DFIndexer
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autoclass:: pyterrier.terrier.DFIndexer
-   :members: index
-
-Example indexing a dataframe::
-
-    # define an example dataframe of documents
-    import pandas as pd
-    df = pd.DataFrame({ 
-        'docno':
-        ['1', '2', '3'],
-        'url': 
-        ['url1', 'url2', 'url3'],
-        'text': 
-        ['He ran out of money, so he had to stop playing',
-        'The waves were crashing on the shore; it was a',
-        'The body may perhaps compensates for the loss']
-    })
-
-    # index the text, record the docnos as metadata
-    pd_indexer = pt.DFIndexer("./pd_index")
-    indexref = pd_indexer.index(df["text"], df["docno"])
 
 
 IterDictIndexer

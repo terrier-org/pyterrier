@@ -26,8 +26,7 @@ PyTerrier has a number of useful classes for creating indices:
 
  - You can create an index from TREC formatted collection using [TRECCollectionIndexer](https://pyterrier.readthedocs.io/en/latest/terrier-indexing.html#treccollectionindexer).    
  - For TXT, PDF, Microsoft Word files, etc files you can use [FilesIndexer](https://pyterrier.readthedocs.io/en/latest/terrier-indexing.html#filesindexer).
- - For Pandas Dataframe you can use [DFIndexer](https://pyterrier.readthedocs.io/en/latest/terrier-indexing.html#dfindexer).
- - For any abitrary iterable dictionaries, you can use [IterDictIndexer](https://pyterrier.readthedocs.io/en/latest/terrier-indexing.html#iterdictindexer).
+ - For any abitrary iterable dictionaries or a Pandas Dataframe, you can use [IterDictIndexer](https://pyterrier.readthedocs.io/en/latest/terrier-indexing.html#iterdictindexer).
 
 See the [indexing documentation](https://pyterrier.readthedocs.io/en/latest/terrier-indexing.html), or the examples in the [indexing notebook](examples/notebooks/indexing.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/indexing.ipynb)
 

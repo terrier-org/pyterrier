@@ -487,10 +487,11 @@ class TextIndexProcessor(pt.Transformer):
         self.verbose = verbose
 
     def transform(self, topics_and_res):
-        from pyterrier import DFIndexer, IndexFactory
-        from pyterrier.terrier.index import IndexingType
-        documents = topics_and_res[["docno", self.body_attr]].drop_duplicates(subset="docno")
-        indexref = DFIndexer(None, type=IndexingType.MEMORY, verbose=self.verbose).index(documents[self.body_attr], documents["docno"])
+        # we use _IterDictIndexer_nofifo, as _IterDictIndexer_fifo (which is default on unix) doesnt support IndexingType.MEMORY as a destination
+        from pyterrier.terrier import IndexFactory
+        from pyterrier.terrier.index import IndexingType, _IterDictIndexer_nofifo
+        documents = topics_and_res[["docno", self.body_attr]].drop_duplicates(subset="docno").rename(columns={self.body_attr:'text'})
+        indexref = _IterDictIndexer_nofifo(None, type=IndexingType.MEMORY, verbose=self.verbose).index(documents.to_dict(orient='records'))
         docno2docid = { docno:id for id, docno in enumerate(documents["docno"]) }
         index_docs = IndexFactory.of(indexref)
         docno2docid = {}
