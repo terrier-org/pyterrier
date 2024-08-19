@@ -586,13 +586,9 @@ class _BaseIterDictIndexer(TerrierIndexer, pt.Indexer):
         else:
             all_fields = {'docno'} | set(indexed_fields) | set(self.meta.keys())
 
-
-        if hasattr(it, '__len__') and len(it) == 0:
-            # we cannot validate an empty list
-            pass
-        else:
-            (first_doc,), it = more_itertools.spy(it) # peek at the first document and validate it
-            self._validate_doc_dict(first_doc)
+        first_docs, it = more_itertools.spy(it) # peek at the first document and validate it
+        if len(first_docs) > 0: # handle empty input
+            self._validate_doc_dict(first_docs[0])
 
         # important: return an iterator here, rather than make this function a generator,
         # to be sure that the validation above happens when _filter_iterable is called,
