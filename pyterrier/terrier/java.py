@@ -36,6 +36,9 @@ def set_prf_version(version: Optional[str] = None):
 
 
 class TerrierJavaInit(pt.java.JavaInitializer):
+    def priority(self) -> int:
+        return -10 # needs to be between pt.java.core (-100) and pt.anserini (0) to avoid issues with logger configs
+
     def pre_init(self, jnius_config):
         # Make sure the terrier.default.properties file exists and is registered as an option, which avoids an annoying
         # "No etc/terrier.properties, using terrier.default.properties for bootstrap configuration." message.
