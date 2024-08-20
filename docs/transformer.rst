@@ -12,19 +12,19 @@ PyTerrier's retrieval architecture is based on three concepts:
 In essence, a PyTerrier transformer is a class with a ``transform()`` method, which takes as input a dataframe, and changes it,
 before returning it. 
 
-+-------+---------+-------------+------------------+------------------------------+
-+ Input | Output  | Cardinality | Example          | Concrete Transformer Example |
-+=======+=========+=============+==================+==============================+
-|   Q   |    Q    |   1 to 1    | Query rewriting  | `pt.rewrite.SDM()`           |
-+-------+---------+-------------+------------------+------------------------------+
-|   Q   |  Q x D  |   1 to N    | Retrieval        | `pt.BatchRetrieve()`         |
-+-------+---------+-------------+------------------+------------------------------+
-| Q x D |    Q    |   N to 1    | Query expansion  | `pt.rewrite.RM3()`           |
-+-------+---------+-------------+------------------+------------------------------+
-| Q x D |  Q x D  |   1 to 1    | Re-ranking       | `pt.apply.doc_score()`       |
-+-------+---------+-------------+------------------+------------------------------+
-| Q x D |  Q x Df |   1 to 1    | Feature scoring  | `pt.FeaturesBatchRetrieve()` |
-+-------+---------+-------------+------------------+------------------------------+
++-------+---------+-------------+------------------+----------------------------------+
++ Input | Output  | Cardinality | Example          | Concrete Transformer Example     |
++=======+=========+=============+==================+==================================+
+|   Q   |    Q    |   1 to 1    | Query rewriting  | `pt.rewrite.SDM()`               |
++-------+---------+-------------+------------------+----------------------------------+
+|   Q   |  Q x D  |   1 to N    | Retrieval        | `pt.terrier.Retriever()`         |
++-------+---------+-------------+------------------+----------------------------------+
+| Q x D |    Q    |   N to 1    | Query expansion  | `pt.rewrite.RM3()`               |
++-------+---------+-------------+------------------+----------------------------------+
+| Q x D |  Q x D  |   1 to 1    | Re-ranking       | `pt.apply.doc_score()`           |
++-------+---------+-------------+------------------+----------------------------------+
+| Q x D |  Q x Df |   1 to 1    | Feature scoring  | `pt.terrier.FeaturesRetriever()` |
++-------+---------+-------------+------------------+----------------------------------+
 
 Optimisation
 ============
@@ -32,7 +32,7 @@ Optimisation
 Some operators applied to transformer can be optimised by the underlying search engine - for instance, cutting a ranking 
 earlier. So while the following two pipelines are semantically equivalent, the latter might be more efficient::
 
-    pipe1 = BatchRetrieve(index, "BM25") % 10
+    pipe1 = pt.terrier.Retrieve(index, "BM25") % 10
     pipe2 = pipe1.compile()
 
 Fitting

@@ -10,7 +10,7 @@ import os
 class TestScoring(TempDirTestCase):
 
     def test_scoring_text(self):
-        pt.logging("DEBUG")
+        pt.java.set_log_level("DEBUG")
         dataset = pt.get_dataset("vaswani")
         indexer = pt.TRECCollectionIndexer(
             self.test_dir, 
@@ -34,12 +34,12 @@ class TestScoring(TempDirTestCase):
 
     def _test_scoring_text(self, dataset, index, wmodel):
         
-        br1 = pt.BatchRetrieve(index, wmodel=wmodel, metadata=["docno", "body"], num_results=5)
+        br1 = pt.terrier.Retriever(index, wmodel=wmodel, metadata=["docno", "body"], num_results=5)
         input = dataset.get_topics().head(10)
         output1 = br1(input)
         self.assertTrue( "body" in output1.columns )
         input2 = output1[["qid", "query", "docno", "body"]]
-        br2 = pt.batchretrieve.TextScorer(background_index=index, wmodel=wmodel, verbose=True)
+        br2 = pt.terrier.TextScorer(background_index=index, wmodel=wmodel, verbose=True)
         output2 = br2(input2)
         self.assertTrue( "score" in output2.columns )
 
@@ -52,7 +52,7 @@ class TestScoring(TempDirTestCase):
 
     def test_scoring_manual_empty(self):
         input = pd.DataFrame([["q1", "fox", "d1", ""]], columns=["qid", "query", "docno", "body"])
-        from pyterrier.batchretrieve import TextScorer
+        from pyterrier.terrier.retriever import TextScorer
         scorer = TextScorer(wmodel="Tf")
         rtr = scorer(input)
         self.assertEqual(1, len(rtr))
@@ -62,7 +62,7 @@ class TestScoring(TempDirTestCase):
 
     def test_scoring_manual(self):
         input = pd.DataFrame([["q1", "fox", "d1", "all the fox were fox"]], columns=["qid", "query", "docno", "body"])
-        from pyterrier.batchretrieve import TextScorer
+        from pyterrier.terrier.retriever import TextScorer
         scorer = TextScorer(wmodel="Tf")
         rtr = scorer(input)
         self.assertEqual(1, len(rtr))
@@ -78,7 +78,7 @@ class TestScoring(TempDirTestCase):
 
     def test_scoring_manual_background(self):
         input = pd.DataFrame([["q1", "fox", "d1", "all the fox were fox"]], columns=["qid", "query", "docno", "body"])
-        from pyterrier.batchretrieve import TextScorer
+        from pyterrier.terrier.retriever import TextScorer
         scorer = TextScorer(wmodel="Tf", background_index=pt.get_dataset("vaswani").get_index())
         rtr = scorer(input)
         self.assertEqual(1, len(rtr))
@@ -94,8 +94,7 @@ class TestScoring(TempDirTestCase):
         
     def test_scoring_qe(self):
         input = pd.DataFrame([["q1", "fox", "d1", "all the fox were fox"]], columns=["qid", "query", "docno", "body"])
-        from pyterrier.batchretrieve import TextScorer
-        scorer = pt.batchretrieve.TextIndexProcessor(pt.rewrite.Bo1QueryExpansion, takes="docs", returns="queries")
+        scorer = pt.terrier.retriever.TextIndexProcessor(pt.rewrite.Bo1QueryExpansion, takes="docs", returns="queries")
         rtr = scorer(input)
         self.assertTrue("qid" in rtr.columns)
         self.assertTrue("query" in rtr.columns)

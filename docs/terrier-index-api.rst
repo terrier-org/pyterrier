@@ -26,9 +26,9 @@ IndexRefs can also be obtained from a PyTerrier dataset::
 
     indexref = dataset.get_index()
 
-IndexRef objects can be directly passed to BatchRetrieve::
+IndexRef objects can be directly passed to Retriever::
 
-    pt.BatchRetrieve(indexref).search("chemical reactions")
+    pt.terrier.Retriever(indexref).search("chemical reactions")
 
 If you want to access the underlying data structures, you need to use IndexFactory, using the indexref, or the string location:: 
     
@@ -36,7 +36,7 @@ If you want to access the underlying data structures, you need to use IndexFacto
     #or
     index = pt.IndexFactory.of("/path/to/data.properties")
 
-NB: BatchRetrieve will accept anything "index-like", i.e. a string location of an index, an IndexRef or an Index.
+NB: Retriever will accept anything "index-like", i.e. a string location of an index, an IndexRef or an Index.
 
 We can also ask for the index to be loaded into memory::
 
@@ -170,4 +170,33 @@ of the term (obtained from the Lexicon, in the form of the LexiconEntry), as wel
         score = wmodel.score(posting)
         print("%s with score %0.4f"  % (docno, score))
 
-Note that using BatchRetrieve or similar is probably an easier prospect for such a use case.
+Note that using Retriever or similar is probably an easier prospect for such a use case.
+
+Can I get the index as a corpus_iter()?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A corpus_iter can be obtained from an Index object, which allows for instance:
+ - indexing the pre-tokenised Terrier index directly in another indexing pipeline
+ - extracting document metadata for ingestion into another indexing pipeline
+
+Metadata Example::
+
+    iter = index.get_corpus_iter(return_toks=False)
+    next(iter)
+    # would display {'docno' : 'd1', 'text' : 'This document contains ...' }
+    # assuming that index has been built with metadata=['docno', 'text']
+
+Pre-tokenised Example::
+
+    iter = index.get_corpus_iter()
+    next(iter)
+    # would display {'docno' : 'd1', 'toks' : {'a' : 1, 'the' : 2}}
+
+Document Pruning Example::
+
+    index_pipe = (
+        # update the toks column for each document, keeping only terms with frequency > 1
+        pt.apply.toks(lambda row: { t : row['toks'][t] for t in row['toks'] if row['toks'][t] > 1 } ) 
+        >> pt.IterDictIndexer("./pruned_index", pretokenised=True)
+    )
+    new_index_ref = index_pipe.index( index.get_corpus_iter())

@@ -1,6 +1,5 @@
-
+import pyterrier as pt
 from . import Transformer, Estimator
-from .apply import doc_score, doc_features
 from .model import add_ranks
 from typing import Sequence, Union, Tuple
 import numpy as np, pandas as pd
@@ -244,7 +243,7 @@ def feature_to_score(fid : int) -> Transformer:
         Args: 
             fid: a single feature id that should be kept
     """
-    return doc_score(lambda row : row["features"][fid])
+    return pt.apply.doc_score(lambda row : row["features"][fid])
 
 def apply_learned_model(learner, form : str = 'regression', **kwargs) -> Transformer:
     """
@@ -276,12 +275,12 @@ def score_to_feature() -> Transformer:
 
         Example::
 
-            cands = pt.BatchRetrieve(index, wmodel="BM25")
-            bm25f = pt.BatchRetrieve(index, wmodel="BM25F")
-            pl2f = pt.BatchRetrieve(index, wmodel="PL2F")
+            cands = pt.terrier.Retriever(index, wmodel="BM25")
+            bm25f = pt.terrier.Retriever(index, wmodel="BM25F")
+            pl2f = pt.terrier.Retriever(index, wmodel="PL2F")
             
             two_features = cands >> (bm25f  **  pl2f)
             three_features = cands >> (bm25f  **  pl2f ** pt.ltr.score_to_feature())  
 
     """
-    return doc_features(lambda row : np.array(row["score"]))
+    return pt.apply.doc_features(lambda row : np.array(row["score"]))

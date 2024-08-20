@@ -11,11 +11,11 @@ each defined dataset can download and provide easy access to:
  - relevance assessments (aka, labels or qrels), as a dataframe, ready for evaluation
  - ready-made Terrier indices, where appropriate
 
-.. autofunction:: pyterrier.datasets.list_datasets()
+.. autofunction:: pyterrier.datasets.list_datasets
 
-.. autofunction:: pyterrier.datasets.find_datasets()
+.. autofunction:: pyterrier.datasets.find_datasets
 
-.. autofunction:: pyterrier.datasets.get_dataset()
+.. autofunction:: pyterrier.datasets.get_dataset
 
 .. autoclass:: pyterrier.datasets.Dataset
     :members:
@@ -27,8 +27,8 @@ Many of the PyTerrier unit tests are based on the `Vaswani NPL test collection <
 PyTerrier provides a ready-made index on the `Terrier Data Repository <http://data.terrier.org/>`_. This allows experiments to be easily conducted::
 
     dataset = pt.get_dataset("vaswani")
-    bm25 = pt.BatchRetrieve.from_dataset(dataset, "terrier_stemmed", wmodel="BM25")
-    dph = pt.BatchRetrieve.from_dataset(dataset, "terrier_stemmed", wmodel="DPH")
+    bm25 = pt.terrier.Retriever.from_dataset(dataset, "terrier_stemmed", wmodel="BM25")
+    dph = pt.terrier.Retriever.from_dataset(dataset, "terrier_stemmed", wmodel="DPH")
     pt.Experiment(
         [bm25, dph],
         dataset.get_topics(),
@@ -44,8 +44,8 @@ Indexing and then retrieval of documents from the `MSMARCO document corpus <http
     indexref = indexer.index(dataset.get_corpus())
     index = pt.IndexFactory.of(indexref)
 
-    DPH_br = pt.BatchRetrieve(index, wmodel="DPH") % 100
-    BM25_br = pt.BatchRetrieve(index, wmodel="BM25") % 100
+    DPH_br = pt.terrier.Retriever(index, wmodel="DPH") % 100
+    BM25_br = pt.terrier.Retriever(index, wmodel="BM25") % 100
     # this runs an experiment to obtain results on the TREC 2019 Deep Learning track queries and qrels
     pt.Experiment(
         [DPH_br, BM25_br], 
@@ -62,8 +62,8 @@ You can also index datasets that include a corpus using IterDictIndexer and get_
     indexref = indexer.index(dataset.get_corpus_iter(), fields=('title', 'abstract'))
     index = pt.IndexFactory.of(indexref)
 
-    DPH_br = pt.BatchRetrieve(index, wmodel="DPH") % 100
-    BM25_br = pt.BatchRetrieve(index, wmodel="BM25") % 100
+    DPH_br = pt.terrier.Retriever(index, wmodel="DPH") % 100
+    BM25_br = pt.terrier.Retriever(index, wmodel="BM25") % 100
     # this runs an experiment to obtain results on the TREC COVID queries and qrels
     pt.Experiment(
         [DPH_br, BM25_br], 

@@ -39,7 +39,15 @@ def get_version(rel_path):
 requirements = []
 with open('requirements.txt', 'rt') as f:
     for req in f.read().splitlines():
+        # A line that begins with # is treated as a comment and ignored. Whitespace followed 
+        # by a # causes the # and the remainder of the line to be treated as a comment.
+        if req.startswith("#"):
+            continue
+        req = req.split(" #")[0]
+        if req.strip() == "":
+            continue
         if req.startswith('git+'):
+            # support for git urls
             pkg_name = req.split('/')[-1].replace('.git', '')
             if "#egg=" in pkg_name:
                 pkg_name = pkg_name.split("#egg=")[1]
@@ -53,6 +61,12 @@ setup(
     author="Craig Macdonald",
     author_email='craigm@dcs.gla.ac.uk',
     description="Terrier IR platform Python API",
+    project_urls={
+        'Documentation': 'https://pyterrier.readthedocs.io',
+        'Changelog': 'https://github.com/terrier-org/pyterrier/releases',
+        'Issue Tracker': 'https://github.com/terrier-org/pyterrier/issues',
+        'CI': 'https://github.com/terrier-org/pyterrier/actions',
+    },
     long_description=long_description,
     long_description_content_type="text/markdown",
     package_data={'': ['LICENSE.txt', 'requirements.txt', 'requirements-test.txt']},
@@ -64,6 +78,13 @@ setup(
         "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
         "Operating System :: OS Independent",
     ],
+    entry_points={
+        'pyterrier.java.init': [
+            'pyterrier.java          = pyterrier.java:CoreJavaInit',
+            'pyterrier.terrier.java  = pyterrier.terrier.java:TerrierJavaInit',
+            'pyterrier.anserini.java = pyterrier.anserini.java:AnseriniJavaInit',
+        ],
+    },
     install_requires=requirements,
-    python_requires='>=3.7',
+    python_requires='>=3.8',
 )
