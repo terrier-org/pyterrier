@@ -53,6 +53,12 @@ setup(
     author="Craig Macdonald",
     author_email='craigm@dcs.gla.ac.uk',
     description="Terrier IR platform Python API",
+    project_urls={
+        'Documentation': 'https://pyterrier.readthedocs.io',
+        'Changelog': 'https://github.com/terrier-org/pyterrier/releases',
+        'Issue Tracker': 'https://github.com/terrier-org/pyterrier/issues',
+        'CI': 'https://github.com/terrier-org/pyterrier/actions',
+    },
     long_description=long_description,
     long_description_content_type="text/markdown",
     package_data={'': ['LICENSE.txt', 'requirements.txt', 'requirements-test.txt']},
@@ -64,6 +70,13 @@ setup(
         "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
         "Operating System :: OS Independent",
     ],
+    entry_points={
+        'pyterrier.java.init': [
+            'pyterrier.java          = pyterrier.java:CoreJavaInit',
+            'pyterrier.terrier.java  = pyterrier.terrier.java:TerrierJavaInit',
+            'pyterrier.anserini.java = pyterrier.anserini.java:AnseriniJavaInit',
+        ],
+    },
     install_requires=requirements,
-    python_requires='>=3.7',
+    python_requires='>=3.8',
 )

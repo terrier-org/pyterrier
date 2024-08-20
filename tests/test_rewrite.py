@@ -8,6 +8,15 @@ import pyterrier.transformer as ptt;
 from matchpy import *
 from .base import TempDirTestCase
 
+def normalize_term_weights(term_weights, digits=7):
+    ret = ''
+    for i in term_weights.split():
+        if '^' in i:
+            i = i.split('^')
+            i = i[0] + '^' + i[1][:digits]
+        ret += ' ' + i
+    return ret.strip()
+
 class TestRewrite(TempDirTestCase):
 
     def test_stash_results_noclear(self):
@@ -71,10 +80,10 @@ class TestRewrite(TempDirTestCase):
 
     def test_save_docs_CE(self):
         index = pt.get_dataset("vaswani").get_index()
-        dph = pt.BatchRetrieve(index, wmodel="DPH")
+        dph = pt.terrier.Retriever(index, wmodel="DPH")
         pipe = dph \
             >> pt.rewrite.stash_results() \
-            >> pt.BatchRetrieve(index, wmodel="BM25") \
+            >> pt.terrier.Retriever(index, wmodel="BM25") \
             >> pt.rewrite.Bo1QueryExpansion(index) \
             >> pt.rewrite.reset_results() \
             >> dph
@@ -87,19 +96,19 @@ class TestRewrite(TempDirTestCase):
         # check columns are passed through where we expect
         pipeP3 = dph \
             >> pt.rewrite.stash_results() \
-            >> pt.BatchRetrieve(index, wmodel="BM25")
+            >> pt.terrier.Retriever(index, wmodel="BM25")
         res3 = pipeP3.search("chemical reactions")
         self.assertIn("stashed_results_0", res3.columns)
         pipeP4 = dph \
             >> pt.rewrite.stash_results() \
-            >> pt.BatchRetrieve(index, wmodel="BM25") \
+            >> pt.terrier.Retriever(index, wmodel="BM25") \
             >> pt.rewrite.Bo1QueryExpansion(index)
         res4 = pipeP3.search("chemical reactions")
         self.assertIn("stashed_results_0", res4.columns)
     
     def test_save_docs_QE(self):
         index = pt.get_dataset("vaswani").get_index()
-        dph = pt.BatchRetrieve(index, wmodel="DPH")
+        dph = pt.terrier.Retriever(index, wmodel="DPH")
         pipe = dph \
             >> pt.rewrite.stash_results(clear=False) \
             >> pt.rewrite.Bo1QueryExpansion(index) \
@@ -128,12 +137,12 @@ class TestRewrite(TempDirTestCase):
         self.assertEqual(outputDF.iloc[3]["query"], "one two")
 
     def test_sdm_freq(self):
-        if not pt.check_version("5.3"):
+        if not pt.terrier.check_version("5.3"):
             self.skipTest("Requires Terrier 5.3")
         self._sdm(True)
 
     def test_sdm(self):
-        if not pt.check_version("5.3"):
+        if not pt.terrier.check_version("5.3"):
             self.skipTest("Requires Terrier 5.3")
         self._sdm(False)
 
@@ -175,7 +184,7 @@ class TestRewrite(TempDirTestCase):
         self.assertTrue("#combine" in query2)
         self.assertEqual(queriesOut.iloc[1]["query_0"], "compact memories")
         
-        br_normal = pt.BatchRetrieve(indexref)
+        br_normal = pt.terrier.Retriever(indexref)
         pipe = sdm >> br_normal
 
         #check that we can get a str()
@@ -187,7 +196,7 @@ class TestRewrite(TempDirTestCase):
 
 
         # this BR should do the same thing as the pipe, but natively in Terrier
-        br_sdm = pt.BatchRetrieve(indexref,
+        br_sdm = pt.terrier.Retriever(indexref,
             controls = {"sd" :"on"}, 
             properties={"querying.processes" : "terrierql:TerrierQLParser,parsecontrols:TerrierQLToControls,"\
                     +"parseql:TerrierQLToMatchingQueryTerms,matchopql:MatchingOpQLParser,applypipeline:ApplyTermPipeline,"\
@@ -221,40 +230,141 @@ class TestRewrite(TempDirTestCase):
             pt.Evaluate(br_sdm.transform(t), dataset.get_qrels(), metrics=["map"])["map"], 
             places=4)
 
-    # RM3 cannot be tested with current jnius, as it must be placed into the boot classpath
-    # def test_rm3(self):
-    #     dataset = pt.datasets.get_dataset("vaswani")
-    #     indexref = dataset.get_index()
-
-    #     qe = pt.rewrite.RM3(indexref)
-    #     br = pt.BatchRetrieve(indexref)
-
-    #     queriesIn = pd.DataFrame([["1", "compact"]], columns=["qid", "query"])
-    #     res = br.transform(queriesIn)
-
-    #     queriesOut = qe.transform(res)
-    #     self.assertEqual(len(queriesOut), 1)
-    #     query = queriesOut.iloc[0]["query"]
-    #     #self.assertTrue("compact^1.82230972" in query)
-    #     self.assertTrue("applypipeline:off " in query)
+    def test_rm3_expansion_for_query_compact_on_tf_idf(self):
+        # top-retrieval results of TF-IDF and BM25 below change, so the RM3 weights differ
+        expected = 'applypipeline:off equip^0.037346367 ferrit^0.027371584 modul^0.027371584 suppli^0.037346367 design^0.056739070 microwav^0.027371584 anod^0.037346367 unit^0.037346367 compact^0.674414337 stabil^0.037346367'
         
-    #     pipe = br >> qe >> br
+        indexref = pt.datasets.get_dataset("vaswani").get_index()
+        queriesIn = pd.DataFrame([["1", "compact"]], columns=["qid", "query"])
 
-    #     # lets go faster, we only need 18 topics. qid 16 had a tricky case
-    #     t = dataset.get_topics().head(18)
+        qe = pt.rewrite.RM3(indexref)
+        br = pt.terrier.Retriever(indexref, wmodel='TF_IDF')
 
-    #     all_qe_res = pipe.transform(t)
-    #     map_pipe = pt.Evaluate(all_qe_res, dataset.get_qrels(), metrics=["map"])["map"]
+        actual = qe.transform(br.transform(queriesIn))
 
-    #     br_qe = pt.BatchRetrieve(indexref, 
-    #         controls={"qe":"on"},
-    #         properties={"querying.processes" : "terrierql:TerrierQLParser,parsecontrols:TerrierQLToControls,"\
-    #                 +"parseql:TerrierQLToMatchingQueryTerms,matchopql:MatchingOpQLParser,applypipeline:ApplyTermPipeline,"\
-    #                 +"sd:DependenceModelPreProcess,localmatching:LocalManager$ApplyLocalMatching,qe:RM3,"\
-    #                 +"labels:org.terrier.learning.LabelDecorator,filters:LocalManager$PostFilterProcess"})
-    #     map_qe = pt.Evaluate(br_qe.transform(t), dataset.get_qrels(), metrics=["map"])["map"]
+        self.assertEqual(len(actual), 1)
+        self.assertEqual(normalize_term_weights(expected), normalize_term_weights(actual.iloc[0]["query"]))
 
-    #     self.assertAlmostEqual(map_qe, map_pipe, places=4)
+    def test_rm3_expansion_for_query_compact_on_bm25(self):
+        # top-retrieval results of BM25 and TF-IDF above change, so the RM3 weights differ
+        expected = 'applypipeline:off equip^0.040264644 ferrit^0.025508024 modul^0.025508024 suppli^0.040264644 design^0.051008239 microwav^0.025508024 anod^0.040264644 unit^0.040264644 compact^0.671144485 stabil^0.040264644'
+        
+        indexref = pt.datasets.get_dataset("vaswani").get_index()
+        queriesIn = pd.DataFrame([["1", "compact"]], columns=["qid", "query"])
+
+        qe = pt.rewrite.RM3(indexref)
+        br = pt.terrier.Retriever(indexref, wmodel='BM25')
+
+        actual = qe.transform(br.transform(queriesIn))
+
+        self.assertEqual(len(actual), 1)
+        self.assertEqual(normalize_term_weights(expected), normalize_term_weights(actual.iloc[0]["query"]))
+
+    def test_axiomatic_qe_expansion_for_query_compact_on_bm25(self):
+        # just ensure that AxiomaticQE results do not change
+        expected = 'applypipeline:off compact^1.000000000'
+        
+        indexref = pt.datasets.get_dataset("vaswani").get_index()
+        queriesIn = pd.DataFrame([["1", "compact"]], columns=["qid", "query"])
+
+        qe = pt.rewrite.AxiomaticQE(indexref)
+        br = pt.terrier.Retriever(indexref, wmodel='BM25')
+
+        actual = qe.transform(br.transform(queriesIn))
+
+        self.assertEqual(len(actual), 1)
+        self.assertEqual(expected, actual.iloc[0]["query"])
+
+    def test_kl_qe_expansion_for_query_compact_on_bm25(self):
+        # just ensure that KLQueryExpansion results do not change
+        expected = 'applypipeline:off compact^1.840895333 design^0.348370740 equip^0.000000000 purpos^0.000000000 instrument^0.000000000 ferrit^0.000000000 anod^0.000000000 aircraft^0.000000000 microwav^0.000000000 sideband^0.000000000'
+        
+        indexref = pt.datasets.get_dataset("vaswani").get_index()
+        queriesIn = pd.DataFrame([["1", "compact"]], columns=["qid", "query"])
+
+        qe = pt.rewrite.KLQueryExpansion(indexref)
+        br = pt.terrier.Retriever(indexref, wmodel='BM25')
+
+        actual = qe.transform(br.transform(queriesIn))
+
+        self.assertEqual(len(actual), 1)
+        self.assertEqual(expected, actual.iloc[0]["query"])
+
+    def test_bo1_qe_expansion_for_query_compact_on_bm25(self):
+        # just ensure that Bo1QueryExpansion results do not change
+        expected = 'applypipeline:off compact^1.822309726 design^0.287992096 equip^0.000000000 purpos^0.000000000 instrument^0.000000000 ferrit^0.000000000 anod^0.000000000 aircraft^0.000000000 microwav^0.000000000 sideband^0.000000000'
+        
+        indexref = pt.datasets.get_dataset("vaswani").get_index()
+        queriesIn = pd.DataFrame([["1", "compact"]], columns=["qid", "query"])
+
+        qe = pt.rewrite.Bo1QueryExpansion(indexref)
+        br = pt.terrier.Retriever(indexref, wmodel='BM25')
+
+        actual = qe.transform(br.transform(queriesIn))
+
+        self.assertEqual(len(actual), 1)
+        self.assertEqual(expected, actual.iloc[0]["query"])
+
+    def test_dfr_qe_expansion_for_query_compact_on_bm25(self):
+        # just ensure that DFRQueryExpansion results do not change
+        expected = 'applypipeline:off compact^1.822309726 design^0.287992096 equip^0.000000000 purpos^0.000000000 instrument^0.000000000 ferrit^0.000000000 anod^0.000000000 aircraft^0.000000000 microwav^0.000000000 sideband^0.000000000'
+        
+        indexref = pt.datasets.get_dataset("vaswani").get_index()
+        queriesIn = pd.DataFrame([["1", "compact"]], columns=["qid", "query"])
+
+        qe = pt.rewrite.DFRQueryExpansion(indexref)
+        br = pt.terrier.Retriever(indexref, wmodel='BM25')
+
+        actual = qe.transform(br.transform(queriesIn))
+
+        self.assertEqual(len(actual), 1)
+        self.assertEqual(expected, actual.iloc[0]["query"])
+
+    def test_rm3_end_to_end(self):
+        """An end-to-end test, contrasting the smaller tests (that fail faster) from above.
+        """
+        dataset = pt.datasets.get_dataset("vaswani")
+        indexref = dataset.get_index()
+
+        qe = pt.rewrite.RM3(indexref)
+        br = pt.terrier.Retriever(indexref)
+
+        queriesIn = pd.DataFrame([["1", "compact"]], columns=["qid", "query"])
+        res = br.transform(queriesIn)
+
+        queriesOut = qe.transform(res)
+        self.assertEqual(len(queriesOut), 1)
+        query = queriesOut.iloc[0]["query"]
+        #self.assertTrue("compact^1.82230972" in query)
+        self.assertTrue("applypipeline:off " in query)
+        
+        pipe = br >> qe >> br
+
+        # lets go faster, we only need 18 topics. qid 16 had a tricky case
+        t = dataset.get_topics().head(18)
+
+        all_qe_res = pipe.transform(t)
+        map_pipe = pt.Evaluate(all_qe_res, dataset.get_qrels(), metrics=["map"])["map"]
+
+        br_qe = pt.terrier.Retriever(indexref, 
+            controls={"qe":"on"},
+            properties={"querying.processes" : "terrierql:TerrierQLParser,parsecontrols:TerrierQLToControls,"\
+                    +"parseql:TerrierQLToMatchingQueryTerms,matchopql:MatchingOpQLParser,applypipeline:ApplyTermPipeline,"\
+                    +"sd:DependenceModelPreProcess,localmatching:LocalManager$ApplyLocalMatching,qe:RM3,"\
+                    +"labels:org.terrier.learning.LabelDecorator,filters:LocalManager$PostFilterProcess"})
+        map_qe = pt.Evaluate(br_qe.transform(t), dataset.get_qrels(), metrics=["map"])["map"]
+
+        self.assertAlmostEqual(map_qe, map_pipe, places=2)
+
+    def test_scoring_rm3_qe(self):
+        expected = 'applypipeline:off fox^0.600000024'
+        input = pd.DataFrame([["q1", "fox", "d1", "all the fox were fox", 3], ["q1", "fox", "d2", "brown fox jumps", 2]], columns=["qid", "query", "docno", "body", "score"])
+        scorer = pt.terrier.retriever.TextIndexProcessor(pt.rewrite.RM3, takes="docs", returns="queries")
+        rtr = scorer(input)
+        self.assertTrue("qid" in rtr.columns)
+        self.assertTrue("query" in rtr.columns)
+        self.assertTrue("docno" not in rtr.columns)
+        self.assertTrue(expected, rtr.iloc[0]["query"])
 
     def test_linear_terrierql(self):
         pipe = pt.apply.query(lambda row: "az") >> pt.rewrite.linear(0.75, 0.25)
@@ -289,7 +399,7 @@ class TestRewrite(TempDirTestCase):
         self.assertEqual('a b', pt.rewrite.tokenise(lambda q : q.split('/')).search("a/b").iloc[0].query)
 
     def test_qe(self):
-        if not pt.check_version("5.3"):
+        if not pt.terrier.check_version("5.3"):
             self.skipTest("Requires Terrier 5.3")
         dataset = pt.datasets.get_dataset("vaswani")
         indexref = dataset.get_index()
@@ -303,7 +413,7 @@ class TestRewrite(TempDirTestCase):
         qrels = dataset.get_qrels()
 
         for qe in [qe3]:
-            br = pt.BatchRetrieve(index)
+            br = pt.terrier.Retriever(index)
 
             queriesIn = pd.DataFrame([["1", "compact"]], columns=["qid", "query"])
             res = br.transform(queriesIn)
@@ -324,7 +434,7 @@ class TestRewrite(TempDirTestCase):
             all_qe_res = pipe.transform(t)
             map_pipe = pt.Evaluate(all_qe_res, qrels, metrics=["map"])["map"]
 
-            br_qe = pt.BatchRetrieve(indexref, controls={"qe":"on"})
+            br_qe = pt.terrier.Retriever(indexref, controls={"qe":"on"})
             map_qe = pt.Evaluate(br_qe.transform(t), qrels, metrics=["map"])["map"]
 
             self.assertAlmostEqual(map_qe, map_pipe, places=4)

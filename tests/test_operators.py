@@ -269,9 +269,9 @@ class TestOperators(BaseTestCase):
     def test_feature_union_multi_actual(self):
         dataset = pt.get_dataset("vaswani")
         index = dataset.get_index()
-        BM25 = pt.BatchRetrieve(index, wmodel="BM25")
-        TF_IDF = pt.BatchRetrieve(index, wmodel="TF_IDF")
-        PL2 = pt.BatchRetrieve(index, wmodel="PL2")
+        BM25 = pt.terrier.Retriever(index, wmodel="BM25")
+        TF_IDF = pt.terrier.Retriever(index, wmodel="TF_IDF")
+        PL2 = pt.terrier.Retriever(index, wmodel="PL2")
         pipe = BM25 >> (pt.transformer.IdentityTransformer() ** TF_IDF ** PL2)
 
         def _check(expression):
@@ -292,7 +292,6 @@ class TestOperators(BaseTestCase):
 
     def test_feature_union_multi(self):
         import pyterrier.ops as pto
-        import pyterrier.batchretrieve
         mock0 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 0], ["q1", "doc2", 0]], columns=["qid", "docno", "score"]), uniform=True)
 
         mock1 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 5], ["q1", "doc2", 0]], columns=["qid", "docno", "score"]), uniform=True)
@@ -338,7 +337,7 @@ class TestOperators(BaseTestCase):
         
         self.assertEqual(2, len(mock12a.models))
         self.assertEqual(2, len(mock12a.models))
-        pyterrier.batchretrieve.setup_rewrites()
+        pt.terrier.retriever.setup_rewrites()
 
         mock123_simple = mock123a.compile()
         self.assertIsNotNone(mock123_simple)

@@ -1,6 +1,6 @@
 from . import Transformer
 import hashlib
-from . import HOME_DIR
+import pyterrier as pt
 import os
 from os import path
 import pandas as pd
@@ -28,7 +28,7 @@ def sizeof_fmt(num):
 
 def init():
     global CACHE_DIR
-    CACHE_DIR = path.join(HOME_DIR,"transformer_cache") 
+    CACHE_DIR = path.join(pt.io.pyterrier_home(), "transformer_cache") 
 
 def list_cache():
     if CACHE_DIR is None:
@@ -71,7 +71,7 @@ class ChestCacheTransformer(Transformer):
 
             dataset = pt.get_dataset("trec-robust-2004")
             # use for first pass and 2nd pass
-            BM25 = pt.BatchRetrieve(index, wmodel="BM25")
+            BM25 = pt.terrier.Retriever(index, wmodel="BM25")
 
             # used for query expansion
             RM3 = pt.rewrite.RM3(index)

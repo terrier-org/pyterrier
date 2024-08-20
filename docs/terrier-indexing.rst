@@ -20,18 +20,17 @@ TerrierIndexer
 
 All indexer classes extend ``TerrierIndexer``. Common indexer contrustor arguments for all four indexers are shown below.
 
-.. autoclass:: pyterrier.index.TerrierIndexer
+.. autoclass:: pyterrier.terrier.TerrierIndexer
 
 TRECCollectionIndexer
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autoclass:: pyterrier.TRECCollectionIndexer
+.. autoclass:: pyterrier.terrier.TRECCollectionIndexer
    :members: index
 
 Example indexing the TREC WT2G corpus::
 
     import pyterrier as pt
-    pt.init()
     # list of filenames to index
     files = pt.io.find_files("/path/to/WT2G/wt2g-corpus/")
 
@@ -47,13 +46,13 @@ Example indexing the TREC WT2G corpus::
 FilesIndexer
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autoclass:: pyterrier.FilesIndexer
+.. autoclass:: pyterrier.terrier.FilesIndexer
    :members: index
 
 DFIndexer
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autoclass:: pyterrier.DFIndexer
+.. autoclass:: pyterrier.terrier.DFIndexer
    :members: index
 
 Example indexing a dataframe::
@@ -79,7 +78,7 @@ Example indexing a dataframe::
 IterDictIndexer
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autoclass:: pyterrier.IterDictIndexer
+.. autoclass:: pyterrier.terrier.IterDictIndexer
    :members: index
 
 **Examples using IterDictIndexer**
@@ -130,7 +129,7 @@ NB: Use ``pt.io.autoopen()`` as a drop-in replacement for ``open()`` that suppor
 If you have TREC-formatted files that you wish to use with an IterDictIndexer-like indexer, ``pt.index.treccollection2textgen()`` can be used
 as a helper function to aid in parsing such files.
 
-.. autofunction:: pyterrier.index.treccollection2textgen
+.. autofunction:: pyterrier.terrier.treccollection2textgen
 
 Example using Indexing Pipelines::
 
@@ -165,7 +164,7 @@ indexing configurations, and how to apply them when indexing using PyTerrier, no
 Terrier has three different types of indexer. The choice of indexer is exposed using the ``type`` kwarg 
 to the indexer class. The indexer type can be set using the ``IndexingType`` enum.
 
-.. autoclass:: pyterrier.index.IndexingType
+.. autoclass:: pyterrier.terrier.IndexingType
    :inherited-members: CLASSIC, SINGLEPASS, MEMORY
 
 **Stemming configuation or stopwords**
@@ -174,7 +173,7 @@ The default Terrier indexing configuration is to apply an English stopword list,
 
     indexer = pt.IterDictIndexer(stemmer='SpanishSnowballStemmer', stopwords=None)
 
-.. autoclass:: pyterrier.index.TerrierStemmer
+.. autoclass:: pyterrier.terrier.TerrierStemmer
    :inherited-members: 
 
 See also the `org.terrier.terms <http://terrier.org/docs/current/javadoc/org/terrier/terms/package-summary.html>`_ package for a list of 
@@ -182,7 +181,7 @@ the available term pipeline objects provided by Terrier.
 
 Similarly the use of Terrier's English stopword list can be disabled using the ``stopwords`` kwarg.
 
-.. autoclass:: pyterrier.index.TerrierStopwords
+.. autoclass:: pyterrier.terrier.TerrierStopwords
    :inherited-members: 
 
 A custom stopword list can be set by setting the ``stopwords`` kwarg to a list of words::
@@ -198,7 +197,7 @@ package. For instance, its common to use `UTFTokeniser` when indexing non-Englis
 
     indexer = pt.IterDictIndexer(stemmer=None, stopwords=None, tokeniser="UTFTokeniser")
 
-.. autoclass:: pyterrier.index.TerrierTokeniser
+.. autoclass:: pyterrier.terrier.TerrierTokeniser
    :inherited-members: 
 
 
@@ -256,10 +255,10 @@ This allows tokenisation using, for instance, the `HuggingFace tokenizers <https
     ])
 
 At retrieval time, WordPieces that contain special characters (e.g. `'##w'` `'[SEP]'`) need to be encoded so as to avoid Terrier's tokeniser. 
-We use ``pt.rewrite.tokenise()`` to apply a tokeniser to the query, setting ``matchop`` to True, such that ``pt.BatchRetrieve.matchop()`` 
+We use ``pt.rewrite.tokenise()`` to apply a tokeniser to the query, setting ``matchop`` to True, such that ``pt.terrier.Retriever.matchop()`` 
 is called to ensure that rewritten query terms are properly encoded::
 
-    br = pt.BatchRetrieve(indexref)
+    br = pt.terrier.Retriever(indexref)
     tok = AutoTokenizer.from_pretrained("bert-base-uncased")
     query_toks = pt.rewrite.tokenise(tok.tokenize, matchop=True)
     retr_pipe = query_toks >> br

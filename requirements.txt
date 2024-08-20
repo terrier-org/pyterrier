@@ -4,13 +4,11 @@ wget
 tqdm
 pyjnius>=1.4.2
 matchpy
-scikit-learn
 deprecated
 chest
 scipy
 requests
 joblib
-nptyping==1.4.4
 more_itertools
 ir_datasets>=0.3.2
 statsmodels

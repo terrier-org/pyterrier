@@ -1,6 +1,6 @@
 import pandas as pd
 import pyterrier as pt
-from .base import BaseTestCase
+from .base import BaseTestCase, parallel_test
 
 
 class TestGrid(BaseTestCase):
@@ -8,7 +8,7 @@ class TestGrid(BaseTestCase):
     def test_gridscan_2pipe_2params(self):
         dataset = pt.get_dataset("vaswani")
         index = pt.IndexFactory.of(dataset.get_index())
-        PL2 = pt.BatchRetrieve(index, wmodel="PL2", controls={'c' : 1})
+        PL2 = pt.terrier.Retriever(index, wmodel="PL2", controls={'c' : 1})
         bo1 = pt.rewrite.Bo1QueryExpansion(index)
         pipe = PL2 >> bo1 >> PL2                
 
@@ -26,7 +26,7 @@ class TestGrid(BaseTestCase):
 
     def test_gridscan_2params(self):
         dataset = pt.get_dataset("vaswani")
-        pipe = pt.BatchRetrieve(dataset.get_index(), wmodel="PL2", controls={'c' : 1})
+        pipe = pt.terrier.Retriever(dataset.get_index(), wmodel="PL2", controls={'c' : 1})
         self.assertEqual(1, pipe.get_parameter('c'))
         self.assertEqual("PL2", pipe.get_parameter('wmodel'))
         rtr = pt.GridScan(
@@ -41,7 +41,7 @@ class TestGrid(BaseTestCase):
 
     def test_gridscan_1param(self):
         dataset = pt.get_dataset("vaswani")
-        pipe = pt.BatchRetrieve(dataset.get_index(), wmodel="PL2", controls={'c' : 1})
+        pipe = pt.terrier.Retriever(dataset.get_index(), wmodel="PL2", controls={'c' : 1})
         self.assertEqual(1, pipe.get_parameter('c'))
         rtr = pt.GridScan(
             pipe, 
@@ -55,7 +55,7 @@ class TestGrid(BaseTestCase):
     
     def test_gridscan_1param_df(self):
         dataset = pt.get_dataset("vaswani")
-        pipe = pt.BatchRetrieve(dataset.get_index(), wmodel="PL2", controls={'c' : 1})
+        pipe = pt.terrier.Retriever(dataset.get_index(), wmodel="PL2", controls={'c' : 1})
         self.assertEqual(1, pipe.get_parameter('c'))
         rtr = pt.GridScan(
             pipe, 
@@ -68,10 +68,11 @@ class TestGrid(BaseTestCase):
         self.assertTrue(isinstance(rtr, pd.DataFrame))
         #print(rtr)
 
+    @parallel_test
     def test_gridscan_joblib2(self):
         self.skip_windows()
         dataset = pt.get_dataset("vaswani")
-        pipe = pt.BatchRetrieve(dataset.get_index(), wmodel="PL2", controls={'c' : 1})
+        pipe = pt.terrier.Retriever(dataset.get_index(), wmodel="PL2", controls={'c' : 1})
         self.assertEqual(1, pipe.get_parameter('c'))
         rtr = pt.GridScan(
             pipe, 
@@ -86,7 +87,7 @@ class TestGrid(BaseTestCase):
 
     def test_gridsearch(self):
         dataset = pt.get_dataset("vaswani")
-        pipe = pt.BatchRetrieve(dataset.get_index(), wmodel="PL2", controls={'c' : 1})
+        pipe = pt.terrier.Retriever(dataset.get_index(), wmodel="PL2", controls={'c' : 1})
         rtr = pt.pipelines.GridSearch(
             pipe, 
             {pipe : {'c' : [0.1, 1, 5, 10, 20, 100]}}, 
@@ -106,7 +107,7 @@ class TestGrid(BaseTestCase):
             topics.iloc[6:7],
             topics.iloc[8:9]           
         ]
-        pipe = pt.BatchRetrieve(dataset.get_index(), wmodel="PL2", controls={'c' : 1})
+        pipe = pt.terrier.Retriever(dataset.get_index(), wmodel="PL2", controls={'c' : 1})
         rtrDf, rtrSettings = pt.KFoldGridSearch(
             pipe, 
             {pipe : {'c' : [0.1, 1, 5, 10, 20, 100]}},

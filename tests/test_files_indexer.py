@@ -44,8 +44,7 @@ class TestFilesIndexer(TempDirTestCase):
         # test title has been recorded in metaindex
         self.assertEqual("test title", index.getMetaIndex().getItem("title", html_pos))
 
-        from pyterrier import check_version
-        if not check_version("5.5"):
+        if not pt.terrier.check_version("5.5"):
             return
 
         # test bodies have been recorded in metaindex

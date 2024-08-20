@@ -4,3 +4,4 @@ fastrank>=0.7.0
 torch
 lz4
 transformers
+scikit-learn

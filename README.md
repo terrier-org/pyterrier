@@ -36,7 +36,7 @@ See the [indexing documentation](https://pyterrier.readthedocs.io/en/latest/terr
 ```python
 topics = pt.io.read_topics(topicsFile)
 qrels = pt.io.read_qrels(qrelsFile)
-BM25_br = pt.BatchRetrieve(index, wmodel="BM25")
+BM25_br = pt.terrier.Retriever(index, wmodel="BM25")
 res = BM25_br.transform(topics)
 pt.Evaluate(res, qrels, metrics = ['map'])
 ```
@@ -56,7 +56,7 @@ There is a worked example in the [experiment notebook](examples/notebooks/experi
 
 PyTerrier makes it easy to develop complex retrieval pipelines using Python operators such as `>>` to chain different retrieval components. Each retrieval approach is a [transformer](https://pyterrier.readthedocs.io/en/latest/transformer.html), having one key method, `transform()`, which takes a single Pandas dataframe as input, and returns another dataframe. Two examples might encapsulate applying the sequential dependence model, or a query expansion process:
 ```python
-sdm_bm25 = pt.rewrite.SDM() >> pt.BatchRetrieve(indexref, wmodel="BM25")
+sdm_bm25 = pt.rewrite.SDM() >> pt.terrier.Retriever(indexref, wmodel="BM25")
 bo1_qe = BM25_br >> pt.rewrite.Bo1QueryExpansion() >> BM25_br
 ```
 
@@ -71,6 +71,7 @@ PyTerrier has additional plugins for BERT (through OpenNIR), T5, ColBERT, ANCE, 
  - PyTerrier_ColBERT: [[Github](https://github.com/terrierteam/pyterrier_colbert)] - dense retrieval and/or neural reranking
  - PyTerrier_PISA: [[Github](https://github.com/terrierteam/pyterrier_pisa)] - fast in-memory indexing and retrieval using [PISA](https://github.com/pisa-engine/pisa)
  - PyTerrier_T5: [[Github](https://github.com/terrierteam/pyterrier_t5)] - neural reranking: monoT5, duoT5
+ - PyTerrier_GenRank [[Github](https://github.com/emory-irlab/pyterrier_genrank)] - generative listwise reranking: RankVicuna, RankZephyr
  - PyTerrier_doc2query: [[Github](https://github.com/terrierteam/pyterrier_doc2query)] - neural augmented indexing
  - PyTerrier_SPLADE: [[Github](https://github.com/cmacdonald/pyt_splade)] - neural augmented indexing
  - PyTerrier_DeepCT: [[Github](https://github.com/terrierteam/pyterrier_deepct)] - neural augmented indexing
@@ -82,8 +83,8 @@ You can see examples of how to use these, including notebooks that run on Google
 Complex learning to rank pipelines, including for learning-to-rank, can be constructed using PyTerrier's operator language. For example, to combine two features and make them available for learning, we can use the `**` operator.
 ```python
 two_features = BM25_br >> ( 
-  pt.BatchRetrieve(indexref, wmodel="DirichletLM") ** 
-  pt.BatchRetrieve(indexref, wmodel="PL2") 
+  pt.terrier.Retriever(indexref, wmodel="DirichletLM") ** 
+  pt.terrier.Retriever(indexref, wmodel="PL2") 
 )
 ```
 
@@ -162,3 +163,4 @@ By downloading and using PyTerrier, you agree to cite at the undernoted paper de
  - Sarawoot Kongyoung, University of Glasgow
  - Zhan Su, Copenhagen University
  - Marcus Schutte, TU Delft
+ - Lukas Zeit-Altpeter, Friedrich Schiller University Jena

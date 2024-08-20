@@ -40,8 +40,17 @@ def experiment_includes():
     # vaswani dataset provides an index, topics and qrels
 
     # lets generate two BRs to compare
-    tfidf = pt.BatchRetrieve(dataset.get_index(), wmodel="TF_IDF")
-    bm25 = pt.BatchRetrieve(dataset.get_index(), wmodel="BM25")
+    try:
+        indexref = dataset.get_index()
+    except ValueError:
+        import os, tempfile 
+        # if data.terrier.org is down, build the index
+        indexref = pt.IterDictIndexer(
+                os.path.join(tempfile.gettempdir(), "vaswani_index")
+            ).index(pt.get_dataset('vaswani').get_corpus_iter())
+
+    tfidf = pt.terrier.Retriever(indexref, wmodel="TF_IDF")
+    bm25 = pt.terrier.Retriever(indexref, wmodel="BM25")
 
     table = pt.Experiment(
         [tfidf, bm25],
