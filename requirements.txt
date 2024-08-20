@@ -1,18 +1,22 @@
+# core packages
 numpy
 pandas
-wget
-tqdm
-pyjnius>=1.4.2
-matchpy
-deprecated
-chest
-scipy
-requests
-joblib
+matchpy # used for optimisation of Transformer pipelines
 more_itertools
+tqdm
+# used by datasets
+requests
 ir_datasets>=0.3.2
-jinja2
-statsmodels
-ir_measures>=0.3.1
-dill
+wget # used by mavenresolver to download jar files 
+pyjnius>=1.4.2 # used by pt.java to execute Java code, such as Terrier and Anserini
+deprecated # used for marking APIs as deprecated
+scipy # used for significance testing
+# evaluation related:
+ir_measures>=0.3.1 # used for evaluation measure computation
 pytrec_eval_terrier>=0.5.3
+jinja2 # used to get rendering of colour in Pandas by pt.Experiment
+statsmodels # used for multiple testing correction
+# others
+dill # used for serialisation that is better than pickle, e.g. passing wmodel functions to terrier.Retriever
+joblib # used in parallel support 
+chest # used for caching
