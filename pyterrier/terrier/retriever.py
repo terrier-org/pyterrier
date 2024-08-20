@@ -9,6 +9,7 @@ from pyterrier.model import coerce_queries_dataframe, FIRST_RANK
 import concurrent
 from concurrent.futures import ThreadPoolExecutor
 import pyterrier as pt
+from typing import Dict
 
 _matchops = ["#combine", "#uw", "#1", "#tag", "#prefix", "#band", "#base64", "#syn"]
 def _matchop(query):
@@ -16,6 +17,18 @@ def _matchop(query):
         if m in query:
             return True
     return False
+
+def _querytoks2matchop(query_toks: Dict[str,float]) -> str:
+    def _matchop_tok(t, w):
+        import base64
+        import string
+        if not all(a in string.ascii_letters + string.digits for a in t):
+            encoded = base64.b64encode(t.encode('utf-8')).decode("utf-8") 
+            t = f'#base64({encoded})'
+        if w != 1:
+            t = f'#combine:0={w}({t})'
+        return t
+    return ' '.join([ _matchop_tok(t, w) for (t,w) in query_toks.items() ])
 
 @pt.java.required
 def _function2wmodel(function):
@@ -301,13 +314,19 @@ class Retriever(BatchRetrieveBase):
     def _retrieve_one(self, row, input_results=None, docno_provided=False, docid_provided=False, scores_provided=False):
         rank = FIRST_RANK
         qid = str(row.qid)
-        query = row.query
-        if len(query) == 0:
-            warn("Skipping empty query for qid %s" % qid)
-            return []
 
-        srq = self.manager.newSearchRequest(qid, query)
-        
+        # row is a namedtuple, whose fields are exposed in _fields
+        query_toks = 'query_toks' in row._fields
+        if query_toks:
+            query = ''
+            srq = self.manager.newSearchRequest(qid)
+        else:
+            query = row.query
+            if len(query) == 0:
+                warn("Skipping empty query for qid %s" % qid)
+                return []
+            srq = self.manager.newSearchRequest(qid, query)
+
         for control, value in self.controls.items():
             srq.setControl(control, str(value))
 
@@ -325,6 +344,14 @@ class Retriever(BatchRetrieveBase):
             srq.setControl("parsecontrols", "off")
             srq.setControl("parseql", "off")
             srq.setControl("matchopql", "on")
+
+        if query_toks: 
+            srq.setControl("terrierql", "off")
+            srq.setControl("parsecontrols", "off")
+            srq.setControl("parseql", "off")
+            srq.setControl("matchopql", "on")
+            query = _querytoks2matchop(row.query_toks)
+            srq.setOriginalQuery(query)
 
         #ask decorate only to grab what we need
         srq.setControl("decorate", ",".join(self.metadata))

@@ -56,6 +56,23 @@ class TestBatchRetrieve(BaseTestCase):
         result = retr.transform(input_set)
         self.assertEqual(10, len(result))
 
+    def test_br_query_toks(self):
+        indexloc = self.here + "/fixtures/index/data.properties"
+        
+        retr = pt.terrier.Retriever(indexloc)
+        query_terrier = 'applytermpipeline:off chemic^2 reaction^0.5'
+        result_terrier = retr.search(query_terrier)
+
+        query_matchop = '#combine:0=2:1=0.5(chemic reaction)'
+        result_matchop = retr.search(query_matchop)
+
+        query_toks = { 'chemic' : 2, 'reaction' : 0.5}
+        result_toks = retr.transform(pd.DataFrame([['1', query_toks]], columns=['qid', 'query_toks']))
+        
+        self.assertEqual(len(result_terrier), len(result_matchop))
+        self.assertEqual(len(result_terrier), len(result_toks))
+        
+
     def test_br_cutoff_stability(self):
         indexloc = self.here + "/fixtures/index/data.properties"
         input_set = pd.DataFrame([
@@ -197,7 +214,6 @@ class TestBatchRetrieve(BaseTestCase):
         except JavaException as ja:
             print(ja.stacktrace)
             raise ja
-        
 
     def test_num_python_wmodel(self):
         indexref = self.here+"/fixtures/index/data.properties"
