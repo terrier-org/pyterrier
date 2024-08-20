@@ -29,6 +29,7 @@ class TestPool(BaseTestCase):
         self.assertEqual(len(res), len(res2))
         pd.testing.assert_frame_equal(res, res2)
 
+    @parallel_test
     def test_br_multiprocess(self):
         return
         vaswani = pt.datasets.get_dataset("vaswani")
@@ -43,6 +44,7 @@ class TestPool(BaseTestCase):
             for res in pool.map(lambda topics : br(topics), [t, t, t]):
                 pd.testing.assert_frame_equal(res1, res)
 
+    @parallel_test
     def test_br_ray(self):
         self.skipTest("disabling ray")
         vaswani = pt.datasets.get_dataset("vaswani")
@@ -55,6 +57,7 @@ class TestPool(BaseTestCase):
                 res = res.sort_values(["qid", "docno"])
                 pd.testing.assert_frame_equal(res1, res)
 
+    @parallel_test
     def test_br_joblib(self):
         self.skip_windows()
         from pyterrier.parallel import _joblib_with_initializer

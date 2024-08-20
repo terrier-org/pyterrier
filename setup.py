@@ -39,7 +39,15 @@ def get_version(rel_path):
 requirements = []
 with open('requirements.txt', 'rt') as f:
     for req in f.read().splitlines():
+        # A line that begins with # is treated as a comment and ignored. Whitespace followed 
+        # by a # causes the # and the remainder of the line to be treated as a comment.
+        if req.startswith("#"):
+            continue
+        req = req.split(" #")[0]
+        if req.strip() == "":
+            continue
         if req.startswith('git+'):
+            # support for git urls
             pkg_name = req.split('/')[-1].replace('.git', '')
             if "#egg=" in pkg_name:
                 pkg_name = pkg_name.split("#egg=")[1]
@@ -75,9 +83,6 @@ setup(
             'pyterrier.java          = pyterrier.java:CoreJavaInit',
             'pyterrier.terrier.java  = pyterrier.terrier.java:TerrierJavaInit',
         ],
-        'pyterrier.modules': [
-            'apply = pyterrier.apply:_apply',
-        ]
     },
     install_requires=requirements,
     python_requires='>=3.8',

@@ -36,6 +36,9 @@ def set_prf_version(version: Optional[str] = None):
 
 
 class TerrierJavaInit(pt.java.JavaInitializer):
+    def priority(self) -> int:
+        return -10 # needs to be between pt.java.core (-100) and pt.anserini (0) to avoid issues with logger configs
+
     def pre_init(self, jnius_config):
         # Make sure the terrier.default.properties file exists and is registered as an option, which avoids an annoying
         # "No etc/terrier.properties, using terrier.default.properties for bootstrap configuration." message.
@@ -73,6 +76,10 @@ class TerrierJavaInit(pt.java.JavaInitializer):
 
         prf_jar = pt.java.mavenresolver.get_package_jar('com.github.terrierteam', 'terrier-prf', configure['prf_version'])
         jnius_config.add_classpath(prf_jar)
+
+        # This is for parallel -- it means that when re-configured in a parallel process, force_download will be False
+        # and mavenresolver will use the version that was just downloaded above (not try to do it again).
+        configure['force_download'] = False
 
 
     @pt.java.required_raise
