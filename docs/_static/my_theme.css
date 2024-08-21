@@ -1,3 +1,31 @@
 .wy-nav-content {
     max-width: 1200px !important;
 }
+
+button.sphinx-tabs-tab {
+    padding: 0.3rem 1rem;
+}
+
+button.sphinx-tabs-tab[aria-selected="true"] {
+    border-bottom-width: 2px;
+}
+
+.rst-content .sphinx-tabs-panel [class^="highlight"] {
+    margin: 0;
+}
+
+.rst-content .code-block-caption {
+    text-align: left;
+    background-color: #c8d9a6;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    font-weight: bold;
+    font-style: normal;
+    padding: 8px 12px;
+    border: 1px solid #e1e4e5;
+    border-bottom-width: 0;
+}
+
+.rst-content div[class^="highlight"] {
+    margin-top: 0;
+}
