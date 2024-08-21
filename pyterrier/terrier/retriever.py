@@ -316,9 +316,9 @@ class Retriever(BatchRetrieveBase):
         qid = str(row.qid)
 
         # row is a namedtuple, whose fields are exposed in _fields
-        query_toks = 'query_toks' in row._fields
-        if query_toks:
-            query = ''
+        query_toks_present = 'query_toks' in row._fields
+        if query_toks_present:
+            query = '' # Clear the query so it doesn't match the "applypipeline:off" or "_matchop" condictions below... The query_toks query is converted below.
             srq = self.manager.newSearchRequest(qid)
         else:
             query = row.query
@@ -345,7 +345,7 @@ class Retriever(BatchRetrieveBase):
             srq.setControl("parseql", "off")
             srq.setControl("matchopql", "on")
 
-        if query_toks: 
+        if query_toks_present: 
             srq.setControl("terrierql", "off")
             srq.setControl("parsecontrols", "off")
             srq.setControl("parseql", "off")
