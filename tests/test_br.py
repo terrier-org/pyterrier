@@ -71,7 +71,9 @@ class TestBatchRetrieve(BaseTestCase):
         
         self.assertEqual(len(result_terrier), len(result_matchop))
         self.assertEqual(len(result_terrier), len(result_toks))
-        
+        from pandas.testing import assert_frame_equal
+        assert_frame_equal(result_terrier[["qid", "docno", "score", "rank"]], result_matchop[["qid", "docno", "score", "rank"]])
+        assert_frame_equal(result_terrier[["qid", "docno", "score", "rank"]], result_toks[["qid", "docno", "score", "rank"]])
 
     def test_br_cutoff_stability(self):
         indexloc = self.here + "/fixtures/index/data.properties"

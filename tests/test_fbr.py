@@ -90,10 +90,6 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
         result1F_map = { row.docno : row.feature0 for row in result1.itertuples() }
         result2_map = { row.docno : row.score for row in result2.itertuples() }
 
-        print(result1F_map)
-        print(result2_map)
-        
-
         # check features scores
         # NB: places can go no less than 4, as two documents have similar PL2 scores
         for rank, row in enumerate(result0.itertuples()):
@@ -141,6 +137,25 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
             retrBasic = pt.terrier.Retriever(indexref)
             if "matching" in retrBasic.controls:
                 self.assertNotEqual(retrBasic.controls["matching"], "FatFeaturedScoringMatching,org.terrier.matching.daat.FatFull")
+    
+    def test_fbr_query_toks(self):
+        indexloc = self.here + "/fixtures/index/data.properties"
+        
+        retr = pt.terrier.FeaturesRetriever(indexloc, ["WMODEL:PL2"], wmodel="DPH")
+        query_terrier = 'applytermpipeline:off chemic^2 reaction^0.5'
+        result_terrier = retr.search(query_terrier)
+
+        query_matchop = '#combine:0=2:1=0.5(chemic reaction)'
+        result_matchop = retr.search(query_matchop)
+
+        query_toks = { 'chemic' : 2, 'reaction' : 0.5}
+        result_toks = retr.transform(pd.DataFrame([['1', query_toks]], columns=['qid', 'query_toks']))
+        
+        self.assertEqual(len(result_terrier), len(result_matchop))
+        self.assertEqual(len(result_terrier), len(result_toks))
+        from pandas.testing import assert_frame_equal
+        assert_frame_equal(result_terrier[["qid", "docno", "score", "rank", "features"]], result_matchop[["qid", "docno", "score", "rank", "features"]])
+        assert_frame_equal(result_terrier[["qid", "docno", "score", "rank", "features"]], result_toks[["qid", "docno", "score", "rank", "features"]])
 
     def test_fbr_example(self):
         JIR = pt.java.autoclass('org.terrier.querying.IndexRef')

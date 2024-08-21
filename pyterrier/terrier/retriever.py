@@ -316,7 +316,7 @@ class Retriever(BatchRetrieveBase):
         qid = str(row.qid)
 
         # row is a namedtuple, whose fields are exposed in _fields
-        query_toks_present = 'query_toks' in row._fields
+        query_toks_present : bool = 'query_toks' in row._fields
         if query_toks_present:
             query = '' # Clear the query so it doesn't match the "applypipeline:off" or "_matchop" condictions below... The query_toks query is converted below.
             srq = self.manager.newSearchRequest(qid)
@@ -345,7 +345,10 @@ class Retriever(BatchRetrieveBase):
             srq.setControl("parseql", "off")
             srq.setControl("matchopql", "on")
 
-        if query_toks_present: 
+        if query_toks_present:
+            if len(row.query_toks) == 0:
+                warn("Skipping empty query_toks for qid %s" % qid)
+                return []
             srq.setControl("terrierql", "off")
             srq.setControl("parsecontrols", "off")
             srq.setControl("parseql", "off")
@@ -745,12 +748,17 @@ class FeaturesRetriever(Retriever):
         newscores=[]
         for row in pt.tqdm(queries.itertuples(), desc=str(self), total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
             qid = str(row.qid)
-            query = row.query
-            if len(query) == 0:
-                warn("Skipping empty query for qid %s" % qid)
-                continue
-
-            srq = self.manager.newSearchRequest(qid, query)
+            query_toks_present : bool = 'query_toks' in row._fields
+            if query_toks_present:
+                query = ''
+                srq = self.manager.newSearchRequest(qid)
+                # we'll parse query_toks below
+            else:
+                query = row.query
+                if len(query) == 0:
+                    warn("Skipping empty query for qid %s" % qid)
+                    continue
+                srq = self.manager.newSearchRequest(qid, query)
 
             for control, value in self.controls.items():
                 srq.setControl(control, str(value))
@@ -766,6 +774,17 @@ class FeaturesRetriever(Retriever):
                 srq.setControl("parsecontrols", "off")
                 srq.setControl("parseql", "off")
                 srq.setControl("matchopql", "on")
+
+            if query_toks_present:
+                if len(row.query_toks) == 0:
+                    warn("Skipping empty query_toks for qid %s" % qid)
+                    return []
+                srq.setControl("terrierql", "off")
+                srq.setControl("parsecontrols", "off")
+                srq.setControl("parseql", "off")
+                srq.setControl("matchopql", "on")
+                query = _querytoks2matchop(row.query_toks)
+                srq.setOriginalQuery(query)
 
             # this handles the case that a candidate set of documents has been set. 
             if docno_provided or docid_provided:
