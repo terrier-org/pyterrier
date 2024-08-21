@@ -130,7 +130,7 @@ def doc_features(fn : Callable[[pd.Series], npt.NDArray[Any]], *args, **kwargs) 
 
 def indexer(fn : Callable[[Iterator[Dict[str,Any]]], Any], **kwargs) -> pt.Indexer:
     """
-        Create an instance of pt.Indexer using a funcing that takes as input an interable dictionary.
+        Create an instance of pt.Indexer using a function that takes as input an interable dictionary.
 
         The supplied function is called once. It may optionally return something (typically a reference to the "index").
 
