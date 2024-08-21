@@ -86,8 +86,8 @@ class TestDunder(TempDirTestCase):
                  'The body may perhaps compensates for the loss']
         })
         import pyterrier as pt
-        pd_indexer = pt.DFIndexer(self.test_dir, stopwords=pt.TerrierStopwords.none, stemmer=pt.TerrierStemmer.none)
-        indexref = pd_indexer.index(df["text"], df["docno"])
+        pd_indexer = pt.IterDictIndexer(self.test_dir, stopwords=pt.TerrierStopwords.none, stemmer=pt.TerrierStemmer.none)
+        indexref = pd_indexer.index(df.to_dict(orient='records'))
         index = pt.IndexFactory.of(indexref)
         self.assertIsNotNone(index)
         self.assertIsNotNone(index.getLexicon())
