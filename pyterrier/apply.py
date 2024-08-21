@@ -1,9 +1,9 @@
 from functools import partial
-from typing import Callable, Any, Dict, Union, Sequence
+from typing import Callable, Any, Dict, Union, Iterator, Sequence
 import numpy.typing as npt
 import pandas as pd
 import pyterrier as pt
-from pyterrier.apply_base import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyGenericTransformer
+from pyterrier.apply_base import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyGenericTransformer, ApplyIndexer
 
 def _bind(instance, func, as_name=None):
     """
@@ -87,6 +87,10 @@ def doc_score(fn : Union[Callable[[pd.Series], float], Callable[[pd.DataFrame], 
             
             pipe = pt.terrier.Retriever(index) >> pt.apply.doc_score(_doclen, batch_size=128)
 
+        Can also be used to create individual features that are combined using the ``**`` feature-union operator::
+
+            pipeline = bm25 >> ( some_features ** pt.apply.doc_score(_doclen) )
+
     """
     return ApplyDocumentScoringTransformer(fn, *args, batch_size=batch_size, **kwargs)
 
@@ -116,8 +120,35 @@ def doc_features(fn : Callable[[pd.Series], npt.NDArray[Any]], *args, **kwargs) 
             p = pt.terrier.Retriever(index, wmodel="BM25") >> 
                 pt.apply.doc_features(_features )
 
+        NB: If you only want to calculate a single feature to add to existing features, it is better to use ``pt.apply.doc_score()`` 
+        and the ``**`` feature union operator::
+
+            pipeline = bm25 >> ( some_features ** pt.apply.doc_score(one_feature) )
+
     """
     return ApplyDocFeatureTransformer(fn, *args, **kwargs)
+
+def indexer(fn : Callable[[Iterator[Dict[str,Any]]], Any], **kwargs) -> pt.Indexer:
+    """
+        Create an instance of pt.Indexer using a function that takes as input an interable dictionary.
+
+        The supplied function is called once. It may optionally return something (typically a reference to the "index").
+
+        Arguments:
+            fn(Callable): the function that consumed documents.
+
+        Example::
+
+            # make a pt.Indexer that returns the numnber of documents consumed
+            def _counter(iter_dict):
+                count = 0
+                for d in iter_dict:
+                    count += 1
+                return count
+            indexer = pt.apply.indexer(_counter)
+            rtr = indexer.index([ {'docno' : 'd1'}, {'docno' : 'd2'}])
+    """
+    return ApplyIndexer(fn, **kwargs)
 
 def rename(columns : Dict[str,str], *args, errors='raise', **kwargs) -> pt.Transformer:
     """
@@ -170,9 +201,10 @@ class _apply:
         _bind(self, lambda self, fn, *args, **kwargs : query(fn, *args, **kwargs), as_name='query')
         _bind(self, lambda self, fn, *args, **kwargs : doc_score(fn, *args, **kwargs), as_name='doc_score')
         _bind(self, lambda self, fn, *args, **kwargs : doc_features(fn, *args, **kwargs), as_name='doc_features')
+        _bind(self, lambda self, fn, *args, **kwargs : indexer(fn, *args, **kwargs), as_name='indexer')
         _bind(self, lambda self, fn, *args, **kwargs : rename(fn, *args, **kwargs), as_name='rename')
         _bind(self, lambda self, fn, *args, **kwargs : by_query(fn, *args, **kwargs), as_name='by_query')
-        _bind(self, lambda self, fn, *args, **kwargs : generic(fn, *args, **kwargs), as_name='generic')
+        _bind(self, lambda self, fn, *args, **kwargs : generic(fn, *args, **kwargs), as_name='generic')     
     
     def __getattr__(self, item):
         return partial(generic_apply, item)
