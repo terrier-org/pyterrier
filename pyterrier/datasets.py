@@ -3,7 +3,7 @@ import os
 import pandas as pd
 from .transformer import is_lambda
 import types
-from typing import Union, Tuple, Iterator, Dict, Any, List
+from typing import Union, Tuple, Iterator, Dict, Any, List, Literal
 from warnings import warn
 import requests
 from .io import autoopen, touch
@@ -538,6 +538,52 @@ class IRDSDataset(Dataset):
 
     def __repr__(self):
         return f"IRDSDataset({repr(self._irds_id)})"
+
+    def text_loader(
+        self,
+        fields: Union[List[str], str, Literal['*']] = '*',
+        *,
+        verbose: bool = False,
+    ) -> pt.Transformer:
+        return IRDSTextLoader(self, fields, verbose=verbose)
+
+
+class IRDSTextLoader(pt.Transformer):
+    def __init__(self, dataset: IRDSDataset, fields: Union[List[str], str, Literal['*']] = '*', verbose=False):
+        if not dataset.irds_ref().has_docs():
+            raise ValueError(f"Dataset {dataset} does not provide docs")
+        docs_cls = dataset.irds_ref().docs_cls()
+
+        available_fields = [f for f in docs_cls._fields if f != 'doc_id']
+        if fields == '*':
+            fields = available_fields
+        else:
+            if isinstance(fields, str):
+                fields = [fields]
+            missing_fields = set(fields) - set(available_fields)
+            if missing_fields:
+                raise ValueError(f"Dataset {dataset} did not have requested metaindex keys {list(missing_fields)}. "
+                                 f"Keys present in metaindex are {available_fields}")
+
+        self.dataset = dataset
+        self.fields = fields
+        self.verbose = verbose
+
+    def transform(self, inp):
+        if 'docno' not in inp.columns:
+            raise ValueError(f"input missing 'docno' column, available columns: {list(inp.columns)}")
+        irds = self.dataset.irds_ref()
+        docstore = irds.docs_store()
+        docnos = inp.docno.values.tolist()
+
+        # Load the new data
+        metadata = pd.DataFrame(list(docstore.get_many_iter(set(docnos))), columns=irds.docs_cls()._fields).set_index('doc_id')[self.fields]
+        metadata_frame = metadata.loc[docnos].reset_index(drop=True)
+
+        # append the input and metadata frames
+        inp = inp.drop(columns=self.fields, errors='ignore') # make sure we don't end up with duplicates
+        inp = inp.reset_index(drop=True) # reset the index to default (matching metadata_frame)
+        return pd.concat([inp, metadata_frame], axis='columns')
 
 
 def passage_generate(dataset):
