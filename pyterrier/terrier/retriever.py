@@ -26,7 +26,7 @@ def _querytoks2matchop(query_toks: Dict[str,float]) -> str:
             encoded = base64.b64encode(t.encode('utf-8')).decode("utf-8") 
             t = f'#base64({encoded})'
         if w != 1:
-            t = f'#combine:0={w}({t})'
+            t = f'#combine:0={w:f}({t})'
         return t
     return ' '.join([ _matchop_tok(t, w) for (t,w) in query_toks.items() ])
 
