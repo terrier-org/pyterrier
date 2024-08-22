@@ -96,15 +96,6 @@ These options adjust how the Terrier engine is loaded.
 .. autofunction:: pyterrier.terrier.set_properties
 .. autofunction:: pyterrier.terrier.extend_classpath
 
-Anserini Configuration
-~~~~~~~~~~~~~~~~~~~~~~
-
-These options adjust how the Anserini engine is loaded. Note that the `pyserini` package needs to be
-installed to use PyTerrier's Anserini integration.
-
-.. autofunction:: pyterrier.anserini.set_version
-
-
 Note on Deprecated Java Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

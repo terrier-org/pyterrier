@@ -34,7 +34,6 @@ Welcome to PyTerrier's documentation!
 
    io
    apply
-   anserini
    new
    debug
 

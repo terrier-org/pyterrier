@@ -1,6 +1,6 @@
-pyterrier_anserini # Anserini
-pyterrier_caching # Caching
-pyterrier_dr # DR
+# Anserini <https://github.com/seanmacavaney/pyterrier-anserini>
+# Advanced Caching <https://github.com/seanmacavaney/pyterrier-caching>
+# Dense Retrieval <https://github.com/terrierteam/pyterrier_dr>
 # PISA <https://github.com/terrierteam/pyterrier_pisa>
 # OpenNIR <https://opennir.net/>
 # T5 <https://github.com/terrierteam/pyterrier_t5>
