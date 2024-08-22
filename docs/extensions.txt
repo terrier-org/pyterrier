@@ -1,7 +1,6 @@
 pyterrier_anserini # Anserini
 pyterrier_caching # Caching
 pyterrier_dr # DR
-pyterrier_ciff # CIFF
 # PISA <https://github.com/terrierteam/pyterrier_pisa>
 # OpenNIR <https://opennir.net/>
 # T5 <https://github.com/terrierteam/pyterrier_t5>
