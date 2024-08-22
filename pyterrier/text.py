@@ -38,14 +38,14 @@ def get_text(
 
     Arguments:
         indexlike: an object that provides a .text_loader() factory method, such as a Terrier index or IRDSDataset.
-        If a ``str`` is provided, it will try to load a terrier index for the provided path.
+        If a ``str`` is provided, it will try to load a Terrier index from the provided path.
         metadata: The names of the fields to load. If a list of strings, all fields are provided.
         If a single string, this single field is provided. If the special value of '*' (default), all
         available fields are provided.
         by_query: whether the entire dataframe should be progressed at once, rather than one query at a time. 
         Defaults to false, which means that all document metadata will be fetched at once.
         verbose: whether to print a tqdm progress bar. When by_query=True, prints progress by query. Otherwise,
-        the behvior is defined by the ``indexlike``.
+        the behaviour is defined by the provided ``indexlike``.
         kwargs: other arguments to pass through to the text_loader.
 
     Example::
