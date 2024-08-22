@@ -605,7 +605,12 @@ class IRDSTextLoader(pt.Transformer):
         docnos = inp.docno.values.tolist()
 
         # Load the new data
-        metadata = pd.DataFrame(list(docstore.get_many_iter(set(docnos))), columns=irds.docs_cls()._fields).set_index('doc_id')[self.fields]
+        fields = ['doc_id'] + self.fields
+        set_docnos = set(docnos)
+        it = (tuple(getattr(doc, f) for f in fields) for doc in docstore.get_many_iter(set_docnos))
+        if self.verbose:
+            it = pd.tqdm(it, unit='d', total=len(set_docnos), desc='IRDSTextLoader')
+        metadata = pd.DataFrame(list(it), columns=fields).set_index('doc_id')
         metadata_frame = metadata.loc[docnos].reset_index(drop=True)
 
         # append the input and metadata frames
