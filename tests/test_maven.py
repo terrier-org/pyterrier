@@ -1,4 +1,4 @@
-
+from packaging.version import Version
 from pyterrier.java import mavenresolver
 import unittest
 import shutil
@@ -24,7 +24,7 @@ class TestMaven(unittest.TestCase):
 
     def testVersion(self):
         ver = mavenresolver.latest_version_num("org.terrier", "terrier-core")
-        self.assertGreaterEqual(float(ver), 5.3)
+        self.assertGreaterEqual(Version(ver), Version('5.3'))
 
     def testDownload(self):
         ver = mavenresolver.latest_version_num("org.terrier", "terrier-python-helper")
