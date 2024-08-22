@@ -545,16 +545,36 @@ class IRDSDataset(Dataset):
         *,
         verbose: bool = False,
     ) -> pt.Transformer:
+        """Create a transformer that loads text fields from an ir_datasets dataset into a DataFrame by docno.
+
+        Args:
+            fields: The fields to load from the dataset. If '*', all fields will be loaded.
+            verbose: Whether to print debug information.
+        """
         return IRDSTextLoader(self, fields, verbose=verbose)
 
 
 class IRDSTextLoader(pt.Transformer):
-    def __init__(self, dataset: IRDSDataset, fields: Union[List[str], str, Literal['*']] = '*', verbose=False):
+    """A transformer that loads text fields from an ir_datasets dataset into a DataFrame by docno."""
+    def __init__(
+        self,
+        dataset: IRDSDataset,
+        fields: Union[List[str], str, Literal['*']] = '*',
+        *,
+        verbose=False
+    ):
+        """Initialise the transformer with the index to load metadata from.
+
+        Args:
+            dataset: The dataset to load text from.
+            fields: The fields to load from the dataset. If '*', all fields will be loaded.
+            verbose: Whether to print debug information.
+        """
         if not dataset.irds_ref().has_docs():
             raise ValueError(f"Dataset {dataset} does not provide docs")
         docs_cls = dataset.irds_ref().docs_cls()
 
-        available_fields = [f for f in docs_cls._fields if f != 'doc_id']
+        available_fields = [f for f in docs_cls._fields if f != 'doc_id' and docs_cls.__annotations__[f] is str]
         if fields == '*':
             fields = available_fields
         else:
@@ -569,7 +589,15 @@ class IRDSTextLoader(pt.Transformer):
         self.fields = fields
         self.verbose = verbose
 
-    def transform(self, inp):
+    def transform(self, inp: pd.DataFrame) -> pd.DataFrame:
+        """Load text fields from the dataset into the input DataFrame.
+
+        Args:
+            inp: The input DataFrame. Must contain 'docno'.
+
+        Returns:
+            A new DataFrame with the text columns appended.
+        """
         if 'docno' not in inp.columns:
             raise ValueError(f"input missing 'docno' column, available columns: {list(inp.columns)}")
         irds = self.dataset.irds_ref()
