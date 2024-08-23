@@ -390,6 +390,7 @@ class RM3(QueryExpansion):
             fb_docs(int): number of feedback documents to consider. Terrier's default setting is 3 feedback documents.
             fb_lambda(float): lambda in RM3, i.e. importance of relevance model viz feedback model. Defaults to 0.6.
         """
+        assert pt.terrier.check_version("5.10"), "Terrier 5.10 required"
         rm = pt.terrier.J.RM3()
         self.fb_lambda = fb_lambda
         kwargs["qeclass"] = rm
@@ -408,36 +409,6 @@ class RM3(QueryExpansion):
         super()._configure_request(rq)
         rq.setControl("rm3.lambda", str(self.fb_lambda))
         
-    def transform(self, queries_and_docs):
-        self.qe.fbTerms = self.fb_terms
-        self.qe.fbDocs = self.fb_docs
-        return super().transform(queries_and_docs)
-
-@pt.java.required
-class AxiomaticQE(QueryExpansion):
-    '''
-        Performs query expansion using axiomatic query expansion.
-
-        This transformer must be followed by a Terrier Retrieve() transformer.
-        The original query is saved in the `"query_0"` column, which can be restored using `pt.rewrite.reset()`.
-
-        Instance Attributes:
-         - fb_terms(int): number of feedback terms. Defaults to 10
-         - fb_docs(int): number of feedback documents. Defaults to 3
-    '''
-    def __init__(self, *args, fb_terms=10, fb_docs=3, **kwargs):
-        """
-        Args:
-            index_like: the Terrier index to use
-            fb_terms(int): number of terms to add to the query. Terrier's default setting is 10 expansion terms.
-            fb_docs(int): number of feedback documents to consider. Terrier's default setting is 3 feedback documents.
-        """
-        rm = pt.terrier.J.AxiomaticQE()
-        self.fb_terms = fb_terms
-        self.fb_docs = fb_docs
-        kwargs["qeclass"] = rm
-        super().__init__(*args, **kwargs)
-
     def transform(self, queries_and_docs):
         self.qe.fbTerms = self.fb_terms
         self.qe.fbDocs = self.fb_docs

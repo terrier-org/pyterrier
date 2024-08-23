@@ -260,21 +260,6 @@ class TestRewrite(TempDirTestCase):
         self.assertEqual(len(actual), 1)
         self.assertEqual(normalize_term_weights(expected), normalize_term_weights(actual.iloc[0]["query"]))
 
-    def test_axiomatic_qe_expansion_for_query_compact_on_bm25(self):
-        # just ensure that AxiomaticQE results do not change
-        expected = 'applypipeline:off compact^1.000000000'
-        
-        indexref = pt.datasets.get_dataset("vaswani").get_index()
-        queriesIn = pd.DataFrame([["1", "compact"]], columns=["qid", "query"])
-
-        qe = pt.rewrite.AxiomaticQE(indexref)
-        br = pt.terrier.Retriever(indexref, wmodel='BM25')
-
-        actual = qe.transform(br.transform(queriesIn))
-
-        self.assertEqual(len(actual), 1)
-        self.assertEqual(expected, actual.iloc[0]["query"])
-
     def test_kl_qe_expansion_for_query_compact_on_bm25(self):
         # just ensure that KLQueryExpansion results do not change
         expected = 'applypipeline:off compact^1.840895333 design^0.348370740 equip^0.000000000 purpos^0.000000000 instrument^0.000000000 ferrit^0.000000000 anod^0.000000000 aircraft^0.000000000 microwav^0.000000000 sideband^0.000000000'

@@ -17,7 +17,6 @@ configure = pt.java.register_config('pt.terrier.java', {
     'helper_version': os.environ.get("TERRIER_HELPER_VERSION") or None,
     'boot_packages': [],
     'force_download': True,
-    'prf_version': '-SNAPSHOT',
 })
 
 @pt.java.before_init
@@ -28,11 +27,6 @@ def set_version(version: Optional[str] = None):
 @pt.java.before_init
 def set_helper_version(version: Optional[str] = None):
     configure['helper_version'] = version
-
-
-@pt.java.before_init
-def set_prf_version(version: Optional[str] = None):
-    configure['prf_version'] = version
 
 
 class TerrierJavaInit(pt.java.JavaInitializer):
@@ -65,9 +59,6 @@ class TerrierJavaInit(pt.java.JavaInitializer):
             helper_version = str(configure['helper_version']) # just in case its a float
         helper_jar = pt.java.mavenresolver.get_package_jar(TERRIER_PKG, 'terrier-python-helper', helper_version)
         jnius_config.add_classpath(helper_jar)
-
-        prf_jar = pt.java.mavenresolver.get_package_jar('com.github.terrierteam', 'terrier-prf', configure['prf_version'])
-        jnius_config.add_classpath(prf_jar)
 
         # This is for parallel -- it means that when re-configured in a parallel process, force_download will be False
         # and mavenresolver will use the version that was just downloaded above (not try to do it again).
@@ -140,11 +131,7 @@ class TerrierJavaInit(pt.java.JavaInitializer):
         if "BUILD_DATE" in dir(J.Version):
             version_string += f" (build: {J.Version.BUILD_USER} {J.Version.BUILD_DATE})"
 
-        res = f"version={version_string}, helper_version={configure['helper_version']}"
-        if configure['prf_version'] is not None:
-            res += f" prf_version={configure['prf_version']}"
-
-        return res
+        return f"version={version_string}, helper_version={configure['helper_version']}"
 
     def _post_init_index(self, jnius):
         @pt.java.required
@@ -627,5 +614,4 @@ J = pt.java.JavaClasses(
     QueryResultSet = 'org.terrier.matching.QueryResultSet',
     DependenceModelPreProcess = 'org.terrier.querying.DependenceModelPreProcess',
     RM3 = 'org.terrier.querying.RM3',
-    AxiomaticQE = 'org.terrier.querying.AxiomaticQE',
 )
