@@ -296,7 +296,7 @@ def Experiment(
         round : Union[int,Dict[str,int]] = None,
         verbose : bool = False,
         save_dir : str = None,
-        save_mode : SAVEMODE_TYPE = 'error',
+        save_mode : SAVEMODE_TYPE = 'warn',
         **kwargs):
     """
     Allows easy comparison of multiple retrieval transformer pipelines using a common set of topics, and
