@@ -31,7 +31,7 @@ def set_helper_version(version: Optional[str] = None):
 
 class TerrierJavaInit(pt.java.JavaInitializer):
     def priority(self) -> int:
-        return -10 # needs to be between pt.java.core (-100) and pt.anserini (0) to avoid issues with logger configs
+        return -10 # between pt.java.core (-100) and default (0) to load earlier than extensions
 
     def pre_init(self, jnius_config):
 
@@ -92,6 +92,7 @@ class TerrierJavaInit(pt.java.JavaInitializer):
         jnius.protocol_map["org.terrier.querying.IndexRef"] = {
             '__reduce__' : _index_ref_reduce,
             '__getstate__' : lambda self : None,
+            'text_loader': pt.terrier.terrier_text_loader,
         }
 
         jnius.protocol_map["org.terrier.matching.models.WeightingModel"] = {
@@ -113,7 +114,8 @@ class TerrierJavaInit(pt.java.JavaInitializer):
             '__add__': _index_add,
 
             # get_corpus_iter returns a yield generator that return {"docno": "d1", "toks" : {'a' : 1}}
-            'get_corpus_iter' : _index_corpusiter
+            'get_corpus_iter' : _index_corpusiter,
+            'text_loader': pt.terrier.terrier_text_loader,
         }
 
         self._post_init_index(jnius)

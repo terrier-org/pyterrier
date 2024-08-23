@@ -3,7 +3,7 @@ import os
 import pandas as pd
 from .transformer import is_lambda
 import types
-from typing import Union, Tuple, Iterator, Dict, Any, List
+from typing import Union, Tuple, Iterator, Dict, Any, List, Literal
 from warnings import warn
 import requests
 from .io import autoopen, touch
@@ -538,6 +538,85 @@ class IRDSDataset(Dataset):
 
     def __repr__(self):
         return f"IRDSDataset({repr(self._irds_id)})"
+
+    def text_loader(
+        self,
+        fields: Union[List[str], str, Literal['*']] = '*',
+        *,
+        verbose: bool = False,
+    ) -> pt.Transformer:
+        """Create a transformer that loads text fields from an ir_datasets dataset into a DataFrame by docno.
+
+        Args:
+            fields: The fields to load from the dataset. If '*', all fields will be loaded.
+            verbose: Whether to print debug information.
+        """
+        return IRDSTextLoader(self, fields, verbose=verbose)
+
+
+class IRDSTextLoader(pt.Transformer):
+    """A transformer that loads text fields from an ir_datasets dataset into a DataFrame by docno."""
+    def __init__(
+        self,
+        dataset: IRDSDataset,
+        fields: Union[List[str], str, Literal['*']] = '*',
+        *,
+        verbose=False
+    ):
+        """Initialise the transformer with the index to load metadata from.
+
+        Args:
+            dataset: The dataset to load text from.
+            fields: The fields to load from the dataset. If '*', all fields will be loaded.
+            verbose: Whether to print debug information.
+        """
+        if not dataset.irds_ref().has_docs():
+            raise ValueError(f"Dataset {dataset} does not provide docs")
+        docs_cls = dataset.irds_ref().docs_cls()
+
+        available_fields = [f for f in docs_cls._fields if f != 'doc_id' and docs_cls.__annotations__[f] is str]
+        if fields == '*':
+            fields = available_fields
+        else:
+            if isinstance(fields, str):
+                fields = [fields]
+            missing_fields = set(fields) - set(available_fields)
+            if missing_fields:
+                raise ValueError(f"Dataset {dataset} did not have requested metaindex keys {list(missing_fields)}. "
+                                 f"Keys present in metaindex are {available_fields}")
+
+        self.dataset = dataset
+        self.fields = fields
+        self.verbose = verbose
+
+    def transform(self, inp: pd.DataFrame) -> pd.DataFrame:
+        """Load text fields from the dataset into the input DataFrame.
+
+        Args:
+            inp: The input DataFrame. Must contain 'docno'.
+
+        Returns:
+            A new DataFrame with the text columns appended.
+        """
+        if 'docno' not in inp.columns:
+            raise ValueError(f"input missing 'docno' column, available columns: {list(inp.columns)}")
+        irds = self.dataset.irds_ref()
+        docstore = irds.docs_store()
+        docnos = inp.docno.values.tolist()
+
+        # Load the new data
+        fields = ['doc_id'] + self.fields
+        set_docnos = set(docnos)
+        it = (tuple(getattr(doc, f) for f in fields) for doc in docstore.get_many_iter(set_docnos))
+        if self.verbose:
+            it = pd.tqdm(it, unit='d', total=len(set_docnos), desc='IRDSTextLoader')
+        metadata = pd.DataFrame(list(it), columns=fields).set_index('doc_id')
+        metadata_frame = metadata.loc[docnos].reset_index(drop=True)
+
+        # append the input and metadata frames
+        inp = inp.drop(columns=self.fields, errors='ignore') # make sure we don't end up with duplicates
+        inp = inp.reset_index(drop=True) # reset the index to default (matching metadata_frame)
+        return pd.concat([inp, metadata_frame], axis='columns')
 
 
 def passage_generate(dataset):

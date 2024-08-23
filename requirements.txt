@@ -8,9 +8,9 @@ tqdm
 requests
 ir_datasets>=0.3.2
 wget # used by mavenresolver to download jar files 
-pyjnius>=1.4.2 # used by pt.java to execute Java code, such as Terrier and Anserini
-deprecated # used for marking APIs as deprecated
-scipy # used for significance testing
+pyjnius>=1.4.2 # used by pt.java to execute Java code, such as Terrier
+deprecated # used for marking APIs as deprecated
+scipy # used for significance testing
 # evaluation related:
 ir_measures>=0.3.1 # used for evaluation measure computation
 pytrec_eval_terrier>=0.5.3

@@ -49,10 +49,8 @@ What to Parallelise
 ===================
 
 Only transformers that can be `pickled <https://docs.python.org/3/library/pickle.html>`_. Transformers that use native code
-may not be possible to pickle. Some standard PyTerrier transformers have additional support for parallelisation:
-
- - Terrier retrieval: pt.terrier.Retriever(), pt.terrier.FeaturesRetriever()
- - Anserini retrieval: pt.anserini.AnseriniBatchRetrieve()
+may not be possible to pickle. Some standard PyTerrier transformers have additional support for parallelisation,
+most notably Terrier retrieval: :class:`pt.terrier.Retriever()` and :class:`pt.terrier.FeaturesRetriever()`.
 
 Pure python transformers, such as `pt.text.sliding()` are picklable. However, parallelising only `pt.text.sliding()` may not produce
 efficiency gains, due to the overheads of shuffling data back and forward. 

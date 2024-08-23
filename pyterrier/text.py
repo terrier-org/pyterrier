@@ -1,30 +1,52 @@
-from pyterrier.datasets import IRDSDataset
 import more_itertools
 from collections import defaultdict
 import re
-import numpy as np
 import pandas as pd
-from typing import List, Union
+from typing import Any, List, Union, Literal, Protocol, runtime_checkable
 from warnings import warn
 import pyterrier as pt
 
+@runtime_checkable
+class HasTextLoader(Protocol):
+    def text_loader(
+        self,
+        fields: Union[List[str], str, Literal['*']] = '*',
+        *,
+        verbose: bool = False,
+    ) -> pt.Transformer:
+        """
+        Returns a transformer that loads and populates text columns for each document in the
+        provided input frame.
 
-@pt.java.required
+        Arguments:
+            fields: The names of the fields to load. If a list of strings, all fields are provided.
+            If a single string, this single field is provided. If the special value of '*' (default,
+            all available fields are provided.
+            verbose: Show a progress bar.
+        """
+
+
 def get_text(
-        indexlike, 
-        metadata : Union[str,List[str]] = "body", 
+        indexlike: Union[HasTextLoader, str],
+        metadata : Union[str,List[str], Literal['*']] = '*',
         by_query : bool = False,
-        verbose : bool = False) -> pt.Transformer:
+        verbose : bool = False,
+        **kwargs: Any) -> pt.Transformer:
     """
     A utility transformer for obtaining the text from the text of documents (or other document metadata) from Terrier's MetaIndex
     or an IRDSDataset docstore.
 
     Arguments:
-        indexlike: a Terrier index or IRDSDataset to retrieve the metadata from
-        metadata(list(str) or str): a list of strings of the metadata keys to retrieve from the index. Defaults to ["body"]
-        by_query(bool): whether the entire dataframe should be progressed at once, rather than one query at a time. 
-            Defaults to false, which means that all document metadata will be fetched at once.
-        verbose(bool): whether to print a tqdm progress bar. Defaults to false. Has no effect when by_query=False
+        indexlike: an object that provides a .text_loader() factory method, such as a Terrier index or IRDSDataset.
+        If a ``str`` is provided, it will try to load a Terrier index from the provided path.
+        metadata: The names of the fields to load. If a list of strings, all fields are provided.
+        If a single string, this single field is provided. If the special value of '*' (default), all
+        available fields are provided.
+        by_query: whether the entire dataframe should be progressed at once, rather than one query at a time. 
+        Defaults to false, which means that all document metadata will be fetched at once.
+        verbose: whether to print a tqdm progress bar. When by_query=True, prints progress by query. Otherwise,
+        the behaviour is defined by the provided ``indexlike``.
+        kwargs: other arguments to pass through to the text_loader.
 
     Example::
 
@@ -33,97 +55,20 @@ def get_text(
             >> pt.text.scorer(wmodel="DPH") )
 
     """
-    JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
-    JI = pt.java.autoclass('org.terrier.structures.Index')
+    if isinstance(indexlike, str):
+        # TODO: We'll need to decide how to handle this once terrier is split from core
+        # Maybe it should run Artifact.load(indexlike) instead?
+        indexlike = pt.IndexFactory.of(indexlike)
 
-    if isinstance(metadata, str):
-        metadata = [metadata]
+    if not isinstance(indexlike, HasTextLoader):
+        raise ValueError('indexlike must provide a .text_loader() method.')
 
-    if isinstance(indexlike, str) or isinstance(indexlike, JIR):
-        index = pt.IndexFactory.of(indexlike)
-        add_text_fn = _add_text_terrier_metaindex(index, metadata)
-    elif isinstance(indexlike, JI):
-        add_text_fn = _add_text_terrier_metaindex(indexlike, metadata)
-    elif isinstance(indexlike, IRDSDataset):
-        add_text_fn = _add_text_irds_docstore(indexlike, metadata)
-    else:
-        raise ValueError("indexlike %s of type %s not supported. Pass a string, an IndexRef, an Index, or an IRDSDataset" %
-            (str(indexlike), type(indexlike)))
+    result = indexlike.text_loader(metadata, verbose=verbose and not by_query, **kwargs)
 
     if by_query:
-        return pt.apply.by_query(add_text_fn, verbose=verbose)
-    return pt.apply.generic(add_text_fn)
+        result = pt.apply.by_query(result, verbose=verbose)
 
-
-def _add_text_terrier_metaindex(index, metadata):
-    metaindex = index.getMetaIndex()
-    if metaindex is None:
-        raise ValueError("Index %s does not have a metaindex" % str(index))
-
-    for k in metadata:
-        if not k in metaindex.getKeys():
-            raise ValueError("Index from %s did not have requested metaindex key %s. Keys present in metaindex are %s" % 
-            (str(index), k, str( metaindex.getKeys()) ))
-
-    def add_docids(res):
-        res = res.copy()
-        res["docid"] = res.apply(lambda row: metaindex.getDocument("docno", row.docno), axis=1)
-        return res
-
-    def add_text_function_docids(res):
-        res = res.copy()
-        if len(res) == 0:
-            for k in metadata:
-                res[k] = pd.Series(dtype='object')
-            return res
-
-        docids = res.docid.values.tolist()
-        # indexed by docid then keys
-        allmeta = metaindex.getItems(metadata, docids)
-        # get transpose to make easier for insertion back into dataframe?
-        allmeta = np.array(allmeta).T
-        for i, k in enumerate(metadata):
-            res[k] = allmeta[i]
-        return res
-
-    def add_text_generic(res):
-        if not "docid" in res.columns:
-            assert "docno" in res.columns, "Neither docid nor docno are in the input dataframe, found %s" % (str(res.columns))
-            res = add_docids(res)
-        return add_text_function_docids(res)
-
-    return add_text_generic
-
-
-def _add_text_irds_docstore(irds_dataset, metadata):
-    irds = irds_dataset.irds_ref()
-    assert irds.has_docs(), f"dataset {irds_dataset} doesn't provide docs"
-    docs_cls = irds.docs_cls()
-
-    for k in metadata:
-        if not k in docs_cls._fields:
-            raise ValueError(f"{irds_dataset} did not have requested field {k}. Keys present are {docs_cls._fields} (from {docs_cls})")
-    field_idx = [(f, docs_cls._fields.index(f)) for f in metadata]
-
-    docstore = irds.docs_store()
-
-    def add_text_function_docids(res):
-        assert 'docno' in res, "requires docno column"
-        res = res.copy()
-        docids = res.docno.values.tolist()
-        did2idxs = defaultdict(list)
-        for i, did in enumerate(docids):
-            did2idxs[did].append(i)
-        new_columns = {f: [None] * len(docids) for f in metadata}
-        for doc in docstore.get_many_iter(docids):
-            for didx in did2idxs[doc.doc_id]:
-                for f, fidx in field_idx:
-                    new_columns[f][didx] = doc[fidx]
-        for k, v in new_columns.items():
-            res[k] = v
-        return res
-
-    return add_text_function_docids
+    return result
 
 
 def scorer(*args, **kwargs) -> pt.Transformer:
