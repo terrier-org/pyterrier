@@ -2,14 +2,14 @@ from warnings import warn
 import os
 import pandas as pd
 import numpy as np
-from typing import Callable, Union, Dict, List, Tuple, Sequence, Any
+from typing import Callable, Union, Dict, List, Tuple, Sequence, Any, Literal, Optional
 from . import Transformer
 from .model import coerce_dataframe_types
 import ir_measures
 from ir_measures.measures import BaseMeasure 
 MEASURE_TYPE=Union[str,BaseMeasure]
 MEASURES_TYPE=Sequence[MEASURE_TYPE]
-
+SAVEMODE_TYPE=Literal['reuse', 'overwrite', 'error', 'warn']
 
 SYSTEM_OR_RESULTS_TYPE = Union[Transformer, pd.DataFrame]
 
@@ -145,10 +145,10 @@ def _run_and_evaluate(
         qrels: pd.DataFrame, 
         metrics : MEASURES_TYPE, 
         pbar = None,
-        save_mode = None,
-        save_file = None,
+        save_mode : SAVEMODE_TYPE = None,
+        save_file : str = None,
         perquery : bool = False,
-        batch_size = None,
+        batch_size : Optional[int] = None,
         backfill_qids : Sequence[str] = None):
     
     from .io import read_results, write_results
@@ -163,15 +163,20 @@ def _run_and_evaluate(
     runtime = 0
     num_q = qrels['query_id'].nunique()
     if save_file is not None and os.path.exists(save_file):
-        if save_mode == "reuse":
+        if save_mode == 'reuse':
             system = read_results(save_file)
-        elif save_mode == "overwrite":
+        elif save_mode == 'overwrite':
             os.remove(save_file)
+        elif save_mode == 'warn':
+            warn(("save_dir is set, but the file '%s' already exists. If you are aware of are happy to reuse this " % save_file)+
+                             "file to speed up evaluation, set save_mode='reuse'; if you want to overwrite it, set save_mode='overwrite'."+
+                             " To make this condition an error, use save_mode='error'.")
         elif save_mode == 'error':
             raise ValueError(("save_dir is set, but the file '%s' already exists. If you are aware of are happy to reuse this " % save_file)+
-                             "file to speed up evaluation, set save_mode='reuse'; if you want to overwrite it, set save_mode='overwrite'.")
+                             "file to speed up evaluation, set save_mode='reuse'; if you want to overwrite it, set save_mode='overwrite'."+
+                              "To make this condition a warning, use save_mode='warn'.")
         else:
-            raise ValueError("Unknown save_mode argument '%s', valid options are 'error', 'reuse' or 'overwrite'." % save_mode)
+            raise ValueError("Unknown save_mode argument '%s', valid options are 'error', 'warn', 'reuse' or 'overwrite'." % save_mode)
 
     # if its a DataFrame, use it as the results
     if isinstance(system, pd.DataFrame):
@@ -279,8 +284,8 @@ def Experiment(
         eval_metrics : MEASURES_TYPE,
         names : Sequence[str] = None,
         perquery : bool = False,
-        dataframe : bool =True,
-        batch_size : int = None,
+        dataframe : bool = True,
+        batch_size : Optional[int] = None,
         filter_by_qrels : bool = False,
         filter_by_topics : bool = True,
         baseline : int = None,
@@ -291,7 +296,7 @@ def Experiment(
         round : Union[int,Dict[str,int]] = None,
         verbose : bool = False,
         save_dir : str = None,
-        save_mode : str = 'error',
+        save_mode : SAVEMODE_TYPE = 'error',
         **kwargs):
     """
     Allows easy comparison of multiple retrieval transformer pipelines using a common set of topics, and
@@ -317,8 +322,8 @@ def Experiment(
             filename is based on the systems names (as specified by ``names`` kwarg). If the file exists and ``save_mode`` is set to "reuse", then the file
             will be used for evaluation rather than the transformer. Default is None, such that saving and loading from files is disabled.
         save_mode(str): Defines how existing files are used when ``save_dir`` is set. If set to "reuse", then files will be preferred
-            over transformers for evaluation. If set to "overwrite", existing files will be replaced. If set to "error", the presence of any 
-            existing file will cause an error. Default is "error".
+            over transformers for evaluation. If set to "overwrite", existing files will be replaced. If set to "warn" or "error", the presence of any 
+            existing file will cause a warning or error, respectively. Default is "warn".
         dataframe(bool): If True return results as a dataframe, else as a dictionary of dictionaries. Default=True.
         baseline(int): If set to the index of an item of the retr_system list, will calculate the number of queries 
             improved, degraded and the statistical significance (paired t-test p value) for each measure.
