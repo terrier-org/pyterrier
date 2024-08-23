@@ -477,14 +477,14 @@ class Retriever(BatchRetrieveBase):
         return res_dt
         
     def __repr__(self):
-        return "BR(" + ",".join([
+        return "pt.t.Retr(" + ",".join([
             self.indexref.toString(),
             str(self.controls),
             str(self.properties)
             ]) + ")"
 
     def __str__(self):
-        return "BR(" + self.controls["wmodel"] + ")"
+        return "pt.t.Retr(" + self.controls["wmodel"] + ")"
 
     def setControls(self, controls):
         for key, value in controls.items():
@@ -833,7 +833,7 @@ class FeaturesRetriever(Retriever):
         return res_dt
 
     def __repr__(self):
-        return "FBR(" + ",".join([
+        return "t.FeatRetr(" + ",".join([
             self.indexref.toString(),
             str(self.features),
             str(self.controls),
@@ -842,8 +842,8 @@ class FeaturesRetriever(Retriever):
 
     def __str__(self):
         if self.wmodel is None:
-            return "FBR(" + str(len(self.features)) + " features)"
-        return "FBR(" + self.controls["wmodel"] + " and " + str(len(self.features)) + " features)"
+            return "pt.t.FeatRetr(" + str(len(self.features)) + " features)"
+        return "pt.t.FeatRetr(" + self.controls["wmodel"] + " and " + str(len(self.features)) + " features)"
 
 rewrites_setup = False
 
