@@ -37,7 +37,7 @@ def set_prf_version(version: Optional[str] = None):
 
 class TerrierJavaInit(pt.java.JavaInitializer):
     def priority(self) -> int:
-        return -10 # needs to be between pt.java.core (-100) and pt.anserini (0) to avoid issues with logger configs
+        return -10 # between pt.java.core (-100) and default (0) to load earlier than extensions
 
     def pre_init(self, jnius_config):
 
