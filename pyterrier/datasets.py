@@ -1,5 +1,6 @@
 import urllib.request
 import os
+import json
 import pandas as pd
 from .transformer import is_lambda
 import types
@@ -1205,3 +1206,33 @@ def list_datasets(en_only=True):
         corpus_filter = (result['corpus'].isnull()) | (result['corpus_lang'] == 'en')
         result = result[topics_filter & corpus_filter]
     return result
+
+def transformer_from_dataset(
+    dataset : Union[str, Dataset],
+    clz,
+    variant: str = None,
+    version: str = 'latest',        
+    **kwargs) -> pt.Transformer:
+    """Returns a Transformer instance of type ``clz`` for the provided index of variant ``variant``."""
+    if isinstance(dataset, str):
+        dataset = get_dataset(dataset)
+    if version != "latest":
+        raise ValueError("index versioning not yet supported")
+    indexref = dataset.get_index(variant)
+
+    classname = clz.__name__
+    classnames = [classname]
+    if classname == 'Retriever':
+        # we need to look for BatchRetrieve.args.json for legacy support
+        classnames.append('BatchRetrieve')
+    for c in classnames:
+        # now look for, e.g., BatchRetrieve.args.json file, which will define the args for Retriever, e.g. stemming
+        indexdir = indexref #os.path.dirname(indexref.toString())
+        argsfile = os.path.join(indexdir, classname + ".args.json")
+        if os.path.exists(argsfile):
+            with pt.io.autoopen(argsfile, "rt") as f:
+                args = json.load(f)
+                # anything specified in kwargs of this methods overrides the .args.json file
+                args.update(kwargs)
+                kwargs = args
+    return clz(indexref, **kwargs)

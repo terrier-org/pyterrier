@@ -89,7 +89,7 @@ def _parse_index_like(index_location):
         or an pyterrier.index.TerrierIndexer object'''
     )
 
-class BatchRetrieveBase(pt.Transformer, Symbol):
+class RetrieverBase(pt.Transformer, Symbol):
     """
     A base class for retrieval
 
@@ -99,44 +99,9 @@ class BatchRetrieveBase(pt.Transformer, Symbol):
     def __init__(self, verbose=0, **kwargs):
         super().__init__(kwargs)
         self.verbose = verbose
-
-def _from_dataset(dataset : Union[str,Dataset], 
-            clz,
-            variant : str = None, 
-            version='latest',            
-            **kwargs) -> pt.Transformer:
-
-    from pyterrier import get_dataset
-    from pyterrier.io import autoopen
-    import os
-    import json
-    
-    if isinstance(dataset, str):
-        dataset = get_dataset(dataset)
-    if version != "latest":
-        raise ValueError("index versioning not yet supported")
-    indexref = dataset.get_index(variant)
-
-    classname = clz.__name__
-    classnames = [classname]
-    if classname == 'Retriever':
-        classnames.append('BatchRetrieve')
-    # we need to look for BatchRetrievel.args.json for legacy support
-    for c in classnames:
-        # now look for, e.g., BatchRetrieve.args.json file, which will define the args for Retriever, e.g. stemming
-        indexdir = indexref #os.path.dirname(indexref.toString())
-        argsfile = os.path.join(indexdir, classname + ".args.json")
-        if os.path.exists(argsfile):
-            with autoopen(argsfile, "rt") as f:
-                args = json.load(f)
-                # anything specified in kwargs of this methods overrides the .args.json file
-                args.update(kwargs)
-                kwargs = args
-        return clz(indexref, **kwargs)
-    raise ValueError("No .args.json files found for %s" % str(classnames))
-                
+          
 @pt.java.required
-class Retriever(BatchRetrieveBase):
+class Retriever(RetrieverBase):
     """
     Use this class for retrieval by Terrier
     """
@@ -183,7 +148,7 @@ class Retriever(BatchRetrieveBase):
          - `terrier_unstemmed_text` - as per `terrier_stemmed`, but also containing the raw text of the documents
 
         """
-        return _from_dataset(dataset, variant=variant, version=version, clz=Retriever, **kwargs)
+        return pt.datasets.transformer_from_dataset(dataset, variant=variant, version=version, clz=Retriever, **kwargs)
 
     #: default_controls(dict): stores the default controls
     default_controls = {
@@ -695,14 +660,7 @@ class FeaturesRetriever(Retriever):
             variant : str = None, 
             version='latest',            
             **kwargs):
-        return _from_dataset(dataset, variant=variant, version=version, clz=FeaturesRetriever, **kwargs)
-
-    @staticmethod 
-    def from_dataset(dataset : Union[str,Dataset], 
-            variant : str = None, 
-            version='latest',            
-            **kwargs):
-        return _from_dataset(dataset, variant=variant, version=version, clz=FeaturesRetriever, **kwargs)
+        return pt.datasets.transformer_from_dataset(dataset, variant=variant, version=version, clz=FeaturesRetriever, **kwargs)
 
     def transform(self, queries):
         """
