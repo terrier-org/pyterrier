@@ -751,9 +751,10 @@ class FeaturesRetriever(Retriever):
             qid = str(row.qid)
             query_toks_present : bool = 'query_toks' in row._fields
             if query_toks_present:
+                # Even though it might look like we should parse the query toks here, we don't want the resulting query to be caught by the conditions
+                # that come before the "if query_toks_present" check. So we set it to an empty string and handle the parsing below.
                 query = ''
                 srq = self.manager.newSearchRequest(qid)
-                # we'll parse query_toks below
             else:
                 query = row.query
                 if len(query) == 0:
