@@ -35,14 +35,67 @@ Retriever
 
 
 
+Query Formats for Terrier retrievers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default Terrier assumes that queries can be parsed by its `standard query parser <https://github.com/terrier-org/terrier-core/blob/5.x/doc/querylanguage.md#user-query-language>`_,
+which is standard search-engline like query language. Queries provided by Dataset objects are assumed to be in this format, using the 
+standard `["qid", "query"]` dataframe columns. 
+
+Two alternative query formats are also supported:
+
+ - MatchOp - this is a `lower-level query language <https://github.com/terrier-org/terrier-core/blob/5.x/doc/querylanguage.md#matching-op-query-language>`_ supported by Terrier, which is Indri-like in nature, and supports operators like ``#1()``. (exact phrase and ``#combine()`` (weighting). MatchOp queries stored in the `"query"` column. 
+
+ - pre-tokenised queries - in this format, query terms are provided, with weights, in a dictionary. Query terms are assumed to be already stemmed. This
+ format is useful for techniques that weight query terms, such as for Learned Sparse Retrieval (e.g. see `pyterrier_splade <https://github.com/cmacdonald/pyt_splade>`_).
+
+The following query dataframes are therefore equivalent:
+
+ - Raw query:
+
+    =====  =============================
+    qid    query         
+    =====  =============================
+        1  chemical chemical reactions
+    =====  =============================
+
+ - Using Terrier's QL to express weights on query terms:
+
+    =====  =============================
+    qid    query         
+    =====  =============================
+        1  chemical^2 reactions
+    =====  =============================
+
+ - Using Terrier's MatchOpQL to express weights on stemmed and tokenised query terms:
+
+    =====  ======================================
+    qid    query         
+    =====  ======================================
+        1  #combine:0=2:1=1(chemic reaction)
+    =====  ======================================
+
+ - Use the query_toks column (the query column is ignored):
+
+    =====  ====================================== =============================
+    qid    query_toks                             query         
+    =====  ====================================== =============================
+        1  {'chemic' : 2.0, 'reaction' : 1}       chemical chemical reactions
+    =====  ====================================== =============================
+
+
+
 Terrier Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When using PyTerrier, we have to be aware of the underlying Terrier configuration, 
-namely *properties* and *controls*. Properties are global configuration and were 
-traditionally configured by editing a `terrier.properties` file; In contrast, 
-controls are per-query configuration. In PyTerrier, we specify both when we construct
-the Retriever object:
+namely *properties* and *controls*. We aim to surface the most common configuration options 
+through the Python API, but occasionally its necessary to resort to properties or controls
+directly. 
+
+Properties are global configuration and were traditionally configured by editing a 
+`terrier.properties` file; In contrast, controls are per-query configuration. In PyTerrier, 
+we specify both when we construct the Retriever object:
 
 Common controls:
  - `"wmodel"` - the name of the weighting model. (This can also be specified using the wmodel kwarg).
@@ -55,7 +108,8 @@ Common controls:
 Common properties:
  - `"termpipelines"` - the default Terrier term pipeline configuration is `"Stopwords,PorterStemmer"`.
    If you have created an index with a different configuration, you will need to set the  `"termpipelines"`
-   property for *each* Retriever constructed.
+   property for *each* Retriever constructed. NB: These are now configurable using ``stemming=`` and
+   ``stopwords=`` kwargs.
 
 **Examples**::
 
@@ -98,7 +152,7 @@ Good Practice::
     pl2 = pt.terrier.Retriever(index, wmodel="PL2")
     # here, we share the index between two instances of Retriever
 
-You can use the IndexFactory to specify that the index data structures to be loaded into memory::
+You can use the IndexFactory to specify that the index data structures to be loaded into memory, which can benefit efficiency::
 
     # load all structures into memory
     inmemindex = pt.IndexFactory.of("/path/to/data.properties", memory=True)
