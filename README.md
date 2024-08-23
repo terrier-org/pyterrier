@@ -35,7 +35,7 @@ See the [indexing documentation](https://pyterrier.readthedocs.io/en/latest/terr
 ```python
 topics = pt.io.read_topics(topicsFile)
 qrels = pt.io.read_qrels(qrelsFile)
-BM25_br = pt.terrier.Retriever(index, wmodel="BM25")
+BM25_r = pt.terrier.Retriever(index, wmodel="BM25")
 res = BM25_br.transform(topics)
 pt.Evaluate(res, qrels, metrics = ['map'])
 ```
@@ -46,7 +46,7 @@ See also the [retrieval documentation](https://pyterrier.readthedocs.io/en/lates
 PyTerrier provides an [Experiment](https://pyterrier.readthedocs.io/en/latest/experiments.html) function, which allows to compare multiple retrieval approaches on the same queries & relevance assessments:
 
 ```python
-pt.Experiment([BM25_br, PL2_br], topics, qrels, ["map", "ndcg"])
+pt.Experiment([BM25_r, PL2_r], topics, qrels, ["map", "ndcg"])
 ```
 
 There is a worked example in the [experiment notebook](examples/notebooks/experiment.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/experiment.ipynb)
