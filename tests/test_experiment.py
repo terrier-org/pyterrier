@@ -151,8 +151,8 @@ class TestExperiment(TempDirTestCase):
         qrels =  pt.datasets.get_dataset("vaswani").get_qrels()
         df1 = pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], save_dir=self.test_dir)
         # check save_dir files are there
-        self.assertTrue(os.path.exists(os.path.join(self.test_dir, "BR(DPH).res.gz")))
-        self.assertTrue(os.path.exists(os.path.join(self.test_dir, "BR(BM25).res.gz")))
+        self.assertTrue(os.path.exists(os.path.join(self.test_dir, "TerrierRetr(DPH).res.gz")))
+        self.assertTrue(os.path.exists(os.path.join(self.test_dir, "TerrierRetr(BM25).res.gz")))
 
         # check for warning
         with pytest.warns(UserWarning):

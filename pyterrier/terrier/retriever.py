@@ -442,14 +442,14 @@ class Retriever(RetrieverBase):
         return res_dt
         
     def __repr__(self):
-        return "BR(" + ",".join([
+        return "TerrierRetr(" + ",".join([
             self.indexref.toString(),
             str(self.controls),
             str(self.properties)
             ]) + ")"
 
     def __str__(self):
-        return "BR(" + self.controls["wmodel"] + ")"
+        return "TerrierRetr(" + self.controls["wmodel"] + ")"
 
     def setControls(self, controls):
         for key, value in controls.items():
@@ -791,7 +791,7 @@ class FeaturesRetriever(Retriever):
         return res_dt
 
     def __repr__(self):
-        return "FBR(" + ",".join([
+        return "TerrierFeatRetr(" + ",".join([
             self.indexref.toString(),
             str(self.features),
             str(self.controls),
@@ -800,8 +800,8 @@ class FeaturesRetriever(Retriever):
 
     def __str__(self):
         if self.wmodel is None:
-            return "FBR(" + str(len(self.features)) + " features)"
-        return "FBR(" + self.controls["wmodel"] + " and " + str(len(self.features)) + " features)"
+            return "TerrierFeatRetr(" + str(len(self.features)) + " features)"
+        return "TerrierFeatRetr(" + self.controls["wmodel"] + " and " + str(len(self.features)) + " features)"
 
 rewrites_setup = False
 
