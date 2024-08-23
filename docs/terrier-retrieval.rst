@@ -39,7 +39,7 @@ Query Formats for Terrier retrievers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 By default Terrier assumes that queries can be parsed by its `standard query parser <https://github.com/terrier-org/terrier-core/blob/5.x/doc/querylanguage.md#user-query-language>`_,
-which is standard search-engline like query language. Queries provided by Dataset objects are assumed to be in this format, using the 
+which is standard search-engine like query language. Queries provided by Dataset objects are assumed to be in this format, using the 
 standard `["qid", "query"]` dataframe columns. 
 
 Two alternative query formats are also supported:
