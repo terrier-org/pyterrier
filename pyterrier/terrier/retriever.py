@@ -833,7 +833,7 @@ class FeaturesRetriever(Retriever):
         return res_dt
 
     def __repr__(self):
-        return "t.FeatRetr(" + ",".join([
+        return "pt.t.FeatRetr(" + ",".join([
             self.indexref.toString(),
             str(self.features),
             str(self.controls),
