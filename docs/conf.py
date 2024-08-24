@@ -61,6 +61,7 @@ extensions = [
     'sphinx.ext.githubpages',
     'sphinx.ext.napoleon',
     'sphinx_tabs.tabs',
+    'enum_tools.autoenum',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
