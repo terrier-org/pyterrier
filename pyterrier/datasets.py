@@ -369,9 +369,9 @@ class RemoteDataset(Dataset):
 @pt.java.required
 def _pt_tokeniser():
     from .terrier.tokeniser import EnglishTokeniser
-    tokeniser = EnglishTokeniser.tokeniser
+    tokeniser = EnglishTokeniser.tokenise
     def pt_tokenise(text):
-        return ' '.join(tokeniser)
+        return ' '.join(tokeniser(text))
     return pt_tokenise
 
 
