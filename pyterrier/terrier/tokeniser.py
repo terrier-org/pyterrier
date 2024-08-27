@@ -43,6 +43,9 @@ class BaseTokeniser():
     MAX_TERM_LENGTH = 20
 
 class UTFTokeniser(BaseTokeniser):
+    """
+    Port of the functionality of https://github.com/terrier-org/terrier-core/blob/5.x/modules/core/src/main/java/org/terrier/indexing/tokenisation/UTFTokeniser.java to Python
+    """
     @staticmethod
     def check(s : str) -> str:
         # if the s is None
@@ -118,7 +121,9 @@ class UTFTokeniser(BaseTokeniser):
 
 
 class EnglishTokeniser(BaseTokeniser):
-    
+    """
+    Port of the functionality of https://github.com/terrier-org/terrier-core/blob/5.x/modules/core/src/main/java/org/terrier/indexing/tokenisation/EnglishTokeniser.java to Python
+    """
 
     @staticmethod
     def check(s : str) -> str:
