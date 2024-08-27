@@ -16,6 +16,8 @@ class TestTokenisers(BaseTestCase):
         import html
         tokeniser = UTFTokeniser.tokenise
         self._test_english(tokeniser)
+        # all examples come from https://github.com/terrier-org/terrier-core/blob/5.x/modules/tests/src/test/java/org/terrier/indexing/tokenisation/TestUTFTokeniser.java
+
         self.assertEqual(tokeniser("a\u0133a"), ["a\u0133a"])
         self.assertEqual(tokeniser("\u00C0\u00C8\u00CC"), ["\u00C0\u00C8\u00CC".lower()])
 
