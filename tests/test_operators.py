@@ -2,7 +2,6 @@ import pandas as pd
 import unittest
 import pyterrier as pt
 import warnings
-from matchpy import *
 from .base import BaseTestCase
 from pytest import warns
 
