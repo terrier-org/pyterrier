@@ -456,18 +456,18 @@ class Retriever(pt.Transformer):
         if self.controls.get('context_wmodel') == 'on':
             return None # we don't store the original wmodel value so we can't reconstruct
         # apply the new k as num_results
-        return BatchRetrieve(self.indexref, controls=self.controls, properties=self.properties, metadata=self.metadata,
+        return Retriever(self.indexref, controls=self.controls, properties=self.properties, metadata=self.metadata,
             num_results=k, wmodel=self.controls["wmodel"], threads=self.threads, verbose=self.verbose)
 
     def fuse_feature_union(self, other: pt.Transformer, is_left: bool) -> Optional[pt.Transformer]:
-        if isinstance(other, BatchRetrieve) and \
+        if isinstance(other, Retriever) and \
            self.indexref == other.indexref and \
            self.controls.get('context_wmodel') != 'on' and \
            other.controls.get('context_wmodel') != 'on':
             features = ["WMODEL:" + self.controls['wmodel'], "WMODEL:" + other.controls['wmodel']] if is_left else ["WMODEL:" + other.controls['wmodel'], "WMODEL:" + self.controls['wmodel']]
             controls = dict(self.controls)
             del controls['wmodel']
-            return FeaturesBatchRetrieve(self.indexref, features, controls=controls, properties=self.properties,
+            return FeaturesRetriever(self.indexref, features, controls=controls, properties=self.properties,
                 metadata=self.metadata, threads=self.threads, verbose=self.verbose)
 
 
@@ -641,7 +641,7 @@ class FeaturesRetriever(Retriever):
         
         super().__init__(index_location, controls, properties, **kwargs)
         if self.wmodel is None and 'wmodel' in self.controls:
-            del self.controls['wmodel'] # BatchRetrieve sets a default controls['wmodel'], we only want this
+            del self.controls['wmodel'] # Retriever sets a default controls['wmodel'], we only want this
 
     def __reduce__(self):
         return (
@@ -819,13 +819,13 @@ class FeaturesRetriever(Retriever):
         return "TerrierFeatRetr(" + self.controls["wmodel"] + " and " + str(len(self.features)) + " features)"
 
     def fuse_left(self, left: pt.Transformer) -> Optional[pt.Transformer]:
-        # Can merge BatchRetrieve >> FeaturesBatchRetrieve into a single FeaturesBatchRetrieve that also retrieves
-        # if the indexref matches and the current FeaturesBatchRetrieve isn't already reranking.
-        if isinstance(left, BatchRetrieve) and \
+        # Can merge Retriever >> FeaturesRetriever into a single FeaturesRetriever that also retrieves
+        # if the indexref matches and the current FeaturesRetriever isn't already reranking.
+        if isinstance(left, Retriever) and \
            self.indexref == left.indexref and \
            left.controls.get('context_wmodel') != 'on' and \
            self.wmodel is None:
-            return FeaturesBatchRetrieve(
+            return FeaturesRetriever(
                 self.indexref,
                 self.features,
                 controls=self.controls,
@@ -843,22 +843,22 @@ class FeaturesRetriever(Retriever):
         if self.wmodel is None:
             return None # not a retriever
         # apply the new k as num_results
-        return FeaturesBatchRetrieve(self.indexref, self.features, controls=self.controls, properties=self.properties,
+        return FeaturesRetriever(self.indexref, self.features, controls=self.controls, properties=self.properties,
             threads=self.threads, wmodel=self.wmodel, verbose=self.verbose, num_results=k)
 
     def fuse_feature_union(self, other: pt.Transformer, is_left: bool) -> Optional[pt.Transformer]:
-        if isinstance(other, FeaturesBatchRetrieve) and \
+        if isinstance(other, FeaturesRetriever) and \
            self.indexref == other.indexref and \
            self.wmodel is None  and \
            other.wmodel is None:
             features = self.features + other.features if is_left else other.features + self.features
-            return FeaturesBatchRetrieve(self.indexref, features, controls=self.controls, properties=self.properties,
+            return FeaturesRetriever(self.indexref, features, controls=self.controls, properties=self.properties,
                 threads=self.threads, wmodel=self.wmodel, verbose=self.verbose)
 
-        if isinstance(other, BatchRetrieve) and \
+        if isinstance(other, Retriever) and \
            self.indexref == other.indexref and \
            self.wmodel is None  and \
            other.controls.get('context_wmodel') != 'on':
             features = self.features + ["WMODEL:" + other.controls['wmodel']] if is_left else ["WMODEL:" + other.controls['wmodel']] + self.features
-            return FeaturesBatchRetrieve(self.indexref, features, controls=self.controls, properties=self.properties,
+            return FeaturesRetriever(self.indexref, features, controls=self.controls, properties=self.properties,
                 threads=self.threads, wmodel=self.wmodel, verbose=self.verbose)
