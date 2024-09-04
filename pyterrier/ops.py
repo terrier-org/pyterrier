@@ -325,14 +325,17 @@ class ComposedPipeline(NAryTransformerBase):
         
         def gen():
             for batch in chunked(iter, batch_size):
-                batch_df = prev_transformer.transform_iter(batch)
-                for row in batch_df.itertuples(index=False):
-                    yield row._asdict()
+                yield from prev_transformer.transform_iter(batch)
         return last_transformer.index(gen()) 
 
     def transform(self, topics):
         for m in self.models:
             topics = m.transform(topics)
+        return topics
+    
+    def transform_iter(self, topics):
+        for m in self.models:
+            topics = m.transform_iter(topics)
         return topics
 
     def fit(self, topics_or_res_tr, qrels_tr, topics_or_res_va=None, qrels_va=None):
