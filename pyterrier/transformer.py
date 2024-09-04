@@ -266,6 +266,7 @@ class Transformer:
         from .ops import ConcatenateTransformer
         return ConcatenateTransformer(self, right)
 
+    @deprecated(version="0.11.1", reason="Use pyterrier-caching for more fine-grained caching, e.g. RetrieverCache or ScorerCache")
     def __invert__(self : 'Transformer') -> 'Transformer':
         from .cache import ChestCacheTransformer
         return ChestCacheTransformer(self)
