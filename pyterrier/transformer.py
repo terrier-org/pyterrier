@@ -104,7 +104,7 @@ class Transformer:
         """
         if not self._transform_iter_implemented:
             raise NotImplementedError("You need to implement either .transform() and .transform_iter() in %s" % str(type(self)))
-        return pd.DataFrame(self.transform_iter(topics_or_res.to_records(orient='dict')))
+        return pd.DataFrame(self.transform_iter(topics_or_res.to_dict(orient='records')))
 
     def transform_iter(self, input: Iterable[dict]) -> Iterable[dict]:
         """
@@ -116,7 +116,7 @@ class Transformer:
         if not self._transform_implemented:
             raise NotImplementedError("You need to implement either .transform() and .transform_iter() in %s" % str(type(self)))
 
-        return self.transform(pd.DataFrame(list(input))).to_records(orient='dict')
+        return self.transform(pd.DataFrame(list(input))).to_dict(orient='records')
 
     def transform_gen(self, input : pd.DataFrame, batch_size=1, output_topics=False) -> Iterator[pd.DataFrame]:
         """
