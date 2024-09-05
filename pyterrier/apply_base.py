@@ -147,7 +147,7 @@ class ApplyDocFeatureTransformer(ApplyTransformerBase):
         Usually accessed using pt.apply.doc_features()::
 
             def _feature_fn(row):
-                return numpy.array([len(row["url"], row["url".count("/")])
+                return numpy.array([len(row["url"]), row["url"].count("/")])
             
             pipe = pt.terrier.Retriever(index) >> pt.apply.doc_features(_feature_fn) >> pt.LTRpipeline(xgBoost())
     """
