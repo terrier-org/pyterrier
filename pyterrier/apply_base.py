@@ -160,6 +160,16 @@ class ApplyDocFeatureTransformer(ApplyTransformerBase):
 
     def __repr__(self):
         return "pt.apply.doc_features()"
+    
+    def transform_iter(self, iterdict):
+        fn = self.fn
+        # we assume that the function can take a dictionary as well as a pandas.Series. As long as [""] notation is used
+        # to access fields, both should work
+        def gen():
+            for row in pt.tqdm(iterdict, desc="pt.apply.doc_features") if self.verbose else iterdict:
+                row["features"] = self.fn(row)
+                yield row
+        return list(gen())
 
     def transform(self, inputRes):
         fn = self.fn
@@ -200,6 +210,20 @@ class ApplyQueryTransformer(ApplyTransformerBase):
 
     def __repr__(self):
         return "pt.apply.query()"
+    
+    def transform_iter(self, iterdict):
+        fn = self.fn
+        # we assume that the function can take a dictionary as well as a pandas.Series. As long as [""] notation is used
+        # to access fields, both should work
+        def gen():
+            for row in pt.tqdm(iterdict, desc="pt.apply.query") if self.verbose else iterdict:
+                if "query" in row:
+                    pass
+                    # we only push if a query already exists
+                    # TODO implement push_queries for iter-dict
+                row["query"] = self.fn(row)
+                yield row
+        return list(gen())
 
     def transform(self, inputRes):
         from .model import push_queries
