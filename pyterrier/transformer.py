@@ -224,7 +224,7 @@ class Transformer:
             raise ValueError(('Invalid parameter name %s for transformer %s. '+
                     'Check the list of available parameters') %(name, str(self)))
 
-    def __call__(self, input : Union[pd.DataFrame, Iterable[dict]]) ->Union[pd.DataFrame, Iterable[dict]]:
+    def __call__(self, input : Union[pd.DataFrame, Iterable[dict]]) -> Union[pd.DataFrame, Iterable[dict]]:
         """
             Sets up a default method for every transformer, which is aliased to ``transform()`` (for DataFrames)
             or ``transform_iter()`` (for iterable dictionaries) depending on the type of input. The return type
