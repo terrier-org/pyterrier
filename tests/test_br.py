@@ -2,7 +2,7 @@ import pandas as pd
 import pyterrier as pt
 import os
 import unittest
-from .base import BaseTestCase
+from .base import BaseTestCase, ensure_deprecated
 import warnings
 
 def parse_res_file(filename):
@@ -261,7 +261,11 @@ class TestBatchRetrieve(BaseTestCase):
         indexloc = self.here + "/fixtures/index/data.properties"
         # docid 50 == docno 51
         input_set = pd.DataFrame([["q1", "light", 50]], columns=["qid", "query", "docid"])
-        for name, retr in [ ("TerrierRetrieve", pt.TerrierRetrieve(indexloc)), ("BatchRetrieve", pt.BatchRetrieve(indexloc)) ]:
+
+        @ensure_deprecated
+        def do_test(name, retr):
+            # delay instantiation to here
+            retr = retr(indexloc)
             self.subTest(name)
             # this test the implementation of __call__() redirecting to transform()
             for result in [retr.transform(input_set), retr(input_set)]:
@@ -276,6 +280,11 @@ class TestBatchRetrieve(BaseTestCase):
                 self.assertEqual("51", row["docno"])
                 self.assertEqual(pt.model.FIRST_RANK, row["rank"])
                 self.assertTrue(row["score"] > 0)
+        
+        for name, retr in [ ("TerrierRetrieve", pt.TerrierRetrieve), ("BatchRetrieve", pt.BatchRetrieve) ]:
+            do_test(name, retr)
+            
+            
 
 
 if __name__ == "__main__":

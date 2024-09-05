@@ -2,7 +2,7 @@ import pandas as pd
 import unittest
 import os
 import pyterrier as pt
-from .base import BaseTestCase
+from .base import BaseTestCase, ensure_deprecated
 import warnings
 
 class TestFeaturesBatchRetrieve(BaseTestCase):
@@ -116,10 +116,9 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
         JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of(self.here + "/fixtures/index/data.properties")
 
-        for name, retr in [
-                ("FeaturesRetriever", pt.terrier.FeaturesRetriever(indexref, ["WMODEL:PL2"], wmodel="DPH")), 
-                ("FeaturesBatchRetrieve", pt.FeaturesBatchRetrieve(indexref, ["WMODEL:PL2"], wmodel="DPH"))
-            ]:
+        
+        def do_test(name, retr):
+            retr = retr(indexref, ["WMODEL:PL2"], wmodel="DPH")
             self.subTest(name)
             input = pd.DataFrame([["1", "Stability"]], columns=['qid', 'query'])
             result = retr.transform(input)
@@ -137,6 +136,13 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
             retrBasic = pt.terrier.Retriever(indexref)
             if "matching" in retrBasic.controls:
                 self.assertNotEqual(retrBasic.controls["matching"], "FatFeaturedScoringMatching,org.terrier.matching.daat.FatFull")
+
+        @ensure_deprecated 
+        def do_test_deprecated(name, retr):
+            do_test(name, retr)
+
+        do_test("FeaturesRetriever", pt.terrier.FeaturesRetriever)
+        do_test_deprecated("FeaturesBatchRetrieve", pt.FeaturesBatchRetrieve)
     
     def test_fbr_query_toks(self):
         indexloc = self.here + "/fixtures/index/data.properties"
