@@ -111,6 +111,7 @@ class Transformer:
             handier version of ``transform()`` that avoids constructing a dataframe by hand. Also used in the 
             implementation of ``index()`` on a composed pipeline.
         """
+        # TODO should the return type be Iterator NOT Iterable?? or just list? It cant be a generator
         # We should have no recursive transform <-> transform_iter problem, due to the __new__ check, UNLESS .transform() is called on an Indexer.
         return self.transform(pd.DataFrame(list(input))).to_dict(orient='records')
 
