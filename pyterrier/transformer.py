@@ -59,12 +59,11 @@ class Transformer:
         does not apply for indexers, which instead implement ``.index()``.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs) 
-        self._transform_implemented = type(self).transform != Transformer.transform
-        self._transform_iter_implemented = type(self).transform_iter != Transformer.transform_iter
-        # we cant test for either self._transform_implemented or  self._transform_iter_implemented here, due to indexers
-
+    def __new__(cls, *args, **kwargs):
+        if not issubclass(cls, Indexer) and cls.transform == Transformer.transform and cls.transform_iter == Transformer.transform_iter:
+            raise NotImplementedError("You need to implement either .transform() or .transform_iter() in %s" % str(cls))
+        return super().__new__(cls)
+        
     @staticmethod
     def identity() -> 'Transformer':
         """
@@ -102,8 +101,7 @@ class Transformer:
             Abstract method for all transformations. Typically takes as input a Pandas
             DataFrame, and also returns one.
         """
-        if not self._transform_iter_implemented:
-            raise NotImplementedError("You need to implement either .transform() and .transform_iter() in %s" % str(type(self)))
+        # We should have no recursive transform <-> transform_iter problem, due to the __new__ check, UNLESS .transform() is called on an Indexer.
         return pd.DataFrame(self.transform_iter(topics_or_res.to_dict(orient='records')))
 
     def transform_iter(self, input: Iterable[dict]) -> Iterable[dict]:
@@ -113,9 +111,7 @@ class Transformer:
             handier version of ``transform()`` that avoids constructing a dataframe by hand. Also used in the 
             implementation of ``index()`` on a composed pipeline.
         """
-        if not self._transform_implemented:
-            raise NotImplementedError("You need to implement either .transform() and .transform_iter() in %s" % str(type(self)))
-
+        # We should have no recursive transform <-> transform_iter problem, due to the __new__ check, UNLESS .transform() is called on an Indexer.
         return self.transform(pd.DataFrame(list(input))).to_dict(orient='records')
 
     def transform_gen(self, input : pd.DataFrame, batch_size=1, output_topics=False) -> Iterator[pd.DataFrame]:
