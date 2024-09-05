@@ -17,15 +17,17 @@ def _bind(instance, func, as_name=None):
     setattr(instance, as_name, bound_method)
     return bound_method
 
-def query(fn : Callable[[pd.Series], str], *args, **kwargs) -> pt.Transformer:
+def query(fn : Callable[[Union[pd.Series,Dict[str,Any]]], str], *args, **kwargs) -> pt.Transformer:
     """
         Create a transformer that takes as input a query, and applies a supplied function to compute a new query formulation.
 
         The supplied function is called once for each query, and must return a string containing the new query formulation.
-        Each time it is called, the function is supplied with a Panda Series representing the attributes of the query.
+        Each time it is called, the function is supplied with a Panda Series or dict representing the attributes of the query.
+        The particular type of the input is not controlled by the implementor, so the function should be written to support 
+        both, e.g. using ``row["key"]`` notation and not the ``row.key`` that is supported by a Series.
 
         The previous query formulation is saved in the "query_0" column. If a later pipeline stage is intended to resort to
-        be executed on the previous query formulation, a `pt.rewrite.reset()` transformer can be applied.  
+        be executed on the previous query formulation, a ``pt.rewrite.reset()`` transformer can be applied.  
 
         Arguments:
             fn(Callable): the function to apply to each row. It must return a string containing the new query formulation.
@@ -51,7 +53,7 @@ def query(fn : Callable[[pd.Series], str], *args, **kwargs) -> pt.Transformer:
                 ) >> pt.terrier.Retriever(index, wmodel="DPH")
 
         In both of the example pipelines above (`p1` and `p2`), the exact topics are not known until the pipeline is invoked, e.g.
-        by using `p1.transform(topics)` on a topics dataframe, or within a `pt.Experiment()`. When the pipeline 
+        by using `p1.transform(topics)` on a topics dataframe, or within a ``pt.Experiment()``. When the pipeline 
         is invoked, the specified function (`_remove_stops` in the case of `p1`) is called for **each** row of the 
         input datatrame (becoming the `q` function argument).
             
@@ -59,7 +61,7 @@ def query(fn : Callable[[pd.Series], str], *args, **kwargs) -> pt.Transformer:
     """
     return ApplyQueryTransformer(fn, *args, **kwargs)
 
-def doc_score(fn : Union[Callable[[pd.Series], float], Callable[[pd.DataFrame], Sequence[float]]], *args, batch_size=None, **kwargs) -> pt.Transformer:
+def doc_score(fn : Union[Callable[[Union[pd.Series,Dict[str,Any]]], float], Callable[[pd.DataFrame], Sequence[float]]], *args, batch_size=None, **kwargs) -> pt.Transformer:
     """
         Create a transformer that takes as input a ranked documents dataframe, and applies a supplied function to compute a new score.
         Ranks are automatically computed. doc_score() can operate row-wise, or batch-wise, depending on whether batch_size is set.
@@ -76,7 +78,7 @@ def doc_score(fn : Union[Callable[[pd.Series], float], Callable[[pd.DataFrame], 
 
             # this transformer will subtract 5 from the score of each document
             p = pt.terrier.Retriever(index, wmodel="DPH") >> 
-                pt.apply.doc_score(lambda doc : doc["score"] -5)
+                pt.apply.doc_score(lambda doc : doc["score"] -5) # doc["score"] works for both a dict and Series
 
         Can be used in batch-wise manner, which is particularly useful for appling neural models. In this case,
         the scoring function receives a dataframe, rather than a single row::
@@ -94,12 +96,14 @@ def doc_score(fn : Union[Callable[[pd.Series], float], Callable[[pd.DataFrame], 
     """
     return ApplyDocumentScoringTransformer(fn, *args, batch_size=batch_size, **kwargs)
 
-def doc_features(fn : Callable[[pd.Series], npt.NDArray[Any]], *args, **kwargs) -> pt.Transformer:
+def doc_features(fn : Callable[[Union[pd.Series,Dict[str,Any]]], npt.NDArray[Any]], *args, **kwargs) -> pt.Transformer:
     """
         Create a transformer that takes as input a ranked documents dataframe, and applies the supplied function to each document to compute feature scores. 
 
         The supplied function is called once for each document, must each time return a 1D numpy array.
-        Each time it is called, the function is supplied with a Panda Series representing the attributes of the query and document.
+        Each time it is called, the function is supplied with a Panda Series, or a dictionary, representing the attributes of the query and document. The
+        particular type of the input is not controlled by the implementor, so the function should be written to support both, e.g. using ``row["key"]``
+        notation and not the ``row.key`` that is supported by a Series.
 
         Arguments:
             fn(Callable): the function to apply to each row
