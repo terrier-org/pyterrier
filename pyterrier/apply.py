@@ -1,9 +1,9 @@
 from functools import partial
-from typing import Callable, Any, Dict, Union, Iterator, Sequence
+from typing import Callable, Any, Dict, Union, Iterator, Iterable, Sequence
 import numpy.typing as npt
 import pandas as pd
 import pyterrier as pt
-from pyterrier.apply_base import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyGenericTransformer, ApplyIndexer
+from pyterrier.apply_base import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyGenericTransformer, ApplyGenericIterTransformer, ApplyIndexer
 
 def _bind(instance, func, as_name=None):
     """
@@ -168,7 +168,7 @@ def rename(columns : Dict[str,str], *args, errors='raise', **kwargs) -> pt.Trans
     """
     return ApplyGenericTransformer(lambda df: df.rename(columns=columns, errors=errors), *args, **kwargs)
 
-def generic(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, batch_size=None, **kwargs) -> pt.Transformer:
+def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[Iterable[Dict]], Iterator[Dict] ]], *args, batch_size=None, iter=False, **kwargs) -> pt.Transformer:
     """
         Create a transformer that changes the input dataframe to another dataframe in an unspecified way.
 
@@ -179,7 +179,8 @@ def generic(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, batch_size=None,
         Arguments:
             fn(Callable): the function to apply to each row
             batch_size(int or None): whether to apply fn on batches of rows or all that are received
-            verbose(bool): Whether to display a progress bar over batches (only used if batch_size is set).
+            verbose(bool): Whether to display a progress bar over batches (only used if batch_size is set, and iter is not set).
+            iter(bool): Whether to use transform_iter()
 
         Example::
 
@@ -189,6 +190,8 @@ def generic(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, batch_size=None,
             pipe = pt.terrier.Retriever(index) >> pt.apply.generic(lambda res : res[res["rank"] < 2])
 
     """
+    if iter:
+        return ApplyGenericIterTransformer(fn, *args, batch_size=batch_size, **kwargs)
     return ApplyGenericTransformer(fn, *args, batch_size=batch_size, **kwargs)
 
 def by_query(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, batch_size=None, **kwargs) -> pt.Transformer:

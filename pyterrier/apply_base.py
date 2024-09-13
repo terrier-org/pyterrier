@@ -1,6 +1,7 @@
 
 from .transformer import Transformer, Indexer
 from .model import add_ranks, split_df
+from typing import Iterable, Iterator
 import pandas as pd
 import pyterrier as pt
 
@@ -169,7 +170,7 @@ class ApplyDocFeatureTransformer(ApplyTransformerBase):
             for row in pt.tqdm(iterdict, desc="pt.apply.doc_features") if self.verbose else iterdict:
                 row["features"] = self.fn(row)
                 yield row
-        return list(gen())
+        return gen()
 
     def transform(self, inputRes):
         fn = self.fn
@@ -223,7 +224,7 @@ class ApplyQueryTransformer(ApplyTransformerBase):
                     # TODO implement push_queries for iter-dict
                 row["query"] = self.fn(row)
                 yield row
-        return list(gen())
+        return gen()
 
     def transform(self, inputRes):
         from .model import push_queries
@@ -260,7 +261,7 @@ class ApplyGenericTransformer(ApplyTransformerBase):
 
     Example::
         
-        # this pipeline would remove all but the first two documents from a result set
+        # this pipeline would remove all but the first two documents from all result sets
         lp = ApplyGenericTransformer(lambda res : res[res["rank"] < 2])
 
         pipe = pt.terrier.Retriever(index) >> lp
@@ -292,6 +293,54 @@ class ApplyGenericTransformer(ApplyTransformerBase):
             iterator = pt.tqdm(iterator, desc="pt.apply", unit='row') 
         rtr = pd.concat([self.fn(chunk_df) for chunk_df in iterator])
         return rtr
+
+
+class ApplyGenericIterTransformer(ApplyTransformerBase): 
+    """
+
+    As per ApplyGenericTransformer, but implements transform_iter(), not transform(). The supplied function
+    is assumed to take Iterable[dict] and return Iterator[dict]
+
+    This class is normally accessed through pt.apply.generic()
+
+    If you are scoring, query rewriting or calculating features, it is advised to use one of the other
+    variants.
+
+    Example::
+        
+        # TODO
+
+    """
+    def __init__(self, fn,  *args, batch_size=None, **kwargs):
+        """
+            Arguments:
+             - fn (Callable): Takes as input a panda DataFrame, and returns a new Pandas DataFrame 
+        """
+        super().__init__(fn, *args, **kwargs)
+        self.batch_size = batch_size
+
+    def __repr__(self):
+        return "pt.apply.generic()"
+
+    def transform_iter(self, input: Iterable[dict]) -> Iterator[dict]:
+        from more_itertools import ichunked
+
+        # no batching
+        if self.batch_size is None:
+            yield from self.fn(input) # or should this be return, as self.fn is assumed to return an Iterator?
+            return
+        
+        print("before gen() bs=%d" % self.batch_size)
+        # batching
+        def gen():
+            print("batching inside gen(), bs=%d" % self.batch_size)
+            for batch in ichunked(input, self.batch_size):
+                print(batch)
+                # batch is itself an iterator that must be instanted to be passed to the function?
+                # the return is expected to be an iterator
+                #yield from self.fn(list(batch))
+                yield from self.fn(batch)
+        return gen()
 
 class ApplyIndexer(Indexer):
     """

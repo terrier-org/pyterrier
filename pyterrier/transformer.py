@@ -102,18 +102,27 @@ class Transformer:
             DataFrame, and also returns one.
         """
         # We should have no recursive transform <-> transform_iter problem, due to the __new__ check, UNLESS .transform() is called on an Indexer.
-        return pd.DataFrame(self.transform_iter(topics_or_res.to_dict(orient='records')))
+        return pd.DataFrame(list(self.transform_iter(topics_or_res.to_dict(orient='records'))))
 
-    def transform_iter(self, input: Iterable[dict]) -> Iterable[dict]:
+    def transform_iter(self, input: Iterable[dict]) -> Iterator[dict]:
         """
             Method that proesses an iter-dict by instantiating it as a dataframe and calling ``transform()``.
-            Returns an Iterable[dict] equivalent to the DataFrame returned by ``transform()``. This can be a 
-            handier version of ``transform()`` that avoids constructing a dataframe by hand. Also used in the 
-            implementation of ``index()`` on a composed pipeline.
+            Returns an Iterable[dict] equivalent to the DataFrame returned by ``transform()``, usually a generator. 
+            This can be a handier version of ``transform()`` that avoids constructing a dataframe. Also used in the 
+            instantiation of ``index()`` on a composed pipeline.
         """
-        # TODO should the return type be Iterator NOT Iterable?? or just list? It cant be a generator
         # We should have no recursive transform <-> transform_iter problem, due to the __new__ check, UNLESS .transform() is called on an Indexer.
-        return self.transform(pd.DataFrame(list(input))).to_dict(orient='records')
+        return iter(self.transform(pd.DataFrame(list(input))).to_dict(orient='records'))
+    
+    def __call__(self, input : Union[pd.DataFrame, Iterable[dict]]) -> Union[pd.DataFrame, Iterable[dict]]:
+        """
+            Sets up a default method for every transformer, which is aliased to ``transform()`` (for DataFrames)
+            or ``list(transform_iter())`` (for iterable dictionaries) depending on the type of input. The return type
+            matches the input type, but is always instantiated.
+        """
+        if isinstance(input, pd.DataFrame):
+            return self.transform(input)
+        return list(self.transform_iter(input))
 
     def transform_gen(self, input : pd.DataFrame, batch_size=1, output_topics=False) -> Iterator[pd.DataFrame]:
         """
@@ -224,16 +233,6 @@ class Transformer:
         else:
             raise ValueError(('Invalid parameter name %s for transformer %s. '+
                     'Check the list of available parameters') %(name, str(self)))
-
-    def __call__(self, input : Union[pd.DataFrame, Iterable[dict]]) -> Union[pd.DataFrame, Iterable[dict]]:
-        """
-            Sets up a default method for every transformer, which is aliased to ``transform()`` (for DataFrames)
-            or ``transform_iter()`` (for iterable dictionaries) depending on the type of input. The return type
-            matches the input type.
-        """
-        if isinstance(input, pd.DataFrame):
-            return self.transform(input)
-        return self.transform_iter(input)
 
     def __rshift__(self, right) -> 'Transformer':
         from .ops import ComposedPipeline

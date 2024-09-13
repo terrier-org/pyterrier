@@ -40,6 +40,7 @@ class TestOperators(BaseTestCase):
     def test_then(self):
         
         def rewrite(topics):
+            topics = topics.copy()
             for index, row in topics.iterrows():
                 row["query"] = row["query"] + " test"
             return topics
@@ -61,12 +62,20 @@ class TestOperators(BaseTestCase):
             #check we can access items
             self.assertEqual(2, len(sequence))
             self.assertTrue(sequence[0], ptt.Transformer)
-            self.assertTrue(sequence[1], ptt.Transformer)            
+            self.assertTrue(sequence[1], ptt.Transformer)
             input = pd.DataFrame([["q1", "hello"]], columns=["qid", "query"])
             output = sequence.transform(input)
             self.assertEqual(1, len(output))
             self.assertEqual("q1", output.iloc[0]["qid"])
             self.assertEqual("hello test test", output.iloc[0]["query"])
+            # now test transform_iter pathway via __call__
+            output = sequence(input.to_dict(orient='records'))
+            self.assertIsInstance(output, list)
+            output = pd.DataFrame(output)
+            self.assertEqual(1, len(output))
+            self.assertEqual("q1", output.iloc[0]["qid"])
+            self.assertEqual("hello test test", output.iloc[0]["query"])
+
 
 
 
