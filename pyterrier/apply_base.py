@@ -85,23 +85,15 @@ class ApplyIterForEachQuery(ApplyTransformerBase):
         return "pt.apply.by_query()"
     
     def transform_iter(self, input):
-        import more_itertools
-        assert not self.add_ranks
-        input = more_itertools.peekable(input)
-        try:
-            thisqid = input.peek()["qid"]
-        except StopIteration:
-            # input iterable was empty
-            yield from [] 
-        batch = []
-        for row in input:
-            if row["qid"] != thisqid or self.batch_size is not None and len(batch) == self.batch_size:
-                yield from self.fn(batch)
-                batch = []
-                thisqid = row["qid"]
-            batch.append(row)
-        if len(batch) > 0:
-            yield from self.fn(batch)
+        from itertools import groupby
+        from more_itertools import ichunked
+        if self.batch_size is not None:
+            for _, group in groupby(input, key=lambda row: row['qid']):
+                for batch in ichunked(group, self.batch_size):
+                    yield from self.fn(batch)
+        else:
+            for _, group in groupby(input, key=lambda row: row['qid']):
+                yield from self.fn(group)
 
 class ApplyDocumentScoringTransformer(ApplyTransformerBase):
     """
