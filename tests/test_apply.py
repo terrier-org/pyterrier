@@ -109,6 +109,30 @@ class TestApply(BaseTestCase):
         with self.assertRaisesRegex(Exception, 'for qid 1'):
             p3(pt.new.queries(['query 1', 'query 2']))
 
+    def test_by_query_apply_iter(self):
+        inputDf = pt.new.ranked_documents([[1], [2]], qid=["1", "2"])
+        def _inc_score(res):
+            for row in res:
+                row["score"] = row["score"] + int(row["qid"])
+                yield row
+        p = pt.apply.by_query(_inc_score, iter=True)
+        outputDf = p(inputDf)
+        self.assertEqual(outputDf.iloc[0]["qid"], "1")
+        self.assertEqual(outputDf.iloc[0]["score"], 2)
+        self.assertEqual(outputDf.iloc[1]["qid"], "2")
+        self.assertEqual(outputDf.iloc[1]["score"], 4)
+
+        # check no error on empty input
+        outputDfEmpty = p(inputDf.head(0))
+
+        # now check with batch_size set
+        p = pt.apply.by_query(_inc_score, iter=True, batch_size=1)
+        outputDf = p(inputDf)
+        self.assertEqual(outputDf.iloc[0]["qid"], "1")
+        self.assertEqual(outputDf.iloc[0]["score"], 2)
+        self.assertEqual(outputDf.iloc[1]["qid"], "2")
+        self.assertEqual(outputDf.iloc[1]["score"], 4)
+
     def test_by_query_apply_batch(self):
         # same as test_by_query_apply, but batch_size is set.
         inputDf = pt.new.ranked_documents([[1], [2]], qid=["1", "2"])

@@ -69,6 +69,38 @@ class ApplyForEachQuery(ApplyTransformerBase):
                 raise ValueError("Cannot apply add_ranks in pt.apply.by_query - " + suffix) from ke
         rtr = pd.concat(query_dfs)
         return rtr
+    
+class ApplyIterForEachQuery(ApplyTransformerBase):
+    def __init__(self, fn,  *args, add_ranks=False, batch_size=None, **kwargs):
+        """
+            Arguments:
+             - fn (Callable): Takes as input a panda Series for a row representing that document, and returns the new float doument score 
+        """
+        super().__init__(fn, *args, **kwargs)
+        self.add_ranks = add_ranks
+        self.batch_size = batch_size
+    
+    def __repr__(self):
+        return "pt.apply.by_query()"
+    
+    def transform_iter(self, input):
+        import more_itertools
+        assert not self.add_ranks
+        input = more_itertools.peekable(input)
+        try:
+            thisqid = input.peek()["qid"]
+        except StopIteration:
+            # input iterable was empty
+            yield from [] 
+        batch = []
+        for row in input:
+            if row["qid"] != thisqid or self.batch_size is not None and len(batch) == self.batch_size:
+                yield from self.fn(batch)
+                batch = []
+                thisqid = row["qid"]
+            batch.append(row)
+        if len(batch) > 0:
+            yield from self.fn(batch)
 
 class ApplyDocumentScoringTransformer(ApplyTransformerBase):
     """

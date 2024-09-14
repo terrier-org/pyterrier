@@ -3,7 +3,7 @@ from typing import Callable, Any, Dict, Union, Iterator, Iterable, Sequence
 import numpy.typing as npt
 import pandas as pd
 import pyterrier as pt
-from pyterrier.apply_base import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyGenericTransformer, ApplyGenericIterTransformer, ApplyIndexer
+from pyterrier.apply_base import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyIterForEachQuery, ApplyGenericTransformer, ApplyGenericIterTransformer, ApplyIndexer
 
 def _bind(instance, func, as_name=None):
     """
@@ -201,12 +201,22 @@ def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[Iterabl
         return ApplyGenericIterTransformer(fn, *args, batch_size=batch_size, **kwargs)
     return ApplyGenericTransformer(fn, *args, batch_size=batch_size, **kwargs)
 
-def by_query(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, batch_size=None, **kwargs) -> pt.Transformer:
+def by_query(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[Iterable[Dict]], Iterator[Dict] ]], *args, batch_size=None, iter=False, **kwargs) -> pt.Transformer:
     """
         As `pt.apply.generic()` except that fn receives a dataframe for one query at at time, rather than all results at once.
         If batch_size is set, fn will receive no more than batch_size documents for any query. The verbose kwargs controls whether
         to display a progress bar over queries.  
+
+        Arguments:
+            fn(Callable): the function to apply to each row. Should return a generator
+            batch_size(int or None): whether to apply fn on batches of rows or all that are received.
+            verbose(bool): Whether to display a progress bar over batches (only used if batch_size is set, and iter is not set).
+            iter(bool): Whether to use the iter-dict API - if-so, then ``fn`` receives an iterable, and must return an iterator. 
     """
+    if iter:
+        if kwargs.get("add_ranks", False):
+            raise ValueError("add_ranks=True not supported with iter=True")
+        return ApplyIterForEachQuery(fn, *args, batch_size=batch_size, **kwargs)
     return ApplyForEachQuery(fn, *args, batch_size=batch_size, **kwargs)
 
 class _apply:
