@@ -180,14 +180,21 @@ def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[Iterabl
             fn(Callable): the function to apply to each row
             batch_size(int or None): whether to apply fn on batches of rows or all that are received
             verbose(bool): Whether to display a progress bar over batches (only used if batch_size is set, and iter is not set).
-            iter(bool): Whether to use transform_iter()
+            iter(bool): Whether to use the iter-dict API - if-so, then ``fn`` receives an iterable, and must return an iterator. 
 
-        Example::
-
-            # this transformer will remove all documents at rank greater than 2.
+        Example (dataframe)::
 
             # this pipeline would remove all but the first two documents from a result set
             pipe = pt.terrier.Retriever(index) >> pt.apply.generic(lambda res : res[res["rank"] < 2])
+
+         Example (iter-dict)::
+
+            # this pipeline would simlarly remove all but the first two documents from a result set
+            def _fn(iterdict):
+                for result in iterdict:
+                    if result["rank"] < 2:
+                        yield result
+            pipe = pt.terrier.Retriever(index) >> pt.apply.generic(_fn)
 
     """
     if iter:

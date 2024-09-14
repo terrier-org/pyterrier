@@ -168,25 +168,20 @@ class TestApply(BaseTestCase):
             return rtr
         
         def _fn1_gen(iter):
-            def gen():
-                for i in iter:
-                    print(i)
-                    i["score"] *= 2
-                    yield i
-                return gen()
-        
+           for i in iter:
+                i["score"] *= 2
+                yield i
+
         for name, t in [
             ("list, no batch", pt.apply.generic(_fn1_list, iter=True)),
             ("list, batch", pt.apply.generic(_fn1_list, batch_size=1, iter=True)),
             ("gen, no batch", pt.apply.generic(_fn1_gen, iter=True)),
             ("gen, batch", pt.apply.generic(_fn1_gen, batch_size=1, iter=True)),
         ]:
-            print(name)
             inputDf = pt.new.ranked_documents([[1], [2]], qid=["1", "2"])
             with self.subTest(name):
                 outputDf1 = t(inputDf)
                 self.assertEqual(2, len(outputDf1))
-                print(outputDf1)
                 self.assertEqual(2, outputDf1.iloc[0]["score"])
                 self.assertEqual(4, outputDf1.iloc[1]["score"])
 

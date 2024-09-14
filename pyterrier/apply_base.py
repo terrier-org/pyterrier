@@ -324,23 +324,12 @@ class ApplyGenericIterTransformer(ApplyTransformerBase):
 
     def transform_iter(self, input: Iterable[dict]) -> Iterator[dict]:
         from more_itertools import ichunked
-
-        # no batching
         if self.batch_size is None:
-            yield from self.fn(input) # or should this be return, as self.fn is assumed to return an Iterator?
-            return
-        
-        print("before gen() bs=%d" % self.batch_size)
-        # batching
-        def gen():
-            print("batching inside gen(), bs=%d" % self.batch_size)
+            # no batching
+            yield from self.fn(input)
+        else:
             for batch in ichunked(input, self.batch_size):
-                print(batch)
-                # batch is itself an iterator that must be instanted to be passed to the function?
-                # the return is expected to be an iterator
-                #yield from self.fn(list(batch))
                 yield from self.fn(batch)
-        return gen()
 
 class ApplyIndexer(Indexer):
     """
