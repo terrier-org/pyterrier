@@ -180,7 +180,7 @@ def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[Iterabl
             fn(Callable): the function to apply to each row
             batch_size(int or None): whether to apply fn on batches of rows or all that are received
             verbose(bool): Whether to display a progress bar over batches (only used if batch_size is set, and iter is not set).
-            iter(bool): Whether to use the iter-dict API - if-so, then ``fn`` receives an iterable, and must return an iterator. 
+            iter(bool): Whether to use the iter-dict API - if-so, then ``fn`` receives an iterable, and returns an iterable. 
 
         Example (dataframe)::
 
@@ -194,7 +194,10 @@ def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[Iterabl
                 for result in iterdict:
                     if result["rank"] < 2:
                         yield result
-            pipe = pt.terrier.Retriever(index) >> pt.apply.generic(_fn)
+            pipe1 = pt.terrier.Retriever(index) >> pt.apply.generic(_fn, iter=True)
+
+            # transform_iter() can also return an iterable, so returning a list is also permissible
+            pipe2 = pt.terrier.Retriever(index) >> pt.apply.generic(lambda res: [row for row in res if row["rank"] < 2], iter=True)
 
     """
     if iter:
@@ -213,7 +216,7 @@ def by_query(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[Iterab
             fn(Callable): the function to apply to each row. Should return a generator
             batch_size(int or None): whether to apply fn on batches of rows or all that are received.
             verbose(bool): Whether to display a progress bar over batches (only used if batch_size is set, and iter is not set).
-            iter(bool): Whether to use the iter-dict API - if-so, then ``fn`` receives an iterable, and must return an iterator. 
+            iter(bool): Whether to use the iter-dict API - if-so, then ``fn`` receives an iterable, and must return an iterable. 
     """
     if iter:
         if kwargs.get("add_ranks", False):

@@ -104,10 +104,10 @@ class Transformer:
         # We should have no recursive transform <-> transform_iter problem, due to the __new__ check, UNLESS .transform() is called on an Indexer.
         return pd.DataFrame(list(self.transform_iter(topics_or_res.to_dict(orient='records'))))
 
-    def transform_iter(self, input: Iterable[dict]) -> Iterator[dict]:
+    def transform_iter(self, input: Iterable[dict]) -> Iterable[dict]:
         """
             Method that proesses an iter-dict by instantiating it as a dataframe and calling ``transform()``.
-            Returns an Iterable[dict] equivalent to the DataFrame returned by ``transform()``, usually a generator. 
+            Returns an Iterable[dict] equivalent to the DataFrame returned by ``transform()``, usually a list or a generator. 
             This can be a handier version of ``transform()`` that avoids constructing a dataframe. Also used in the 
             instantiation of ``index()`` on a composed pipeline.
         """
@@ -118,7 +118,7 @@ class Transformer:
         """
             Sets up a default method for every transformer, which is aliased to ``transform()`` (for DataFrames)
             or ``list(transform_iter())`` (for iterable dictionaries) depending on the type of input. The return type
-            matches the input type, but is always instantiated.
+            matches the input type, but is always instantiated (generators should not be returned).
         """
         if isinstance(input, pd.DataFrame):
             return self.transform(input)

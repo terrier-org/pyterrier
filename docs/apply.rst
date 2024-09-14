@@ -36,13 +36,13 @@ returned by the function.
 +-------+---------+-------------+------------------+---------------------------+-------------------------------------+-------------------------------------------+
 | Q x D |  Q x Df |   1 to 1    | Feature scoring  | `pt.apply.doc_features()` | row of one document (pd.Series/dict)| numpy array                               |
 +-------+---------+-------------+------------------+---------------------------+-------------------------------------+-------------------------------------------+
-| Q x D |    Q    |   N to 1    | Query expansion  | `pt.apply.generic()`      | entire (dataframe/iter-dict)        | entire dataframe / generator of dict      |
+| Q x D |    Q    |   N to 1    | Query expansion  | `pt.apply.generic()`      | entire (dataframe/iter-dict)        | entire dataframe / iterable of dict       |
 +       |         |             |                  +---------------------------+-------------------------------------+-------------------------------------------+
-|       |         |             |                  | `pt.apply.by_query()`     | (dataframe/iter-dict) for 1 query   | dataframe / generator of dict for 1 query |
+|       |         |             |                  | `pt.apply.by_query()`     | (dataframe/iter-dict) for 1 query   | dataframe / iterable of dict for 1 query  |
 +-------+---------+-------------+------------------+---------------------------+-------------------------------------+-------------------------------------------+
 |   Q   |  Q x D  |   1 to N    | Retrieval        | `pt.apply.generic()`      | entire  (dataframe/iter-dict)       | entire dataframe                          |
 +       |         |             |                  +---------------------------+-------------------------------------+-------------------------------------------+
-|       |         |             |                  | `pt.apply.by_query()`     | (dataframe/iter-dict) for 1 query   | dataframe for 1 query                     |
+|       |         |             |                  | `pt.apply.by_query()`     | (dataframe/iter-dict) for 1 query   | dataframe / iterable of dict for 1 query  |
 +-------+---------+-------------+------------------+---------------------------+-------------------------------------+-------------------------------------------+
 |   D   |  None   |  N to 0     | Indexing         | `pt.apply.indexer()`      | iterable dictionary                 | anything                                  | 
 +-------+---------+-------------+------------------+---------------------------+-------------------------------------+-------------------------------------------+
