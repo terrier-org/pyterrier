@@ -112,7 +112,7 @@ class Transformer:
             instantiation of ``index()`` on a composed pipeline.
         """
         # We should have no recursive transform <-> transform_iter problem, due to the __new__ check, UNLESS .transform() is called on an Indexer.
-        return iter(self.transform(pd.DataFrame(list(input))).to_dict(orient='records'))
+        return self.transform(pd.DataFrame(list(input))).to_dict(orient='records')
     
     def __call__(self, input : Union[pd.DataFrame, Iterable[dict]]) -> Union[pd.DataFrame, Iterable[dict]]:
         """
