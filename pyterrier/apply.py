@@ -208,7 +208,7 @@ def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[Iterabl
 
 def by_query(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[Iterable[Dict]], Iterable[Dict] ]], *args, batch_size=None, iter=False, **kwargs) -> pt.Transformer:
     """
-        As `pt.apply.generic()` except that fn receives a dataframe for one query at at time, rather than all results at once.
+        As `pt.apply.generic()` except that fn receives a dataframe (or iter-dict) for one query at at time, rather than all results at once.
         If batch_size is set, fn will receive no more than batch_size documents for any query. The verbose kwargs controls whether
         to display a progress bar over queries.  
 
