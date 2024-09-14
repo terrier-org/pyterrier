@@ -115,23 +115,29 @@ class TestApply(BaseTestCase):
             for row in res:
                 row["score"] = row["score"] + int(row["qid"])
                 yield row
-        p = pt.apply.by_query(_inc_score, iter=True)
-        outputDf = p(inputDf)
-        self.assertEqual(outputDf.iloc[0]["qid"], "1")
-        self.assertEqual(outputDf.iloc[0]["score"], 2)
-        self.assertEqual(outputDf.iloc[1]["qid"], "2")
-        self.assertEqual(outputDf.iloc[1]["score"], 4)
 
-        # check no error on empty input
-        outputDfEmpty = p(inputDf.head(0))
+        def _inc_score_list(res):
+            rtr = []
+            for row in res:
+                row["score"] = row["score"] + int(row["qid"])
+                rtr.append(row)
+            return rtr
+    
+        for name, t in [
+            ("gen", pt.apply.by_query(_inc_score, iter=True)),
+            ("gen batch", pt.apply.by_query(_inc_score, iter=True, batch_size=1)),
+            ("list", pt.apply.by_query(_inc_score_list, iter=True)),
+            ("list batch", pt.apply.by_query(_inc_score_list, iter=True, batch_size=1))]:
+            with self.subTest(name):
+            
+                outputDf = t(inputDf)
+                self.assertEqual(outputDf.iloc[0]["qid"], "1")
+                self.assertEqual(outputDf.iloc[0]["score"], 2)
+                self.assertEqual(outputDf.iloc[1]["qid"], "2")
+                self.assertEqual(outputDf.iloc[1]["score"], 4)
 
-        # now check with batch_size set
-        p = pt.apply.by_query(_inc_score, iter=True, batch_size=1)
-        outputDf = p(inputDf)
-        self.assertEqual(outputDf.iloc[0]["qid"], "1")
-        self.assertEqual(outputDf.iloc[0]["score"], 2)
-        self.assertEqual(outputDf.iloc[1]["qid"], "2")
-        self.assertEqual(outputDf.iloc[1]["score"], 4)
+                # check no error on empty input
+                outputDfEmpty = t(inputDf.head(0))
 
     def test_by_query_apply_batch(self):
         # same as test_by_query_apply, but batch_size is set.
