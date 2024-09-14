@@ -168,7 +168,7 @@ def rename(columns : Dict[str,str], *args, errors='raise', **kwargs) -> pt.Trans
     """
     return ApplyGenericTransformer(lambda df: df.rename(columns=columns, errors=errors), *args, **kwargs)
 
-def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[Iterable[Dict]], Iterator[Dict] ]], *args, batch_size=None, iter=False, **kwargs) -> pt.Transformer:
+def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[Iterable[Dict]], Iterable[Dict] ]], *args, batch_size=None, iter=False, **kwargs) -> pt.Transformer:
     """
         Create a transformer that changes the input dataframe to another dataframe in an unspecified way.
 
@@ -206,7 +206,7 @@ def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[Iterabl
         return ApplyGenericIterTransformer(fn, *args, batch_size=batch_size, **kwargs)
     return ApplyGenericTransformer(fn, *args, batch_size=batch_size, **kwargs)
 
-def by_query(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[Iterable[Dict]], Iterator[Dict] ]], *args, batch_size=None, iter=False, **kwargs) -> pt.Transformer:
+def by_query(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[Iterable[Dict]], Iterable[Dict] ]], *args, batch_size=None, iter=False, **kwargs) -> pt.Transformer:
     """
         As `pt.apply.generic()` except that fn receives a dataframe for one query at at time, rather than all results at once.
         If batch_size is set, fn will receive no more than batch_size documents for any query. The verbose kwargs controls whether
