@@ -243,7 +243,7 @@ def generic_apply(name, *args, drop=False, **kwargs) -> pt.Transformer:
         raise ValueError("Must specify a fn, e.g. a lambda")
 
     fn = args[0]
-    args=[]
+    args=()
 
     def _new_column(df):
         df[name] = df.apply(fn, axis=1, result_type='reduce')
