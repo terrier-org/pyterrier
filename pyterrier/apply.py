@@ -198,6 +198,8 @@ def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[Iterabl
 
     """
     if iter:
+        if kwargs.get("add_ranks", False):
+            raise ValueError("add_ranks=True not supported with iter=True")
         return ApplyGenericIterTransformer(fn, *args, batch_size=batch_size, **kwargs)
     return ApplyGenericTransformer(fn, *args, batch_size=batch_size, **kwargs)
 

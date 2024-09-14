@@ -79,6 +79,7 @@ class ApplyIterForEachQuery(ApplyTransformerBase):
         super().__init__(fn, *args, **kwargs)
         self.add_ranks = add_ranks
         self.batch_size = batch_size
+        assert not kwargs.get("verbose", False), "verbose not supported"
     
     def __repr__(self):
         return "pt.apply.by_query()"
@@ -338,10 +339,6 @@ class ApplyGenericIterTransformer(ApplyTransformerBase):
     If you are scoring, query rewriting or calculating features, it is advised to use one of the other
     variants.
 
-    Example::
-        
-        # TODO
-
     """
     def __init__(self, fn,  *args, batch_size=None, **kwargs):
         """
@@ -350,6 +347,7 @@ class ApplyGenericIterTransformer(ApplyTransformerBase):
         """
         super().__init__(fn, *args, **kwargs)
         self.batch_size = batch_size
+        assert not kwargs.get("verbose", False), "verbose not supported"
 
     def __repr__(self):
         return "pt.apply.generic()"
