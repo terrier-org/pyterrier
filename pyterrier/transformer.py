@@ -62,7 +62,6 @@ class Transformer:
 
     def __new__(cls, *args, **kwargs):
         if cls.transform == Transformer.transform and cls.transform_iter == Transformer.transform_iter:
-        # if not issubclass(cls, Indexer) and cls.transform == Transformer.transform and cls.transform_iter == Transformer.transform_iter:
             raise NotImplementedError("You need to implement either .transform() or .transform_iter() in %s" % str(cls))
         return super().__new__(cls, *args, **kwargs)
         
