@@ -17,7 +17,7 @@ def _bind(instance, func, as_name=None):
     setattr(instance, as_name, bound_method)
     return bound_method
 
-def query(fn : Callable[[Union[pd.Series,Dict[str,Any]]], str], *args, **kwargs) -> pt.Transformer:
+def query(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], str], *args, **kwargs) -> pt.Transformer:
     """
         Create a transformer that takes as input a query, and applies a supplied function to compute a new query formulation.
 
@@ -61,7 +61,7 @@ def query(fn : Callable[[Union[pd.Series,Dict[str,Any]]], str], *args, **kwargs)
     """
     return ApplyQueryTransformer(fn, *args, **kwargs)
 
-def doc_score(fn : Union[Callable[[Union[pd.Series,Dict[str,Any]]], float], Callable[[pd.DataFrame], Sequence[float]]], *args, batch_size=None, **kwargs) -> pt.Transformer:
+def doc_score(fn : Union[Callable[[Union[pd.Series,pt.model.IterDictRecord]], float], Callable[[pd.DataFrame], Sequence[float]]], *args, batch_size=None, **kwargs) -> pt.Transformer:
     """
         Create a transformer that takes as input a ranked documents dataframe, and applies a supplied function to compute a new score.
         Ranks are automatically computed. doc_score() can operate row-wise, or batch-wise, depending on whether batch_size is set.
@@ -96,7 +96,7 @@ def doc_score(fn : Union[Callable[[Union[pd.Series,Dict[str,Any]]], float], Call
     """
     return ApplyDocumentScoringTransformer(fn, *args, batch_size=batch_size, **kwargs)
 
-def doc_features(fn : Callable[[Union[pd.Series,Dict[str,Any]]], npt.NDArray[Any]], *args, **kwargs) -> pt.Transformer:
+def doc_features(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], npt.NDArray[Any]], *args, **kwargs) -> pt.Transformer:
     """
         Create a transformer that takes as input a ranked documents dataframe, and applies the supplied function to each document to compute feature scores. 
 
@@ -168,7 +168,7 @@ def rename(columns : Dict[str,str], *args, errors='raise', **kwargs) -> pt.Trans
     """
     return ApplyGenericTransformer(lambda df: df.rename(columns=columns, errors=errors), *args, **kwargs)
 
-def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[Iterable[Dict]], Iterable[Dict] ]], *args, batch_size=None, iter=False, **kwargs) -> pt.Transformer:
+def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.model.IterDict], pt.model.IterDict]], *args, batch_size=None, iter=False, **kwargs) -> pt.Transformer:
     """
         Create a transformer that changes the input dataframe to another dataframe in an unspecified way.
 
@@ -206,7 +206,7 @@ def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[Iterabl
         return ApplyGenericIterTransformer(fn, *args, batch_size=batch_size, **kwargs)
     return ApplyGenericTransformer(fn, *args, batch_size=batch_size, **kwargs)
 
-def by_query(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[Iterable[Dict]], Iterable[Dict] ]], *args, batch_size=None, iter=False, **kwargs) -> pt.Transformer:
+def by_query(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.model.IterDict], pt.model.IterDict]], *args, batch_size=None, iter=False, **kwargs) -> pt.Transformer:
     """
         As `pt.apply.generic()` except that fn receives a dataframe (or iter-dict) for one query at at time, rather than all results at once.
         If batch_size is set, fn will receive no more than batch_size documents for any query. The verbose kwargs controls whether
