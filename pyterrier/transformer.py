@@ -51,7 +51,6 @@ class Scalar(Symbol):
         self.value = value
 
 class Transformer:
-    name = "Transformer"
     """
         Base class for all transformers. Implements the various operators ``>>`` ``+`` ``*`` ``|`` ``&`` 
         as well as ``search()`` for executing a single query and ``compile()`` for rewriting complex pipelines into more simples ones.
@@ -59,6 +58,7 @@ class Transformer:
         Its expected that either ``.transform()`` or ``.transform_iter()`` be implemented by any class extending this - this rule
         does not apply for indexers, which instead implement ``.index()``.
     """
+    name = "Transformer"
 
     def __new__(cls, *args, **kwargs):
         if not issubclass(cls, Indexer) and cls.transform == Transformer.transform and cls.transform_iter == Transformer.transform_iter:
