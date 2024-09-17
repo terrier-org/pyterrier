@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Callable, Any, Dict, Union, Iterable, Sequence
+from typing import Callable, Any, Dict, Union, Optional, Sequence
 import numpy.typing as npt
 import pandas as pd
 import pyterrier as pt
@@ -238,9 +238,16 @@ class _apply:
     def __getattr__(self, item):
         return partial(generic_apply, item)
 
-def generic_apply(name, fn=None, *, drop=False) -> pt.Transformer:
+def generic_apply(
+    name: str,
+    fn=None,
+    *,
+    drop: bool = False,
+    batch_size: Optional[int] = None,
+    verbose=False
+) -> pt.Transformer:
     if drop:
         assert fn is None, "cannot provide both fn and drop=True"
         return DropColumnTransformer(name)
 
-    return ApplyByRowTransformer(name, fn)
+    return ApplyByRowTransformer(name, fn, batch_size=batch_size, verbose=verbose)
