@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Callable, Any, Dict, Union, Iterator, Iterable, Sequence
+from typing import Callable, Any, Dict, Union, Iterable, Sequence
 import numpy.typing as npt
 import pandas as pd
 import pyterrier as pt
@@ -132,7 +132,7 @@ def doc_features(fn : Callable[[Union[pd.Series,Dict[str,Any]]], npt.NDArray[Any
     """
     return ApplyDocFeatureTransformer(fn, *args, **kwargs)
 
-def indexer(fn : Callable[[Iterator[Dict[str,Any]]], Any], **kwargs) -> pt.Indexer:
+def indexer(fn : Callable[[pt.model.IterDict], Any], **kwargs) -> pt.Indexer:
     """
         Create an instance of pt.Indexer using a function that takes as input an interable dictionary.
 

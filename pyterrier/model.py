@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from typing import List, Sequence
+from typing import Any, Dict, Iterable, List, Sequence
 
 # This file has useful methods for using the Pyterrier Pandas datamodel
 
@@ -246,4 +246,7 @@ def split_df(df : pd.DataFrame, N) -> List[pd.DataFrame]:
     if len(this_group) > 0:
         rtr.append(pd.concat(this_group))
     return rtr
-    
+
+
+IterDictRecord = Dict[str, Any]
+IterDict = Iterable[IterDictRecord]

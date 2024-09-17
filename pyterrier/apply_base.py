@@ -340,13 +340,13 @@ class ApplyGenericIterTransformer(ApplyTransformerBase):
     def __repr__(self):
         return "pt.apply.generic()"
 
-    def transform_iter(self, input: Iterable[dict]) -> Iterator[dict]:
+    def transform_iter(self, inp: pt.model.IterDict) -> pt.model.IterDict:
         from more_itertools import ichunked
         if self.batch_size is None:
             # no batching
-            yield from self.fn(input)
+            yield from self.fn(inp)
         else:
-            for batch in ichunked(input, self.batch_size):
+            for batch in ichunked(inp, self.batch_size):
                 yield from self.fn(batch)
 
 class ApplyIndexer(Indexer):

@@ -54,7 +54,7 @@ class Dataset():
         """
         pass
 
-    def get_corpus_iter(self, verbose=True) -> Iterator[Dict[str,Any]]:
+    def get_corpus_iter(self, verbose=True) -> pt.model.IterDict:
         """
             Returns an iter of dicts for this collection. If verbose=True, a tqdm pbar shows the progress over this iterator.
         """

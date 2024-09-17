@@ -2,8 +2,8 @@ from .transformer import Transformer, Estimator, get_transformer, Scalar
 from .model import add_ranks
 from matchpy import Operation, Arity
 from warnings import warn
-from typing import Iterable, Dict
 import pandas as pd
+import pyterrier as pt
 
 class BinaryTransformerBase(Transformer,Operation):
     """
@@ -318,7 +318,7 @@ class ComposedPipeline(NAryTransformerBase):
         last_transformer = self.models[-1]
         return prev_transformer, last_transformer
 
-    def index(self, iter : Iterable[Dict], batch_size=100):
+    def index(self, iter : pt.model.IterDict, batch_size=100):
         """
         This methods implements indexing pipelines. It is responsible for calling the transform_iter() method of its 
         constituent transformers (except the last one) on batches of records, and the index() method on the last transformer.
@@ -330,7 +330,7 @@ class ComposedPipeline(NAryTransformerBase):
                 yield from prev_transformer.transform_iter(batch)
         return last_transformer.index(gen()) 
 
-    def transform_iter(self, inp: Iterable[Dict]) -> Iterable[Dict]:
+    def transform_iter(self, inp: pt.model.IterDict) -> pt.model.IterDict:
         out = inp
         for transformer in self.models:
             out = transformer.transform_iter(out)
