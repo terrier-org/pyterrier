@@ -61,9 +61,10 @@ class Transformer:
     name = "Transformer"
 
     def __new__(cls, *args, **kwargs):
-        if not issubclass(cls, Indexer) and cls.transform == Transformer.transform and cls.transform_iter == Transformer.transform_iter:
+        if cls.transform == Transformer.transform and cls.transform_iter == Transformer.transform_iter:
+        # if not issubclass(cls, Indexer) and cls.transform == Transformer.transform and cls.transform_iter == Transformer.transform_iter:
             raise NotImplementedError("You need to implement either .transform() or .transform_iter() in %s" % str(cls))
-        return super().__new__(cls)
+        return super().__new__(cls, *args, **kwargs)
         
     @staticmethod
     def identity() -> 'Transformer':
@@ -117,7 +118,7 @@ class Transformer:
 
             :rtype: ``pd.DataFrame``
         """
-        # We should have no recursive transform <-> transform_iter problem, due to the __new__ check, UNLESS .transform() is called on an Indexer.
+        # We should have no recursive transform <-> transform_iter problem, due to the __new__ check.
         return pd.DataFrame(list(self.transform_iter(inp.to_dict(orient='records'))))
 
     def transform_iter(self, inp: pt.model.IterDict) -> pt.model.IterDict:
@@ -144,7 +145,7 @@ class Transformer:
 
             :rtype: ``Iterable[Dict]``
         """
-        # We should have no recursive transform <-> transform_iter problem, due to the __new__ check, UNLESS .transform() is called on an Indexer.
+        # We should have no recursive transform <-> transform_iter problem, due to the __new__ check.
         return self.transform(pd.DataFrame(list(inp))).to_dict(orient='records')
     
     def __call__(self, inp: Union[pd.DataFrame, pt.model.IterDict, List[pt.model.IterDictRecord]]) -> Union[pd.DataFrame, pt.model.IterDict, List[pt.model.IterDictRecord]]:
@@ -339,6 +340,21 @@ class TransformerBase(Transformer):
         super(Transformer, self).__init__(*args, **kwargs)
 
 class Indexer(Transformer):
+    def __new__(cls, *args, **kwargs):
+        instance = super().__new__(cls, *args, **kwargs)
+        # We have some patching do to in the (somewhat rare) case where the user implements transform/transform_iter
+        # on an indexer. Normally these raise errors when called on an indexer, but in this case the user wants the
+        # indexer to act as a transformer. So patch the complementary method to call the implemented one.
+        if cls.transform != Indexer.transform and cls.transform_iter == Indexer.transform_iter:
+            # User implemented transform on this indexer but not transform_iter. Replace transform_iter with the default
+            # one, which invokes transform automatically.
+            instance.transform_iter = types.MethodType(Transformer.transform_iter, instance)
+        elif cls.transform == Indexer.transform and cls.transform_iter != Indexer.transform_iter:
+            # User implemented transform_iter on this indexer but not transform. Replace transform with the default
+            # one, which invokes transform_iter automatically.
+            instance.transform = types.MethodType(Transformer.transform, instance)
+        return instance
+
     def index(self, iter : pt.model.IterDict, **kwargs):
         """
             Takes an iterable of dictionaries ("iterdict"), and consumes them. The index method may return
@@ -347,6 +363,12 @@ class Indexer(Transformer):
             transformer the documents being consumed).
         """
         pass
+
+    def transform(self, inp: pd.DataFrame) -> pd.DataFrame:
+        raise NotImplementedError('You called `transform()` on an indexer. Did you mean to call `index()`?')
+
+    def transform_iter(self, inp: pd.DataFrame) -> pd.DataFrame:
+        raise NotImplementedError('You called `transform_iter()` on an indexer. Did you mean to call `index()`?')
 
 class IterDictIndexerBase(Indexer):
     @deprecated(version="0.9", reason="Use pt.Indexer instead of IterDictIndexerBase")
