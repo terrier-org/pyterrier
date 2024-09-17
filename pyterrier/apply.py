@@ -3,7 +3,7 @@ from typing import Callable, Any, Dict, Union, Iterable, Sequence
 import numpy.typing as npt
 import pandas as pd
 import pyterrier as pt
-from pyterrier.apply_base import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyIterForEachQuery, ApplyGenericTransformer, ApplyGenericIterTransformer, ApplyIndexer
+from pyterrier.apply_base import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyIterForEachQuery, ApplyGenericTransformer, ApplyGenericIterTransformer, ApplyIndexer, DropColumnTransformer, ApplyByRowTransformer
 
 def _bind(instance, func, as_name=None):
     """
@@ -238,18 +238,9 @@ class _apply:
     def __getattr__(self, item):
         return partial(generic_apply, item)
 
-def generic_apply(name, *args, drop=False, **kwargs) -> pt.Transformer:
+def generic_apply(name, fn=None, *, drop=False) -> pt.Transformer:
     if drop:
-        return ApplyGenericTransformer(lambda df : df.drop(name, axis=1), *args, **kwargs) 
-    
-    if len(args) == 0:
-        raise ValueError("Must specify a fn, e.g. a lambda")
+        assert fn is None, "cannot provide both fn and drop=True"
+        return DropColumnTransformer(name)
 
-    fn = args[0]
-    args=()
-
-    def _new_column(df):
-        df[name] = df.apply(fn, axis=1, result_type='reduce')
-        return df
-    
-    return ApplyGenericTransformer(_new_column, *args, **kwargs)
+    return ApplyByRowTransformer(name, fn)
