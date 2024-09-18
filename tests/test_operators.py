@@ -58,11 +58,11 @@ class TestOperators(BaseTestCase):
             sequence5 = rewrite >> ptt.ApplyGenericTransformer(fn2)
         
         for sequence in [sequence1, sequence2, sequence3, sequence4, sequence5]:
-            self.assertTrue(isinstance(sequence, ptt.Transformer))
+            self.assertTrue(isinstance(sequence, pt.Transformer))
             #check we can access items
             self.assertEqual(2, len(sequence))
-            self.assertTrue(sequence[0], ptt.Transformer)
-            self.assertTrue(sequence[1], ptt.Transformer)
+            self.assertTrue(sequence[0], pt.Transformer)
+            self.assertTrue(sequence[1], pt.Transformer)
             input = pd.DataFrame([["q1", "hello"]], columns=["qid", "query"])
             output = sequence.transform(input)
             self.assertEqual(1, len(output))
