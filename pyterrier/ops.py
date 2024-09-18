@@ -2,8 +2,8 @@ from .transformer import Transformer, Estimator, get_transformer, Scalar
 from .model import add_ranks
 from matchpy import Operation, Arity
 from warnings import warn
-from typing import Iterable
 import pandas as pd
+import pyterrier as pt
 
 class BinaryTransformerBase(Transformer,Operation):
     """
@@ -309,31 +309,38 @@ class ComposedPipeline(NAryTransformerBase):
     """
     name = "Compose"
 
-    def index(self, iter : Iterable[dict], batch_size=100):
-        """
-        This methods implements indexing pipelines. It is responsible for calling the transform_iter() method of its 
-        constituent transformers (except the last one) on batches of records, and the index() method on the last transformer.
-        """
-        from more_itertools import chunked
-        
+    def _composed(self):
         if len(self.models) > 2:
             #this compose could have > 2 models. we need a composite transform() on all but the last
             prev_transformer = ComposedPipeline(self.models[0:-1])
         else:
             prev_transformer = self.models[0]
         last_transformer = self.models[-1]
-        
+        return prev_transformer, last_transformer
+
+    def index(self, iter : pt.model.IterDict, batch_size=100):
+        """
+        This methods implements indexing pipelines. It is responsible for calling the transform_iter() method of its 
+        constituent transformers (except the last one) on batches of records, and the index() method on the last transformer.
+        """
+        from more_itertools import chunked
+        prev_transformer, last_transformer = self._composed()
         def gen():
             for batch in chunked(iter, batch_size):
-                batch_df = prev_transformer.transform_iter(batch)
-                for row in batch_df.itertuples(index=False):
-                    yield row._asdict()
+                yield from prev_transformer.transform_iter(batch)
         return last_transformer.index(gen()) 
 
-    def transform(self, topics):
+    def transform_iter(self, inp: pt.model.IterDict) -> pt.model.IterDict:
+        out = inp
+        for transformer in self.models:
+            out = transformer.transform_iter(out)
+        return out
+    
+    def transform(self, inp : pd.DataFrame) -> pd.DataFrame:
+        out = inp
         for m in self.models:
-            topics = m.transform(topics)
-        return topics
+            out = m.transform(out)
+        return out
 
     def fit(self, topics_or_res_tr, qrels_tr, topics_or_res_va=None, qrels_va=None):
         """

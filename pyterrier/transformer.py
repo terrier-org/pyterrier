@@ -1,9 +1,10 @@
 import types
-from matchpy import Wildcard, Symbol, Operation, Arity
+from matchpy import Wildcard, Symbol, Operation, Arity, ReplacementRule
 from warnings import warn
 import pandas as pd
 from deprecated import deprecated
-from typing import Iterable, Iterator, Union
+from typing import Iterator, List, Union, Tuple
+import pyterrier as pt
 from . import __version__
 
 LAMBDA = lambda:0
@@ -41,7 +42,7 @@ def get_transformer(v, stacklevel=1):
         return SourceTransformer(v)
     raise ValueError("Passed parameter %s of type %s cannot be coerced into a transformer" % (str(v), type(v)))
 
-rewrite_rules = []
+rewrite_rules : List[ReplacementRule] = []
 
 
 class Scalar(Symbol):
@@ -50,11 +51,19 @@ class Scalar(Symbol):
         self.value = value
 
 class Transformer:
-    name = "Transformer"
     """
         Base class for all transformers. Implements the various operators ``>>`` ``+`` ``*`` ``|`` ``&`` 
         as well as ``search()`` for executing a single query and ``compile()`` for rewriting complex pipelines into more simples ones.
+
+        Its expected that either ``.transform()`` or ``.transform_iter()`` be implemented by any class extending this - this rule
+        does not apply for indexers, which instead implement ``.index()``.
     """
+    name = "Transformer"
+
+    def __new__(cls, *args, **kwargs):
+        if cls.transform == Transformer.transform and cls.transform_iter == Transformer.transform_iter:
+            raise NotImplementedError("You need to implement either .transform() or .transform_iter() in %s" % str(cls))
+        return super().__new__(cls)
 
     @staticmethod
     def identity() -> 'Transformer':
@@ -88,23 +97,83 @@ class Transformer:
             return UniformTransformer(input)
         return SourceTransformer(input)
 
-    def transform(self, topics_or_res : pd.DataFrame) -> pd.DataFrame:
+    def transform(self, inp: pd.DataFrame) -> pd.DataFrame:
         """
-            Abstract method for all transformations. Typically takes as input a Pandas
-            DataFrame, and also returns one.
-        """
-        pass
+            Abstract method that runs the transformer over Pandas ``DataFrame`` objects.
 
-    def transform_iter(self, input: Iterable[dict]) -> pd.DataFrame:
-        """
-            Method that proesses an iter-dict by instantiating it as a dataframe and calling transform().
-            Returns the DataFrame returned by transform(). This can be a handier version of transform()
-            that avoids constructing a dataframe by hand. Alo used in the implementation of index() on a composed 
-            pipeline.
-        """
-        return self.transform(pd.DataFrame(list(input)))
+            .. note::
 
-    def transform_gen(self, input : pd.DataFrame, batch_size=1, output_topics=False) -> Iterator[pd.DataFrame]:
+                Either :meth:`transform` or :meth:`transform_iter` must be implemented for all transformers.
+                If not, a runtime error will be raised when constructing the transformer.
+
+                When :meth:`transform` is not implemented, the default implementation runs :meth:`transform_iter` and
+                converts the output to a ``DataFrame``.
+
+            Arguments:
+                inp(``pd.DataFrame``): The input to the transformer (e.g., queries, documents, results, etc.)
+
+            Returns:
+                The output of the transformer (e.g., result of retrieval, re-writing, re-ranking, etc.)
+
+            :rtype: ``pd.DataFrame``
+        """
+        # We should have no recursive transform <-> transform_iter problem, due to the __new__ check.
+        return pd.DataFrame(list(self.transform_iter(inp.to_dict(orient='records'))))
+
+    def transform_iter(self, inp: pt.model.IterDict) -> pt.model.IterDict:
+        """
+            Abstract method that runs the transformer over iterable input (such as lists or generators),
+            where each element is a dictionary record.
+
+            This format can sometimes be easier to implement than :meth:`transform`. Furthermore, it avoids constructing
+            expensive ``DataFrame`` objects. It is also used in the invocation of ``index()`` on a composed pipeline.
+
+            .. note::
+
+                Either :meth:`transform` or :meth:`transform_iter` must be implemented for all transformers.
+                If not, a runtime error will be raised when constructing the transformer.
+
+                When :meth:`transform_iter` is not implemented, the default implementation runs :meth:`transform` and
+                converts the output to an iterable.
+
+            Arguments:
+                inp(``Iterable[Dict]``): The input to the transformer (e.g., queries, documents, results, etc.)
+
+            Returns:
+                The output of the transformer (e.g., result of retrieval, re-writing, re-ranking, etc.)
+
+            :rtype: ``Iterable[Dict]``
+        """
+        # We should have no recursive transform <-> transform_iter problem, due to the __new__ check.
+        return self.transform(pd.DataFrame(list(inp))).to_dict(orient='records')
+    
+    def __call__(self, inp: Union[pd.DataFrame, pt.model.IterDict, List[pt.model.IterDictRecord]]) -> Union[pd.DataFrame, pt.model.IterDict, List[pt.model.IterDictRecord]]:
+        """
+            Runs the transformer for the given input and returns its output as the same type as the input.
+
+            - When ``inp`` is a DataFrame, invokes :meth:`transform` and returns a DataFrame
+            - When ``inp`` is a list, invokes :meth:`transform_iter` and returns a list
+            - Otherwise, invokes :meth:`transform_iter` and returns a generic iterable (returning whatever type is
+              returned from :meth:`transform_iter()`.)
+
+            Arguments:
+                inp(``pd.DataFrame``, ``Iterable[Dict]``, ``List[Dict]``): The input to the transformer (e.g., queries,
+                    documents, results, etc.)
+
+            Returns:
+                The output of the transformer (e.g., result of retrieval, re-writing, re-ranking, etc.) as the same
+                type as the input.
+
+            :rtype: ``pd.DataFrame``, ``Iterable[Dict]``, ``List[Dict]``
+        """
+        if isinstance(inp, pd.DataFrame):
+            return self.transform(inp)
+        out = self.transform_iter(inp)
+        if isinstance(inp, list):
+            return list(out)
+        return out
+
+    def transform_gen(self, input : pd.DataFrame, batch_size=1, output_topics=False) -> Union[Iterator[pd.DataFrame], Iterator[Tuple[pd.DataFrame, pd.DataFrame]]]:
         """
             Method for executing a transformer pipeline on smaller batches of queries.
             The input dataframe is grouped into batches of batch_size queries, and a generator
@@ -122,7 +191,7 @@ class Transformer:
             queries = input[["qid"]].drop_duplicates()
         else:
             queries = input
-        batch=[]      
+        batch : List[pd.DataFrame] = []      
         for query in queries.itertuples():
             if len(batch) == batch_size:
                 batch_topics = pd.concat(batch)
@@ -214,15 +283,6 @@ class Transformer:
             raise ValueError(('Invalid parameter name %s for transformer %s. '+
                     'Check the list of available parameters') %(name, str(self)))
 
-    def __call__(self, input : Union[pd.DataFrame, Iterable[dict]]) -> pd.DataFrame:
-        """
-            Sets up a default method for every transformer, which is aliased to transform() (for DataFrames)
-            or transform_iter() (for iterable dictionaries) depending on the type of input. 
-        """
-        if isinstance(input, pd.DataFrame):
-            return self.transform(input)
-        return self.transform_iter(input)
-
     def __rshift__(self, right) -> 'Transformer':
         from .ops import ComposedPipeline
         return ComposedPipeline(self, right)
@@ -279,7 +339,22 @@ class TransformerBase(Transformer):
         super(Transformer, self).__init__(*args, **kwargs)
 
 class Indexer(Transformer):
-    def index(self, iter : Iterable[dict], **kwargs):
+    def __new__(cls, *args, **kwargs):
+        instance = super().__new__(cls, *args, **kwargs)
+        # We have some patching do to in the (somewhat rare) case where the user implements transform/transform_iter
+        # on an indexer. Normally these raise errors when called on an indexer, but in this case the user wants the
+        # indexer to act as a transformer. So patch the complementary method to call the implemented one.
+        if cls.transform != Indexer.transform and cls.transform_iter == Indexer.transform_iter:
+            # User implemented transform on this indexer but not transform_iter. Replace transform_iter with the default
+            # one, which invokes transform automatically.
+            instance.transform_iter = types.MethodType(Transformer.transform_iter, instance)
+        elif cls.transform == Indexer.transform and cls.transform_iter != Indexer.transform_iter:
+            # User implemented transform_iter on this indexer but not transform. Replace transform with the default
+            # one, which invokes transform_iter automatically.
+            instance.transform = types.MethodType(Transformer.transform, instance)
+        return instance
+
+    def index(self, iter : pt.model.IterDict, **kwargs):
         """
             Takes an iterable of dictionaries ("iterdict"), and consumes them. The index method may return
             an instance of the index or retriever. This method is typically used to implement indexers that
@@ -287,6 +362,12 @@ class Indexer(Transformer):
             transformer the documents being consumed).
         """
         pass
+
+    def transform(self, inp: pd.DataFrame) -> pd.DataFrame:
+        raise NotImplementedError('You called `transform()` on an indexer. Did you mean to call `index()`?')
+
+    def transform_iter(self, inp: pt.model.IterDict) -> pt.model.IterDict:
+        raise NotImplementedError('You called `transform_iter()` on an indexer. Did you mean to call `index()`?')
 
 class IterDictIndexerBase(Indexer):
     @deprecated(version="0.9", reason="Use pt.Indexer instead of IterDictIndexerBase")

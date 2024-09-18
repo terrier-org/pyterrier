@@ -2,7 +2,7 @@ __version__ = "0.11.0"
 
 from deprecated import deprecated
 
-from pyterrier import utils
+from pyterrier import model, utils
 from pyterrier.transformer import Transformer, Estimator, Indexer
 
 from pyterrier import java
@@ -14,7 +14,6 @@ from pyterrier import cache
 from pyterrier import debug
 from pyterrier import io
 from pyterrier import measures
-from pyterrier import model
 from pyterrier import new
 from pyterrier import ltr
 from pyterrier import parallel
