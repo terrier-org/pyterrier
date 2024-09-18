@@ -372,9 +372,7 @@ class ApplyQueryTransformer(pt.Transformer):
         for row in inp:
             row = row.copy()
             if "query" in row:
-                raise NotImplementedError('TODO: implement push_queries for iter-dict')
-                # we only push if a query already exists
-                # TODO implement push_queries for iter-dict
+                row = pt.model.push_queries_dict(row, inplace=True, keep_original=True)
             row["query"] = self.fn(row)
             yield row
 
