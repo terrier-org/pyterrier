@@ -3,6 +3,7 @@ import os
 import tempfile
 import shutil
 import pyterrier as pt
+import pytest
 
 class BaseTestCase(unittest.TestCase):
     def __init__(self, *args, **kwargs):
@@ -37,5 +38,11 @@ class TempDirTestCase(BaseTestCase):
         except:
             pass
 
-    
+
+def ensure_deprecated(func):
+    def wrapper(*args):
+        with pytest.deprecated_call():
+            return func(*args)
+    return wrapper
+
 parallel_test = unittest.skipIf(os.environ.get("PARALLEL_TESTING") is None, "Parallel test disabled, enable with PARALLEL_TESTING=1")

@@ -5,6 +5,7 @@ from warnings import warn
 from typing import Iterable, List, Optional, Protocol, runtime_checkable
 from itertools import chain
 import pandas as pd
+import pyterrier as pt
 
 class NAryTransformerBase(Transformer):
     """
@@ -323,7 +324,9 @@ class ComposedPipeline(NAryTransformerBase):
         >>> #this is equivelent
         >>> #comp = DPH_br >> lambda res : res[res["rank"] < 2]]
     """
-    def index(self, iter : Iterable[dict], batch_size=100):
+    name = "Compose"
+
+    def index(self, iter : pt.model.IterDict, batch_size=100):
         """
         This methods implements indexing pipelines. It is responsible for calling the transform_iter() method of its 
         constituent transformers (except the last one) on batches of records, and the index() method on the last transformer.
@@ -339,12 +342,16 @@ class ComposedPipeline(NAryTransformerBase):
         
         def gen():
             for batch in chunked(iter, batch_size):
-                batch_df = prev_transformer.transform_iter(batch)
-                for row in batch_df.itertuples(index=False):
-                    yield row._asdict()
+                yield from prev_transformer.transform_iter(batch)
         return last_transformer.index(gen()) 
 
-    def transform(self, inp):
+    def transform_iter(self, inp: pt.model.IterDict) -> pt.model.IterDict:
+        out = inp
+        for transformer in self._transformers:
+            out = transformer.transform_iter(out)
+        return out
+    
+    def transform(self, inp : pd.DataFrame) -> pd.DataFrame:
         out = inp
         for m in self._transformers:
             out = m.transform(out)
