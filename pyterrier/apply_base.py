@@ -294,7 +294,7 @@ class ApplyDocFeatureTransformer(pt.Transformer):
             pipe = pt.terrier.Retriever(index) >> pt.apply.doc_features(_feature_fn) >> pt.LTRpipeline(xgBoost())
     """
     def __init__(self,
-        fn: Callable[[pd.Series, pt.model.IterDictRecord], np.array],
+        fn: Callable[[Union[pd.Series, pt.model.IterDictRecord]], np.array],
         *,
         verbose: bool = False
     ):
