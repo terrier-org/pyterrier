@@ -1,6 +1,7 @@
+import math
 import numpy as np
 import pandas as pd
-from typing import Any, Dict, Iterable, List, Sequence
+from typing import Any, Dict, Iterable, List, Sequence, Optional
 
 # This file has useful methods for using the Pyterrier Pandas datamodel
 
@@ -207,11 +208,18 @@ def coerce_dataframe_types(dataframe):
     return dataframe
 
 
-def split_df(df : pd.DataFrame, N) -> List[pd.DataFrame]:
+def split_df(df : pd.DataFrame, N: Optional[int] = None, *, batch_size: Optional[int] = None) -> List[pd.DataFrame]:
     """
-    splits a dataframe into N different chunks. Splitting will be sensitive to the primary datatype
+    Splits a dataframe into N different chunks. Splitting will be sensitive to the primary datatype
     of the dataframe (Q,R,D).
+
+    Either ``N`` (the number of chunks) or ``batch_size`` (the size of each chunk) should be provided (but not both).
     """
+    assert (N is None) != (batch_size is None), "Either N or batch_size should be provided (and not both)"
+
+    if N is None:
+        N = math.ceil(len(df) / batch_size)
+
     type = None
     if "qid" in df.columns:
         if "docno" in df.columns:
@@ -222,8 +230,6 @@ def split_df(df : pd.DataFrame, N) -> List[pd.DataFrame]:
         type = "D"
     else:
         raise ValueError("Dataframe is not of type D,Q,R")
-    
-    from math import ceil
 
     def chunks(df, n):
         """Yield successive n-sized chunks from df."""
@@ -231,13 +237,13 @@ def split_df(df : pd.DataFrame, N) -> List[pd.DataFrame]:
             yield df.iloc[ i: min(len(df),i + n)]
     
     if type == "Q" or type == "D":         
-        splits = list( chunks(df, ceil(len(df)/N)))
+        splits = list( chunks(df, math.ceil(len(df)/N)))
         return splits
 
     rtr = []
     grouper = df.groupby("qid")
     this_group = []
-    chunk_size = ceil(len(grouper)/N)
+    chunk_size = math.ceil(len(grouper)/N)
     for qid, group in grouper:
         this_group.append(group)
         if len(this_group) == chunk_size:
