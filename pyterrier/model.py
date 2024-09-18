@@ -100,7 +100,7 @@ def push_queries(df: pd.DataFrame, *, keep_original: bool = False, inplace: bool
     cols = set(df.columns)
     if "query" not in cols:
         raise KeyError(f"Expected a query column, but found {list(cols)}")
-    if inplace:
+    if not inplace:
         df = df.copy()
     prev_col = 'query'
     rename_cols = {}
@@ -152,8 +152,9 @@ def pop_queries(df: pd.DataFrame, *, inplace: bool = False) -> pd.DataFrame:
     cols = set(df.columns)
     if "query_0" not in cols:
         raise KeyError(f"Expected a query_0 column, but found {list(cols)}")
-    if inplace:
+    if not inplace:
         df = df.copy()
+    df.drop(columns=["query"], inplace=True)
     prev_col = 'query'
     rename_cols = {}
     for query_idx in itertools.count():
