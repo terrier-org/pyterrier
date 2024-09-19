@@ -142,7 +142,7 @@ def _ir_measures_to_dict(
 
 def _run_and_evaluate(
         system : SYSTEM_OR_RESULTS_TYPE, 
-        topics : pd.DataFrame, 
+        topics : Optional[pd.DataFrame], 
         qrels: pd.DataFrame, 
         metrics : MEASURES_TYPE, 
         pbar : Optional[pt.tqdm] = None,
@@ -575,7 +575,7 @@ def Experiment(
                 pcol_reject = pcol.replace("p-value", "reject")
                 pcol_corrected = pcol + " corrected"                
                 reject, corrected, _, _ = statsmodels.stats.multitest.multipletests(df[pcol].drop(df.index[baseline]), alpha=correction_alpha, method=correction)
-                insert_pos = df.columns.get_loc(pcol)
+                insert_pos : int = df.columns.get_loc(pcol)
                 # add reject/corrected values for the baseline
                 reject = np.insert(reject, baseline, False)
                 corrected = np.insert(corrected, baseline, np.nan)
@@ -598,6 +598,12 @@ GRID_SCAN_PARAM_SETTING = Tuple[
             TRANSFORMER_PARAMETER_VALUE_TYPE
         ]
 GRID_SEARCH_RETURN_TYPE_SETTING = Tuple[
+    float, 
+    List[GRID_SCAN_PARAM_SETTING]
+]
+
+GRID_SEARCH_RETURN_TYPE_BOTH = Tuple[
+    Transformer,
     float, 
     List[GRID_SCAN_PARAM_SETTING]
 ]
@@ -738,7 +744,7 @@ def GridSearch(
         verbose: bool = False,
         batch_size : Optional[int] = None,
         return_type : Literal['opt_pipeline', 'best_setting', 'both'] = "opt_pipeline"
-    ) -> Union[Transformer,GRID_SEARCH_RETURN_TYPE_SETTING]:
+    ) -> Union[Transformer,GRID_SEARCH_RETURN_TYPE_SETTING,GRID_SEARCH_RETURN_TYPE_BOTH]:
     """
     GridSearch is essentially, an argmax GridScan(), i.e. it returns an instance of the pipeline to tune
     with the best parameter settings among params, that were found that were obtained using the specified
@@ -780,7 +786,7 @@ def GridSearch(
     assert len(grid_outcomes) > 0, "GridScan returned 0 rows"
     max_measure = grid_outcomes[0][1][metric]
     max_setting = grid_outcomes[0][0]
-    for setting, measures in grid_outcomes:
+    for setting, measures in grid_outcomes: # TODO what is the type of this iteration?
         if measures[metric] > max_measure:
             max_measure = measures[metric]
             max_setting = setting
@@ -811,7 +817,7 @@ def GridScan(
         verbose: bool = False,
         batch_size = None,
         dataframe = True,
-    ) -> Union[pd.DataFrame, List [ Tuple [ List[ GRID_SCAN_PARAM_SETTING ] , Dict[str,float]  ]  ] ]:
+    ) -> Union[pd.DataFrame, List [ Tuple [ List[ GRID_SCAN_PARAM_SETTING ], Dict[str,float]  ]  ] ]:
     """
     GridScan applies a set of named parameters on a given pipeline and evaluates the outcome. The topics and qrels 
     must be specified. The trec_eval measure names can be optionally specified.

@@ -507,7 +507,7 @@ class IRDSDataset(Dataset):
         result.sort_values(by=['qid', 'score', 'docno'], ascending=[True, False, True], inplace=True) # ensure data is sorted by qid, -score, did
         # result doesn't yet contain queries (only qids) so load and merge them in
         topics = self.get_topics(variant)
-        result = pd.merge(result, topics, how='left', on='qid', copy=False)
+        result = pd.merge(result, topics, how='left', on='qid')
         return result
 
     def _describe_component(self, component):
