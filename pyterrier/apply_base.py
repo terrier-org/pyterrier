@@ -1,7 +1,7 @@
 from typing import Callable, Any, Union, Optional, Iterable
 import itertools
 import more_itertools
-import numpy as np
+import numpy.typing as npt
 import pandas as pd
 import pyterrier as pt
 
@@ -294,7 +294,7 @@ class ApplyDocFeatureTransformer(pt.Transformer):
             pipe = pt.terrier.Retriever(index) >> pt.apply.doc_features(_feature_fn) >> pt.LTRpipeline(xgBoost())
     """
     def __init__(self,
-        fn: Callable[[Union[pd.Series, pt.model.IterDictRecord]], np.array],
+        fn: Callable[[Union[pd.Series, pt.model.IterDictRecord]], npt.NDArray],
         *,
         verbose: bool = False
     ):
