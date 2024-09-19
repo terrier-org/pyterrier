@@ -1,5 +1,5 @@
 
-from typing import Sequence, Union, Optional
+from typing import Sequence, Union, Optional, cast, Iterable
 import pandas as pd
 from .model import add_ranks
 
@@ -9,7 +9,7 @@ def empty_Q() -> pd.DataFrame:
     """
     return pd.DataFrame(columns=["qid", "query"])
 
-def queries(queries : Union[str, Sequence[str]], qid : Optional[Union[str, Sequence[str]]] = None, **others) -> pd.DataFrame:
+def queries(queries : Union[str, Sequence[str]], qid : Optional[Union[str, Iterable[str]]] = None, **others) -> pd.DataFrame:
     """
         Creates a new queries dataframe. Will return a dataframe with the columns `["qid", "query"]`. 
         Any further lists in others will also be added.
@@ -40,7 +40,7 @@ def queries(queries : Union[str, Sequence[str]], qid : Optional[Union[str, Seque
         assert type(qid) == str
         return pd.DataFrame({"qid" : [qid], "query" : [queries], **others})
     if qid is None:
-        qid = map(str, range(1, len(queries)+1))
+        qid = cast(Iterable[str], map(str, range(1, len(queries)+1)))
     return pd.DataFrame({"qid" : qid, "query" : queries, **others})
 
 Q = queries
