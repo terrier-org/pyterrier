@@ -6,6 +6,7 @@ from typing import Callable, Union, Dict, List, Tuple, Sequence, Any, Literal, O
 from . import Transformer
 from .model import coerce_dataframe_types
 import ir_measures
+import tqdm as tqdm_module
 from ir_measures.measures import BaseMeasure 
 import pyterrier as pt
 MEASURE_TYPE=Union[str,BaseMeasure]
@@ -135,9 +136,9 @@ def _ir_measures_to_dict(
     for m in seq:
         metric = m.measure
         metric = rev_mapping.get(metric, str(metric))
-        rtr[metric].add(m.value)
+        rtr[metric].add(m.value) # type: ignore # THERE is no typing for aggregators in ir_measures
     for m in rtr:
-        rtr[m] = rtr[m].result()
+        rtr[m] = rtr[m].result() # type: ignore # THERE is no typing for aggregators in ir_measures
     return rtr
 
 def _run_and_evaluate(
@@ -145,7 +146,7 @@ def _run_and_evaluate(
         topics : Optional[pd.DataFrame], 
         qrels: pd.DataFrame, 
         metrics : MEASURES_TYPE, 
-        pbar : Optional[pt.tqdm] = None,
+        pbar : Optional[tqdm_module.tqdm] = None,
         save_mode : Optional[SAVEMODE_TYPE] = None,
         save_file : Optional[str] = None,
         perquery : bool = False,
@@ -155,7 +156,7 @@ def _run_and_evaluate(
     from .io import read_results, write_results
 
     if pbar is None:
-        pbar = pt.tqdm(disable=True)
+        pbar = pt.tqdm(disable=True) # type: ignore
 
     metrics, rev_mapping = _convert_measures(metrics)
     qrels = qrels.rename(columns={'qid': 'query_id', 'docno': 'doc_id', 'label': 'relevance'})
@@ -178,12 +179,16 @@ def _run_and_evaluate(
         else:
             raise ValueError("Unknown save_mode argument '%s', valid options are 'error', 'warn', 'reuse' or 'overwrite'." % save_mode)
 
+    res : pd.DataFrame
     # if its a DataFrame, use it as the results
     if isinstance(system, pd.DataFrame):
         res = system
         res = coerce_dataframe_types(res)
         if len(res) == 0:
-            raise ValueError("%d topics, but no results in dataframe" % len(topics))
+            if topics is None:
+                raise ValueError("No topics specified, and no results in dataframe")
+            else:
+                raise ValueError("%d topics, but no results in dataframe" % len(topics))
         evalMeasuresDict = _ir_measures_to_dict(
             ir_measures.iter_calc(metrics, qrels, res.rename(columns=_irmeasures_columns)), 
             metrics,
@@ -194,6 +199,8 @@ def _run_and_evaluate(
         pbar.update()
 
     elif batch_size is None:
+
+        assert topics is not None, "topics must be specified"
         #transformer, evaluate all queries at once
             
         starttime = timer()
@@ -219,13 +226,14 @@ def _run_and_evaluate(
             backfill_qids)
         pbar.update()
     else:
+        assert topics is not None, "topics must be specified"
+        
         #transformer, evaluate queries in batches
         assert batch_size > 0
         starttime = timer()
         evalMeasuresDict = {}
         remaining_qrel_qids = set(qrels.query_id)
         try:
-            res : pd.DataFrame
             batch_topics : pd.DataFrame
             for i, (res, batch_topics) in enumerate( system.transform_gen(topics, batch_size=batch_size, output_topics=True)):
                 if len(res) == 0:
@@ -474,7 +482,7 @@ def Experiment(
         # round number of batches up for each system
         tqdm_args['total'] = math.ceil((len(topics) / batch_size)) * len(retr_systems)
 
-    with pt.tqdm(**tqdm_args) as pbar:
+    with pt.tqdm(**tqdm_args) as pbar: # type: ignore
         # run and evaluate each system
         for name, system in zip(names, retr_systems):
             save_file = None
@@ -523,7 +531,7 @@ def Experiment(
     if dataframe:
         if perquery:
             df = pd.DataFrame(evalsRows, columns=["name", "qid", "measure", "value"]).sort_values(['name', 'qid'])
-            if round is not None:
+            if round is not None and isinstance(round, int):
                 df["value"] = df["value"].round(round)
             return df
 
@@ -531,7 +539,7 @@ def Experiment(
         if mrt_needed:
             highlight_cols["mrt"] = "-"
 
-        p_col_names=[]
+        p_col_names : List[str] = []
         if baseline is not None:
             assert len(evalDictsPerQ) == len(retr_systems)
             baselinePerQuery={}
@@ -570,7 +578,7 @@ def Experiment(
 
         # multiple testing correction. This adds two new columns for each measure experience statistical significance testing        
         if baseline is not None and correction is not None:
-            import statsmodels.stats.multitest
+            import statsmodels.stats.multitest # type: ignore
             for pcol in p_col_names:
                 pcol_reject = pcol.replace("p-value", "reject")
                 pcol_corrected = pcol + " corrected"                
@@ -910,7 +918,7 @@ def GridScan(
     eval_list = []
     #for each combination of parameter values
     if jobs == 1:
-        for v in pt.tqdm(combinations, total=len(combinations), desc="GridScan", mininterval=0.3) if verbose else combinations:
+        for v in pt.tqdm(combinations, total=len(combinations), desc="GridScan", mininterval=0.3) if verbose else combinations: # type: ignore
             parameter_list, eval_scores = _evaluate_one_setting(keys, v)
             eval_list.append( (parameter_list, eval_scores) )
     else:

@@ -29,6 +29,8 @@ Utils = utils
 
 # will be set in terrier.terrier.java once java is loaded
 IndexRef = None
+# will be set in once utils.set_tqdm() once _() runs
+tqdm = None
 
 
 # deprecated functions explored to the main namespace, which will be removed in a future version
