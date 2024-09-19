@@ -737,7 +737,7 @@ def GridSearch(
         backend='joblib',
         verbose: bool = False,
         batch_size : Optional[int] = None,
-        return_type : str = "opt_pipeline"
+        return_type : Literal['opt_pipeline', 'best_setting', 'both'] = "opt_pipeline"
     ) -> Union[Transformer,GRID_SEARCH_RETURN_TYPE_SETTING]:
     """
     GridSearch is essentially, an argmax GridScan(), i.e. it returns an instance of the pipeline to tune
@@ -798,7 +798,7 @@ def GridSearch(
         for tran, param, value in max_setting:
             tran.set_parameter(param, value)
         return (pipeline, max_measure, max_setting)
-
+    raise ValueError("Unknown return_type option %s" % return_type)
 
 def GridScan(
         pipeline : Transformer,
