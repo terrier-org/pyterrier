@@ -107,7 +107,7 @@ def _ir_measures_to_dict(
         rev_mapping : Dict[BaseMeasure,str], 
         num_q : int,
         perquery : bool = True,
-        backfill_qids : Sequence[str] = None):
+        backfill_qids : Optional[Sequence[str]] = None):
     from collections import defaultdict
     if perquery:
         # qid -> measure -> value
@@ -145,12 +145,12 @@ def _run_and_evaluate(
         topics : pd.DataFrame, 
         qrels: pd.DataFrame, 
         metrics : MEASURES_TYPE, 
-        pbar = None,
-        save_mode : SAVEMODE_TYPE = None,
-        save_file : str = None,
+        pbar : Optional[pt.tqdm] = None,
+        save_mode : Optional[SAVEMODE_TYPE] = None,
+        save_file : Optional[str] = None,
         perquery : bool = False,
         batch_size : Optional[int] = None,
-        backfill_qids : Sequence[str] = None):
+        backfill_qids : Optional[Sequence[str]] = None):
     
     from .io import read_results, write_results
 
@@ -160,7 +160,7 @@ def _run_and_evaluate(
     metrics, rev_mapping = _convert_measures(metrics)
     qrels = qrels.rename(columns={'qid': 'query_id', 'docno': 'doc_id', 'label': 'relevance'})
     from timeit import default_timer as timer
-    runtime = 0
+    runtime : float = 0.
     num_q = qrels['query_id'].nunique()
     if save_file is not None and os.path.exists(save_file):
         if save_mode == 'reuse':
@@ -225,6 +225,8 @@ def _run_and_evaluate(
         evalMeasuresDict = {}
         remaining_qrel_qids = set(qrels.query_id)
         try:
+            res : pd.DataFrame
+            batch_topics : pd.DataFrame
             for i, (res, batch_topics) in enumerate( system.transform_gen(topics, batch_size=batch_size, output_topics=True)):
                 if len(res) == 0:
                     raise ValueError("batch of %d topics, but no results received in batch %d from %s" % (len(batch_topics), i, str(system) ) )
@@ -282,20 +284,20 @@ def Experiment(
         topics : pd.DataFrame,
         qrels : pd.DataFrame,
         eval_metrics : MEASURES_TYPE,
-        names : Sequence[str] = None,
+        names : Optional[Sequence[str]] = None,
         perquery : bool = False,
         dataframe : bool = True,
         batch_size : Optional[int] = None,
         filter_by_qrels : bool = False,
         filter_by_topics : bool = True,
-        baseline : int = None,
+        baseline : Optional[int] = None,
         test : Union[str,TEST_FN_TYPE] = "t",
-        correction : str = None,
+        correction : Optional[str] = None,
         correction_alpha : float = 0.05,
-        highlight : str = None,
-        round : Union[int,Dict[str,int]] = None,
+        highlight : Optional[str] = None,
+        round : Optional[Union[int,Dict[str,int]]] = None,
         verbose : bool = False,
-        save_dir : str = None,
+        save_dir : Optional[str] = None,
         save_mode : SAVEMODE_TYPE = 'warn',
         **kwargs):
     """
@@ -420,10 +422,13 @@ def Experiment(
             raise ValueError('There is no overlap between the qids found in the topics and qrels. If this is intentional, set filter_by_topics=False and filter_by_qrels=False.')
 
     from scipy import stats
+    test_fn : TEST_FN_TYPE
     if test == "t":
-        test = stats.ttest_rel
-    if test == "wilcoxon":
-        test = stats.wilcoxon
+        test_fn = stats.ttest_rel
+    elif test == "wilcoxon":
+        test_fn = stats.wilcoxon
+    else:
+        test_fn = test
     
     # obtain system names if not specified
     if names is None:
@@ -547,7 +552,7 @@ def Experiment(
                         perQuery = np.array( [ evalDictsPerQ[i][q][m] for q in evalDictsPerQ[baseline] ])
                         delta_plus = (perQuery > baselinePerQuery[m]).sum()
                         delta_minus = (perQuery < baselinePerQuery[m]).sum()
-                        p = test(perQuery, baselinePerQuery[m])[1]
+                        p = test_fn(perQuery, baselinePerQuery[m])[1]
                         additionals.extend([delta_plus, delta_minus, p])
                 evalsRows[i].extend(additionals)
             delta_names=[]
@@ -634,7 +639,7 @@ def KFoldGridSearch(
         jobs : int = 1,
         backend='joblib',
         verbose: bool = False,
-        batch_size = None) -> Tuple[pd.DataFrame, GRID_SEARCH_RETURN_TYPE_SETTING]:
+        batch_size : Optional[int] = None) -> Tuple[pd.DataFrame, GRID_SEARCH_RETURN_TYPE_SETTING]:
     """
     Applies a GridSearch using different folds. It returns the *results* of the 
     tuned transformer pipeline on the test topics. The number of topics dataframes passed
@@ -731,7 +736,7 @@ def GridSearch(
         jobs : int = 1,
         backend='joblib',
         verbose: bool = False,
-        batch_size = None,
+        batch_size : Optional[int] = None,
         return_type : str = "opt_pipeline"
     ) -> Union[Transformer,GRID_SEARCH_RETURN_TYPE_SETTING]:
     """

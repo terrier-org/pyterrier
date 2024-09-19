@@ -4,7 +4,7 @@ import json
 import pandas as pd
 from .transformer import is_lambda
 import types
-from typing import Union, Tuple, Iterator, Dict, Any, List, Literal
+from typing import Union, Tuple, Iterator, Dict, Any, List, Literal, Optional
 from warnings import warn
 import requests
 from .io import autoopen, touch
@@ -1210,7 +1210,7 @@ def list_datasets(en_only=True):
 def transformer_from_dataset(
     dataset : Union[str, Dataset],
     clz,
-    variant: str = None,
+    variant: Optional[str] = None,
     version: str = 'latest',        
     **kwargs) -> pt.Transformer:
     """Returns a Transformer instance of type ``clz`` for the provided index of variant ``variant``."""
