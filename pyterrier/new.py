@@ -40,7 +40,7 @@ def queries(queries : Union[str, Sequence[str]], qid : Optional[Union[str, Itera
         assert type(qid) == str
         return pd.DataFrame({"qid" : [qid], "query" : [queries], **others})
     if qid is None:
-        qid = cast(Iterable[str], map(str, range(1, len(queries)+1)))
+        qid = cast(Iterable[str], map(str, range(1, len(queries)+1))) # noqa: PT100 (this is typing.cast, not jinus.cast)
     return pd.DataFrame({"qid" : qid, "query" : queries, **others})
 
 Q = queries
