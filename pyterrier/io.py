@@ -69,10 +69,7 @@ def _finalized_open_base(path: str, mode: str, open_fn: Callable) -> io.IOBase:
     dirname = os.path.dirname(path)
     prefix, suffix = os.path.splitext(os.path.basename(path))
     prefix = f'.{prefix}.'
-    if suffix:
-        suffix = f'.tmp.{suffix}' # last part of the suffix needed for autoopen
-    else:
-        suffix = '.tmp'
+    suffix = f'.tmp{suffix}' # last part of the suffix needed for autoopen
     try:
         fd, path_tmp = tempfile.mkstemp(suffix=suffix, prefix=prefix, dir=dirname)
         os.close(fd) # mkstemp returns a low-level file descriptor... Close it and re-open the file the normal way
@@ -432,10 +429,7 @@ def finalized_directory(path: str) -> str:
     dirname = os.path.dirname(path)
     prefix, suffix = os.path.splitext(os.path.basename(path))
     prefix = f'.{prefix}.'
-    if suffix:
-        suffix = f'.tmp.{suffix}' # keep final suffix/extension
-    else:
-        suffix = '.tmp'
+    suffix = f'.tmp{suffix}' # keep final suffix/extension
     try:
         path_tmp = tempfile.mkdtemp(suffix=suffix, prefix=prefix, dir=dirname)
         yield path_tmp
