@@ -1,5 +1,6 @@
 # java stuff
 from pyterrier.terrier import java
+from pyterrier.terrier._index import TerrierIndex
 from pyterrier.terrier._text_loader import TerrierTextLoader, terrier_text_loader
 from pyterrier.terrier.java import configure, set_version, set_helper_version, extend_classpath, J, set_property, set_properties, run, version, check_version, check_helper_version
 from pyterrier.terrier.retriever import RetrieverBase, Retriever, FeaturesRetriever, TextScorer
@@ -48,6 +49,9 @@ class BatchRetrieveBase(RetrieverBase):
 __all__ = [
     # java stuff
     'java', 'configure', 'set_version', 'set_helper_version', 'extend_classpath', 'J', 'version', 'check_version', 'check_helper_version',
+
+    # High-level API
+    'TerrierIndex',
 
     # retrieval
     'BatchRetrieveBase', 'Retriever', 'RetrieverBase', 'BatchRetrieve', 'TerrierRetrieve', 'FeaturesRetriever', 'FeaturesBatchRetrieve', 'TerrierRetrieve', 'TextScorer',
