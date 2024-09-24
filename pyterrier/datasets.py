@@ -1,18 +1,16 @@
 import urllib.request
-import wget
 import os
+import json
 import pandas as pd
 from .transformer import is_lambda
 import types
-from typing import Union, Tuple, Iterator, Dict, Any, List
+from typing import Union, Tuple, Iterator, Dict, Any, List, Literal
 from warnings import warn
 import requests
 from .io import autoopen, touch
-from . import tqdm, HOME_DIR
+import pyterrier as pt
 import tarfile
-from warnings import warn
 
-import pyterrier
 
 TERRIER_DATA_BASE="http://data.terrier.org/indices/"
 STANDARD_TERRIER_INDEX_FILES = [
@@ -56,7 +54,7 @@ class Dataset():
         """
         pass
 
-    def get_corpus_iter(self, verbose=True) -> Iterator[Dict[str,Any]]:
+    def get_corpus_iter(self, verbose=True) -> pt.model.IterDict:
         """
             Returns an iter of dicts for this collection. If verbose=True, a tqdm pbar shows the progress over this iterator.
         """
@@ -122,20 +120,13 @@ class RemoteDataset(Dataset):
         self.password = None
 
     def _configure(self, **kwargs):
-        from os.path import expanduser
-        pt_home = HOME_DIR
-        if pt_home is None:
-            from os.path import expanduser
-            userhome = expanduser("~")
-            pt_home = os.path.join(userhome, ".pyterrier")
-        self.corpus_home = os.path.join(pt_home, "corpora", self.name)
+        self.corpus_home = os.path.join(pt.io.pyterrier_home(), "corpora", self.name)
         if 'user' in kwargs:
             self.user = kwargs['user']
             self.password = kwargs['password']
 
     @staticmethod
     def download(URLs : Union[str,List[str]], filename : str, **kwargs):
-        import pyterrier as pt
         basename = os.path.basename(filename)
 
         if isinstance(URLs, str):
@@ -148,7 +139,7 @@ class RemoteDataset(Dataset):
                 r = requests.get(url, allow_redirects=True, stream=True, **kwargs)
                 r.raise_for_status()
                 total = int(r.headers.get('content-length', 0))
-                with pt.io.finalized_open(filename, 'b') as file, tqdm(
+                with pt.io.finalized_open(filename, 'b') as file, pt.tqdm(
                         desc=basename,
                         total=total,
                         unit='iB',
@@ -331,7 +322,6 @@ class RemoteDataset(Dataset):
         return True
 
     def get_corpus(self, **kwargs):
-        import pyterrier as pt
         return list(filter(lambda f : not f.endswith(".complete"), pt.io.find_files(self._get_all_files("corpus", **kwargs))))
 
     def get_corpus_iter(self, **kwargs):
@@ -345,14 +335,12 @@ class RemoteDataset(Dataset):
         return None
 
     def get_qrels(self, variant=None):
-        import pyterrier as pt
         filename, type = self._get_one_file("qrels", variant)
         if type == "direct":
             return filename 
         return pt.io.read_qrels(filename)
 
     def get_topics(self, variant=None, **kwargs):
-        import pyterrier as pt
         file, filetype = self._get_one_file("topics", variant)
         if filetype is None or filetype in pt.io.SUPPORTED_TOPICS_FORMATS:
             return pt.io.read_topics(file, format=filetype, **kwargs)
@@ -366,18 +354,24 @@ class RemoteDataset(Dataset):
         return None
 
     def get_index(self, variant=None, **kwargs):
-        import pyterrier as pt
         if self.name == "50pct" and variant is None:
             variant="ex1"
         thedir = self._get_all_files("index", variant=variant, **kwargs)
         return thedir
-        #return pt.autoclass("org.terrier.querying.IndexRef").of(os.path.join(thedir, "data.properties"))
 
     def __repr__(self):
         return "RemoteDataset for %s, with %s" % (self.name, str(list(self.locations.keys())))
 
     def info_url(self):
         return self.locations['info_url'] if "info_url" in self.locations else None
+
+
+@pt.java.required
+def _pt_tokeniser():
+    tokeniser = pt.terrier.J.Tokenizer.getTokeniser()
+    def pt_tokenise(text):
+        return ' '.join(tokeniser.getTokens(text))
+    return pt_tokenise
 
 
 class IRDSDataset(Dataset):
@@ -411,7 +405,7 @@ class IRDSDataset(Dataset):
         
         # tqdm support
         if verbose:
-            it = tqdm(it, desc=f'{self._irds_id} documents', total=total)
+            it = pt.tqdm(it, desc=f'{self._irds_id} documents', total=total)
 
         # rewrite to follow pyterrier std
         def gen():
@@ -462,12 +456,8 @@ class IRDSDataset(Dataset):
 
         # apply pyterrier tokenisation (otherwise the queries may not play well with batchretrieve)
         if tokenise_query and 'query' in df:
-            import pyterrier as pt
-            tokeniser = pt.autoclass("org.terrier.indexing.tokenisation.Tokeniser").getTokeniser()
-            def pt_tokenise(text):
-                return ' '.join(tokeniser.getTokens(text))
-            df['query'] = df['query'].apply(pt_tokenise)
-
+            tokeniser = _pt_tokeniser()
+            df['query'] = df['query'].apply(tokeniser)
         return df
 
     def get_topics_lang(self):
@@ -549,6 +539,85 @@ class IRDSDataset(Dataset):
 
     def __repr__(self):
         return f"IRDSDataset({repr(self._irds_id)})"
+
+    def text_loader(
+        self,
+        fields: Union[List[str], str, Literal['*']] = '*',
+        *,
+        verbose: bool = False,
+    ) -> pt.Transformer:
+        """Create a transformer that loads text fields from an ir_datasets dataset into a DataFrame by docno.
+
+        Args:
+            fields: The fields to load from the dataset. If '*', all fields will be loaded.
+            verbose: Whether to print debug information.
+        """
+        return IRDSTextLoader(self, fields, verbose=verbose)
+
+
+class IRDSTextLoader(pt.Transformer):
+    """A transformer that loads text fields from an ir_datasets dataset into a DataFrame by docno."""
+    def __init__(
+        self,
+        dataset: IRDSDataset,
+        fields: Union[List[str], str, Literal['*']] = '*',
+        *,
+        verbose=False
+    ):
+        """Initialise the transformer with the index to load metadata from.
+
+        Args:
+            dataset: The dataset to load text from.
+            fields: The fields to load from the dataset. If '*', all fields will be loaded.
+            verbose: Whether to print debug information.
+        """
+        if not dataset.irds_ref().has_docs():
+            raise ValueError(f"Dataset {dataset} does not provide docs")
+        docs_cls = dataset.irds_ref().docs_cls()
+
+        available_fields = [f for f in docs_cls._fields if f != 'doc_id' and docs_cls.__annotations__[f] is str]
+        if fields == '*':
+            fields = available_fields
+        else:
+            if isinstance(fields, str):
+                fields = [fields]
+            missing_fields = set(fields) - set(available_fields)
+            if missing_fields:
+                raise ValueError(f"Dataset {dataset} did not have requested metaindex keys {list(missing_fields)}. "
+                                 f"Keys present in metaindex are {available_fields}")
+
+        self.dataset = dataset
+        self.fields = fields
+        self.verbose = verbose
+
+    def transform(self, inp: pd.DataFrame) -> pd.DataFrame:
+        """Load text fields from the dataset into the input DataFrame.
+
+        Args:
+            inp: The input DataFrame. Must contain 'docno'.
+
+        Returns:
+            A new DataFrame with the text columns appended.
+        """
+        if 'docno' not in inp.columns:
+            raise ValueError(f"input missing 'docno' column, available columns: {list(inp.columns)}")
+        irds = self.dataset.irds_ref()
+        docstore = irds.docs_store()
+        docnos = inp.docno.values.tolist()
+
+        # Load the new data
+        fields = ['doc_id'] + self.fields
+        set_docnos = set(docnos)
+        it = (tuple(getattr(doc, f) for f in fields) for doc in docstore.get_many_iter(set_docnos))
+        if self.verbose:
+            it = pd.tqdm(it, unit='d', total=len(set_docnos), desc='IRDSTextLoader')
+        metadata = pd.DataFrame(list(it), columns=fields).set_index('doc_id')
+        metadata_frame = metadata.loc[docnos].reset_index(drop=True)
+
+        # append the input and metadata frames
+        inp = inp.drop(columns=self.fields, errors='ignore') # make sure we don't end up with duplicates
+        inp = inp.reset_index(drop=True) # reset the index to default (matching metadata_frame)
+        return pd.concat([inp, metadata_frame], axis='columns')
 
 
 def passage_generate(dataset):
@@ -744,7 +813,6 @@ MSMARCOv2_PASSAGE_FILES = {
 
 # remove WT- prefix from topics
 def remove_prefix(self, component, variant):
-    import pyterrier as pt
     topics_file, type = self._get_one_file("topics_prefixed", variant)
     if type in pt.io.SUPPORTED_TOPICS_FORMATS:
         topics = pt.io.read_topics(topics_file, type)
@@ -756,7 +824,6 @@ def remove_prefix(self, component, variant):
 
 # a function to fix the namedpage TREC Web tracks 2001 and 2002
 def parse_desc_only(self, component, variant):
-    import pyterrier as pt
     file, type = self._get_one_file("topics_desc_only", variant=variant)
     topics = pt.io.read_topics(file, format="trec", whitelist=["DESC"], blacklist=None)
     topics["qid"] = topics.apply(lambda row: row["qid"].replace("NP", ""), axis=1)
@@ -1034,7 +1101,7 @@ VASWANI_FILES = {
     #"index":
     #    [(filename, VASWANI_INDEX_BASE + filename) for filename in STANDARD_TERRIER_INDEX_FILES + ["data.meta-0.fsomapfile"]],
     "info_url" : "http://ir.dcs.gla.ac.uk/resources/test_collections/npl/",
-    "corpus_iter" : lambda dataset, **kwargs : pyterrier.index.treccollection2textgen(dataset.get_corpus(), num_docs=11429, verbose=kwargs.get("verbose", False))
+    "corpus_iter" : lambda dataset, **kwargs : pt.index.treccollection2textgen(dataset.get_corpus(), num_docs=11429, verbose=kwargs.get("verbose", False))
 }
 
 DATASET_MAP = {
@@ -1139,3 +1206,33 @@ def list_datasets(en_only=True):
         corpus_filter = (result['corpus'].isnull()) | (result['corpus_lang'] == 'en')
         result = result[topics_filter & corpus_filter]
     return result
+
+def transformer_from_dataset(
+    dataset : Union[str, Dataset],
+    clz,
+    variant: str = None,
+    version: str = 'latest',        
+    **kwargs) -> pt.Transformer:
+    """Returns a Transformer instance of type ``clz`` for the provided index of variant ``variant``."""
+    if isinstance(dataset, str):
+        dataset = get_dataset(dataset)
+    if version != "latest":
+        raise ValueError("index versioning not yet supported")
+    indexref = dataset.get_index(variant)
+
+    classname = clz.__name__
+    classnames = [classname]
+    if classname == 'Retriever':
+        # we need to look for BatchRetrieve.args.json for legacy support
+        classnames.append('BatchRetrieve')
+    for c in classnames:
+        # now look for, e.g., BatchRetrieve.args.json file, which will define the args for Retriever, e.g. stemming
+        indexdir = indexref #os.path.dirname(indexref.toString())
+        argsfile = os.path.join(indexdir, classname + ".args.json")
+        if os.path.exists(argsfile):
+            with pt.io.autoopen(argsfile, "rt") as f:
+                args = json.load(f)
+                # anything specified in kwargs of this methods overrides the .args.json file
+                args.update(kwargs)
+                kwargs = args
+    return clz(indexref, **kwargs)

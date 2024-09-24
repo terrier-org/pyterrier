@@ -32,13 +32,13 @@ class TestBackground(BaseTestCase):
         import pandas as pd
         df1 = pd.DataFrame({
             'docno': ['1048'],
-            'body':
+            'text':
                 ['h  f  noise radiators in ground flashes of tropical lightning  a '+
                 'detailed analysis of h  f  noise sources in tropical ground flashes '+
                 'v  l  f  phase characteristics deduced from atmospheric waveforms']
         })
-        pd_indexer1 = pt.DFIndexer(tempfile.mkdtemp(), type=type)
-        indexref1 = pd_indexer1.index(df1["body"], df1["docno"])
+        pd_indexer1 = pt.IterDictIndexer(tempfile.mkdtemp(), type=type)
+        indexref1 = pd_indexer1.index(df1.to_dict(orient='records'))
         index1 = pt.IndexFactory.of(indexref1)
         
         has_direct1 = index1.hasIndexStructure("direct")
@@ -46,9 +46,8 @@ class TestBackground(BaseTestCase):
         indexref_big = pt.get_dataset("vaswani").get_index()
         index_big = pt.IndexFactory.of(indexref_big)
 
-        from pyterrier import autoclass
-        stopwords = autoclass("org.terrier.terms.Stopwords")(None)
-        stemmer = autoclass("org.terrier.terms.PorterStemmer")(None)
+        stopwords = pt.java.autoclass("org.terrier.terms.Stopwords")(None)
+        stemmer = pt.java.autoclass("org.terrier.terms.PorterStemmer")(None)
 
         q = "MATHEMATICAL ANALYSIS AND DESIGN DETAILS OF WAVEGUIDE FED MICROWAVE RADIATIONS"
         self.assertEqual("1048", index_big.getMetaIndex().getItem("docno", 1047))
@@ -75,8 +74,8 @@ class TestBackground(BaseTestCase):
 
             from jnius import JavaException
             try:
-                br1 = pt.BatchRetrieve(index_small, wmodel="Tf")
-                brall = pt.BatchRetrieve(index_big, wmodel="Tf")
+                br1 = pt.terrier.Retriever(index_small, wmodel="Tf")
+                brall = pt.terrier.Retriever(index_big, wmodel="Tf")
                 with_doc = pd.DataFrame([["q1", q, "1048", 1047]], columns=["qid", "query", "docno", "docid"])
                 rtr1 = br1.search(q)
             except JavaException as ja:
@@ -86,7 +85,7 @@ class TestBackground(BaseTestCase):
             self.assertTrue(np.array_equal(rtr1["score"].values, rtrall["score"].values))
         
         _check_index(index1)
-        _check_index( pt.autoclass("org.terrier.python.IndexWithBackground")(index1, index_big))
+        _check_index( pt.java.autoclass("org.terrier.python.IndexWithBackground")(index1, index_big))
 
     def test_itM(self):
         self._test_it(pt.index.IndexingType.MEMORY)
@@ -108,8 +107,8 @@ class TestBackground(BaseTestCase):
                  'The wave were crash on the shore; it was a',
                  'The body may perhaps compensates for the loss']
         })
-        pd_indexer1 = pt.DFIndexer(tempfile.mkdtemp(), type=type)
-        indexref1 = pd_indexer1.index(df1["text"], df1["docno"])
+        pd_indexer1 = pt.IterDictIndexer(tempfile.mkdtemp(), type=type)
+        indexref1 = pd_indexer1.index(df1.to_dict(orient='records'))
 
         df2 = pd.DataFrame({
             'docno': ['14'],
@@ -119,8 +118,8 @@ class TestBackground(BaseTestCase):
         from jnius import JavaException
         try:
 
-            pd_indexer2 = pt.DFIndexer(tempfile.mkdtemp(), type=type)
-            indexref2 = pd_indexer2.index(df2["text"], df2["docno"])
+            pd_indexer2 = pt.IterDictIndexer(tempfile.mkdtemp(), type=type)
+            indexref2 = pd_indexer2.index(df2.to_dict(orient='records'))
             
             index1 = pt.IndexFactory.of(indexref1)
             self.assertEqual(3, index1.getCollectionStatistics().getNumberOfDocuments())
@@ -128,7 +127,7 @@ class TestBackground(BaseTestCase):
             index2 = pt.IndexFactory.of(indexref2)
             self.assertEqual(1, index2.getCollectionStatistics().getNumberOfDocuments())
 
-            index_combined = pt.autoclass("org.terrier.python.IndexWithBackground")(index2, index1)
+            index_combined = pt.java.autoclass("org.terrier.python.IndexWithBackground")(index2, index1)
             self.assertEqual(3, index_combined.getCollectionStatistics().getNumberOfDocuments())
 
             self.assertEqual(1, index_combined.getLexicon()["test"].getFrequency())

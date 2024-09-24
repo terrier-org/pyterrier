@@ -30,7 +30,7 @@ class TestUtils(TempDirTestCase):
             self.assertEqual(res_dict, res2_dict)
 
     def test_save_trec_generator(self):
-        br = pt.BatchRetrieve(pt.get_dataset("vaswani").get_index(), wmodel="TF_IDF")
+        br = pt.terrier.Retriever(pt.get_dataset("vaswani").get_index(), wmodel="TF_IDF")
         filepath = os.path.join(self.test_dir, "test.res")
         pt.io.write_results(br.transform_gen(pt.get_dataset("vaswani").get_topics().head()), filepath, format="trec")
 

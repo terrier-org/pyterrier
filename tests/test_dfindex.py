@@ -1,15 +1,13 @@
 import pyterrier as pt
 
 import unittest
-import tempfile
-import shutil
 import os
+from .base import TempDirTestCase, ensure_deprecated
 
-from .base import TempDirTestCase
 
 class TestDFIndexer(TempDirTestCase):
 
-
+    @ensure_deprecated
     def _create_index(self, type, dfText, dfMeta):
         print("Writing index type "+str(type)+" to " + self.test_dir)
         pd_indexer = pt.DFIndexer(self.test_dir, type=type)
@@ -18,7 +16,7 @@ class TestDFIndexer(TempDirTestCase):
         return indexref
 
     def _make_check_index(self, n, index_type, include_urls=False):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         import pandas as pd
         df = pd.DataFrame({
             'docno': ['1', '2', '3'],
@@ -112,6 +110,7 @@ class TestDFIndexer(TempDirTestCase):
         self.assertIsNotNone(jIter1.next())
         self.assertFalse(jIter1.hasNext())
 
+    @ensure_deprecated
     def test_badinvocation(self):
         import pandas as pd
         df_docids = pd.DataFrame([['d1', 'this is a doc']], columns=['body', 'doc_id'])
@@ -127,43 +126,43 @@ class TestDFIndexer(TempDirTestCase):
         ref = pt.DFIndexer(self.test_dir).index(df_docids["body"], df_docnos['docno'])
 
     def test_createindex1_two_metadata(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(1, IndexingType.CLASSIC, include_urls=True)
 
     def test_createindex1(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(1, IndexingType.CLASSIC)
 
     def test_createindex2(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(2, IndexingType.CLASSIC)
 
     def test_createindex3(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(3, IndexingType.CLASSIC)
 
     def test_createindex1_single_pass(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(1, IndexingType.SINGLEPASS)
 
     def test_createindex2_single_pass(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(2, IndexingType.SINGLEPASS)
 
     def test_createindex3_single_pass(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(3, IndexingType.SINGLEPASS)
 
     def test_createindex1_memory(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(1, IndexingType.MEMORY)
 
     def test_createindex2_memory(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(2, IndexingType.MEMORY)
 
     def test_createindex3_memory(self):
-        from pyterrier.index import IndexingType
+        from pyterrier.terrier.index import IndexingType
         self._make_check_index(3, IndexingType.MEMORY)
 
 if __name__ == "__main__":

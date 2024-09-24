@@ -14,20 +14,21 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('..'))
+# sys.path.insert(0, os.path.abspath('..'))
 sys.path.append('.')
 import sphinx_rtd_theme
 
 # -- Dataset table listing -----------------------------------------------------
 import pyterrier as pt
 import textwrap
-pt.init()
 
 from extras import generate_includes
+from extras import generate_extensions
 if not "QUICK" in os.environ:
     generate_includes.setup()
     generate_includes.dataset_include()
     generate_includes.experiment_includes()
+generate_extensions.generate_extensions()
 
 # -- Project information -----------------------------------------------------
 import datetime
@@ -59,6 +60,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages',
     'sphinx.ext.napoleon',
+    'sphinx_tabs.tabs',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -196,4 +198,3 @@ texinfo_documents = [
 
 extensions += ["myst_parser"]
 source_suffix = ['.rst', '.md']
-

@@ -1,12 +1,13 @@
 from . import Transformer
 import hashlib
-from . import HOME_DIR
+import pyterrier as pt
 import os
 from os import path
 import pandas as pd
 import pickle
 import datetime
 from warnings import warn
+from deprecated import deprecated
 CACHE_DIR = None
 DEFINITION_FILE = ".transformer"
 
@@ -28,8 +29,9 @@ def sizeof_fmt(num):
 
 def init():
     global CACHE_DIR
-    CACHE_DIR = path.join(HOME_DIR,"transformer_cache") 
+    CACHE_DIR = path.join(pt.io.pyterrier_home(), "transformer_cache") 
 
+@deprecated(version="0.11.1", reason="Use pyterrier-caching for more fine-grained caching, e.g. RetrieverCache or ScorerCache")
 def list_cache():
     if CACHE_DIR is None:
         init()
@@ -51,13 +53,14 @@ def list_cache():
         rtr[dirname] = elem
     return rtr
 
-
+@deprecated(version="0.11.1", reason="Use pyterrier-caching for more fine-grained caching, e.g. RetrieverCache or ScorerCache")
 def clear_cache():
     if CACHE_DIR is None:
         init()
     import shutil
     shutil.rmtree(CACHE_DIR)
 
+@deprecated(version="0.11.1", reason="Use pyterrier-caching for more fine-grained caching, e.g. RetrieverCache or ScorerCache")
 class ChestCacheTransformer(Transformer):
     """
         A transformer that cache the results of the consituent (inner) transformer. 
@@ -71,7 +74,7 @@ class ChestCacheTransformer(Transformer):
 
             dataset = pt.get_dataset("trec-robust-2004")
             # use for first pass and 2nd pass
-            BM25 = pt.BatchRetrieve(index, wmodel="BM25")
+            BM25 = pt.terrier.Retriever(index, wmodel="BM25")
 
             # used for query expansion
             RM3 = pt.rewrite.RM3(index)

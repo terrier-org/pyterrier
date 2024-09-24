@@ -1,0 +1,18 @@
+# Anserini <https://github.com/seanmacavaney/pyterrier-anserini>
+# Advanced Caching <https://github.com/seanmacavaney/pyterrier-caching>
+# Dense Retrieval <https://github.com/terrierteam/pyterrier_dr>
+# PISA <https://github.com/terrierteam/pyterrier_pisa>
+# OpenNIR <https://opennir.net/>
+# T5 <https://github.com/terrierteam/pyterrier_t5>
+# GenRank <https://github.com/emory-irlab/pyterrier_genrank>
+# ColBERT <https://github.com/terrierteam/pyterrier_colbert>
+# ChatNoir <https://github.com/chatnoir-eu/chatnoir-pyterrier>
+# ANCE <https://github.com/terrierteam/pyterrier_ance>
+# Doc2Query <https://github.com/terrierteam/pyterrier_doc2query>
+# DeepCT <https://github.com/terrierteam/pyterrier_deepct>
+# Quality <https://github.com/terrierteam/pyterrier-quality>
+# Adaptive <https://github.com/terrierteam/pyterrier-adaptive>
+# SPLADE <https://github.com/cmacdonald/pyt_splade>
+# AutoQrels <https://github.com/seanmacavaney/autoqrels>
+# Sentence Transformers <https://github.com/soldni/pyterrier_sentence_transformers>
+# DeepImpact <https://github.com/terrierteam/pyterrier_deepimpact>

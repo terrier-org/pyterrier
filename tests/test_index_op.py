@@ -111,17 +111,17 @@ class TestIndexOp(TempDirTestCase):
         ]
 
         # Create new index from pandas dataframe
-        pd_indexer = pt.DFIndexer(tempfile.mkdtemp(), blocks=True)
+        pd_indexer = pt.IterDictIndexer(tempfile.mkdtemp(), blocks=True)
         df = pd.DataFrame(documents)
         df['docno'] = df.index.astype(str)
-        indexref = pd_indexer.index(df['text'], df['docno'])
+        indexref = pd_indexer.index(df.to_dict(orient='records'))
         index1 = pt.IndexFactory.of(indexref)
 
         # Create new index from pandas dataframe
-        pd_indexer = pt.DFIndexer(tempfile.mkdtemp(), blocks=True)
+        pd_indexer = pt.IterDictIndexer(tempfile.mkdtemp(), blocks=True)
         df = pd.DataFrame(documents)
         df['docno'] = df.index.astype(str)
-        indexref = pd_indexer.index(df['text'], df['docno'])
+        indexref = pd_indexer.index(df.to_dict(orient='records'))
         index2 = pt.IndexFactory.of(indexref)
 
         # Merge indexes
@@ -131,7 +131,7 @@ class TestIndexOp(TempDirTestCase):
         self.assertEqual(len(index1) + len(index2), len(comb_index))
         
         # Instantiate writer object and write merged index to disk
-        writer = pt.autoclass("org.terrier.structures.indexing.DiskIndexWriter")(new_disk_index_loc, "data")
+        writer = pt.java.autoclass("org.terrier.structures.indexing.DiskIndexWriter")(new_disk_index_loc, "data")
         writer.write(comb_index)
 
         new_disk_index = pt.IndexFactory.of(new_disk_index_loc)

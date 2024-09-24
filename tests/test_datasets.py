@@ -39,12 +39,14 @@ class TestDatasets(BaseTestCase):
                 topics = ds.get_topics()
                 qrels = ds.get_qrels("adhoc")
                 
-                #check that the qrels match the topics.
+                # check that the qrels match the topics.
                 join = topics.merge(qrels, on=["qid"])
                 self.assertTrue(len(join) > 0)
         except requests.exceptions.ConnectionError:
             self.skipTest("NIST not reachable")
         except urllib.error.URLError:
+            self.skipTest("NIST not reachable")
+        except requests.exceptions.HTTPError:
             self.skipTest("NIST not reachable")
     
     def test_vaswani_corpus_iter(self):
@@ -60,7 +62,7 @@ class TestDatasets(BaseTestCase):
     def test_vaswani_from_dataset(self):
         import pyterrier as pt
         dataset = pt.datasets.get_dataset("vaswani")
-        br = pt.BatchRetrieve.from_dataset(dataset)
+        br = pt.terrier.Retriever.from_dataset(dataset)
         br.search("chemical reactions")
         
     def test_vaswani(self):
@@ -89,7 +91,7 @@ class TestDatasets(BaseTestCase):
         self.assertEqual(len(topics), 93)
 
         # test the newer get_topicsqrels
-        pt.Experiment([pt.BatchRetrieve(dataset.get_index())], *dataset.get_topicsqrels(), ["map"])
+        pt.Experiment([pt.terrier.Retriever(dataset.get_index())], *dataset.get_topicsqrels(), ["map"])
 
 if __name__ == "__main__":
     unittest.main()

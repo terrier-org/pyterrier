@@ -13,7 +13,7 @@ class TestCache(TempDirTestCase):
         pt.cache.CACHE_DIR = self.test_dir
         import pandas as pd
         queries = pd.DataFrame([["q1", "chemical"]], columns=["qid", "query"])
-        br = pt.BatchRetrieve(pt.get_dataset("vaswani").get_index())
+        br = pt.terrier.Retriever(pt.get_dataset("vaswani").get_index())
         cache = ~br
         self.assertEqual(0, len(cache.chest._keys))
         cache(queries)
@@ -31,8 +31,8 @@ class TestCache(TempDirTestCase):
         pt.cache.CACHE_DIR = self.test_dir
         import pandas as pd
         queries = pd.DataFrame([["q1", "chemical"]], columns=["qid", "query"])
-        br1 = pt.BatchRetrieve(pt.get_dataset("vaswani").get_index(), wmodel="TF_IDF")
-        br2 = pt.BatchRetrieve(pt.get_dataset("vaswani").get_index(), wmodel="BM25")
+        br1 = pt.terrier.Retriever(pt.get_dataset("vaswani").get_index(), wmodel="TF_IDF")
+        br2 = pt.terrier.Retriever(pt.get_dataset("vaswani").get_index(), wmodel="BM25")
         cache = ~ (br1 >> br2)
         self.assertEqual(0, len(cache.chest._keys))
         cache(queries)
@@ -50,8 +50,8 @@ class TestCache(TempDirTestCase):
         pt.cache.CACHE_DIR = self.test_dir
         import pandas as pd
         queries = pd.DataFrame([["q1", "chemical"]], columns=["qid", "query"])
-        br1 = pt.BatchRetrieve(pt.get_dataset("vaswani").get_index(), wmodel="TF_IDF")
-        br2 = pt.BatchRetrieve(pt.get_dataset("vaswani").get_index(), wmodel="BM25")
+        br1 = pt.terrier.Retriever(pt.get_dataset("vaswani").get_index(), wmodel="TF_IDF")
+        br2 = pt.terrier.Retriever(pt.get_dataset("vaswani").get_index(), wmodel="BM25")
         cache = ~ (~br1 >> br2)
         self.assertEqual(0, len(cache.chest._keys))
         cache(queries)

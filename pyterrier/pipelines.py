@@ -2,14 +2,15 @@ from warnings import warn
 import os
 import pandas as pd
 import numpy as np
-from typing import Callable, Union, Dict, List, Tuple, Sequence, Any
+from typing import Callable, Union, Dict, List, Tuple, Sequence, Any, Literal, Optional
 from . import Transformer
 from .model import coerce_dataframe_types
 import ir_measures
 from ir_measures.measures import BaseMeasure 
+import pyterrier as pt
 MEASURE_TYPE=Union[str,BaseMeasure]
 MEASURES_TYPE=Sequence[MEASURE_TYPE]
-
+SAVEMODE_TYPE=Literal['reuse', 'overwrite', 'error', 'warn']
 
 SYSTEM_OR_RESULTS_TYPE = Union[Transformer, pd.DataFrame]
 
@@ -145,17 +146,16 @@ def _run_and_evaluate(
         qrels: pd.DataFrame, 
         metrics : MEASURES_TYPE, 
         pbar = None,
-        save_mode = None,
-        save_file = None,
+        save_mode : SAVEMODE_TYPE = None,
+        save_file : str = None,
         perquery : bool = False,
-        batch_size = None,
+        batch_size : Optional[int] = None,
         backfill_qids : Sequence[str] = None):
     
     from .io import read_results, write_results
 
     if pbar is None:
-        from . import tqdm
-        pbar = tqdm(disable=True)
+        pbar = pt.tqdm(disable=True)
 
     metrics, rev_mapping = _convert_measures(metrics)
     qrels = qrels.rename(columns={'qid': 'query_id', 'docno': 'doc_id', 'label': 'relevance'})
@@ -163,12 +163,20 @@ def _run_and_evaluate(
     runtime = 0
     num_q = qrels['query_id'].nunique()
     if save_file is not None and os.path.exists(save_file):
-        if save_mode == "reuse":
+        if save_mode == 'reuse':
             system = read_results(save_file)
-        elif save_mode == "overwrite":
+        elif save_mode == 'overwrite':
             os.remove(save_file)
+        elif save_mode == 'warn':
+            warn(("save_dir is set, but the file '%s' already exists. If you are aware of are happy to reuse this " % save_file)+
+                             "file to speed up evaluation, set save_mode='reuse'; if you want to overwrite it, set save_mode='overwrite'."+
+                             " To make this condition an error, use save_mode='error'.")
+        elif save_mode == 'error':
+            raise ValueError(("save_dir is set, but the file '%s' already exists. If you are aware of are happy to reuse this " % save_file)+
+                             "file to speed up evaluation, set save_mode='reuse'; if you want to overwrite it, set save_mode='overwrite'."+
+                              "To make this condition a warning, use save_mode='warn'.")
         else:
-            raise ValueError("Unknown save_file argument '%s', valid options are 'reuse' or 'overwrite'" % save_mode)
+            raise ValueError("Unknown save_mode argument '%s', valid options are 'error', 'warn', 'reuse' or 'overwrite'." % save_mode)
 
     # if its a DataFrame, use it as the results
     if isinstance(system, pd.DataFrame):
@@ -276,8 +284,8 @@ def Experiment(
         eval_metrics : MEASURES_TYPE,
         names : Sequence[str] = None,
         perquery : bool = False,
-        dataframe : bool =True,
-        batch_size : int = None,
+        dataframe : bool = True,
+        batch_size : Optional[int] = None,
         filter_by_qrels : bool = False,
         filter_by_topics : bool = True,
         baseline : int = None,
@@ -288,7 +296,7 @@ def Experiment(
         round : Union[int,Dict[str,int]] = None,
         verbose : bool = False,
         save_dir : str = None,
-        save_mode : str = 'reuse',
+        save_mode : SAVEMODE_TYPE = 'warn',
         **kwargs):
     """
     Allows easy comparison of multiple retrieval transformer pipelines using a common set of topics, and
@@ -314,7 +322,8 @@ def Experiment(
             filename is based on the systems names (as specified by ``names`` kwarg). If the file exists and ``save_mode`` is set to "reuse", then the file
             will be used for evaluation rather than the transformer. Default is None, such that saving and loading from files is disabled.
         save_mode(str): Defines how existing files are used when ``save_dir`` is set. If set to "reuse", then files will be preferred
-            over transformers for evaluation. If set to "overwrite", existing files will be replaced. Default is "reuse".
+            over transformers for evaluation. If set to "overwrite", existing files will be replaced. If set to "warn" or "error", the presence of any 
+            existing file will cause a warning or error, respectively. Default is "warn".
         dataframe(bool): If True return results as a dataframe, else as a dictionary of dictionaries. Default=True.
         baseline(int): If set to the index of an item of the retr_system list, will calculate the number of queries 
             improved, degraded and the statistical significance (paired t-test p value) for each measure.
@@ -448,7 +457,6 @@ def Experiment(
         eval_metrics.remove("mrt")
 
     # progress bar construction
-    from . import tqdm
     tqdm_args={
         'disable' : not verbose,
         'unit' : 'system',
@@ -461,7 +469,7 @@ def Experiment(
         # round number of batches up for each system
         tqdm_args['total'] = math.ceil((len(topics) / batch_size)) * len(retr_systems)
 
-    with tqdm(**tqdm_args) as pbar:
+    with pt.tqdm(**tqdm_args) as pbar:
         # run and evaluate each system
         for name, system in zip(names, retr_systems):
             save_file = None
@@ -561,8 +569,11 @@ def Experiment(
             for pcol in p_col_names:
                 pcol_reject = pcol.replace("p-value", "reject")
                 pcol_corrected = pcol + " corrected"                
-                reject, corrected, _, _ = statsmodels.stats.multitest.multipletests(df[pcol], alpha=correction_alpha, method=correction)
+                reject, corrected, _, _ = statsmodels.stats.multitest.multipletests(df[pcol].drop(df.index[baseline]), alpha=correction_alpha, method=correction)
                 insert_pos = df.columns.get_loc(pcol)
+                # add reject/corrected values for the baseline
+                reject = np.insert(reject, baseline, False)
+                corrected = np.insert(corrected, baseline, np.nan)
                 # add extra columns, put place directly after the p-value column
                 df.insert(insert_pos+1, pcol_reject, reject)
                 df.insert(insert_pos+2, pcol_corrected, corrected)
@@ -651,7 +662,7 @@ def KFoldGridSearch(
 
     Consider tuning PL2 where folds of queries are pre-determined::
 
-        pl2 = pt.BatchRetrieve(index, wmodel="PL2", controls={'c' : 1})
+        pl2 = pt.terrier.Retriever(index, wmodel="PL2", controls={'c' : 1})
         tuned_pl2, _ = pt.KFoldGridSearch(
             pl2, 
             {pl2 : {'c' : [0.1, 1, 5, 10, 20, 100]}}, 
@@ -801,7 +812,7 @@ def GridScan(
     must be specified. The trec_eval measure names can be optionally specified.
     The transformers being tuned, and their respective parameters are named in the param_dict. The parameter being
     varied must be changable using the :func:`set_parameter()` method. This means instance variables,
-    as well as controls in the case of BatchRetrieve.
+    as well as controls in the case of Retriever.
 
     Args:
         pipeline(Transformer): a transformer or pipeline
@@ -825,7 +836,7 @@ def GridScan(
     Example::
 
         # graph how PL2's c parameter affects MAP
-        pl2 = pt.BatchRetrieve(index, wmodel="PL2", controls={'c' : 1})
+        pl2 = pt.terrier.Retriever(index, wmodel="PL2", controls={'c' : 1})
         rtr = pt.GridScan(
             pl2, 
             {pl2 : {'c' : [0.1, 1, 5, 10, 20, 100]}}, 
@@ -841,7 +852,7 @@ def GridScan(
 
     """
     import itertools
-    from . import Utils, tqdm
+    from . import Utils
 
     if verbose and jobs > 1:
         from warnings import warn
@@ -850,7 +861,7 @@ def GridScan(
         metrics = [metrics]
 
     # Store the all parameter names and candidate values into a dictionary, keyed by a tuple of the transformer and the parameter name
-    # such as {(BatchRetrieve, 'wmodel'): ['BM25', 'PL2'], (BatchRetrieve, 'c'): [0.1, 0.2, 0.3], (Bla, 'lr'): [0.001, 0.01, 0.1]}
+    # such as {(Retriever, 'wmodel'): ['BM25', 'PL2'], (Retriever, 'c'): [0.1, 0.2, 0.3], (Bla, 'lr'): [0.001, 0.01, 0.1]}
     candi_dict={}
     for tran, param_set in params.items():
         for param_name, values in param_set.items():
@@ -876,7 +887,7 @@ def GridScan(
         # Set the parameter value in the corresponding transformer of the pipeline
         for (tran, param_name), value in params.items():
             tran.set_parameter(param_name, value)
-            # such as (BatchRetrieve, 'wmodel', 'BM25')
+            # such as (Retriever, 'wmodel', 'BM25')
             parameter_list.append( (tran, param_name, value) )
             
         time, eval_scores = _run_and_evaluate(pipeline, topics, qrels, metrics, perquery=False, batch_size=batch_size)
@@ -888,7 +899,7 @@ def GridScan(
     eval_list = []
     #for each combination of parameter values
     if jobs == 1:
-        for v in tqdm(combinations, total=len(combinations), desc="GridScan", mininterval=0.3) if verbose else combinations:
+        for v in pt.tqdm(combinations, total=len(combinations), desc="GridScan", mininterval=0.3) if verbose else combinations:
             parameter_list, eval_scores = _evaluate_one_setting(keys, v)
             eval_list.append( (parameter_list, eval_scores) )
     else:

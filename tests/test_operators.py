@@ -40,6 +40,7 @@ class TestOperators(BaseTestCase):
     def test_then(self):
         
         def rewrite(topics):
+            topics = topics.copy()
             for index, row in topics.iterrows():
                 row["query"] = row["query"] + " test"
             return topics
@@ -57,16 +58,24 @@ class TestOperators(BaseTestCase):
             sequence5 = rewrite >> ptt.ApplyGenericTransformer(fn2)
         
         for sequence in [sequence1, sequence2, sequence3, sequence4, sequence5]:
-            self.assertTrue(isinstance(sequence, ptt.Transformer))
+            self.assertTrue(isinstance(sequence, pt.Transformer))
             #check we can access items
             self.assertEqual(2, len(sequence))
-            self.assertTrue(sequence[0], ptt.Transformer)
-            self.assertTrue(sequence[1], ptt.Transformer)            
+            self.assertTrue(sequence[0], pt.Transformer)
+            self.assertTrue(sequence[1], pt.Transformer)
             input = pd.DataFrame([["q1", "hello"]], columns=["qid", "query"])
             output = sequence.transform(input)
             self.assertEqual(1, len(output))
             self.assertEqual("q1", output.iloc[0]["qid"])
             self.assertEqual("hello test test", output.iloc[0]["query"])
+            # now test transform_iter pathway via __call__
+            output = sequence(input.to_dict(orient='records'))
+            self.assertIsInstance(output, list)
+            output = pd.DataFrame(output)
+            self.assertEqual(1, len(output))
+            self.assertEqual("q1", output.iloc[0]["qid"])
+            self.assertEqual("hello test test", output.iloc[0]["query"])
+
 
 
 
@@ -269,9 +278,9 @@ class TestOperators(BaseTestCase):
     def test_feature_union_multi_actual(self):
         dataset = pt.get_dataset("vaswani")
         index = dataset.get_index()
-        BM25 = pt.BatchRetrieve(index, wmodel="BM25")
-        TF_IDF = pt.BatchRetrieve(index, wmodel="TF_IDF")
-        PL2 = pt.BatchRetrieve(index, wmodel="PL2")
+        BM25 = pt.terrier.Retriever(index, wmodel="BM25")
+        TF_IDF = pt.terrier.Retriever(index, wmodel="TF_IDF")
+        PL2 = pt.terrier.Retriever(index, wmodel="PL2")
         pipe = BM25 >> (pt.transformer.IdentityTransformer() ** TF_IDF ** PL2)
 
         def _check(expression):
@@ -292,7 +301,6 @@ class TestOperators(BaseTestCase):
 
     def test_feature_union_multi(self):
         import pyterrier.ops as pto
-        import pyterrier.batchretrieve
         mock0 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 0], ["q1", "doc2", 0]], columns=["qid", "docno", "score"]), uniform=True)
 
         mock1 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 5], ["q1", "doc2", 0]], columns=["qid", "docno", "score"]), uniform=True)
@@ -338,7 +346,7 @@ class TestOperators(BaseTestCase):
         
         self.assertEqual(2, len(mock12a.models))
         self.assertEqual(2, len(mock12a.models))
-        pyterrier.batchretrieve.setup_rewrites()
+        pt.terrier.retriever.setup_rewrites()
 
         mock123_simple = mock123a.compile()
         self.assertIsNotNone(mock123_simple)

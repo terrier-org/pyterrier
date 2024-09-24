@@ -1,38 +1,12 @@
-import pyterrier as pt
-from jnius import cast
 import pandas as pd
-from .batchretrieve import _parse_index_like
-from . import Transformer
-from .index import TerrierTokeniser
-from . import tqdm
 from warnings import warn
 from typing import List,Union
 from types import FunctionType
+import pyterrier as pt
+from pyterrier.terrier.index import TerrierTokeniser
 
-TerrierQLParser = pt.autoclass("org.terrier.querying.TerrierQLParser")()
-TerrierQLToMatchingQueryTerms = pt.autoclass("org.terrier.querying.TerrierQLToMatchingQueryTerms")()
-QueryResultSet = pt.autoclass("org.terrier.matching.QueryResultSet")
-DependenceModelPreProcess = pt.autoclass("org.terrier.querying.DependenceModelPreProcess")
-
-
-
-_terrier_prf_package_loaded = False
-_terrier_prf_message = 'terrier-prf jar not found: you should start PyTerrier with '\
-    + 'pt.init(boot_packages=["com.github.terrierteam:terrier-prf:-SNAPSHOT"])'
-
-def _check_terrier_prf():
-    import jnius_config
-    global _terrier_prf_package_loaded
-    if _terrier_prf_package_loaded:
-        return
-    
-    for j in jnius_config.get_classpath():
-        if "terrier-prf" in j:
-            _terrier_prf_package_loaded = True
-            break
-    assert _terrier_prf_package_loaded, _terrier_prf_message
-
-def tokenise(tokeniser : Union[str,TerrierTokeniser,FunctionType] = 'english', matchop=False) -> Transformer:
+@pt.java.required
+def tokenise(tokeniser : Union[str,TerrierTokeniser,FunctionType] = 'english', matchop=False) -> pt.Transformer:
     """
 
     Applies tokenisation to the query. By default, queries obtained from ``pt.get_dataset().get_topics()`` are
@@ -40,26 +14,26 @@ def tokenise(tokeniser : Union[str,TerrierTokeniser,FunctionType] = 'english', m
 
     Args:
         tokeniser(Union[str,TerrierTokeniser,FunctionType]): Defines what tokeniser should be used - either a Java tokeniser name in Terrier, a TerrierTokeniser instance, or a function that takes a str as input and returns a list of str.
-        matchop(bool): Whether query terms should be wrapped in matchops, to ensure they can be parsed by a Terrier BatchRetrieve transformer.
+        matchop(bool): Whether query terms should be wrapped in matchops, to ensure they can be parsed by a Terrier Retriever transformer.
     
     Example - use default tokeniser::
 
-        pipe = pt.rewrite.tokenise() >> pt.BatchRetrieve()
+        pipe = pt.rewrite.tokenise() >> pt.terrier.Retriever()
         pipe.search("Question with 'capitals' and other stuff?")
     
     Example - roll your own tokeniser::
 
-        poortokenisation = pt.rewrite.tokenise(lambda query: query.split(" ")) >> pt.BatchRetrieve()
+        poortokenisation = pt.rewrite.tokenise(lambda query: query.split(" ")) >> pt.terrier.Retriever()
 
     Example - for non-English languages, tokenise on standard UTF non-alphanumeric characters::
 
-        utftokenised = pt.rewrite.tokenise(pt.TerrierTokeniser.utf)) >> pt.BatchRetrieve()
-        utftokenised = pt.rewrite.tokenise("utf")) >> pt.BatchRetrieve()
+        utftokenised = pt.rewrite.tokenise(pt.TerrierTokeniser.utf)) >> pt.terrier.Retriever()
+        utftokenised = pt.rewrite.tokenise("utf")) >> pt.terrier.Retriever()
 
     Example - tokenising queries using a `HuggingFace tokenizer <https://huggingface.co/docs/transformers/fast_tokenizers>`_ ::
 
         # this assumes the index was created in a pretokenised manner
-        br = pt.BatchRetrieve(indexref)
+        br = pt.terrier.Retriever(indexref)
         tok = AutoTokenizer.from_pretrained("bert-base-uncased")
         query_toks = pt.rewrite.tokenise(tok.tokenize, matchop=True)
         retr_pipe = query_toks >> br
@@ -73,7 +47,7 @@ def tokenise(tokeniser : Union[str,TerrierTokeniser,FunctionType] = 'english', m
         tokeniser = TerrierTokeniser._to_class(tokeniser)
         if "." not in tokeniser:
             tokeniser = 'org.terrier.indexing.tokenisation.' + tokeniser
-        tokenobj = pt.autoclass(tokeniser)()
+        tokenobj = pt.java.autoclass(tokeniser)()
         _query_fn = tokenobj.getTokens
 
     def _join_str(input : Union[str,List[str]]):
@@ -83,14 +57,14 @@ def tokenise(tokeniser : Union[str,TerrierTokeniser,FunctionType] = 'english', m
 
     def _join_str_matchop(input : List[str]):
         assert not isinstance(input, str), "Expected a list of strings"
-        return ' '.join(map(pt.BatchRetrieve.matchop, input))
+        return ' '.join(map(pt.terrier.Retriever.matchop, input))
     
     if matchop:
         return pt.apply.query(lambda r: _join_str_matchop(_query_fn(r.query)))
     return pt.apply.query(lambda r: _join_str(_query_fn(r.query)))
 
 
-def reset() -> Transformer:
+def reset() -> pt.Transformer:
     """
         Undoes a previous query rewriting operation. This results in the query formulation stored in the `"query_0"`
         attribute being moved to the `"query"` attribute, and, if present, the `"query_1"` being moved to
@@ -101,15 +75,15 @@ def reset() -> Transformer:
 
         Example::
 
-            firststage = pt.rewrite.SDM() >> pt.BatchRetrieve(index, wmodel="DPH")
+            firststage = pt.rewrite.SDM() >> pt.terrier.Retriever(index, wmodel="DPH")
             secondstage = pyterrier_bert.cedr.CEDRPipeline()
             fullranker = firststage >> pt.rewrite.reset() >> secondstage
 
     """
-    from .model import pop_queries
-    return pt.apply.generic(lambda topics: pop_queries(topics))
+    return pt.apply.generic(lambda topics: pt.model.pop_queries(topics))
 
-class SDM(Transformer):
+@pt.java.required
+class SDM(pt.Transformer):
     '''
         Implements the sequential dependence model, which Terrier supports using its
         Indri/Galagoo compatible matchop query language. The rewritten query is derived using
@@ -124,30 +98,28 @@ class SDM(Transformer):
         self.verbose = 0
         self.prox_model = prox_model
         self.remove_stopwords = remove_stopwords
-        from . import check_version
-        assert check_version("5.3")
-        self.ApplyTermPipeline_stopsonly = pt.autoclass("org.terrier.querying.ApplyTermPipeline")("Stopwords")
+        assert pt.terrier.check_version("5.3")
+        self.ApplyTermPipeline_stopsonly = pt.terrier.J.ApplyTermPipeline('Stopwords')
 
     def __repr__(self):
         return "SDM()"
 
     def transform(self, topics_and_res):
         results = []
-        from .model import ranked_documents_to_queries, push_queries
-        queries = ranked_documents_to_queries(topics_and_res)
+        queries = pt.model.ranked_documents_to_queries(topics_and_res)
 
         # instantiate the DependenceModelPreProcess, specifying a proximity model if specified
-        sdm = DependenceModelPreProcess() if self.prox_model is None else DependenceModelPreProcess(self.prox_model)
+        sdm = pt.terrier.J.DependenceModelPreProcess() if self.prox_model is None else pt.terrier.J.DependenceModelPreProcess(self.prox_model)
         
-        for row in tqdm(queries.itertuples(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
+        for row in pt.tqdm(queries.itertuples(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
             qid = row.qid
             query = row.query
             # parse the querying into a MQT
-            rq = pt.autoclass("org.terrier.querying.Request")()
+            rq = pt.terrier.J.Request()
             rq.setQueryID(qid)
             rq.setOriginalQuery(query)
-            TerrierQLParser.process(None, rq)
-            TerrierQLToMatchingQueryTerms.process(None, rq)
+            pt.terrier.J.TerrierQLParser().process(None, rq)
+            pt.terrier.J.TerrierQLToMatchingQueryTerms().process(None, rq)
             if self.remove_stopwords:
                 self.ApplyTermPipeline_stopsonly.process(None, rq)
 
@@ -172,7 +144,7 @@ class SDM(Transformer):
             results.append([qid, new_query])
         new_queries = pd.DataFrame(results, columns=["qid", "query"])
         # restore any other columns, e.g. put back docs if we are re-ranking
-        return new_queries.merge(push_queries(topics_and_res, inplace=True) , on="qid")
+        return new_queries.merge(pt.model.push_queries(topics_and_res, inplace=True) , on="qid")
 
 class SequentialDependence(SDM):
     '''
@@ -184,8 +156,9 @@ class SequentialDependence(SDM):
         The original query is saved in the `"query_0"` column, which can be restored using `pt.rewrite.reset()`.
     '''
     pass
-    
-class QueryExpansion(Transformer):
+
+@pt.java.required
+class QueryExpansion(pt.Transformer):
     '''
         A base class for applying different types of query expansion using Terrier's classes.
         This transformer changes the query. It must be followed by a Terrier Retrieve() transformer.
@@ -197,21 +170,22 @@ class QueryExpansion(Transformer):
          
     '''
 
-    def __init__(self, index_like, fb_terms=10, fb_docs=3, qeclass="org.terrier.querying.QueryExpansion", verbose=0, properties={}, **kwargs):
+    def __init__(self, index_like, fb_terms=10, fb_docs=3, qeclass="org.terrier.querying.QueryExpansion", verbose=0, properties={}, requires_scores=False, **kwargs):
         super().__init__(**kwargs)
         self.verbose = verbose
         if isinstance(qeclass, str):
-            self.qe = pt.autoclass(qeclass)()
+            self.qe = pt.java.autoclass(qeclass)()
         else:
             self.qe = qeclass
-        self.indexref = _parse_index_like(index_like)
+        self.indexref = pt.terrier.retriever._parse_index_like(index_like)
         self.properties = properties
         for k,v in properties.items():
-            pt.ApplicationSetup.setProperty(k, str(v))
-        self.applytp = pt.autoclass("org.terrier.querying.ApplyTermPipeline")()
+            pt.terrier.J.ApplicationSetup.setProperty(k, str(v))
+        self.applytp = pt.terrier.J.ApplyTermPipeline()
         self.fb_terms = fb_terms
         self.fb_docs = fb_docs
-        self.manager = pt.autoclass("org.terrier.querying.ManagerFactory")._from_(self.indexref)
+        self.manager = pt.terrier.J.ManagerFactory._from_(self.indexref)
+        self.requires_scores = requires_scores
 
     def __reduce__(self):
         return (
@@ -235,38 +209,46 @@ class QueryExpansion(Transformer):
     def __setstate__(self, d): 
         self.fb_terms = d["fb_terms"]
         self.fb_docs = d["fb_docs"]
-        self.qe = pt.autoclass(d['qeclass'])()
+        self.qe = pt.java.autoclass(d['qeclass'])()
         self.properties.update(d["properties"])
         for key,value in d["properties"].items():
             self.appSetup.setProperty(key, str(value))
-        self.manager = pt.autoclass("org.terrier.querying.ManagerFactory")._from_(self.indexref)
+        self.manager = pt.terrier.J.ManagerFactory._from_(self.indexref)
 
     def _populate_resultset(self, topics_and_res, qid, index):
         
-        docids=None
-        scores=None
-        occurrences=None
+        docids = None
+        scores = None
+        occurrences = None
         if "docid" in topics_and_res.columns:
             # we need .tolist() as jnius cannot convert numpy arrays
-            docids = topics_and_res[topics_and_res["qid"] == qid]["docid"].values.tolist()
+            topics_and_res_for_qid = topics_and_res[topics_and_res["qid"] == qid]
+            docids = topics_and_res_for_qid["docid"].values.tolist()
             scores = [0.0] * len(docids)
+            if self.requires_scores:
+                scores = topics_and_res_for_qid["score"].values.tolist()
             occurrences = [0] * len(docids)
 
         elif "docno" in topics_and_res.columns:
-            docnos = topics_and_res[topics_and_res["qid"] == qid]["docno"].values
+            topics_and_res_for_qid = topics_and_res[topics_and_res["qid"] == qid]
+            docnos = topics_and_res_for_qid["docno"].values
             docids = []
             scores = []
+            _scores = [0.0] * len(docids)
+            if self.requires_scores:
+                _scores = topics_and_res_for_qid["score"].values.tolist()
+
             occurrences = []
             metaindex = index.getMetaIndex()
             skipped = 0
-            for docno in docnos:
+            for docno, docscore in zip(docnos, _scores):
                 docid = metaindex.getDocument("docno", docno)
                 if docid == -1:
                     skipped +=1 
                 assert docid != -1, "could not match docno" + docno + " to a docid for query " + qid    
                 docids.append(docid)
-                scores.append(0.0)
                 occurrences.append(0)
+                scores.append(docscore)
             if skipped > 0:
                 if skipped == len(docnos):
                     warn("*ALL* %d feedback docnos for qid %s could not be found in the index" % (skipped, qid))
@@ -274,7 +256,7 @@ class QueryExpansion(Transformer):
                     warn("%d feedback docnos for qid %s could not be found in the index" % (skipped, qid))
         else:
             raise ValueError("Input resultset has neither docid nor docno")
-        return QueryResultSet(docids, scores, occurrences)
+        return pt.terrier.J.QueryResultSet(docids, scores, occurrences)
 
     def __repr__(self):
         return "QueryExpansion(" + ",".join([
@@ -292,15 +274,14 @@ class QueryExpansion(Transformer):
 
         results = []
 
-        from .model import push_queries, ranked_documents_to_queries
-        queries = ranked_documents_to_queries(topics_and_res)
+        queries = pt.model.ranked_documents_to_queries(topics_and_res)
         #queries = topics_and_res[query_columns(topics_and_res, qid=True)].dropna(axis=0, subset=query_columns(topics_and_res, qid=False)).drop_duplicates()
                 
-        for row in tqdm(queries.itertuples(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
+        for row in pt.tqdm(queries.itertuples(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
             qid = row.qid
             query = row.query
             srq = self.manager.newSearchRequest(qid, query)
-            rq = cast("org.terrier.querying.Request", srq)
+            rq = pt.java.cast("org.terrier.querying.Request", srq)
             self.qe.configureIndex(rq.getIndex())
             self._configure_request(rq)
 
@@ -308,8 +289,8 @@ class QueryExpansion(Transformer):
             rq.setResultSet(self._populate_resultset(topics_and_res, qid, rq.getIndex()))
 
             
-            TerrierQLParser.process(None, rq)
-            TerrierQLToMatchingQueryTerms.process(None, rq)
+            pt.terrier.J.TerrierQLParser().process(None, rq)
+            pt.terrier.J.TerrierQLToMatchingQueryTerms().process(None, rq)
             # how to make sure this happens/doesnt happen when appropriate.
             self.applytp.process(None, rq)
             # to ensure weights are identical to Terrier
@@ -324,7 +305,7 @@ class QueryExpansion(Transformer):
             new_query = new_query[:-1]
             results.append([qid, new_query])
         new_queries = pd.DataFrame(results, columns=["qid", "query"])
-        return push_queries(queries, inplace=True).merge(new_queries, on="qid")
+        return pt.model.push_queries(queries, inplace=True).merge(new_queries, on="qid")
 
 class DFRQueryExpansion(QueryExpansion):
 
@@ -377,11 +358,10 @@ class KLQueryExpansion(DFRQueryExpansion):
         kwargs["qemodel"] = "KL"
         super().__init__(*args, **kwargs)
 
+@pt.java.required
 class RM3(QueryExpansion):
     '''
-        Performs query expansion using RM3 relevance models. RM3 relies on an external Terrier plugin, 
-        `terrier-prf <https://github.com/terrierteam/terrier-prf/>`_. You should start PyTerrier with 
-        `pt.init(boot_packages=["com.github.terrierteam:terrier-prf:-SNAPSHOT"])`.
+        Performs query expansion using RM3 relevance models.
 
         This transformer must be followed by a Terrier Retrieve() transformer.
         The original query is saved in the `"query_0"` column, which can be restored using `pt.rewrite.reset()`.
@@ -393,7 +373,7 @@ class RM3(QueryExpansion):
 
         Example:: 
 
-            bm25 = pt.BatchRetrieve(index, wmodel="BM25")
+            bm25 = pt.terrier.Retriever(index, wmodel="BM25")
             rm3_pipe = bm25 >> pt.rewrite.RM3(index) >> bm25
             pt.Experiment([bm25, rm3_pipe],
                         dataset.get_topics(),
@@ -410,11 +390,11 @@ class RM3(QueryExpansion):
             fb_docs(int): number of feedback documents to consider. Terrier's default setting is 3 feedback documents.
             fb_lambda(float): lambda in RM3, i.e. importance of relevance model viz feedback model. Defaults to 0.6.
         """
-        _check_terrier_prf()
-        rm = pt.autoclass("org.terrier.querying.RM3")()
+        assert pt.terrier.check_version("5.10"), "Terrier 5.10 required"
+        rm = pt.terrier.J.RM3()
         self.fb_lambda = fb_lambda
         kwargs["qeclass"] = rm
-        super().__init__(*args, fb_terms=fb_terms, fb_docs=fb_docs, **kwargs)
+        super().__init__(*args, fb_terms=fb_terms, fb_docs=fb_docs, requires_scores=True, **kwargs)
 
     def __getstate__(self): 
         rtr = super().__getstate__()
@@ -434,39 +414,7 @@ class RM3(QueryExpansion):
         self.qe.fbDocs = self.fb_docs
         return super().transform(queries_and_docs)
 
-class AxiomaticQE(QueryExpansion):
-    '''
-        Performs query expansion using axiomatic query expansion. This class relies on an external Terrier plugin, 
-        `terrier-prf <https://github.com/terrierteam/terrier-prf/>`_. You should start PyTerrier with 
-        `pt.init(boot_packages=["com.github.terrierteam:terrier-prf:-SNAPSHOT"])`.
-
-        This transformer must be followed by a Terrier Retrieve() transformer.
-        The original query is saved in the `"query_0"` column, which can be restored using `pt.rewrite.reset()`.
-
-        Instance Attributes:
-         - fb_terms(int): number of feedback terms. Defaults to 10
-         - fb_docs(int): number of feedback documents. Defaults to 3
-    '''
-    def __init__(self, *args, fb_terms=10, fb_docs=3, **kwargs):
-        """
-        Args:
-            index_like: the Terrier index to use
-            fb_terms(int): number of terms to add to the query. Terrier's default setting is 10 expansion terms.
-            fb_docs(int): number of feedback documents to consider. Terrier's default setting is 3 feedback documents.
-        """
-        _check_terrier_prf()
-        rm = pt.autoclass("org.terrier.querying.AxiomaticQE")()
-        self.fb_terms = fb_terms
-        self.fb_docs = fb_docs
-        kwargs["qeclass"] = rm
-        super().__init__(*args, **kwargs)
-
-    def transform(self, queries_and_docs):
-        self.qe.fbTerms = self.fb_terms
-        self.qe.fbDocs = self.fb_docs
-        return super().transform(queries_and_docs)
-
-def stash_results(clear=True) -> Transformer:
+def stash_results(clear=True) -> pt.Transformer:
     """
     Stashes (saves) the current retrieved documents for each query into the column `"stashed_results_0"`.
     This means that they can be restored later by using `pt.rewrite.reset_results()`.
@@ -478,28 +426,27 @@ def stash_results(clear=True) -> Transformer:
     """
     return _StashResults(clear)
     
-def reset_results() -> Transformer:
+def reset_results() -> pt.Transformer:
     """
     Applies a transformer that undoes a `pt.rewrite.stash_results()` transformer, thereby restoring the
     ranked documents.
     """
     return _ResetResults()
 
-class _StashResults(Transformer):
+class _StashResults(pt.Transformer):
 
     def __init__(self, clear, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.clear = clear
 
     def transform(self, topics_and_res: pd.DataFrame) -> pd.DataFrame:
-        from .model import document_columns, query_columns
         if "stashed_results_0" in topics_and_res.columns:
             raise ValueError("Cannot apply pt.rewrite.stash_results() more than once")
-        doc_cols = document_columns(topics_and_res)
+        doc_cols = pt.model.document_columns(topics_and_res)
         
         rtr =  []
         if self.clear:
-            query_cols = query_columns(topics_and_res)            
+            query_cols = pt.model.query_columns(topics_and_res)            
             for qid, groupDf in topics_and_res.groupby("qid"):
                 documentsDF = groupDf[doc_cols]
                 queryDf = groupDf[query_cols].iloc[0]
@@ -521,13 +468,12 @@ class _StashResults(Transformer):
     def __repr__(self):
         return "pt.rewrite.stash_results()"     
 
-class _ResetResults(Transformer):
+class _ResetResults(pt.Transformer):
 
     def transform(self, topics_with_saved_docs : pd.DataFrame) -> pd.DataFrame:
         if "stashed_results_0" not in topics_with_saved_docs.columns:
             raise ValueError("Cannot apply pt.rewrite.reset_results() without pt.rewrite.stash_results() - column stashed_results_0 not found")
-        from .model import query_columns
-        query_cols = query_columns(topics_with_saved_docs)
+        query_cols = pt.model.query_columns(topics_with_saved_docs)
         rtr = []
         for row in topics_with_saved_docs.itertuples():
             docsdf = pd.DataFrame.from_records(row.stashed_results_0)
@@ -541,7 +487,7 @@ class _ResetResults(Transformer):
     def __repr__(self):
         return "pt.rewrite.reset_results()"
 
-def linear(weightCurrent : float, weightPrevious : float, format="terrierql", **kwargs) -> Transformer:
+def linear(weightCurrent : float, weightPrevious : float, format="terrierql", **kwargs) -> pt.Transformer:
     """
     Applied to make a linear combination of the current and previous query formulation. The implementation
     is tied to the underlying query language used by the retrieval/re-ranker transformers. Two of Terrier's
@@ -568,7 +514,7 @@ def linear(weightCurrent : float, weightPrevious : float, format="terrierql", **
     """
     return _LinearRewriteMix([weightCurrent, weightPrevious], format, **kwargs)
 
-class _LinearRewriteMix(Transformer):
+class _LinearRewriteMix(pt.Transformer):
 
     def __init__(self, weights : List[float], format : str = 'terrierql', **kwargs):
         super().__init__(**kwargs)
@@ -592,15 +538,13 @@ class _LinearRewriteMix(Transformer):
             row["query_1"])
 
     def transform(self, topics_and_res):
-        from .model import push_queries
-        
         fn = None
         if self.format == "terrierql":
             fn = self._terrierql
         elif self.format == "matchopql":
             fn = self._matchopql
 
-        newDF = push_queries(topics_and_res)
+        newDF = pt.model.push_queries(topics_and_res)
         newDF["query"] = newDF.apply(fn, axis=1)
         return newDF
 

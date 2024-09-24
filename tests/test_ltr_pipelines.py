@@ -19,7 +19,7 @@ class TestLTRPipeline(BaseTestCase):
         topics = pt.io.read_topics(self.here + "/fixtures/vaswani_npl/query_light.trec").head(5)
         qrels = pt.io.read_qrels(self.here + "/fixtures/vaswani_npl/qrels")
 
-        pipeline = pt.FeaturesBatchRetrieve(self.here + "/fixtures/index/data.properties", ["WMODEL:PL2", "WMODEL:BM25"], controls={"wmodel" : "DPH"}) >> \
+        pipeline = pt.terrier.FeaturesRetriever(self.here + "/fixtures/index/data.properties", ["WMODEL:PL2", "WMODEL:BM25"], controls={"wmodel" : "DPH"}) >> \
             pt.ltr.apply_learned_model(train_request, form="fastrank")
         
         pipeline.fit(topics, qrels, topics, qrels)
@@ -39,14 +39,13 @@ class TestLTRPipeline(BaseTestCase):
             'learning_rate': 0.1,
             'gamma': 1.0, 'min_child_weight': 0.1,
             'max_depth': 6,
-            'verbose': 2,
             'random_state': 42
         }
 
         topics = pt.io.read_topics(self.here + "/fixtures/vaswani_npl/query_light.trec").head(5)
         qrels = pt.io.read_qrels(self.here + "/fixtures/vaswani_npl/qrels")
 
-        features = pt.FeaturesBatchRetrieve(self.here + "/fixtures/index/data.properties", ["WMODEL:PL2", "WMODEL:BM25"], controls={"wmodel" : "DPH"})
+        features = pt.terrier.FeaturesRetriever(self.here + "/fixtures/index/data.properties", ["WMODEL:PL2", "WMODEL:BM25"], controls={"wmodel" : "DPH"})
         pipeline = features >> pt.ltr.apply_learned_model(xgb.sklearn.XGBRanker(**xgparams), form="ltr")
         
         pipeline.fit(topics, qrels, topics, qrels)
@@ -98,7 +97,7 @@ class TestLTRPipeline(BaseTestCase):
         topics = pt.io.read_topics(self.here + "/fixtures/vaswani_npl/query_light.trec").head(5)
         qrels = pt.io.read_qrels(self.here + "/fixtures/vaswani_npl/qrels")
 
-        pipeline = ( pt.FeaturesBatchRetrieve(self.here + "/fixtures/index/data.properties", ["WMODEL:PL2", "WMODEL:BM25"], controls={"wmodel" : "DPH"}) >>
+        pipeline = ( pt.terrier.FeaturesRetriever(self.here + "/fixtures/index/data.properties", ["WMODEL:PL2", "WMODEL:BM25"], controls={"wmodel" : "DPH"}) >>
             pt.ltr.apply_learned_model(RandomForestClassifier())
         )
         
@@ -116,13 +115,13 @@ class TestLTRPipeline(BaseTestCase):
 
         rf = RandomForestClassifier()
 
-        pipeline = pt.FeaturesBatchRetrieve(self.here + "/fixtures/index/data.properties", ["WMODEL:PL2", "WMODEL:BM25"], controls={"wmodel" : "DPH"}) >> \
+        pipeline = pt.terrier.FeaturesRetriever(self.here + "/fixtures/index/data.properties", ["WMODEL:PL2", "WMODEL:BM25"], controls={"wmodel" : "DPH"}) >> \
             pt.ltr.apply_learned_model(rf)
         
         pipeline.fit(topics, qrels)
         pipeline.transform(topics)
 
-        pipeline2 = pt.FeaturesBatchRetrieve(self.here + "/fixtures/index/data.properties", ["WMODEL:PL2", "WMODEL:BM25", "WMODEL:Dl"], controls={"wmodel" : "DPH"}) >> \
+        pipeline2 = pt.terrier.FeaturesRetriever(self.here + "/fixtures/index/data.properties", ["WMODEL:PL2", "WMODEL:BM25", "WMODEL:Dl"], controls={"wmodel" : "DPH"}) >> \
             pt.ltr.apply_learned_model(rf)
         with self.assertRaises(ValueError):
             pipeline2.transform(topics)

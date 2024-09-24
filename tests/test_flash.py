@@ -12,7 +12,7 @@ class TestFlash(TempDirTestCase):
     def test_one_row_round(self):
         import pyterrier as pt
         vaswani = pt.datasets.get_dataset("vaswani")
-        br = pt.BatchRetrieve(vaswani.get_index())
+        br = pt.terrier.Retriever(vaswani.get_index())
         rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg", "num_q", pt.measures.NDCG@5], round=2)
         self.assertEqual(str(rtr.iloc[0]["map"]), "0.31")
         self.assertEqual(str(rtr.iloc[0]["nDCG@5"]), "0.46")

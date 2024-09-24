@@ -5,7 +5,7 @@
 
 # PyTerrier
 
-A Python API for Terrier - v.0.10
+A Python API for Terrier - v.0.11
 
 # Installation
 
@@ -26,8 +26,7 @@ PyTerrier has a number of useful classes for creating indices:
 
  - You can create an index from TREC formatted collection using [TRECCollectionIndexer](https://pyterrier.readthedocs.io/en/latest/terrier-indexing.html#treccollectionindexer).    
  - For TXT, PDF, Microsoft Word files, etc files you can use [FilesIndexer](https://pyterrier.readthedocs.io/en/latest/terrier-indexing.html#filesindexer).
- - For Pandas Dataframe you can use [DFIndexer](https://pyterrier.readthedocs.io/en/latest/terrier-indexing.html#dfindexer).
- - For any abitrary iterable dictionaries, you can use [IterDictIndexer](https://pyterrier.readthedocs.io/en/latest/terrier-indexing.html#iterdictindexer).
+ - For any abitrary iterable dictionaries or a Pandas Dataframe, you can use [IterDictIndexer](https://pyterrier.readthedocs.io/en/latest/terrier-indexing.html#iterdictindexer).
 
 See the [indexing documentation](https://pyterrier.readthedocs.io/en/latest/terrier-indexing.html), or the examples in the [indexing notebook](examples/notebooks/indexing.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/indexing.ipynb)
 
@@ -36,8 +35,8 @@ See the [indexing documentation](https://pyterrier.readthedocs.io/en/latest/terr
 ```python
 topics = pt.io.read_topics(topicsFile)
 qrels = pt.io.read_qrels(qrelsFile)
-BM25_br = pt.BatchRetrieve(index, wmodel="BM25")
-res = BM25_br.transform(topics)
+BM25_r = pt.terrier.Retriever(index, wmodel="BM25")
+res = BM25_r.transform(topics)
 pt.Evaluate(res, qrels, metrics = ['map'])
 ```
 
@@ -47,7 +46,7 @@ See also the [retrieval documentation](https://pyterrier.readthedocs.io/en/lates
 PyTerrier provides an [Experiment](https://pyterrier.readthedocs.io/en/latest/experiments.html) function, which allows to compare multiple retrieval approaches on the same queries & relevance assessments:
 
 ```python
-pt.Experiment([BM25_br, PL2_br], topics, qrels, ["map", "ndcg"])
+pt.Experiment([BM25_r, PL2_r], topics, qrels, ["map", "ndcg"])
 ```
 
 There is a worked example in the [experiment notebook](examples/notebooks/experiment.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/experiment.ipynb)
@@ -56,8 +55,8 @@ There is a worked example in the [experiment notebook](examples/notebooks/experi
 
 PyTerrier makes it easy to develop complex retrieval pipelines using Python operators such as `>>` to chain different retrieval components. Each retrieval approach is a [transformer](https://pyterrier.readthedocs.io/en/latest/transformer.html), having one key method, `transform()`, which takes a single Pandas dataframe as input, and returns another dataframe. Two examples might encapsulate applying the sequential dependence model, or a query expansion process:
 ```python
-sdm_bm25 = pt.rewrite.SDM() >> pt.BatchRetrieve(indexref, wmodel="BM25")
-bo1_qe = BM25_br >> pt.rewrite.Bo1QueryExpansion() >> BM25_br
+sdm_bm25 = pt.rewrite.SDM() >> pt.terrier.Retriever(indexref, wmodel="BM25")
+bo1_qe = BM25_r >> pt.rewrite.Bo1QueryExpansion() >> BM25_r
 ```
 
 There is documentation on [transformer operators](https://pyterrier.readthedocs.io/en/latest/operators.html) as well as [example pipelines](https://pyterrier.readthedocs.io/en/latest/pipeline_examples.html) show other common use cases. For more information, see the [PyTerrier data model](https://pyterrier.readthedocs.io/en/latest/datamodel.html).
@@ -71,6 +70,7 @@ PyTerrier has additional plugins for BERT (through OpenNIR), T5, ColBERT, ANCE, 
  - PyTerrier_ColBERT: [[Github](https://github.com/terrierteam/pyterrier_colbert)] - dense retrieval and/or neural reranking
  - PyTerrier_PISA: [[Github](https://github.com/terrierteam/pyterrier_pisa)] - fast in-memory indexing and retrieval using [PISA](https://github.com/pisa-engine/pisa)
  - PyTerrier_T5: [[Github](https://github.com/terrierteam/pyterrier_t5)] - neural reranking: monoT5, duoT5
+ - PyTerrier_GenRank [[Github](https://github.com/emory-irlab/pyterrier_genrank)] - generative listwise reranking: RankVicuna, RankZephyr
  - PyTerrier_doc2query: [[Github](https://github.com/terrierteam/pyterrier_doc2query)] - neural augmented indexing
  - PyTerrier_SPLADE: [[Github](https://github.com/cmacdonald/pyt_splade)] - neural augmented indexing
  - PyTerrier_DeepCT: [[Github](https://github.com/terrierteam/pyterrier_deepct)] - neural augmented indexing
@@ -81,9 +81,9 @@ You can see examples of how to use these, including notebooks that run on Google
 
 Complex learning to rank pipelines, including for learning-to-rank, can be constructed using PyTerrier's operator language. For example, to combine two features and make them available for learning, we can use the `**` operator.
 ```python
-two_features = BM25_br >> ( 
-  pt.BatchRetrieve(indexref, wmodel="DirichletLM") ** 
-  pt.BatchRetrieve(indexref, wmodel="PL2") 
+two_features = BM25_r >> ( 
+  pt.terrier.Retriever(indexref, wmodel="DirichletLM") ** 
+  pt.terrier.Retriever(indexref, wmodel="PL2") 
 )
 ```
 
@@ -96,7 +96,7 @@ PyTerrier allows simple access to standard information retrieval test collection
 ```python
 topics = pt.get_dataset("trec-robust-2004").get_topics()
 qrels = pt.get_dataset("trec-robust-2004").get_qrels()
-pt.Experiment([BM25_br, PL2_br], topics, qrels, eval_metrics)
+pt.Experiment([BM25_r, PL2_r], topics, qrels, eval_metrics)
 ```
 
 You can index datasets that include a corpus using IterDictIndexer and get_corpus_iter:

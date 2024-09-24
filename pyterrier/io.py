@@ -1,8 +1,12 @@
+import re
 import os
 import io
 import tempfile
 import shutil
 import urllib
+from types import GeneratorType
+import xml.etree.ElementTree as ET
+import numpy as np
 import pandas as pd
 from hashlib import sha256
 from contextlib import contextmanager
@@ -16,8 +20,7 @@ DEFAULT_CHUNK_SIZE = 16_384 # 16kb
 def coerce_dataframe(obj):
     if isinstance(obj, pd.DataFrame):
         return obj
-    import types
-    if isinstance(obj, types.GeneratorType):
+    if isinstance(obj, GeneratorType):
         #its a generator, lets assume it generates dataframes
         rtr=[]
         for x in obj:
@@ -51,7 +54,6 @@ def find_files(dir):
     Returns:
         paths(list): A list of the paths to the files
     """
-    import os
     lst = []
     files = []
     for (dirpath, dirnames, filenames) in os.walk(dir, followlinks=True):
@@ -164,7 +166,6 @@ def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     Eqiuvalent to touch command on linux.
     Implementation from https://stackoverflow.com/a/1160227
     """
-    import os
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
         os.utime(f.fileno() if os.utime in os.supports_fd else fname,
@@ -212,7 +213,6 @@ def read_results(filename, format="trec", topics=None, dataset=None, **kwargs):
     if dataset is not None:
         assert topics is None, "Cannot provide both dataset and topics"
         if isinstance(dataset, str):
-            import pyterrier as pt
             dataset = pt.get_dataset(dataset)
         topics = dataset.get_topics()
     if topics is not None:
@@ -228,8 +228,6 @@ def _read_results_letor(filename, labels=False):
             # my $label = shift @parts;
             # my %hash = map {split /:/, $_} @parts;
             # return ($label, $comment, %hash);
-        import re
-        import numpy as np
         line, comment = l.split("#")
         line = line.strip()
         parts = re.split(r'\s+|:', line)
@@ -324,7 +322,7 @@ def read_topics(filename, format="trec", **kwargs):
     Supported Formats:
         * "trec" -- an SGML-formatted TREC topics file. Delimited by TOP tags, each having NUM and TITLE tags; DESC and NARR tags are skipped by default. Control using whitelist and blacklist kwargs
         * "trecxml" -- a more modern XML formatted topics file. Delimited by topic tags, each having number tags. query, question and narrative tags are parsed by default. Control using tags kwarg.
-        * "singeline" -- one query per line, preceeded by a space or colon. Tokenised by default, use tokenise=False kwargs to prevent tokenisation.
+        * "singleline" -- one query per line, preceeded by a space or colon. Tokenised by default, use tokenise=False kwargs to prevent tokenisation.
     """
     if format is None:
         format = "trec"
@@ -332,11 +330,10 @@ def read_topics(filename, format="trec", **kwargs):
         raise ValueError("Format %s not known, supported types are %s" % (format, str(SUPPORTED_TOPICS_FORMATS.keys())))
     return SUPPORTED_TOPICS_FORMATS[format](filename, **kwargs)
 
+@pt.java.required
 def _read_topics_trec(file_path, doc_tag="TOP", id_tag="NUM", whitelist=["TITLE"], blacklist=["DESC","NARR"]):
-    from jnius import autoclass
-    from . import check_version
-    assert check_version("5.3")
-    trecquerysource = autoclass('org.terrier.applications.batchquerying.TRECQuery')
+    assert pt.terrier.check_version("5.3")
+    trecquerysource = pt.java.autoclass('org.terrier.applications.batchquerying.TRECQuery')
     tqs = trecquerysource(
         [file_path], doc_tag, id_tag, whitelist, blacklist,
         # help jnius select the correct constructor
@@ -349,6 +346,7 @@ def _read_topics_trec(file_path, doc_tag="TOP", id_tag="NUM", whitelist=["TITLE"
     topics_dt = pd.DataFrame(topics_lst,columns=['qid','query'])
     return topics_dt
 
+@pt.java.required
 def _read_topics_trecxml(filename, tags=["query", "question", "narrative"], tokenise=True):
     """
     Parse a file containing topics in TREC-like XML format
@@ -359,14 +357,11 @@ def _read_topics_trecxml(filename, tags=["query", "question", "narrative"], toke
     Returns:
         pandas.Dataframe with columns=['qid','query']
     """
-    import xml.etree.ElementTree as ET
-    import pandas as pd
     tags=set(tags)
     topics=[]
     tree = ET.parse(filename)
     root = tree.getroot()
-    from jnius import autoclass
-    tokeniser = autoclass("org.terrier.indexing.tokenisation.Tokeniser").getTokeniser()
+    tokeniser = pt.java.autoclass("org.terrier.indexing.tokenisation.Tokeniser").getTokeniser()
     for child in root.iter('topic'):
         try:
             qid = child.attrib["number"]
@@ -382,6 +377,7 @@ def _read_topics_trecxml(filename, tags=["query", "question", "narrative"], toke
         topics.append((str(qid), query.strip()))
     return pd.DataFrame(topics, columns=["qid", "query"])
 
+@pt.java.required
 def _read_topics_singleline(filepath, tokenise=True):
     """
     Parse a file containing topics, one per line. This function uses Terrier, so supports reading direct from URLs.
@@ -395,10 +391,8 @@ def _read_topics_singleline(filepath, tokenise=True):
         pandas.Dataframe with columns=['qid','query']
     """
     rows = []
-    from jnius import autoclass
-    from . import check_version
-    assert check_version("5.3")
-    slqIter = autoclass("org.terrier.applications.batchquerying.SingleLineTRECQuery")(filepath, tokenise)
+    assert pt.terrier.check_version("5.3")
+    slqIter = pt.java.autoclass("org.terrier.applications.batchquerying.SingleLineTRECQuery")(filepath, tokenise)
     for q in slqIter:
         rows.append([slqIter.getQueryId(), q])
     return pd.DataFrame(rows, columns=["qid", "query"])
@@ -623,6 +617,10 @@ def entry_points(group: str) -> Tuple[EntryPoint, ...]:
 
 
 def pyterrier_home() -> str:
+    """
+    Returns pyterrier's home directory. By default this is ~/.pyterrier, but it can also be set with the PYTERRIER_HOME
+    env variable.
+    """
     if "PYTERRIER_HOME" in os.environ:
         home = os.environ["PYTERRIER_HOME"]
     else:
