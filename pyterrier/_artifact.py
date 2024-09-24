@@ -139,7 +139,7 @@ class Artifact:
 
                 metadata_out.flush()
                 for member in tar_in:
-                    if (member.isfile() or member.isdir()) and pt.utils.path_is_under_base(member.path, dout):
+                    if (member.isfile() or member.isdir()) and pt.io.path_is_under_base(member.path, dout):
                         print(f'extracting {member.path} [{pt.utils.byte_count_to_human_readable(member.size)}]')
                         tar_in.extract(member, dout, set_attrs=False)
 
@@ -159,7 +159,7 @@ class Artifact:
         if branch is not None:
             if '@' in repo:
                 raise ValueError('Provided branch in both repository name (via @) and as argument to from_hf')
-            repo = f'{repo}@branch'
+            repo = f'{repo}@{branch}'
         return cls.from_url(f'hf:{repo}', expected_sha256=expected_sha256)
 
     def to_hf(self, repo: str, *, branch: str = None, pretty_name: Optional[str] = None) -> None:
@@ -218,7 +218,7 @@ class Artifact:
             verified against this hash and an error will be raised if the hash does not match.
         """
         return cls.from_hf(
-            hf_repo='macavaney/pyterrier-from-dataset',
+            repo='macavaney/pyterrier-from-dataset',
             branch=f'{dataset}.{variant}',
             expected_sha256=expected_sha256)
 
