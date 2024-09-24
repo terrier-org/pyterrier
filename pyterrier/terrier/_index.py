@@ -3,7 +3,6 @@ from typing import List, Dict
 import pyterrier as pt
 
 
-@pt.java.required
 class TerrierIndex(pt.Artifact):
     """A Terrier index."""
 
@@ -67,14 +66,15 @@ class TerrierIndex(pt.Artifact):
     def __repr__(self):
         return f'TerrierIndex({self.path!r})'
 
+    @pt.java.required
     def index_ref(self):
         """Returns the internal Java index reference object for this index."""
         if self._index_ref is None:
-            self._index_ref = pt.IndexRef.of(os.path.realpath(self.path))
+            self._index_ref = pt.terrier.J.IndexRef.of(os.path.realpath(self.path))
         return self._index_ref
 
     def index_obj(self):
         """Returns the internal Java index object for this index."""
         if self._index_obj is None:
-            self._index_obj = pt.IndexFactory.of(self.index_ref())
+            self._index_obj = pt.terrier.IndexFactory.of(self.index_ref())
         return self._index_obj
