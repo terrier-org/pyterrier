@@ -83,6 +83,9 @@ setup(
             'pyterrier.java          = pyterrier.java:CoreJavaInit',
             'pyterrier.terrier.java  = pyterrier.terrier.java:TerrierJavaInit',
         ],
+        'pyterrier.artifact.url_protocol_resolver': [
+            'hf = pyterrier._artifact:_hf_url_resolver'
+        ],
     },
     install_requires=requirements,
     python_requires='>=3.8',
