@@ -25,13 +25,16 @@ jobs:
       with:
         python-version: 3.8
 
+    - name: Install build tool
+      run: pip install build
+
     - name: Build a test source tarball
       if: github.event.inputs.releasetype == 'test'
-      run: PYTERRIER_VERSION_SUFFIX=".`date +%s`" python setup.py sdist
+      run: PYTERRIER_VERSION_SUFFIX=".`date +%s`" python setup.py sdist # TODO fix this - how to override version
 
     - name: Build a release source tarball
       if: github.event.inputs.releasetype == 'release'
-      run: python setup.py sdist
+      run: python -m build
   
     - name: Publish distribution 📦 to Test PyPI
       if: github.event.inputs.releasetype == 'test'
