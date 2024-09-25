@@ -30,9 +30,12 @@ jobs:
 
     - name: Build a test source tarball
       if: github.event.inputs.releasetype == 'test'
-      run: PYTERRIER_VERSION_SUFFIX=".`date +%s`" python setup.py sdist # TODO fix this - how to override version
+      run: 
+        export PYTERRIER_VERSION_SUFFIX=".`date +%s`"
+        sed -Ei "1 s/'\$/.$PYTERRIER_VERSION_SUFFIX'/g" pyterrier/__init__.py
+        head -n 1 pyterrier/__init__.py
 
-    - name: Build a release source tarball
+    - name: Build a source tarball
       if: github.event.inputs.releasetype == 'release'
       run: python -m build
   
