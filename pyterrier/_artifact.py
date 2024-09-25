@@ -218,7 +218,7 @@ class Artifact:
             verified against this hash and an error will be raised if the hash does not match.
         """
         return cls.from_hf(
-            repo='macavaney/pyterrier-from-dataset',
+            repo='pyterrier/from-dataset',
             branch=f'{dataset}.{variant}',
             expected_sha256=expected_sha256)
 
