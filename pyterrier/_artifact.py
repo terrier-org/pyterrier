@@ -271,8 +271,8 @@ class Artifact:
                 sys.stderr.write("Discarding {}\n".format(deposit_data['links']['html']))
                 requests.post(deposit_data['links']['discard'], params=params, json={})
                 raise
-            sys.stderr.write("Upload complete. Please complete the form at {} to publish this artifact.\n".format(
-                deposit_data['links']['html']))
+            sys.stderr.write("Upload complete. Please complete the form at {} to publish this artifact. (Note that "
+                "publishing to Zenodo cannot be undone.)\n".format(deposit_data['links']['html']))
 
     @classmethod
     def from_zenodo(cls, zenodo_id: str, *, expected_sha256: Optional[str] = None) -> 'Artifact':
