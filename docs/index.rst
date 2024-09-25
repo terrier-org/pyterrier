@@ -12,6 +12,7 @@ Welcome to PyTerrier's documentation!
    experiments
    rewrite
    ltr
+   artifact
 
 .. toctree::
    :maxdepth: 1
