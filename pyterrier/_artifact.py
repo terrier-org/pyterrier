@@ -394,7 +394,7 @@ artifact = pt.Artifact.from_hf({repo!r})
                 })
                 metadata['total_size'] += tar_record.size
                 if verbose:
-                    print(f'adding {rel_path} [{pt.io.byte_count_to_human_readable(tar_record.size)}]')
+                    print(f'adding {rel_path} [{pt.utils.byte_count_to_human_readable(tar_record.size)}]')
 
                 if isinstance(file, io.BytesIO):
                     file.seek(0)
