@@ -241,7 +241,7 @@ class Artifact:
         metadata = {}
 
         try:
-            metadata['type'], metadata['format'] = pt.inspect.artifact_type_format()
+            metadata['type'], metadata['format'] = pt.inspect.artifact_type_format(self)
         except TypeError:
             pass # couldn't identify type and format
 

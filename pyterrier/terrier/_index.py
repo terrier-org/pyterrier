@@ -8,6 +8,7 @@ class TerrierIndex(pt.Artifact):
 
     ARTIFACT_TYPE = 'sparse_index'
     ARTIFACT_FORMAT = 'terrier'
+    ARTIFACT_PACKAGE_HINT = 'python-terrier'
 
     def __init__(self, path):
         """Initialises a TerrierIndex for the given path."""
