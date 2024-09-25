@@ -619,6 +619,7 @@ class TqdmReader(_NosyReader):
         """Close the reader and the progress bar."""
         super().close()
         self.reader.close()
+        self.pbar.close()
 
 
 class CallbackReader(_NosyReader):

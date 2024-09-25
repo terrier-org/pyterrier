@@ -90,7 +90,8 @@ setup(
             'terrier = pyterrier.terrier._metadata_adapter:terrier_artifact_metadata_adapter',
         ],
         'pyterrier.artifact.url_protocol_resolver': [
-            'hf = pyterrier._artifact:_hf_url_resolver'
+            'hf = pyterrier._artifact:_hf_url_resolver',
+            'zenodo = pyterrier._artifact:_zenodo_url_resolver',
         ],
     },
     install_requires=requirements,
