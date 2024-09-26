@@ -2,7 +2,6 @@ import pandas as pd
 import unittest
 import pyterrier as pt
 from .base import BaseTestCase
-from matchpy import *
 
 class TestOperators(BaseTestCase):
 
