@@ -147,144 +147,6 @@ class Artifact:
 
         return cls.load(path)
 
-    @classmethod
-    def from_hf(cls, repo: str, branch: str = None, *, expected_sha256: Optional[str] = None) -> 'Artifact':
-        """Load an artifact from Hugging Face Hub.
-
-        Args:
-            repo: The Hugging Face repository name.
-            branch: The branch or tag of the repository to load. (Default: main). A branch can also be provided directly
-            in the repository name using "owner/repo@branch".
-            expected_sha256: The expected SHA-256 hash of the artifact. If provided, the downloaded artifact will be
-            verified against this hash and an error will be raised if the hash does not match.
-        """
-        if branch is not None:
-            if '@' in repo:
-                raise ValueError('Provided branch in both repository name (via @) and as argument to from_hf')
-            repo = f'{repo}@{branch}'
-        return cls.from_url(f'hf:{repo}', expected_sha256=expected_sha256)
-
-    def to_hf(self, repo: str, *, branch: str = None, pretty_name: Optional[str] = None) -> None:
-        """Upload this artifact to Hugging Face Hub.
-
-        Args:
-            repo: The Hugging Face repository name.
-            branch: The branch or tag of the repository to upload to. (Default: main) A branch can also be provided
-            directly in the repository name using "owner/repo@branch".
-            pretty_name: The human-readable name of the artifact. (Default: the repository name)
-        """
-        import huggingface_hub
-
-        if '@' in repo:
-            if branch is not None:
-                raise ValueError('Provided branch in both repository name (via @) and as argument to to_hf')
-            repo, branch = repo.split('@', 1)
-        if branch is None:
-            branch = 'main'
-
-        with tempfile.TemporaryDirectory() as d:
-            # build a package with a maximum individual file size of just under 5GB, the limit for HF datasets
-            metadata = {}
-            self.build_package(os.path.join(d, 'artifact.tar.lz4'), max_file_size=4.9e9, metadata_out=metadata)
-            readme = self._hf_readme(repo=repo, branch=branch, pretty_name=pretty_name, metadata=metadata)
-            if readme:
-                with open(f'{d}/README.md', 'wt') as fout:
-                    fout.write(readme)
-            try:
-                huggingface_hub.create_repo(repo, repo_type='dataset')
-            except huggingface_hub.utils.HfHubHTTPError as e:
-                if e.server_message != 'You already created this dataset repo':
-                    raise
-            try:
-                huggingface_hub.create_branch(repo, repo_type='dataset', branch=branch)
-            except huggingface_hub.utils.HfHubHTTPError as e:
-                if not e.server_message.startswith('Reference already exists:'):
-                    raise
-            path = huggingface_hub.upload_folder(
-                repo_id=repo,
-                folder_path=d,
-                repo_type='dataset',
-                revision=branch,
-            )
-            sys.stderr.write(f"\nArtifact uploaded to {path}\nConsider editing the README.md to help explain this "
-                              "artifact to others.\n")
-
-    @classmethod
-    def from_dataset(cls, dataset: str, variant: str, *, expected_sha256: Optional[str] = None) -> 'Artifact':
-        """Load an artifact from a PyTerrier dataset.
-
-        Args:
-            dataset: The name of the dataset.
-            variant: The variant of the dataset.
-            expected_sha256: The expected SHA-256 hash of the artifact. If provided, the downloaded artifact will be
-            verified against this hash and an error will be raised if the hash does not match.
-        """
-        return cls.from_hf(
-            repo='pyterrier/from-dataset',
-            branch=f'{dataset}.{variant}',
-            expected_sha256=expected_sha256)
-
-    def to_zenodo(self, *, pretty_name: Optional[str] = None, sandbox: bool = False) -> None:
-        """Upload this artifact to Zenodo.
-
-        Args:
-            pretty_name: The human-readable name of the artifact.
-            sandbox: Whether to perform a test upload to the Zenodo sandbox.
-        """
-        if sandbox:
-            base_url = 'https://sandbox.zenodo.org/api'
-        else:
-            base_url = 'https://zenodo.org/api'
-
-        access_token = os.environ.get('ZENODO_TOKEN')
-        params = {'access_token': access_token}
-
-        with tempfile.TemporaryDirectory() as d:
-            r = requests.post(f'{base_url}/deposit/depositions', params=params, json={})
-            r.raise_for_status()
-            deposit_data = r.json()
-            sys.stderr.write("Created {}\n".format(deposit_data['links']['html']))
-            try:
-                metadata = {}
-                sys.stderr.write("Building package.\n")
-                self.build_package(os.path.join(d, 'artifact.tar.lz4'), metadata_out=metadata)
-                z_meta = {
-                    'metadata': self._zenodo_metadata(
-                        pretty_name=pretty_name,
-                        zenodo_id=deposit_data['id'],
-                        metadata=metadata,
-                    ),
-                }
-                r = requests.put(deposit_data['links']['latest_draft'], params=params, json=z_meta)
-                r.raise_for_status()
-                sys.stderr.write("Uploading...\n")
-                for file in sorted(os.listdir(d)):
-                    file_path = os.path.join(d, file)
-                    with open(file_path, 'rb') as fin, \
-                         pt.io.TqdmReader(fin, total=os.path.getsize(file_path), desc=file) as fin:
-                        r = requests.put(
-                            '{}/{}'.format(deposit_data['links']['bucket'], file),
-                            params={'access_token': access_token},
-                            data=fin)
-                        r.raise_for_status()
-            except:
-                sys.stderr.write("Discarding {}\n".format(deposit_data['links']['html']))
-                requests.post(deposit_data['links']['discard'], params=params, json={})
-                raise
-            sys.stderr.write("Upload complete. Please complete the form at {} to publish this artifact. (Note that "
-                "publishing to Zenodo cannot be undone.)\n".format(deposit_data['links']['html']))
-
-    @classmethod
-    def from_zenodo(cls, zenodo_id: str, *, expected_sha256: Optional[str] = None) -> 'Artifact':
-        """Load an artifact from Zenodo.
-
-        Args:
-            zenodo_id: The Zenodo record ID of the artifact.
-            expected_sha256: The expected SHA-256 hash of the artifact. If provided, the downloaded artifact will be
-            verified against this hash and an error will be raised if the hash does not match.
-        """
-        return cls.from_url(f'zenodo:{zenodo_id}', expected_sha256=expected_sha256)
-
     def _package_files(self) -> Iterator[Tuple[str, Union[str, io.BytesIO]]]:
         has_pt_meta_file = False
         for root, dirs, files in os.walk(self.path):
@@ -313,120 +175,6 @@ class Artifact:
         else:
             metadata['package_hint'] = self.__class__.__module__.split('.')[0]
 
-        return metadata
-
-    def _hf_readme(self,
-        *,
-        repo: str,
-        branch: Optional[str] = 'main',
-        pretty_name: Optional[str] = None,
-        metadata: Dict[str, Any] = None
-    ) -> Optional[str]:
-        if pretty_name is None:
-            title = repo.split('/')[-1]
-            pretty_name = '# pretty_name: "" # Example: "MS MARCO Terrier Index"'
-        else:
-            title = pretty_name
-            pretty_name = f'pretty_name: {pretty_name!r}'
-        if branch != 'main':
-            repo = f'{repo}@{branch}'
-        if metadata is None:
-            metadata = {}
-        tags = ['pyterrier', 'pyterrier-artifact']
-        if 'type' in metadata:
-            tags.append('pyterrier-artifact.{type}'.format(**metadata))
-        if 'type' in metadata and 'format' in metadata:
-            tags.append('pyterrier-artifact.{type}.{format}'.format(**metadata))
-        tags = '\n- '.join([''] + tags)
-        return f'''---
-{pretty_name}
-tags:{tags}
-task_categories:
-- text-retrieval
-viewer: false
----
-
-# {title}
-
-## Description
-
-*TODO: What is the artifact?*
-
-## Usage
-
-```python
-# Load the artifact
-import pyterrier as pt
-artifact = pt.Artifact.from_hf({repo!r})
-# TODO: Show how you use the artifact
-```
-
-## Benchmarks
-
-*TODO: Provide benchmarks for the artifact.*
-
-## Reproduction
-
-```python
-# TODO: Show how you constructed the artifact.
-```
-
-## Metadata
-
-```
-{json.dumps(metadata, indent=2)}
-```
-'''
-
-    def _zenodo_metadata(self, *, zenodo_id: str, pretty_name: Optional[str] = None, metadata: Dict) -> Optional[str]:
-        description = f'''
-<h2>Description</h2>
-
-<p>
-<i>TODO: What is the artifact?</i>
-</p>
-
-<h2>Usage</h2>
-
-<pre>
-# Load the artifact
-import pyterrier as pt
-artifact = pt.Artifact.from_zenodo({str(zenodo_id)!r})
-# TODO: Show how you use the artifact
-</pre>
-
-<h2>Benchmarks</h2>
-
-<p>
-<i>TODO: Provide benchmarks for the artifact.</i>
-</p>
-
-<h2>Reproduction</h2>
-
-<pre>
-# TODO: Show how you constructed the artifact.
-</pre>
-
-<h2>Metadata</h2>
-
-<pre>
-{json.dumps(metadata, indent=2)}
-</pre>
-'''
-        tags = ['pyterrier', 'pyterrier-artifact']
-        if 'type' in metadata:
-            tags.append('pyterrier-artifact.{type}'.format(**metadata))
-        if 'type' in metadata and 'format' in metadata:
-            tags.append('pyterrier-artifact.{type}.{format}'.format(**metadata))
-        metadata = {
-            'description': description,
-            'upload_type': 'other',
-            'publisher': 'Zenodo',
-            'publication_date': datetime.today().strftime('%Y-%m-%d'),
-            'keywords': tags,
-        }
-        if pretty_name:
-            metadata['title'] = pretty_name
         return metadata
 
     def build_package(
@@ -539,6 +287,270 @@ artifact = pt.Artifact.from_zenodo({str(zenodo_id)!r})
             os.rename(f'{package_path}.{chunk_num}', package_path)
 
         return package_path
+
+    @classmethod
+    def from_dataset(cls, dataset: str, variant: str, *, expected_sha256: Optional[str] = None) -> 'Artifact':
+        """Load an artifact from a PyTerrier dataset.
+
+        Args:
+            dataset: The name of the dataset.
+            variant: The variant of the dataset.
+            expected_sha256: The expected SHA-256 hash of the artifact. If provided, the downloaded artifact will be
+            verified against this hash and an error will be raised if the hash does not match.
+        """
+        return cls.from_hf(
+            repo='pyterrier/from-dataset',
+            branch=f'{dataset}.{variant}',
+            expected_sha256=expected_sha256)
+
+    # -------------------------------------------------
+    # HuggingFace Datasets Integration
+    #  - from_hf()
+    #  - to_hf()
+    # -------------------------------------------------
+
+    @classmethod
+    def from_hf(cls, repo: str, branch: str = None, *, expected_sha256: Optional[str] = None) -> 'Artifact':
+        """Load an artifact from Hugging Face Hub.
+
+        Args:
+            repo: The Hugging Face repository name.
+            branch: The branch or tag of the repository to load. (Default: main). A branch can also be provided directly
+            in the repository name using "owner/repo@branch".
+            expected_sha256: The expected SHA-256 hash of the artifact. If provided, the downloaded artifact will be
+            verified against this hash and an error will be raised if the hash does not match.
+        """
+        if branch is not None:
+            if '@' in repo:
+                raise ValueError('Provided branch in both repository name (via @) and as argument to from_hf')
+            repo = f'{repo}@{branch}'
+        return cls.from_url(f'hf:{repo}', expected_sha256=expected_sha256)
+
+    def to_hf(self, repo: str, *, branch: str = None, pretty_name: Optional[str] = None) -> None:
+        """Upload this artifact to Hugging Face Hub.
+
+        Args:
+            repo: The Hugging Face repository name.
+            branch: The branch or tag of the repository to upload to. (Default: main) A branch can also be provided
+            directly in the repository name using "owner/repo@branch".
+            pretty_name: The human-readable name of the artifact. (Default: the repository name)
+        """
+        import huggingface_hub
+
+        if '@' in repo:
+            if branch is not None:
+                raise ValueError('Provided branch in both repository name (via @) and as argument to to_hf')
+            repo, branch = repo.split('@', 1)
+        if branch is None:
+            branch = 'main'
+
+        with tempfile.TemporaryDirectory() as d:
+            # build a package with a maximum individual file size of just under 5GB, the limit for HF datasets
+            metadata = {}
+            self.build_package(os.path.join(d, 'artifact.tar.lz4'), max_file_size=4.9e9, metadata_out=metadata)
+            readme = self._hf_readme(repo=repo, branch=branch, pretty_name=pretty_name, metadata=metadata)
+            if readme:
+                with open(f'{d}/README.md', 'wt') as fout:
+                    fout.write(readme)
+            try:
+                huggingface_hub.create_repo(repo, repo_type='dataset')
+            except huggingface_hub.utils.HfHubHTTPError as e:
+                if e.server_message != 'You already created this dataset repo':
+                    raise
+            try:
+                huggingface_hub.create_branch(repo, repo_type='dataset', branch=branch)
+            except huggingface_hub.utils.HfHubHTTPError as e:
+                if not e.server_message.startswith('Reference already exists:'):
+                    raise
+            path = huggingface_hub.upload_folder(
+                repo_id=repo,
+                folder_path=d,
+                repo_type='dataset',
+                revision=branch,
+            )
+            sys.stderr.write(f"\nArtifact uploaded to {path}\nConsider editing the README.md to help explain this "
+                              "artifact to others.\n")
+
+    def _hf_readme(self,
+        *,
+        repo: str,
+        branch: Optional[str] = 'main',
+        pretty_name: Optional[str] = None,
+        metadata: Dict[str, Any] = None
+    ) -> Optional[str]:
+        if pretty_name is None:
+            title = repo.split('/')[-1]
+            pretty_name = '# pretty_name: "" # Example: "MS MARCO Terrier Index"'
+        else:
+            title = pretty_name
+            pretty_name = f'pretty_name: {pretty_name!r}'
+        if branch != 'main':
+            repo = f'{repo}@{branch}'
+        if metadata is None:
+            metadata = {}
+        tags = ['pyterrier', 'pyterrier-artifact']
+        if 'type' in metadata:
+            tags.append('pyterrier-artifact.{type}'.format(**metadata))
+        if 'type' in metadata and 'format' in metadata:
+            tags.append('pyterrier-artifact.{type}.{format}'.format(**metadata))
+        tags = '\n- '.join([''] + tags)
+        return f'''---
+{pretty_name}
+tags:{tags}
+task_categories:
+- text-retrieval
+viewer: false
+---
+
+# {title}
+
+## Description
+
+*TODO: What is the artifact?*
+
+## Usage
+
+```python
+# Load the artifact
+import pyterrier as pt
+artifact = pt.Artifact.from_hf({repo!r})
+# TODO: Show how you use the artifact
+```
+
+## Benchmarks
+
+*TODO: Provide benchmarks for the artifact.*
+
+## Reproduction
+
+```python
+# TODO: Show how you constructed the artifact.
+```
+
+## Metadata
+
+```
+{json.dumps(metadata, indent=2)}
+```
+'''
+
+    # -------------------------------------------------
+    # Zenodo Integration
+    #  - from_zenodo()
+    #  - to_zenodo()
+    # -------------------------------------------------
+
+    @classmethod
+    def from_zenodo(cls, zenodo_id: str, *, expected_sha256: Optional[str] = None) -> 'Artifact':
+        """Load an artifact from Zenodo.
+
+        Args:
+            zenodo_id: The Zenodo record ID of the artifact.
+            expected_sha256: The expected SHA-256 hash of the artifact. If provided, the downloaded artifact will be
+            verified against this hash and an error will be raised if the hash does not match.
+        """
+        return cls.from_url(f'zenodo:{zenodo_id}', expected_sha256=expected_sha256)
+
+    def to_zenodo(self, *, pretty_name: Optional[str] = None, sandbox: bool = False) -> None:
+        """Upload this artifact to Zenodo.
+
+        Args:
+            pretty_name: The human-readable name of the artifact.
+            sandbox: Whether to perform a test upload to the Zenodo sandbox.
+        """
+        if sandbox:
+            base_url = 'https://sandbox.zenodo.org/api'
+        else:
+            base_url = 'https://zenodo.org/api'
+
+        access_token = os.environ.get('ZENODO_TOKEN')
+        params = {'access_token': access_token}
+
+        with tempfile.TemporaryDirectory() as d:
+            r = requests.post(f'{base_url}/deposit/depositions', params=params, json={})
+            r.raise_for_status()
+            deposit_data = r.json()
+            sys.stderr.write("Created {}\n".format(deposit_data['links']['html']))
+            try:
+                metadata = {}
+                sys.stderr.write("Building package.\n")
+                self.build_package(os.path.join(d, 'artifact.tar.lz4'), metadata_out=metadata)
+                z_meta = {
+                    'metadata': self._zenodo_metadata(
+                        pretty_name=pretty_name,
+                        zenodo_id=deposit_data['id'],
+                        metadata=metadata,
+                    ),
+                }
+                r = requests.put(deposit_data['links']['latest_draft'], params=params, json=z_meta)
+                r.raise_for_status()
+                sys.stderr.write("Uploading...\n")
+                for file in sorted(os.listdir(d)):
+                    file_path = os.path.join(d, file)
+                    with open(file_path, 'rb') as fin, \
+                         pt.io.TqdmReader(fin, total=os.path.getsize(file_path), desc=file) as fin:
+                        r = requests.put(
+                            '{}/{}'.format(deposit_data['links']['bucket'], file),
+                            params={'access_token': access_token},
+                            data=fin)
+                        r.raise_for_status()
+            except:
+                sys.stderr.write("Discarding {}\n".format(deposit_data['links']['html']))
+                requests.post(deposit_data['links']['discard'], params=params, json={})
+                raise
+            sys.stderr.write("Upload complete. Please complete the form at {} to publish this artifact. (Note that "
+                "publishing to Zenodo cannot be undone.)\n".format(deposit_data['links']['html']))
+
+    def _zenodo_metadata(self, *, zenodo_id: str, pretty_name: Optional[str] = None, metadata: Dict) -> Optional[str]:
+        description = f'''
+<h2>Description</h2>
+
+<p>
+<i>TODO: What is the artifact?</i>
+</p>
+
+<h2>Usage</h2>
+
+<pre>
+# Load the artifact
+import pyterrier as pt
+artifact = pt.Artifact.from_zenodo({str(zenodo_id)!r})
+# TODO: Show how you use the artifact
+</pre>
+
+<h2>Benchmarks</h2>
+
+<p>
+<i>TODO: Provide benchmarks for the artifact.</i>
+</p>
+
+<h2>Reproduction</h2>
+
+<pre>
+# TODO: Show how you constructed the artifact.
+</pre>
+
+<h2>Metadata</h2>
+
+<pre>
+{json.dumps(metadata, indent=2)}
+</pre>
+'''
+        tags = ['pyterrier', 'pyterrier-artifact']
+        if 'type' in metadata:
+            tags.append('pyterrier-artifact.{type}'.format(**metadata))
+        if 'type' in metadata and 'format' in metadata:
+            tags.append('pyterrier-artifact.{type}.{format}'.format(**metadata))
+        metadata = {
+            'description': description,
+            'upload_type': 'other',
+            'publisher': 'Zenodo',
+            'publication_date': datetime.today().strftime('%Y-%m-%d'),
+            'keywords': tags,
+        }
+        if pretty_name:
+            metadata['title'] = pretty_name
+        return metadata
 
 
 def _load_metadata(path: str) -> Dict:
