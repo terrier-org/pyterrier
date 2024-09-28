@@ -552,6 +552,36 @@ artifact = pt.Artifact.from_zenodo({str(zenodo_id)!r})
             metadata['title'] = pretty_name
         return metadata
 
+    # -------------------------------------------------
+    # Magic Wormhole Integration
+    #  - from_p2p()
+    #  - to_p2p()
+    # -------------------------------------------------
+
+    @classmethod
+    def from_p2p(cls, code: str, path: str, *, expected_sha256: Optional[str] = None) -> 'Artifact':
+        import wormhole
+        import subprocess
+        with tempfile.TemporaryDirectory() as d:
+            tmp_path = os.path.join(d, 'artifact.tar.lz4')
+            subprocess.call(["wormhole", "receive", code, '-o', tmp_path, '--accept-file'])
+            with LZ4FrameFile(tmp_path) as fin, \
+                 tarfile.open(fileobj=fin, mode='r|') as tar_in, \
+                 pt.io.finalized_directory(path) as dout:
+                for member in tar_in:
+                    if (member.isfile() or member.isdir()) and pt.io.path_is_under_base(member.path, dout):
+                        print(f'extracting {member.path} [{pt.utils.byte_count_to_human_readable(member.size)}]')
+                        tar_in.extract(member, dout, set_attrs=False)
+        return cls.load(path)
+
+    def to_p2p(self) -> 'Artifact':
+        import wormhole
+        import subprocess
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, 'artifact.tar.lz4')
+            self.build_package(path)
+            subprocess.call(["wormhole", "send", path])
+
 
 def _load_metadata(path: str) -> Dict:
     """Load the metadata file for the artifact at the specified path.
