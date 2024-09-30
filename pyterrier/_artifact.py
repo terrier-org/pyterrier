@@ -64,7 +64,7 @@ class Artifact:
         Args:
             url: The URL or file path of the artifact.
             expected_sha256: The expected SHA-256 hash of the artifact. If provided, the downloaded artifact will be
-            verified against this hash and an error will be raised if the hash does not match.
+                verified against this hash and an error will be raised if the hash does not match.
 
         Returns:
             The loaded artifact.
@@ -296,7 +296,7 @@ class Artifact:
             dataset: The name of the dataset.
             variant: The variant of the dataset.
             expected_sha256: The expected SHA-256 hash of the artifact. If provided, the downloaded artifact will be
-            verified against this hash and an error will be raised if the hash does not match.
+                verified against this hash and an error will be raised if the hash does not match.
         """
         return cls.from_hf(
             repo='pyterrier/from-dataset',
@@ -316,9 +316,9 @@ class Artifact:
         Args:
             repo: The Hugging Face repository name.
             branch: The branch or tag of the repository to load. (Default: main). A branch can also be provided directly
-            in the repository name using "owner/repo@branch".
+                in the repository name using ``owner/repo@branch``.
             expected_sha256: The expected SHA-256 hash of the artifact. If provided, the downloaded artifact will be
-            verified against this hash and an error will be raised if the hash does not match.
+                verified against this hash and an error will be raised if the hash does not match.
         """
         if branch is not None:
             if '@' in repo:
@@ -332,7 +332,7 @@ class Artifact:
         Args:
             repo: The Hugging Face repository name.
             branch: The branch or tag of the repository to upload to. (Default: main) A branch can also be provided
-            directly in the repository name using "owner/repo@branch".
+                directly in the repository name using ``owner/repo@branch``.
             pretty_name: The human-readable name of the artifact. (Default: the repository name)
         """
         import huggingface_hub
@@ -447,7 +447,7 @@ artifact = pt.Artifact.from_hf({repo!r})
         Args:
             zenodo_id: The Zenodo record ID of the artifact.
             expected_sha256: The expected SHA-256 hash of the artifact. If provided, the downloaded artifact will be
-            verified against this hash and an error will be raised if the hash does not match.
+                verified against this hash and an error will be raised if the hash does not match.
         """
         return cls.from_url(f'zenodo:{zenodo_id}', expected_sha256=expected_sha256)
 
@@ -560,6 +560,14 @@ artifact = pt.Artifact.from_zenodo({str(zenodo_id)!r})
 
     @classmethod
     def from_p2p(cls, code: str, path: str, *, expected_sha256: Optional[str] = None) -> 'Artifact':
+        """Load an artifact from a peer using a Magic Wormhole code.
+
+        Args:
+            code: The Magic Wormhole code.
+            path: The path to save the artifact to.
+            expected_sha256: The expected SHA-256 hash of the artifact. If provided, the downloaded artifact will be
+                verified against this hash and an error will be raised if the hash does not match.
+        """
         import wormhole
         import subprocess
         if os.path.exists(path):
@@ -578,6 +586,10 @@ artifact = pt.Artifact.from_zenodo({str(zenodo_id)!r})
         return cls.load(path)
 
     def to_p2p(self) -> 'Artifact':
+        """Send this artifact directly to a peer using Magic Wormhole.
+
+        The recipient can use the provided code to download the artifact.
+        """
         import wormhole
         import subprocess
         with tempfile.TemporaryDirectory() as d:
@@ -592,7 +604,7 @@ artifact = pt.Artifact.from_zenodo({str(zenodo_id)!r})
                             code = line.replace('Wormhole code is:', '').strip()
                             name = Path(self.path).name
                             print()
-                            print('Ready to send. Run the following on the target machine (ctlr+c to cancel):')
+                            print('Ready to send. Run the following on the target machine (ctrl+c to cancel):')
                             print('import pyterrier as pt')
                             print(f'artifact = pt.Artifact.from_p2p({code!r}, {name!r})')
                         elif any(x in line for x in ['wormhole receive', 'On the other computer', 'Sending ']) or line.strip() == '':
