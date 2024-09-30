@@ -562,9 +562,12 @@ artifact = pt.Artifact.from_zenodo({str(zenodo_id)!r})
     def from_p2p(cls, code: str, path: str, *, expected_sha256: Optional[str] = None) -> 'Artifact':
         import wormhole
         import subprocess
+        if os.path.exists(path):
+            raise FileExistsError(f'{path!r} already exists. Choose a different path.')
         with tempfile.TemporaryDirectory() as d:
             tmp_path = os.path.join(d, 'artifact.tar.lz4')
-            subprocess.call(["wormhole", "receive", code, '-o', tmp_path, '--accept-file'])
+            command = [sys.executable, '-m', 'wormhole', 'receive', code, '-o', tmp_path, '--accept-file']
+            subprocess.run(command)
             with LZ4FrameFile(tmp_path) as fin, \
                  tarfile.open(fileobj=fin, mode='r|') as tar_in, \
                  pt.io.finalized_directory(path) as dout:
@@ -580,7 +583,24 @@ artifact = pt.Artifact.from_zenodo({str(zenodo_id)!r})
         with tempfile.TemporaryDirectory() as d:
             path = os.path.join(d, 'artifact.tar.lz4')
             self.build_package(path)
-            subprocess.call(["wormhole", "send", path])
+            command = [sys.executable, '-m', 'wormhole', 'send', path]
+            try:
+                with subprocess.Popen(command, stderr=subprocess.PIPE, text=True) as process:
+                    # stderr, stdout = process.communicate()
+                    for line in process.stderr:
+                        if line.startswith('Wormhole code is'):
+                            code = line.replace('Wormhole code is:', '').strip()
+                            name = Path(self.path).name
+                            print()
+                            print('Ready to send. Run the following on the target machine (ctlr+c to cancel):')
+                            print('import pyterrier as pt')
+                            print(f'artifact = pt.Artifact.from_p2p({code!r}, {name!r})')
+                        elif any(x in line for x in ['wormhole receive', 'On the other computer', 'Sending ']) or line.strip() == '':
+                            pass
+                        else:
+                            print(line, end='')
+            except KeyboardInterrupt:
+                pass
 
 
 def _load_metadata(path: str) -> Dict:
