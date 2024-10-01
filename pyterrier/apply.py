@@ -187,7 +187,7 @@ def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.mode
             # this pipeline would remove all but the first two documents from a result set
             pipe = pt.terrier.Retriever(index) >> pt.apply.generic(lambda res : res[res["rank"] < 2])
 
-         Example (iter-dict)::
+        Example (iter-dict)::
 
             # this pipeline would simlarly remove all but the first two documents from a result set
             def _fn(iterdict):
