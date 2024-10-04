@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Optional
 import pandas as pd
 import numpy as np
 from deprecated import deprecated
@@ -124,7 +124,7 @@ class Retriever(RetrieverBase):
 
     @staticmethod
     def from_dataset(dataset : Union[str,Dataset], 
-            variant : str = None, 
+            variant : Optional[str] = None, 
             version='latest',            
             **kwargs):
         """
@@ -657,7 +657,7 @@ class FeaturesRetriever(Retriever):
 
     @staticmethod 
     def from_dataset(dataset : Union[str,Dataset], 
-            variant : str = None, 
+            variant : Optional[str] = None, 
             version='latest',            
             **kwargs):
         return pt.datasets.transformer_from_dataset(dataset, variant=variant, version=version, clz=FeaturesRetriever, **kwargs)

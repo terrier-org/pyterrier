@@ -63,6 +63,7 @@ def get_text(
     if not isinstance(indexlike, HasTextLoader):
         raise ValueError('indexlike must provide a .text_loader() method.')
 
+    result : pt.Transformer
     result = indexlike.text_loader(metadata, verbose=verbose and not by_query, **kwargs)
 
     if by_query:

@@ -6,6 +6,7 @@ from typing import Callable, Union, Dict, List, Tuple, Sequence, Any, Literal, O
 from . import Transformer
 from .model import coerce_dataframe_types
 import ir_measures
+import tqdm as tqdm_module
 from ir_measures.measures import BaseMeasure 
 import pyterrier as pt
 MEASURE_TYPE=Union[str,BaseMeasure]
@@ -107,7 +108,7 @@ def _ir_measures_to_dict(
         rev_mapping : Dict[BaseMeasure,str], 
         num_q : int,
         perquery : bool = True,
-        backfill_qids : Sequence[str] = None):
+        backfill_qids : Optional[Sequence[str]] = None):
     from collections import defaultdict
     if perquery:
         # qid -> measure -> value
@@ -135,32 +136,32 @@ def _ir_measures_to_dict(
     for m in seq:
         metric = m.measure
         metric = rev_mapping.get(metric, str(metric))
-        rtr[metric].add(m.value)
+        rtr[metric].add(m.value) # type: ignore # THERE is no typing for aggregators in ir_measures
     for m in rtr:
-        rtr[m] = rtr[m].result()
+        rtr[m] = rtr[m].result() # type: ignore # THERE is no typing for aggregators in ir_measures
     return rtr
 
 def _run_and_evaluate(
         system : SYSTEM_OR_RESULTS_TYPE, 
-        topics : pd.DataFrame, 
+        topics : Optional[pd.DataFrame], 
         qrels: pd.DataFrame, 
         metrics : MEASURES_TYPE, 
-        pbar = None,
-        save_mode : SAVEMODE_TYPE = None,
-        save_file : str = None,
+        pbar : Optional[tqdm_module.tqdm] = None,
+        save_mode : Optional[SAVEMODE_TYPE] = None,
+        save_file : Optional[str] = None,
         perquery : bool = False,
         batch_size : Optional[int] = None,
-        backfill_qids : Sequence[str] = None):
+        backfill_qids : Optional[Sequence[str]] = None):
     
     from .io import read_results, write_results
 
     if pbar is None:
-        pbar = pt.tqdm(disable=True)
+        pbar = pt.tqdm(disable=True) # type: ignore
 
     metrics, rev_mapping = _convert_measures(metrics)
     qrels = qrels.rename(columns={'qid': 'query_id', 'docno': 'doc_id', 'label': 'relevance'})
     from timeit import default_timer as timer
-    runtime = 0
+    runtime : float = 0.
     num_q = qrels['query_id'].nunique()
     if save_file is not None and os.path.exists(save_file):
         if save_mode == 'reuse':
@@ -178,12 +179,16 @@ def _run_and_evaluate(
         else:
             raise ValueError("Unknown save_mode argument '%s', valid options are 'error', 'warn', 'reuse' or 'overwrite'." % save_mode)
 
+    res : pd.DataFrame
     # if its a DataFrame, use it as the results
     if isinstance(system, pd.DataFrame):
         res = system
         res = coerce_dataframe_types(res)
         if len(res) == 0:
-            raise ValueError("%d topics, but no results in dataframe" % len(topics))
+            if topics is None:
+                raise ValueError("No topics specified, and no results in dataframe")
+            else:
+                raise ValueError("%d topics, but no results in dataframe" % len(topics))
         evalMeasuresDict = _ir_measures_to_dict(
             ir_measures.iter_calc(metrics, qrels, res.rename(columns=_irmeasures_columns)), 
             metrics,
@@ -194,6 +199,8 @@ def _run_and_evaluate(
         pbar.update()
 
     elif batch_size is None:
+
+        assert topics is not None, "topics must be specified"
         #transformer, evaluate all queries at once
             
         starttime = timer()
@@ -219,12 +226,15 @@ def _run_and_evaluate(
             backfill_qids)
         pbar.update()
     else:
+        assert topics is not None, "topics must be specified"
+        
         #transformer, evaluate queries in batches
         assert batch_size > 0
         starttime = timer()
         evalMeasuresDict = {}
         remaining_qrel_qids = set(qrels.query_id)
         try:
+            batch_topics : pd.DataFrame
             for i, (res, batch_topics) in enumerate( system.transform_gen(topics, batch_size=batch_size, output_topics=True)):
                 if len(res) == 0:
                     raise ValueError("batch of %d topics, but no results received in batch %d from %s" % (len(batch_topics), i, str(system) ) )
@@ -282,20 +292,20 @@ def Experiment(
         topics : pd.DataFrame,
         qrels : pd.DataFrame,
         eval_metrics : MEASURES_TYPE,
-        names : Sequence[str] = None,
+        names : Optional[Sequence[str]] = None,
         perquery : bool = False,
         dataframe : bool = True,
         batch_size : Optional[int] = None,
         filter_by_qrels : bool = False,
         filter_by_topics : bool = True,
-        baseline : int = None,
+        baseline : Optional[int] = None,
         test : Union[str,TEST_FN_TYPE] = "t",
-        correction : str = None,
+        correction : Optional[str] = None,
         correction_alpha : float = 0.05,
-        highlight : str = None,
-        round : Union[int,Dict[str,int]] = None,
+        highlight : Optional[str] = None,
+        round : Optional[Union[int,Dict[str,int]]] = None,
         verbose : bool = False,
-        save_dir : str = None,
+        save_dir : Optional[str] = None,
         save_mode : SAVEMODE_TYPE = 'warn',
         **kwargs):
     """
@@ -420,10 +430,13 @@ def Experiment(
             raise ValueError('There is no overlap between the qids found in the topics and qrels. If this is intentional, set filter_by_topics=False and filter_by_qrels=False.')
 
     from scipy import stats
+    test_fn : TEST_FN_TYPE
     if test == "t":
-        test = stats.ttest_rel
-    if test == "wilcoxon":
-        test = stats.wilcoxon
+        test_fn = stats.ttest_rel
+    elif test == "wilcoxon":
+        test_fn = stats.wilcoxon
+    else:
+        test_fn = test
     
     # obtain system names if not specified
     if names is None:
@@ -469,7 +482,7 @@ def Experiment(
         # round number of batches up for each system
         tqdm_args['total'] = math.ceil((len(topics) / batch_size)) * len(retr_systems)
 
-    with pt.tqdm(**tqdm_args) as pbar:
+    with pt.tqdm(**tqdm_args) as pbar: # type: ignore
         # run and evaluate each system
         for name, system in zip(names, retr_systems):
             save_file = None
@@ -518,7 +531,7 @@ def Experiment(
     if dataframe:
         if perquery:
             df = pd.DataFrame(evalsRows, columns=["name", "qid", "measure", "value"]).sort_values(['name', 'qid'])
-            if round is not None:
+            if round is not None and isinstance(round, int):
                 df["value"] = df["value"].round(round)
             return df
 
@@ -526,7 +539,7 @@ def Experiment(
         if mrt_needed:
             highlight_cols["mrt"] = "-"
 
-        p_col_names=[]
+        p_col_names : List[str] = []
         if baseline is not None:
             assert len(evalDictsPerQ) == len(retr_systems)
             baselinePerQuery={}
@@ -547,7 +560,7 @@ def Experiment(
                         perQuery = np.array( [ evalDictsPerQ[i][q][m] for q in evalDictsPerQ[baseline] ])
                         delta_plus = (perQuery > baselinePerQuery[m]).sum()
                         delta_minus = (perQuery < baselinePerQuery[m]).sum()
-                        p = test(perQuery, baselinePerQuery[m])[1]
+                        p = test_fn(perQuery, baselinePerQuery[m])[1]
                         additionals.extend([delta_plus, delta_minus, p])
                 evalsRows[i].extend(additionals)
             delta_names=[]
@@ -565,12 +578,12 @@ def Experiment(
 
         # multiple testing correction. This adds two new columns for each measure experience statistical significance testing        
         if baseline is not None and correction is not None:
-            import statsmodels.stats.multitest
+            import statsmodels.stats.multitest # type: ignore
             for pcol in p_col_names:
                 pcol_reject = pcol.replace("p-value", "reject")
                 pcol_corrected = pcol + " corrected"                
                 reject, corrected, _, _ = statsmodels.stats.multitest.multipletests(df[pcol].drop(df.index[baseline]), alpha=correction_alpha, method=correction)
-                insert_pos = df.columns.get_loc(pcol)
+                insert_pos : int = df.columns.get_loc(pcol)
                 # add reject/corrected values for the baseline
                 reject = np.insert(reject, baseline, False)
                 corrected = np.insert(corrected, baseline, np.nan)
@@ -593,6 +606,12 @@ GRID_SCAN_PARAM_SETTING = Tuple[
             TRANSFORMER_PARAMETER_VALUE_TYPE
         ]
 GRID_SEARCH_RETURN_TYPE_SETTING = Tuple[
+    float, 
+    List[GRID_SCAN_PARAM_SETTING]
+]
+
+GRID_SEARCH_RETURN_TYPE_BOTH = Tuple[
+    Transformer,
     float, 
     List[GRID_SCAN_PARAM_SETTING]
 ]
@@ -634,7 +653,7 @@ def KFoldGridSearch(
         jobs : int = 1,
         backend='joblib',
         verbose: bool = False,
-        batch_size = None) -> Tuple[pd.DataFrame, GRID_SEARCH_RETURN_TYPE_SETTING]:
+        batch_size : Optional[int] = None) -> Tuple[pd.DataFrame, GRID_SEARCH_RETURN_TYPE_SETTING]:
     """
     Applies a GridSearch using different folds. It returns the *results* of the 
     tuned transformer pipeline on the test topics. The number of topics dataframes passed
@@ -731,9 +750,9 @@ def GridSearch(
         jobs : int = 1,
         backend='joblib',
         verbose: bool = False,
-        batch_size = None,
-        return_type : str = "opt_pipeline"
-    ) -> Union[Transformer,GRID_SEARCH_RETURN_TYPE_SETTING]:
+        batch_size : Optional[int] = None,
+        return_type : Literal['opt_pipeline', 'best_setting', 'both'] = "opt_pipeline"
+    ) -> Union[Transformer,GRID_SEARCH_RETURN_TYPE_SETTING,GRID_SEARCH_RETURN_TYPE_BOTH]:
     """
     GridSearch is essentially, an argmax GridScan(), i.e. it returns an instance of the pipeline to tune
     with the best parameter settings among params, that were found that were obtained using the specified
@@ -775,7 +794,7 @@ def GridSearch(
     assert len(grid_outcomes) > 0, "GridScan returned 0 rows"
     max_measure = grid_outcomes[0][1][metric]
     max_setting = grid_outcomes[0][0]
-    for setting, measures in grid_outcomes:
+    for setting, measures in grid_outcomes: # TODO what is the type of this iteration?
         if measures[metric] > max_measure:
             max_measure = measures[metric]
             max_setting = setting
@@ -793,7 +812,7 @@ def GridSearch(
         for tran, param, value in max_setting:
             tran.set_parameter(param, value)
         return (pipeline, max_measure, max_setting)
-
+    raise ValueError("Unknown return_type option %s" % return_type)
 
 def GridScan(
         pipeline : Transformer,
@@ -806,7 +825,7 @@ def GridScan(
         verbose: bool = False,
         batch_size = None,
         dataframe = True,
-    ) -> Union[pd.DataFrame, List [ Tuple [ List[ GRID_SCAN_PARAM_SETTING ] , Dict[str,float]  ]  ] ]:
+    ) -> Union[pd.DataFrame, List [ Tuple [ List[ GRID_SCAN_PARAM_SETTING ], Dict[str,float]  ]  ] ]:
     """
     GridScan applies a set of named parameters on a given pipeline and evaluates the outcome. The topics and qrels 
     must be specified. The trec_eval measure names can be optionally specified.
@@ -899,7 +918,7 @@ def GridScan(
     eval_list = []
     #for each combination of parameter values
     if jobs == 1:
-        for v in pt.tqdm(combinations, total=len(combinations), desc="GridScan", mininterval=0.3) if verbose else combinations:
+        for v in pt.tqdm(combinations, total=len(combinations), desc="GridScan", mininterval=0.3) if verbose else combinations: # type: ignore
             parameter_list, eval_scores = _evaluate_one_setting(keys, v)
             eval_list.append( (parameter_list, eval_scores) )
     else:
