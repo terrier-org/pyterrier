@@ -83,6 +83,16 @@ setup(
             'pyterrier.java          = pyterrier.java:CoreJavaInit',
             'pyterrier.terrier.java  = pyterrier.terrier.java:TerrierJavaInit',
         ],
+        'pyterrier.artifact': [
+            'sparse_index.terrier = pyterrier.terrier:TerrierIndex',
+        ],
+        'pyterrier.artifact.metadata_adapter': [
+            'terrier = pyterrier.terrier._metadata_adapter:terrier_artifact_metadata_adapter',
+        ],
+        'pyterrier.artifact.url_protocol_resolver': [
+            'hf = pyterrier._artifact:_hf_url_resolver',
+            'zenodo = pyterrier._artifact:_zenodo_url_resolver',
+        ],
     },
     install_requires=requirements,
     python_requires='>=3.8',

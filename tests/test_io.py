@@ -3,8 +3,7 @@ import pyterrier as pt
 import unittest
 import os
 from .base import TempDirTestCase
-import shutil
-import tempfile
+from glob import glob
 
 class TestUtils(TempDirTestCase):
 
@@ -54,40 +53,40 @@ class TestUtils(TempDirTestCase):
 
     def test_finalized_open(self):
         self.assertFalse(os.path.exists('file.txt'))
-        self.assertFalse(os.path.exists('file.tmp.txt'))
+        self.assertEqual(0, len(list(glob('.file.*.tmp.txt'))))
 
         try:
             with pt.io.finalized_open('file.txt', 't') as f:
                 f.write('OK')
                 self.assertFalse(os.path.exists('file.txt'))
-                self.assertTrue(os.path.exists('file.tmp.txt'))
+                self.assertEqual(1, len(list(glob('.file.*.tmp.txt'))))
                 raise Exception("test")
         except Exception as e:
             if e.args[0] != 'test':
                 raise # raise any error but our test error
         # File *doesn't* exist
         self.assertFalse(os.path.exists('file.txt'))
-        self.assertFalse(os.path.exists('file.tmp.txt'))
+        self.assertEqual(0, len(list(glob('.file.*.tmp.txt'))))
 
         with pt.io.finalized_open('file.txt', 't') as f:
             f.write('Guess who\'s back')
             self.assertFalse(os.path.exists('file.txt'))
-            self.assertTrue(os.path.exists('file.tmp.txt'))
+            self.assertEqual(1, len(list(glob('.file.*.tmp.txt'))))
         # File *does* exist
         self.assertTrue(os.path.exists('file.txt'))
-        self.assertFalse(os.path.exists('file.tmp.txt'))
+        self.assertEqual(0, len(list(glob('.file.*.tmp.txt'))))
         with open('file.txt', 'rt') as f:
             self.assertEqual(f.read(), 'Guess who\'s back')
 
         with pt.io.finalized_open('file.txt', 't') as f:
             f.write('Shady\'s back')
             self.assertTrue(os.path.exists('file.txt'))
-            self.assertTrue(os.path.exists('file.tmp.txt'))
+            self.assertEqual(1, len(list(glob('.file.*.tmp.txt'))))
             with open('file.txt', 'rt') as f:
                 self.assertEqual(f.read(), 'Guess who\'s back')
         # contents *are* updated
         self.assertTrue(os.path.exists('file.txt'))
-        self.assertFalse(os.path.exists('file.tmp.txt'))
+        self.assertEqual(0, len(list(glob('.file.*.tmp.txt'))))
         with open('file.txt', 'rt') as f:
             self.assertEqual(f.read(), 'Shady\'s back')
 
@@ -95,7 +94,7 @@ class TestUtils(TempDirTestCase):
             with pt.io.finalized_open('file.txt', 't') as f:
                 f.write('Back again')
                 self.assertTrue(os.path.exists('file.txt'))
-                self.assertTrue(os.path.exists('file.tmp.txt'))
+                self.assertEqual(1, len(list(glob('.file.*.tmp.txt'))))
                 with open('file.txt', 'rt') as f:
                     self.assertEqual(f.read(), 'Shady\'s back')
                 raise Exception("test")
@@ -104,46 +103,46 @@ class TestUtils(TempDirTestCase):
                 raise # raise any error but our test error
         # contents *aren't* updated
         self.assertTrue(os.path.exists('file.txt'))
-        self.assertFalse(os.path.exists('file.tmp.txt'))
+        self.assertEqual(0, len(list(glob('.file.*.tmp.txt'))))
         with open('file.txt', 'rt') as f:
             self.assertEqual(f.read(), 'Shady\'s back')
 
     def test_finalized_autoopen(self):
-        self.assertFalse(os.path.exists('file.gz'))
-        self.assertFalse(os.path.exists('file.tmp.gz'))
+        self.assertFalse(os.path.exists('file.txt'))
+        self.assertEqual(0, len(list(glob('.file.*.tmp.gz'))))
 
         try:
             with pt.io.finalized_autoopen('file.gz', 't') as f:
                 f.write('OK')
                 self.assertFalse(os.path.exists('file.gz'))
-                self.assertTrue(os.path.exists('file.tmp.gz'))
+                self.assertEqual(1, len(list(glob('.file.*.tmp.gz'))))
                 raise Exception("test")
         except Exception as e:
             if e.args[0] != 'test':
                 raise # raise any error but our test error
         # File *doesn't* exist
         self.assertFalse(os.path.exists('file.gz'))
-        self.assertFalse(os.path.exists('file.tmp.gz'))
+        self.assertEqual(0, len(list(glob('.file.*.tmp.gz'))))
 
         with pt.io.finalized_autoopen('file.gz', 't') as f:
             f.write('Guess who\'s back')
             self.assertFalse(os.path.exists('file.gz'))
-            self.assertTrue(os.path.exists('file.tmp.gz'))
+            self.assertEqual(1, len(list(glob('.file.*.tmp.gz'))))
         # File *does* exist
         self.assertTrue(os.path.exists('file.gz'))
-        self.assertFalse(os.path.exists('file.tmp.gz'))
+        self.assertEqual(0, len(list(glob('.file.*.tmp.gz'))))
         with pt.io.autoopen('file.gz', 'rt') as f:
             self.assertEqual(f.read(), 'Guess who\'s back')
 
         with pt.io.finalized_autoopen('file.gz', 't') as f:
             f.write('Shady\'s back')
             self.assertTrue(os.path.exists('file.gz'))
-            self.assertTrue(os.path.exists('file.tmp.gz'))
+            self.assertEqual(1, len(list(glob('.file.*.tmp.gz'))))
             with pt.io.autoopen('file.gz', 'rt') as f:
                 self.assertEqual(f.read(), 'Guess who\'s back')
         # contents *are* updated
         self.assertTrue(os.path.exists('file.gz'))
-        self.assertFalse(os.path.exists('file.tmp.gz'))
+        self.assertEqual(0, len(list(glob('.file.*.tmp.gz'))))
         with pt.io.autoopen('file.gz', 'rt') as f:
             self.assertEqual(f.read(), 'Shady\'s back')
 
@@ -151,7 +150,7 @@ class TestUtils(TempDirTestCase):
             with pt.io.finalized_autoopen('file.gz', 't') as f:
                 f.write('Back again')
                 self.assertTrue(os.path.exists('file.gz'))
-                self.assertTrue(os.path.exists('file.tmp.gz'))
+                self.assertEqual(1, len(list(glob('.file.*.tmp.gz'))))
                 with pt.io.autoopen('file.gz', 'rt') as f:
                     self.assertEqual(f.read(), 'Shady\'s back')
                 raise Exception("test")
@@ -160,7 +159,7 @@ class TestUtils(TempDirTestCase):
                 raise # raise any error but our test error
         # contents *aren't* updated
         self.assertTrue(os.path.exists('file.gz'))
-        self.assertFalse(os.path.exists('file.tmp.gz'))
+        self.assertEqual(0, len(list(glob('.file.*.tmp.gz'))))
         with pt.io.autoopen('file.gz', 'rt') as f:
             self.assertEqual(f.read(), 'Shady\'s back')
 
