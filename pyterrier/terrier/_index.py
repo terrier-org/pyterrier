@@ -18,22 +18,22 @@ class TerrierIndex(pt.Artifact):
 
     def retriever(
         self,
+        wmodel: str,
         *,
         controls: Dict = None,
         properties: Dict = None,
         metadata: List[str] = ["docno"],
         num_results: int = 1000,
-        wmodel: str = 'DPH',
         threads: int = 1,
     ) -> pt.Transformer:
         """Creates a ``pt.terrier.Retriever`` object for this index.
 
         Args:
+            wmodel: The weighting model to use for scoring.
             controls: The controls to set for this retriever. Controls are specific settings for a given search request.
             properties: The properties to use for this retriever. Properties are settings that apply globally to the index.
             metadata: The metadata fields to return for each search result.
             num_results: The maximum number of results to return per query.
-            wmodel: The weighting model to use for scoring.
             threads: The number of threads to use during retrieval.
 
         Returns:
@@ -60,6 +60,24 @@ class TerrierIndex(pt.Artifact):
         return self.retriever(
             wmodel='BM25',
             controls={'bm25.k_1': k1, 'bm25.b': b},
+            num_results=num_results,
+            threads=threads
+        )
+
+    def dph(
+        self,
+        *,
+        num_results: int = 1000,
+        threads: int = 1,
+    ) -> pt.Transformer:
+        """Creates a DPH retriever for this index.
+
+        Args:
+            num_results: The maximum number of results to return per query.
+            threads: The number of threads to use during retrieval.
+        """
+        return self.retriever(
+            wmodel='DPH',
             num_results=num_results,
             threads=threads
         )
