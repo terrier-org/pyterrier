@@ -3,7 +3,12 @@ Artifacts
 
 PyTerrier's Artifact API provides a powerful way to share resources, such as indexes,
 cached results, and more. Re-using one another's artifacts is a great way to help achieve
-green (i.e., sustainable) research [#]_.
+green (i.e., sustainable) research. [#]_
+
+Shared artifacts are also ready-to-use in your experiments through objects that expose various
+retrieval functionality through :doc:`Transformers <transformer>`. For instance, once you load a
+``TerrierIndex`` artifact, you can use its ``bm25()`` method to build a transformer that retrieves
+from the index using BM25.
 
 The API is provided by the :class:`~pyterrier.Artifact` classs, which includes methods
 for sharing artifacts using a variety of services, such as HuggingFace Hub and Zenodo.
@@ -28,7 +33,7 @@ with :meth:`~pyterrier.Artifact.from_hf` and :meth:`~pyterrier.Artifact.to_hf`.
 
 ----------------------
 
-**Loading from HuggingFace:** You can load artifacts from HuggingFace Hub using :meth:`pt.Artifact.from_hf`:
+**Loading from HuggingFace:** You can load artifacts from HuggingFace Hub using :meth:`~pyterrier.Artifact.from_hf`:
 
 .. code-block:: python
     :caption: Load an artifact to HuggingFace Hub
@@ -139,7 +144,7 @@ sharing using :meth:`~pyterrier.Artifact.from_p2p` and :meth:`~pyterrier.Artifac
 On the host machine, first load the artifact that you want to share. Then, call :meth:`~pyterrier.Artifact.to_p2p`:
 
 .. code-block:: python
-    :caption: Start P2P Artifact Sharing
+    :caption: Start Peer-to-Peer Artifact Sharing
 
     >>> import pyterrier as pt
     >>> artifact = ... # e.g., pt.terrier.TerrierIndex('path/to/my_index')
@@ -152,7 +157,7 @@ The command builds an artifact distribution package and generates a one-time sha
 You can then run :meth:`~pyterrier.Artifact.from_p2p` on the receiving machine:
 
 .. code-block:: python
-    :caption: Receive a P2P Artifact
+    :caption: Receive a Peer-to-Peer Artifact
 
     >>> import pyterrier as pt
     >>> artifact = pt.Artifact.from_p2p('xx-xxx-xxx', 'my_index')
