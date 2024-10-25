@@ -4,8 +4,12 @@ Running Experiments
 PyTerrier aims to make it easy to conduct an information retrieval experiment, namely, to run a transformer 
 pipeline over a set of queries, and evaluating the outcome using standard information retrieval evaluation 
 metrics based on known relevant documents (obtained from a set relevance assessments, also known as *qrels*).
-The evaluation metrics are calculated by the `pytrec_eval <https://github.com/cvangysel/pytrec_eval>`_ library,
-a Python wrapper around the widely-used `trec_eval evaluation tool <https://github.com/usnistgov/trec_eval>`_.
+
+
+NB: For calculating evaluation metrics, we used `ir_measures <https://github.com/terrierteam/ir_measures>`_ library,
+which includes implementations of many standard metrics. By default, most metrics are calculated by our fork of 
+the `pytrec_eval <https://github.com/cvangysel/pytrec_eval>`_ library, which itself is a Python wrapper around 
+the widely-used `trec_eval evaluation tool <https://github.com/usnistgov/trec_eval>`_.
 
 The main way to achieve this is using `pt.Experiment()`.
 
