@@ -63,19 +63,21 @@ There is documentation on [transformer operators](https://pyterrier.readthedocs.
 
 # Neural Reranking and Dense Retrieval
 
-PyTerrier has additional plugins for BERT (through OpenNIR), T5, ColBERT, ANCE, DeepCT and doc2query.
-
- - OpenNIR: [[Github](https://github.com/Georgetown-IR-Lab/OpenNIR)] [[Documentation](https://opennir.net/)]
- - PyTerrier_ANCE: [[Github](https://github.com/terrierteam/pyterrier_ance)] - dense retrieval
- - PyTerrier_ColBERT: [[Github](https://github.com/terrierteam/pyterrier_colbert)] - dense retrieval and/or neural reranking
+PyTerrier has additional plugins for BERT (through OpenNIR), T5, ColBERT, doc2query and many more...
+ - Pyterrier_DR: [[Github](https://github.com/terrierteam/pyterrier_colbert)] - single-representation dense retrieval
+ - PyTerrier_ColBERT: [[Github](https://github.com/terrierteam/pyterrier_colbert)] - mulitple-representation dense retrieval and/or neural reranking
  - PyTerrier_PISA: [[Github](https://github.com/terrierteam/pyterrier_pisa)] - fast in-memory indexing and retrieval using [PISA](https://github.com/pisa-engine/pisa)
  - PyTerrier_T5: [[Github](https://github.com/terrierteam/pyterrier_t5)] - neural reranking: monoT5, duoT5
  - PyTerrier_GenRank [[Github](https://github.com/emory-irlab/pyterrier_genrank)] - generative listwise reranking: RankVicuna, RankZephyr
  - PyTerrier_doc2query: [[Github](https://github.com/terrierteam/pyterrier_doc2query)] - neural augmented indexing
  - PyTerrier_SPLADE: [[Github](https://github.com/cmacdonald/pyt_splade)] - neural augmented indexing
- - PyTerrier_DeepCT: [[Github](https://github.com/terrierteam/pyterrier_deepct)] - neural augmented indexing
 
-You can see examples of how to use these, including notebooks that run on Google Colab, in the contents of our [ECIR 2021 tutorial](https://github.com/terrier-org/ecir2021tutorial).
+Older plugins include:
+ - PyTerrier_ANCE: [[Github](https://github.com/terrierteam/pyterrier_ance)] - dense retrieval
+ - PyTerrier_DeepCT: [[Github](https://github.com/terrierteam/pyterrier_deepct)] - neural augmented indexing
+ - OpenNIR: [[Github](https://github.com/Georgetown-IR-Lab/OpenNIR)] [[Documentation](https://opennir.net/)]
+
+You can see examples of how to use these, including notebooks that run on Google Colab, in the contents of our [Search Solutions 2022 tutorial](https://github.com/terrier-org/searchsolutions2022-tutorial).
 
 # Learning to Rank
 
