@@ -20,3 +20,4 @@ statsmodels # used for multiple testing correction
 dill # used for serialisation that is better than pickle, e.g. passing wmodel functions to terrier.Retriever
 joblib # used in parallel support 
 chest # used for caching
+lz4 # used for compression

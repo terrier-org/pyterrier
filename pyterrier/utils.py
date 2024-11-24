@@ -207,3 +207,14 @@ def pre_invocation_decorator(decorator):
                 return fn(*args, **kwargs)
             return _wrapper
     return _decorator_wrapper
+
+
+def byte_count_to_human_readable(byte_count: float) -> str:
+    """Converts a byte count to a human-readable string."""
+    units = ['B', 'KB', 'MB', 'GB', 'TB']
+    while byte_count > 1024 and len(units) > 1:
+        byte_count /= 1024
+        units = units[1:]
+    if units[0] == 'B':
+        return f'{byte_count:.0f} {units[0]}'
+    return f'{byte_count:.1f} {units[0]}'

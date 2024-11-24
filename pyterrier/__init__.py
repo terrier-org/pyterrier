@@ -4,6 +4,7 @@ from deprecated import deprecated
 
 from pyterrier import model, utils
 from pyterrier.transformer import Transformer, Estimator, Indexer
+from pyterrier._artifact import Artifact
 
 from pyterrier import java
 
@@ -13,6 +14,7 @@ from pyterrier.terrier import BatchRetrieve, TerrierRetrieve, FeaturesBatchRetri
 from pyterrier import cache
 from pyterrier import debug
 from pyterrier import io
+from pyterrier import inspect
 from pyterrier import measures
 from pyterrier import new
 from pyterrier import ltr
@@ -47,10 +49,10 @@ cast = deprecated(version='0.11.0', reason="use pt.java.cast(...) instead")(java
 
 
 __all__ = [
-    'java', 'terrier', 'cache', 'debug', 'io', 'measures', 'model', 'new', 'ltr', 'parallel', 'pipelines',
+    'java', 'terrier', 'cache', 'debug', 'io', 'inspect', 'measures', 'model', 'new', 'ltr', 'parallel', 'pipelines',
     'text', 'transformer', 'datasets', 'get_dataset', 'find_datasets', 'list_datasets', 'Experiment', 'GridScan',
     'GridSearch', 'KFoldGridSearch', 'Evaluate',
-    'utils', 'Utils', 'Transformer', 'Estimator', 'Indexer',
+    'utils', 'Utils', 'Transformer', 'Estimator', 'Indexer', 'Artifact',
     'BatchRetrieve', 'TerrierRetrieve', 'FeaturesBatchRetrieve', 'IndexFactory',
     'run', 'rewrite', 'index', 'FilesIndexer', 'TRECCollectionIndexer', 'DFIndexer', 'DFIndexUtils', 'IterDictIndexer',
     'IndexingType', 'TerrierStemmer', 'TerrierStopwords', 'TerrierTokeniser',
