@@ -36,7 +36,7 @@ with :meth:`~pyterrier.Artifact.from_hf` and :meth:`~pyterrier.Artifact.to_hf`.
 **Loading from HuggingFace:** You can load artifacts from HuggingFace Hub using :meth:`~pyterrier.Artifact.from_hf`:
 
 .. code-block:: python
-    :caption: Load an artifact to HuggingFace Hub
+    :caption: Load an artifact from HuggingFace Hub
 
     >>> import pyterrier as pt
     >>> index = pt.Artifact.from_hf('username/myindex')
