@@ -16,21 +16,33 @@ class TestTransformer(BaseTestCase):
         self.assertEqual(1, len(t([{'qid' : 'q10'}])))
 
     def test_is_transformer(self):
+        class IncompleteTransformer(pt.Transformer):
+            pass # doesnt implement .transform() or .transform_iter()
         class MyTransformer1(pt.Transformer):
-            pass
+            def transform(self, df):
+                pass
+        class MyTransformer1a(pt.Transformer):
+            def transform_iter(self, df):
+                pass
         class MyTransformer2(pt.transformer.TransformerBase):
-            pass
+            def transform(self, df):
+                pass
         class MyTransformer3(pt.Indexer):
-            pass
+            pass # indexers dont need a transform
         class MyTransformer3a(pt.transformer.IterDictIndexerBase):
-            pass
+            pass # indexers dont need a transform
         class MyTransformer4a(pt.Estimator):
-            pass
+            def transform(self, df):
+                pass
         class MyTransformer4(pt.transformer.EstimatorBase):
-            pass
+            def transform(self, df):
+                pass
+
+        with self.assertRaises(NotImplementedError):
+            IncompleteTransformer()
 
         # check normal API
-        for T in [MyTransformer1, MyTransformer3, MyTransformer4a]:
+        for T in [MyTransformer1, MyTransformer1a, MyTransformer3, MyTransformer4a]:
             self.assertTrue(pt.transformer.is_transformer(T()))
 
         # check deprecated API

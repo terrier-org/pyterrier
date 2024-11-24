@@ -18,6 +18,9 @@ class TestApply(BaseTestCase):
         rtr = p(testDF)
         self.assertTrue("Bla" not in rtr.columns)
 
+        rtr = p(testDF.to_dict(orient='records'))
+        self.assertTrue("Bla" not in rtr[0])
+
     def test_index_apply(self):
         def _counter(iter_dict):
             count = 0
@@ -45,12 +48,16 @@ class TestApply(BaseTestCase):
         testDF = pd.DataFrame([["q1", "the bear and the wolf", 1]], columns=["qid", "query", "Bla"])
         p = pt.apply.rename({'Bla' : "Bla2"})
         self.assertTrue(isinstance(p, Transformer))
-        rtr = p(testDF)
-        self.assertTrue("Bla2" in rtr.columns)
-        self.assertFalse("Bla" in rtr.columns)
-        with self.assertRaises(KeyError):
-            testDF2 = pd.DataFrame([["q1", "the bear and the wolf", 1]], columns=["qid", "query", "Bla2"])
-            rtr = p(testDF2)
+        for input in [testDF, testDF.to_dict(orient='records')]:
+            rtr = p(input)
+            rtr = pd.DataFrame(list(rtr)) if not isinstance(rtr, pd.DataFrame) else rtr  # recover DF for easier testing
+            self.assertTrue("Bla2" in rtr.columns)
+            self.assertFalse("Bla" in rtr.columns)
+        
+        testDF2 = pd.DataFrame([["q1", "the bear and the wolf", 1]], columns=["qid", "query", "Bla2"])
+        for input in [testDF2, testDF2.to_dict(orient='records')]:
+            with self.assertRaises(KeyError):
+                rtr = p(input)
         p_ignore = pt.apply.rename({'Bla' : "Bla2"}, errors='ignore')
         rtr = p_ignore(testDF2)
 
@@ -102,6 +109,36 @@ class TestApply(BaseTestCase):
         with self.assertRaisesRegex(Exception, 'for qid 1'):
             p3(pt.new.queries(['query 1', 'query 2']))
 
+    def test_by_query_apply_iter(self):
+        inputDf = pt.new.ranked_documents([[1], [2]], qid=["1", "2"])
+        def _inc_score(res):
+            for row in res:
+                row["score"] = row["score"] + int(row["qid"])
+                yield row
+
+        def _inc_score_list(res):
+            rtr = []
+            for row in res:
+                row["score"] = row["score"] + int(row["qid"])
+                rtr.append(row)
+            return rtr
+    
+        for name, t in [
+            ("gen", pt.apply.by_query(_inc_score, iter=True)),
+            ("gen batch", pt.apply.by_query(_inc_score, iter=True, batch_size=1)),
+            ("list", pt.apply.by_query(_inc_score_list, iter=True)),
+            ("list batch", pt.apply.by_query(_inc_score_list, iter=True, batch_size=1))]:
+            with self.subTest(name):
+            
+                outputDf = t(inputDf)
+                self.assertEqual(outputDf.iloc[0]["qid"], "1")
+                self.assertEqual(outputDf.iloc[0]["score"], 2)
+                self.assertEqual(outputDf.iloc[1]["qid"], "2")
+                self.assertEqual(outputDf.iloc[1]["score"], 4)
+
+                # check no error on empty input
+                outputDfEmpty = t(inputDf.head(0))
+
     def test_by_query_apply_batch(self):
         # same as test_by_query_apply, but batch_size is set.
         inputDf = pt.new.ranked_documents([[1], [2]], qid=["1", "2"])
@@ -152,17 +189,53 @@ class TestApply(BaseTestCase):
         # batch is a one row dataframe
         self.assertEqual(1, outputDf2.iloc[0]["score"])
     
+    def test_generic_iter(self):
+        def _fn1_list(iter):
+            rtr = []
+            for i in iter:
+                i["score"] *= 2
+                rtr.append(i)
+            return rtr
+        
+        def _fn1_gen(iter):
+           for i in iter:
+                i["score"] *= 2
+                yield i
+
+        for name, t in [
+            ("list, no batch", pt.apply.generic(_fn1_list, iter=True)),
+            ("list, batch", pt.apply.generic(_fn1_list, batch_size=1, iter=True)),
+            ("gen, no batch", pt.apply.generic(_fn1_gen, iter=True)),
+            ("gen, batch", pt.apply.generic(_fn1_gen, batch_size=1, iter=True)),
+        ]:
+            inputDf = pt.new.ranked_documents([[1], [2]], qid=["1", "2"])
+            with self.subTest(name):
+                outputDf1 = t(inputDf)
+                self.assertEqual(2, len(outputDf1))
+                self.assertEqual(2, outputDf1.iloc[0]["score"])
+                self.assertEqual(4, outputDf1.iloc[1]["score"])
+
+                outputDf1 = pd.DataFrame(t(inputDf.to_dict(orient='records')))
+                self.assertEqual(2, len(outputDf1))
+                self.assertEqual(2, outputDf1.iloc[0]["score"])
+                self.assertEqual(4, outputDf1.iloc[1]["score"])
+
+    
     def test_docscore_apply(self):
         p = pt.apply.doc_score(lambda doc_row: len(doc_row["text"]))
         testDF = pd.DataFrame([["q1", "hello", "d1", "aa"]], columns=["qid", "query", "docno", "text"])
-        rtr = p(testDF)
-        self.assertEqual(rtr.iloc[0]["score"], 2.0)
-        self.assertEqual(rtr.iloc[0]["rank"], pt.model.FIRST_RANK)
-
+        for input in [testDF, testDF.to_dict(orient='records')]:
+            rtr = p(testDF)
+            rtr = pd.DataFrame(list(rtr)) if not isinstance(rtr, pd.DataFrame) else rtr  # recover DF for easier testing
+            self.assertEqual(rtr.iloc[0]["score"], 2.0)
+            self.assertEqual(rtr.iloc[0]["rank"], pt.model.FIRST_RANK)
+        
         rtr2 = p(testDF.head(0))
         self.assertTrue("rank" in rtr2.columns)
         self.assertTrue("score" in rtr2.columns)
         self.assertEqual('float64', rtr2['score'].dtype)
+
+        rtr2 = p([])
 
     def test_docscore_batch(self):
         p = pt.apply.doc_score(lambda df: df["text"].str.len(), batch_size=2)
@@ -180,7 +253,9 @@ class TestApply(BaseTestCase):
         import numpy as np
         p = pt.apply.doc_features(lambda doc_row: np.array([0,1]) )
         testDF = pd.DataFrame([["q1", "hello", "d1", "aa"]], columns=["qid", "query", "docno", "text"])
-        rtr = p(testDF)
-        self.assertTrue(np.array_equal(rtr.iloc[0]["features"], np.array([0,1])))
+        for input in [testDF, testDF.to_dict(orient='records')]:
+            rtr = p(input)
+            rtr = pd.DataFrame(list(rtr)) if not isinstance(rtr, pd.DataFrame) else rtr # recover DF for easier testing
+            self.assertTrue(np.array_equal(rtr.iloc[0]["features"], np.array([0,1])))
 
 

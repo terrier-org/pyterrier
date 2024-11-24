@@ -1,9 +1,9 @@
 from functools import partial
-from typing import Callable, Any, Dict, Union, Iterator, Sequence
+from typing import Callable, Any, Dict, Union, Optional, Sequence
 import numpy.typing as npt
 import pandas as pd
 import pyterrier as pt
-from pyterrier.apply_base import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyGenericTransformer, ApplyIndexer
+from pyterrier.apply_base import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyIterForEachQuery, ApplyGenericTransformer, ApplyGenericIterTransformer, ApplyIndexer, DropColumnTransformer, ApplyByRowTransformer
 
 def _bind(instance, func, as_name=None):
     """
@@ -17,15 +17,17 @@ def _bind(instance, func, as_name=None):
     setattr(instance, as_name, bound_method)
     return bound_method
 
-def query(fn : Callable[[pd.Series], str], *args, **kwargs) -> pt.Transformer:
+def query(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], str], *args, **kwargs) -> pt.Transformer:
     """
         Create a transformer that takes as input a query, and applies a supplied function to compute a new query formulation.
 
         The supplied function is called once for each query, and must return a string containing the new query formulation.
-        Each time it is called, the function is supplied with a Panda Series representing the attributes of the query.
+        Each time it is called, the function is supplied with a Panda Series or dict representing the attributes of the query.
+        The particular type of the input is not controlled by the implementor, so the function should be written to support 
+        both, e.g. using ``row["key"]`` notation and not the ``row.key`` that is supported by a Series.
 
         The previous query formulation is saved in the "query_0" column. If a later pipeline stage is intended to resort to
-        be executed on the previous query formulation, a `pt.rewrite.reset()` transformer can be applied.  
+        be executed on the previous query formulation, a ``pt.rewrite.reset()`` transformer can be applied.  
 
         Arguments:
             fn(Callable): the function to apply to each row. It must return a string containing the new query formulation.
@@ -51,7 +53,7 @@ def query(fn : Callable[[pd.Series], str], *args, **kwargs) -> pt.Transformer:
                 ) >> pt.terrier.Retriever(index, wmodel="DPH")
 
         In both of the example pipelines above (`p1` and `p2`), the exact topics are not known until the pipeline is invoked, e.g.
-        by using `p1.transform(topics)` on a topics dataframe, or within a `pt.Experiment()`. When the pipeline 
+        by using `p1.transform(topics)` on a topics dataframe, or within a ``pt.Experiment()``. When the pipeline 
         is invoked, the specified function (`_remove_stops` in the case of `p1`) is called for **each** row of the 
         input datatrame (becoming the `q` function argument).
             
@@ -59,7 +61,7 @@ def query(fn : Callable[[pd.Series], str], *args, **kwargs) -> pt.Transformer:
     """
     return ApplyQueryTransformer(fn, *args, **kwargs)
 
-def doc_score(fn : Union[Callable[[pd.Series], float], Callable[[pd.DataFrame], Sequence[float]]], *args, batch_size=None, **kwargs) -> pt.Transformer:
+def doc_score(fn : Union[Callable[[Union[pd.Series,pt.model.IterDictRecord]], float], Callable[[pd.DataFrame], Sequence[float]]], *args, batch_size=None, **kwargs) -> pt.Transformer:
     """
         Create a transformer that takes as input a ranked documents dataframe, and applies a supplied function to compute a new score.
         Ranks are automatically computed. doc_score() can operate row-wise, or batch-wise, depending on whether batch_size is set.
@@ -76,7 +78,7 @@ def doc_score(fn : Union[Callable[[pd.Series], float], Callable[[pd.DataFrame], 
 
             # this transformer will subtract 5 from the score of each document
             p = pt.terrier.Retriever(index, wmodel="DPH") >> 
-                pt.apply.doc_score(lambda doc : doc["score"] -5)
+                pt.apply.doc_score(lambda doc : doc["score"] -5) # doc["score"] works for both a dict and Series
 
         Can be used in batch-wise manner, which is particularly useful for appling neural models. In this case,
         the scoring function receives a dataframe, rather than a single row::
@@ -94,12 +96,14 @@ def doc_score(fn : Union[Callable[[pd.Series], float], Callable[[pd.DataFrame], 
     """
     return ApplyDocumentScoringTransformer(fn, *args, batch_size=batch_size, **kwargs)
 
-def doc_features(fn : Callable[[pd.Series], npt.NDArray[Any]], *args, **kwargs) -> pt.Transformer:
+def doc_features(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], npt.NDArray[Any]], *args, **kwargs) -> pt.Transformer:
     """
         Create a transformer that takes as input a ranked documents dataframe, and applies the supplied function to each document to compute feature scores. 
 
         The supplied function is called once for each document, must each time return a 1D numpy array.
-        Each time it is called, the function is supplied with a Panda Series representing the attributes of the query and document.
+        Each time it is called, the function is supplied with a Panda Series, or a dictionary, representing the attributes of the query and document. The
+        particular type of the input is not controlled by the implementor, so the function should be written to support both, e.g. using ``row["key"]``
+        notation and not the ``row.key`` that is supported by a Series.
 
         Arguments:
             fn(Callable): the function to apply to each row
@@ -128,7 +132,7 @@ def doc_features(fn : Callable[[pd.Series], npt.NDArray[Any]], *args, **kwargs) 
     """
     return ApplyDocFeatureTransformer(fn, *args, **kwargs)
 
-def indexer(fn : Callable[[Iterator[Dict[str,Any]]], Any], **kwargs) -> pt.Indexer:
+def indexer(fn : Callable[[pt.model.IterDict], Any], **kwargs) -> pt.Indexer:
     """
         Create an instance of pt.Indexer using a function that takes as input an interable dictionary.
 
@@ -164,35 +168,60 @@ def rename(columns : Dict[str,str], *args, errors='raise', **kwargs) -> pt.Trans
     """
     return ApplyGenericTransformer(lambda df: df.rename(columns=columns, errors=errors), *args, **kwargs)
 
-def generic(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, batch_size=None, **kwargs) -> pt.Transformer:
+def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.model.IterDict], pt.model.IterDict]], *args, batch_size=None, iter=False, **kwargs) -> pt.Transformer:
     """
         Create a transformer that changes the input dataframe to another dataframe in an unspecified way.
 
-        The supplied function is called once for an entire result set as a dataframe (which may contain one of more queries).
-        Each time it should return a new dataframe. The returned dataframe should abide by the general PyTerrier Data Model,
-        for instance updating the rank column if the scores are amended.
+        The supplied function is called once for an entire result set as a dataframe or iter-dict (which may contain one or 
+        more queries and one or more documents). Each time it should return a new dataframe. The returned dataframe (or yielded row) 
+        should abide by the general PyTerrier Data Model, for instance updating the rank column if the scores are amended.
 
         Arguments:
-            fn(Callable): the function to apply to each row
+            fn(Callable): the function to apply to each result set
             batch_size(int or None): whether to apply fn on batches of rows or all that are received
-            verbose(bool): Whether to display a progress bar over batches (only used if batch_size is set).
+            verbose(bool): Whether to display a progress bar over batches (only used if batch_size is set, and iter is not set).
+            iter(bool): Whether to use the iter-dict API - if-so, then ``fn`` receives an iterable, and returns an iterable. 
 
-        Example::
-
-            # this transformer will remove all documents at rank greater than 2.
+        Example (dataframe)::
 
             # this pipeline would remove all but the first two documents from a result set
             pipe = pt.terrier.Retriever(index) >> pt.apply.generic(lambda res : res[res["rank"] < 2])
 
+        Example (iter-dict)::
+
+            # this pipeline would simlarly remove all but the first two documents from a result set
+            def _fn(iterdict):
+                for result in iterdict:
+                    if result["rank"] < 2:
+                        yield result
+            pipe1 = pt.terrier.Retriever(index) >> pt.apply.generic(_fn, iter=True)
+
+            # transform_iter() can also return an iterable, so returning a list is also permissible
+            pipe2 = pt.terrier.Retriever(index) >> pt.apply.generic(lambda res: [row for row in res if row["rank"] < 2], iter=True)
+
     """
+    if iter:
+        if kwargs.get("add_ranks", False):
+            raise ValueError("add_ranks=True not supported with iter=True")
+        return ApplyGenericIterTransformer(fn, *args, batch_size=batch_size, **kwargs)
     return ApplyGenericTransformer(fn, *args, batch_size=batch_size, **kwargs)
 
-def by_query(fn : Callable[[pd.DataFrame], pd.DataFrame], *args, batch_size=None, **kwargs) -> pt.Transformer:
+def by_query(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.model.IterDict], pt.model.IterDict]], *args, batch_size=None, iter=False, **kwargs) -> pt.Transformer:
     """
-        As `pt.apply.generic()` except that fn receives a dataframe for one query at at time, rather than all results at once.
+        As `pt.apply.generic()` except that fn receives a dataframe (or iter-dict) for one query at at time, rather than all results at once.
         If batch_size is set, fn will receive no more than batch_size documents for any query. The verbose kwargs controls whether
         to display a progress bar over queries.  
+
+        Arguments:
+            fn(Callable): the function to apply to each row. Should return a generator
+            batch_size(int or None): whether to apply fn on batches of rows or all that are received.
+            verbose(bool): Whether to display a progress bar over batches (only used if batch_size is set, and iter is not set).
+            iter(bool): Whether to use the iter-dict API - if-so, then ``fn`` receives an iterable, and must return an iterable. 
     """
+    if iter:
+        if kwargs.get("add_ranks", False):
+            raise ValueError("add_ranks=True not supported with iter=True")
+        return ApplyIterForEachQuery(fn, *args, batch_size=batch_size, **kwargs)
     return ApplyForEachQuery(fn, *args, batch_size=batch_size, **kwargs)
 
 class _apply:
@@ -209,18 +238,16 @@ class _apply:
     def __getattr__(self, item):
         return partial(generic_apply, item)
 
-def generic_apply(name, *args, drop=False, **kwargs) -> pt.Transformer:
+def generic_apply(
+    name: str,
+    fn=None,
+    *,
+    drop: bool = False,
+    batch_size: Optional[int] = None,
+    verbose=False
+) -> pt.Transformer:
     if drop:
-        return ApplyGenericTransformer(lambda df : df.drop(name, axis=1), *args, **kwargs) 
-    
-    if len(args) == 0:
-        raise ValueError("Must specify a fn, e.g. a lambda")
+        assert fn is None, "cannot provide both fn and drop=True"
+        return DropColumnTransformer(name)
 
-    fn = args[0]
-    args=[]
-
-    def _new_column(df):
-        df[name] = df.apply(fn, axis=1, result_type='reduce')
-        return df
-    
-    return ApplyGenericTransformer(_new_column, *args, **kwargs)
+    return ApplyByRowTransformer(name, fn, batch_size=batch_size, verbose=verbose)

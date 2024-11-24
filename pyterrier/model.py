@@ -1,6 +1,11 @@
+import math
+import itertools
 import numpy as np
 import pandas as pd
-from typing import List, Sequence
+from typing import Any, Dict, Iterable, List, Sequence, Optional
+
+IterDictRecord = Dict[str, Any]
+IterDict = Iterable[IterDictRecord]
 
 # This file has useful methods for using the Pyterrier Pandas datamodel
 
@@ -79,28 +84,8 @@ def query_columns(df : pd.DataFrame, qid=True) -> Sequence[str]:
             rtr.append(c)
     return rtr
 
-def _last_query(df : pd.DataFrame) -> int:
-    """
-        Returns the index of the last query column.
-        Given a dataframe, returns:
 
-            -1 is there is only a query column
-            0 query_0 exists
-            1 query_1 exists
-            etc
-        
-    """
-    last = -1
-    columns = set(df.columns)
-    while True:
-        if not "query_%d" % (last+1) in columns:
-            break
-        last+=1
-        
-    #print("input %s rtr %d" % (str(columns), last))
-    return last
-
-def push_queries(df: pd.DataFrame, keep_original:bool=False, inplace:bool=False) -> pd.DataFrame:
+def push_queries(df: pd.DataFrame, *, keep_original: bool = False, inplace: bool = False) -> pd.DataFrame:
     """
         Changes a dataframe such that the "query" column becomes "query_0", and any
         "query_0" columns becames "query_1" etc.
@@ -112,20 +97,48 @@ def push_queries(df: pd.DataFrame, keep_original:bool=False, inplace:bool=False)
             inplace: if False, a copy of the dataframe is returned. If True, changes are made to the
                 supplied dataframe. Defaults to False. 
     """
-    if "query" not in df.columns:
-        raise TypeError("Expected a query column, but found %s" % df.columns) 
-    df = df if inplace else df.copy()
-    last_col = _last_query(df)
-    rename_cols={}
-    if last_col >= 0: 
-        rename_cols = { "query_%d" % col_index : "query_%d" % (col_index+1) for col_index in range(0, last_col+1) }
-    rename_cols["query"] = "query_0"
+    cols = set(df.columns)
+    if "query" not in cols:
+        raise KeyError(f"Expected a query column, but found {list(cols)}")
+    if not inplace:
+        df = df.copy()
+    prev_col = 'query'
+    rename_cols = {}
+    for query_idx in itertools.count():
+        next_col = f'query_{query_idx}'
+        if prev_col in cols:
+            rename_cols[prev_col] = next_col # map e.g., query_0 to be renamed to query_1
+            prev_col = next_col
+        else:
+             break
     df = df.rename(columns=rename_cols)
     if keep_original:
         df['query'] = df["query_0"]
     return df
 
-def pop_queries(df: pd.DataFrame, inplace:bool=False):
+
+def push_queries_dict(inp: IterDictRecord, *, keep_original: bool = False, inplace: bool = False) -> IterDictRecord:
+    """
+    Works like ``push_queries`` but over a dict instead of a dataframe.
+    """
+    if "query" not in inp:
+        raise KeyError(f"Expected a query column, but found {list(inp.keys())}")
+    if not inplace:
+        inp = inp.copy()
+    prev_col = 'query'
+    for query_idx in itertools.count():
+        next_col = f'query_{query_idx}'
+        if prev_col in inp:
+            inp[next_col] = inp.pop(prev_col) # assign e.g., query_1 to query_0
+            prev_col = next_col
+        else:
+             break
+    if keep_original:
+        inp['query'] = inp['query_0']
+    return inp
+
+
+def pop_queries(df: pd.DataFrame, *, inplace: bool = False) -> pd.DataFrame:
     """
         Changes a dataframe such that the "query_0" column becomes "query_1", and any
         "query_1" columns becames "query_0" etc. In effect, does the opposite of push_queries().
@@ -136,16 +149,25 @@ def pop_queries(df: pd.DataFrame, inplace:bool=False):
             inplace: if False, a copy of the dataframe is returned. If True, changes are made to the
                 supplied dataframe. Defaults to False. 
     """
-    if "query_0" not in df.columns:
-        raise TypeError("Expected a query_0 column, but found %s" % df.columns) 
-    last_col = _last_query(df)
-    df = df if inplace else df.copy()
+    cols = set(df.columns)
+    if "query_0" not in cols:
+        raise KeyError(f"Expected a query_0 column, but found {list(cols)}")
+    if not inplace:
+        df = df.copy()
     df.drop(columns=["query"], inplace=True)
-    rename_cols = { "query_%d" % (col_index+1) : "query_%d" % (col_index) for col_index in range(0, last_col+1) }
-    rename_cols["query_0"] = "query"
+    prev_col = 'query'
+    rename_cols = {}
+    for query_idx in itertools.count():
+        next_col = f'query_{query_idx}'
+        if next_col in cols:
+            rename_cols[next_col] = prev_col # map e.g., query_1 to be renamed to query_0
+            prev_col = next_col
+        else:
+             break
     df = df.rename(columns=rename_cols)
     return df
-    
+
+
 def ranked_documents_to_queries(topics_and_res : pd.DataFrame):
     return topics_and_res[query_columns(topics_and_res, qid=True)].groupby(["qid"]).first().reset_index()
 
@@ -207,11 +229,18 @@ def coerce_dataframe_types(dataframe):
     return dataframe
 
 
-def split_df(df : pd.DataFrame, N) -> List[pd.DataFrame]:
+def split_df(df : pd.DataFrame, N: Optional[int] = None, *, batch_size: Optional[int] = None) -> List[pd.DataFrame]:
     """
-    splits a dataframe into N different chunks. Splitting will be sensitive to the primary datatype
+    Splits a dataframe into N different chunks. Splitting will be sensitive to the primary datatype
     of the dataframe (Q,R,D).
+
+    Either ``N`` (the number of chunks) or ``batch_size`` (the size of each chunk) should be provided (but not both).
     """
+    assert (N is None) != (batch_size is None), "Either N or batch_size should be provided (and not both)"
+
+    if N is None:
+        N = math.ceil(len(df) / batch_size)
+
     type = None
     if "qid" in df.columns:
         if "docno" in df.columns:
@@ -222,8 +251,6 @@ def split_df(df : pd.DataFrame, N) -> List[pd.DataFrame]:
         type = "D"
     else:
         raise ValueError("Dataframe is not of type D,Q,R")
-    
-    from math import ceil
 
     def chunks(df, n):
         """Yield successive n-sized chunks from df."""
@@ -231,13 +258,13 @@ def split_df(df : pd.DataFrame, N) -> List[pd.DataFrame]:
             yield df.iloc[ i: min(len(df),i + n)]
     
     if type == "Q" or type == "D":         
-        splits = list( chunks(df, ceil(len(df)/N)))
+        splits = list( chunks(df, math.ceil(len(df)/N)))
         return splits
 
     rtr = []
     grouper = df.groupby("qid")
     this_group = []
-    chunk_size = ceil(len(grouper)/N)
+    chunk_size = math.ceil(len(grouper)/N)
     for qid, group in grouper:
         this_group.append(group)
         if len(this_group) == chunk_size:
@@ -246,4 +273,3 @@ def split_df(df : pd.DataFrame, N) -> List[pd.DataFrame]:
     if len(this_group) > 0:
         rtr.append(pd.concat(this_group))
     return rtr
-    

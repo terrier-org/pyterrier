@@ -7,6 +7,7 @@ import pandas as pd
 import pickle
 import datetime
 from warnings import warn
+from deprecated import deprecated
 CACHE_DIR = None
 DEFINITION_FILE = ".transformer"
 
@@ -30,6 +31,7 @@ def init():
     global CACHE_DIR
     CACHE_DIR = path.join(pt.io.pyterrier_home(), "transformer_cache") 
 
+@deprecated(version="0.11.1", reason="Use pyterrier-caching for more fine-grained caching, e.g. RetrieverCache or ScorerCache")
 def list_cache():
     if CACHE_DIR is None:
         init()
@@ -51,13 +53,14 @@ def list_cache():
         rtr[dirname] = elem
     return rtr
 
-
+@deprecated(version="0.11.1", reason="Use pyterrier-caching for more fine-grained caching, e.g. RetrieverCache or ScorerCache")
 def clear_cache():
     if CACHE_DIR is None:
         init()
     import shutil
     shutil.rmtree(CACHE_DIR)
 
+@deprecated(version="0.11.1", reason="Use pyterrier-caching for more fine-grained caching, e.g. RetrieverCache or ScorerCache")
 class ChestCacheTransformer(Transformer):
     """
         A transformer that cache the results of the consituent (inner) transformer. 

@@ -54,6 +54,7 @@ This class is the base class for all transformers.
 
 .. autoclass:: pyterrier.Transformer
     :members:
+    :special-members: __call__
 
 
 Default Method

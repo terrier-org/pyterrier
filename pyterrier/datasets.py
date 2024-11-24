@@ -54,7 +54,7 @@ class Dataset():
         """
         pass
 
-    def get_corpus_iter(self, verbose=True) -> Iterator[Dict[str,Any]]:
+    def get_corpus_iter(self, verbose=True) -> pt.model.IterDict:
         """
             Returns an iter of dicts for this collection. If verbose=True, a tqdm pbar shows the progress over this iterator.
         """
@@ -1188,18 +1188,30 @@ def list_datasets(en_only=True):
         By default, filters to only datasets with both a corpus and topics in English.
     """
     import pandas as pd
-    rows=[]
-    for k in datasets():
-        dataset = get_dataset(k)
-        rows.append([
-            k, 
-            dataset._describe_component("topics"), 
-            dataset.get_topics_lang(), 
-            dataset._describe_component("qrels"), 
-            dataset._describe_component("corpus"), 
-            dataset.get_corpus_lang(), 
-            dataset._describe_component("index"), 
-            dataset.info_url() ])
+    import os
+
+    # we should supress any IRDS warning about deprecated datasets 
+    restore_env = os.environ.get("IR_DATASETS_SKIP_DEPRECATED_WARNING", None)
+    try:
+        os.environ['IR_DATASETS_SKIP_DEPRECATED_WARNING'] = 'true'
+        rows=[]
+        for k in datasets():
+            dataset = get_dataset(k)
+            rows.append([
+                k, 
+                dataset._describe_component("topics"), 
+                dataset.get_topics_lang(), 
+                dataset._describe_component("qrels"), 
+                dataset._describe_component("corpus"), 
+                dataset.get_corpus_lang(), 
+                dataset._describe_component("index"), 
+                dataset.info_url() ])
+    finally:
+        if restore_env is None:
+            del os.environ['IR_DATASETS_SKIP_DEPRECATED_WARNING']
+        else:
+            os.environ['IR_DATASETS_SKIP_DEPRECATED_WARNING'] = restore_env
+    
     result = pd.DataFrame(rows, columns=["dataset", "topics", "topics_lang", "qrels", "corpus", "corpus_lang", "index", "info_url"])
     if en_only:
         topics_filter = (result['topics'].isnull()) | (result['topics_lang'] == 'en')
