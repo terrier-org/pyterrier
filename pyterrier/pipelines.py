@@ -15,7 +15,7 @@ SAVEMODE_TYPE=Literal['reuse', 'overwrite', 'error', 'warn']
 
 SYSTEM_OR_RESULTS_TYPE = Union[Transformer, pd.DataFrame]
 
-def _bold_cols(data, col_type):
+def _bold_cols(data : pd.Series, col_type):
     if not data.name in col_type:
         return [''] * len(data)
     
@@ -30,7 +30,7 @@ def _bold_cols(data, col_type):
     is_max[len(data) - list(reversed(data)).index(max_value) -  1] = colormaxlast_attr
     return is_max
 
-def _color_cols(data, col_type, 
+def _color_cols(data : pd.Series, col_type, 
                        colormax='antiquewhite', colormaxlast='lightgreen', 
                        colormin='antiquewhite', colorminlast='lightgreen' ):
     if not data.name in col_type:
@@ -278,6 +278,7 @@ def _run_and_evaluate(
         if not perquery:
             # aggregate measures if not in per query mode
             aggregators = {rev_mapping.get(m, str(m)): m.aggregator() for m in metrics}
+            q : str
             for q in evalMeasuresDict:
                 for metric in metrics:
                     s_metric = rev_mapping.get(metric, str(metric))
@@ -594,9 +595,9 @@ def Experiment(
                 df.insert(insert_pos+2, pcol_corrected, corrected)
         
         if highlight == "color" or highlight == "colour" :
-            df = df.style.apply(_color_cols, axis=0, col_type=highlight_cols)
+            df = df.style.apply(_color_cols, axis=0, col_type=highlight_cols) # type: ignore
         elif highlight == "bold":
-            df = df.style.apply(_bold_cols, axis=0, col_type=highlight_cols)
+            df = df.style.apply(_bold_cols, axis=0, col_type=highlight_cols) # type: ignore
             
         return df 
     return evalDict
