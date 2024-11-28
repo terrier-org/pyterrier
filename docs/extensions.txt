@@ -1,13 +1,13 @@
 # Adaptive Re-Ranking <https://github.com/terrierteam/pyterrier_adaptive>
-# Advanced Caching <https://github.com/seanmacavaney/pyterrier-caching>
 pyterrier_alpha # Alpha Features
 pyterrier_anserini # Anserini
 # AutoQrels <https://github.com/seanmacavaney/autoqrels>
+pyterrier_caching # Caching
 # ChatNoir <https://github.com/chatnoir-eu/chatnoir-pyterrier>
 # ColBERT <https://github.com/terrierteam/pyterrier_colbert>
 # DeepCT <https://github.com/terrierteam/pyterrier_deepct>
 # DeepImpact <https://github.com/terrierteam/pyterrier_deepimpact>
-# Dense Retrieval <https://github.com/terrierteam/pyterrier_dr>
+pyterrier_dr # Dense Retrieval
 # Doc2Query <https://github.com/terrierteam/pyterrier_doc2query>
 # Document Quality <https://github.com/terrierteam/pyterrier-quality>
 # GenRank <https://github.com/emory-irlab/pyterrier_genrank>
