@@ -253,7 +253,7 @@ class ApplyDocumentScoringTransformer(pt.Transformer):
     def _transform_rowwise(self, outputRes):
         if self.verbose:
             pt.tqdm.pandas(desc="pt.apply.doc_score", unit="d")
-            outputRes["score"] = outputRes.progress_apply(self.fn, axis=1).astype('float64')
+            outputRes["score"] = outputRes.progress_apply(self.fn, axis=1).astype('float64') # type: ignore
         else:
             outputRes["score"] = outputRes.apply(self.fn, axis=1).astype('float64')
         outputRes = pt.model.add_ranks(outputRes)
@@ -323,7 +323,7 @@ class ApplyDocFeatureTransformer(pt.Transformer):
         outputRes = inp.copy()
         if self.verbose:
             pt.tqdm.pandas(desc="pt.apply.doc_features", unit="d") # type: ignore
-            outputRes["features"] = outputRes.progress_apply(fn, axis=1)
+            outputRes["features"] = outputRes.progress_apply(fn, axis=1) # type: ignore
         else:
             outputRes["features"] = outputRes.apply(fn, axis=1)
         return outputRes
@@ -385,7 +385,7 @@ class ApplyQueryTransformer(pt.Transformer):
         try:
             if self.verbose:
                 pt.tqdm.pandas(desc="pt.apply.query", unit="d") # type: ignore
-                outputRes["query"] = outputRes.progress_apply(self.fn, axis=1)
+                outputRes["query"] = outputRes.progress_apply(self.fn, axis=1) # type: ignore
             else:
                 outputRes["query"] = outputRes.apply(self.fn, axis=1)
         except ValueError as ve:
