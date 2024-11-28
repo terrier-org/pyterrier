@@ -1,0 +1,31 @@
+name: Documentation
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  sphinx:
+    runs-on: 'ubuntu-latest'
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install Dependencies
+      run: |
+        pip install . -r docs/requirements.txt -r docs/extensions.txt
+
+    - name: Sphinx
+      run: |
+        cd docs ; QUICK=1 make html
+
+     - name: Upload Documentation
+       uses: actions/upload-artifact@v4
+       with:
+         path: docs/_build/html/
