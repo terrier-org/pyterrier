@@ -25,7 +25,7 @@ jobs:
       run: |
         cd docs ; QUICK=1 make html
 
-     - name: Upload Documentation
-       uses: actions/upload-artifact@v4
-       with:
-         path: docs/_build/html/
+    - name: Upload Documentation
+      uses: actions/upload-artifact@v4
+      with:
+        path: docs/_build/html/
