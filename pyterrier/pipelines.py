@@ -108,7 +108,7 @@ def _ir_measures_to_dict(
         rev_mapping : Dict[BaseMeasure,str], 
         num_q : int,
         perquery : bool = True,
-        backfill_qids : Optional[Sequence[str]] = None) -> Union[ Dict[str, Dict[str, float]] | Dict[str, float]]:
+        backfill_qids : Optional[Sequence[str]] = None) -> Union[ Dict[str, Dict[str, float]], Dict[str, float]]:
     from collections import defaultdict
     if perquery:
         # qid -> measure -> value
