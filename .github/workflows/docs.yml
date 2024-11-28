@@ -22,7 +22,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ${{ env.pythonLocation }}
-        key: ${{ hashFiles('requirements.txt') }}-${{ hashFiles('docs/requirements.txt') }}-${{ hashFiles('docs/extensions.txt') }}
+        key: docs-${{ hashFiles('requirements.txt') }}-${{ hashFiles('docs/requirements.txt') }}-${{ hashFiles('docs/extensions.txt') }}
 
     - name: Install Dependencies
       run: |
