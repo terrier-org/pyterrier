@@ -6,8 +6,8 @@ pipeline over a set of queries, and evaluating the outcome using standard inform
 metrics based on known relevant documents (obtained from a set relevance assessments, also known as *qrels*).
 
 
-NB: For calculating evaluation metrics, we used `ir_measures <https://github.com/terrierteam/ir_measures>`_ library,
-which includes implementations of many standard metrics. By default, most metrics are calculated by our fork of 
+NB: For calculating evaluation metrics, we use `ir_measures <https://github.com/terrierteam/ir_measures>`_ library,
+which includes implementations of many standard metrics. By default, to calculate more measures, ir_measures uses our fork of 
 the `pytrec_eval <https://github.com/cvangysel/pytrec_eval>`_ library, which itself is a Python wrapper around 
 the widely-used `trec_eval evaluation tool <https://github.com/usnistgov/trec_eval>`_.
 
