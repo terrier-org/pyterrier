@@ -703,7 +703,7 @@ def KFoldGridSearch(
         qrels = [qrels] * num_folds    
     
     FOLDS=list(range(0, num_folds))
-    results=[]
+    results : List[pd.DataFrame] = []
     settings=[]
 
     # save state
@@ -723,6 +723,9 @@ def KFoldGridSearch(
         # safety - give the GridSearch a stable initial setting
         _restore_state(initial_state)
 
+        optPipe: Transformer
+        max_measure: float
+        max_setting: List[GRID_SCAN_PARAM_SETTING]
         optPipe, max_measure, max_setting = GridSearch(
             pipeline,
             params,
