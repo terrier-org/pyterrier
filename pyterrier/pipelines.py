@@ -108,7 +108,7 @@ def _ir_measures_to_dict(
         rev_mapping : Dict[BaseMeasure,str], 
         num_q : int,
         perquery : bool = True,
-        backfill_qids : Optional[Sequence[str]] = None):
+        backfill_qids : Optional[Sequence[str]] = None) -> Dict[str, Dict[str, float]]:
     from collections import defaultdict
     if perquery:
         # qid -> measure -> value
@@ -436,6 +436,7 @@ def Experiment(
     elif test == "wilcoxon":
         test_fn = stats.wilcoxon
     else:
+        assert not isinstance(test, str), "Unknown test function name %s" % test
         test_fn = test
     
     # obtain system names if not specified
@@ -466,7 +467,7 @@ def Experiment(
     mrt_needed = False
     if "mrt" in eval_metrics:
         mrt_needed = True
-        eval_metrics = eval_metrics.copy()
+        eval_metrics = list(eval_metrics).copy()
         eval_metrics.remove("mrt")
 
     # progress bar construction
@@ -790,6 +791,7 @@ def GridSearch(
         verbose, 
         batch_size, 
         dataframe=False)
+    assert not isinstance(grid_outcomes, pd.DataFrame)
 
     assert len(grid_outcomes) > 0, "GridScan returned 0 rows"
     max_measure = grid_outcomes[0][1][metric]
