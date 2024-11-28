@@ -2,14 +2,14 @@ from warnings import warn
 import os
 import pandas as pd
 import numpy as np
-from typing import Callable, Union, Dict, List, Tuple, Sequence, Any, Literal, Optional
+from typing import Callable, Iterator, Union, Dict, List, Tuple, Sequence, Any, Literal, Optional
 from . import Transformer
 from .model import coerce_dataframe_types
 import ir_measures
 import tqdm as tqdm_module
-from ir_measures.measures import BaseMeasure 
+from ir_measures import Measure, Metric
 import pyterrier as pt
-MEASURE_TYPE=Union[str,BaseMeasure]
+MEASURE_TYPE=Union[str,Measure]
 MEASURES_TYPE=Sequence[MEASURE_TYPE]
 SAVEMODE_TYPE=Literal['reuse', 'overwrite', 'error', 'warn']
 
@@ -76,12 +76,12 @@ def _mean_of_measures(result, measures=None, num_q = None):
             mean_dict[measure] = value / (1 if measure in measures_no_mean else num_q)
         return mean_dict
 
-def _convert_measures(metrics : MEASURES_TYPE) -> Tuple[Sequence[BaseMeasure], Dict[BaseMeasure,str]]:
+def _convert_measures(metrics : MEASURES_TYPE) -> Tuple[Sequence[Measure], Dict[Measure,str]]:
     from ir_measures import parse_trec_measure
     rtr = []
     rev_mapping = {}
     for m in metrics:
-        if isinstance(m, BaseMeasure):
+        if isinstance(m, Measure):
             rtr.append(m)
             continue
         elif isinstance(m, str):
@@ -103,43 +103,44 @@ def _convert_measures(metrics : MEASURES_TYPE) -> Tuple[Sequence[BaseMeasure], D
 #list(iter_calc([ir_measures.AP], qrels, run))
 #[Metric(query_id='Q0', measure=AP, value=1.0), Metric(query_id='Q1', measure=AP, value=1.0)]
 def _ir_measures_to_dict(
-        seq : Sequence, 
-        metrics: Sequence[BaseMeasure],
-        rev_mapping : Dict[BaseMeasure,str], 
+        seq : Iterator[Metric], 
+        measures: Sequence[Measure],
+        rev_mapping : Dict[Measure,str], 
         num_q : int,
         perquery : bool = True,
         backfill_qids : Optional[Sequence[str]] = None) -> Union[ Dict[str, Dict[str, float]], Dict[str, float]]:
     from collections import defaultdict
     if perquery:
         # qid -> measure -> value
-        rtr : Dict[str, Dict[str, float]] = defaultdict(dict)
-        for m in seq:
-            metric = m.measure
-            metric = rev_mapping.get(metric, str(metric))
-            rtr[m.query_id][metric] = m.value
+        rtr_perquery : Dict[str, Dict[str, float]] = defaultdict(dict)
+        for metric in seq:
+            measure = metric.measure
+            measure_name = rev_mapping.get(measure, str(measure))
+            rtr_perquery[metric.query_id][measure_name] = metric.value
         # When reporting per-query results, it can desirable to show something for topics that were executed
         # do not have corresponding qrels. If the caller passes in backfill_qids, we'll ensure that these
         # qids are present, and if not add placeholders with NaN values for all measures.
         if backfill_qids is not None:
             backfill_count = 0
             for qid in backfill_qids:
-                if qid not in rtr:
+                if qid not in rtr_perquery:
                     backfill_count += 1
-                    for metric in metrics:
-                        rtr[qid][rev_mapping.get(metric, str(metric))] = float('NaN')
+                    for m in measures:
+                        rtr_perquery[qid][rev_mapping.get(m, str(m))] = float('NaN')
             if backfill_count > 0:
                 warn(f'{backfill_count} topic(s) not found in qrels. Scores for these topics are given as NaN and should not contribute to averages.')
-        return rtr
+        return rtr_perquery
     assert backfill_qids is None, "backfill_qids only supported when perquery=True"
-    # measure -> value
-    rtr = {rev_mapping.get(m, str(m)): m.aggregator() for m in metrics}
-    for m in seq:
-        metric = m.measure
-        metric = rev_mapping.get(metric, str(metric))
-        rtr[metric].add(m.value) # type: ignore # THERE is no typing for aggregators in ir_measures
-    for m in rtr:
-        rtr[m] = rtr[m].result() # type: ignore # THERE is no typing for aggregators in ir_measures
-    return rtr
+    
+    metric_agg = {rev_mapping.get(m, str(m)): m.aggregator() for m in measures}
+    for metric in seq:
+        measure_name = rev_mapping.get(metric.measure, str(metric.measure))
+        metric_agg[measure_name].add(metric.value)
+    
+    rtr_aggregated : Dict[str,float] = {} # measure -> value
+    for m_name in metric_agg:
+        rtr_aggregated[m_name] = metric_agg[m_name].result()
+    return rtr_aggregated
 
 def _run_and_evaluate(
         system : SYSTEM_OR_RESULTS_TYPE, 
