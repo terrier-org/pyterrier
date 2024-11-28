@@ -54,7 +54,7 @@ def empty_R() -> pd.DataFrame:
 def ranked_documents(
         scores : Sequence[Sequence[float]], 
         qid : Optional[Sequence[str]] = None, 
-        docno = Optional[Sequence[Sequence[str]]], 
+        docno : Optional[Sequence[Sequence[str]]] = None, 
         **others) -> pd.DataFrame:
     """
         Creates a new ranked documents dataframe. Will return a dataframe with the columns `["qid", "docno", "score", "rank"]`. 
