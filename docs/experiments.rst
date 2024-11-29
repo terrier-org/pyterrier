@@ -242,18 +242,18 @@ Available Evaluation Measures
 All `trec_eval <https://github.com/usnistgov/trec_eval>`_ evaluation measure are available. 
 Often used measures, including the name that must be used, are:
 
- - Mean Average Precision (`map`).
- - Mean Reciprocal Rank (`recip_rank`).
- - Normalized Discounted Cumulative Gain (`ndcg`), or calculated at a given rank cutoff (e.g. `ndcg_cut_5`).
- - Number of queries (`num_q`) - not averaged.
- - Number of retrieved documents (`num_ret`) - not averaged.
- - Number of relevant documents (`num_rel`) - not averaged.
- - Number of relevant documents retrieved (`num_rel_ret`) - not averaged.
- - Interpolated recall precision curves (`iprec_at_recall`). This is family of measures, so requesting `iprec_at_recall` will output measurements for `IPrec@0.00`, `IPrec@0.10`, etc.
- - Precision at rank cutoff (e.g. `P_5`).
- - Recall (`recall`) will generate recall at different cutoffs, such as `recall_5`, etc.).
- - Mean response time (`mrt`) will report the average number of milliseconds to conduct a query (this is calculated by `pt.Experiment()` directly, not pytrec_eval).
- - trec_eval measure *families* such as `official`, `set` and `all_trec` will be expanded. These result in many measures being returned. For instance, asking for `official` results in the following (very wide) output reporting the usual default metrics of trec_eval:
+- Mean Average Precision (`map`).
+- Mean Reciprocal Rank (`recip_rank`).
+- Normalized Discounted Cumulative Gain (`ndcg`), or calculated at a given rank cutoff (e.g. `ndcg_cut_5`).
+- Number of queries (`num_q`) - not averaged.
+- Number of retrieved documents (`num_ret`) - not averaged.
+- Number of relevant documents (`num_rel`) - not averaged.
+- Number of relevant documents retrieved (`num_rel_ret`) - not averaged.
+- Interpolated recall precision curves (`iprec_at_recall`). This is family of measures, so requesting `iprec_at_recall` will output measurements for `IPrec@0.00`, `IPrec@0.10`, etc.
+- Precision at rank cutoff (e.g. `P_5`).
+- Recall (`recall`) will generate recall at different cutoffs, such as `recall_5`, etc.).
+- Mean response time (`mrt`) will report the average number of milliseconds to conduct a query (this is calculated by `pt.Experiment()` directly, not pytrec_eval).
+- trec_eval measure *families* such as `official`, `set` and `all_trec` will be expanded. These result in many measures being returned. For instance, asking for `official` results in the following (very wide) output reporting the usual default metrics of trec_eval:
 
 .. include:: ./_includes/experiment-official.rst
 

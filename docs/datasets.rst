@@ -6,10 +6,10 @@ Importing Datasets
 The datasets module allows easy access to existing standard test collections, particulary those from `TREC <https://trec.nist.gov/>`_. In particular, 
 each defined dataset can download and provide easy access to:
 
- - files containing the documents of the corpus
- - topics (queries), as a dataframe, ready for retrieval
- - relevance assessments (aka, labels or qrels), as a dataframe, ready for evaluation
- - ready-made Terrier indices, where appropriate
+- files containing the documents of the corpus
+- topics (queries), as a dataframe, ready for retrieval
+- relevance assessments (aka, labels or qrels), as a dataframe, ready for evaluation
+- ready-made Terrier indices, where appropriate
 
 .. autofunction:: pyterrier.datasets.list_datasets
 

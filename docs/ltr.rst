@@ -8,9 +8,9 @@ Introduction
 
 PyTerrier makes it easy to formulate learning to rank pipelines. Conceptually, learning to rank consists of three phases:
 
- 1. identifying a candidate set of documents for each query
- 2. computing extra features on these documents
- 3. using a learned model to re-rank the candidate documents to obtain a more effective ranking
+1. identifying a candidate set of documents for each query
+2. computing extra features on these documents
+3. using a learned model to re-rank the candidate documents to obtain a more effective ranking
 
 PyTerrier allows each of these phases to be expressed as transformers, and for them to be composed into a full pipeline.  
 

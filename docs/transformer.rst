@@ -5,9 +5,9 @@ PyTerrier Transformers
 
 PyTerrier's retrieval architecture is based on three concepts:
 
- - dataframes with pre-defined types (each with a minimum set of known attributes), as detailed in the data model.
- - the *transformation* of those dataframes by standard information retrieval operations, defined as transformers.
- - the compsition of transformers, supported by the operators defined on transformers.
+- dataframes with pre-defined types (each with a minimum set of known attributes), as detailed in the data model.
+- the *transformation* of those dataframes by standard information retrieval operations, defined as transformers.
+- the compsition of transformers, supported by the operators defined on transformers.
 
 In essence, a PyTerrier transformer is a class with a ``transform()`` method, which takes as input a dataframe, and changes it,
 before returning it. 
@@ -150,12 +150,15 @@ IterDictIndexer - it should implement an ``index()`` method like pt.Indexer. For
 
 This is implemented by several methods:
 
- - The last stage of the pipeline should have an ``index()`` method that accepts an iterable of dictionaries
- - ComposedPipeline has a special ``index()`` method that breaks the input iterable into chunks (the size of 
-   chunks can be altered by a batch_size kwarg) and passes those through the intermediate pipeline stages (i.e. all but the last).
- - In the intermediate pipeline stages, the ``transform_iter()`` method is called - by default this instantiates a DataFrame
-   on batch_size records, which is passed to ``transform()``.
- - These are passed to ``index()`` of the last pipeline stage.
+- The last stage of the pipeline should have an ``index()`` method that accepts an iterable of dictionaries
+
+- ComposedPipeline has a special ``index()`` method that breaks the input iterable into chunks (the size of 
+  chunks can be altered by a batch_size kwarg) and passes those through the intermediate pipeline stages (i.e. all but the last).
+
+- In the intermediate pipeline stages, the ``transform_iter()`` method is called - by default this instantiates a DataFrame
+  on batch_size records, which is passed to ``transform()``.
+
+- These are passed to ``index()`` of the last pipeline stage.
 
 Writing your own transformer
 ============================
