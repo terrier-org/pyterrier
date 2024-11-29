@@ -380,7 +380,7 @@ def register_config(name, config: Dict[str, Any]):
 # Java Classes
 # ----------------------------------------------------------
 # This class enables the lazy loading of java classes. It
-# helps avoid needing a ton of autclass() statements to
+# helps avoid needing a ton of autoclass() statements to
 # pre-load Java classes.
 # ----------------------------------------------------------
 

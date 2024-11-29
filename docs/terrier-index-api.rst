@@ -99,7 +99,7 @@ We can iterate over a Lexicon. Like calling the ``iterator()`` method of
 `Lexicon <http://terrier.org/docs/current/javadoc/org/terrier/structures/Lexicon.html>`_, 
 in Java, each iteration obtains a ``Map.Entry<String,LexiconEntry>``. This can be decoded, 
 so we can iterate over each term and LexiconEntry (which provides access to the statistics 
-of each term) contained within the Lexicon.  
+of each term) contained within the Lexicon::
 
     for term, le in index.getLexicon():
         print(term)

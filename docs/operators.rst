@@ -346,22 +346,8 @@ are not identical, and indeed, `a` is parsed like `b`, while `c` is almost alway
     c = sample_br >> ( BM25F_br ** PL2F_br)
     
 
-Caching (`~`)
--------------
+Caching Transformers
+--------------------
 
-Some transformers are expensive to apply. For instance, we might find ourselves repeatedly running 
-our BM25 baseline. We can request Pyterrier to _cache_ the outcome of a transformer for a given
-qid by using the unary `~` operator.
-
-Consider the following example::
-
-    from pyterrier import BatchRetrieve, Experiment
-    firstpass = BatchRetrieve(index, "BM25")
-    reranker = ~firstpass >> BatchRetrieve(index, "BM25F")
-    Experiment([~firstpass, ~reranker], topics, qrels)
-
-In this example, `firstpass` is cached when it is used in the Experiment evaluation, as well as when it is used in 
-the reranker. We also cache the outcome of the Experiment, so that another evaluation will be faster.
-
-By default, Pyterrier caches results to `~/.pyterrier/transformer_cache/`.
-
+Some transformers are expensive to apply. For performing experiments, you may value using `pyterrier-caching <https://github.com/seanmacavaney/pyterrier-caching>`_
+to allow the results of a transformer to be cached.

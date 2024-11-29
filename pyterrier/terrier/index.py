@@ -530,7 +530,7 @@ class _BaseIterDictIndexer(TerrierIndexer, pt.Indexer):
         Args:
             index_path(str): Directory to store index. Ignored for IndexingType.MEMORY.
             meta(Dict[str,int]): What metadata for each document to record in the index, and what length to reserve. Metadata fields will be truncated to this length. Defaults to `{"docno" : 20}`.
-            meta_reverse(List[str]): What metadata shoudl we be able to resolve back to a docid. Defaults to `["docno"]`,      
+            meta_reverse(List[str]): What metadata should we be able to resolve back to a docid. Defaults to `["docno"]`,      
         """
         pt.Indexer.__init__(self)
         TerrierIndexer.__init__(self, index_path, *args, **kwargs)
