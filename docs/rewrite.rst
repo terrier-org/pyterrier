@@ -6,14 +6,14 @@ search ranking. PyTerrier supplies a number of query rewriting transformers desi
 
 Firstly, we differentiate between two forms of query rewriting:
 
- - `Q -> Q`: this rewrites the query, for instance by adding/removing extra query terms. Examples might 
-   be a WordNet- or Word2Vec-based QE; The input dataframes contain only `["qid", "docno"]` columns. The 
-   output dataframes contain `["qid", "query", "query_0"]` columns, where `"query"` contains the reformulated
-   query, and `"query_0"` contains the previous formulation of the query.
+- `Q -> Q`: this rewrites the query, for instance by adding/removing extra query terms. Examples might 
+  be a WordNet- or Word2Vec-based QE; The input dataframes contain only `["qid", "docno"]` columns. The 
+  output dataframes contain `["qid", "query", "query_0"]` columns, where `"query"` contains the reformulated
+  query, and `"query_0"` contains the previous formulation of the query.
 
- - `R -> Q`: these class of transformers rewrite a query by making use of an associated set of documents.
-   This is typically exemplifed by pseudo-relevance feedback. Similarly the output dataframes contain 
-   `["qid", "query", "query_0"]` columns.
+- `R -> Q`: these class of transformers rewrite a query by making use of an associated set of documents.
+  This is typically exemplifed by pseudo-relevance feedback. Similarly the output dataframes contain 
+  `["qid", "query", "query_0"]` columns.
 
 The previous formulation of the query can be restored using `pt.rewrite.reset()`, discussed below.
 
@@ -24,9 +24,9 @@ This class implements Metzler and Croft's sequential dependence model, designed 
 documents where the query terms occur in close proximity. Application of this transformer rewrites 
 each input query such that:
 
- - pairs of adjacent query terms are added as `#1` and `#uw8` complex query terms, with a low weight.
- - the full query is added as `#uw12` complex query term, with a low weight.
- - all terms are weighted by a proximity model, either Dirichlet LM or pBiL2.
+- pairs of adjacent query terms are added as `#1` and `#uw8` complex query terms, with a low weight.
+- the full query is added as `#uw12` complex query term, with a low weight.
+- all terms are weighted by a proximity model, either Dirichlet LM or pBiL2.
 
 For example, the query `pyterrier IR platform` would become `pyterrier IR platform #1(pyterrier IR) #1(IR platform) #uw8(pyterrier IR) #uw8(IR platform) #uw12(pyterrier IR platform)`.
 NB: Acutally, we have simplified the rewritten query - in practice, we also (a) set the weight of the proximity terms to be low using a `#combine()`
@@ -81,9 +81,9 @@ which will result in identical retrieval effectiveness::
 
 However, using `pt.rewrite.Bo1QueryExpansion` is preferable as:
 
- - the semantics of retrieve >> rewrite >> retrieve are clearly visible.
- - the complex control configuration of Terrier need not be learned. 
- - the rewritten query is visible outside, and not hidden inside Terrier.
+- the semantics of retrieve >> rewrite >> retrieve are clearly visible.
+- the complex control configuration of Terrier need not be learned. 
+- the rewritten query is visible outside, and not hidden inside Terrier.
 
 References:
  - Amati, Giambattista (2003) Probability models for information retrieval based on divergence from randomness. PhD thesis, University of Glasgow.
