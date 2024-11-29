@@ -26,9 +26,6 @@ dynamic = ["version", "dependencies"]
 version = {attr = "pyterrier.__version__"}
 dependencies = {file = ["requirements.txt"]}
 
-#package_data={'': ['LICENSE.txt', 'requirements.txt', 'requirements-test.txt']}
-#include_package_data=True
-
 [tool.setuptools.packages.find]
 exclude = ["tests"]
 
