@@ -7,15 +7,15 @@ With large datasets, retrieval can sometimes take some time. To address this, Py
 
 Each Transformer has a `.parallel()` method, which parallelises the transformer.  Two backends are supported:
 
- - `'joblib'` - uses multiple processes on your current machine. Resources such as indices will be opened multiple times on your machine. Joblib is the default backend for parallelisation in PyTerrier.
- - `'ray'` - uses multiple processes on your machine or on other machines in the same cluster, orchestrated in a `Ray <https://ray.io>`_ cluster. Large indices will be reopened on each machine.
+- `'joblib'` - uses multiple processes on your current machine. Resources such as indices will be opened multiple times on your machine. Joblib is the default backend for parallelisation in PyTerrier.
+- `'ray'` - uses multiple processes on your machine or on other machines in the same cluster, orchestrated in a `Ray <https://ray.io>`_ cluster. Large indices will be reopened on each machine.
 
 Parallelisation occurs by partitioning dataframes and separating them across different processes. Partitioning depends on the type
 of the input dataframe:
 
- - queries: partitioned by qid
- - documents: partitioned by docno
- - ranked documents: partitioned by qid
+- queries: partitioned by qid
+- documents: partitioned by docno
+- ranked documents: partitioned by qid
 
 NB: Parallelisation is an experimental features. Please let us know what works or what doesnt work using the `PyTerrier issue tracker <https://github.com/terrier-org/pyterrier/issues>`_.
 

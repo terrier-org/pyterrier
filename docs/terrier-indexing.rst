@@ -8,9 +8,9 @@ Indexer Classes
 
 There are four indexer classes:
 
- - You can create an index from TREC-formatted files, from a TREC test collection, using ``TRECCollectionIndexer``.
- - For indexing TXT, PDF, Microsoft Word files, etc files you can use ``FilesIndexer``.
- - For any abitrary iterable dictionaries, or a Pandas Dataframes, you can use ``IterDictIndexer``.
+- You can create an index from TREC-formatted files, from a TREC test collection, using ``TRECCollectionIndexer``.
+- For indexing TXT, PDF, Microsoft Word files, etc files you can use ``FilesIndexer``.
+- For any abitrary iterable dictionaries, or a Pandas Dataframes, you can use ``IterDictIndexer``.
 
 There are also different types of indexing supported in Terrier that are exposed in PyTerrier. We explain both the indexing types and the indexer classes below, with examples. Further worked examples of indexing are provided in the `example indexing notebook <https://github.com/terrier-org/pyterrier/blob/master/examples/notebooks/indexing.ipynb>`_.
 
