@@ -1,3 +1,4 @@
+from typing import Optional
 import os
 import json
 import requests
@@ -13,7 +14,7 @@ latex_converter = LatexNodes2Text()
 CACHE_FILE = "dblp_cache.json.gz"
 
 
-def load_cache():
+def load_dblp_cache():
     """Load the cache from the file, or create a new one if it doesn't exist."""
     if os.path.exists(CACHE_FILE):
         with gzip.open(CACHE_FILE, "rt") as f:
@@ -23,29 +24,68 @@ def load_cache():
                 return {}
     return {}
 
+dblp_cache = load_dblp_cache()
 
-def save_cache(cache):
+def save_dblp_cache():
     """Save the cache to the file."""
     with gzip.open(CACHE_FILE, "wt") as f:
-        json.dump(cache, f, indent=4)
+        json.dump(dblp_cache, f, indent=4)
 
 
 class CiteNode(nodes.General, nodes.Element):
     """Custom node to render DBLP citation."""
-    pass
+    def __init__(self, citation_id, citation, link, bibtex):
+        super().__init__()
+        self['id'] = citation_id
+        self['citation'] = citation
+        self['link'] = link
+        self['bibtex'] = bibtex
 
 
-class DblpDirective(Directive):
+class CiteDirective(Directive):
+    required_arguments = 1
+    has_content = True
+    option_spec = {'citation': str, 'link': str, 'blbtex': str}
+
+    def run(self):
+        # Create a custom node to hold the BibTeX content and display data
+        node = CiteNode(
+            self.get_citation_id(),
+            self.get_citation(),
+            self.get_link(),
+            self.get_bibtex()
+        )
+
+        # in the future, could store citation information in self.state.document.settings.env
+        # to generate a bibliography page.
+
+        return [node]
+
+    def get_citation_id(self) -> str:
+        return self.arguments[0]
+
+    def get_citation(self) -> Optional[str]:
+        return self.options.get('citation')
+
+    def get_link(self) -> Optional[str]:
+        return self.options.get('link')
+
+    def get_bibtex(self) -> Optional[str]:
+        if self.content:
+            return '\n'.join(self.content)
+        return None
+
+
+class CiteDblpDirective(CiteDirective):
     """Directive to fetch and display a citation from DBLP using a DBLP ID."""
     has_content = False
     required_arguments = 1  # The DBLP ID must be provided as an argument.
 
     def run(self):
         dblp_id = self.arguments[0]
-        cache = load_cache()
 
-        if dblp_id in cache:
-            bibtex_entry_short, bibtex_entry_full = cache[dblp_id]
+        if dblp_id in dblp_cache:
+            bibtex_entry_short, bibtex_entry_full = dblp_cache[dblp_id]
         else:
             # Fetch BibTeX entry from DBLP
             try:
@@ -55,41 +95,23 @@ class DblpDirective(Directive):
                 response = requests.get(f"https://dblp.org/rec/{dblp_id}.bib?param=1")
                 response.raise_for_status()
                 bibtex_entry_full = response.text
-                cache[dblp_id] = [bibtex_entry_short, bibtex_entry_full]  # Save to cache
-                save_cache(cache)  # Persist the cache
+                dblp_cache[dblp_id] = [bibtex_entry_short, bibtex_entry_full]  # Save to cache
+                save_dblp_cache()  # Persist the cache
             except requests.RequestException as e:
                 error_msg = f"Failed to fetch BibTeX for DBLP ID '{dblp_id}': {str(e)}"
                 return [nodes.error(None, nodes.Text(error_msg))]
+        self.bibtex_entry_short = bibtex_entry_short
+        self.bibtex_entry_full = bibtex_entry_full
+        return super().run()
 
-        citation_id = f'dblp:{dblp_id}'
-        citation = self.parse_bibtex_citation(bibtex_entry_short)
-        link = self.parse_bibtex_link(bibtex_entry_full)
-        bibtex = bibtex_entry_full
+    def get_citation_id(self) -> str:
+        return 'dblp:' + self.arguments[0]
 
-        # Create a custom node to hold the BibTeX content and display data
-        node = CiteNode()
-        node['id'] = citation_id
-        node['citation'] = citation
-        node['link'] = link
-        node['bibtex'] = bibtex
-
-        env = self.state.document.settings.env
-        if not hasattr(env, "citations"):
-            env.citations = {}
-        if citation_id not in env.citations:
-            env.citations[citation_id] = {
-                'id': citation_id,
-                'citation': citation,
-                'link': link,
-                'docnames': []
-            }
-        env.citations[citation_id]['docnames'].append(env.docname)
-
-        return [node]
-
-    def parse_bibtex_citation(self, bibtex_entry):
-        """Parse BibTeX to extract authors, title, and PDF link."""
-        res = bibtexparser.loads(bibtex_entry).entries[0]
+    def get_citation(self) -> Optional[str]:
+        citation = super().get_citation()
+        if citation is not None:
+            return citation
+        res = bibtexparser.loads(self.bibtex_entry_short).entries[0]
         authors = latex_converter.latex_to_text(res.get('author', ''))
         if authors:
             authors = authors.split(' and\n')
@@ -113,9 +135,19 @@ class DblpDirective(Directive):
             citation = f'{authors}. {title}. {year}.'
         return citation
 
-    def parse_bibtex_link(self, bibtex_entry):
-        res = bibtexparser.loads(bibtex_entry).entries[0]
+    def get_link(self) -> Optional[str]:
+        link = super().get_link()
+        if link is not None:
+            return link
+        res = bibtexparser.loads(self.bibtex_entry_full).entries[0]
         return latex_converter.latex_to_text(res.get('url', ''))
+
+    def get_bibtex(self) -> Optional[str]:
+        bibtex = super().get_bibtex()
+        if bibtex is not None:
+            return bibtex
+        return self.bibtex_entry_full
+
 
 def visit_cite_node_html(self, node):
     """HTML visitor to render the DblpNode."""
@@ -123,13 +155,25 @@ def visit_cite_node_html(self, node):
     link = node['link']
     bibtex = node['bibtex']
 
+    if link:
+        link_html = f' <a href="{link}" target="_blank">[link]</a>'
+    else:
+        link_html = ''
+
+    if bibtex:
+        body_html = f'''
+<details class="dblp-citation">
+  <summary><b>{citation}</b>{link_html}</summary>
+  <pre class="bibtex">{bibtex.strip()}</pre>
+</details>
+'''
+    else:
+        body_html = f'<p><b>{citation}</b>{link_html}</p>'
+
     self.body.append(f'''
 <div class="admonition">
   <p class="admonition-title">Citation</p>
-  <details class="dblp-citation">
-    <summary><b>{citation}</b> <a href="{link}" target="_blank">[link]</a></summary>
-    <pre class="bibtex">{bibtex.strip()}</pre>
-  </details>
+  {body_html}
 </div>
     ''')
 
@@ -141,7 +185,8 @@ def depart_cite_node_html(self, node):
 
 def setup(app):
     app.add_node(CiteNode, html=(visit_cite_node_html, depart_cite_node_html))
-    app.add_directive('cite.dblp', DblpDirective)
+    app.add_directive('cite', CiteDirective)
+    app.add_directive('cite.dblp', CiteDblpDirective)
     return {
         'version': '0.1',
         'parallel_read_safe': True,
