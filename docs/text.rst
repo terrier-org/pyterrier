@@ -216,5 +216,5 @@ You can `browse the whole notebook <https://github.com/terrier-org/pyterrier/blo
 References
 ==========
 
-.. cite:dblp:: conf/trec/ChenHSCH020
-.. cite:dblp:: conf/sigir/DaiC19
+.. cite.dblp:: conf/trec/ChenHSCH020
+.. cite.dblp:: conf/sigir/DaiC19

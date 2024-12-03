@@ -141,7 +141,7 @@ def depart_cite_node_html(self, node):
 
 def setup(app):
     app.add_node(CiteNode, html=(visit_cite_node_html, depart_cite_node_html))
-    app.add_directive('cite:dblp', DblpDirective)
+    app.add_directive('cite.dblp', DblpDirective)
     return {
         'version': '0.1',
         'parallel_read_safe': True,

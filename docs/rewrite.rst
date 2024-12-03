@@ -43,8 +43,8 @@ Example::
     dph = pt.terrier.Retriever(index, wmodel="DPH")
     pipeline = sdm >> dph
 
-.. cite:dblp:: conf/sigir/MetzlerC05
-.. cite:dblp:: conf/sigir/PengMHPO07
+.. cite.dblp:: conf/sigir/MetzlerC05
+.. cite.dblp:: conf/sigir/PengMHPO07
 
 Bo1QueryExpansion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -84,7 +84,7 @@ However, using `pt.rewrite.Bo1QueryExpansion` is preferable as:
 - the complex control configuration of Terrier need not be learned. 
 - the rewritten query is visible outside, and not hidden inside Terrier.
 
-.. cite:dblp:: phd/ethos/Amati03
+.. cite.dblp:: phd/ethos/Amati03
 
 KLQueryExpansion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -94,7 +94,7 @@ Similar to Bo1, this class deploys a Divergence from Randomess query expansion m
 .. autoclass:: pyterrier.rewrite.KLQueryExpansion
     :members: transform 
 
- .. cite:dblp:: phd/ethos/Amati03
+.. cite.dblp:: phd/ethos/Amati03
 
 
 RM3
@@ -103,7 +103,7 @@ RM3
 .. autoclass:: pyterrier.rewrite.RM3
     :members: transform 
 
-.. cite:dblp:: conf/trec/JaleelACDLLSW04
+.. cite.dblp:: conf/trec/JaleelACDLLSW04
 
 Combining Query Formulations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
