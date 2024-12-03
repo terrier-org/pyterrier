@@ -43,9 +43,8 @@ Example::
     dph = pt.terrier.Retriever(index, wmodel="DPH")
     pipeline = sdm >> dph
 
-References:
- - A Markov Random Field Model for Term Dependencies. Donald Metzler and W. Bruce Croft. In Proceedings of SIGIR 2005. 
- - Incorporating Term Dependency in the DFR Framework. Jie Peng, Craig Macdonald, Ben He, Vassilis Plachouras, Iadh Ounis. In Proceedings of SIGIR 2007. July 2007. Amsterdam, the Netherlands. 2007.
+.. cite.dblp:: conf/sigir/MetzlerC05
+.. cite.dblp:: conf/sigir/PengMHPO07
 
 Bo1QueryExpansion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -85,8 +84,7 @@ However, using `pt.rewrite.Bo1QueryExpansion` is preferable as:
 - the complex control configuration of Terrier need not be learned. 
 - the rewritten query is visible outside, and not hidden inside Terrier.
 
-References:
- - Amati, Giambattista (2003) Probability models for information retrieval based on divergence from randomness. PhD thesis, University of Glasgow.
+.. cite.dblp:: phd/ethos/Amati03
 
 KLQueryExpansion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -96,8 +94,7 @@ Similar to Bo1, this class deploys a Divergence from Randomess query expansion m
 .. autoclass:: pyterrier.rewrite.KLQueryExpansion
     :members: transform 
 
-References:
- - Amati, Giambattista (2003) Probability models for information retrieval based on divergence from randomness. PhD thesis, University of Glasgow.
+.. cite.dblp:: phd/ethos/Amati03
 
 
 RM3
@@ -106,8 +103,7 @@ RM3
 .. autoclass:: pyterrier.rewrite.RM3
     :members: transform 
 
-References:
- - Nasreen Abdul-Jaleel, James Allan, W Bruce Croft, Fernando Diaz, Leah Larkey, Xiaoyan Li, Mark D Smucker, and Courtney Wade. UMass at TREC 2004: Novelty and HARD. In Proceedings of TREC 2004.
+.. cite.dblp:: conf/trec/JaleelACDLLSW04
 
 Combining Query Formulations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

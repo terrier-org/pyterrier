@@ -216,5 +216,5 @@ You can `browse the whole notebook <https://github.com/terrier-org/pyterrier/blo
 References
 ==========
 
-- [Chen2020] ICIP at TREC-2020 Deep Learning Track, X. Chen et al. Procedings of TREC 2020.
-- [Dai2019] Deeper Text Understanding for IR with Contextual Neural Language Modeling. Z. Dai & J. Callan. Proceedings of SIGIR 2019.
+.. cite.dblp:: conf/trec/ChenHSCH020
+.. cite.dblp:: conf/sigir/DaiC19
