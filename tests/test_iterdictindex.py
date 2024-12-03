@@ -150,6 +150,16 @@ class TestIterDictIndexer(TempDirTestCase):
         from pyterrier.terrier.index import IndexingType
         self._make_check_index(3, IndexingType.SINGLEPASS, fields=['text', 'title'])
 
+    def test_long_tokens(self):
+        longword = 'abc' * (1+int(60/3))
+        indexer = pt.IterDictIndexer(self.test_dir, tokeniser='identity', overwrite=True, properties={'max.term.length' : '80'})
+        ref = indexer.index([ {"docno" : "d1", 'text': longword}])
+        index = pt.IndexFactory.of(ref)
+        self.assertEqual(1, len(index))
+        self.assertEqual(1, index.getCollectionStatistics().getNumberOfUniqueTerms())
+        self.assertEqual('80', pt.java.cast("org.terrier.structures.PropertiesIndex", index).getIndexProperty("max.term.length", None))
+        self.assertTrue(longword in index.getLexicon())
+
     def test_meta_init(self):
         it = [
             {'docno': '11', 'url': 'url1', 'text': 'He ran out of money, so he had to stop playing', 'title': 'Woes of playing poker'},
