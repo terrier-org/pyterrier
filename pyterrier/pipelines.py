@@ -610,7 +610,8 @@ def _restore_state(param_state):
 
 def Evaluate(res : pd.DataFrame, qrels : pd.DataFrame, metrics=['map', 'ndcg'], perquery=False) -> Dict:
     """
-    Evaluate the result dataframe with the given qrels
+    Evaluate a single result dataframe with the given qrels. This method may be used as an alternative to
+    ``pt.Experiment()`` for getting only the evaluation measurements given a single set of existing results.
 
     Args:
         res: Either a dataframe with columns=['qid', 'docno', 'score'] or a dict {qid:{docno:score,},}
