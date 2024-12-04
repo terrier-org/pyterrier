@@ -360,9 +360,9 @@ def Experiment(
         save_mode(str): Defines how existing files are used when ``save_dir`` is set. If set to "reuse", then files will be preferred
             over transformers for evaluation. If set to "overwrite", existing files will be replaced. If set to "warn" or "error", the presence of any 
             existing file will cause a warning or error, respectively. Default is "warn".
-        save_format(str): How are result being saved. Defaults to 'trec'. If TREC results format is insufficient, set ``save_format=pickle``. Alternatively, a 
-            tuple of read and write function can be specified, for instance, ``save_format=(pandas.from_csv, pandas.DataFrame.to_csv)``, or even
-              ``save_format=(pandas.from_parquet, pandas.DataFrame.to_parquet)``.
+        save_format(str): How are result being saved. Defaults to 'trec', which uses ``pt.io.read_results()`` and ``pt.io.write_results()`` for saving system outputs. 
+            If TREC results format is insufficient, set ``save_format=pickle``. Alternatively, a tuple of read and write function can be specified, for instance, 
+            ``save_format=(pandas.from_csv, pandas.DataFrame.to_csv)``, or even ``save_format=(pandas.from_parquet, pandas.DataFrame.to_parquet)``.
         dataframe(bool): If True return results as a dataframe, else as a dictionary of dictionaries. Default=True.
         baseline(int): If set to the index of an item of the retr_system list, will calculate the number of queries 
             improved, degraded and the statistical significance (paired t-test p value) for each measure.
