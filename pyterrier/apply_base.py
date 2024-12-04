@@ -163,7 +163,7 @@ class ApplyForEachQuery(pt.Transformer):
                     iterator = pt.model.split_df(group, batch_size=self.batch_size)
                     query_dfs.append( pd.concat([self.fn(chunk_df) for chunk_df in iterator]) )
         except Exception as a:
-            raise Exception("Problem applying %s for qid %s" % (self.fn, lastqid)) from a
+            raise Exception("Problem applying %r for qid %s" % (self.fn, lastqid)) from a # %r because its a function with bytes representation (mypy)
 
         if self.add_ranks:
             try:
