@@ -1,4 +1,4 @@
-name: Code Style Checks
+name: style
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
+  flake8:
     runs-on: 'ubuntu-latest'
     steps:
     - uses: actions/checkout@v4
@@ -24,3 +24,21 @@ jobs:
     - name: pt.java.required checks
       run: |
         flake8 ./pyterrier --select=PT --show-source --statistics --count
+
+  mypy:
+    runs-on: 'ubuntu-latest'
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install
+      run: |
+        pip install mypy --upgrade -r requirements.txt -r requirements-test.txt
+        pip install -e .
+
+    - name: MyPy
+      run: 'mypy --disable-error-code=import-untyped pyterrier'
