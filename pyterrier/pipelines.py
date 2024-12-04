@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import numpy as np
 from typing import Callable, Iterator, Union, Dict, List, Tuple, Sequence, Any, Literal, Optional
+import types
 from . import Transformer
 from .model import coerce_dataframe_types
 import ir_measures
@@ -14,6 +15,7 @@ MEASURES_TYPE=Sequence[MEASURE_TYPE]
 SAVEMODE_TYPE=Literal['reuse', 'overwrite', 'error', 'warn']
 
 SYSTEM_OR_RESULTS_TYPE = Union[Transformer, pd.DataFrame]
+SAVEFORMAT_TYPE = Union[Literal['trec'], types.ModuleType]
 
 def _bold_cols(data : pd.Series, col_type):
     if not data.name in col_type:
@@ -150,6 +152,7 @@ def _run_and_evaluate(
         pbar : Optional[tqdm_module.tqdm] = None,
         save_mode : Optional[SAVEMODE_TYPE] = None,
         save_file : Optional[str] = None,
+        save_format : SAVEFORMAT_TYPE = 'trec',
         perquery : bool = False,
         batch_size : Optional[int] = None,
         backfill_qids : Optional[Sequence[str]] = None):
@@ -166,7 +169,16 @@ def _run_and_evaluate(
     num_q = qrels['query_id'].nunique()
     if save_file is not None and os.path.exists(save_file):
         if save_mode == 'reuse':
-            system = read_results(save_file)
+            if save_format == 'trec':
+                system = read_results(save_file)
+            elif type(save_format) == types.ModuleType:
+                with pt.io.autoopen(save_file, 'rb') as fin:
+                    system = save_format.load(fin)
+            elif isinstance(save_format, tuple) and len(save_format) == 2:
+                with pt.io.autoopen(save_file, 'rb') as fin:
+                    system = save_format[0](fin)
+            else:
+                raise ValueError("Unknown save_format %s" % str(save_format))  
         elif save_mode == 'overwrite':
             os.remove(save_file)
         elif save_mode == 'warn':
@@ -211,8 +223,16 @@ def _run_and_evaluate(
 
         # write results to save_file; we can be sure this file does not exist
         if save_file is not None:
-            write_results(res, save_file)
-
+            if save_format == 'trec':
+                write_results(res, save_file)
+            elif type(save_format) == types.ModuleType:
+                with pt.io.autoopen(save_file, 'wb') as fout:
+                    save_format.dump(res, fout)
+            elif isinstance(save_format, tuple) and len(save_format) == 2:
+                with pt.io.autoopen(save_file, 'wb') as fout:
+                    save_format[1](res, fout)
+            else:
+                raise ValueError("Unknown save_format %s" % str(save_format))    
         res = coerce_dataframe_types(res)
 
         if len(res) == 0:
@@ -228,6 +248,9 @@ def _run_and_evaluate(
         pbar.update()
     else:
         assert topics is not None, "topics must be specified"
+        if save_file is not None:
+            # only 
+            assert save_format == 'trec', 'save_format=%s is not supported when save_dir is enabled and batch_size is not None' % str(save_format)
         
         #transformer, evaluate queries in batches
         assert batch_size > 0
@@ -309,6 +332,7 @@ def Experiment(
         verbose : bool = False,
         save_dir : Optional[str] = None,
         save_mode : SAVEMODE_TYPE = 'warn',
+        save_format : SAVEFORMAT_TYPE = 'trec',
         **kwargs):
     """
     Allows easy comparison of multiple retrieval transformer pipelines using a common set of topics, and
@@ -336,6 +360,9 @@ def Experiment(
         save_mode(str): Defines how existing files are used when ``save_dir`` is set. If set to "reuse", then files will be preferred
             over transformers for evaluation. If set to "overwrite", existing files will be replaced. If set to "warn" or "error", the presence of any 
             existing file will cause a warning or error, respectively. Default is "warn".
+        save_format(str): How are result being saved. Defaults to 'trec'. If TREC results format is insufficient, set ``save_format=pickle``. Alternatively, a 
+            tuple of read and write function can be specified, for instance, ``save_format=(pandas.from_csv, pandas.DataFrame.to_csv)``, or even
+              ``save_format=(pandas.from_parquet, pandas.DataFrame.to_parquet)``.
         dataframe(bool): If True return results as a dataframe, else as a dictionary of dictionaries. Default=True.
         baseline(int): If set to the index of an item of the retr_system list, will calculate the number of queries 
             improved, degraded and the statistical significance (paired t-test p value) for each measure.
@@ -490,7 +517,15 @@ def Experiment(
         for name, system in zip(names, retr_systems):
             save_file = None
             if save_dir is not None:
-                save_file = os.path.join(save_dir, "%s.res.gz" % name)
+                if save_format == 'trec':
+                    save_ext = 'res.gz'
+                elif type(save_format) == types.ModuleType:
+                    save_ext = 'mod'
+                elif isinstance(save_format, tuple):
+                    save_ext = 'custom'
+                else:
+                    raise ValueError("Unrecognised save_mode %s" % str(save_format)) 
+                save_file = os.path.join(save_dir, "%s.%s" % (name, save_ext))
 
             time, evalMeasuresDict = _run_and_evaluate(
                 system, topics, qrels, eval_metrics, 
@@ -499,6 +534,7 @@ def Experiment(
                 backfill_qids=all_topic_qids if perquery else None,
                 save_file=save_file,
                 save_mode=save_mode,
+                save_format=save_format,
                 pbar=pbar)
 
             if baseline is not None:
