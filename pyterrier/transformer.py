@@ -2,7 +2,7 @@ import types
 from warnings import warn
 import pandas as pd
 from deprecated import deprecated
-from typing import Iterable, Iterator, List, Union, Tuple
+from typing import Iterator, List, Union, Tuple, Protocol, runtime_checkable, Optional
 import pyterrier as pt
 from . import __version__
 
@@ -274,47 +274,47 @@ class Transformer:
                     'Check the list of available parameters') %(name, str(self)))
 
     def __rshift__(self, right) -> 'Transformer':
-        from .ops import ComposedPipeline
-        return ComposedPipeline(self, right)
+        from ._ops import Compose
+        return Compose(self, right)
 
     def __rrshift__(self, left) -> 'Transformer':
-        from .ops import ComposedPipeline
-        return ComposedPipeline(left, self)
+        from ._ops import Compose
+        return Compose(left, self)
 
     def __add__(self, right : 'Transformer') -> 'Transformer':
-        from .ops import CombSumTransformer
-        return CombSumTransformer(self, right)
+        from ._ops import Sum
+        return Sum(self, right)
 
     def __pow__(self, right : 'Transformer') -> 'Transformer':
-        from .ops import FeatureUnionPipeline
-        return FeatureUnionPipeline(self, right)
+        from ._ops import FeatureUnion
+        return FeatureUnion(self, right)
 
     def __mul__(self, rhs : Union[float,int]) -> 'Transformer':
         assert isinstance(rhs, int) or isinstance(rhs, float)
-        from .ops import ScalarProductTransformer
-        return self >> ScalarProductTransformer(rhs)
+        from ._ops import ScalarProduct
+        return self >> ScalarProduct(rhs)
 
     def __rmul__(self, lhs : Union[float,int]) -> 'Transformer':
         assert isinstance(lhs, int) or isinstance(lhs, float)
-        from .ops import ScalarProductTransformer
-        return self >> ScalarProductTransformer(lhs)
+        from ._ops import ScalarProduct
+        return self >> ScalarProduct(lhs)
 
     def __or__(self, right : 'Transformer') -> 'Transformer':
-        from .ops import SetUnionTransformer
-        return SetUnionTransformer(self, right)
+        from ._ops import SetUnion
+        return SetUnion(self, right)
 
     def __and__(self, right : 'Transformer') -> 'Transformer':
-        from .ops import SetIntersectionTransformer
-        return SetIntersectionTransformer(self, right)
+        from ._ops import SetIntersection
+        return SetIntersection(self, right)
 
     def __mod__(self, right : int) -> 'Transformer':
         assert isinstance(right, int)
-        from .ops import RankCutoffTransformer
-        return self >> RankCutoffTransformer(right)
+        from ._ops import RankCutoff
+        return self >> RankCutoff(right)
 
     def __xor__(self, right : 'Transformer') -> 'Transformer':
-        from .ops import ConcatenateTransformer
-        return ConcatenateTransformer(self, right)
+        from ._ops import Concatenate
+        return Concatenate(self, right)
 
     @deprecated(version="0.11.1", reason="Use pyterrier-caching for more fine-grained caching, e.g. RetrieverCache or ScorerCache")
     def __invert__(self : 'Transformer') -> 'Transformer':
@@ -436,3 +436,76 @@ class UniformTransformer(Transformer):
 
     def __repr__(self):
         return 'UniformTransformer()'
+
+@runtime_checkable
+class SupportsFuseRankCutoff(Protocol):
+    def fuse_rank_cutoff(self, k: int) -> Optional['Transformer']:
+        """Fuses this transformer with a following RankCutoffTransformer.
+
+        This method should return a new transformer that applies the new rank cutoff value k.
+
+        Note that if the transformer currently applies a stricter rank cutoff than the one provided, it should not be
+        relaxed. In this case, it is preferred to return `self`.
+
+        If the fusion is not possible, `None` should be returned.
+        """
+
+
+@runtime_checkable
+class SupportsFuseFeatureUnion(Protocol):
+    def fuse_feature_union(self, other: 'Transformer', is_left: bool) -> Optional['Transformer']:
+        """Fuses this transformer with another one that provides features.
+
+        This method should return a new transformer that is equivalent to performing self ** other, or `None`
+        if the fusion is not possible.
+
+        is_left is True if self's features are to the left of other's. Otherwise, self's features are to the right.
+        """
+
+
+@runtime_checkable
+class SupportsFuseLeft(Protocol):
+    def fuse_left(self, left: 'Transformer') -> Optional['Transformer']:
+        """Fuses this transformer with a transformer that immediately precedes this one in a pipeline.
+
+        The new transformer should have the same effect as performing the two transformers in sequence, i.e.,
+        `pipeline_unfused` and `pipeline_fused` in the following example should provide the same results for
+        any input.
+
+        ```
+        >>> pipeline_unfused = left >> self
+        >>> pipeline_fused = self.fuse_left(left)
+        ```
+
+        A fused transformer should be more efficient than the unfused version. For instance, a retriever
+        followed by a rank cutoff can be fused to perform the rank cutoff during retrieval.
+
+        Returns:
+            A new transformer that is the result of merging this transformer with the left transformer,
+            or none if the merge is not possible.
+        """
+
+
+@runtime_checkable
+class SupportsFuseRight(Protocol):
+    def fuse_right(self, right: 'Transformer') -> Optional['Transformer']:
+        """Fuses this transformer with a transformer that immediately follows this one in a pipeline.
+
+        The new transformer should have the same effect as performing the two transformers in sequence, i.e.,
+        `pipeline_unfused` and `pipeline_fused` in the following example should provide the same results for
+        any input.
+
+        ```
+        >>> pipeline_unfused = self >> right
+        >>> pipeline_fused = self.fuse_right(right)
+        ```
+
+        A fused transformer should be more efficient than the unfused version. For instance, a retriever
+        followed by a rank cutoff can be fused to perform the rank cutoff during retrieval.
+
+        Returns:
+            A new transformer that is the result of merging this transformer with the right transformer,
+            or none if the merge is not possible.
+        """
+
+

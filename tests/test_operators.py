@@ -291,7 +291,7 @@ class TestOperators(BaseTestCase):
 
 
     def test_feature_union_multi(self):
-        import pyterrier.ops as pto
+        import pyterrier._ops as pto
         mock0 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 0], ["q1", "doc2", 0]], columns=["qid", "docno", "score"]), uniform=True)
 
         mock1 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 5], ["q1", "doc2", 0]], columns=["qid", "docno", "score"]), uniform=True)
@@ -306,32 +306,32 @@ class TestOperators(BaseTestCase):
         mock12a = mock1 ** mock2
         mock123a = mock1 ** mock2 ** mock3
         mock123b = mock12a ** mock3
-        mock123a_manual = pto.FeatureUnionPipeline(
-                pto.FeatureUnionPipeline(mock1, mock2),
+        mock123a_manual = pto.FeatureUnion(
+                pto.FeatureUnion(mock1, mock2),
                 mock3
         )
-        mock123b_manual = pto.FeatureUnionPipeline(
+        mock123b_manual = pto.FeatureUnion(
                 mock1,
-                pto.FeatureUnionPipeline(mock2, mock3),
+                pto.FeatureUnion(mock2, mock3),
         )
-        mock123e = pto.FeatureUnionPipeline(
+        mock123e = pto.FeatureUnion(
                 mock1,
-                pto.FeatureUnionPipeline(mock2, mock3_empty),
-        )
-
-        mock12e3 = pto.FeatureUnionPipeline(
-                mock1,
-                pto.FeatureUnionPipeline(mock3_empty, mock3),
+                pto.FeatureUnion(mock2, mock3_empty),
         )
 
-        mock123p = pto.FeatureUnionPipeline(
+        mock12e3 = pto.FeatureUnion(
                 mock1,
-                pto.FeatureUnionPipeline(mock2, mock3_partial),
+                pto.FeatureUnion(mock3_empty, mock3),
         )
 
-        mock12p3 = pto.FeatureUnionPipeline(
+        mock123p = pto.FeatureUnion(
                 mock1,
-                pto.FeatureUnionPipeline(mock2_partial, mock3),
+                pto.FeatureUnion(mock2, mock3_partial),
+        )
+
+        mock12p3 = pto.FeatureUnion(
+                mock1,
+                pto.FeatureUnion(mock2_partial, mock3),
         )
         
         
@@ -390,7 +390,7 @@ class TestOperators(BaseTestCase):
         self.assertIn('features', rtr.columns)
 
     def test_feature_union(self): 
-        import pyterrier.ops as ptt
+        import pyterrier._ops as ptt
         mock_input = pt.Transformer.from_df(pd.DataFrame([["q1", "a query", "doc1", 5]], columns=["qid", "query", "docno", "score"]), uniform=True)
         
         mock_f1 = pt.Transformer.from_df(pd.DataFrame([["q1", "a query", "doc1", 10]], columns=["qid", "query", "docno", "score"]), uniform=True)
@@ -425,7 +425,7 @@ class TestOperators(BaseTestCase):
                     self.assertTrue( np.array_equal(np.array([10,50]), rtr.iloc[0]["features"]))
 
         # test using direct instantiation, as well as using the ** operator
-        _test_expression(mock_input >> ptt.FeatureUnionPipeline(mock_f1, mock_f2))
+        _test_expression(mock_input >> ptt.FeatureUnion(mock_f1, mock_f2))
         _test_expression(mock_input >> mock_f1 ** mock_f2)       
 
 if __name__ == "__main__":
