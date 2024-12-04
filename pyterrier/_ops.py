@@ -1,8 +1,8 @@
-from .transformer import Transformer, Estimator, get_transformer
+from .transformer import Transformer, Estimator, get_transformer, SupportsFuseFeatureUnion, SupportsFuseRankCutoff, SupportsFuseRight, SupportsFuseLeft
 from .model import add_ranks
 from collections import deque
 from warnings import warn
-from typing import Iterable, List, Optional, Protocol, runtime_checkable
+from typing import List, Optional
 from itertools import chain
 import pandas as pd
 import pyterrier as pt
@@ -33,7 +33,7 @@ class NAryTransformerBase(Transformer):
         """
         return len(self._transformers)
 
-class SetUnionTransformer(Transformer):
+class SetUnion(Transformer):
     """      
         This operator makes a retrieval set that includes documents that occur in the union (either) of both retrieval sets. 
         For instance, let left and right be pandas dataframes, both with the columns = [qid, query, docno, score], 
@@ -60,7 +60,7 @@ class SetUnionTransformer(Transformer):
         rtr.drop(columns=["score", "rank"], inplace=True, errors='ignore')
         return rtr
 
-class SetIntersectionTransformer(Transformer):
+class SetIntersection(Transformer):
     """
         This operator makes a retrieval set that only includes documents that occur in the intersection of both retrieval sets. 
         For instance, let left and right be pandas dataframes, both with the columns = [qid, query, docno, score], 
@@ -93,7 +93,7 @@ class SetIntersectionTransformer(Transformer):
 
         return rtr
 
-class CombSumTransformer(Transformer):
+class Sum(Transformer):
     """
         Adds the scores of documents from two different retrieval transformers.
         Documents not present in one transformer are given a score of 0.
@@ -114,7 +114,7 @@ class CombSumTransformer(Transformer):
         merged = add_ranks(merged)
         return merged
 
-class ConcatenateTransformer(Transformer):
+class Concatenate(Transformer):
     epsilon = 0.0001
 
     def __init__(self, left: Transformer, right: Transformer):
@@ -154,7 +154,7 @@ class ConcatenateTransformer(Transformer):
         rtr = add_ranks(rtr)
         return rtr
 
-class ScalarProductTransformer(Transformer):
+class ScalarProduct(Transformer):
     """
         Multiplies the retrieval score by a scalar
     """
@@ -170,7 +170,7 @@ class ScalarProductTransformer(Transformer):
     def __repr__(self):
         return f'ScalarProductTransformer({self.scalar!r})'
 
-class RankCutoffTransformer(Transformer):
+class RankCutoff(Transformer):
     """
         Filters the input by rank<k for each query in the input
     """
@@ -191,7 +191,7 @@ class RankCutoffTransformer(Transformer):
         if isinstance(left, SupportsFuseRankCutoff):
             return left.fuse_rank_cutoff(self.k)
 
-class FeatureUnionPipeline(NAryTransformerBase):
+class FeatureUnion(NAryTransformerBase):
     """
         Implements the feature union operator.
 
@@ -217,7 +217,7 @@ class FeatureUnionPipeline(NAryTransformerBase):
         all_results = []
 
         for i, m in enumerate(self._transformers):
-            #IMPORTANT this .copy() is important, in case an operand transformer changes inputRes
+            # IMPORTANT this .copy() is important, in case an operand transformer changes inputRes
             results = m.transform(inputRes.copy())
             if len(results) == 0 and num_results != 0:
                 raise ValueError("Got no results from %s, expected %d" % (repr(m), num_results) )
@@ -227,7 +227,7 @@ class FeatureUnionPipeline(NAryTransformerBase):
 
     
         for i, (m, res) in enumerate(zip(self._transformers, all_results)):
-            #IMPORTANT: dont do this BEFORE calling subsequent feature unions
+            # IMPORTANT: dont do this BEFORE calling subsequent feature unions
             if not "features" in res.columns:
                 if not "score" in res.columns:
                     raise ValueError("Results from %s did not include either score or features columns, found columns were %s" % (repr(m), str(res.columns)) )
@@ -306,12 +306,12 @@ class FeatureUnionPipeline(NAryTransformerBase):
                 out.append(right)
         if len(out) == 1:
             return out[0]
-        return FeatureUnionPipeline(*out)
+        return FeatureUnion(*out)
 
     def __repr__(self):
         return '(' + ' ** '.join([str(t) for t in self._transformers]) + ')'
 
-class ComposedPipeline(NAryTransformerBase):
+class Compose(NAryTransformerBase):
     """ 
         This class allows pipeline components to be chained together using the "then" operator.
 
@@ -335,7 +335,7 @@ class ComposedPipeline(NAryTransformerBase):
         
         if len(self._transformers) > 2:
             #this compose could have > 2 models. we need a composite transform() on all but the last
-            prev_transformer = ComposedPipeline(*self._transformers[0:-1])
+            prev_transformer = Compose(*self._transformers[0:-1])
         else:
             prev_transformer = self._transformers[0]
         last_transformer = self._transformers[-1]
@@ -393,76 +393,5 @@ class ComposedPipeline(NAryTransformerBase):
                 out.append(right)
         if len(out) == 1:
             return out[0]
-        return ComposedPipeline(*out)
+        return Compose(*out)
 
-
-@runtime_checkable
-class SupportsFuseLeft(Protocol):
-    def fuse_left(self, left: 'Transformer') -> Optional['Transformer']:
-        """Fuses this transformer with a transformer that immediately precedes this one in a pipeline.
-
-        The new transformer should have the same effect as performing the two transformers in sequence, i.e.,
-        `pipeline_unfused` and `pipeline_fused` in the following example should provide the same results for
-        any input.
-
-        ```
-        >>> pipeline_unfused = left >> self
-        >>> pipeline_fused = self.fuse_left(left)
-        ```
-
-        A fused transformer should be more efficient than the unfused version. For instance, a retriever
-        followed by a rank cutoff can be fused to perform the rank cutoff during retrieval.
-
-        Returns:
-            A new transformer that is the result of merging this transformer with the left transformer,
-            or none if the merge is not possible.
-        """
-
-
-@runtime_checkable
-class SupportsFuseRight(Protocol):
-    def fuse_right(self, right: 'Transformer') -> Optional['Transformer']:
-        """Fuses this transformer with a transformer that immediately follows this one in a pipeline.
-
-        The new transformer should have the same effect as performing the two transformers in sequence, i.e.,
-        `pipeline_unfused` and `pipeline_fused` in the following example should provide the same results for
-        any input.
-
-        ```
-        >>> pipeline_unfused = self >> right
-        >>> pipeline_fused = self.fuse_right(right)
-        ```
-
-        A fused transformer should be more efficient than the unfused version. For instance, a retriever
-        followed by a rank cutoff can be fused to perform the rank cutoff during retrieval.
-
-        Returns:
-            A new transformer that is the result of merging this transformer with the right transformer,
-            or none if the merge is not possible.
-        """
-
-
-@runtime_checkable
-class SupportsFuseRankCutoff(Protocol):
-    def fuse_rank_cutoff(self, k: int) -> Optional['Transformer']:
-        """Fuses this transformer with a following RankCutoffTransformer.
-
-        This method should return a new transformer that applies the new rank cutoff value k.
-
-        Note that if the transformer currently applies a stricter rank cutoff than the one provided, it should not be
-        relaxed. In this case, it is preferred to return `self`.
-
-        If the fusion is not possible, `None` should be returned.
-        """
-
-
-@runtime_checkable
-class SupportsFuseFeatureUnion(Protocol):
-    def fuse_feature_union(self, other: 'Transformer', is_left: bool) -> Optional['Transformer']:
-        """Fuses this transformer with another one that provides features.
-
-        This method should return a new transformer that is equivalent to performing self ** other, or `None`
-        if the fusion is not possible.
-
-        is_left is True if self's features are to the left of other's. Otherwise, self's features are to the right.
-        """
