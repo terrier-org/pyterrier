@@ -113,7 +113,7 @@ class Retriever(pt.Transformer):
 
     @staticmethod
     def from_dataset(dataset : Union[str,Dataset], 
-            variant : str = None, 
+            variant : Optional[str] = None, 
             version='latest',            
             **kwargs):
         """
@@ -469,6 +469,7 @@ class Retriever(pt.Transformer):
             del controls['wmodel']
             return FeaturesRetriever(self.indexref, features, controls=controls, properties=self.properties,
                 metadata=self.metadata, threads=self.threads, verbose=self.verbose)
+        return None
 
 
 @pt.java.required
@@ -672,7 +673,7 @@ class FeaturesRetriever(Retriever):
 
     @staticmethod 
     def from_dataset(dataset : Union[str,Dataset], 
-            variant : str = None, 
+            variant : Optional[str] = None, 
             version='latest',            
             **kwargs):
         return pt.datasets.transformer_from_dataset(dataset, variant=variant, version=version, clz=FeaturesRetriever, **kwargs)
@@ -833,6 +834,7 @@ class FeaturesRetriever(Retriever):
                 threads=self.threads,
                 wmodel=left.controls['wmodel'],
             )
+        return None
 
     def fuse_rank_cutoff(self, k: int) -> Optional[pt.Transformer]:
         """
@@ -862,3 +864,5 @@ class FeaturesRetriever(Retriever):
             features = self.features + ["WMODEL:" + other.controls['wmodel']] if is_left else ["WMODEL:" + other.controls['wmodel']] + self.features
             return FeaturesRetriever(self.indexref, features, controls=self.controls, properties=self.properties,
                 threads=self.threads, wmodel=self.wmodel, verbose=self.verbose)
+        
+        return None
