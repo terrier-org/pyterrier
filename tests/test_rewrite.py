@@ -5,7 +5,6 @@ import os
 import shutil
 import tempfile
 import pyterrier.transformer as ptt;
-from matchpy import *
 from .base import TempDirTestCase
 
 def normalize_term_weights(term_weights, digits=7):

@@ -39,8 +39,8 @@ Welcome to PyTerrier's documentation!
 
 .. include:: ./_includes/ext_toc.rst
 
-Indices and tables
-==================
+.. toctree::
+   :maxdepth: 1
+   :caption: Indices and tables
 
-* :ref:`genindex`
-* :ref:`search`
+   genindex

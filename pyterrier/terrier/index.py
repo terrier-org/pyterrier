@@ -225,8 +225,9 @@ class TerrierIndexer:
             stemmer : Union[None, str, TerrierStemmer] = TerrierStemmer.porter,
             stopwords : Union[None, TerrierStopwords, List[str]] = TerrierStopwords.terrier,
             tokeniser : Union[str,TerrierTokeniser] = TerrierTokeniser.english,
-            type=IndexingType.CLASSIC, 
-            **kwargs):
+            type=IndexingType.CLASSIC,
+            properties : Dict[str,str] = {}
+            ):
         """
         Constructor called by all indexer subclasses. All arguments listed below are available in 
         IterDictIndexer, DFIndexer, TRECCollectionIndexer and FilesIndsexer. 
@@ -240,6 +241,7 @@ class TerrierIndexer:
             stopwords (TerrierStopwords): the stopwords list to apply. Default is ``TerrierStemmer.terrier``.
             tokeniser (TerrierTokeniser): the stemmer to apply. Default is ``TerrierTokeniser.english``.
             type (IndexingType): the specific indexing procedure to use. Default is ``IndexingType.CLASSIC``.
+            properties (dict): Terrier properties that you wish to overrride.
         """
         if type is IndexingType.MEMORY:
             self.path = None
@@ -256,6 +258,8 @@ class TerrierIndexer:
         self.tokeniser = TerrierTokeniser._to_obj(tokeniser)
         self.properties = pt.java.J.Properties()
         self.setProperties(**self.default_properties)
+        for k,v in properties.items():
+            self.properties[k] = v        
         self.overwrite = overwrite
         self.verbose = verbose
         self.meta_reverse = meta_reverse

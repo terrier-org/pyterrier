@@ -4,7 +4,6 @@ import numpy as np
 from deprecated import deprecated
 from warnings import warn
 from pyterrier.datasets import Dataset
-from pyterrier.transformer import Symbol
 from pyterrier.model import coerce_queries_dataframe, FIRST_RANK
 import concurrent
 from concurrent.futures import ThreadPoolExecutor
@@ -89,19 +88,9 @@ def _parse_index_like(index_location):
         or an pyterrier.index.TerrierIndexer object'''
     )
 
-class RetrieverBase(pt.Transformer, Symbol):
-    """
-    A base class for retrieval
-
-    Attributes:
-        verbose(bool): If True transform method will display progress
-    """
-    def __init__(self, verbose=0, **kwargs):
-        super().__init__(kwargs)
-        self.verbose = verbose
-          
+  
 @pt.java.required
-class Retriever(RetrieverBase):
+class Retriever(pt.Transformer):
     """
     Use this class for retrieval by Terrier
     """
@@ -171,7 +160,7 @@ class Retriever(RetrieverBase):
         "termpipelines": "Stopwords,PorterStemmer"
     }
 
-    def __init__(self, index_location, controls=None, properties=None, metadata=["docno"],  num_results=None, wmodel=None, threads=1, **kwargs):
+    def __init__(self, index_location, controls=None, properties=None, metadata=["docno"],  num_results=None, wmodel=None, threads=1, verbose=False):
         """
             Init method
 
@@ -183,7 +172,6 @@ class Retriever(RetrieverBase):
                 num_results(int): Number of results to retrieve. 
                 metadata(list): What metadata to retrieve
         """
-        super().__init__(kwargs)
         self.indexref = _parse_index_like(index_location)
         self.properties = _mergeDicts(Retriever.default_properties, properties)
         self.concurrentIL = pt.java.autoclass("org.terrier.structures.ConcurrentIndexLoader")
@@ -193,6 +181,7 @@ class Retriever(RetrieverBase):
         self.threads = threads
         self.RequestContextMatching = pt.java.autoclass("org.terrier.python.RequestContextMatching")
         self.search_context = {}
+        self.verbose = verbose
 
         for key, value in self.properties.items():
             pt.terrier.J.ApplicationSetup.setProperty(str(key), str(value))
@@ -458,6 +447,30 @@ class Retriever(RetrieverBase):
     def setControl(self, control, value):
         self.controls[str(control)] = str(value)
 
+    def fuse_rank_cutoff(self, k: int) -> Optional[pt.Transformer]:
+        """
+        Support fusing with RankCutoffTransformer.
+        """
+        if self.controls.get('end', float('inf')) < k:
+            return self # the applied rank cutoff is greater than the one already applied
+        if self.controls.get('context_wmodel') == 'on':
+            return None # we don't store the original wmodel value so we can't reconstruct
+        # apply the new k as num_results
+        return Retriever(self.indexref, controls=self.controls, properties=self.properties, metadata=self.metadata,
+            num_results=k, wmodel=self.controls["wmodel"], threads=self.threads, verbose=self.verbose)
+
+    def fuse_feature_union(self, other: pt.Transformer, is_left: bool) -> Optional[pt.Transformer]:
+        if isinstance(other, Retriever) and \
+           self.indexref == other.indexref and \
+           self.controls.get('context_wmodel') != 'on' and \
+           other.controls.get('context_wmodel') != 'on':
+            features = ["WMODEL:" + self.controls['wmodel'], "WMODEL:" + other.controls['wmodel']] if is_left else ["WMODEL:" + other.controls['wmodel'], "WMODEL:" + self.controls['wmodel']]
+            controls = dict(self.controls)
+            del controls['wmodel']
+            return FeaturesRetriever(self.indexref, features, controls=controls, properties=self.properties,
+                metadata=self.metadata, threads=self.threads, verbose=self.verbose)
+
+
 @pt.java.required
 class TextIndexProcessor(pt.Transformer):
     '''
@@ -613,7 +626,7 @@ class FeaturesRetriever(Retriever):
 
         # record the weighting model
         self.wmodel = None
-        if "wmodel" in kwargs:
+        if "wmodel" in kwargs and kwargs['wmodel'] is not None:
             assert isinstance(kwargs["wmodel"], str), "Non-string weighting models not yet supported by FBR"
             self.wmodel = kwargs["wmodel"]
         if "wmodel" in controls:
@@ -627,6 +640,8 @@ class FeaturesRetriever(Retriever):
             raise ValueError("Multi-threaded retrieval not yet supported by FeaturesRetriever")
         
         super().__init__(index_location, controls, properties, **kwargs)
+        if self.wmodel is None and 'wmodel' in self.controls:
+            del self.controls['wmodel'] # Retriever sets a default controls['wmodel'], we only want this
 
     def __reduce__(self):
         return (
@@ -803,72 +818,47 @@ class FeaturesRetriever(Retriever):
             return "TerrierFeatRetr(" + str(len(self.features)) + " features)"
         return "TerrierFeatRetr(" + self.controls["wmodel"] + " and " + str(len(self.features)) + " features)"
 
-rewrites_setup = False
+    def fuse_left(self, left: pt.Transformer) -> Optional[pt.Transformer]:
+        # Can merge Retriever >> FeaturesRetriever into a single FeaturesRetriever that also retrieves
+        # if the indexref matches and the current FeaturesRetriever isn't already reranking.
+        if isinstance(left, Retriever) and \
+           self.indexref == left.indexref and \
+           left.controls.get('context_wmodel') != 'on' and \
+           self.wmodel is None:
+            return FeaturesRetriever(
+                self.indexref,
+                self.features,
+                controls=self.controls,
+                properties=self.properties,
+                threads=self.threads,
+                wmodel=left.controls['wmodel'],
+            )
 
-def setup_rewrites():
-    from pyterrier.transformer import rewrite_rules
-    from pyterrier.ops import FeatureUnionPipeline, ComposedPipeline
-    from matchpy import ReplacementRule, Wildcard, Pattern, CustomConstraint
-    #three arbitrary "things".
-    x = Wildcard.dot('x')
-    xs = Wildcard.plus('xs')
-    y = Wildcard.dot('y')
-    z = Wildcard.dot('z')
-    # two different match retrives
-    _br1 = Wildcard.symbol('_br1', Retriever)
-    _br2 = Wildcard.symbol('_br2', Retriever)
-    _fbr = Wildcard.symbol('_fbr', FeaturesRetriever)
-    
-    # batch retrieves for the same index
-    BR_index_matches = CustomConstraint(lambda _br1, _br2: _br1.indexref == _br2.indexref)
-    BR_FBR_index_matches = CustomConstraint(lambda _br1, _fbr: _br1.indexref == _fbr.indexref)
-    
-    # rewrite nested binary feature unions into one single polyadic feature union
-    rewrite_rules.append(ReplacementRule(
-        Pattern(FeatureUnionPipeline(x, FeatureUnionPipeline(y,z)) ),
-        lambda x, y, z: FeatureUnionPipeline(x,y,z)
-    ))
-    rewrite_rules.append(ReplacementRule(
-        Pattern(FeatureUnionPipeline(FeatureUnionPipeline(x,y), z) ),
-        lambda x, y, z: FeatureUnionPipeline(x,y,z)
-    ))
-    rewrite_rules.append(ReplacementRule(
-        Pattern(FeatureUnionPipeline(FeatureUnionPipeline(x,y), xs) ),
-        lambda x, y, xs: FeatureUnionPipeline(*[x,y]+list(xs))
-    ))
+    def fuse_rank_cutoff(self, k: int) -> Optional[pt.Transformer]:
+        """
+        Support fusing with RankCutoffTransformer.
+        """
+        if self.controls.get('end', float('inf')) < k:
+            return self # the applied rank cutoff is greater than the one already applied
+        if self.wmodel is None:
+            return None # not a retriever
+        # apply the new k as num_results
+        return FeaturesRetriever(self.indexref, self.features, controls=self.controls, properties=self.properties,
+            threads=self.threads, wmodel=self.wmodel, verbose=self.verbose, num_results=k)
 
-    # rewrite nested binary compose into one single polyadic compose
-    rewrite_rules.append(ReplacementRule(
-        Pattern(ComposedPipeline(x, ComposedPipeline(y,z)) ),
-        lambda x, y, z: ComposedPipeline(x,y,z)
-    ))
-    rewrite_rules.append(ReplacementRule(
-        Pattern(ComposedPipeline(ComposedPipeline(x,y), z) ),
-        lambda x, y, z: ComposedPipeline(x,y,z)
-    ))
-    rewrite_rules.append(ReplacementRule(
-        Pattern(ComposedPipeline(ComposedPipeline(x,y), xs) ),
-        lambda x, y, xs: ComposedPipeline(*[x,y]+list(xs))
-    ))
+    def fuse_feature_union(self, other: pt.Transformer, is_left: bool) -> Optional[pt.Transformer]:
+        if isinstance(other, FeaturesRetriever) and \
+           self.indexref == other.indexref and \
+           self.wmodel is None  and \
+           other.wmodel is None:
+            features = self.features + other.features if is_left else other.features + self.features
+            return FeaturesRetriever(self.indexref, features, controls=self.controls, properties=self.properties,
+                threads=self.threads, wmodel=self.wmodel, verbose=self.verbose)
 
-    # rewrite batch a feature union of BRs into an FBR
-    rewrite_rules.append(ReplacementRule(
-        Pattern(FeatureUnionPipeline(_br1, _br2), BR_index_matches),
-        lambda _br1, _br2: FeaturesRetriever(_br1.indexref, ["WMODEL:" + _br1.controls["wmodel"], "WMODEL:" + _br2.controls["wmodel"]])
-    ))
-
-    def push_fbr_earlier(_br1, _fbr):
-        #TODO copy more attributes
-        _fbr.wmodel = _br1.controls["wmodel"]
-        return _fbr
-
-    # rewrite a BR followed by a FBR into a FBR
-    rewrite_rules.append(ReplacementRule(
-        Pattern(ComposedPipeline(_br1, _fbr), BR_FBR_index_matches),
-        push_fbr_earlier
-    ))
-
-    global rewrites_setup
-    rewrites_setup = True
-
-setup_rewrites()
+        if isinstance(other, Retriever) and \
+           self.indexref == other.indexref and \
+           self.wmodel is None  and \
+           other.controls.get('context_wmodel') != 'on':
+            features = self.features + ["WMODEL:" + other.controls['wmodel']] if is_left else ["WMODEL:" + other.controls['wmodel']] + self.features
+            return FeaturesRetriever(self.indexref, features, controls=self.controls, properties=self.properties,
+                threads=self.threads, wmodel=self.wmodel, verbose=self.verbose)

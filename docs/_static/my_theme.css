@@ -1,3 +1,154 @@
-.wy-nav-content {
-    max-width: 1200px !important;
+h1 {
+    font-size: 2em;
+}
+
+h2 {
+    font-size: 1.75em;
+}
+
+.code-block-caption {
+    background-color: #ddd;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    font-weight: bold;
+}
+
+.highlight {
+    background-color: #eee;
+}
+
+blockquote {
+    background: #eee;
+    border-left-color: #ccc;
+    border-radius: 4px;
+}
+
+@media not print {
+  body[data-theme="dark"] .code-block-caption {
+    background-color: #333;
+    border: 1px solid #202020;
+  }
+  body[data-theme="dark"] blockquote {
+    background: #202020;
+    border-left-color: #303335;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  body[data-theme="auto"] .code-block-caption {
+    background-color: #333;
+    border: 1px solid #202020;
+  }
+  body[data-theme="auto"] blockquote {
+    background: #202020;
+    border-left-color: #303335;
+  }
+}
+
+.features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+
+.feature {
+    flex: 1 1 100%;
+    margin: 0 !important;
+    background-color: white !important;
+}
+
+@media (min-width: 768px) {
+    .feature {
+        flex: 0 0 auto;
+        box-sizing: border-box;
+        width: 48%;
+    }
+}
+
+.feature p.admonition-title {
+    padding-left: 0.5rem;
+}
+
+.feature p.admonition-title::before {
+    display: none;
+}
+
+button.sphinx-tabs-tab {
+    padding: 0.3rem 1rem;
+}
+
+button.sphinx-tabs-tab[aria-selected="true"] {
+    border-bottom-width: 4px;
+}
+
+div.sphinx-tabs-panel {
+    padding-top: 0.2rem;
+    padding-bottom: 0.2rem;
+}
+
+div.literal-block-wrapper {
+    margin-bottom: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+h2 code.literal {
+    background: inherit;
+}
+
+.toc-tree code.literal {
+    background: inherit;
+}
+
+article img {
+    display: block;
+    margin: 12px auto;
+    border: 1px solid black;
+    box-shadow: 0px 0px 5px 3px #888;
+}
+
+hr.docutils {
+    margin: 3rem 0;
+}
+
+.sidebar-container, .toc-drawer {
+    width: 18em;
+}
+
+@media (max-width: 82em) {
+  .toc-drawer {
+    right: -18em;
+  }
+}
+
+dl.py {
+    border-top: 1px solid #a2a2a2;
+    padding-top: 0.5em;
+}
+
+dd dl.py {
+    border-top: none;
+}
+
+h1 + dl.py,
+h2 + dl.py,
+h3 + dl.py,
+h4 + dl.py {
+    border-top: none;
+}
+
+body {
+    --sidebar-item-spacing-vertical: 0.3rem;
+    --sidebar-caption-space-above: 0.5rem;
+    --sidebar-tree-space-above: 0;
+}
+
+.dblp-citation summary {
+    cursor: pointer;
+}
+
+.dblp-citation pre {
+    margin-top: 6px;
+    font-size: 0.7em;
+    line-height: 1,1;
 }

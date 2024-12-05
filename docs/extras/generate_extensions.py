@@ -27,7 +27,11 @@ def generate_extensions():
                     f_ext.write(f'   {display_name}\n')
                 continue
 
-            metadata = importlib.metadata.metadata(pkg)
+            try:
+                metadata = importlib.metadata.metadata(pkg)
+            except importlib.metadata.PackageNotFoundError:
+                print(f'Skipping {line!r} -- package not installed. You may want to run pip -r extensions.txt for a complete documentation build')
+                continue
             pkg_name = metadata['name']
             docs = importlib.resources.files(pkg).joinpath('pt_docs')
             if docs.is_dir():

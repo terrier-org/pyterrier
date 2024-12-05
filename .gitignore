@@ -118,3 +118,4 @@ terrier-python-helper/.settings
 logs/
 
 docs/_includes/*
+docs/ext/

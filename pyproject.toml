@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "python-terrier"
+description="PyTerrier"
+requires-python = ">=3.8"
+authors = [
+  {name = "Craig Macdonald", email = "craig.macdonald@glasgow.ac.uk"},
+]
+maintainers = [
+  {name = "Craig Macdonald", email = "craig.macdonald@glasgow.ac.uk"},
+]
+readme = "README.md"
+classifiers = [
+  "Topic :: Text Processing",
+  "Topic :: Text Processing :: Indexing",
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+  "Operating System :: OS Independent",
+]
+dynamic = ["version", "dependencies"]
+
+[tool.setuptools.dynamic]
+version = {attr = "pyterrier.__version__"}
+dependencies = {file = ["requirements.txt"]}
+
+[tool.setuptools.packages.find]
+exclude = ["tests"]
+
+[tool.setuptools.package-data]
+mypkg = ["README.md", "LICENSE.txt"]
+
+[project.urls]
+Repository = "https://github.com/terrier-org/pyterrier"
+"Bug Tracker" = "https://github.com/terrier-org/pyterrier/issues"
+Changelog = "https://github.com/terrier-org/pyterrier/releases"
+CI = "https://github.com/terrier-org/pyterrier/actions"
+
+[project.entry-points."pyterrier.java.init"]
+"pyterrier.java" = "pyterrier.java:CoreJavaInit"
+"pyterrier.terrier.java" = "pyterrier.terrier.java:TerrierJavaInit"
