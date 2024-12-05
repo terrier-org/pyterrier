@@ -168,7 +168,7 @@ class ScalarProduct(Transformer):
         return out
 
     def __repr__(self):
-        return f'ScalarProductTransformer({self.scalar!r})'
+        return f'ScalarProduct({self.scalar!r})'
 
 class RankCutoff(Transformer):
     """
@@ -184,7 +184,7 @@ class RankCutoff(Transformer):
         return res
 
     def __repr__(self):
-        return f'RankCutoffTransformer({self.k!r})'
+        return f'RankCutoff({self.k!r})'
 
     def fuse_left(self, left: Transformer) -> Optional[Transformer]:
         # If the preceding component supports a native rank cutoff (via fuse_rank_cutoff), apply it.
