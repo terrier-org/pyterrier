@@ -1,3 +1,4 @@
+# type: ignore
 # java stuff
 from pyterrier.terrier import java
 from pyterrier.terrier._text_loader import TerrierTextLoader, terrier_text_loader

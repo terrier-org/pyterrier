@@ -239,6 +239,7 @@ def split_df(df : pd.DataFrame, N: Optional[int] = None, *, batch_size: Optional
     assert (N is None) != (batch_size is None), "Either N or batch_size should be provided (and not both)"
 
     if N is None:
+        assert batch_size is not None
         N = math.ceil(len(df) / batch_size)
 
     type = None

@@ -1,3 +1,4 @@
+# type: ignore
 import sys
 import warnings
 from functools import wraps
@@ -387,7 +388,7 @@ def register_config(name, config: Dict[str, Any]):
 class JavaClasses:
     def __init__(self, **mapping: Union[str, Callable[[], str]]):
         self._mapping = mapping
-        self._cache = {}
+        self._cache : Dict[str, Callable]= {}
 
     def __dir__(self):
         return list(self._mapping.keys())

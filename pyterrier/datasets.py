@@ -3,8 +3,9 @@ import os
 import json
 import pandas as pd
 from .transformer import is_lambda
+from abc import abstractmethod
 import types
-from typing import Union, Tuple, Iterator, Dict, Any, List, Literal
+from typing import Union, Tuple, Iterator, Dict, Any, List, Literal, Optional
 from warnings import warn
 import requests
 from .io import autoopen, touch
@@ -54,12 +55,13 @@ class Dataset():
         """
         pass
 
+    @abstractmethod
     def get_corpus_iter(self, verbose=True) -> pt.model.IterDict:
         """
             Returns an iter of dicts for this collection. If verbose=True, a tqdm pbar shows the progress over this iterator.
         """
         pass
-
+    
     def get_corpus_lang(self) -> Union[str,None]:
         """
             Returns the ISO 639-1 language code for the corpus, or None for multiple/other/unknown
@@ -72,6 +74,7 @@ class Dataset():
         """
         pass
 
+    @abstractmethod
     def get_topics(self, variant=None) -> pd.DataFrame:
         """
             Returns the topics, as a dataframe, ready for retrieval. 
@@ -84,6 +87,7 @@ class Dataset():
         """
         return None
 
+    @abstractmethod
     def get_qrels(self, variant=None) -> pd.DataFrame:
         """ 
             Returns the qrels, as a dataframe, ready for evaluation.
@@ -109,7 +113,7 @@ class Dataset():
         """ 
             Returns a standard result set provided by the dataset. This is useful for re-ranking experiments.
         """
-        pass
+        return None
 
 class RemoteDataset(Dataset):
 
@@ -139,7 +143,7 @@ class RemoteDataset(Dataset):
                 r = requests.get(url, allow_redirects=True, stream=True, **kwargs)
                 r.raise_for_status()
                 total = int(r.headers.get('content-length', 0))
-                with pt.io.finalized_open(filename, 'b') as file, pt.tqdm(
+                with pt.io.finalized_open(filename, 'b') as file, pt.tqdm( # type: ignore
                         desc=basename,
                         total=total,
                         unit='iB',
@@ -507,7 +511,7 @@ class IRDSDataset(Dataset):
         result.sort_values(by=['qid', 'score', 'docno'], ascending=[True, False, True], inplace=True) # ensure data is sorted by qid, -score, did
         # result doesn't yet contain queries (only qids) so load and merge them in
         topics = self.get_topics(variant)
-        result = pd.merge(result, topics, how='left', on='qid', copy=False)
+        result = pd.merge(result, topics, how='left', on='qid')
         return result
 
     def _describe_component(self, component):
@@ -610,7 +614,7 @@ class IRDSTextLoader(pt.Transformer):
         set_docnos = set(docnos)
         it = (tuple(getattr(doc, f) for f in fields) for doc in docstore.get_many_iter(set_docnos))
         if self.verbose:
-            it = pd.tqdm(it, unit='d', total=len(set_docnos), desc='IRDSTextLoader')
+            it = pt.tqdm(it, unit='d', total=len(set_docnos), desc='IRDSTextLoader') # type: ignore
         metadata = pd.DataFrame(list(it), columns=fields).set_index('doc_id')
         metadata_frame = metadata.loc[docnos].reset_index(drop=True)
 
@@ -1104,7 +1108,7 @@ VASWANI_FILES = {
     "corpus_iter" : lambda dataset, **kwargs : pt.index.treccollection2textgen(dataset.get_corpus(), num_docs=11429, verbose=kwargs.get("verbose", False))
 }
 
-DATASET_MAP = {
+DATASET_MAP : Dict[str, Dataset] = {
     # used for UGlasgow teaching
     "50pct" : RemoteDataset("50pct", FIFTY_PCT_FILES),
     # umass antique corpus - see http://ciir.cs.umass.edu/downloads/Antique/ 
@@ -1222,7 +1226,7 @@ def list_datasets(en_only=True):
 def transformer_from_dataset(
     dataset : Union[str, Dataset],
     clz,
-    variant: str = None,
+    variant: Optional[str] = None,
     version: str = 'latest',        
     **kwargs) -> pt.Transformer:
     """Returns a Transformer instance of type ``clz`` for the provided index of variant ``variant``."""

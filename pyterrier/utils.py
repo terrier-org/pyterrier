@@ -1,6 +1,6 @@
 import inspect
 import sys
-from typing import Callable, Tuple, List, Callable
+from typing import Callable, Tuple, List, Callable, Dict, Set
 import platform
 from functools import wraps
 from importlib.metadata import EntryPoint
@@ -39,7 +39,7 @@ def convert_qrels_to_dataframe(qrels_dict) -> pd.DataFrame:
     Returns:
         pd.DataFrame: columns=['qid', 'docno', 'label']
     """
-    result = {'qid': [], 'docno': [], 'label': []}
+    result : Dict[str,List[str]] = {'qid': [], 'docno': [], 'label': []}
     for qid in qrels_dict:
         for docno, label in qrels_dict[qid]:
             result['qid'].append(qid)
@@ -171,7 +171,7 @@ def get_class_methods(cls) -> List[Tuple[str, Callable]]:
     """
     all_attrs = inspect.getmembers(cls, predicate=inspect.isfunction)
 
-    base_attrs = set()
+    base_attrs : Set[str] = set()
     for base in cls.__bases__:
         base_attrs.update(name for name, _ in inspect.getmembers(base, predicate=inspect.isfunction))
     

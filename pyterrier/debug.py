@@ -1,7 +1,7 @@
 from . import Transformer
-from typing import List
+from typing import List, Optional
 
-def print_columns(by_query : bool = False, message : str = None) -> Transformer:
+def print_columns(by_query : Optional[bool] = False, message : Optional[str] = None) -> Transformer:
     """
     Returns a transformer that can be inserted into pipelines that can print the column names of the dataframe
     at this stage in the pipeline:
@@ -82,8 +82,8 @@ def print_rows(
         by_query : bool = True, 
         jupyter: bool = True, 
         head : int = 2, 
-        message : str = None, 
-        columns : List[str] = None) -> Transformer:
+        message : Optional[str] = None, 
+        columns : Optional[List[str]] = None) -> Transformer:
     """
     Returns a transformer that can be inserted into pipelines that can print some of the dataframe
     at this stage in the pipeline:
