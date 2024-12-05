@@ -380,20 +380,34 @@ class Compose(NAryTransformerBase):
             Returns a new transformer that fuses adjacent transformers where possible.
         """
         out = deque()
-        #inp = deque(Compose(*(t.compile() for t in self._transformers))._transformers)
-        inp = deque([t.compile() for t in self._transformers])
+        inp = deque(Compose(*(t.compile() for t in self._transformers))._transformers)
+        #inp = deque([t.compile() for t in self._transformers])
+        counter = 1
         while inp:
+            counter +=1 
             right = inp.popleft()
             if out and isinstance(out[-1], SupportsFuseRight) and (fused := out[-1].fuse_right(right)) is not None:
                 print("Fuse_right %s -> %s" % (str(out[-1]), str(fused)))
-                out.pop()                
-                inp.appendleft(fused)
+                out.pop()            
+                if isinstance(fused, Compose):
+                    for t in fused._transformers:
+                        inp.appendleft(t)
+                else:
+                    inp.appendleft(fused)
             elif out and isinstance(right, SupportsFuseLeft) and (fused := right.fuse_left(out[-1])) is not None:
                 print("Fuse_left %s -> %s" % (str(out[-1]), str(fused)))
-                out.pop()                
-                inp.appendleft(fused)
+                out.pop()
+                if isinstance(fused, Compose):
+                    for t in fused._transformers:
+                        inp.appendleft(t)
+                    print(inp)
+                else:
+                    inp.appendleft(fused)
+                print(fused)                
             else:
                 out.append(right)
+            if counter == 20:
+                raise OverflowError()
         if len(out) == 1:
             return out[0]
         return Compose(*out)
