@@ -469,6 +469,7 @@ class Retriever(pt.Transformer):
             del controls['wmodel']
             return FeaturesRetriever(self.indexref, features, controls=controls, properties=self.properties,
                 metadata=self.metadata, threads=self.threads, verbose=self.verbose)
+        return None
 
 
 @pt.java.required
@@ -833,6 +834,7 @@ class FeaturesRetriever(Retriever):
                 threads=self.threads,
                 wmodel=left.controls['wmodel'],
             )
+        return None
 
     def fuse_rank_cutoff(self, k: int) -> Optional[pt.Transformer]:
         """
@@ -862,3 +864,5 @@ class FeaturesRetriever(Retriever):
             features = self.features + ["WMODEL:" + other.controls['wmodel']] if is_left else ["WMODEL:" + other.controls['wmodel']] + self.features
             return FeaturesRetriever(self.indexref, features, controls=self.controls, properties=self.properties,
                 threads=self.threads, wmodel=self.wmodel, verbose=self.verbose)
+        
+        return None
