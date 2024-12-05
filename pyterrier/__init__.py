@@ -4,6 +4,7 @@ from deprecated import deprecated
 
 from pyterrier import model, utils
 from pyterrier.transformer import Transformer, Estimator, Indexer
+from pyterrier._ops import RankCutoff, Compose
 
 from pyterrier import java
 
@@ -51,6 +52,7 @@ __all__ = [
     'text', 'transformer', 'datasets', 'get_dataset', 'find_datasets', 'list_datasets', 'Experiment', 'GridScan',
     'GridSearch', 'KFoldGridSearch', 'Evaluate',
     'utils', 'Utils', 'Transformer', 'Estimator', 'Indexer',
+    'RankCutoff', 'Compose',
     'BatchRetrieve', 'TerrierRetrieve', 'FeaturesBatchRetrieve', 'IndexFactory',
     'run', 'rewrite', 'index', 'FilesIndexer', 'TRECCollectionIndexer', 'DFIndexer', 'DFIndexUtils', 'IterDictIndexer',
     'IndexingType', 'TerrierStemmer', 'TerrierStopwords', 'TerrierTokeniser',
