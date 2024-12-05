@@ -67,7 +67,7 @@ class TestOperators(BaseTestCase):
             self.assertEqual(1, len(output))
             self.assertEqual("q1", output.iloc[0]["qid"])
             self.assertEqual("hello test test", output.iloc[0]["query"])
-            # now test transform_iter pathway via __call__
+            # now test transform_iter pathway via __call__
             output = sequence(input.to_dict(orient='records'))
             self.assertIsInstance(output, list)
             output = pd.DataFrame(output)
@@ -85,40 +85,48 @@ class TestOperators(BaseTestCase):
                 # TODO: this shouldnt be so hacky
                 import pyterrier._ops
                 return pyterrier._ops.RankCutoff(self.k) >> self
+            def __repr__(self):
+                return f'PRF(k={self.k})'
                 
         class Retr(pt.Transformer):
             def __init__(self, k=1000):
                 self.k = k
-
             def fuse_rank_cutoff(self, k):
                 return Retr(k=k)
-            
             def transform(self, df):
                 pass
+            def __repr__(self):
+                return f'Retr(k={self.k})'
 
         class Extractor(pt.Transformer):
             def transform(self, df):
                 pass
-
             def fuse_rank_cutoff(self, k):
                 # TODO: this shouldnt be so hacky
                 import pyterrier._ops
                 return pyterrier._ops.RankCutoff(k) >> self
+            def __repr__(self):
+                return 'Extr'
 
-        # check that the rank fusion works.
+        # check that the rank cutoff fusion works.
         pipe1 = Retr() % 3
         pipe1c = pipe1.compile()
         self.assertEqual(3, pipe1c.k)
         self.assertIsInstance(pipe1c, Retr)
 
-        # now check that we can propagate k=3 all the way back to Retr
-        slow_pipe = Retr() >> Extractor() >> PRF(k=3)
+        # now check that we can propagate k=3 (from PRF.compile()) all the way back to Retr
+        slow_pipe = Retr() >> Extractor() >> PRF(k=3) >> Retr()
         fast_pipe = slow_pipe.compile()
-        print(fast_pipe)
-        # the resulting pipe should be 
-        # Retr(3) >> Extractor() >> PRF(k=3)
+        # the resulting pipe should be:
+        # Retr(3) >> Extr() >> PRF(k=3) >> Retr(1000)
+        self.assertEqual(4, len(fast_pipe))
+        self.assertEqual(Retr, type(fast_pipe[0]))
         self.assertEqual(3, fast_pipe[0].k)
-        self.assertIsInstance(fast_pipe[0], Retr)
+        self.assertEqual(Extractor, type(fast_pipe[1]))
+        self.assertEqual(PRF, type(fast_pipe[2]))
+        self.assertEqual(3, fast_pipe[2].k)
+        self.assertEqual(Retr, type(fast_pipe[3]))
+        self.assertEqual(1000, fast_pipe[3].k)
 
     def test_then_multi(self):
         import pyterrier.transformer as ptt

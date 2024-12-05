@@ -2,7 +2,7 @@ from .transformer import Transformer, Estimator, get_transformer, SupportsFuseFe
 from .model import add_ranks
 from collections import deque
 from warnings import warn
-from typing import List, Optional
+from typing import Optional, Iterable, Tuple
 from itertools import chain
 import pandas as pd
 import pyterrier as pt
@@ -14,10 +14,7 @@ class NAryTransformerBase(Transformer):
     def __init__(self, *transformers: Transformer):
         assert len(transformers) > 0
         # Flatten out multiple layers of the same NAryTransformer into one
-        transformers = chain.from_iterable(
-            (t._transformers if isinstance(t, type(self)) else [t])
-            for t in transformers
-        )
+        transformers = _flatten(transformers, type(self))
         # Coerce datatypes
         self._transformers = tuple(get_transformer(x, stacklevel=6) for x in transformers)
 
@@ -32,6 +29,12 @@ class NAryTransformerBase(Transformer):
             Returns the number of transformers in the operator.
         """
         return len(self._transformers)
+
+def _flatten(transformers: Iterable[Transformer], cls: type) -> Tuple[Transformer]:
+    return list(chain.from_iterable(
+        (t._transformers if isinstance(t, cls) else [t])
+        for t in transformers
+    ))
 
 class SetUnion(Transformer):
     """      
@@ -375,40 +378,37 @@ class Compose(NAryTransformerBase):
     def __repr__(self):
         return '(' + ' >> '.join([str(t) for t in self._transformers]) + ')'
 
-    def compile(self) -> Transformer:
-        """
-            Returns a new transformer that fuses adjacent transformers where possible.
-        """
+    def compile(self, verbose: bool = False) -> Transformer:
+        """Returns a new transformer that iteratively fuses adjacent transformers to form a more efficient pipeline."""
+        # compile constituent transformers (flatten allows complie() to return Compose pipelines)
+        inp = deque(_flatten((t.compile() for t in self._transformers), Compose))
         out = deque()
-        inp = deque(Compose(*(t.compile() for t in self._transformers))._transformers)
-        #inp = deque([t.compile() for t in self._transformers])
         counter = 1
         while inp:
+            if verbose:
+                print(counter, list(out), list(inp))
             counter +=1 
             right = inp.popleft()
             if out and isinstance(out[-1], SupportsFuseRight) and (fused := out[-1].fuse_right(right)) is not None:
-                print("Fuse_right %s -> %s" % (str(out[-1]), str(fused)))
-                out.pop()            
-                if isinstance(fused, Compose):
-                    for t in fused._transformers:
-                        inp.appendleft(t)
-                else:
-                    inp.appendleft(fused)
-            elif out and isinstance(right, SupportsFuseLeft) and (fused := right.fuse_left(out[-1])) is not None:
-                print("Fuse_left %s -> %s" % (str(out[-1]), str(fused)))
+                if verbose:
+                    print(f"  fuse_right {out[-1]} >> {right}  == {fused}")
                 out.pop()
-                if isinstance(fused, Compose):
-                    for t in fused._transformers:
-                        inp.appendleft(t)
-                    print(inp)
-                else:
-                    inp.appendleft(fused)
-                print(fused)                
+                # add the fused pipeline to the start of the input queue so it will be processed next (must be done in reverse due to how extendleft works)
+                inp.extendleft(reversed(_flatten([fused], Compose)))
+                inp[:0] = _flatten([fused], Compose)
+                # inp = deque(_flatten([fused], Compose)) + inp
+            elif out and isinstance(right, SupportsFuseLeft) and (fused := right.fuse_left(out[-1])) is not None:
+                if verbose:
+                    print(f"  fuse_left {out[-1]} >> {right}  == {fused}")
+                out.pop()
+                # add the fused pipeline to the start of the input queue so it will be processed next (must be done in reverse due to how extendleft works)
+                inp.extendleft(reversed(_flatten([fused], Compose)))
             else:
                 out.append(right)
-            if counter == 20:
+            if counter == MAX_COMPILE_ITER:
                 raise OverflowError()
         if len(out) == 1:
             return out[0]
         return Compose(*out)
 
+MAX_COMPILE_ITER = 10_000
