@@ -4,6 +4,7 @@ pyterrier_anserini # Anserini
 # AutoQrels <https://github.com/seanmacavaney/autoqrels>
 pyterrier_caching # Caching
 # ChatNoir <https://github.com/chatnoir-eu/chatnoir-pyterrier>
+pyterrier_ciff # CIFF
 # ColBERT <https://github.com/terrierteam/pyterrier_colbert>
 # DeepCT <https://github.com/terrierteam/pyterrier_deepct>
 # DeepImpact <https://github.com/terrierteam/pyterrier_deepimpact>
@@ -12,7 +13,7 @@ pyterrier_dr # Dense Retrieval
 # Document Quality <https://github.com/terrierteam/pyterrier-quality>
 # GenRank <https://github.com/emory-irlab/pyterrier_genrank>
 # OpenNIR <https://opennir.net/>
-# PISA <https://github.com/terrierteam/pyterrier_pisa>
+pyterrier_pisa # PISA
 # Sentence Transformers <https://github.com/soldni/pyterrier_sentence_transformers>
 # SPLADE <https://github.com/cmacdonald/pyt_splade>
 # T5 <https://github.com/terrierteam/pyterrier_t5>
