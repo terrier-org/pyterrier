@@ -32,7 +32,7 @@ class NAryTransformerBase(Transformer):
 
 def _flatten(transformers: Iterable[Transformer], cls: type) -> Tuple[Transformer]:
     return list(chain.from_iterable(
-        (t._transformers if isinstance(t, cls) else [t])
+        (t._transformers if isinstance(t, cls) else [t]) # type: ignore
         for t in transformers
     ))
 
@@ -193,6 +193,7 @@ class RankCutoff(Transformer):
         # If the preceding component supports a native rank cutoff (via fuse_rank_cutoff), apply it.
         if isinstance(left, SupportsFuseRankCutoff):
             return left.fuse_rank_cutoff(self.k)
+        return None
 
 class FeatureUnion(NAryTransformerBase):
     """
@@ -295,7 +296,7 @@ class FeatureUnion(NAryTransformerBase):
         """
             Returns a new transformer that fuses feature unions where possible.
         """
-        out = deque()
+        out : deque = deque()
         inp = deque([t.compile() for t in self._transformers])
         while inp:
             right = inp.popleft()
@@ -382,7 +383,7 @@ class Compose(NAryTransformerBase):
         """Returns a new transformer that iteratively fuses adjacent transformers to form a more efficient pipeline."""
         # compile constituent transformers (flatten allows complie() to return Compose pipelines)
         inp = deque(_flatten((t.compile() for t in self._transformers), Compose))
-        out = deque()
+        out : deque = deque()
         counter = 1
         while inp:
             if verbose:
