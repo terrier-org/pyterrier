@@ -1,3 +1,4 @@
+# type: ignore
 from typing import List, Union, Literal
 
 import pandas as pd

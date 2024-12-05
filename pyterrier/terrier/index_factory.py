@@ -1,3 +1,4 @@
+# type: ignore
 from typing import Union, List
 import pyterrier as pt
 
