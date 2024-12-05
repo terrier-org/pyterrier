@@ -3,6 +3,7 @@ import os
 import json
 import pandas as pd
 from .transformer import is_lambda
+from abc import abstractmethod
 import types
 from typing import Union, Tuple, Iterator, Dict, Any, List, Literal, Optional
 from warnings import warn
@@ -54,12 +55,13 @@ class Dataset():
         """
         pass
 
+    @abstractmethod
     def get_corpus_iter(self, verbose=True) -> pt.model.IterDict:
         """
             Returns an iter of dicts for this collection. If verbose=True, a tqdm pbar shows the progress over this iterator.
         """
         pass
-
+    
     def get_corpus_lang(self) -> Union[str,None]:
         """
             Returns the ISO 639-1 language code for the corpus, or None for multiple/other/unknown
@@ -72,6 +74,7 @@ class Dataset():
         """
         pass
 
+    @abstractmethod
     def get_topics(self, variant=None) -> pd.DataFrame:
         """
             Returns the topics, as a dataframe, ready for retrieval. 
@@ -84,6 +87,7 @@ class Dataset():
         """
         return None
 
+    @abstractmethod
     def get_qrels(self, variant=None) -> pd.DataFrame:
         """ 
             Returns the qrels, as a dataframe, ready for evaluation.
@@ -109,7 +113,7 @@ class Dataset():
         """ 
             Returns a standard result set provided by the dataset. This is useful for re-ranking experiments.
         """
-        pass
+        return None
 
 class RemoteDataset(Dataset):
 
