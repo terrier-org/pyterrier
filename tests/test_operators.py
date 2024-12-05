@@ -75,8 +75,50 @@ class TestOperators(BaseTestCase):
             self.assertEqual("q1", output.iloc[0]["qid"])
             self.assertEqual("hello test test", output.iloc[0]["query"])
 
+    def test_compile(self):
+        class PRF(pt.Transformer):
+            def __init__(self, k=10):
+                self.k = k
+            def transform(self, df):
+                pass
+            def compile(self):
+                # TODO: this shouldnt be so hacky
+                import pyterrier._ops
+                return pyterrier._ops.RankCutoff(self.k) >> self
+                
+        class Retr(pt.Transformer):
+            def __init__(self, k=1000):
+                self.k = k
 
+            def fuse_rank_cutoff(self, k):
+                return Retr(k=k)
+            
+            def transform(self, df):
+                pass
 
+        class Extractor(pt.Transformer):
+            def transform(self, df):
+                pass
+
+            def fuse_rank_cutoff(self, k):
+                # TODO: this shouldnt be so hacky
+                import pyterrier._ops
+                return pyterrier._ops.RankCutoff(k) >> self
+
+        # check that the rank fusion works.
+        pipe1 = Retr() % 3
+        pipe1c = pipe1.compile()
+        self.assertEqual(3, pipe1c.k)
+        self.assertIsInstance(pipe1c, Retr)
+
+        # now check that we can propagate k=3 all the way back to Retr
+        slow_pipe = Retr() >> Extractor() >> PRF(k=3)
+        fast_pipe = slow_pipe.compile()
+        print(fast_pipe)
+        # the resulting pipe should be 
+        # Retr(3) >> Extractor() >> PRF(k=3)
+        self.assertEqual(3, fast_pipe[0].k)
+        self.assertIsInstance(fast_pipe[0], Retr)
 
     def test_then_multi(self):
         import pyterrier.transformer as ptt
