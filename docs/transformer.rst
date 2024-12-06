@@ -7,24 +7,37 @@ PyTerrier's retrieval architecture is based on three concepts:
 
 - dataframes with pre-defined types (each with a minimum set of known attributes), as detailed in the data model.
 - the *transformation* of those dataframes by standard information retrieval operations, defined as transformers.
-- the compsition of transformers, supported by the operators defined on transformers.
+- the compsition of transformers, supported by the operators defined on transformers.
 
-In essence, a PyTerrier transformer is a class with a ``transform()`` method, which takes as input a dataframe, and changes it,
-before returning it. 
+In essence, a PyTerrier transformer is a class that implemented one or more of two methods:
 
-+-------+---------+-------------+------------------+----------------------------------+
-+ Input | Output  | Cardinality | Example          | Concrete Transformer Example     |
-+=======+=========+=============+==================+==================================+
-|   Q   |    Q    |   1 to 1    | Query rewriting  | `pt.rewrite.SDM()`               |
-+-------+---------+-------------+------------------+----------------------------------+
-|   Q   |  Q x D  |   1 to N    | Retrieval        | `pt.terrier.Retriever()`         |
-+-------+---------+-------------+------------------+----------------------------------+
-| Q x D |    Q    |   N to 1    | Query expansion  | `pt.rewrite.RM3()`               |
-+-------+---------+-------------+------------------+----------------------------------+
-| Q x D |  Q x D  |   1 to 1    | Re-ranking       | `pt.apply.doc_score()`           |
-+-------+---------+-------------+------------------+----------------------------------+
-| Q x D |  Q x Df |   1 to 1    | Feature scoring  | `pt.terrier.FeaturesRetriever()` |
-+-------+---------+-------------+------------------+----------------------------------+
+1. a ``transform()`` method, which takes as input a dataframe, and changes it, before returning it,
+
+and/or
+
+2.  a ``transform_iter()`` method, which takes as input a iterable of dictionaries ("iter-dict"), and changes it, before returning or yielding it.
+
+One of these methods must be implemented. If one is implemented, the other will change the input type and call the other - for instance,
+if a transformer's ``transform_iter()`` method is called, but only ``transform()`` is implemented, the iter-dict will be used to construct a
+dataframe,  ``transform()`` is called, and the resulting dataframe transformed back into an iter-dict. 
+
+Depending on the expected input and output column of a transformer, they can be described as following into different categories.
+
++-------+---------+-------------+---------------------+------------------------------------------------------------------------------------------+
++ Input | Output  | Cardinality | Example             | Concrete Transformer Example                                                             |
++=======+=========+=============+=====================+==========================================================================================+
+|   D   |    D    |   1 to 1    | Document expansion  | `Doc2Query <https://github.com/terrierteam/pyterrier_doc2query>`_                        |
++-------+---------+-------------+---------------------+------------------------------------------------------------------------------------------+
+|   Q   |    Q    |   1 to 1    | Query rewriting     | `pt.rewrite.SDM()`                                                                       |
++-------+---------+-------------+---------------------+------------------------------------------------------------------------------------------+
+|   Q   |  Q x D  |   1 to N    | Retrieval           | `pt.terrier.Retriever()`                                                                 |
++-------+---------+-------------+---------------------+------------------------------------------------------------------------------------------+
+| Q x D |    Q    |   N to 1    | Query expansion     | `pt.rewrite.RM3()`                                                                       |
++-------+---------+-------------+---------------------+------------------------------------------------------------------------------------------+
+| Q x D |  Q x D  |   1 to 1    | Re-ranking          | `pt.apply.doc_score()`                                                                   |
++-------+---------+-------------+---------------------+------------------------------------------------------------------------------------------+
+| Q x D |  Q x Df |   1 to 1    | Feature scoring     | `pt.terrier.FeaturesRetriever()`                                                         |
++-------+---------+-------------+---------------------+------------------------------------------------------------------------------------------+
 
 Optimisation
 ============
@@ -66,9 +79,9 @@ You can invoke a transformer's transfor method simply by calling the default met
   df_out = t.transform(df_in)
   df_out = t(df_in)
 
-The default method can also detect iterable dictionaries, and pass those directly to ``transform_iter()`` 
-(which typically calls ``transform()``). So the following expression is equivalent to the examples in the 
-previous code block::
+The default method will also detect iterable dictionaries, and pass those directly to ``transform_iter()`` 
+(which usually calls ``transform()`` if ``transform_iter()`` has not been impelmented). So the following 
+expression is equivalent to the examples in the previous code block, except that df_out will contain an iter-dict::
 
   df_out = t([{'qid' : 'q1', 'query' : 'test query'}])
 
@@ -132,8 +145,6 @@ to use these directly but they are documented for completeness.
 +--------+------------------+---------------------------+
 | `^`    | concatenate      | ConcatenateTransformer    |
 +--------+------------------+---------------------------+
-| `~`    | cache            | ChestCacheTransformer     |
-+--------+------------------+---------------------------+
 
 
 .. _indexing_pipelines:
@@ -167,15 +178,39 @@ The first step to writing your own transformer for your own code is to consider 
 Several common transformations are supported through the functions in the :ref:`pyterrier.apply` module. See the 
 :ref:`pyterrier.apply` documentation.
 
-However, if your transformer has state, such as an expensive model to be loaded at startup time, you may want to 
-extend ``pt.Transformer`` directly. 
+However, if your transformer has state, such as an expensive model or index data structure to be loaded at startup time, 
+you may want to extend ``pt.Transformer`` directly. 
 
 Here are some hints for writing Transformers:
- - Except for an indexer, you should implement a ``transform()`` method.
+ - Except for an indexer, you should implement a ``transform()`` and/or ``transform_iter()`` method.
  - If your approach ranks results, use ``pt.model.add_ranks()`` to add the rank column. (``pt.apply.doc_score`` will call add_ranks automatically). 
  - If your approach can be trained, your transformer should extend Estimator, and implement the ``fit()`` method.
  - If your approach is an indexer, your transformer should extend Indexer and implement ``index()`` method.
 
+Optimisation of Transfomer Pipelines
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When ``.compile()`` on a transformer or a pipeline of transformer, there is an opportunity to improve the efficiency of the pipeline,
+while ensuring that the semantics remain unchanged. Implementors of a transformer wishing to support such optimisations have a number
+of mechanisms open to then.
+
+Firstly, the ``.compile()`` transformer's method can be overridden to return a new transformer instance that may be more efficient.
+
+Secondly, the transformer can be fused with adjacent transformers. For instance, a retriever may be fused with a rank-cutoff operator,
+such that the rank-cutoff is applied at retrieval rather than after. Fusion is controlled by `protocol methods <https://typing.readthedocs.io/en/latest/spec/protocol.html#protocols>`_,
+which determine how the transformer can be fused.
+
+.. autoclass:: pyterrier.transformer.SupportsFuseRankCutoff
+    :members:
+
+.. autoclass:: pyterrier.transformer.SupportsFuseLeft
+    :members:
+
+.. autoclass:: pyterrier.transformer.SupportsFuseRight
+    :members:
+
+.. autoclass:: pyterrier.transformer.SupportsFuseFeatureUnion
+    :members:
 
 Mocking Transformers from DataFrames
 ====================================
