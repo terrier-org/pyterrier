@@ -7,20 +7,51 @@ import warnings
 
 class TestFeaturesBatchRetrieve(BaseTestCase):
 
-    def test_compile_to_fbr(self):
-        indexref = pt.IndexRef.of(self.here + "/fixtures/index/data.properties")
-        # we only want a candidate set of 2 documents
-        firstpass = pt.terrier.Retriever(indexref, wmodel="BM25")
-        pipe_f_fbr = firstpass >> pt.terrier.FeaturesRetriever(indexref, features=["WMODEL:DPH", "WMODEL:PL2"])
-        pipe_fbr = pt.terrier.FeaturesRetriever(indexref, wmodel="BM25", features=["WMODEL:DPH", "WMODEL:PL2"])
-        pipe_raw = firstpass >> ( pt.terrier.Retriever(indexref, wmodel="DPH") ** pt.terrier.Retriever(indexref, wmodel="PL2") )
-        input = pd.DataFrame([["1", "Stability"]], columns=['qid', 'query'])
-        res1 = (pipe_f_fbr %2)(input)
-        res2 = (pipe_fbr % 2)(input)
-        res3 = (pipe_raw % 2)(input)
-        compiled = (pipe_raw % 2).compile()
-        print(repr(compiled))
-        res4 = compiled(input)
+    def test_compile_funion_to_fbr(self):
+
+        indexdir = self.here + "/fixtures/index/data.properties"
+        indexref = pt.IndexRef.of(indexdir)
+        index = pt.IndexFactory.of(indexref)
+        for indexloc in [indexdir, indexref, index]:
+            # we only want a candidate set of 2 documents
+            firstpass = pt.terrier.Retriever(indexloc, wmodel="BM25")
+            pipe_f_fbr = firstpass >> pt.terrier.FeaturesRetriever(indexloc, features=["WMODEL:DPH", "WMODEL:PL2"])
+            pipe_fbr = pt.terrier.FeaturesRetriever(indexloc, wmodel="BM25", features=["WMODEL:DPH", "WMODEL:PL2"])
+            pipe_raw = firstpass >> ( pt.terrier.Retriever(indexloc, wmodel="DPH") ** pt.terrier.Retriever(indexref, wmodel="PL2") )
+            input = pd.DataFrame([["1", "Stability"]], columns=['qid', 'query'])
+            res1 = (pipe_f_fbr %2)(input)[['qid', 'query', 'docid', 'rank', 'features', 'docno', 'score']]
+            res2 = (pipe_fbr % 2)(input)[['qid', 'query', 'docid', 'rank', 'features', 'docno', 'score']]
+            pd.testing.assert_frame_equal(res1, res2)
+            res3 = (pipe_raw % 2)(input)[['qid', 'query', 'docid', 'rank', 'features', 'docno', 'score']]
+            pd.testing.assert_frame_equal(res1, res3)
+
+            compiled = (pipe_raw % 2).compile()
+            self.assertTrue( isinstance(compiled, pt.terrier.FeaturesRetriever) )
+            self.assertEqual("BM25", compiled.wmodel)
+            print(repr(compiled))
+            self.assertEqual("1", compiled.controls["end"])
+            res4 = compiled(input)[['qid', 'query', 'docid', 'rank', 'features', 'docno', 'score']] #reorder dataframe columns
+            res1 = res1[['qid', 'query', 'docid', 'rank', 'features', 'docno', 'score']]
+            pd.testing.assert_frame_equal(res1, res4)        
+
+    def test_compile_left_to_fbr(self):
+        indexdir = self.here + "/fixtures/index/data.properties"
+        indexref = pt.IndexRef.of(indexdir)
+        index = pt.IndexFactory.of(indexref)
+        for indexloc in [indexdir, indexref, index]:
+            # we only want a candidate set of 2 documents
+            firstpass = pt.terrier.Retriever(indexloc, wmodel="BM25")
+            pipe_f_fbr = firstpass >> pt.terrier.FeaturesRetriever(indexloc, features=["WMODEL:DPH", "WMODEL:PL2"])
+            pipe_fbr = pt.terrier.FeaturesRetriever(indexloc, wmodel="BM25", features=["WMODEL:DPH", "WMODEL:PL2"])
+            input = pd.DataFrame([["1", "Stability"]], columns=['qid', 'query'])
+            res1 = (pipe_fbr %2)(input)
+            
+            compiled = (pipe_f_fbr % 2).compile()
+            self.assertTrue( isinstance(compiled, pt.terrier.FeaturesRetriever) )
+            self.assertEqual("BM25", compiled.wmodel)
+            self.assertTrue("1", compiled.controls["end"])
+            res4 = compiled(input)
+            pd.testing.assert_frame_equal(res1, res4)
 
     def test_fbr_reranking(self):
         if not pt.terrier.check_version("5.4"):
