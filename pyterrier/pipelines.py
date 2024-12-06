@@ -385,28 +385,9 @@ def Experiment(
         A Dataframe with each retrieval system with each metric evaluated.
     """
     
-    
-    # map to the old signature of Experiment
-    warn_old_sig=False
-    if isinstance(retr_systems, pd.DataFrame) and isinstance(topics, list):
-        tmp = topics
-        topics = retr_systems
-        retr_systems = tmp
-        warn_old_sig = True
-    if isinstance(eval_metrics, pd.DataFrame) and isinstance(qrels, list):
-        tmp = eval_metrics
-        eval_metrics = qrels
-        qrels = tmp
-        warn_old_sig = True
-    if warn_old_sig:
-        warn("Signature of Experiment() is now (retr_systems, topics, qrels, eval_metrics), please update your code", DeprecationWarning, 2)
-
     if not isinstance(retr_systems, list):
         raise TypeError("Expected list of transformers for retr_systems, instead received %s" % str(type(retr_systems)))
 
-    if 'drop_unused' in kwargs:
-        filter_by_qrels = kwargs.pop('drop_unused')
-        warn('drop_unused is deprecated; use filter_by_qrels instead', DeprecationWarning)
     if len(kwargs):
         raise TypeError("Unknown kwargs: %s" % (str(list(kwargs.keys()))))
 
@@ -417,11 +398,11 @@ def Experiment(
     if isinstance(topics, str):
         from . import Utils
         if os.path.isfile(topics):
-            topics = Utils.parse_trec_topics_file(topics)
+            topics = pt.io.read_topics(topics)
     if isinstance(qrels, str):
         from . import Utils
         if os.path.isfile(qrels):
-            qrels = Utils.parse_qrels(qrels)
+            qrels = pt.io.read_qrels(qrels)
 
     if round is not None:
         if isinstance(round, int):

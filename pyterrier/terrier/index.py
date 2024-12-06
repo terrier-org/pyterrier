@@ -29,12 +29,6 @@ FlatJSONDocumentIterator = None
 TQDMCollection = None
 TQDMSizeCollection = None
 
-# for backward compatibility
-class IterDictIndexerBase(pt.Indexer):
-    @deprecated(version="0.9", reason="Use pt.Indexer instead of IterDictIndexerBase")
-    def __init__(self, *args, **kwargs):
-        super(pt.Indexer, self).__init__(*args, **kwargs)
-
 # lastdoc ensures that a Document instance from a Collection is not GCd before Java has used it.
 lastdoc = None
 
@@ -630,7 +624,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
     This version is used for Windows -- which doesn't support the faster fifo implementation.
     """
     @pt.java.required
-    def index(self, it, fields=('text',), meta=None, meta_lengths=None, threads=None):
+    def index(self, it, fields=('text',), threads=None):
         """
         Index the specified iter of dicts with the (optional) specified fields
 
@@ -640,11 +634,6 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
             meta(list[str]): keys to be considered as metdata. Deprecated
             meta_lengths(list[int]): length of metadata, defaults to 512 characters. Deprecated
         """
-        if meta is not None:
-            warn('specifying meta and meta_lengths in IterDictIndexer.index() is deprecated, use kwargs in constructor instead', DeprecationWarning, 2)
-            self.meta = meta
-            if meta_lengths is not None:
-                self.meta = {zip(meta, meta_lengths)}
 
         self._setup(fields, self.meta, None)
         assert self.threads == 1, 'IterDictIndexer does not support multiple threads on Windows'
