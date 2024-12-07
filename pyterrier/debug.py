@@ -1,3 +1,4 @@
+import pandas as pd
 from . import Transformer
 from typing import List, Optional
 
@@ -120,3 +121,21 @@ def print_rows(
             print(render)
         return df
     return pt.apply.by_query(_do_print) if by_query else pt.apply.generic(_do_print) 
+
+class pdb(Transformer):
+    """Returns a transformer that starts an interactive `pdb <https://docs.python.org/3/library/pdb.html>`__
+    debugger session. The interactive session can be used to inspect the dataframe at this stage in the pipeline.
+
+    Example::
+
+        pipe = (
+            bm25
+            >> pt.debug.pdb()
+            >> pt.rewrite.RM3() 
+            >> pt.debug.pdb()
+            bm25)
+    """
+    def transform(self, inp: pd.DataFrame) -> pd.DataFrame:
+        import pdb
+        pdb.set_trace()
+        return inp
