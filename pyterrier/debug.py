@@ -20,7 +20,7 @@ def print_columns(by_query : Optional[bool] = False, message : Optional[str] = N
             >> pt.debug.print_columns() 
             >> pt.rewrite.RM3() 
             >> pt.debug.print_columns()
-            bm25
+            bm25)
 
     When the above pipeline is executed, two sets of columns will be displayed
      - `["qid", "query", "docno", "rank", "score"]`  - the output of BM25, a ranking of documents
@@ -55,7 +55,7 @@ def print_num_rows(
             >> pt.debug.print_num_rows() 
             >> pt.rewrite.RM3() 
             >> pt.debug.print_num_rows()
-            bm25
+            bm25)
 
     When the above pipeline is executed, the following output will be displayed
      - `num_rows 1: 1000` - the output of BM25, a ranking of documents
@@ -104,7 +104,7 @@ def print_rows(
             >> pt.debug.print_rows() 
             >> pt.rewrite.RM3() 
             >> pt.debug.print_rows()
-            bm25
+            bm25)
      
     """
     import pyterrier as pt
