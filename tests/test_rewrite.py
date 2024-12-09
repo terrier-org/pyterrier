@@ -423,6 +423,10 @@ class TestRewrite(TempDirTestCase):
 
             self.assertAlmostEqual(map_qe, map_pipe, places=4)
 
+            pipe_opt = pipe.compile()
+            self.assertEqual("2", pipe_opt[0].controls["end"]) # has fb_docs 3 been proparaged back to the first retriever
+            self.assertNotIn("end", pipe_opt[-1].controls) # ensure last retriever is unchanged
+            pd.testing.assert_frame_equal(all_qe_res.head(5), pipe_opt(t).head(5))
 
 if __name__ == "__main__":
     unittest.main()

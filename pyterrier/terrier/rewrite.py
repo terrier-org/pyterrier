@@ -188,6 +188,9 @@ class QueryExpansion(pt.Transformer):
         self.manager = pt.terrier.J.ManagerFactory._from_(self.indexref)
         self.requires_scores = requires_scores
 
+    def compile(self) -> pt.Transformer:
+        return pt.RankCutoff(self.fb_docs) >> self
+
     def __reduce__(self):
         return (
             self.__class__,
