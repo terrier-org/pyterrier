@@ -851,7 +851,7 @@ class FeaturesRetriever(Retriever):
     def fuse_feature_union(self, other: pt.Transformer, is_left: bool) -> Optional[pt.Transformer]:
         if isinstance(other, FeaturesRetriever) and \
            self.indexref == other.indexref and \
-           self.wmodel is None  and \
+           self.wmodel is None and \
            other.wmodel is None:
             features = self.features + other.features if is_left else other.features + self.features
             return FeaturesRetriever(self.indexref, features, controls=self.controls, properties=self.properties,

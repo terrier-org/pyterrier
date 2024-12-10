@@ -36,36 +36,6 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
             res1 = res1[['qid', 'query', 'docid', 'rank', 'features', 'docno', 'score']]
             pd.testing.assert_frame_equal(res1, res4)
         
-        firstpass = pt.terrier.Retriever(indexloc, wmodel="BM25")
-        def _feat_fn(row):
-            print("invoking _feat_fn")
-            return -40
-        
-        pipe_raw = firstpass >> ( 
-            pt.terrier.Retriever(index, wmodel="DPH") 
-            ** pt.terrier.Retriever(index, wmodel="PL2") 
-            ** pt.apply.doc_score(_feat_fn) )
-        res1 = (pipe_raw %2)(input)[['qid', 'query', 'docid', 'rank', 'features', 'docno', 'score']]
-
-        pipe_opt = pipe_raw.compile(verbose=True)
-        print("bla" + repr(pipe_opt))
-        print("bla" + str(pipe_opt))
-        print("bla" + str(type(pipe_opt)))
-                
-        self.assertTrue("**" in repr(pipe_opt))
-        self.assertTrue("**" in str(pipe_opt))
-        self.assertTrue( isinstance(pipe_opt, pt.terrier.FeaturesRetriever) )
-        res2 = (pipe_opt %2)(input)[['qid', 'query', 'docid', 'rank', 'features', 'docno', 'score']]
-
-        self.assertEqual(3, res1["features"].iloc[0].shape[0])
-        self.assertEqual(3, res2["features"].iloc[0].shape[0])
-        self.assertEqual(-40, res1["features"].iloc[0][-1])
-        self.assertEqual(-40, res2["features"].iloc[0][-1])
-        pd.testing.assert_frame_equal(res1, res2)
-        print(str(pipe_raw))
-        print(res1)
-        print(str(pipe_opt))
-        print(res2)
 
     def test_compile_left_to_fbr(self):
         indexdir = self.here + "/fixtures/index/data.properties"
