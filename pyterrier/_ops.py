@@ -206,7 +206,7 @@ class FeatureUnion(NAryTransformerBase):
             pipe = cands >> (pl2f ** bm25f)
     """
     def transform(self, inputRes):
-        if not "docno" in inputRes.columns and "docid" in inputRes.columns:
+        if not "docno" in inputRes.columns and "docid" not in inputRes.columns:
             raise ValueError("FeatureUnion operates as a re-ranker, but input did not have either "
                 "docno or docid columns, found columns were %s" %  str(inputRes.columns))
 
