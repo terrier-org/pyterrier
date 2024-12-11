@@ -20,6 +20,9 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
             pipe_f_fbr = firstpass >> pt.terrier.FeaturesRetriever(indexloc, features=["WMODEL:DPH", "WMODEL:PL2"])
             pipe_fbr = pt.terrier.FeaturesRetriever(indexloc, wmodel="BM25", features=["WMODEL:DPH", "WMODEL:PL2"])
             pipe_raw = firstpass >> ( pt.terrier.Retriever(indexloc, wmodel="DPH") ** pt.terrier.Retriever(indexref, wmodel="PL2") )
+
+            self.assertEqual(pipe_raw[1][0].indexref, firstpass.indexref)
+            self.assertEqual(pipe_raw[1][0].indexref, pipe_raw[1][1].indexref)
             
             res1 = (pipe_f_fbr %2)(input)[['qid', 'query', 'docid', 'rank', 'features', 'docno', 'score']]
             res2 = (pipe_fbr % 2)(input)[['qid', 'query', 'docid', 'rank', 'features', 'docno', 'score']]
