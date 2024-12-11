@@ -28,7 +28,8 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
             pd.testing.assert_frame_equal(res1, res3)
 
             compiled = (pipe_raw % 2).compile()
-            self.assertTrue( isinstance(compiled, pt.terrier.FeaturesRetriever) )
+            self.assertTrue( isinstance(compiled, pt.terrier.FeaturesRetriever) , 
+                            "compiled is not a FeaturesRetriever, it was %s for indexloc %s" % (str(compiled), indexloc))
             self.assertEqual("BM25", compiled.wmodel)
             print(repr(compiled))
             self.assertEqual("1", compiled.controls["end"])
