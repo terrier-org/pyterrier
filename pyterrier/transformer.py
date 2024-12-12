@@ -45,7 +45,8 @@ class Transformer:
         as well as :meth:`search` for executing a single query and :meth:`compile` for rewriting complex pipelines into more simples ones.
 
         Its expected that either :meth:`transform` or :meth:`transform_iter()` be implemented by any class extending this - this rule
-        does not apply for indexers, which instead implement ``.index()``.
+        does not apply for indexers, which instead implement ``.index()``. pt.apply helper functions can be used to
+        easily construct Transformers around a single function.
     """
     name = "Transformer"
 
@@ -77,9 +78,9 @@ class Transformer:
         Instantiates a transformer from an input dataframe. Some rows from the input dataframe are returned
         in response to a query on the :meth:`transform` method. Depending on the value `uniform`, the dataframe
         passed as an argument to :meth:`transform` can affect this selection.
-
-        If `uniform` is True, input will be returned in its entirety each time.
-        If `uniform` is False, rows from input that match the qid values from the argument dataframe.
+        Arguments:
+                input(DataFrame): a dataframe to store and return, based on setting of `uniform`.
+                uniform(bool): If True, input will be returned in its entirety each time, else rows from input that match the qid values from the argument dataframe.
         
         """
         if uniform:
@@ -88,7 +89,8 @@ class Transformer:
 
     def transform(self, inp: pd.DataFrame) -> pd.DataFrame:
         """
-            Abstract method that runs the transformer over Pandas ``DataFrame`` objects.
+            Abstract method that runs the transformer over Pandas ``DataFrame`` objects. This or :meth:`transform_iter`
+            must be implemented by all Transformer objects.
 
             .. note::
 
@@ -112,7 +114,8 @@ class Transformer:
     def transform_iter(self, inp: pt.model.IterDict) -> pt.model.IterDict:
         """
             Abstract method that runs the transformer over iterable input (such as lists or generators),
-            where each element is a dictionary record.
+            where each element is a dictionary record. This or :meth:`transform`
+            must be implemented by all Transformer objects.
 
             This format can sometimes be easier to implement than :meth:`transform`. Furthermore, it avoids constructing
             expensive ``DataFrame`` objects. It is also used in the invocation of ``index()`` on a composed pipeline.
@@ -166,7 +169,7 @@ class Transformer:
         """
             Method for executing a transformer pipeline on smaller batches of queries.
             The input dataframe is grouped into batches of batch_size queries, and a generator
-            returned, such that transform() is only executed for a smaller batch at a time. 
+            returned, such that :meth:`transform` is only executed for a smaller batch at a time. 
 
             Arguments:
                 input(DataFrame): a dataframe to process
@@ -203,7 +206,7 @@ class Transformer:
         """
             Method for executing a transformer (pipeline) for a single query. 
             Returns a dataframe with the results for the specified query. This
-            is a utility method, and most uses are expected to use the transform()
+            is a utility method, and most uses are expected to use the :meth:`transform`
             method passing a dataframe.
 
             Arguments:
@@ -255,7 +258,10 @@ class Transformer:
     def get_parameter(self, name : str):
         """
             Gets the current value of a particular key of the transformer's configuration state.
-            By default, this examines the attributes of the transformer object, using hasattr() and setattr().
+            By default, this examines the attributes of the transformer object, using ``hasattr()`` and ``setattr()``.
+
+            Arguments:
+                name: name of parameter
         """
         if hasattr(self, name):
             return getattr(self, name)
@@ -266,7 +272,12 @@ class Transformer:
     def set_parameter(self, name : str, value):
         """
             Adjusts this transformer's configuration state, by setting the value for specific parameter.
-            By default, this examines the attributes of the transformer object, using hasattr() and setattr().
+            By default, this examines the attributes of the transformer object, using ``hasattr()`` and ``setattr()``.
+
+            Arguments:
+                name: name of parameter
+                value: current value of parameter
+
         """
         if hasattr(self, name):
             setattr(self, name, value)
