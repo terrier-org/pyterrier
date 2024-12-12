@@ -366,7 +366,6 @@ class RemoteDataset(Dataset):
         return self.locations['info_url'] if "info_url" in self.locations else None
 
 
-@pt.java.required
 def _pt_tokeniser():
     from .terrier.tokeniser import EnglishTokeniser
     tokeniser = EnglishTokeniser.tokenise
