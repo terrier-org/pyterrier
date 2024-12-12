@@ -123,27 +123,27 @@ the output into the ``index()`` method of the final transformer.
 Internal transformers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A significant number of transformers are defined in pyterrier.ops to implement operators etc. Its is not expected
-to use these directly but they are documented for completeness.
+A significant number of transformers are defined in pyterrier._ops to implement operators etc. Its is not expected
+to use these directly but they are listed for completeness.
 
 +--------+------------------+---------------------------+
 | Symbol | Name             | Implementing transformer  |
 +========+==================+===========================+
-| `>>`   | compose/then     | ComposedPipeline          |
+| `>>`   | compose/then     | pt._ops.Compose           |
 +--------+------------------+---------------------------+
-| `|`    | set-union        | SetUnionTransformer       |
+| `|`    | set-union        | pt._ops.SetUnion          |
 +--------+------------------+---------------------------+
-| `&`    | set-intersection | SetIntersectionTransformer|
+| `&`    | set-intersection | pt._ops.SetIntersection   |
 +--------+------------------+---------------------------+
-| `+`    | linear           | CombSumTransformer        | 
+| `+`    | linear           | pt._ops.CombSum           | 
 +--------+------------------+---------------------------+
-| `+`    | scalar-product   | ScalarProductTransformer  | 
+| `+`    | scalar-product   | pt._ops.ScalarProduct     | 
 +--------+------------------+---------------------------+
-| `%`    | rank-cutoff      | RankCutoffTransformer     |
+| `%`    | rank-cutoff      | pt._ops.RankCutoff        |
 +--------+------------------+---------------------------+
-| `**`   | feature-union    | FeatureUnionPipeline      |
+| `**`   | feature-union    | pt._ops.FeatureUnion      |
 +--------+------------------+---------------------------+
-| `^`    | concatenate      | ConcatenateTransformer    |
+| `^`    | concatenate      | pt._ops.Concatenate       |
 +--------+------------------+---------------------------+
 
 
@@ -163,7 +163,7 @@ This is implemented by several methods:
 
 - The last stage of the pipeline should have an ``index()`` method that accepts an iterable of dictionaries
 
-- ComposedPipeline has a special ``index()`` method that breaks the input iterable into chunks (the size of 
+- Compose has a special ``index()`` method that breaks the input iterable into chunks (the size of 
   chunks can be altered by a batch_size kwarg) and passes those through the intermediate pipeline stages (i.e. all but the last).
 
 - In the intermediate pipeline stages, the ``transform_iter()`` method is called - by default this instantiates a DataFrame
@@ -192,7 +192,7 @@ Optimisation of Transfomer Pipelines
 
 When ``.compile()`` on a transformer or a pipeline of transformer, there is an opportunity to improve the efficiency of the pipeline,
 while ensuring that the semantics remain unchanged. Implementors of a transformer wishing to support such optimisations have a number
-of mechanisms open to then.
+of mechanisms open to them.
 
 Firstly, the ``.compile()`` transformer's method can be overridden to return a new transformer instance that may be more efficient.
 
