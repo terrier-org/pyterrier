@@ -19,7 +19,7 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
             firstpass = pt.terrier.Retriever(indexloc, wmodel="BM25")
             pipe_f_fbr = firstpass >> pt.terrier.FeaturesRetriever(indexloc, features=["WMODEL:DPH", "WMODEL:PL2"])
             pipe_fbr = pt.terrier.FeaturesRetriever(indexloc, wmodel="BM25", features=["WMODEL:DPH", "WMODEL:PL2"])
-            pipe_raw = firstpass >> ( pt.terrier.Retriever(indexloc, wmodel="DPH") ** pt.terrier.Retriever(indexref, wmodel="PL2") )
+            pipe_raw = firstpass >> ( pt.terrier.Retriever(indexloc, wmodel="DPH") ** pt.terrier.Retriever(indexloc, wmodel="PL2") )
 
             self.assertEqual(pipe_raw[1][0].indexref, firstpass.indexref, "indexref %s not the same as indexref %s" % (pipe_raw[1][0].indexref.toString(), firstpass.indexref.toString()))
             self.assertEqual(pipe_raw[1][0].indexref, pipe_raw[1][1].indexref, "indexref %s not the same as indexref %s" % (pipe_raw[1][0].indexref.toString(), pipe_raw[1][1].indexref.toString()))
