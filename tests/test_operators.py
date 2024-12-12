@@ -75,6 +75,71 @@ class TestOperators(BaseTestCase):
             self.assertEqual("q1", output.iloc[0]["qid"])
             self.assertEqual("hello test test", output.iloc[0]["query"])
 
+    def test_compile_fuse_right(self):
+        from typing import Optional
+
+        class B(pt.Transformer):
+            def transform(self, df):
+                pass
+
+        class C(pt.Transformer):
+            def transform(self, df):
+                pass
+
+        class A(pt.Transformer):
+            def transform(self, df):
+                pass
+            def fuse_right(self, right: pt.Transformer) -> Optional[pt.Transformer]:
+                if isinstance(right, B):
+                    return C()
+                return None
+
+        test1 = A()
+        self.assertIsInstance(test1.compile(), A)
+
+        test2 = A() >> A()
+        test2_c = test2.compile()
+        self.assertEqual(2, len(test2_c))
+        self.assertIsInstance(test2_c[0], A)
+        self.assertIsInstance(test2_c[1], A)
+
+        test3 = A() >> B()
+        test3_c = test3.compile()
+        self.assertIsInstance(test3_c, C)
+
+    def test_compile_fuse_left(self):
+        from typing import Optional
+
+        class B(pt.Transformer):
+            def transform(self, df):
+                pass
+
+            def fuse_left(self, left: pt.Transformer) -> Optional[pt.Transformer]:
+                if isinstance(left, A):
+                    return C()
+                return None
+
+        class C(pt.Transformer):
+            def transform(self, df):
+                pass
+
+        class A(pt.Transformer):
+            def transform(self, df):
+                pass
+
+        test1 = B()
+        self.assertIsInstance(test1.compile(), B)
+
+        test2 = B() >> B()
+        test2_c = test2.compile()
+        self.assertEqual(2, len(test2_c))
+        self.assertIsInstance(test2_c[0], B)
+        self.assertIsInstance(test2_c[1], B)
+
+        test3 = A() >> B()
+        test3_c = test3.compile()
+        self.assertIsInstance(test3_c, C)
+
     def test_compile(self):
         class PRF(pt.Transformer):
             def __init__(self, k=10):

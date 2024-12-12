@@ -206,7 +206,7 @@ class FeatureUnion(NAryTransformerBase):
             pipe = cands >> (pl2f ** bm25f)
     """
     def transform(self, inputRes):
-        if not "docno" in inputRes.columns and "docid" in inputRes.columns:
+        if not "docno" in inputRes.columns and "docid" not in inputRes.columns:
             raise ValueError("FeatureUnion operates as a re-ranker, but input did not have either "
                 "docno or docid columns, found columns were %s" %  str(inputRes.columns))
 
@@ -381,7 +381,7 @@ class Compose(NAryTransformerBase):
 
     def compile(self, verbose: bool = False) -> Transformer:
         """Returns a new transformer that iteratively fuses adjacent transformers to form a more efficient pipeline."""
-        # compile constituent transformers (flatten allows complie() to return Compose pipelines)
+        # compile constituent transformers (flatten allows compile() to return Compose pipelines)
         inp = deque(_flatten((t.compile() for t in self._transformers), Compose))
         out : deque = deque()
         counter = 1
@@ -396,8 +396,6 @@ class Compose(NAryTransformerBase):
                 out.pop()
                 # add the fused pipeline to the start of the input queue so it will be processed next (must be done in reverse due to how extendleft works)
                 inp.extendleft(reversed(_flatten([fused], Compose)))
-                inp[:0] = _flatten([fused], Compose)
-                # inp = deque(_flatten([fused], Compose)) + inp
             elif out and isinstance(right, SupportsFuseLeft) and (fused := right.fuse_left(out[-1])) is not None:
                 if verbose:
                     print(f"  fuse_left {out[-1]} >> {right}  == {fused}")
