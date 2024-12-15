@@ -1,3 +1,4 @@
+import re
 from enum import Enum
 from typing import List, Union
 import unicodedata
@@ -124,18 +125,18 @@ class EnglishTokeniser(BaseTokeniser):
     """
     Port of the functionality of https://github.com/terrier-org/terrier-core/blob/5.x/modules/core/src/main/java/org/terrier/indexing/tokenisation/EnglishTokeniser.java to Python
     """
+    RE_SPLIT = re.compile(r'[A-Za-z0-9]+')
 
     @staticmethod
     def check(s : str) -> str:
         # if the s is None or if it is longer than a specified length
         s = s.strip()
-        length = len(s)
         counter = 0
         counterdigit = 0
         ch = -1
         chNew = -1
-        for i in range(length):
-            chNew = ord(s[i])
+        for c in s:
+            chNew = ord(c)
             if 48 <= chNew <= 57:  # 0 to 9
                 counterdigit += 1
             if ch == chNew:
@@ -151,45 +152,14 @@ class EnglishTokeniser(BaseTokeniser):
     
     @staticmethod
     def tokenise(input : str) -> List[str]:
-        ch : int
-        index : int = -1
-        def read() -> Union[int,str]:
-            nonlocal index
-            if index == len(input) -1:
-                return -1
-            index += 1
-            return input[index]
-        ch = read()
-        eos : bool = False
-        def stream_tokenise():
-            nonlocal eos, ch
-            while ch != -1:
-                # skip non-alphanumeric characters
-                while ch != -1 and not (('A' <= ch <= 'Z') or ('a' <= ch<= 'z') or ('0' <= ch <= '9')):
-                    ch = read()
-
-                sw = []  # Using a list to build the string
-                # now accept all alphanumeric characters
-                while ch != -1 and (('A' <= ch <= 'Z') or ('a' <= ch <= 'z') or ('0' <= ch <= '9')):
-                    # add character to word so far
-                    sw.append(ch)
-                    ch = read()
-
-                if len(sw) > BaseTokeniser.MAX_TERM_LENGTH:
-                    if BaseTokeniser.DROP_LONG_TOKENS:
-                        return None
-                    else:
-                        sw = sw[:BaseTokeniser.MAX_TERM_LENGTH]  # Truncate the list to MAX_TERM_LENGTH
-
-                s = EnglishTokeniser.check(''.join(sw))
-                if len(s) > 0:
-                    return s
-
-            eos = True
-            return None
-        rtr = []
-        while not eos:
-            token = stream_tokenise()
-            if token is not None:
-                rtr.append(token)
-        return rtr
+        result = []
+        for match in EnglishTokeniser.RE_SPLIT.finditer(input):
+            s = EnglishTokeniser.check(match.group())
+            if len(s) > BaseTokeniser.MAX_TERM_LENGTH:
+                if BaseTokeniser.DROP_LONG_TOKENS:
+                    s = ''
+                else:
+                    s = s[:BaseTokeniser.MAX_TERM_LENGTH]
+            if len(s) > 0:
+                result.append(s)
+        return result
