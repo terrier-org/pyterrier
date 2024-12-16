@@ -11,6 +11,7 @@ import requests
 from .io import autoopen, touch
 import pyterrier as pt
 import tarfile
+import zipfile
 
 
 TERRIER_DATA_BASE="http://data.terrier.org/indices/"
@@ -293,11 +294,12 @@ class RemoteDataset(Dataset):
                 if "#" in URL:
                     tarname, intarfile = URL.split("#")
                     assert not "/" in intarfile
-                    assert ".tar" in tarname or ".tgz" in tarname
+                    assert ".tar" in tarname or ".tgz" in tarname or ".zip" in tarname
                     localtarfile, _ = self._get_one_file("tars", tarname)
-                    tarobj = tarfile.open(localtarfile, "r")
-                    tarobj.extract(intarfile, path=self.corpus_home)
-                    local = os.path.join(self.corpus_home, local)
+                    extractor = zipfile.ZipFile if ".zip" in tarname else tarfile.open
+                    with extractor(localtarfile, "r") as tarobj:
+                        tarobj.extract(intarfile, path=self.corpus_home)
+                        local = os.path.join(self.corpus_home, local)
                     #TODO, files could be recompressed here to save space
                     os.rename(os.path.join(self.corpus_home, intarfile), local)
                 else:
