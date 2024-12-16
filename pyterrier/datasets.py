@@ -5,6 +5,7 @@ import pandas as pd
 from .transformer import is_lambda
 from abc import abstractmethod
 import types
+from collections import defaultdict
 from typing import Union, Tuple, Iterator, Dict, Any, List, Literal, Optional
 from warnings import warn
 import requests
@@ -273,9 +274,12 @@ class RemoteDataset(Dataset):
             if totalsize > 2 * 2**30:
                 warn("Downloading index of > 2GB.")
 
+        # all tarfiles that we will need to process        
+        tarfiles = defaultdict(list)
         for fileentry in file_list:
             local = fileentry[0]
             URL = fileentry[1]
+            assert not "/" in local, "cant handle / in %s, local name is %s" % (local)
             expectedlength = -1
             if len(fileentry) == 3:
                 expectedlength = fileentry[2]
@@ -293,15 +297,10 @@ class RemoteDataset(Dataset):
             if not fileexists:
                 if "#" in URL:
                     tarname, intarfile = URL.split("#")
-                    assert not "/" in intarfile
-                    assert ".tar" in tarname or ".tgz" in tarname or ".zip" in tarname
+                    assert ".tar" in tarname or ".tgz" in tarname or ".zip" in tarname, "I dont know how to decompress file %s" % tarname
                     localtarfile, _ = self._get_one_file("tars", tarname)
-                    extractor = zipfile.ZipFile if ".zip" in tarname else tarfile.open
-                    with extractor(localtarfile, "r") as tarobj:
-                        tarobj.extract(intarfile, path=self.corpus_home)
-                        local = os.path.join(self.corpus_home, local)
-                    #TODO, files could be recompressed here to save space
-                    os.rename(os.path.join(self.corpus_home, intarfile), local)
+                    # append intarfile to the list of files to be extracted from localtarfile
+                    tarfiles[localtarfile].append((intarfile, local))
                 else:
                     try:
                         RemoteDataset.download(URL, local, **kwargs)
@@ -313,6 +312,18 @@ class RemoteDataset(Dataset):
                         length = os.stat(local).st_size
                         if expectedlength != length:
                             raise ValueError("Failed download of %s to %s (expected %d bytes, found %d)" % (URL, local, expectedlength, length ))
+
+        # now extract all required files from each tar file
+        for localtarfile in tarfiles:
+            extractor = zipfile.ZipFile if ".zip" in tarname else tarfile.open
+            with extractor(localtarfile, "r") as tarobj:
+                # 5 is abrtary threshold - if we have lots of files to extract, give a progress bar. alternative would be delay=5?
+                iter = pt.tqdm(tarfiles[localtarfile], unit="file", desc="Extracting from " + localtarfile) if len(tarfiles[localtarfile]) > 5 else tarfiles[localtarfile]
+                for (intarfile, local) in iter:
+                    tarobj.extract(intarfile, path=self.corpus_home)
+                    local = os.path.join(self.corpus_home, local)
+                    os.rename(os.path.join(self.corpus_home, intarfile), local)
+                    #TODO, files /could/ be recompressed here to save space, if not already compressed
 
         # finally, touch a file signifying that download has been completed
         touch(os.path.join(localDir, ".complete"))
