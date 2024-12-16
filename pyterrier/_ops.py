@@ -330,7 +330,7 @@ class Compose(NAryTransformerBase):
     """
     name = "Compose"
 
-    def index(self, iter : pt.model.IterDict, batch_size=100):
+    def index(self, iter : pt.model.IterDict, batch_size=None):
         """
         This methods implements indexing pipelines. It is responsible for calling the transform_iter() method of its 
         constituent transformers (except the last one) on batches of records, and the index() method on the last transformer.
@@ -343,7 +343,14 @@ class Compose(NAryTransformerBase):
         else:
             prev_transformer = self._transformers[0]
         last_transformer = self._transformers[-1]
-        
+
+        # guess a good batch size from the batch_size of individual components earlier in the pipeline
+        if batch_size is None:
+            batch_size = 100 # default to 100 as a reasonable minimum (and fallback if no batch sizes found)
+            for tr in prev_transformer:
+                if hasattr(tr, 'batch_size') and isinstance(tr.batch_size, int) and tr.batch_size > batch_size:
+                    batch_size = tr.batch_size
+
         def gen():
             for batch in chunked(iter, batch_size):
                 yield from prev_transformer.transform_iter(batch)
