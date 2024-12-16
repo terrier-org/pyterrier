@@ -595,9 +595,9 @@ class _BaseIterDictIndexer(TerrierIndexer, pt.Indexer):
         if len(first_docs) > 0: # handle empty input
             self._validate_doc_dict(first_docs[0])
 
-        # important: return an iterator here, rather than make this function a generator,
-        # to be sure that the validation above happens when _filter_iterable is called,
-        # rather than on the first invocation of next()
+        # important: return an iterator (i.e. using a generator expression) here, rather than make this 
+        # function a generator, to be sure that the validation above happens when  _filter_iterable is 
+        # called, rather than on the first invocation of next()
         return ({f: doc[f] for f in all_fields} for doc in it)
 
     def _is_dict(self, obj):
