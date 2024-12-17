@@ -6,6 +6,7 @@ from typing import Callable, Iterator, Union, Dict, List, Tuple, Sequence, Any, 
 import types
 from . import Transformer
 from .model import coerce_dataframe_types
+from ._ops import Compose
 import ir_measures
 import tqdm as tqdm_module
 from ir_measures import Measure, Metric
@@ -143,6 +144,66 @@ def _ir_measures_to_dict(
     for m_name in metric_agg:
         rtr_aggregated[m_name] = metric_agg[m_name].result()
     return rtr_aggregated
+
+def _lcsMany(pipes : List[List[pt.Transformer]]) -> Tuple[List[Transformer], List[List[Transformer]]]:
+    assert len(pipes) > 1
+    
+    lens = [len(p) for p in pipes]
+    common_prefix=[]
+    
+    for i in range(min(lens)):
+        pipeFirst = pipes[0][i]
+        # pipeFirst can be a dataframe
+        if not isinstance(pipeFirst, pt.Transformer):
+            break
+        match = False
+        for p in pipes[1:]:
+            # pipeFirst can be a dataframe
+            if not isinstance(p[i], pt.Transformer):
+                break
+            if p[i] != pipeFirst:
+                break
+            match = True
+        if not match:
+            break
+        common_prefix.append(pipeFirst)
+    suffices = [ p[len(common_prefix):] for p in pipes]
+    return common_prefix, suffices
+
+def _identifyCommon(pipes : List[pt.Transformer]) -> Tuple[pt.Transformer, List[pt.Transformer]]:
+    # constructs a common prefix pipeline across a list of pipelines, along with various suffices. 
+    # pt.Transformer.identity() is used for a no-op suffix
+    
+    # no precomputation for single-system case
+    if len(pipes) == 1:
+        return None, pipes
+    pipe_lists = []
+    for p in pipes:
+        if isinstance(p, Compose):
+            pipe_lists.append(p._transformers)
+        else:
+            pipe_lists.append([p])
+    
+    common_prefix, suffices  = _lcsMany(pipe_lists)
+
+    if len(common_prefix) == 0:
+        # no common prefix, return existing pipelines as-is
+        return None, pipes
+    
+    def _construct(inp: List[pt.Transformer]) -> pt.Transformer:
+        # use identify as a no-op
+        if len(inp) == 0:
+            return pt.Transformer.identity() 
+        # use transformer itself
+        if len(inp) == 1:
+            return inp[0]
+        # more than 1, compose...
+        return Compose(*inp)
+
+    return (
+        _construct(common_prefix), # prefix common to all 
+        [ _construct(remainder) for remainder in suffices ] # individual suffices
+    )
 
 def _run_and_evaluate(
         system : SYSTEM_OR_RESULTS_TYPE, 
@@ -333,6 +394,7 @@ def Experiment(
         save_dir : Optional[str] = None,
         save_mode : SAVEMODE_TYPE = 'warn',
         save_format : SAVEFORMAT_TYPE = 'trec',
+        precompute_shared : bool = False,
         **kwargs):
     """
     Allows easy comparison of multiple retrieval transformer pipelines using a common set of topics, and
@@ -379,6 +441,8 @@ def Experiment(
             if `highlight="color"` or `"colour"`, then the cell with the highest metric value will have a green background.
         round(int): How many decimal places to round each measure value to. This can also be a dictionary mapping measure name to number of decimal places.
             Default is None, which is no rounding.
+        precompute(bool): If set to True, then pt.Experiment will look for a common prefix on all input pipelines, and execute that common prefix pipeline only once. 
+            This functionality assumes that the intermidiate results of the common prefix can fit in memory. Set to False by default.
         verbose(bool): If True, a tqdm progress bar is shown as systems (or systems*batches if batch_size is set) are executed. Default=False.
 
     Returns:
@@ -513,8 +577,24 @@ def Experiment(
         tqdm_args['total'] = math.ceil((len(topics) / batch_size)) * len(retr_systems)
 
     with pt.tqdm(**tqdm_args) as pbar: # type: ignore
+
+        common_pipe, execution_retr_systems = _identifyCommon(retr_systems)
+        if precompute_shared and common_pipe is not None:
+            print("Precomputing results of %d topics on shared pipeline component %s" % (len(topics), str(common_pipe)))
+            print(execution_retr_systems)
+            if batch_size is not None:
+                execution_topics = pd.concat(
+                    common_pipe.transform_gen(topics, batch_size=batch_size)
+                )
+            else:   
+                execution_topics = common_pipe(topics)
+        else:
+            execution_retr_systems = retr_systems
+            execution_topics = topics
+
+
         # run and evaluate each system
-        for name, system in zip(names, retr_systems):
+        for name, system in zip(names, execution_retr_systems):
             save_file = None
             if save_dir is not None:
                 if save_format == 'trec':
@@ -528,7 +608,7 @@ def Experiment(
                 save_file = os.path.join(save_dir, "%s.%s" % (name, save_ext))
 
             time, evalMeasuresDict = _run_and_evaluate(
-                system, topics, qrels, eval_metrics, 
+                system, execution_topics, qrels, eval_metrics, 
                 perquery=perquery or baseline is not None, 
                 batch_size=batch_size, 
                 backfill_qids=all_topic_qids if perquery else None,
