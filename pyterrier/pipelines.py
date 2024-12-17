@@ -588,6 +588,10 @@ def Experiment(
                 )
             else:   
                 execution_topics = common_pipe(topics)
+        elif precompute_shared and common_pipe is None:
+            warn('precompute_shared was True for pt.Experiment, but no common pipeline prefix was found among %d pipelines' % len(retr_systems))
+            execution_retr_systems = retr_systems
+            execution_topics = topics
         else:
             execution_retr_systems = retr_systems
             execution_topics = topics
