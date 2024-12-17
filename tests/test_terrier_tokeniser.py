@@ -1,20 +1,17 @@
+import unittest
 from .base import BaseTestCase
 import pyterrier as pt
+import ir_datasets
 
 class TestTokenisers(BaseTestCase):
-  
-    
-
     def test_english(self):
-        from pyterrier.terrier.tokeniser import EnglishTokeniser
-        tokeniser = EnglishTokeniser.tokenise
+        tokeniser = pt.terrier.tokeniser.EnglishTokeniser.tokenise
         self._test_english(tokeniser)
         self.assertEqual(tokeniser("a\u0133a"), ["a", "a"])
 
     def test_UTF(self):
-        from pyterrier.terrier.tokeniser import UTFTokeniser
         import html
-        tokeniser = UTFTokeniser.tokenise
+        tokeniser = pt.terrier.tokeniser.UTFTokeniser.tokenise
         self._test_english(tokeniser)
         # all examples come from https://github.com/terrier-org/terrier-core/blob/5.x/modules/tests/src/test/java/org/terrier/indexing/tokenisation/TestUTFTokeniser.java
 
@@ -30,7 +27,6 @@ class TestTokenisers(BaseTestCase):
 				"&#2360;&#2306;&#2328;&#2352;&#2381;&#2359;"]
         words = [html.unescape(w) for w in words]
         self.assertEqual(tokeniser(" ".join(words)), words)
-
 
     def _test_english(self, tokeniser):
         # all these examples come from https://github.com/terrier-org/terrier-core/blob/5.x/modules/tests/src/test/java/org/terrier/indexing/tokenisation/TestEnglishTokeniser.java
@@ -54,3 +50,20 @@ class TestTokenisers(BaseTestCase):
         self.assertEqual(tokeniser("a;b  -"), ["a", "b"])
         self.assertEqual(tokeniser("a;b  -"), ["a", "b"])
         self.assertEqual(tokeniser("...   a;b ?"), ["a", "b"])
+
+    @unittest.skip("too expensive to run normally")
+    def test_python_java_faithfulness(self):
+        if not pt.java.started():
+            pt.java.init()
+        for tokenizer in ['utf', 'english']:
+            py_tokenizer = {
+                'utf': pt.terrier.tokeniser.UTFTokeniser.tokenise,
+                'english': pt.terrier.tokeniser.EnglishTokeniser.tokenise,
+            }[tokenizer]
+            java_tokenizer = {
+                'utf': pt.java.autoclass('org.terrier.indexing.tokenisation.UTFTokeniser')().getTokens,
+                'english': pt.java.autoclass('org.terrier.indexing.tokenisation.EnglishTokeniser')().getTokens,
+            }[tokenizer]
+            for doc in ir_datasets.load('msmarco-passage').docs[:1_000_000]:
+                with self.subTest(tokenizer=tokenizer, doc_id=doc.doc_id):
+                    self.assertEqual(py_tokenizer(doc.text), java_tokenizer(doc.text))
