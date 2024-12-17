@@ -78,7 +78,7 @@ class UTFTokeniser(BaseTokeniser):
             utf_tok_chr_cls_map = {'Lu': '1', 'Ll': '1', 'Lt': '1', 'Lm': '1', 'Lo': '1', 'Mn': '1', 'Mc': '1', 'Nd': '1'}
             max_utf = 0x110000
             UTFTokeniser._TR = [
-                (49 if unicodedata.category(chr(c)) in utf_tok_chr_cls_map else 48) # 48="0" 49="1"
+                (49 if c <= 0xFFFF and unicodedata.category(chr(c)) in utf_tok_chr_cls_map else 48) # 48="0" 49="1"
                 for c in range(max_utf)
             ]
         result = []
