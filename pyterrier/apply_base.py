@@ -198,8 +198,7 @@ class ApplyIterForEachQuery(pt.Transformer):
         return "pt.apply.by_query()"
 
     def transform_iter(self, inp: pt.model.IterDict) -> pt.model.IterDict:
-        import collections.abc
-        if self.verbose and isinstance(inp, collections.abc.Sized):
+        if self.verbose:
             inp = pt.tqdm(inp, desc="pt.apply.by_query()")
         if self.batch_size is not None:
             for _, group in itertools.groupby(inp, key=lambda row: row['qid']):
