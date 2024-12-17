@@ -441,7 +441,7 @@ def Experiment(
             if `highlight="color"` or `"colour"`, then the cell with the highest metric value will have a green background.
         round(int): How many decimal places to round each measure value to. This can also be a dictionary mapping measure name to number of decimal places.
             Default is None, which is no rounding.
-        precompute(bool): If set to True, then pt.Experiment will look for a common prefix on all input pipelines, and execute that common prefix pipeline only once. 
+        precompute_shared(bool): If set to True, then pt.Experiment will look for a common prefix on all input pipelines, and execute that common prefix pipeline only once. 
             This functionality assumes that the intermidiate results of the common prefix can fit in memory. Set to False by default.
         verbose(bool): If True, a tqdm progress bar is shown as systems (or systems*batches if batch_size is set) are executed. Default=False.
 
