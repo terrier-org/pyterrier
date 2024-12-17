@@ -181,6 +181,7 @@ class ApplyIterForEachQuery(pt.Transformer):
     def __init__(self,
         fn: Callable[[pt.model.IterDict], pt.model.IterDict],
         *,
+        verbose=False,
         batch_size=None):
         """
         Instantiates a ApplyIterForEachQuery.
@@ -190,12 +191,16 @@ class ApplyIterForEachQuery(pt.Transformer):
             batch_size: The number of results per query to process at once. If None, processes in one batch per query.
         """
         self.fn = fn
+        self.verbose = verbose
         self.batch_size = batch_size
 
     def __repr__(self):
         return "pt.apply.by_query()"
 
     def transform_iter(self, inp: pt.model.IterDict) -> pt.model.IterDict:
+        import collections.abc
+        if self.verbose and isinstance(inp, collections.abc.Sized):
+            inp = pt.tqdm(inp, desc="pt.apply.by_query()")
         if self.batch_size is not None:
             for _, group in itertools.groupby(inp, key=lambda row: row['qid']):
                 for batch in more_itertools.ichunked(group, self.batch_size):

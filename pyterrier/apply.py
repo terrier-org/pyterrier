@@ -206,7 +206,7 @@ def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.mode
         return ApplyGenericIterTransformer(fn, *args, batch_size=batch_size, **kwargs)
     return ApplyGenericTransformer(fn, *args, batch_size=batch_size, **kwargs)
 
-def by_query(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.model.IterDict], pt.model.IterDict]], *args, batch_size=None, iter=False, **kwargs) -> pt.Transformer:
+def by_query(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.model.IterDict], pt.model.IterDict]], *args, batch_size=None, iter=False, verbose=False, **kwargs) -> pt.Transformer:
     """
         As `pt.apply.generic()` except that fn receives a dataframe (or iter-dict) for one query at at time, rather than all results at once.
         If batch_size is set, fn will receive no more than batch_size documents for any query. The verbose kwargs controls whether
@@ -221,8 +221,8 @@ def by_query(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.mod
     if iter:
         if kwargs.get("add_ranks", False):
             raise ValueError("add_ranks=True not supported with iter=True")
-        return ApplyIterForEachQuery(fn, *args, batch_size=batch_size, **kwargs)
-    return ApplyForEachQuery(fn, *args, batch_size=batch_size, **kwargs)
+        return ApplyIterForEachQuery(fn, *args, batch_size=batch_size, verbose=verbose, **kwargs)
+    return ApplyForEachQuery(fn, *args, batch_size=batch_size, verbose=verbose, **kwargs)
 
 class _apply:
 
