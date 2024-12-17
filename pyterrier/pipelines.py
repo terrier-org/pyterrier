@@ -581,7 +581,6 @@ def Experiment(
         common_pipe, execution_retr_systems = _identifyCommon(retr_systems)
         if precompute_shared and common_pipe is not None:
             print("Precomputing results of %d topics on shared pipeline component %s" % (len(topics), str(common_pipe)))
-            print(execution_retr_systems)
             if batch_size is not None:
                 execution_topics = pd.concat(
                     common_pipe.transform_gen(topics, batch_size=batch_size)
