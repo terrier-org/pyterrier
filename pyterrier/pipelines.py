@@ -145,24 +145,18 @@ def _ir_measures_to_dict(
         rtr_aggregated[m_name] = metric_agg[m_name].result()
     return rtr_aggregated
 
-def _lcsMany(pipes : List[List[pt.Transformer]]) -> Tuple[List[Transformer], List[List[Transformer]]]:
-    assert len(pipes) > 1
-    
-    lens = [len(p) for p in pipes]
-    common_prefix=[]
-    
-    for i in range(min(lens)):
-        pipeFirst = pipes[0][i]
-        match = False
-        for p in pipes[1:]:
-            if p[i] != pipeFirst:
-                break
-            match = True
-        if not match:
+def _lcsMany(pipes: List[List[Transformer]]) -> Tuple[List[Transformer], List[List[Transformer]]]:
+    # finds the common prefix within a list of transformers
+    assert len(pipes) > 1, "pipes must contain at least two lists"
+    common_prefix = []
+    for stage in zip(*pipes):
+        elements = set(stage) # uses Transformer.__equals__ 
+        if len(elements) == 1:
+            common_prefix.append(next(iter(elements)))
+        else:
             break
-        common_prefix.append(pipeFirst)
-    suffices = [ p[len(common_prefix):] for p in pipes]
-    return common_prefix, suffices
+    suffixes = [p[len(common_prefix):] for p in pipes]
+    return common_prefix, suffixes
 
 def _identifyCommon(pipes : List[Union[pt.Transformer, pd.DataFrame]]) -> Tuple[Optional[pt.Transformer], List[pt.Transformer]]:
     # constructs a common prefix pipeline across a list of pipelines, along with various suffices. 
