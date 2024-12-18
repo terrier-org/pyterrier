@@ -1,6 +1,8 @@
+import os
 import inspect
 import sys
 from typing import Callable, Tuple, List, Callable, Dict, Set
+from contextlib import contextmanager
 import platform
 from functools import wraps
 from importlib.metadata import EntryPoint
@@ -207,3 +209,27 @@ def pre_invocation_decorator(decorator):
                 return fn(*args, **kwargs)
             return _wrapper
     return _decorator_wrapper
+
+
+@contextmanager
+def temp_env(key: str, value: str):
+    old_value = os.environ.get(key, None)
+    try:
+        os.environ[key] = value
+        yield
+    finally:
+        if old_value is None:
+            del os.environ[key]
+        else:
+            os.environ[key] = old_value
+
+class GeneratorLen(object):
+    def __init__(self, gen, length):
+        self.gen = gen
+        self.length = length
+
+    def __len__(self): 
+        return self.length
+
+    def __iter__(self):
+        return self.gen
