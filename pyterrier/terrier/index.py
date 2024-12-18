@@ -338,7 +338,8 @@ class TerrierIndexer:
         # configure the term pipeline
         if 'termpipelines' in self.properties:
             # use existing configuration if present
-            warn("Setting of termpipelines property directly is deprecated", stacklevel=4, category=DeprecationWarning)
+            warn(
+                "Setting of termpipelines property directly is deprecated", stacklevel=4, category=DeprecationWarning)
         else:
             
             termpipeline = []
@@ -351,7 +352,8 @@ class TerrierIndexer:
             self.properties['termpipelines'] = ','.join(termpipeline)
 
         if "tokeniser" in self.properties:
-            warn("Setting of tokeniser property directly is deprecated", stacklevel=4, category=DeprecationWarning)
+            warn(
+                "Setting of tokeniser property directly is deprecated", stacklevel=4, category=DeprecationWarning)
         else:
             self.properties['tokeniser'] = TerrierTokeniser._to_class(self.tokeniser)
 
@@ -641,7 +643,8 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
             meta_lengths(list[int]): length of metadata, defaults to 512 characters. Deprecated
         """
         if meta is not None:
-            warn('specifying meta and meta_lengths in IterDictIndexer.index() is deprecated, use kwargs in constructor instead', DeprecationWarning, 2)
+            warn(
+                'specifying meta and meta_lengths in IterDictIndexer.index() is deprecated, use kwargs in constructor instead', DeprecationWarning, 2)
             self.meta = meta
             if meta_lengths is not None:
                 self.meta = {zip(meta, meta_lengths)}
@@ -716,7 +719,8 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
         ParallelIndexer = pt.terrier.J.ParallelIndexer
 
         if meta is not None:
-            warn('specifying meta and meta_lengths in IterDictIndexer.index() is deprecated, use constructor instead', DeprecationWarning, 2)
+            warn(
+                'specifying meta and meta_lengths in IterDictIndexer.index() is deprecated, use constructor instead', DeprecationWarning, 2)
             self.meta = meta
             if meta_lengths is not None:
                 self.meta = {zip(meta, meta_lengths)}
@@ -731,7 +735,8 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
         if Indexer is pt.terrier.J.BasicMemoryIndexer:
             assert self.threads == 1, 'IterDictIndexer does not support multiple threads for IndexingType.MEMORY'
         if self.threads > 1:
-            warn('Using multiple threads results in a non-deterministic ordering of document in the index. For deterministic behavior, use threads=1')
+            warn(
+                'Using multiple threads results in a non-deterministic ordering of document in the index. For deterministic behavior, use threads=1')
 
         # Document iterator
         fifos = []

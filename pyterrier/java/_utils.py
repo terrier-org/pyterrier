@@ -319,7 +319,8 @@ def parallel_init(started: bool, configs: Dict[str, Dict[str, Any]]) -> None:
             _configs = configs
             _init(trigger='parallel_init')
         else:
-            warnings.warn("Avoiding reinit of PyTerrier")
+            warnings.warn(
+                "Avoiding reinit of PyTerrier")
 
 
 def parallel_init_args() -> Tuple[bool, Dict[str, Dict[str, Any]]]:

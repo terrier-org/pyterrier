@@ -255,9 +255,11 @@ class QueryExpansion(pt.Transformer):
                 scores.append(docscore)
             if skipped > 0:
                 if skipped == len(docnos):
-                    warn("*ALL* %d feedback docnos for qid %s could not be found in the index" % (skipped, qid))
+                    warn(
+                        "*ALL* %d feedback docnos for qid %s could not be found in the index" % (skipped, qid))
                 else:
-                    warn("%d feedback docnos for qid %s could not be found in the index" % (skipped, qid))
+                    warn(
+                        "%d feedback docnos for qid %s could not be found in the index" % (skipped, qid))
         else:
             raise ValueError("Input resultset has neither docid nor docno")
         return pt.terrier.J.QueryResultSet(docids, scores, occurrences)
