@@ -205,7 +205,8 @@ class RemoteDataset(Dataset):
                 if i == finalattempt:
                     raise error
                 else:
-                    warn("Problem fetching %s, resorting to next mirror" % url)
+                    warn(
+                        "Problem fetching %s, resorting to next mirror" % url)
             
 
     def _check_variant(self, component, variant=None):
@@ -314,7 +315,8 @@ class RemoteDataset(Dataset):
             if free < totalsize:
                 raise ValueError("Insufficient freedisk space at %s to download index" % localDir)
             if totalsize > 2 * 2**30:
-                warn("Downloading index of > 2GB.")
+                warn(
+                    "Downloading index of > 2GB.")
 
         # all tarfiles that we will need to process        
         tarfiles = defaultdict(list)
@@ -332,7 +334,8 @@ class RemoteDataset(Dataset):
             if fileexists and expectedlength >= 0:
                 length = os.stat(local).st_size
                 if expectedlength != length:
-                    warn("Removing partial download of %s (expected %d bytes, found %d)" % (local, expectedlength, length ))
+                    warn(
+                        "Removing partial download of %s (expected %d bytes, found %d)" % (local, expectedlength, length ))
                     os.remove(local)
                     fileexists = False
 
