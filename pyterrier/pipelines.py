@@ -577,9 +577,9 @@ def Experiment(
         starttime = timer()
         if batch_size is not None:
             import math
-            tqdm_args['unit'] = 'batches'
+            tqdm_args_precompute['unit'] = 'batches'
             # round number of batches up for each system
-            tqdm_args['total'] = math.ceil((len(topics) / batch_size)) * len(retr_systems)
+            tqdm_args_precompute['total'] = math.ceil((len(topics) / batch_size)) * len(retr_systems)
             with pt.tqdm(**tqdm_args_precompute) as pbar:
                 precompute_results = []
                 for r in common_pipe.transform_gen(topics, batch_size=batch_size):
