@@ -153,14 +153,8 @@ def _lcsMany(pipes : List[List[pt.Transformer]]) -> Tuple[List[Transformer], Lis
     
     for i in range(min(lens)):
         pipeFirst = pipes[0][i]
-        # pipeFirst can be a dataframe
-        if not isinstance(pipeFirst, pt.Transformer):
-            break
         match = False
         for p in pipes[1:]:
-            # pipeFirst can be a dataframe
-            if not isinstance(p[i], pt.Transformer):
-                break
             if p[i] != pipeFirst:
                 break
             match = True
@@ -170,7 +164,7 @@ def _lcsMany(pipes : List[List[pt.Transformer]]) -> Tuple[List[Transformer], Lis
     suffices = [ p[len(common_prefix):] for p in pipes]
     return common_prefix, suffices
 
-def _identifyCommon(pipes : List[pt.Transformer]) -> Tuple[pt.Transformer, List[pt.Transformer]]:
+def _identifyCommon(pipes : List[Union[pt.Transformer, pd.DataFrame]]) -> Tuple[Optional[pt.Transformer], List[pt.Transformer]]:
     # constructs a common prefix pipeline across a list of pipelines, along with various suffices. 
     # pt.Transformer.identity() is used for a no-op suffix
     
@@ -179,9 +173,14 @@ def _identifyCommon(pipes : List[pt.Transformer]) -> Tuple[pt.Transformer, List[
         return None, pipes
     pipe_lists = []
     for p in pipes:
+        # no optimisation possible for experiments involving dataframes as systems
+        if isinstance(p, pd.DataFrame):
+            return None, pipes
         if isinstance(p, Compose):
             pipe_lists.append(p._transformers)
         else:
+            if not isinstance(p, pt.Transformer):
+                raise ValueError("pt.Experiment has systems that are not either DataFrames or Transformers")
             pipe_lists.append([p])
     
     common_prefix, suffices  = _lcsMany(pipe_lists)
