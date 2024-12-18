@@ -563,6 +563,48 @@ def Experiment(
         'total' : len(retr_systems),
         'desc' : 'pt.Experiment'
     }
+    
+    
+    common_pipe, execution_retr_systems = _identifyCommon(retr_systems)
+    precompute_time = 0
+    if precompute_shared and common_pipe is not None: 
+        print("Precomputing results of %d topics on shared pipeline component %s" % (len(topics), str(common_pipe)), file=sys.stderr)
+
+        tqdm_args_precompute = tqdm_args.copy()
+        tqdm_args_precompute['desc'] = "pt.Experiment precomputation"
+                
+        from timeit import default_timer as timer
+        starttime = timer()
+        if batch_size is not None:
+            import math
+            tqdm_args['unit'] = 'batches'
+            # round number of batches up for each system
+            tqdm_args['total'] = math.ceil((len(topics) / batch_size)) * len(retr_systems)
+            with pt.tqdm(**tqdm_args_precompute) as pbar:
+                precompute_results = []
+                for r in common_pipe.transform_gen(topics, batch_size=batch_size):
+                    precompute_results.append(r)
+                    pbar.update(1)
+                execution_topics = pd.concat(precompute_results)
+        else:  
+            tqdm_args_precompute['total'] = 1 
+            with pt.tqdm(**tqdm_args_precompute) as pbar:
+                execution_topics = common_pipe(topics)
+                pbar.update(1)
+        
+        endtime = timer()
+        precompute_time = (endtime - starttime) * 1000.
+
+
+    elif precompute_shared and common_pipe is None:
+        warn('precompute_shared was True for pt.Experiment, but no common pipeline prefix was found among %d pipelines' % len(retr_systems))
+        execution_retr_systems = retr_systems
+        execution_topics = topics
+    
+    else: # no precomputation
+        execution_retr_systems = retr_systems
+        execution_topics = topics
+
     if batch_size is not None:
         import math
         tqdm_args['unit'] = 'batches'
@@ -570,33 +612,6 @@ def Experiment(
         tqdm_args['total'] = math.ceil((len(topics) / batch_size)) * len(retr_systems)
 
     with pt.tqdm(**tqdm_args) as pbar: # type: ignore
-
-        common_pipe, execution_retr_systems = _identifyCommon(retr_systems)
-        precompute_time = 0
-        if precompute_shared and common_pipe is not None: 
-            print("Precomputing results of %d topics on shared pipeline component %s" % (len(topics), str(common_pipe)), file=sys.stderr)
-            
-            from timeit import default_timer as timer
-            starttime = timer()
-            if batch_size is not None:
-                execution_topics = pd.concat(
-                    common_pipe.transform_gen(topics, batch_size=batch_size)
-                )
-            else:   
-                execution_topics = common_pipe(topics)
-            endtime = timer()
-            precompute_time = (endtime - starttime) * 1000.
-        
-        elif precompute_shared and common_pipe is None:
-            warn('precompute_shared was True for pt.Experiment, but no common pipeline prefix was found among %d pipelines' % len(retr_systems))
-            execution_retr_systems = retr_systems
-            execution_topics = topics
-        
-        else: # no precomputation
-            execution_retr_systems = retr_systems
-            execution_topics = topics
-
-
         # run and evaluate each system
         for name, system in zip(names, execution_retr_systems):
             save_file = None
