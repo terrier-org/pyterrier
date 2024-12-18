@@ -1,5 +1,5 @@
 from warnings import warn
-import os
+import os, sys
 import pandas as pd
 import numpy as np
 from typing import Callable, Iterator, Union, Dict, List, Tuple, Sequence, Any, Literal, Optional
@@ -579,19 +579,27 @@ def Experiment(
     with pt.tqdm(**tqdm_args) as pbar: # type: ignore
 
         common_pipe, execution_retr_systems = _identifyCommon(retr_systems)
-        if precompute_shared and common_pipe is not None:
-            print("Precomputing results of %d topics on shared pipeline component %s" % (len(topics), str(common_pipe)))
+        precompute_time = 0
+        if precompute_shared and common_pipe is not None: 
+            print("Precomputing results of %d topics on shared pipeline component %s" % (len(topics), str(common_pipe)), file=sys.stderr)
+            
+            from timeit import default_timer as timer
+            starttime = timer()
             if batch_size is not None:
                 execution_topics = pd.concat(
                     common_pipe.transform_gen(topics, batch_size=batch_size)
                 )
             else:   
                 execution_topics = common_pipe(topics)
+            endtime = timer()
+            precompute_time = endtime - starttime 
+        
         elif precompute_shared and common_pipe is None:
             warn('precompute_shared was True for pt.Experiment, but no common pipeline prefix was found among %d pipelines' % len(retr_systems))
             execution_retr_systems = retr_systems
             execution_topics = topics
-        else:
+        
+        else: # no precomputation
             execution_retr_systems = retr_systems
             execution_topics = topics
 
@@ -641,6 +649,7 @@ def Experiment(
             else:
                 import builtins
                 if mrt_needed:
+                    time += precompute_time
                     evalMeasuresDict["mrt"] = time / float(len(all_topic_qids))
                 actual_metric_names = list(evalMeasuresDict.keys())
                 # gather mean values, applying rounding if necessary
