@@ -145,7 +145,7 @@ def _ir_measures_to_dict(
         rtr_aggregated[m_name] = metric_agg[m_name].result()
     return rtr_aggregated
 
-def _lcsMany(pipes: List[List[Transformer]]) -> Tuple[List[Transformer], List[List[Transformer]]]:
+def _common_prefix(pipes: List[List[Transformer]]) -> Tuple[List[Transformer], List[List[Transformer]]]:
     # finds the common prefix within a list of transformers
     assert len(pipes) > 1, "pipes must contain at least two lists"
     common_prefix = []
@@ -177,7 +177,7 @@ def _identifyCommon(pipes : List[Union[pt.Transformer, pd.DataFrame]]) -> Tuple[
                 raise ValueError("pt.Experiment has systems that are not either DataFrames or Transformers")
             pipe_lists.append([p])
     
-    common_prefix, suffices  = _lcsMany(pipe_lists)
+    common_prefix, suffices  = _common_prefix(pipe_lists)
 
     if len(common_prefix) == 0:
         # no common prefix, return existing pipelines as-is
@@ -197,6 +197,66 @@ def _identifyCommon(pipes : List[Union[pt.Transformer, pd.DataFrame]]) -> Tuple[
         _construct(common_prefix), # prefix common to all 
         [ _construct(remainder) for remainder in suffices ] # individual suffices
     )
+
+def _precomputation(
+        retr_systems : List[SYSTEM_OR_RESULTS_TYPE], 
+        topics : pd.DataFrame, 
+        precompute_prefix : bool, 
+        verbose : bool, 
+        batch_size : Optional[int] = None
+        ) -> Tuple[float, pd.DataFrame, List[SYSTEM_OR_RESULTS_TYPE]]:
+    
+    # this method identifies any common prefix to the pipelines in retr_systems,
+    # and if precompute_prefix=True, then it computes the (partial) results of topics
+    # on that prefix, and returns that, which is used later for evaluating the remainder
+    # of each pipeline.
+
+    tqdm_args_precompute={
+        'disable' : not verbose,
+    }
+    
+    common_pipe, execution_retr_systems = _identifyCommon(retr_systems)
+    precompute_time = 0
+    if precompute_prefix and common_pipe is not None: 
+        print("Precomputing results of %d topics on shared pipeline component %s" % (len(topics), str(common_pipe)), file=sys.stderr)
+
+        tqdm_args_precompute['desc'] = "pt.Experiment precomputation"
+        from timeit import default_timer as timer
+        starttime = timer()
+        if batch_size is not None:
+            
+            warn("precompute_prefix with batch_size is very experimental. Please report any problems")
+            import math
+            tqdm_args_precompute['unit'] = 'batches'
+            # round number of batches up for each system
+            tqdm_args_precompute['total'] = math.ceil((len(topics) / batch_size))
+            with pt.tqdm(**tqdm_args_precompute) as pbar:
+                precompute_results = []
+                for r in common_pipe.transform_gen(topics, batch_size=batch_size):
+                    precompute_results.append(r)
+                    pbar.update(1)
+                execution_topics = pd.concat(precompute_results)
+        
+        else: # no batching  
+            tqdm_args_precompute['total'] = 1 
+            tqdm_args_precompute['unit'] = "prefix pipeline"
+            with pt.tqdm(**tqdm_args_precompute) as pbar:
+                execution_topics = common_pipe(topics)
+                pbar.update(1)
+        
+        endtime = timer()
+        precompute_time = (endtime - starttime) * 1000.
+
+    elif precompute_prefix and common_pipe is None:
+        warn('precompute_prefix was True for pt.Experiment, but no common pipeline prefix was found among %d pipelines' % len(retr_systems))
+        execution_retr_systems = retr_systems
+        execution_topics = topics
+    
+    else: # precomputation not requested
+        execution_retr_systems = retr_systems
+        execution_topics = topics
+    
+    return precompute_time, execution_topics, execution_retr_systems
 
 def _run_and_evaluate(
         system : SYSTEM_OR_RESULTS_TYPE, 
@@ -387,7 +447,7 @@ def Experiment(
         save_dir : Optional[str] = None,
         save_mode : SAVEMODE_TYPE = 'warn',
         save_format : SAVEFORMAT_TYPE = 'trec',
-        precompute_shared : bool = False,
+        precompute_prefix : bool = False,
         **kwargs):
     """
     Allows easy comparison of multiple retrieval transformer pipelines using a common set of topics, and
@@ -434,7 +494,7 @@ def Experiment(
             if `highlight="color"` or `"colour"`, then the cell with the highest metric value will have a green background.
         round(int): How many decimal places to round each measure value to. This can also be a dictionary mapping measure name to number of decimal places.
             Default is None, which is no rounding.
-        precompute_shared(bool): If set to True, then pt.Experiment will look for a common prefix on all input pipelines, and execute that common prefix pipeline only once. 
+        precompute_prefix(bool): If set to True, then pt.Experiment will look for a common prefix on all input pipelines, and execute that common prefix pipeline only once. 
             This functionality assumes that the intermidiate results of the common prefix can fit in memory. Set to False by default.
         verbose(bool): If True, a tqdm progress bar is shown as systems (or systems*batches if batch_size is set) are executed. Default=False.
 
@@ -556,6 +616,8 @@ def Experiment(
         eval_metrics = list(eval_metrics).copy()
         eval_metrics.remove("mrt")
 
+    precompute_time, execution_topics, execution_retr_systems = _precomputation(retr_systems, topics, precompute_prefix, verbose, batch_size)
+
     # progress bar construction
     tqdm_args={
         'disable' : not verbose,
@@ -563,47 +625,6 @@ def Experiment(
         'total' : len(retr_systems),
         'desc' : 'pt.Experiment'
     }
-    
-    
-    common_pipe, execution_retr_systems = _identifyCommon(retr_systems)
-    precompute_time = 0
-    if precompute_shared and common_pipe is not None: 
-        print("Precomputing results of %d topics on shared pipeline component %s" % (len(topics), str(common_pipe)), file=sys.stderr)
-
-        tqdm_args_precompute = tqdm_args.copy()
-        tqdm_args_precompute['desc'] = "pt.Experiment precomputation"
-                
-        from timeit import default_timer as timer
-        starttime = timer()
-        if batch_size is not None:
-            import math
-            tqdm_args_precompute['unit'] = 'batches'
-            # round number of batches up for each system
-            tqdm_args_precompute['total'] = math.ceil((len(topics) / batch_size))
-            with pt.tqdm(**tqdm_args_precompute) as pbar:
-                precompute_results = []
-                for r in common_pipe.transform_gen(topics, batch_size=batch_size):
-                    precompute_results.append(r)
-                    pbar.update(1)
-                execution_topics = pd.concat(precompute_results)
-        else:  
-            tqdm_args_precompute['total'] = 1 
-            with pt.tqdm(**tqdm_args_precompute) as pbar:
-                execution_topics = common_pipe(topics)
-                pbar.update(1)
-        
-        endtime = timer()
-        precompute_time = (endtime - starttime) * 1000.
-
-
-    elif precompute_shared and common_pipe is None:
-        warn('precompute_shared was True for pt.Experiment, but no common pipeline prefix was found among %d pipelines' % len(retr_systems))
-        execution_retr_systems = retr_systems
-        execution_topics = topics
-    
-    else: # no precomputation
-        execution_retr_systems = retr_systems
-        execution_topics = topics
 
     if batch_size is not None:
         import math
