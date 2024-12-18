@@ -322,3 +322,26 @@ The available evaluation measure objects are listed below.
 
 .. autofunction:: pyterrier.measures.infAP
 
+Precomputation of Common Pipeline Prefixes
+==========================================
+
+Often we wish to evaluate multiple pipelines that have exactly the same initial stages. ``pt.Experiment`` exposes a `precompute_prefix` kwarg, will precompute the results of the common initial stages, and then use these results to call the subsequent remainder of each pipelines.
+
+Consider the following example::
+
+    from pyterrier_t5 import MonoT5ReRanker
+    bm25 = pt.terrier.Retriever.from_dataset('vaswani', 'terrier_stemmed_text', wmodel='BM25', num_results=100)
+    monoT5 = MonoT5ReRanker()
+
+    monoT5 = bm25 >> monoT5
+    pt.Experiment(
+        [bm25, monoT5], 
+        pt.get_dataset('vaswani').get_topics(), 
+        pt.get_dataset('vaswani').get_qrels(), 
+        eval_metrics=['map'], 
+        precompute_prefix=True
+    )
+
+Normally, BM25 retriever would be invoked twice during this experiment - once for each pipeline, resulting in a slower executation time compared to an imperative workflow (get BM25 results, evaluate, apply monoT5, evaluate). By setting `precompute_prefix=True`, ``pt.Experiment`` will execute the `bm25` transformer only once on the input topics, and then reuse those results as input to monoT5.
+
+NB: This is experimental functionality, but should initial usage be successful, it may be turned on by default in future versions of PyTerrier.
