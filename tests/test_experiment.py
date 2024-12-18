@@ -32,10 +32,10 @@ class TestExperiment(TempDirTestCase):
         bm25 = pt.terrier.Retriever.from_dataset('vaswani', 'terrier_stemmed', wmodel='BM25')
         pipeB = bm25 %10
         df1 = pt.Experiment([bm25, pipeB], pt.get_dataset('vaswani').get_topics().head(10), pt.get_dataset('vaswani').get_qrels(), eval_metrics=['map'])
-        df2 = pt.Experiment([bm25, pipeB], pt.get_dataset('vaswani').get_topics().head(10), pt.get_dataset('vaswani').get_qrels(), eval_metrics=['map'], precompute_shared=True)
+        df2 = pt.Experiment([bm25, pipeB], pt.get_dataset('vaswani').get_topics().head(10), pt.get_dataset('vaswani').get_qrels(), eval_metrics=['map'], precompute_prefix=True)
         pd.testing.assert_frame_equal(df1, df2)
 
-        df3 = pt.Experiment([bm25, pipeB], pt.get_dataset('vaswani').get_topics().head(10), pt.get_dataset('vaswani').get_qrels(), eval_metrics=['map'], precompute_shared=True, batch_size=4)
+        df3 = pt.Experiment([bm25, pipeB], pt.get_dataset('vaswani').get_topics().head(10), pt.get_dataset('vaswani').get_qrels(), eval_metrics=['map'], precompute_prefix=True, batch_size=4)
         pd.testing.assert_frame_equal(df1, df3)
 
     def test_irm_APrel2(self):
