@@ -417,11 +417,11 @@ def Experiment(
     if isinstance(topics, str):
         from . import Utils
         if os.path.isfile(topics):
-            topics = Utils.parse_trec_topics_file(topics)
+            topics = pt.io.read_topics(topics)
     if isinstance(qrels, str):
         from . import Utils
         if os.path.isfile(qrels):
-            qrels = Utils.parse_qrels(qrels)
+            qrels = pt.io.read_qrels(qrels)
 
     if round is not None:
         if isinstance(round, int):
