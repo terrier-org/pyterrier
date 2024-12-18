@@ -579,7 +579,7 @@ def Experiment(
             import math
             tqdm_args_precompute['unit'] = 'batches'
             # round number of batches up for each system
-            tqdm_args_precompute['total'] = math.ceil((len(topics) / batch_size)) * len(retr_systems)
+            tqdm_args_precompute['total'] = math.ceil((len(topics) / batch_size))
             with pt.tqdm(**tqdm_args_precompute) as pbar:
                 precompute_results = []
                 for r in common_pipe.transform_gen(topics, batch_size=batch_size):
