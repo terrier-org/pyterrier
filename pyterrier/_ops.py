@@ -237,7 +237,8 @@ class FeatureUnion(NAryTransformerBase):
                     raise ValueError("Results from %s did not include either score or features columns, found columns were %s" % (repr(m), str(res.columns)) )
 
                 if len(res) != num_results:
-                    warn("Got number of results different expected from %s, expected %d received %d, feature scores for any "
+                    warn(
+                        "Got number of results different expected from %s, expected %d received %d, feature scores for any "
                         "missing documents be 0, extraneous documents will be removed" % (repr(m), num_results, len(res)))
                     all_results[i] = res = inputRes[["qid", "docno"]].merge(res, on=["qid", "docno"], how="left")
                     res["score"] = res["score"].fillna(value=0)

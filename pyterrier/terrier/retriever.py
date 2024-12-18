@@ -204,13 +204,15 @@ class Retriever(pt.Transformer):
                 raise ValueError("Unknown parameter type passed for wmodel argument: %s" % str(wmodel))
                   
         if self.threads > 1:
-            warn("Multi-threaded retrieval is experimental, YMMV.")
+            warn(
+                "Multi-threaded retrieval is experimental, YMMV.")
             assert pt.terrier.check_version(5.5), "Terrier 5.5 is required for multi-threaded retrieval"
 
             # we need to see if our indexref is concurrent. if not, we upgrade it using ConcurrentIndexLoader
             # this will upgrade the underlying index too.
             if not self.concurrentIL.isConcurrent(self.indexref):
-                warn("Upgrading indexref %s to be concurrent" % self.indexref.toString())
+                warn(
+                    "Upgrading indexref %s to be concurrent" % self.indexref.toString())
                 self.indexref = self.concurrentIL.makeConcurrent(self.indexref)
 
         if num_results is not None:
@@ -277,7 +279,8 @@ class Retriever(pt.Transformer):
         else:
             query = row.query
             if len(query) == 0:
-                warn("Skipping empty query for qid %s" % qid)
+                warn(
+                    "Skipping empty query for qid %s" % qid)
                 return []
             srq = self.manager.newSearchRequest(qid, query)
 
@@ -301,7 +304,8 @@ class Retriever(pt.Transformer):
 
         if query_toks_present:
             if len(row.query_toks) == 0:
-                warn("Skipping empty query_toks for qid %s" % qid)
+                warn(
+                    "Skipping empty query_toks for qid %s" % qid)
                 return []
             srq.setControl("terrierql", "off")
             srq.setControl("parsecontrols", "off")
@@ -732,7 +736,8 @@ class FeaturesRetriever(Retriever):
             else:
                 query = row.query
                 if len(query) == 0:
-                    warn("Skipping empty query for qid %s" % qid)
+                    warn(
+                        "Skipping empty query for qid %s" % qid)
                     continue
                 srq = self.manager.newSearchRequest(qid, query)
 
@@ -753,7 +758,8 @@ class FeaturesRetriever(Retriever):
 
             if query_toks_present:
                 if len(row.query_toks) == 0:
-                    warn("Skipping empty query_toks for qid %s" % qid)
+                    warn(
+                        "Skipping empty query_toks for qid %s" % qid)
                     return []
                 srq.setControl("terrierql", "off")
                 srq.setControl("parsecontrols", "off")

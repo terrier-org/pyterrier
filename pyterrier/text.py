@@ -152,13 +152,16 @@ def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='ti
     if 'passage_length' in kwargs:
         length = kwargs['passage_length']
         del kwargs['passage_length']
-        warn("passage_length should be length.", FutureWarning, 2)
+        warn(
+            "passage_length should be length.", FutureWarning, 2)
     if 'passage_stride' in kwargs:
         stride = kwargs['passage_stride']
         del kwargs['passage_stride']
-        warn("passage_stride should be stride.", FutureWarning, 2)
+        warn(
+            "passage_stride should be stride.", FutureWarning, 2)
     if 'prepend_title' in kwargs:
-        warn("prepend_title and title_attr should be replaced with prepend_attr.", FutureWarning, 2)
+        warn(
+            "prepend_title and title_attr should be replaced with prepend_attr.", FutureWarning, 2)
         if kwargs['prepend_title']:
             prepend_attr = kwargs['title_attr']
             del kwargs['title_attr']
