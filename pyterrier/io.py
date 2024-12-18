@@ -19,21 +19,21 @@ def coerce_dataframe(obj):
             rtr.append(x)
         return pd.concat(rtr)
 
-def autoopen(filename, mode='rb'):
+def autoopen(filename, mode='rb', **kwargs):
     """
     A drop-in for open() that applies automatic compression for .gz, .bz2 and .lz4 file extensions
     """
 
     if filename.endswith(".gz"):
         import gzip
-        return gzip.open(filename, mode)
+        return gzip.open(filename, mode, **kwargs)
     elif filename.endswith(".bz2"):
         import bz2
-        return bz2.open(filename, mode)
+        return bz2.open(filename, mode, **kwargs)
     elif filename.endswith(".lz4"):
         import lz4.frame
-        return lz4.frame.open(filename, mode)
-    return open(filename, mode)
+        return lz4.frame.open(filename, mode, **kwargs)
+    return open(filename, mode, **kwargs)
 
 def find_files(dir):
     """
