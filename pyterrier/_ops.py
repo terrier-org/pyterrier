@@ -347,7 +347,7 @@ class Compose(NAryTransformerBase):
         # guess a good batch size from the batch_size of individual components earlier in the pipeline
         if batch_size is None:
             batch_size = 100 # default to 100 as a reasonable minimum (and fallback if no batch sizes found)
-            for tr in prev_transformer:
+            for tr in prev_transformer if len(self._transformers) > 1 else [prev_transformer]:
                 if hasattr(tr, 'batch_size') and isinstance(tr.batch_size, int) and tr.batch_size > batch_size:
                     batch_size = tr.batch_size
 
