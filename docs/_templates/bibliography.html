@@ -1,0 +1,22 @@
+{% extends "page.html" %}
+
+{% block htmltitle -%}
+  <title>Bibliography - {{ docstitle|striptags|e }}</title>
+{% endblock htmltitle -%}
+
+{% block content %}
+<h1 id="bibliography">Bibliography</h1>
+
+{% for bib in bibliography %}
+  <div class="bibliography">
+    <div><b>{{ bib['citation'] }}</b>{% if bib['link'] %}&nbsp;<a href="{{bib['link']}}">[link]</a>{% endif %}</div>
+    {% if bib['refs'] %}
+    <ul class="refs">
+      {% for ref in bib['refs'] %}
+      <li><a href="{{ref['url']}}">{{ref['title']}}</a></li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+{% endfor %}
+{% endblock %}
