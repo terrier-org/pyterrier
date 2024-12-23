@@ -84,8 +84,8 @@ class Artifact:
                 url = tmp_url
                 parsed_url = urlparse(tmp_url)
 
-        if parsed_url.scheme == '' and os.path.exists(url) and os.path.isdir(url):
-            return cls.load(url) # already resolved to a directory, load this
+        if parsed_url.scheme == '' and os.path.exists(url):
+            return cls.load(url) # already resolved, load it
 
         # buid local path
         base_path = os.path.join(pt.io.pyterrier_home(), 'artifacts')
