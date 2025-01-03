@@ -498,7 +498,7 @@ def open_or_download_stream(
 
 
 class _NosyReader(io.BufferedIOBase, ABC):
-    def __init__(self, reader: io.IOBase):
+    def __init__(self, reader: io.BufferedIOBase):
         self.reader = reader
         self.seek = self.reader.seek
         self.tell = self.reader.tell
@@ -531,7 +531,7 @@ class _NosyReader(io.BufferedIOBase, ABC):
 
 
 class _NosyWriter(io.BufferedIOBase, ABC):
-    def __init__(self, writer: io.IOBase):
+    def __init__(self, writer: io.BufferedIOBase):
         self.writer = writer
         self.seek = self.writer.seek
         self.tell = self.writer.tell
