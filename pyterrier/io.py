@@ -4,7 +4,8 @@ import io
 import shutil
 import tempfile
 import urllib
-from typing import BinaryIO, Callable, Iterable, Optional, Generator, ContextManager
+import typing
+from typing import Callable, Iterable, Optional, Generator, ContextManager, Union
 from types import GeneratorType
 from contextlib import ExitStack, contextmanager
 from abc import ABC, abstractmethod
@@ -13,6 +14,11 @@ import xml.etree.ElementTree as ET
 import numpy as np
 import pandas as pd
 import pyterrier as pt
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Buffer # type: ignore[attr-defined]
+else:
+    Buffer = Union[bytes, bytearray, memoryview]
 
 
 def coerce_dataframe(obj):
@@ -516,8 +522,8 @@ class _NosyReader(io.BufferedIOBase, ABC):
         self.on_data(chunk)
         return chunk
 
-    def read(self, size: int = -1) -> bytes:
-        if size == -1:
+    def read(self, size: Optional[int] = None) -> bytes:
+        if size is None:
             size = io.DEFAULT_BUFFER_SIZE
         chunk = self.reader.read(min(size, io.DEFAULT_BUFFER_SIZE))
         self.on_data(chunk)
@@ -541,12 +547,13 @@ class _NosyWriter(io.BufferedIOBase, ABC):
         self.sha256 = sha256()
 
     @abstractmethod
-    def on_data(self, data: bytes) -> None:
+    def on_data(self, data: Buffer) -> None:
         pass
 
-    def write(self, data: bytes) -> None:
-        self.writer.write(data)
+    def write(self, data: Buffer) -> int:
+        res = self.writer.write(data)
         self.on_data(data)
+        return res
 
     def replace_writer(self, writer: io.BufferedIOBase) -> None:
         self.writer = writer # type: ignore[method-assign]
@@ -602,11 +609,10 @@ class HashWriter(_NosyWriter):
 
 class TqdmReader(_NosyReader):
     """A reader that displays a progress bar."""
-    def __init__(self, reader: io.BufferedIOBase, *, total: Optional[int] = None, desc: str = None, disable: bool = False):
+    def __init__(self, reader: io.BufferedIOBase, *, total: Optional[int] = None, desc: Optional[str] = None, disable: bool = False):
         """Create a TqdmReader."""
         super().__init__(reader)
-        import pyterrier as pt
-        self.pbar = pt.tqdm(total=total, desc=desc, unit="B", unit_scale=True, unit_divisor=1024, disable=disable)
+        self.pbar = pt.tqdm(total=total, desc=desc, unit="B", unit_scale=True, unit_divisor=1024, disable=disable) # type: ignore[misc]
 
     def on_data(self, data: bytes) -> None:
         """Called when data is read."""
@@ -633,11 +639,11 @@ class CallbackReader(_NosyReader):
 
 class MultiReader(io.BufferedIOBase):
     """A reader that reads from multiple readers in sequence."""
-    def __init__(self, readers: Iterable[BinaryIO]):
+    def __init__(self, readers: Iterable[io.BufferedIOBase]):
         """Create a MultiReader."""
-        self.readers = readers
-        self._reader = next(self.readers)
-        self.reader = self._reader.__enter__()
+        self.readers = iter(readers)
+        self._reader: Optional[io.BufferedIOBase] = next(self.readers)
+        self.reader: Optional[io.BufferedIOBase] = self._reader.__enter__()
         self.seek = self.reader.seek # type: ignore[method-assign]
         self.tell = self.reader.tell # type: ignore[method-assign]
         self.seekable = self.reader.seekable # type: ignore[method-assign]
@@ -647,9 +653,11 @@ class MultiReader(io.BufferedIOBase):
         self.isatty = self.reader.isatty # type: ignore[method-assign]
         self.close = self.reader.close # type: ignore[method-assign]
 
-    def read1(self, size: int = -1) -> bytes:
+    def read1(self, size: Optional[int] = None) -> bytes:
         """Read a single chunk of data."""
-        if size == -1:
+        if self.reader is None:
+            raise RuntimeError('reader is closed')
+        if size is None:
             size = io.DEFAULT_BUFFER_SIZE
         chunk = self.reader.read1(min(size, io.DEFAULT_BUFFER_SIZE))
         if len(chunk) == 0:
@@ -661,7 +669,8 @@ class MultiReader(io.BufferedIOBase):
                 self.reader = None
                 return chunk
             self.reader = self._reader.__enter__()
-            self.pbar = self.reader.pbar
+            if hasattr(self.reader, 'pbar'):
+                self.pbar = self.reader.pbar
             self.seek = self.reader.seek # type: ignore[method-assign]
             self.tell = self.reader.tell # type: ignore[method-assign]
             self.seekable = self.reader.seekable # type: ignore[method-assign]
@@ -673,10 +682,10 @@ class MultiReader(io.BufferedIOBase):
             chunk = self.reader.read1(min(size, io.DEFAULT_BUFFER_SIZE))
         return chunk
 
-    def read(self, size: int = -1) -> bytes:
+    def read(self, size: Optional[int] = None) -> bytes:
         """Read data."""
         chunk = b''
-        if size == -1:
+        if size is None:
             size = io.DEFAULT_BUFFER_SIZE
         while len(chunk) < size and self.reader is not None:
             chunk += self.reader.read(size - len(chunk))
@@ -689,7 +698,8 @@ class MultiReader(io.BufferedIOBase):
                     self.reader = None
                     return chunk
                 self.reader = self._reader.__enter__()
-                self.pbar = self.reader.pbar
+                if hasattr(self.reader, 'pbar'):
+                    self.pbar = self.reader.pbar
                 self.seek = self.reader.seek # type: ignore[method-assign]
                 self.tell = self.reader.tell # type: ignore[method-assign]
                 self.seekable = self.reader.seekable # type: ignore[method-assign]
