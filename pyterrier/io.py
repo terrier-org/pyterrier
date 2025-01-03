@@ -515,17 +515,17 @@ class _NosyReader(io.BufferedIOBase, ABC):
     def on_data(self, data: bytes) -> None:
         pass
 
-    def read1(self, size: int = -1) -> bytes:
-        if size == -1:
+    def read1(self, size: Optional[int] = None) -> bytes:
+        if size is None:
             size = io.DEFAULT_BUFFER_SIZE
-        chunk = self.reader.read1(min(size, io.DEFAULT_BUFFER_SIZE))
+        chunk = self.reader.read1(size)
         self.on_data(chunk)
         return chunk
 
     def read(self, size: Optional[int] = None) -> bytes:
         if size is None:
             size = io.DEFAULT_BUFFER_SIZE
-        chunk = self.reader.read(min(size, io.DEFAULT_BUFFER_SIZE))
+        chunk = self.reader.read(size)
         self.on_data(chunk)
         return chunk
 

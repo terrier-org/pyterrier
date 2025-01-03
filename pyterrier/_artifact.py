@@ -174,7 +174,7 @@ class Artifact:
 
         if hasattr(self, 'ARTIFACT_PACKAGE_HINT'):
             metadata['package_hint'] = self.ARTIFACT_PACKAGE_HINT
-        else:
+        elif self.__class__ is not Artifact:
             metadata['package_hint'] = self.__class__.__module__.split('.')[0]
 
         return metadata
