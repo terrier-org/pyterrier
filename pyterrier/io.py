@@ -4,7 +4,7 @@ import io
 import shutil
 import tempfile
 import urllib
-from typing import BinaryIO, Callable, Iterable, Optional
+from typing import BinaryIO, Callable, Iterable, Optional, Generator
 from types import GeneratorType
 from contextlib import ExitStack, contextmanager
 from abc import ABC, abstractmethod
@@ -64,7 +64,7 @@ def find_files(dir):
 
 
 @contextmanager
-def _finalized_open_base(path: str, mode: str, open_fn: Callable) -> io.IOBase:
+def _finalized_open_base(path: str, mode: str, open_fn: Callable) -> Generator[io.IOBase, None, None]:
     assert mode in ('b', 't') # must supply either binary or text mode
     dirname = os.path.dirname(path)
     prefix, suffix = os.path.splitext(os.path.basename(path))
@@ -424,7 +424,7 @@ def pyterrier_home() -> str:
 
 
 @contextmanager
-def finalized_directory(path: str) -> str:
+def finalized_directory(path: str) -> Generator[str, None, None]:
     """Creates a directory, but reverts it if there was an error in the process."""
     dirname = os.path.dirname(path)
     prefix, suffix = os.path.splitext(os.path.basename(path))
@@ -453,7 +453,7 @@ def download(url: str, path: str, *, expected_sha256: str = None, verbose: bool 
 
 
 @contextmanager
-def download_stream(url: str, *, expected_sha256: Optional[str] = None, verbose: bool = True) -> io.IOBase:
+def download_stream(url: str, *, expected_sha256: Optional[str] = None, verbose: bool = True) -> Generator[io.IOBase, None, None]:
     """Downloads a file from a URL to a stream."""
     with ExitStack() as stack:
         fin = stack.enter_context(urllib.request.urlopen(url))
@@ -476,7 +476,7 @@ def open_or_download_stream(
     *,
     expected_sha256: Optional[str] = None,
     verbose: bool = True
-) -> io.IOBase:
+) -> Generator[io.IOBase]:
     """Opens a file or downloads a file from a URL to a stream."""
     if path_or_url.startswith('http://') or path_or_url.startswith('https://'):
         with download_stream(path_or_url, expected_sha256=expected_sha256, verbose=verbose) as fin:
