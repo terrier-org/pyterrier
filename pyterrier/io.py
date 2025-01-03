@@ -15,9 +15,6 @@ import pandas as pd
 import pyterrier as pt
 
 
-DEFAULT_CHUNK_SIZE = 16_384 # 16kb
-
-
 def coerce_dataframe(obj):
     if isinstance(obj, pd.DataFrame):
         return obj
@@ -514,15 +511,15 @@ class _NosyReader(io.BufferedIOBase, ABC):
 
     def read1(self, size: int = -1) -> bytes:
         if size == -1:
-            size = DEFAULT_CHUNK_SIZE
-        chunk = self.reader.read1(min(size, DEFAULT_CHUNK_SIZE))
+            size = io.DEFAULT_BUFFER_SIZE
+        chunk = self.reader.read1(min(size, io.DEFAULT_BUFFER_SIZE))
         self.on_data(chunk)
         return chunk
 
     def read(self, size: int = -1) -> bytes:
         if size == -1:
-            size = DEFAULT_CHUNK_SIZE
-        chunk = self.reader.read(min(size, DEFAULT_CHUNK_SIZE))
+            size = io.DEFAULT_BUFFER_SIZE
+        chunk = self.reader.read(min(size, io.DEFAULT_BUFFER_SIZE))
         self.on_data(chunk)
         return chunk
 
@@ -653,8 +650,8 @@ class MultiReader(io.BufferedIOBase):
     def read1(self, size: int = -1) -> bytes:
         """Read a single chunk of data."""
         if size == -1:
-            size = DEFAULT_CHUNK_SIZE
-        chunk = self.reader.read1(min(size, DEFAULT_CHUNK_SIZE))
+            size = io.DEFAULT_BUFFER_SIZE
+        chunk = self.reader.read1(min(size, io.DEFAULT_BUFFER_SIZE))
         if len(chunk) == 0:
             self.reader.close()
             try:
@@ -673,14 +670,14 @@ class MultiReader(io.BufferedIOBase):
             self.flush = self.reader.flush
             self.isatty = self.reader.isatty
             self.close = self.reader.close
-            chunk = self.reader.read1(min(size, DEFAULT_CHUNK_SIZE))
+            chunk = self.reader.read1(min(size, io.DEFAULT_BUFFER_SIZE))
         return chunk
 
     def read(self, size: int = -1) -> bytes:
         """Read data."""
         chunk = b''
         if size == -1:
-            size = DEFAULT_CHUNK_SIZE
+            size = io.DEFAULT_BUFFER_SIZE
         while len(chunk) < size and self.reader is not None:
             chunk += self.reader.read(size - len(chunk))
             if len(chunk) < size:
