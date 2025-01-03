@@ -568,7 +568,7 @@ artifact = pt.Artifact.from_zenodo({str(zenodo_id)!r})
             expected_sha256: The expected SHA-256 hash of the artifact. If provided, the downloaded artifact will be
                 verified against this hash and an error will be raised if the hash does not match.
         """
-        import wormhole
+        import wormhole # noqa check that magic-wormhole is installed
         import subprocess
         if os.path.exists(path):
             raise FileExistsError(f'{path!r} already exists. Choose a different path.')
@@ -590,7 +590,7 @@ artifact = pt.Artifact.from_zenodo({str(zenodo_id)!r})
 
         The recipient can use the provided code to download the artifact.
         """
-        import wormhole
+        import wormhole # noqa check that magic-wormhole is installed
         import subprocess
         with tempfile.TemporaryDirectory() as d:
             path = os.path.join(d, 'artifact.tar.lz4')
