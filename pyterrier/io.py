@@ -4,7 +4,7 @@ import io
 import shutil
 import tempfile
 import urllib
-from typing import BinaryIO, Callable, Iterable, Optional, Generator
+from typing import BinaryIO, Callable, Iterable, Optional, Generator, ContextManager
 from types import GeneratorType
 from contextlib import ExitStack, contextmanager
 from abc import ABC, abstractmethod
@@ -83,7 +83,7 @@ def _finalized_open_base(path: str, mode: str, open_fn: Callable) -> Generator[i
     os.replace(path_tmp, path)
 
 
-def finalized_open(path: str, mode: str) -> Generator[io.BufferedIOBase, None, None]:
+def finalized_open(path: str, mode: str) -> ContextManager[io.BufferedIOBase]:
     """
     Opens a file for writing, but reverts it if there was an error in the process.
 
@@ -108,7 +108,7 @@ def finalized_open(path: str, mode: str) -> Generator[io.BufferedIOBase, None, N
     return _finalized_open_base(path, mode, open)
 
 
-def finalized_autoopen(path: str, mode: str) -> Generator[io.BufferedIOBase, None, None]:
+def finalized_autoopen(path: str, mode: str) -> ContextManager[io.BufferedIOBase]:
     """
     Opens a file for writing with ``autoopen``, but reverts it if there was an error in the process.
 
