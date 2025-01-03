@@ -1,21 +1,3 @@
-.wy-nav-content {
-    max-width: 1200px !important;
-}
-
-.rst-content .code-block-caption {
-    background-color: #ddd;
-    text-align: left;
-    padding: 8px 12px;
-    font-size: 14px;
-}
-
-.caption-text {
-    font-weight: bold;
-    font-style: normal;
-}
-
-.rst-content div[class^="highlight"] {
-    margin-top: 0;
 h1 {
     font-size: 2em;
 }
