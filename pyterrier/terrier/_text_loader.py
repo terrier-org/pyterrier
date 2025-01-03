@@ -74,7 +74,6 @@ class TerrierTextLoader(pt.Transformer):
         return pd.concat([inp, metadata_frame], axis='columns')
 
 
-@pt.java.required
 def terrier_text_loader(
     index,
     fields: Union[List[str], str, Literal['*']] = '*',
