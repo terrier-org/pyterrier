@@ -115,16 +115,18 @@ class Artifact:
                 dout = stack.enter_context(pt.io.finalized_directory(path))
 
                 metadata_out = stack.enter_context(pt.io.finalized_open(f'{path}.json', 't'))
+
                 if parsed_url.scheme == '':
-                    json.dump({'path': url}, metadata_out)
+                    info = {'path': url}
                 else:
-                    json.dump({'url': url}, metadata_out)
-                metadata_out.write('\n')
+                    info = {'url': url}
+
+                metadata_out.write(json.dumps(info) + '\n') # type: ignore[arg-type]
 
                 if 'segments' in download_info:
                     # the file is segmented -- use a sequence reader to stitch them back together
                     fin = stack.enter_context(pt.io.MultiReader(
-                        pt.io.open_or_download_stream(f'{url}.{i}')
+                        stack.enter_context(pt.io.open_or_download_stream(f'{url}.{i}'))
                         for i in range(len(download_info['segments']))
                     ))
                     if expected_sha256 is not None:
@@ -137,7 +139,7 @@ class Artifact:
                     cin = stack.enter_context(LZ4FrameFile(fin))
                 # TODO: support other compressions
 
-                tar_in = stack.enter_context(tarfile.open(fileobj=cin, mode='r|'))
+                tar_in = stack.enter_context(tarfile.open(fileobj=cin, mode='r|')) # type: ignore[arg-type]
 
                 metadata_out.flush()
                 for member in tar_in:
@@ -203,7 +205,7 @@ class Artifact:
         if package_path is None:
             package_path = str(self.path) + '.tar.lz4'
 
-        metadata = {
+        metadata: Dict[str, Any] = {
             'expected_sha256': None,
             'total_size': 0,
             'contents': [],
@@ -211,11 +213,12 @@ class Artifact:
 
         chunk_num = 0
         chunk_start_offset = 0
+        raw_fout: Optional[io.BufferedIOBase] = None
         def manage_maxsize(_: None):
             nonlocal raw_fout
             nonlocal chunk_num
             nonlocal chunk_start_offset
-            if max_file_size is not None and raw_fout.tell() >= max_file_size:
+            if raw_fout is not None and max_file_size is not None and raw_fout.tell() >= max_file_size:
                 raw_fout.flush()
                 chunk_start_offset += raw_fout.tell()
                 raw_fout.close()
@@ -264,14 +267,14 @@ class Artifact:
                         metadata_out.update(json.load(file))
                     file.seek(0)
                     with pt.io.CallbackReader(file, manage_maxsize) as fin:
-                        tarout.addfile(tar_record, fin)
+                        tarout.addfile(tar_record, fin) # type: ignore[arg-type]
                 else:
-                    with open(file, 'rb') as fin, \
-                         pt.io.CallbackReader(fin, manage_maxsize) as fin:
-                        tarout.addfile(tar_record, fin)
+                    with open(file, 'rb') as _fin, \
+                         pt.io.CallbackReader(_fin, manage_maxsize) as fin:
+                        tarout.addfile(tar_record, fin) # type: ignore[arg-type]
                     if rel_path == 'pt_meta.json' and metadata_out is not None:
-                        with open(file, 'rb') as fin:
-                            metadata_out.update(json.load(fin))
+                        with open(file, 'rb') as _fin:
+                            metadata_out.update(json.load(_fin))
 
             tarout.close()
             lz4_fout.close()
@@ -279,8 +282,7 @@ class Artifact:
             metadata['expected_sha256'] = sha256_fout.hexdigest()
 
             metadata_outf = stack.enter_context(pt.io.finalized_open(f'{package_path}.json', 't'))
-            json.dump(metadata, metadata_outf)
-            metadata_outf.write('\n')
+            metadata_outf.write(json.dumps(metadata) + '\n') # type: ignore[arg-type]
 
         if chunk_num == 0:
             # no chunking was actually done, can use provided name directly
@@ -310,7 +312,7 @@ class Artifact:
     # -------------------------------------------------
 
     @classmethod
-    def from_hf(cls, repo: str, branch: str = None, *, expected_sha256: Optional[str] = None) -> 'Artifact':
+    def from_hf(cls, repo: str, branch: Optional[str] = None, *, expected_sha256: Optional[str] = None) -> 'Artifact':
         """Load an artifact from Hugging Face Hub.
 
         Args:
@@ -326,7 +328,7 @@ class Artifact:
             repo = f'{repo}@{branch}'
         return cls.from_url(f'hf:{repo}', expected_sha256=expected_sha256)
 
-    def to_hf(self, repo: str, *, branch: str = None, pretty_name: Optional[str] = None) -> None:
+    def to_hf(self, repo: str, *, branch: Optional[str] = None, pretty_name: Optional[str] = None) -> None:
         """Upload this artifact to Hugging Face Hub.
 
         Args:
@@ -346,7 +348,7 @@ class Artifact:
 
         with tempfile.TemporaryDirectory() as d:
             # build a package with a maximum individual file size of just under 5GB, the limit for HF datasets
-            metadata = {}
+            metadata: Dict[str, Any] = {}
             self.build_package(os.path.join(d, 'artifact.tar.lz4'), max_file_size=20e9, metadata_out=metadata)
             readme = self._hf_readme(repo=repo, branch=branch, pretty_name=pretty_name, metadata=metadata)
             if readme:
@@ -376,7 +378,7 @@ class Artifact:
         repo: str,
         branch: Optional[str] = 'main',
         pretty_name: Optional[str] = None,
-        metadata: Dict[str, Any] = None
+        metadata: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
         if pretty_name is None:
             title = repo.split('/')[-1]
@@ -393,10 +395,10 @@ class Artifact:
             tags.append('pyterrier-artifact.{type}'.format(**metadata))
         if 'type' in metadata and 'format' in metadata:
             tags.append('pyterrier-artifact.{type}.{format}'.format(**metadata))
-        tags = '\n- '.join([''] + tags)
+        stags = '\n- '.join([''] + tags)
         return f'''---
 {pretty_name}
-tags:{tags}
+tags:{stags}
 task_categories:
 - text-retrieval
 viewer: false
@@ -472,7 +474,7 @@ artifact = pt.Artifact.from_hf({repo!r})
             deposit_data = r.json()
             sys.stderr.write("Created {}\n".format(deposit_data['links']['html']))
             try:
-                metadata = {}
+                metadata: Dict[str, Any] = {}
                 sys.stderr.write("Building package.\n")
                 self.build_package(os.path.join(d, 'artifact.tar.lz4'), metadata_out=metadata)
                 z_meta = {
@@ -487,8 +489,8 @@ artifact = pt.Artifact.from_hf({repo!r})
                 sys.stderr.write("Uploading...\n")
                 for file in sorted(os.listdir(d)):
                     file_path = os.path.join(d, file)
-                    with open(file_path, 'rb') as fin, \
-                         pt.io.TqdmReader(fin, total=os.path.getsize(file_path), desc=file) as fin:
+                    with open(file_path, 'rb') as _fin, \
+                         pt.io.TqdmReader(_fin, total=os.path.getsize(file_path), desc=file) as fin:
                         r = requests.put(
                             '{}/{}'.format(deposit_data['links']['bucket'], file),
                             params={'access_token': access_token},
@@ -501,7 +503,7 @@ artifact = pt.Artifact.from_hf({repo!r})
             sys.stderr.write("Upload complete. Please complete the form at {} to publish this artifact. (Note that "
                 "publishing to Zenodo cannot be undone.)\n".format(deposit_data['links']['html']))
 
-    def _zenodo_metadata(self, *, zenodo_id: str, pretty_name: Optional[str] = None, metadata: Dict) -> Optional[str]:
+    def _zenodo_metadata(self, *, zenodo_id: str, pretty_name: Optional[str] = None, metadata: Dict) -> Dict[str, Any]:
         description = f'''
 <h2>Description</h2>
 
@@ -585,7 +587,7 @@ artifact = pt.Artifact.from_zenodo({str(zenodo_id)!r})
                         tar_in.extract(member, dout, set_attrs=False)
         return cls.load(path)
 
-    def to_p2p(self) -> 'Artifact':
+    def to_p2p(self):
         """Send this artifact directly to a peer using Magic Wormhole.
 
         The recipient can use the provided code to download the artifact.
@@ -598,7 +600,6 @@ artifact = pt.Artifact.from_zenodo({str(zenodo_id)!r})
             command = [sys.executable, '-m', 'wormhole', 'send', path]
             try:
                 with subprocess.Popen(command, stderr=subprocess.PIPE, text=True) as process:
-                    # stderr, stdout = process.communicate()
                     for line in process.stderr:
                         if line.startswith('Wormhole code is'):
                             code = line.replace('Wormhole code is:', '').strip()
