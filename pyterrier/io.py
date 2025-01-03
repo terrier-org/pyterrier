@@ -64,7 +64,7 @@ def find_files(dir):
 
 
 @contextmanager
-def _finalized_open_base(path: str, mode: str, open_fn: Callable) -> Generator[io.IOBase, None, None]:
+def _finalized_open_base(path: str, mode: str, open_fn: Callable) -> Generator[io.BufferedIOBase, None, None]:
     assert mode in ('b', 't') # must supply either binary or text mode
     dirname = os.path.dirname(path)
     prefix, suffix = os.path.splitext(os.path.basename(path))
@@ -83,7 +83,7 @@ def _finalized_open_base(path: str, mode: str, open_fn: Callable) -> Generator[i
     os.replace(path_tmp, path)
 
 
-def finalized_open(path: str, mode: str) -> io.IOBase:
+def finalized_open(path: str, mode: str) -> Generator[io.BufferedIOBase, None, None]:
     """
     Opens a file for writing, but reverts it if there was an error in the process.
 
@@ -108,7 +108,7 @@ def finalized_open(path: str, mode: str) -> io.IOBase:
     return _finalized_open_base(path, mode, open)
 
 
-def finalized_autoopen(path: str, mode: str) -> io.IOBase:
+def finalized_autoopen(path: str, mode: str) -> Generator[io.BufferedIOBase, None, None]:
     """
     Opens a file for writing with ``autoopen``, but reverts it if there was an error in the process.
 
@@ -444,16 +444,16 @@ def finalized_directory(path: str) -> Generator[str, None, None]:
     os.replace(path_tmp, path)
 
 
-def download(url: str, path: str, *, expected_sha256: str = None, verbose: bool = True) -> None:
+def download(url: str, path: str, *, expected_sha256: Optional[str] = None, verbose: bool = True) -> None:
     """Downloads a file from a URL to a local path."""
-    with finalized_open(path) as fout, \
+    with finalized_open(path, 'b') as fout, \
          download_stream(url, expected_sha256=expected_sha256, verbose=verbose) as fin:
         while chunk := fin.read1():
             fout.write(chunk)
 
 
 @contextmanager
-def download_stream(url: str, *, expected_sha256: Optional[str] = None, verbose: bool = True) -> Generator[io.IOBase, None, None]:
+def download_stream(url: str, *, expected_sha256: Optional[str] = None, verbose: bool = True) -> Generator[io.BufferedIOBase, None, None]:
     """Downloads a file from a URL to a stream."""
     with ExitStack() as stack:
         fin = stack.enter_context(urllib.request.urlopen(url))
@@ -476,7 +476,7 @@ def open_or_download_stream(
     *,
     expected_sha256: Optional[str] = None,
     verbose: bool = True
-) -> Generator[io.IOBase]:
+) -> Generator[io.BufferedIOBase]:
     """Opens a file or downloads a file from a URL to a stream."""
     if path_or_url.startswith('http://') or path_or_url.startswith('https://'):
         with download_stream(path_or_url, expected_sha256=expected_sha256, verbose=verbose) as fin:
@@ -551,7 +551,7 @@ class _NosyWriter(io.BufferedIOBase, ABC):
         self.writer.write(data)
         self.on_data(data)
 
-    def replace_writer(self, writer: io.IOBase) -> None:
+    def replace_writer(self, writer: io.BufferedIOBase) -> None:
         self.writer = writer
         self.seek = self.writer.seek
         self.tell = self.writer.tell
@@ -565,7 +565,7 @@ class _NosyWriter(io.BufferedIOBase, ABC):
 
 class HashReader(_NosyReader):
     """A reader that computes the sha256 hash of the data read."""
-    def __init__(self, reader: io.IOBase, *, hashfn: Callable = sha256, expected: Optional[str] = None):
+    def __init__(self, reader: io.BufferedIOBase, *, hashfn: Callable = sha256, expected: Optional[str] = None):
         """Create a HashReader."""
         super().__init__(reader)
         self.hash = hashfn()
@@ -589,7 +589,7 @@ class HashReader(_NosyReader):
 
 class HashWriter(_NosyWriter):
     """A writer that computes the sha256 hash of the data written."""
-    def __init__(self, writer: io.IOBase, *, hashfn: Callable = sha256):
+    def __init__(self, writer: io.BufferedIOBase, *, hashfn: Callable = sha256):
         """Create a HashWriter."""
         super().__init__(writer)
         self.hash = hashfn()
@@ -605,7 +605,7 @@ class HashWriter(_NosyWriter):
 
 class TqdmReader(_NosyReader):
     """A reader that displays a progress bar."""
-    def __init__(self, reader: io.IOBase, *, total: int = None, desc: str = None, disable: bool = False):
+    def __init__(self, reader: io.BufferedIOBase, *, total: Optional[int] = None, desc: str = None, disable: bool = False):
         """Create a TqdmReader."""
         super().__init__(reader)
         import pyterrier as pt
@@ -624,7 +624,7 @@ class TqdmReader(_NosyReader):
 
 class CallbackReader(_NosyReader):
     """A reader that calls a callback with the data read."""
-    def __init__(self, reader: io.IOBase, callback: Callable):
+    def __init__(self, reader: io.BufferedIOBase, callback: Callable):
         """Create a CallbackReader."""
         super().__init__(reader)
         self.callback = callback
