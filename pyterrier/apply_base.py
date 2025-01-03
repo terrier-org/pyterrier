@@ -1,7 +1,7 @@
 from typing import Callable, Any, Union, Optional, Iterable
 import itertools
 import more_itertools
-import numpy as np
+import numpy.typing as npt
 import pandas as pd
 import pyterrier as pt
 
@@ -92,7 +92,7 @@ class ApplyByRowTransformer(pt.Transformer):
         # batching
         iterator = pt.model.split_df(inp, batch_size=self.batch_size)
         if self.verbose:
-            iterator = pt.tqdm(iterator, desc="pt.apply", unit='row') 
+            iterator = pt.tqdm(iterator, desc="pt.apply", unit='row') # type: ignore 
         return pd.concat([self._apply_df(chunk_df) for chunk_df in iterator])
 
     def _apply_df(self, inp: pd.DataFrame) -> pd.DataFrame:
@@ -148,7 +148,7 @@ class ApplyForEachQuery(pt.Transformer):
         it = res.groupby("qid")
         lastqid = None
         if self.verbose:
-            it = pt.tqdm(it, unit='query')
+            it = pt.tqdm(it, unit='query') # type: ignore
         try:
             if self.batch_size is None:
                 query_dfs = []
@@ -163,7 +163,7 @@ class ApplyForEachQuery(pt.Transformer):
                     iterator = pt.model.split_df(group, batch_size=self.batch_size)
                     query_dfs.append( pd.concat([self.fn(chunk_df) for chunk_df in iterator]) )
         except Exception as a:
-            raise Exception("Problem applying %s for qid %s" % (self.fn, lastqid)) from a
+            raise Exception("Problem applying %r for qid %s" % (self.fn, lastqid)) from a # %r because its a function with bytes representation (mypy)
 
         if self.add_ranks:
             try:
@@ -181,6 +181,7 @@ class ApplyIterForEachQuery(pt.Transformer):
     def __init__(self,
         fn: Callable[[pt.model.IterDict], pt.model.IterDict],
         *,
+        verbose=False,
         batch_size=None):
         """
         Instantiates a ApplyIterForEachQuery.
@@ -190,12 +191,15 @@ class ApplyIterForEachQuery(pt.Transformer):
             batch_size: The number of results per query to process at once. If None, processes in one batch per query.
         """
         self.fn = fn
+        self.verbose = verbose
         self.batch_size = batch_size
 
     def __repr__(self):
         return "pt.apply.by_query()"
 
     def transform_iter(self, inp: pt.model.IterDict) -> pt.model.IterDict:
+        if self.verbose:
+            inp = pt.tqdm(inp, desc="pt.apply.by_query()")
         if self.batch_size is not None:
             for _, group in itertools.groupby(inp, key=lambda row: row['qid']):
                 for batch in more_itertools.ichunked(group, self.batch_size):
@@ -253,7 +257,7 @@ class ApplyDocumentScoringTransformer(pt.Transformer):
     def _transform_rowwise(self, outputRes):
         if self.verbose:
             pt.tqdm.pandas(desc="pt.apply.doc_score", unit="d")
-            outputRes["score"] = outputRes.progress_apply(self.fn, axis=1).astype('float64')
+            outputRes["score"] = outputRes.progress_apply(self.fn, axis=1).astype('float64') # type: ignore
         else:
             outputRes["score"] = outputRes.apply(self.fn, axis=1).astype('float64')
         outputRes = pt.model.add_ranks(outputRes)
@@ -275,7 +279,7 @@ class ApplyDocumentScoringTransformer(pt.Transformer):
 
         iterator = pt.model.split_df(outputRes, batch_size=self.batch_size)
         if self.verbose:
-            iterator = pt.tqdm(iterator, desc="pt.apply", unit='row')
+            iterator = pt.tqdm(iterator, desc="pt.apply", unit='row') # type: ignore
         rtr = pd.concat([self._transform_batchwise(chunk_df) for chunk_df in iterator])
         rtr = pt.model.add_ranks(rtr)
         return rtr
@@ -294,7 +298,7 @@ class ApplyDocFeatureTransformer(pt.Transformer):
             pipe = pt.terrier.Retriever(index) >> pt.apply.doc_features(_feature_fn) >> pt.LTRpipeline(xgBoost())
     """
     def __init__(self,
-        fn: Callable[[Union[pd.Series, pt.model.IterDictRecord]], np.array],
+        fn: Callable[[Union[pd.Series, pt.model.IterDictRecord]], npt.NDArray],
         *,
         verbose: bool = False
     ):
@@ -313,7 +317,7 @@ class ApplyDocFeatureTransformer(pt.Transformer):
         # we assume that the function can take a dictionary as well as a pandas.Series. As long as [""] notation is used
         # to access fields, both should work
         if self.verbose:
-            inp = pt.tqdm(inp, desc="pt.apply.doc_features")
+            inp = pt.tqdm(inp, desc="pt.apply.doc_features") # type: ignore
         for row in inp:
             row["features"] = self.fn(row)
             yield row
@@ -322,8 +326,8 @@ class ApplyDocFeatureTransformer(pt.Transformer):
         fn = self.fn
         outputRes = inp.copy()
         if self.verbose:
-            pt.tqdm.pandas(desc="pt.apply.doc_features", unit="d")
-            outputRes["features"] = outputRes.progress_apply(fn, axis=1)
+            pt.tqdm.pandas(desc="pt.apply.doc_features", unit="d") # type: ignore
+            outputRes["features"] = outputRes.progress_apply(fn, axis=1) # type: ignore
         else:
             outputRes["features"] = outputRes.apply(fn, axis=1)
         return outputRes
@@ -368,7 +372,7 @@ class ApplyQueryTransformer(pt.Transformer):
         # we assume that the function can take a dictionary as well as a pandas.Series. As long as [""] notation is used
         # to access fields, both should work
         if self.verbose:
-            inp = pt.tqdm(inp, desc="pt.apply.query")
+            inp = pt.tqdm(inp, desc="pt.apply.query") # type: ignore
         for row in inp:
             row = row.copy()
             if "query" in row:
@@ -384,8 +388,8 @@ class ApplyQueryTransformer(pt.Transformer):
             outputRes = inp.copy()
         try:
             if self.verbose:
-                pt.tqdm.pandas(desc="pt.apply.query", unit="d")
-                outputRes["query"] = outputRes.progress_apply(self.fn, axis=1)
+                pt.tqdm.pandas(desc="pt.apply.query", unit="d") # type: ignore
+                outputRes["query"] = outputRes.progress_apply(self.fn, axis=1) # type: ignore
             else:
                 outputRes["query"] = outputRes.apply(self.fn, axis=1)
         except ValueError as ve:
@@ -444,7 +448,7 @@ class ApplyGenericTransformer(pt.Transformer):
         # batching
         iterator = pt.model.split_df(inp, batch_size=self.batch_size)
         if self.verbose:
-            iterator = pt.tqdm(iterator, desc="pt.apply", unit='row') 
+            iterator = pt.tqdm(iterator, desc="pt.apply", unit='row') # type: ignore
         rtr = pd.concat([self.fn(chunk_df) for chunk_df in iterator])
         return rtr
 

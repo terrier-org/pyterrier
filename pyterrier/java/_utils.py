@@ -1,3 +1,4 @@
+# type: ignore
 import sys
 import warnings
 from functools import wraps
@@ -318,7 +319,8 @@ def parallel_init(started: bool, configs: Dict[str, Dict[str, Any]]) -> None:
             _configs = configs
             _init(trigger='parallel_init')
         else:
-            warnings.warn("Avoiding reinit of PyTerrier")
+            warnings.warn(
+                "Avoiding reinit of PyTerrier")
 
 
 def parallel_init_args() -> Tuple[bool, Dict[str, Dict[str, Any]]]:
@@ -380,14 +382,14 @@ def register_config(name, config: Dict[str, Any]):
 # Java Classes
 # ----------------------------------------------------------
 # This class enables the lazy loading of java classes. It
-# helps avoid needing a ton of autclass() statements to
+# helps avoid needing a ton of autoclass() statements to
 # pre-load Java classes.
 # ----------------------------------------------------------
 
 class JavaClasses:
     def __init__(self, **mapping: Union[str, Callable[[], str]]):
         self._mapping = mapping
-        self._cache = {}
+        self._cache : Dict[str, Callable]= {}
 
     def __dir__(self):
         return list(self._mapping.keys())

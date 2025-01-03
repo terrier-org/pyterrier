@@ -2,7 +2,6 @@ import pandas as pd
 import unittest
 import pyterrier as pt
 import warnings
-from matchpy import *
 from .base import BaseTestCase
 from pytest import warns
 
@@ -68,7 +67,7 @@ class TestOperators(BaseTestCase):
             self.assertEqual(1, len(output))
             self.assertEqual("q1", output.iloc[0]["qid"])
             self.assertEqual("hello test test", output.iloc[0]["query"])
-            # now test transform_iter pathway via __call__
+            # now test transform_iter pathway via __call__
             output = sequence(input.to_dict(orient='records'))
             self.assertIsInstance(output, list)
             output = pd.DataFrame(output)
@@ -76,8 +75,123 @@ class TestOperators(BaseTestCase):
             self.assertEqual("q1", output.iloc[0]["qid"])
             self.assertEqual("hello test test", output.iloc[0]["query"])
 
+    def test_compile_fuse_right(self):
+        from typing import Optional
 
+        class B(pt.Transformer):
+            def transform(self, df):
+                pass
 
+        class C(pt.Transformer):
+            def transform(self, df):
+                pass
+
+        class A(pt.Transformer):
+            def transform(self, df):
+                pass
+            def fuse_right(self, right: pt.Transformer) -> Optional[pt.Transformer]:
+                if isinstance(right, B):
+                    return C()
+                return None
+
+        test1 = A()
+        self.assertIsInstance(test1.compile(), A)
+
+        test2 = A() >> A()
+        test2_c = test2.compile()
+        self.assertEqual(2, len(test2_c))
+        self.assertIsInstance(test2_c[0], A)
+        self.assertIsInstance(test2_c[1], A)
+
+        test3 = A() >> B()
+        test3_c = test3.compile()
+        self.assertIsInstance(test3_c, C)
+
+    def test_compile_fuse_left(self):
+        from typing import Optional
+
+        class B(pt.Transformer):
+            def transform(self, df):
+                pass
+
+            def fuse_left(self, left: pt.Transformer) -> Optional[pt.Transformer]:
+                if isinstance(left, A):
+                    return C()
+                return None
+
+        class C(pt.Transformer):
+            def transform(self, df):
+                pass
+
+        class A(pt.Transformer):
+            def transform(self, df):
+                pass
+
+        test1 = B()
+        self.assertIsInstance(test1.compile(), B)
+
+        test2 = B() >> B()
+        test2_c = test2.compile()
+        self.assertEqual(2, len(test2_c))
+        self.assertIsInstance(test2_c[0], B)
+        self.assertIsInstance(test2_c[1], B)
+
+        test3 = A() >> B()
+        test3_c = test3.compile()
+        self.assertIsInstance(test3_c, C)
+
+    def test_compile(self):
+        class PRF(pt.Transformer):
+            def __init__(self, k=10):
+                self.k = k
+            def transform(self, df):
+                pass
+            def compile(self):
+                # TODO: this shouldnt be so hacky
+                import pyterrier._ops
+                return pyterrier._ops.RankCutoff(self.k) >> self
+            def __repr__(self):
+                return f'PRF(k={self.k})'
+                
+        class Retr(pt.Transformer):
+            def __init__(self, k=1000):
+                self.k = k
+            def fuse_rank_cutoff(self, k):
+                return Retr(k=k)
+            def transform(self, df):
+                pass
+            def __repr__(self):
+                return f'Retr(k={self.k})'
+
+        class Extractor(pt.Transformer):
+            def transform(self, df):
+                pass
+            def fuse_rank_cutoff(self, k):
+                # TODO: this shouldnt be so hacky
+                import pyterrier._ops
+                return pyterrier._ops.RankCutoff(k) >> self
+            def __repr__(self):
+                return 'Extr'
+
+        # check that the rank cutoff fusion works.
+        pipe1 = Retr() % 3
+        pipe1c = pipe1.compile()
+        self.assertEqual(3, pipe1c.k)
+        self.assertIsInstance(pipe1c, Retr)
+
+        # now check that we can propagate k=3 (from PRF.compile()) all the way back to Retr
+        slow_pipe = Retr() >> Extractor() >> PRF(k=3) >> Retr()
+        fast_pipe = slow_pipe.compile()
+        # the resulting pipe should be:
+        # Retr(3) >> Extr() >> PRF(k=3) >> Retr(1000)
+        self.assertEqual(4, len(fast_pipe))
+        self.assertEqual(Retr, type(fast_pipe[0]))
+        self.assertEqual(3, fast_pipe[0].k)
+        self.assertEqual(Extractor, type(fast_pipe[1]))
+        self.assertEqual(PRF, type(fast_pipe[2]))
+        self.assertEqual(3, fast_pipe[2].k)
+        self.assertEqual(Retr, type(fast_pipe[3]))
+        self.assertEqual(1000, fast_pipe[3].k)
 
     def test_then_multi(self):
         import pyterrier.transformer as ptt
@@ -97,22 +211,19 @@ class TestOperators(BaseTestCase):
         combined123_c_C = combined123_c.compile()
 
 
-        self.assertEqual(2, len(combined12.models))
-        self.assertEqual(2, len(combined23.models))
-        self.assertEqual(2, len(combined12.models))
-        self.assertEqual(2, len(combined23.models))
+        self.assertEqual(2, len(combined12))
+        self.assertEqual(2, len(combined23))
+        self.assertEqual(2, len(combined12))
+        self.assertEqual(2, len(combined23))
 
         for C in [combined123_a_C, combined123_b_C, combined123_c_C]:
-            self.assertEqual(3, len(C.models))
-            self.assertEqual("ComposedPipeline(UniformTransformer(), UniformTransformer(), UniformTransformer())",
-                C.__repr__())
+            self.assertEqual(3, len(C))
+            self.assertEqual("(UniformTransformer() >> UniformTransformer() >> UniformTransformer())", repr(C))
         
         # finally check recursive application
         C4 = (mock1 >> mock2 >> mock3 >> mock4).compile()
-        self.assertEqual(
-            "ComposedPipeline(UniformTransformer(), UniformTransformer(), UniformTransformer(), UniformTransformer())", 
-            C4.__repr__())
-        self.assertEqual(4, len(C4.models))
+        self.assertEqual("(UniformTransformer() >> UniformTransformer() >> UniformTransformer() >> UniformTransformer())", repr(C4))
+        self.assertEqual(4, len(C4))
 
 
     def test_mul(self):
@@ -281,26 +392,21 @@ class TestOperators(BaseTestCase):
         BM25 = pt.terrier.Retriever(index, wmodel="BM25")
         TF_IDF = pt.terrier.Retriever(index, wmodel="TF_IDF")
         PL2 = pt.terrier.Retriever(index, wmodel="PL2")
-        pipe = BM25 >> (pt.transformer.IdentityTransformer() ** TF_IDF ** PL2)
+        expression = BM25 >> (pt.transformer.IdentityTransformer() ** TF_IDF ** PL2)
 
-        def _check(expression):
-            self.assertEqual(2, len(expression))
-            self.assertEqual(2, len(expression[1]))
-            print("funion outer %d" % id(expression[1]))
-            print("funion inner %d" % id(expression[1][1]))
-            
-            #print(repr(pipe))
-            res = expression.transform(dataset.get_topics().head(2))
-            self.assertTrue("features" in res.columns)
-            self.assertFalse("features_x" in res.columns)
-            self.assertFalse("features_y" in res.columns)
-            print(res.iloc[0]["features"])
-            self.assertEqual(3, len(res.iloc[0]["features"]))
-        _check(pipe)
+        self.assertEqual(2, len(expression))
+        self.assertEqual(3, len(expression[1]))
+
+        res = expression.transform(dataset.get_topics().head(2))
+        self.assertTrue("features" in res.columns)
+        self.assertFalse("features_x" in res.columns)
+        self.assertFalse("features_y" in res.columns)
+        print(res.iloc[0]["features"])
+        self.assertEqual(3, len(res.iloc[0]["features"]))
 
 
     def test_feature_union_multi(self):
-        import pyterrier.ops as pto
+        import pyterrier._ops as pto
         mock0 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 0], ["q1", "doc2", 0]], columns=["qid", "docno", "score"]), uniform=True)
 
         mock1 = pt.Transformer.from_df(pd.DataFrame([["q1", "doc1", 5], ["q1", "doc2", 0]], columns=["qid", "docno", "score"]), uniform=True)
@@ -315,47 +421,44 @@ class TestOperators(BaseTestCase):
         mock12a = mock1 ** mock2
         mock123a = mock1 ** mock2 ** mock3
         mock123b = mock12a ** mock3
-        mock123a_manual = pto.FeatureUnionPipeline(
-                pto.FeatureUnionPipeline(mock1, mock2),
+        mock123a_manual = pto.FeatureUnion(
+                pto.FeatureUnion(mock1, mock2),
                 mock3
         )
-        mock123b_manual = pto.FeatureUnionPipeline(
+        mock123b_manual = pto.FeatureUnion(
                 mock1,
-                pto.FeatureUnionPipeline(mock2, mock3),
+                pto.FeatureUnion(mock2, mock3),
         )
-        mock123e = pto.FeatureUnionPipeline(
+        mock123e = pto.FeatureUnion(
                 mock1,
-                pto.FeatureUnionPipeline(mock2, mock3_empty),
-        )
-
-        mock12e3 = pto.FeatureUnionPipeline(
-                mock1,
-                pto.FeatureUnionPipeline(mock3_empty, mock3),
+                pto.FeatureUnion(mock2, mock3_empty),
         )
 
-        mock123p = pto.FeatureUnionPipeline(
+        mock12e3 = pto.FeatureUnion(
                 mock1,
-                pto.FeatureUnionPipeline(mock2, mock3_partial),
+                pto.FeatureUnion(mock3_empty, mock3),
         )
 
-        mock12p3 = pto.FeatureUnionPipeline(
+        mock123p = pto.FeatureUnion(
                 mock1,
-                pto.FeatureUnionPipeline(mock2_partial, mock3),
+                pto.FeatureUnion(mock2, mock3_partial),
+        )
+
+        mock12p3 = pto.FeatureUnion(
+                mock1,
+                pto.FeatureUnion(mock2_partial, mock3),
         )
         
         
-        self.assertEqual(2, len(mock12a.models))
-        self.assertEqual(2, len(mock12a.models))
-        pt.terrier.retriever.setup_rewrites()
+        self.assertEqual(2, len(mock12a))
+        self.assertEqual(2, len(mock12a))
 
         mock123_simple = mock123a.compile()
         self.assertIsNotNone(mock123_simple)
-        self.assertEqual(
-            "FeatureUnionPipeline(UniformTransformer(), UniformTransformer(), UniformTransformer())", 
-            mock123_simple.__repr__())
+        self.assertEqual("(UniformTransformer() ** UniformTransformer() ** UniformTransformer())", repr(mock123_simple))
         #
         #
-        self.assertEqual(3, len(mock123_simple.models))
+        self.assertEqual(3, len(mock123_simple))
 
         def _test_expression(expression):
             # we dont need an input, as both Identity transformers will return anyway
@@ -402,7 +505,7 @@ class TestOperators(BaseTestCase):
         self.assertIn('features', rtr.columns)
 
     def test_feature_union(self): 
-        import pyterrier.ops as ptt
+        import pyterrier._ops as ptt
         mock_input = pt.Transformer.from_df(pd.DataFrame([["q1", "a query", "doc1", 5]], columns=["qid", "query", "docno", "score"]), uniform=True)
         
         mock_f1 = pt.Transformer.from_df(pd.DataFrame([["q1", "a query", "doc1", 10]], columns=["qid", "query", "docno", "score"]), uniform=True)
@@ -437,7 +540,7 @@ class TestOperators(BaseTestCase):
                     self.assertTrue( np.array_equal(np.array([10,50]), rtr.iloc[0]["features"]))
 
         # test using direct instantiation, as well as using the ** operator
-        _test_expression(mock_input >> ptt.FeatureUnionPipeline(mock_f1, mock_f2))
+        _test_expression(mock_input >> ptt.FeatureUnion(mock_f1, mock_f2))
         _test_expression(mock_input >> mock_f1 ** mock_f2)       
 
 if __name__ == "__main__":

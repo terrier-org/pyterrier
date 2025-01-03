@@ -1,9 +1,10 @@
+# type: ignore
 # java stuff
 from pyterrier.terrier import java
 from pyterrier.terrier._index import TerrierIndex
 from pyterrier.terrier._text_loader import TerrierTextLoader, terrier_text_loader
 from pyterrier.terrier.java import configure, set_version, set_helper_version, extend_classpath, J, set_property, set_properties, run, version, check_version, check_helper_version
-from pyterrier.terrier.retriever import RetrieverBase, Retriever, FeaturesRetriever, TextScorer
+from pyterrier.terrier.retriever import Retriever, FeaturesRetriever, TextScorer
 from pyterrier.terrier.index_factory import IndexFactory
 from pyterrier.terrier.stemmer import TerrierStemmer
 from pyterrier.terrier.tokeniser import TerrierTokeniser
@@ -12,6 +13,7 @@ from pyterrier.terrier import index
 from pyterrier.terrier.index import TerrierIndexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, IndexingType, treccollection2textgen
 from pyterrier.terrier import rewrite
 from deprecated import deprecated
+import pyterrier as pt
 
 
 @deprecated(version='0.11.0', reason="use pt.terrier.Retriever() instead")
@@ -41,9 +43,18 @@ class FeaturesBatchRetrieve(FeaturesRetriever):
         return FeaturesRetriever.from_dataset(*args, **kwargs)
 
 
-@deprecated(version='0.11.0', reason="use pt.terrier.RetrieverBase() instead")
-class BatchRetrieveBase(RetrieverBase):
-    pass
+@deprecated(version='0.12.0', reason="This class provides no functionality; inherit from pt.Transformer and set a verbose flag in your constructor instead")
+class RetrieverBase(pt.Transformer):
+    def __init__(self, verbose=0, **kwargs):
+        super().__init__(kwargs)
+        self.verbose = verbose
+
+
+@deprecated(version='0.12.0', reason="This class provides no functionality; inherit from pt.Transformer and set a verbose flag in your constructor instead")
+class BatchRetrieveBase(pt.Transformer):
+    def __init__(self, verbose=0, **kwargs):
+        super().__init__(kwargs)
+        self.verbose = verbose
 
 
 __all__ = [

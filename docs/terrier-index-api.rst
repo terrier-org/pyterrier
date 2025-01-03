@@ -50,12 +50,12 @@ Whats in an Index
 
 An index has several data structures:
 
- - the `CollectionStatistics <http://terrier.org/docs/current/javadoc/org/terrier/structures/CollectionStatistics.html>`_ - the salient global statistics of the index (number of documents, etc).
- - the `Lexicon <http://terrier.org/docs/current/javadoc/org/terrier/structures/Lexicon.html>`_ -  consists of an entry for each unique term in the index, which contains the corresponding statistics of each term (frequency etc), and a pointer to the inverted index posting list for that term.
- - the inverted index (a `PostingIndex <http://terrier.org/docs/current/javadoc/org/terrier/structures/PostingIndex.html>`_) - contains the posting list for each term, which records the documents that a given term appears in, and with what frequency for each document.
- - the `DocumentIndex <http://terrier.org/docs/current/javadoc/org/terrier/structures/DocumentIndex.html>`_ - contains the length of the document (and other field lengths).
- - the `MetaIndex <http://terrier.org/docs/current/javadoc/org/terrier/structures/MetaIndex.html>`_ - contains document metadata, such as the docno, and optionally the raw text and the URL of each document.
- - the direct index (also a PostingIndex) - contains a posting list for each document, detailing which terms occur in that document and with which frequency. The presence of the direct index depends on the IndexingType that has been applied - single-pass and some memory indices do not provide a direct index.
+- the `CollectionStatistics <http://terrier.org/docs/current/javadoc/org/terrier/structures/CollectionStatistics.html>`_ - the salient global statistics of the index (number of documents, etc).
+- the `Lexicon <http://terrier.org/docs/current/javadoc/org/terrier/structures/Lexicon.html>`_ -  consists of an entry for each unique term in the index, which contains the corresponding statistics of each term (frequency etc), and a pointer to the inverted index posting list for that term.
+- the inverted index (a `PostingIndex <http://terrier.org/docs/current/javadoc/org/terrier/structures/PostingIndex.html>`_) - contains the posting list for each term, which records the documents that a given term appears in, and with what frequency for each document.
+- the `DocumentIndex <http://terrier.org/docs/current/javadoc/org/terrier/structures/DocumentIndex.html>`_ - contains the length of the document (and other field lengths).
+- the `MetaIndex <http://terrier.org/docs/current/javadoc/org/terrier/structures/MetaIndex.html>`_ - contains document metadata, such as the docno, and optionally the raw text and the URL of each document.
+- the direct index (also a PostingIndex) - contains a posting list for each document, detailing which terms occur in that document and with which frequency. The presence of the direct index depends on the IndexingType that has been applied - single-pass and some memory indices do not provide a direct index.
 
 Each of these objects is available from the Index using a get method, e.g. `index.getCollectionStatistics()`. For instance, we can easily view the CollectionStatistics::
 
@@ -99,7 +99,7 @@ We can iterate over a Lexicon. Like calling the ``iterator()`` method of
 `Lexicon <http://terrier.org/docs/current/javadoc/org/terrier/structures/Lexicon.html>`_, 
 in Java, each iteration obtains a ``Map.Entry<String,LexiconEntry>``. This can be decoded, 
 so we can iterate over each term and LexiconEntry (which provides access to the statistics 
-of each term) contained within the Lexicon.  
+of each term) contained within the Lexicon::
 
     for term, le in index.getLexicon():
         print(term)

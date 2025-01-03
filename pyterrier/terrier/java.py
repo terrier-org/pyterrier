@@ -1,3 +1,4 @@
+# type: ignore
 import os
 import sys
 import json
@@ -90,6 +91,7 @@ class TerrierJavaInit(pt.java.JavaInitializer):
         }
 
         jnius.protocol_map["org.terrier.querying.IndexRef"] = {
+            '__eq__' : lambda self, other: self.equals(other),
             '__reduce__' : _index_ref_reduce,
             '__getstate__' : lambda self : None,
             'text_loader': pt.terrier.terrier_text_loader,

@@ -1,3 +1,4 @@
+# type: ignore
 """
 This file contains all the indexers.
 """
@@ -225,8 +226,9 @@ class TerrierIndexer:
             stemmer : Union[None, str, TerrierStemmer] = TerrierStemmer.porter,
             stopwords : Union[None, TerrierStopwords, List[str]] = TerrierStopwords.terrier,
             tokeniser : Union[str,TerrierTokeniser] = TerrierTokeniser.english,
-            type=IndexingType.CLASSIC, 
-            **kwargs):
+            type=IndexingType.CLASSIC,
+            properties : Dict[str,str] = {}
+            ):
         """
         Constructor called by all indexer subclasses. All arguments listed below are available in 
         IterDictIndexer, DFIndexer, TRECCollectionIndexer and FilesIndsexer. 
@@ -240,6 +242,7 @@ class TerrierIndexer:
             stopwords (TerrierStopwords): the stopwords list to apply. Default is ``TerrierStemmer.terrier``.
             tokeniser (TerrierTokeniser): the stemmer to apply. Default is ``TerrierTokeniser.english``.
             type (IndexingType): the specific indexing procedure to use. Default is ``IndexingType.CLASSIC``.
+            properties (dict): Terrier properties that you wish to overrride.
         """
         if type is IndexingType.MEMORY:
             self.path = None
@@ -256,6 +259,8 @@ class TerrierIndexer:
         self.tokeniser = TerrierTokeniser._to_obj(tokeniser)
         self.properties = pt.java.J.Properties()
         self.setProperties(**self.default_properties)
+        for k,v in properties.items():
+            self.properties[k] = v        
         self.overwrite = overwrite
         self.verbose = verbose
         self.meta_reverse = meta_reverse
@@ -333,7 +338,8 @@ class TerrierIndexer:
         # configure the term pipeline
         if 'termpipelines' in self.properties:
             # use existing configuration if present
-            warn("Setting of termpipelines property directly is deprecated", stacklevel=4, category=DeprecationWarning)
+            warn(
+                "Setting of termpipelines property directly is deprecated", stacklevel=4, category=DeprecationWarning)
         else:
             
             termpipeline = []
@@ -346,7 +352,8 @@ class TerrierIndexer:
             self.properties['termpipelines'] = ','.join(termpipeline)
 
         if "tokeniser" in self.properties:
-            warn("Setting of tokeniser property directly is deprecated", stacklevel=4, category=DeprecationWarning)
+            warn(
+                "Setting of tokeniser property directly is deprecated", stacklevel=4, category=DeprecationWarning)
         else:
             self.properties['tokeniser'] = TerrierTokeniser._to_class(self.tokeniser)
 
@@ -530,7 +537,7 @@ class _BaseIterDictIndexer(TerrierIndexer, pt.Indexer):
         Args:
             index_path(str): Directory to store index. Ignored for IndexingType.MEMORY.
             meta(Dict[str,int]): What metadata for each document to record in the index, and what length to reserve. Metadata fields will be truncated to this length. Defaults to `{"docno" : 20}`.
-            meta_reverse(List[str]): What metadata shoudl we be able to resolve back to a docid. Defaults to `["docno"]`,      
+            meta_reverse(List[str]): What metadata should we be able to resolve back to a docid. Defaults to `["docno"]`,      
         """
         pt.Indexer.__init__(self)
         TerrierIndexer.__init__(self, index_path, *args, **kwargs)
@@ -590,9 +597,9 @@ class _BaseIterDictIndexer(TerrierIndexer, pt.Indexer):
         if len(first_docs) > 0: # handle empty input
             self._validate_doc_dict(first_docs[0])
 
-        # important: return an iterator here, rather than make this function a generator,
-        # to be sure that the validation above happens when _filter_iterable is called,
-        # rather than on the first invocation of next()
+        # important: return an iterator (i.e. using a generator expression) here, rather than make this 
+        # function a generator, to be sure that the validation above happens when  _filter_iterable is 
+        # called, rather than on the first invocation of next()
         return ({f: doc[f] for f in all_fields} for doc in it)
 
     def _is_dict(self, obj):
@@ -636,7 +643,8 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
             meta_lengths(list[int]): length of metadata, defaults to 512 characters. Deprecated
         """
         if meta is not None:
-            warn('specifying meta and meta_lengths in IterDictIndexer.index() is deprecated, use kwargs in constructor instead', DeprecationWarning, 2)
+            warn(
+                'specifying meta and meta_lengths in IterDictIndexer.index() is deprecated, use kwargs in constructor instead', DeprecationWarning, 2)
             self.meta = meta
             if meta_lengths is not None:
                 self.meta = {zip(meta, meta_lengths)}
@@ -711,7 +719,8 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
         ParallelIndexer = pt.terrier.J.ParallelIndexer
 
         if meta is not None:
-            warn('specifying meta and meta_lengths in IterDictIndexer.index() is deprecated, use constructor instead', DeprecationWarning, 2)
+            warn(
+                'specifying meta and meta_lengths in IterDictIndexer.index() is deprecated, use constructor instead', DeprecationWarning, 2)
             self.meta = meta
             if meta_lengths is not None:
                 self.meta = {zip(meta, meta_lengths)}
@@ -726,7 +735,8 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
         if Indexer is pt.terrier.J.BasicMemoryIndexer:
             assert self.threads == 1, 'IterDictIndexer does not support multiple threads for IndexingType.MEMORY'
         if self.threads > 1:
-            warn('Using multiple threads results in a non-deterministic ordering of document in the index. For deterministic behavior, use threads=1')
+            warn(
+                'Using multiple threads results in a non-deterministic ordering of document in the index. For deterministic behavior, use threads=1')
 
         # Document iterator
         fifos = []

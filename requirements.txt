@@ -1,7 +1,6 @@
 # core packages
 numpy
 pandas
-matchpy # used for optimisation of Transformer pipelines
 more_itertools
 tqdm
 # used by datasets

@@ -10,6 +10,34 @@ import pytest
 
 class TestExperiment(TempDirTestCase):
 
+    def test_precomp_common(self):
+        bm25 = pt.terrier.Retriever.from_dataset('vaswani', 'terrier_stemmed', wmodel='BM25')
+        pipeA = bm25 %3
+        pipeB = bm25 %10
+        import pyterrier.pipelines
+        common, suffices = pyterrier.pipelines._identifyCommon([pipeA, pipeB])
+        self.assertEqual(bm25, common)
+        self.assertIsInstance(suffices[0], pt.RankCutoff)
+        self.assertEqual(3, suffices[0].k)
+        self.assertIsInstance(suffices[1], pt.RankCutoff)
+        self.assertEqual(10, suffices[1].k)
+
+        common, suffices = pyterrier.pipelines._identifyCommon([bm25, pipeB])
+        self.assertEqual(bm25, common)
+        self.assertIsInstance(suffices[0], pt.transformer.IdentityTransformer)
+        self.assertIsInstance(suffices[1], pt.RankCutoff)
+        self.assertEqual(10, suffices[1].k)
+    
+    def test_precompute_experiment(self):
+        bm25 = pt.terrier.Retriever.from_dataset('vaswani', 'terrier_stemmed', wmodel='BM25')
+        pipeB = bm25 %10
+        df1 = pt.Experiment([bm25, pipeB], pt.get_dataset('vaswani').get_topics().head(10), pt.get_dataset('vaswani').get_qrels(), eval_metrics=['map'])
+        df2 = pt.Experiment([bm25, pipeB], pt.get_dataset('vaswani').get_topics().head(10), pt.get_dataset('vaswani').get_qrels(), eval_metrics=['map'], precompute_prefix=True)
+        pd.testing.assert_frame_equal(df1, df2)
+
+        df3 = pt.Experiment([bm25, pipeB], pt.get_dataset('vaswani').get_topics().head(10), pt.get_dataset('vaswani').get_qrels(), eval_metrics=['map'], precompute_prefix=True, batch_size=4)
+        pd.testing.assert_frame_equal(df1, df3)
+
     def test_irm_APrel2(self):
         topics = pd.DataFrame([["q1", "q1"], ["q2", "q1"] ], columns=["qid", "query"])
         res1 = pd.DataFrame([["q1", "d1", 1.0], ["q2", "d1", 2.0] ], columns=["qid", "docno", "score"])
@@ -149,25 +177,34 @@ class TestExperiment(TempDirTestCase):
         ]
         topics = pt.datasets.get_dataset("vaswani").get_topics().head(10)
         qrels =  pt.datasets.get_dataset("vaswani").get_qrels()
-        df1 = pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], save_dir=self.test_dir)
-        # check save_dir files are there
-        self.assertTrue(os.path.exists(os.path.join(self.test_dir, "TerrierRetr(DPH).res.gz")))
-        self.assertTrue(os.path.exists(os.path.join(self.test_dir, "TerrierRetr(BM25).res.gz")))
 
-        # check for warning
-        with pytest.warns(UserWarning):
-            # reuse only kicks in when save_mode is set.
-            df2 = pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], save_dir=self.test_dir)
+        import pickle
+        for name, format, ext in [
+                ('trec', 'trec', 'res.gz'),
+                ('pkl_manual', pickle, 'mod'),
+                ('pandas', (pd.read_csv, pd.DataFrame.to_csv), 'custom')
+            ]: 
+            with self.subTest(name):
+                df1 = pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], save_dir=self.test_dir, save_format=format)
+                print("\n". join(os.listdir(self.test_dir)))
+                # check save_dir files are there
+                self.assertTrue(os.path.exists(os.path.join(self.test_dir, "TerrierRetr(DPH)." + ext)), os.path.join(self.test_dir, "TerrierRetr(DPH)." + ext) + " not found")
+                self.assertTrue(os.path.exists(os.path.join(self.test_dir, "TerrierRetr(BM25)." + ext)), os.path.join(self.test_dir, "TerrierRetr(BM25)." + ext) + " not found")
 
-        # check for error when save_mode='error'
-        with self.assertRaises(ValueError):
-            # reuse only kicks in when save_mode is set.
-            df2 = pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], save_dir=self.test_dir, save_mode='error')
+                # check for warning
+                with pytest.warns(UserWarning):
+                    # reuse only kicks in when save_mode is set.
+                    df2 = pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], save_dir=self.test_dir, save_format=format)
 
-        # allow it to reuse
-        df2 = pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], save_dir=self.test_dir, save_mode='reuse')
-        # a successful experiment using save_dir should be faster
-        self.assertTrue(df2.iloc[0]["mrt"] < df1.iloc[0]["mrt"])
+                # check for error when save_mode='error'
+                with self.assertRaises(ValueError):
+                    # reuse only kicks in when save_mode is set.
+                    df2 = pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], save_dir=self.test_dir, save_mode='error', save_format=format)
+
+                # allow it to reuse
+                df2 = pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], save_dir=self.test_dir, save_mode='reuse', save_format=format)
+                # a successful experiment using save_dir should be faster
+                self.assertTrue(df2.iloc[0]["mrt"] < df1.iloc[0]["mrt"])
         
     def test_empty(self):
         df1 = pt.new.ranked_documents([[1]]).head(0)

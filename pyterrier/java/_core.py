@@ -1,3 +1,4 @@
+# type: ignore
 import os
 from pyterrier.java import required_raise, required, before_init, started, mavenresolver, JavaClasses, JavaInitializer, register_config
 from typing import Optional
@@ -153,7 +154,7 @@ def add_jar(jar_path):
 
 
 @before_init
-def add_package(org_name: str = None, package_name: str = None, version: str = None, file_type='jar'):
+def add_package(org_name : str, package_name : str, version : Optional[str] = None, file_type : str = 'jar'):
     if version is None or version == 'snapshot':
         version = mavenresolver.latest_version_num(org_name, package_name)
     file_name = mavenresolver.get_package_jar(org_name, package_name, version, artifact=file_type)

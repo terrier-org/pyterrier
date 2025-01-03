@@ -1,3 +1,4 @@
+# type: ignore
 import pandas as pd
 from warnings import warn
 from typing import List,Union
@@ -187,6 +188,9 @@ class QueryExpansion(pt.Transformer):
         self.manager = pt.terrier.J.ManagerFactory._from_(self.indexref)
         self.requires_scores = requires_scores
 
+    def compile(self) -> pt.Transformer:
+        return pt.RankCutoff(self.fb_docs) >> self
+
     def __reduce__(self):
         return (
             self.__class__,
@@ -251,9 +255,11 @@ class QueryExpansion(pt.Transformer):
                 scores.append(docscore)
             if skipped > 0:
                 if skipped == len(docnos):
-                    warn("*ALL* %d feedback docnos for qid %s could not be found in the index" % (skipped, qid))
+                    warn(
+                        "*ALL* %d feedback docnos for qid %s could not be found in the index" % (skipped, qid))
                 else:
-                    warn("%d feedback docnos for qid %s could not be found in the index" % (skipped, qid))
+                    warn(
+                        "%d feedback docnos for qid %s could not be found in the index" % (skipped, qid))
         else:
             raise ValueError("Input resultset has neither docid nor docno")
         return pt.terrier.J.QueryResultSet(docids, scores, occurrences)

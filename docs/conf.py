@@ -16,7 +16,6 @@ import os
 import sys
 # sys.path.insert(0, os.path.abspath('..'))
 sys.path.append('.')
-import sphinx_rtd_theme
 
 # -- Dataset table listing -----------------------------------------------------
 import pyterrier as pt
@@ -44,6 +43,9 @@ version = ''
 # The full version, including alpha/beta/rc tags
 release = pt.__version__
 
+html_title = f'{project} {release}'
+html_short_title = project
+
 
 # -- General configuration ---------------------------------------------------
 
@@ -55,6 +57,7 @@ release = pt.__version__
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'extras.cite',
     'sphinx.ext.autodoc',
     'sphinx_autodoc_typehints',
     'sphinx.ext.coverage',
@@ -62,6 +65,7 @@ extensions = [
     'sphinx.ext.githubpages',
     'sphinx.ext.napoleon',
     'sphinx_tabs.tabs',
+    'enum_tools.autoenum',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -99,9 +103,7 @@ pygments_style = 'sphinx'
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-#html_theme = 'alabaster'
-html_theme = "sphinx_rtd_theme"
-html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+html_theme = 'furo'
 
 # increasing sphinx width
 # https://stackoverflow.com/a/43186995
@@ -130,12 +132,14 @@ html_static_path = ['_static']
 #
 # html_sidebars = {}
 
-html_logo = "_static/pyterrier logo 200w.png"
+html_logo = "_static/pyterrier logo 478w.png"
 
 
 autodoc_default_options = {
-    'member-order':    'bysource',
+    'member-order': 'bysource',
 }
+
+autodoc_inherit_docstrings = False
 
 # -- Options for HTMLHelp output ---------------------------------------------
 

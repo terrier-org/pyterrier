@@ -172,12 +172,12 @@ def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.mode
     """
         Create a transformer that changes the input dataframe to another dataframe in an unspecified way.
 
-        The supplied function is called once for an entire result set as a dataframe (which may contain one of more queries).
-        Each time it should return a new dataframe. The returned dataframe should abide by the general PyTerrier Data Model,
-        for instance updating the rank column if the scores are amended.
+        The supplied function is called once for an entire result set as a dataframe or iter-dict (which may contain one or 
+        more queries and one or more documents). Each time it should return a new dataframe. The returned dataframe (or yielded row) 
+        should abide by the general PyTerrier Data Model, for instance updating the rank column if the scores are amended.
 
         Arguments:
-            fn(Callable): the function to apply to each row
+            fn(Callable): the function to apply to each result set
             batch_size(int or None): whether to apply fn on batches of rows or all that are received
             verbose(bool): Whether to display a progress bar over batches (only used if batch_size is set, and iter is not set).
             iter(bool): Whether to use the iter-dict API - if-so, then ``fn`` receives an iterable, and returns an iterable. 
@@ -187,7 +187,7 @@ def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.mode
             # this pipeline would remove all but the first two documents from a result set
             pipe = pt.terrier.Retriever(index) >> pt.apply.generic(lambda res : res[res["rank"] < 2])
 
-         Example (iter-dict)::
+        Example (iter-dict)::
 
             # this pipeline would simlarly remove all but the first two documents from a result set
             def _fn(iterdict):
@@ -206,7 +206,7 @@ def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.mode
         return ApplyGenericIterTransformer(fn, *args, batch_size=batch_size, **kwargs)
     return ApplyGenericTransformer(fn, *args, batch_size=batch_size, **kwargs)
 
-def by_query(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.model.IterDict], pt.model.IterDict]], *args, batch_size=None, iter=False, **kwargs) -> pt.Transformer:
+def by_query(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.model.IterDict], pt.model.IterDict]], *args, batch_size=None, iter=False, verbose=False, **kwargs) -> pt.Transformer:
     """
         As `pt.apply.generic()` except that fn receives a dataframe (or iter-dict) for one query at at time, rather than all results at once.
         If batch_size is set, fn will receive no more than batch_size documents for any query. The verbose kwargs controls whether
@@ -221,8 +221,8 @@ def by_query(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.mod
     if iter:
         if kwargs.get("add_ranks", False):
             raise ValueError("add_ranks=True not supported with iter=True")
-        return ApplyIterForEachQuery(fn, *args, batch_size=batch_size, **kwargs)
-    return ApplyForEachQuery(fn, *args, batch_size=batch_size, **kwargs)
+        return ApplyIterForEachQuery(fn, *args, batch_size=batch_size, verbose=verbose, **kwargs)
+    return ApplyForEachQuery(fn, *args, batch_size=batch_size, verbose=verbose, **kwargs)
 
 class _apply:
 

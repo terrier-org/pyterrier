@@ -1,9 +1,8 @@
 import types
-from matchpy import Wildcard, Symbol, Operation, Arity, ReplacementRule
 from warnings import warn
 import pandas as pd
 from deprecated import deprecated
-from typing import Iterator, List, Union, Tuple
+from typing import Iterator, List, Union, Tuple, Protocol, runtime_checkable, Optional
 import pyterrier as pt
 from . import __version__
 
@@ -24,9 +23,6 @@ def get_transformer(v, stacklevel=1):
         Used to coerce functions, lambdas etc into transformers 
     """
 
-    if isinstance(v, Wildcard):
-        # get out of jail for matchpy
-        return v
     if is_transformer(v):
         return v
     if is_lambda(v):
@@ -42,21 +38,15 @@ def get_transformer(v, stacklevel=1):
         return SourceTransformer(v)
     raise ValueError("Passed parameter %s of type %s cannot be coerced into a transformer" % (str(v), type(v)))
 
-rewrite_rules : List[ReplacementRule] = []
-
-
-class Scalar(Symbol):
-    def __init__(self, name, value):
-        super().__init__(name)
-        self.value = value
 
 class Transformer:
     """
         Base class for all transformers. Implements the various operators ``>>`` ``+`` ``*`` ``|`` ``&`` 
-        as well as ``search()`` for executing a single query and ``compile()`` for rewriting complex pipelines into more simples ones.
+        as well as :meth:`search` for executing a single query and :meth:`compile` for rewriting complex pipelines into more simples ones.
 
-        Its expected that either ``.transform()`` or ``.transform_iter()`` be implemented by any class extending this - this rule
-        does not apply for indexers, which instead implement ``.index()``.
+        Its expected that either :meth:`transform` or :meth:`transform_iter()` be implemented by any class extending this - this rule
+        does not apply for indexers, which instead implement ``.index()``. pt.apply helper functions can be used to
+        easily construct Transformers around a single function.
     """
     name = "Transformer"
 
@@ -86,11 +76,11 @@ class Transformer:
     def from_df(input : pd.DataFrame, uniform=False) -> 'Transformer':
         """
         Instantiates a transformer from an input dataframe. Some rows from the input dataframe are returned
-        in response to a query on the ``transform()`` method. Depending on the value `uniform`, the dataframe
-        passed as an argument to ``transform()`` can affect this selection.
-
-        If `uniform` is True, input will be returned in its entirety each time.
-        If `uniform` is False, rows from input that match the qid values from the argument dataframe.
+        in response to a query on the :meth:`transform` method. Depending on the value `uniform`, the dataframe
+        passed as an argument to :meth:`transform` can affect this selection.
+        Arguments:
+                input(DataFrame): a dataframe to store and return, based on setting of `uniform`.
+                uniform(bool): If True, input will be returned in its entirety each time, else rows from input that match the qid values from the argument dataframe.
         
         """
         if uniform:
@@ -99,7 +89,8 @@ class Transformer:
 
     def transform(self, inp: pd.DataFrame) -> pd.DataFrame:
         """
-            Abstract method that runs the transformer over Pandas ``DataFrame`` objects.
+            Abstract method that runs the transformer over Pandas ``DataFrame`` objects. This or :meth:`transform_iter`
+            must be implemented by all Transformer objects.
 
             .. note::
 
@@ -123,7 +114,8 @@ class Transformer:
     def transform_iter(self, inp: pt.model.IterDict) -> pt.model.IterDict:
         """
             Abstract method that runs the transformer over iterable input (such as lists or generators),
-            where each element is a dictionary record.
+            where each element is a dictionary record. This or :meth:`transform`
+            must be implemented by all Transformer objects.
 
             This format can sometimes be easier to implement than :meth:`transform`. Furthermore, it avoids constructing
             expensive ``DataFrame`` objects. It is also used in the invocation of ``index()`` on a composed pipeline.
@@ -177,7 +169,7 @@ class Transformer:
         """
             Method for executing a transformer pipeline on smaller batches of queries.
             The input dataframe is grouped into batches of batch_size queries, and a generator
-            returned, such that transform() is only executed for a smaller batch at a time. 
+            returned, such that :meth:`transform` is only executed for a smaller batch at a time. 
 
             Arguments:
                 input(DataFrame): a dataframe to process
@@ -210,11 +202,11 @@ class Transformer:
             else:
                 yield res
 
-    def search(self, query : str, qid : str = "1", sort=True) -> pd.DataFrame:
+    def search(self, query : str, qid : str = "1", sort : bool = True) -> pd.DataFrame:
         """
             Method for executing a transformer (pipeline) for a single query. 
             Returns a dataframe with the results for the specified query. This
-            is a utility method, and most uses are expected to use the transform()
+            is a utility method, and most uses are expected to use the :meth:`transform`
             method passing a dataframe.
 
             Arguments:
@@ -241,17 +233,19 @@ class Transformer:
         return rtr
 
     def compile(self) -> 'Transformer':
+        """Returns an optimised transformer, if possible, to improve performance.
+
+        For instance, a pipeline of transformers can be optimised by fusing adjacent transformers.
+
+        Returns:
+            A new transformer that is equivalent to this transformer, but optimised.
         """
-        Rewrites this pipeline by applying of the Matchpy rules in rewrite_rules. Pipeline
-        optimisation is discussed in the `ICTIR 2020 paper on PyTerrier <https://arxiv.org/abs/2007.14271>`_.
-        """
-        from matchpy import replace_all
-        print("Applying %d rules" % len(rewrite_rules))
-        return replace_all(self, rewrite_rules)
+        return self # by default, nothing to compile
 
     def parallel(self, N : int, backend='joblib') -> 'Transformer':
         """
-        Returns a parallelised version of this transformer. The underlying transformer must be "picklable".
+        Returns a parallelised version of this transformer. The underlying transformer must be "picklable". For more information, see
+        :ref:`parallel` documentation.
 
         Args:
             N(int): how many processes/machines to parallelise this transformer over. 
@@ -264,7 +258,10 @@ class Transformer:
     def get_parameter(self, name : str):
         """
             Gets the current value of a particular key of the transformer's configuration state.
-            By default, this examines the attributes of the transformer object, using hasattr() and setattr().
+            By default, this examines the attributes of the transformer object, using ``hasattr()`` and ``setattr()``.
+
+            Arguments:
+                name: name of parameter
         """
         if hasattr(self, name):
             return getattr(self, name)
@@ -275,7 +272,12 @@ class Transformer:
     def set_parameter(self, name : str, value):
         """
             Adjusts this transformer's configuration state, by setting the value for specific parameter.
-            By default, this examines the attributes of the transformer object, using hasattr() and setattr().
+            By default, this examines the attributes of the transformer object, using ``hasattr()`` and ``setattr()``.
+
+            Arguments:
+                name: name of parameter
+                value: current value of parameter
+
         """
         if hasattr(self, name):
             setattr(self, name, value)
@@ -284,47 +286,47 @@ class Transformer:
                     'Check the list of available parameters') %(name, str(self)))
 
     def __rshift__(self, right) -> 'Transformer':
-        from .ops import ComposedPipeline
-        return ComposedPipeline(self, right)
+        from ._ops import Compose
+        return Compose(self, right)
 
     def __rrshift__(self, left) -> 'Transformer':
-        from .ops import ComposedPipeline
-        return ComposedPipeline(left, self)
+        from ._ops import Compose
+        return Compose(left, self)
 
     def __add__(self, right : 'Transformer') -> 'Transformer':
-        from .ops import CombSumTransformer
-        return CombSumTransformer(self, right)
+        from ._ops import Sum
+        return Sum(self, right)
 
     def __pow__(self, right : 'Transformer') -> 'Transformer':
-        from .ops import FeatureUnionPipeline
-        return FeatureUnionPipeline(self, right)
+        from ._ops import FeatureUnion
+        return FeatureUnion(self, right)
 
     def __mul__(self, rhs : Union[float,int]) -> 'Transformer':
         assert isinstance(rhs, int) or isinstance(rhs, float)
-        from .ops import ScalarProductTransformer
-        return ScalarProductTransformer(self, rhs)
+        from ._ops import ScalarProduct
+        return self >> ScalarProduct(rhs)
 
     def __rmul__(self, lhs : Union[float,int]) -> 'Transformer':
         assert isinstance(lhs, int) or isinstance(lhs, float)
-        from .ops import ScalarProductTransformer
-        return ScalarProductTransformer(self, lhs)
+        from ._ops import ScalarProduct
+        return self >> ScalarProduct(lhs)
 
     def __or__(self, right : 'Transformer') -> 'Transformer':
-        from .ops import SetUnionTransformer
-        return SetUnionTransformer(self, right)
+        from ._ops import SetUnion
+        return SetUnion(self, right)
 
     def __and__(self, right : 'Transformer') -> 'Transformer':
-        from .ops import SetIntersectionTransformer
-        return SetIntersectionTransformer(self, right)
+        from ._ops import SetIntersection
+        return SetIntersection(self, right)
 
     def __mod__(self, right : int) -> 'Transformer':
         assert isinstance(right, int)
-        from .ops import RankCutoffTransformer
-        return RankCutoffTransformer(self, right)
+        from ._ops import RankCutoff
+        return self >> RankCutoff(right)
 
     def __xor__(self, right : 'Transformer') -> 'Transformer':
-        from .ops import ConcatenateTransformer
-        return ConcatenateTransformer(self, right)
+        from ._ops import Concatenate
+        return Concatenate(self, right)
 
     @deprecated(version="0.11.1", reason="Use pyterrier-caching for more fine-grained caching, e.g. RetrieverCache or ScorerCache")
     def __invert__(self : 'Transformer') -> 'Transformer':
@@ -396,31 +398,25 @@ class EstimatorBase(Estimator):
     def __init__(self, *args, **kwargs):
         super(Estimator, self).__init__(*args, **kwargs)
 
-class IdentityTransformer(Transformer, Operation):
+class IdentityTransformer(Transformer):
     """
         A transformer that returns exactly the same as its input.
     """
-    arity = Arity.nullary
-
     def __init__(self, *args, **kwargs):
         super(IdentityTransformer, self).__init__(*args, **kwargs)
     
     def transform(self, topics):
         return topics
 
-class SourceTransformer(Transformer, Operation):
+class SourceTransformer(Transformer):
     """
     A Transformer that can be used when results have been saved in a dataframe.
     It will select results on qid.
     If a column is in the dataframe passed in the constructor, this will override any
     column in the topics dataframe passed to the transform() method.
     """
-    arity = Arity.nullary
-
-    def __init__(self, rtr, **kwargs):
-        super().__init__(operands=[], **kwargs)
-        self.operands=[]
-        self.df = rtr[0]
+    def __init__(self, df):
+        self.df = df
         assert "qid" in self.df.columns
     
     def transform(self, topics):
@@ -438,18 +434,97 @@ class SourceTransformer(Transformer, Operation):
         rtr = topics[keeping].merge(self.df, on="qid")
         return rtr
 
-class UniformTransformer(Transformer, Operation):
+class UniformTransformer(Transformer):
     """
         A transformer that returns the same dataframe every time transform()
         is called. This class is useful for testing. 
     """
-    arity = Arity.nullary
-
-    def __init__(self, rtr, **kwargs):
-        super().__init__(operands=[], **kwargs)
-        self.operands=[]
-        self.rtr = rtr[0]
+    def __init__(self, rtr):
+        self.rtr = rtr
     
     def transform(self, topics):
         rtr = self.rtr.copy()
         return rtr
+
+    def __repr__(self):
+        return 'UniformTransformer()'
+
+@runtime_checkable
+class SupportsFuseRankCutoff(Protocol):
+    def fuse_rank_cutoff(self, k: int) -> Optional[Transformer]:
+        """Fuses this transformer with a following RankCutoff transformer.
+
+        This method should return a new transformer that applies the new rank cutoff value `k`.
+
+        Note that if the transformer currently applies a stricter rank cutoff than the one provided, it should not be
+        relaxed. In this case, it is preferred to return `self`.
+
+        If the fusion is not possible, `None` should be returned.
+
+        Arguments:
+            k(int): The rank cutoff requested
+        """
+
+
+@runtime_checkable
+class SupportsFuseFeatureUnion(Protocol):
+    def fuse_feature_union(self, other: Transformer, is_left: bool) -> Optional[Transformer]:
+        """Fuses this transformer with another one that provides features.
+
+        This method should return a new transformer that is equivalent to performing self ** other, or `None`
+        if the fusion is not possible.
+
+        Arguments:
+                other(Transformer): transformer to the left or right.
+                is_left(bool): is True if self's features are to the left of other's. Otherwise, self's features are to the right.
+        """
+
+
+@runtime_checkable
+class SupportsFuseLeft(Protocol):
+    def fuse_left(self, left: Transformer) -> Optional[Transformer]:
+        """Fuses this transformer with a transformer that immediately precedes this one in a composed (`>>`) pipeline.
+
+        The new transformer should have the same effect as performing the two transformers in sequence, i.e.,
+        `pipeline_unfused` and `pipeline_fused` in the following example should provide the same results for
+        any input::
+
+            pipeline_unfused = left >> self
+            pipeline_fused = self.fuse_left(left)
+
+        A fused transformer should be more efficient than the unfused version. For instance, a retriever
+        followed by a rank cutoff can be fused to perform the rank cutoff during retrieval.
+
+        Arguments:
+            left(Transformer): transformer to the left.
+
+        Returns:
+            A new transformer that is the result of merging this transformer with the left transformer,
+            or none if a merge is not possible.
+        """
+
+
+@runtime_checkable
+class SupportsFuseRight(Protocol):
+    def fuse_right(self, right: Transformer) -> Optional[Transformer]:
+        """Fuses this transformer with a transformer that immediately follows this one in a composed (`>>`) pipeline.
+
+        The new transformer should have the same effect as performing the two transformers in sequence, i.e.,
+        `pipeline_unfused` and `pipeline_fused` in the following example should provide the same results for
+        any input::
+
+            pipeline_unfused = self >> right
+            pipeline_fused = self.fuse_right(right)
+
+        A fused transformer should be more efficient than the unfused version. For instance, a retriever
+        followed by a rank cutoff can be fused to perform the rank cutoff during retrieval.
+
+        Arguments:
+            right(Transformer): transformer to the right in a composed pipeline.
+
+        Returns:
+            A new transformer that is the result of merging this transformer with the right transformer,
+            or none if a merge is not possible.
+        """
+
+

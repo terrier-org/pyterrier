@@ -1,9 +1,11 @@
-__version__ = "0.11.0"
+__version__ = '0.12.1'
+# NB: version number must be the first line and must use single quotes for the sed expression in .github/workflows/publish-to-pypi.yml
 
 from deprecated import deprecated
 
 from pyterrier import model, utils
 from pyterrier.transformer import Transformer, Estimator, Indexer
+from pyterrier._ops import RankCutoff, Compose
 from pyterrier._artifact import Artifact
 
 from pyterrier import java
@@ -31,6 +33,8 @@ Utils = utils
 
 # will be set in terrier.terrier.java once java is loaded
 IndexRef = None
+# will be set in once utils.set_tqdm() once _() runs
+tqdm = None
 
 
 # deprecated functions explored to the main namespace, which will be removed in a future version
@@ -53,6 +57,8 @@ __all__ = [
     'text', 'transformer', 'datasets', 'get_dataset', 'find_datasets', 'list_datasets', 'Experiment', 'GridScan',
     'GridSearch', 'KFoldGridSearch', 'Evaluate',
     'utils', 'Utils', 'Transformer', 'Estimator', 'Indexer', 'Artifact',
+    'utils', 'Utils', 'Transformer', 'Estimator', 'Indexer',
+    'RankCutoff', 'Compose',
     'BatchRetrieve', 'TerrierRetrieve', 'FeaturesBatchRetrieve', 'IndexFactory',
     'run', 'rewrite', 'index', 'FilesIndexer', 'TRECCollectionIndexer', 'DFIndexer', 'DFIndexUtils', 'IterDictIndexer',
     'IndexingType', 'TerrierStemmer', 'TerrierStopwords', 'TerrierTokeniser',
