@@ -347,7 +347,7 @@ class Artifact:
         with tempfile.TemporaryDirectory() as d:
             # build a package with a maximum individual file size of just under 5GB, the limit for HF datasets
             metadata = {}
-            self.build_package(os.path.join(d, 'artifact.tar.lz4'), max_file_size=4.9e9, metadata_out=metadata)
+            self.build_package(os.path.join(d, 'artifact.tar.lz4'), max_file_size=20e9, metadata_out=metadata)
             readme = self._hf_readme(repo=repo, branch=branch, pretty_name=pretty_name, metadata=metadata)
             if readme:
                 with open(f'{d}/README.md', 'wt') as fout:
