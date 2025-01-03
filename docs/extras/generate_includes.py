@@ -148,10 +148,12 @@ def artifact_list_include():
         {'class': 'pyterrier_adaptive.corpus_graph.NpTopKCorpusGraph', 'package': 'pyterrier-adaptive', 'package_url': 'https://github.com/terrierteam/pyterrier-adaptive', 'type': 'corpus_graph', 'format': 'np_topk'},
         {'class': 'pyterrier_ciff.CiffIndex', 'package': 'pyterrier-ciff', 'package_url': 'https://github.com/seanmacavaney/pyterrier-ciff', 'type': 'sparse_index', 'format': 'ciff'},
         {'class': 'pyterrier_dr.FlexIndex', 'package': 'pyterrier-dr', 'package_url': 'https://github.com/terrierteam/pyterrier_dr', 'type': 'dense_index', 'format': 'flex'},
+        {'class': 'pyterrier_dr.CDECache', 'package': 'pyterrier-dr', 'package_url': 'https://github.com/terrierteam/pyterrier_dr', 'type': 'cde_cache', 'format': 'np_pickle'},
         {'class': 'pyterrier_quality.QualCache', 'package': 'pyterrier-quality', 'package_url': 'https://github.com/terrierteam/pyterrier-quality', 'type': 'quality_score_cache', 'format': 'numpy'},
         {'class': 'pyterrier_caching.Lz4PickleIndexerCache', 'package': 'pyterrier-caching', 'package_url': 'https://github.com/seanmacavaney/pyterrier-caching', 'type': 'indexer_cache', 'format': 'lz4pickle'},
         {'class': 'pyterrier_caching.DbmRetrieverCache', 'package': 'pyterrier-caching', 'package_url': 'https://github.com/seanmacavaney/pyterrier-caching', 'type': 'retriever_cache', 'format': 'dbm.dumb'},
         {'class': 'pyterrier_caching.Hdf5ScorerCache', 'package': 'pyterrier-caching', 'package_url': 'https://github.com/seanmacavaney/pyterrier-caching', 'type': 'scorer_cache', 'format': 'hdf5'},
+        {'class': 'pyterrier_caching.Sqlite3ScorerCache', 'package': 'pyterrier-caching', 'package_url': 'https://github.com/seanmacavaney/pyterrier-caching', 'type': 'scorer_cache', 'format': 'sqlite3'},
     ]
     with open("_includes/artifact_list.rst", "wt") as f:
         f.write('''

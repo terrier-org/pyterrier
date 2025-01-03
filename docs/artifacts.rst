@@ -31,8 +31,6 @@ The `HuggingFace Hub <https://huggingface.co/docs/hub>`__ is a popular platform 
 like models, datasets, etc. You can also shar PyTerrier artifacts on HuggingFace Hub using the Artifact API
 with :meth:`~pyterrier.Artifact.from_hf` and :meth:`~pyterrier.Artifact.to_hf`.
 
-----------------------
-
 **Loading from HuggingFace:** You can load artifacts from HuggingFace Hub using :meth:`~pyterrier.Artifact.from_hf`:
 
 .. code-block:: python
@@ -43,8 +41,6 @@ with :meth:`~pyterrier.Artifact.from_hf` and :meth:`~pyterrier.Artifact.to_hf`.
 
 The method will download the artifact package and return an :class:`~pyterrier.Artifact` object of the corresponding
 type.
-
-----------------------
 
 **Pushing to HuggingFace:** To share an artifact that you've built to HuggingFace Hub, use an artifact's :meth:`~pyterrier.Artifact.to_hf` method:
 
@@ -62,8 +58,6 @@ The above code will build and upload an artifact distribution package suitable f
     You need to have the package ``huggingface-hub`` installed to upload to HuggingFace Hub. You will
     also need to have your ``HF_TOKEN`` envirionment variable set with the "write" permission to use this
     feature. Find more information `here <https://huggingface.co/docs/huggingface_hub/en/quick-start#authentication>`__.
-
-----------------------
 
 **HuggingFace Extras:**
 
@@ -89,8 +83,6 @@ retention period `for at least the next 20 years <https://about.zenodo.org/polic
 PyTerrier artifacts on Zenodo using the Artifact API with :meth:`~pyterrier.Artifact.from_zenodo` and
 :meth:`~pyterrier.Artifact.to_zenodo`.
 
-----------------------
-
 **Loading from Zenodo:** You can load artifacts from Zenodo using :meth:`~pyterrier.Artifact.from_zenodo` and the
 ID of the artifact (the number in the Zenodo URL).
 
@@ -102,8 +94,6 @@ ID of the artifact (the number in the Zenodo URL).
 
 The method will download the artifact package and return an :class:`~pyterrier.Artifact` object of the corresponding
 type.
-
-----------------------
 
 **Pushing to Zenodo:** To share an artifact that you've built to Zenodo, use an artifact's :meth:`~pyterrier.Artifact.to_zenodo` method:
 
@@ -121,8 +111,6 @@ before it is accessible to others.
 .. note::
     You need to have the ``ZENODO_TOKEN`` environment variable set with the "deposit:write" and "deposit:actions" permissions
     to upload to Zenodo. Find more information `here <https://developers.zenodo.org/#authentication>`__.
-
-----------------------
 
 **Zenodo Extras:**
 
@@ -166,7 +154,7 @@ The above command will initiate a peer-to-peer transfer using `magic-wormhole <h
 and return the loaded artifact.
 
 .. note::
-    You need to have the package ``magic-wormhole`` installed to upload to use P2P sharing.
+    You need to have the package ``magic-wormhole`` installed to use P2P sharing.
 
 
 Sharing Artifacts with Other Services
@@ -189,7 +177,7 @@ feel free to make a PR to this page to add it!)
 .. include:: ./_includes/artifact_list.rst
 
 
-Advanced: Writing Your Own Artifact
+Advanced: Writing Your Own Artifact Class
 =================================================
 
 TODO: code, entry points
@@ -210,5 +198,5 @@ Advanced: Full API Documentation
 
 ----
 
-.. [#] See: Scells, Zhuang, and Zuccon. `Reduce, Reuse, Recycle: Green Information Retrieval Research 
-       <https://dl.acm.org/doi/10.1145/3477495.3531766>`_. SIGIR 2022.
+.. [#]
+    .. cite.dblp:: conf/sigir/ScellsZZ22
