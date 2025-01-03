@@ -497,13 +497,13 @@ def open_or_download_stream(
 class _NosyReader(io.BufferedIOBase, ABC):
     def __init__(self, reader: io.BufferedIOBase):
         self.reader = reader
-        self.seek = self.reader.seek # type: ignore[method-assign] valid use of method reassignment
-        self.tell = self.reader.tell # type: ignore[method-assign] valid use of method reassignment
-        self.seekable = self.reader.seekable # type: ignore[method-assign] valid use of method reassignment
-        self.readable = self.reader.readable # type: ignore[method-assign] valid use of method reassignment
-        self.writable = self.reader.writable # type: ignore[method-assign] valid use of method reassignment
-        self.flush = self.reader.flush # type: ignore[method-assign] valid use of method reassignment
-        self.isatty = self.reader.isatty # type: ignore[method-assign] valid use of method reassignment
+        self.seek = self.reader.seek # type: ignore[method-assign]
+        self.tell = self.reader.tell # type: ignore[method-assign]
+        self.seekable = self.reader.seekable # type: ignore[method-assign]
+        self.readable = self.reader.readable # type: ignore[method-assign]
+        self.writable = self.reader.writable # type: ignore[method-assign]
+        self.flush = self.reader.flush # type: ignore[method-assign]
+        self.isatty = self.reader.isatty # type: ignore[method-assign]
 
     @abstractmethod
     def on_data(self, data: bytes) -> None:
@@ -530,14 +530,14 @@ class _NosyReader(io.BufferedIOBase, ABC):
 class _NosyWriter(io.BufferedIOBase, ABC):
     def __init__(self, writer: io.BufferedIOBase):
         self.writer = writer
-        self.seek = self.writer.seek # type: ignore[method-assign] valid use of method reassignment
-        self.tell = self.writer.tell # type: ignore[method-assign] valid use of method reassignment
-        self.seekable = self.writer.seekable # type: ignore[method-assign] valid use of method reassignment
-        self.readable = self.writer.readable # type: ignore[method-assign] valid use of method reassignment
-        self.writable = self.writer.writable # type: ignore[method-assign] valid use of method reassignment
-        self.flush = self.writer.flush # type: ignore[method-assign] valid use of method reassignment
-        self.isatty = self.writer.isatty # type: ignore[method-assign] valid use of method reassignment
-        self.close = self.writer.close # type: ignore[method-assign] valid use of method reassignment
+        self.seek = self.writer.seek # type: ignore[method-assign]
+        self.tell = self.writer.tell # type: ignore[method-assign]
+        self.seekable = self.writer.seekable # type: ignore[method-assign]
+        self.readable = self.writer.readable # type: ignore[method-assign]
+        self.writable = self.writer.writable # type: ignore[method-assign]
+        self.flush = self.writer.flush # type: ignore[method-assign]
+        self.isatty = self.writer.isatty # type: ignore[method-assign]
+        self.close = self.writer.close # type: ignore[method-assign]
         self.sha256 = sha256()
 
     @abstractmethod
@@ -549,15 +549,15 @@ class _NosyWriter(io.BufferedIOBase, ABC):
         self.on_data(data)
 
     def replace_writer(self, writer: io.BufferedIOBase) -> None:
-        self.writer = writer # type: ignore[method-assign] valid use of method reassignment
-        self.seek = self.writer.seek # type: ignore[method-assign] valid use of method reassignment
-        self.tell = self.writer.tell # type: ignore[method-assign] valid use of method reassignment
-        self.seekable = self.writer.seekable # type: ignore[method-assign] valid use of method reassignment
-        self.readable = self.writer.readable # type: ignore[method-assign] valid use of method reassignment
-        self.writable = self.writer.writable # type: ignore[method-assign] valid use of method reassignment
-        self.flush = self.writer.flush # type: ignore[method-assign] valid use of method reassignment
-        self.isatty = self.writer.isatty # type: ignore[method-assign] valid use of method reassignment
-        self.close = self.writer.close # type: ignore[method-assign] valid use of method reassignment
+        self.writer = writer # type: ignore[method-assign]
+        self.seek = self.writer.seek # type: ignore[method-assign]
+        self.tell = self.writer.tell # type: ignore[method-assign]
+        self.seekable = self.writer.seekable # type: ignore[method-assign]
+        self.readable = self.writer.readable # type: ignore[method-assign]
+        self.writable = self.writer.writable # type: ignore[method-assign]
+        self.flush = self.writer.flush # type: ignore[method-assign]
+        self.isatty = self.writer.isatty # type: ignore[method-assign]
+        self.close = self.writer.close # type: ignore[method-assign]
 
 
 class HashReader(_NosyReader):
@@ -638,14 +638,14 @@ class MultiReader(io.BufferedIOBase):
         self.readers = readers
         self._reader = next(self.readers)
         self.reader = self._reader.__enter__()
-        self.seek = self.reader.seek
-        self.tell = self.reader.tell
-        self.seekable = self.reader.seekable
-        self.readable = self.reader.readable
-        self.writable = self.reader.writable
-        self.flush = self.reader.flush
-        self.isatty = self.reader.isatty
-        self.close = self.reader.close
+        self.seek = self.reader.seek # type: ignore[method-assign]
+        self.tell = self.reader.tell # type: ignore[method-assign]
+        self.seekable = self.reader.seekable # type: ignore[method-assign]
+        self.readable = self.reader.readable # type: ignore[method-assign]
+        self.writable = self.reader.writable # type: ignore[method-assign]
+        self.flush = self.reader.flush # type: ignore[method-assign]
+        self.isatty = self.reader.isatty # type: ignore[method-assign]
+        self.close = self.reader.close # type: ignore[method-assign]
 
     def read1(self, size: int = -1) -> bytes:
         """Read a single chunk of data."""
@@ -662,14 +662,14 @@ class MultiReader(io.BufferedIOBase):
                 return chunk
             self.reader = self._reader.__enter__()
             self.pbar = self.reader.pbar
-            self.seek = self.reader.seek
-            self.tell = self.reader.tell
-            self.seekable = self.reader.seekable
-            self.readable = self.reader.readable
-            self.writable = self.reader.writable
-            self.flush = self.reader.flush
-            self.isatty = self.reader.isatty
-            self.close = self.reader.close
+            self.seek = self.reader.seek # type: ignore[method-assign]
+            self.tell = self.reader.tell # type: ignore[method-assign]
+            self.seekable = self.reader.seekable # type: ignore[method-assign]
+            self.readable = self.reader.readable # type: ignore[method-assign]
+            self.writable = self.reader.writable # type: ignore[method-assign]
+            self.flush = self.reader.flush # type: ignore[method-assign]
+            self.isatty = self.reader.isatty # type: ignore[method-assign]
+            self.close = self.reader.close # type: ignore[method-assign]
             chunk = self.reader.read1(min(size, io.DEFAULT_BUFFER_SIZE))
         return chunk
 
@@ -690,14 +690,14 @@ class MultiReader(io.BufferedIOBase):
                     return chunk
                 self.reader = self._reader.__enter__()
                 self.pbar = self.reader.pbar
-                self.seek = self.reader.seek
-                self.tell = self.reader.tell
-                self.seekable = self.reader.seekable
-                self.readable = self.reader.readable
-                self.writable = self.reader.writable
-                self.flush = self.reader.flush
-                self.isatty = self.reader.isatty
-                self.close = self.reader.close
+                self.seek = self.reader.seek # type: ignore[method-assign]
+                self.tell = self.reader.tell # type: ignore[method-assign]
+                self.seekable = self.reader.seekable # type: ignore[method-assign]
+                self.readable = self.reader.readable # type: ignore[method-assign]
+                self.writable = self.reader.writable # type: ignore[method-assign]
+                self.flush = self.reader.flush # type: ignore[method-assign]
+                self.isatty = self.reader.isatty # type: ignore[method-assign]
+                self.close = self.reader.close # type: ignore[method-assign]
         return chunk
 
 
