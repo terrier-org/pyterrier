@@ -476,7 +476,7 @@ def open_or_download_stream(
     *,
     expected_sha256: Optional[str] = None,
     verbose: bool = True
-) -> Generator[io.BufferedIOBase]:
+) -> Generator[io.BufferedIOBase, None, None]:
     """Opens a file or downloads a file from a URL to a stream."""
     if path_or_url.startswith('http://') or path_or_url.startswith('https://'):
         with download_stream(path_or_url, expected_sha256=expected_sha256, verbose=verbose) as fin:
