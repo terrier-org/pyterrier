@@ -5,3 +5,4 @@ torch
 lz4
 transformers
 scikit-learn
+ruff
