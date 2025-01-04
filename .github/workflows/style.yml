@@ -59,4 +59,4 @@ jobs:
         pip install -e .
 
     - name: Ruff
-      run: 'ruff check --output-format=github pyterrier || true'
+      run: 'ruff check --output-format=github pyterrier'
