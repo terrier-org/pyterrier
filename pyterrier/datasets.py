@@ -13,6 +13,7 @@ from .io import autoopen, touch
 import pyterrier as pt
 import tarfile
 import zipfile
+import ir_datasets
 
 
 TERRIER_DATA_BASE="http://data.terrier.org/indices/"
@@ -335,7 +336,7 @@ class RemoteDataset(Dataset):
     def _describe_component(self, component):
         if component not in self.locations:
             return None
-        if type(self.locations[component]) == type([]):
+        if isinstance(self.locations[component], list):
             return True
         if isinstance(self.locations[component], dict):
             return list(self.locations[component].keys())
@@ -643,8 +644,8 @@ class IRDSTextLoader(pt.Transformer):
 def passage_generate(dataset):
     for filename in dataset.get_corpus():
         with autoopen(filename, 'rt') as corpusfile:
-            for l in corpusfile: #for each line
-                docno, passage = l.split("\t")
+            for line in corpusfile: #for each line
+                docno, passage = line.split("\t")
                 yield {'docno' : docno, 'text' : passage}
 
 def _datarepo_index(self, component, variant=None, version='latest', **kwargs):
@@ -727,8 +728,8 @@ TREC_COVID_FILES = {
 def msmarco_document_generate(dataset):
     for filename in dataset.get_corpus(variant="corpus-tsv"):
         with autoopen(filename, 'rt') as corpusfile:
-            for l in corpusfile: #for each line
-                docno, url, title, passage = l.split("\t")
+            for line in corpusfile: #for each line
+                docno, url, title, passage = line.split("\t")
                 yield {'docno' : docno, 'url' : url, 'title' : title, 'text' : passage}
 
 MSMARCO_DOC_FILES = {
@@ -759,14 +760,6 @@ MSMARCO_DOC_FILES = {
 MSMARCO_PASSAGE_FILES = {
     "corpus" : 
         [("collection.tsv", "collection.tar.gz#collection.tsv")],
-    "index": {
-        "terrier_stemmed" : [(filename, TERRIER_DATA_BASE + "/msmarco_passage/terrier_stemmed/latest/" + filename) for filename in STANDARD_TERRIER_INDEX_FILES],
-        "terrier_unstemmed" : [(filename, TERRIER_DATA_BASE + "/msmarco_passage/terrier_unstemmed/latest/" + filename) for filename in STANDARD_TERRIER_INDEX_FILES],
-        "terrier_stemmed_text" : [(filename, TERRIER_DATA_BASE + "/msmarco_passage/terrier_stemmed_text/latest/" + filename) for filename in STANDARD_TERRIER_INDEX_FILES],
-        "terrier_unstemmed_text" : [(filename, TERRIER_DATA_BASE + "/msmarco_passage/terrier_unstemmed_text/latest/" + filename) for filename in STANDARD_TERRIER_INDEX_FILES],
-        "terrier_stemmed_deepct" : [(filename, TERRIER_DATA_BASE + "/msmarco_passage/terrier_stemmed_deepct/latest/" + filename) for filename in STANDARD_TERRIER_INDEX_FILES],
-        "terrier_stemmed_docT5query" : [(filename, TERRIER_DATA_BASE + "/msmarco_passage/terrier_stemmed_docT5query/latest/" + filename) for filename in STANDARD_TERRIER_INDEX_FILES],
-    },
     "topics" :
         { 
             "train" : ("queries.train.tsv", "queries.tar.gz#queries.train.tsv", "singleline"),
@@ -1164,7 +1157,6 @@ DATASET_MAP : Dict[str, Dataset] = {
 # irds:antique/test/non-offensive
 # irds:antique/train
 # ...
-import ir_datasets
 for ds_id in ir_datasets.registry:
     DATASET_MAP[f'irds:{ds_id}'] = IRDSDataset(ds_id, defer_load=True)
 

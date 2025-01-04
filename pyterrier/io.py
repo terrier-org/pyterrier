@@ -45,7 +45,6 @@ def find_files(dir):
     Returns:
         paths(list): A list of the paths to the files
     """
-    lst = []
     files = []
     for (dirpath, dirnames, filenames) in os.walk(dir, followlinks=True):
         for name in filenames:
@@ -65,7 +64,7 @@ def _finalized_open_base(path, mode, open_fn):
     except:
         try:
             os.remove(path_tmp)
-        except:
+        except Exception:
             pass # edge case: removing temp file failed. Ignore and just raise orig error
         raise
 
@@ -189,14 +188,14 @@ def read_results(filename, format="trec", topics=None, dataset=None, **kwargs):
 
 def _read_results_letor(filename, labels=False):
 
-    def _parse_line(l):
+    def _parse_line(line):
             # $line =~ s/(#.*)$//;
             # my $comment = $1;
             # my @parts = split /\s+/, $line;
             # my $label = shift @parts;
             # my %hash = map {split /:/, $_} @parts;
             # return ($label, $comment, %hash);
-        line, comment = l.split("#")
+        line, comment = line.split("#")
         line = line.strip()
         parts = re.split(r'\s+|:', line)
         label = parts.pop(0)
@@ -226,7 +225,6 @@ def _read_results_letor(filename, labels=False):
         return pd.DataFrame(rows, columns=["qid", "docno", "features", "label"] if labels else ["qid", "docno", "features"])
 
 def _read_results_trec(filename):
-    results = []
     df = pd.read_csv(filename, sep=r'\s+', names=["qid", "iter", "docno", "rank", "score", "name"], dtype={'qid': str, 'docno': str, 'rank': int, 'score': float}) 
     df = df.drop(columns="iter")
     return df
