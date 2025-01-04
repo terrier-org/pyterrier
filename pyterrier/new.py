@@ -88,7 +88,6 @@ def ranked_documents(
 
     """
     from itertools import chain
-    import numpy as np
     if len(scores) == 0:
         return empty_R()
     rtr = None

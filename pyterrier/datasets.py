@@ -6,7 +6,7 @@ from .transformer import is_lambda
 from abc import abstractmethod
 import types
 from collections import defaultdict
-from typing import Union, Tuple, Iterator, Dict, Any, List, Literal, Optional
+from typing import Union, Tuple, Dict, List, Literal, Optional
 from warnings import warn
 import requests
 from .io import autoopen, touch
@@ -169,7 +169,7 @@ class RemoteDataset(Dataset):
 
     def _check_variant(self, component, variant=None):
         name=self.name
-        if not component in self.locations:
+        if component not in self.locations:
             raise ValueError("No %s in dataset %s" % (component, name))
         if variant is None:
             if not isinstance(self.locations[component], list):
@@ -177,7 +177,7 @@ class RemoteDataset(Dataset):
         else:
             if isinstance(self.locations[component], list):
                 raise ValueError("For %s in dataset %s, there are no variants, but you specified %s" % (component, name, variant))
-            if not variant in self.locations[component]:
+            if variant not in self.locations[component]:
                 raise ValueError("For %s in dataset %s, there is no variant %s. Available are: %s" % (component, name, variant, str(list(self.locations[component].keys()))))
 
     def _get_one_file(self, component, variant=None):
@@ -207,7 +207,7 @@ class RemoteDataset(Dataset):
         actualURL = URL if isinstance(URL, str) else URL[0]
         if "#" in actualURL and not os.path.exists(local):
             tarname, intarfile = actualURL.split("#")
-            assert not "/" in intarfile
+            assert "/" not in intarfile
             assert ".tar" in tarname or ".tgz" in tarname
             localtarfile, _ = self._get_one_file("tars", tarname)
             tarobj = tarfile.open(localtarfile, "r")
@@ -281,7 +281,7 @@ class RemoteDataset(Dataset):
         for fileentry in file_list:
             local = fileentry[0]
             URL = fileentry[1]
-            assert not "/" in local, "cant handle / in %s, local name is %s" % (local)
+            assert "/" not in local, "cant handle / in %s, local name is %s" % (local)
             expectedlength = -1
             if len(fileentry) == 3:
                 expectedlength = fileentry[2]
@@ -345,7 +345,7 @@ class RemoteDataset(Dataset):
         return list(filter(lambda f : not f.endswith(".complete"), pt.io.find_files(self._get_all_files("corpus", **kwargs))))
 
     def get_corpus_iter(self, **kwargs):
-        if not "corpus_iter" in self.locations:
+        if "corpus_iter" not in self.locations:
             raise ValueError("Cannot supply a corpus iterator on dataset %s" % self.name)
         return self.locations["corpus_iter"](self, **kwargs)
         

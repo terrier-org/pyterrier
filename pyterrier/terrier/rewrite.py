@@ -300,7 +300,7 @@ class QueryExpansion(pt.Transformer):
             # how to make sure this happens/doesnt happen when appropriate.
             self.applytp.process(None, rq)
             # to ensure weights are identical to Terrier
-            rq.getMatchingQueryTerms().normaliseTermWeights();
+            rq.getMatchingQueryTerms().normaliseTermWeights()
             self.qe.expandQuery(rq.getMatchingQueryTerms(), rq)
 
             # this control for Terrier stops it re-stemming the expanded terms

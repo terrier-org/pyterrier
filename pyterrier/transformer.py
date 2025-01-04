@@ -4,7 +4,6 @@ import pandas as pd
 from deprecated import deprecated
 from typing import Iterator, List, Union, Tuple, Protocol, runtime_checkable, Optional
 import pyterrier as pt
-from . import __version__
 
 LAMBDA = lambda:0
 def is_lambda(v):
