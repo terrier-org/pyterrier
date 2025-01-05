@@ -869,6 +869,8 @@ class TRECCollectionIndexer(TerrierIndexer):
         """
         self.checkIndexExists()
         index = self.createIndexer()
+        if not isinstance(files_path, list):
+            raise ValueError('files_path must be a list')
 
         _TaggedDocumentSetup(self.meta, self.meta_tags)
 
