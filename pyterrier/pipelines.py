@@ -286,7 +286,7 @@ def _run_and_evaluate(
         if save_mode == 'reuse':
             if save_format == 'trec':
                 system = read_results(save_file)
-            elif type(save_format) == types.ModuleType:
+            elif isinstance(save_format, types.ModuleType):
                 with pt.io.autoopen(save_file, 'rb') as fin:
                     system = save_format.load(fin)
             elif isinstance(save_format, tuple) and len(save_format) == 2:
@@ -340,7 +340,7 @@ def _run_and_evaluate(
         if save_file is not None:
             if save_format == 'trec':
                 write_results(res, save_file)
-            elif type(save_format) == types.ModuleType:
+            elif isinstance(save_format, types.ModuleType):
                 with pt.io.autoopen(save_file, 'wb') as fout:
                     save_format.dump(res, fout)
             elif isinstance(save_format, tuple) and len(save_format) == 2:
@@ -640,7 +640,7 @@ def Experiment(
             if save_dir is not None:
                 if save_format == 'trec':
                     save_ext = 'res.gz'
-                elif type(save_format) == types.ModuleType:
+                elif isinstance(save_format, types.ModuleType):
                     save_ext = 'mod'
                 elif isinstance(save_format, tuple):
                     save_ext = 'custom'
@@ -1053,7 +1053,7 @@ def GridScan(
     for tran, param in candi_dict:
         try:
             tran.get_parameter(param)
-        except:
+        except Exception:
             raise ValueError("Transformer %s does not expose a parameter named %s" % (str(tran), param))
     
     keys,values = zip(*candi_dict.items())

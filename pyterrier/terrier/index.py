@@ -332,7 +332,7 @@ class TerrierIndexer:
 
         # configure the meta index
         self.properties['indexer.meta.forward.keys'] = ','.join(self.meta.keys())
-        self.properties['indexer.meta.forward.keylens'] = ','.join([str(l) for l in self.meta.values()])
+        self.properties['indexer.meta.forward.keylens'] = ','.join([str(le) for le in self.meta.values()])
         self.properties['indexer.meta.reverse.keys'] = ','.join(self.meta_reverse)
 
         # configure the term pipeline
@@ -425,9 +425,9 @@ class DFIndexUtils:
 
     @staticmethod
     def get_column_lengths(df):
-        meta2len = dict([(v, df[v].apply(lambda r: len(str(r)) if r!=None else 0).max())for v in df.columns.values])
+        meta2len = dict([(v, df[v].apply(lambda r: len(str(r)) if r is not None else 0).max())for v in df.columns.values])
         # nan values can arise if df is empty. Here we take a metalength of 1 instead.
-        meta2len = {k : 1 if math.isnan(l) else l for k, l in meta2len.items()}
+        meta2len = {k : 1 if math.isnan(le) else le for k, le in meta2len.items()}
         return meta2len
 
     @staticmethod
@@ -787,7 +787,6 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
         return indexref
 
     def _write_fifos(self, it, fifos):
-        c = len(fifos)
         with contextlib.ExitStack() as stack:
             fifos = [stack.enter_context(open(f, 'wt')) for f in fifos]
             ready = None
@@ -870,7 +869,6 @@ class TRECCollectionIndexer(TerrierIndexer):
         """
         self.checkIndexExists()
         index = self.createIndexer()
-        asList = createAsList(files_path)
 
         _TaggedDocumentSetup(self.meta, self.meta_tags)
 
