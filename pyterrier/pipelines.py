@@ -275,7 +275,7 @@ def _run_and_evaluate(
     from .io import read_results, write_results
 
     if pbar is None:
-        pbar = pt.tqdm(disable=True) # type: ignore
+        pbar = pt.tqdm(disable=True)
 
     metrics, rev_mapping = _convert_measures(metrics)
     qrels = qrels.rename(columns={'qid': 'query_id', 'docno': 'doc_id', 'label': 'relevance'})
@@ -633,7 +633,7 @@ def Experiment(
         # round number of batches up for each system
         tqdm_args['total'] = math.ceil((len(topics) / batch_size)) * len(retr_systems)
 
-    with pt.tqdm(**tqdm_args) as pbar: # type: ignore
+    with pt.tqdm(**tqdm_args) as pbar:
         # run and evaluate each system
         for name, system in zip(names, execution_retr_systems):
             save_file = None
@@ -1080,7 +1080,7 @@ def GridScan(
     eval_list = []
     #for each combination of parameter values
     if jobs == 1:
-        for v in pt.tqdm(combinations, total=len(combinations), desc="GridScan", mininterval=0.3) if verbose else combinations: # type: ignore
+        for v in pt.tqdm(combinations, total=len(combinations), desc="GridScan", mininterval=0.3) if verbose else combinations:
             parameter_list, eval_scores = _evaluate_one_setting(keys, v)
             eval_list.append( (parameter_list, eval_scores) )
     else:

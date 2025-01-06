@@ -146,7 +146,7 @@ class RemoteDataset(Dataset):
                 r = requests.get(url, allow_redirects=True, stream=True, **kwargs)
                 r.raise_for_status()
                 total = int(r.headers.get('content-length', 0))
-                with pt.io.finalized_open(filename, 'b') as file, pt.tqdm( # type: ignore
+                with pt.io.finalized_open(filename, 'b') as file, pt.tqdm(
                         desc=basename,
                         total=total,
                         unit='iB',
@@ -631,7 +631,7 @@ class IRDSTextLoader(pt.Transformer):
         set_docnos = set(docnos)
         it = (tuple(getattr(doc, f) for f in fields) for doc in docstore.get_many_iter(set_docnos))
         if self.verbose:
-            it = pt.tqdm(it, unit='d', total=len(set_docnos), desc='IRDSTextLoader') # type: ignore
+            it = pt.tqdm(it, unit='d', total=len(set_docnos), desc='IRDSTextLoader')
         metadata = pd.DataFrame(list(it), columns=fields).set_index('doc_id')
         metadata_frame = metadata.loc[docnos].reset_index(drop=True)
 
