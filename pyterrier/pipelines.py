@@ -166,13 +166,13 @@ def _identifyCommon(pipes : List[Union[pt.Transformer, pd.DataFrame]]) -> Tuple[
     # no precomputation for single-system case
     if len(pipes) == 1:
         return None, pipes
-    pipe_lists = []
+    pipe_lists: List[List[pt.Transformer]] = []
     for p in pipes:
         # no optimisation possible for experiments involving dataframes as systems
         if isinstance(p, pd.DataFrame):
             return None, pipes
         if isinstance(p, Compose):
-            pipe_lists.append(p._transformers)
+            pipe_lists.append(list(p._transformers))
         else:
             if not isinstance(p, pt.Transformer):
                 raise ValueError("pt.Experiment has systems that are not either DataFrames or Transformers")
@@ -217,7 +217,7 @@ def _precomputation(
     }
     
     common_pipe, execution_retr_systems = _identifyCommon(retr_systems)
-    precompute_time = 0
+    precompute_time = 0.
     if precompute_prefix and common_pipe is not None: 
         print("Precomputing results of %d topics on shared pipeline component %s" % (len(topics), str(common_pipe)), file=sys.stderr)
 
@@ -234,7 +234,7 @@ def _precomputation(
             with pt.tqdm(**tqdm_args_precompute) as pbar:
                 precompute_results : List[pd.DataFrame] = []
                 for r in common_pipe.transform_gen(topics, batch_size=batch_size):
-                    assert isinstance(r, pd.DataFrame) # keep mypy happy
+                    assert isinstance(r, pd.DataFrame) # keep mypy happy
                     precompute_results.append(r)
                     pbar.update(1)
                 execution_topics = pd.concat(precompute_results)
