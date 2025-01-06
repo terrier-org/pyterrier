@@ -3,7 +3,7 @@ import os
 import sys
 import pandas as pd
 import numpy as np
-from typing import Callable, Iterator, Union, Dict, List, Tuple, Sequence, Any, Literal, Optional
+from typing import Callable, Iterator, Union, Dict, List, Tuple, Sequence, Any, Literal, Optional, overload
 import types
 from . import Transformer
 from .model import coerce_dataframe_types
@@ -904,6 +904,48 @@ def KFoldGridSearch(
     
     return (pd.concat(results), settings)
 
+@overload
+def GridSearch(
+        pipeline : Transformer,
+        params : Dict[Transformer,Dict[str,List[TRANSFORMER_PARAMETER_VALUE_TYPE]]],
+        topics : pd.DataFrame,
+        qrels : pd.DataFrame,
+        metric : MEASURE_TYPE,
+        jobs : int,
+        backend: str,
+        verbose: bool ,
+        batch_size : Optional[int],
+        return_type : Literal['opt_pipeline'],
+    ) -> Transformer: ...
+
+@overload
+def GridSearch(
+        pipeline : Transformer,
+        params : Dict[Transformer,Dict[str,List[TRANSFORMER_PARAMETER_VALUE_TYPE]]],
+        topics : pd.DataFrame,
+        qrels : pd.DataFrame,
+        metric : MEASURE_TYPE,
+        jobs : int,
+        backend: str,
+        verbose: bool ,
+        batch_size : Optional[int],
+        return_type : Literal['best_setting'],
+    ) -> GRID_SEARCH_RETURN_TYPE_SETTING: ...
+
+@overload
+def GridSearch(
+        pipeline : Transformer,
+        params : Dict[Transformer,Dict[str,List[TRANSFORMER_PARAMETER_VALUE_TYPE]]],
+        topics : pd.DataFrame,
+        qrels : pd.DataFrame,
+        metric : MEASURE_TYPE,
+        jobs : int,
+        backend: str,
+        verbose: bool ,
+        batch_size : Optional[int],
+        return_type : Literal['both'],
+    ) -> GRID_SEARCH_RETURN_TYPE_BOTH: ...
+
 def GridSearch(
         pipeline : Transformer,
         params : Dict[Transformer,Dict[str,List[TRANSFORMER_PARAMETER_VALUE_TYPE]]],
@@ -1044,11 +1086,10 @@ def GridScan(
 
     # Store the all parameter names and candidate values into a dictionary, keyed by a tuple of the transformer and the parameter name
     # such as {(Retriever, 'wmodel'): ['BM25', 'PL2'], (Retriever, 'c'): [0.1, 0.2, 0.3], (Bla, 'lr'): [0.001, 0.01, 0.1]}
-    candi_dict={}
+    candi_dict: Dict[Tuple[Transformer, str], List[TRANSFORMER_PARAMETER_VALUE_TYPE]] = {}
     for tran, param_set in params.items():
         for param_name, values in param_set.items():
             candi_dict[ (tran, param_name) ] = values
-    #candi_dict = { : params[tran][param_name] for tran in params for param_name in params[tran]}
     if len(candi_dict) == 0:
         raise ValueError("No parameters specified to optimise")
     for tran, param in candi_dict:
@@ -1057,8 +1098,8 @@ def GridScan(
         except Exception:
             raise ValueError("Transformer %s does not expose a parameter named %s" % (str(tran), param))
     
-    keys,values = zip(*candi_dict.items())
-    combinations = list(itertools.product(*values))
+    keys, vals = zip(*candi_dict.items())
+    combinations = list(itertools.product(*vals))
     assert len(combinations) > 0, "No combinations selected"
 
     def _evaluate_one_setting(keys, values):
