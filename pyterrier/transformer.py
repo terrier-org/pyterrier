@@ -4,9 +4,8 @@ import pandas as pd
 from deprecated import deprecated
 from typing import Iterator, List, Union, Tuple, Protocol, runtime_checkable, Optional
 import pyterrier as pt
-from . import __version__
 
-LAMBDA = lambda:0
+LAMBDA = lambda:0  # noqa: E731 LAMBDA is used for the is_lambda method below, so the type is important
 def is_lambda(v):
     return isinstance(v, type(LAMBDA)) and v.__name__ == LAMBDA.__name__
 

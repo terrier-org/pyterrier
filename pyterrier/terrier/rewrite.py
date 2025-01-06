@@ -299,7 +299,7 @@ class QueryExpansion(pt.Transformer):
             # how to make sure this happens/doesnt happen when appropriate.
             self.applytp.process(None, rq)
             # to ensure weights are identical to Terrier
-            rq.getMatchingQueryTerms().normaliseTermWeights();
+            rq.getMatchingQueryTerms().normaliseTermWeights()
             self.qe.expandQuery(rq.getMatchingQueryTerms(), rq)
 
             # this control for Terrier stops it re-stemming the expanded terms
@@ -478,7 +478,6 @@ class _ResetResults(pt.Transformer):
     def transform(self, topics_with_saved_docs : pd.DataFrame) -> pd.DataFrame:
         if "stashed_results_0" not in topics_with_saved_docs.columns:
             raise ValueError("Cannot apply pt.rewrite.reset_results() without pt.rewrite.stash_results() - column stashed_results_0 not found")
-        query_cols = pt.model.query_columns(topics_with_saved_docs)
         rtr = []
         for row in topics_with_saved_docs.itertuples():
             docsdf = pd.DataFrame.from_records(row.stashed_results_0)

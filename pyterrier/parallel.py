@@ -28,7 +28,7 @@ def _joblib_with_initializer(p, _f_init, args=None):
 def _check_ray():
     try:
         import ray
-    except:
+    except ImportError:
         raise NotImplementedError("ray is not installed. Run pip install ray")
     if not ray.is_initialized():
         raise ValueError("ray needs to be initialised. Run ray.init() first")

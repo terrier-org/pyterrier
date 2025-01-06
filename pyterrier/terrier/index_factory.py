@@ -59,17 +59,15 @@ class IndexFactory:
             }
 
         pindex = pt.java.cast("org.terrier.structures.IndexOnDisk", index)
-        load_profile = pindex.getIndexLoadingProfileAsRetrieval()
         dirty_structures = set()
         for s in structures:
             if not pindex.hasIndexStructure(s):
                 continue
             clz = pindex.getIndexProperty(f"index.{s}.class", "notfound")
-            if not clz in REWRITES[s]:
+            if clz not in REWRITES[s]:
                 raise ValueError(f"Cannot load structure {s} into memory, underlying class {clz} is not supported")
 
             # we only reload an index structure if a property has changed
-            dirty = False
             for k, v in REWRITES[s][clz].items():
                 if pindex.getIndexProperty(k, "notset") != v:
                     pindex.setIndexProperty(k, v)

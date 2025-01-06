@@ -7,6 +7,7 @@ import gzip
 from pylatexenc.latex2text import LatexNodes2Text
 from docutils import nodes
 from docutils.parsers.rst import Directive
+from sphinx.domains.std import StandardDomain
 
 latex_converter = LatexNodes2Text()
 
@@ -58,6 +59,15 @@ class CiteDirective(Directive):
 
         # in the future, could store citation information in self.state.document.settings.env
         # to generate a bibliography page.
+        self.state.document.settings.env.bibliography.setdefault(node['id'], {
+            'id': node['id'],
+            'citation': node['citation'],
+            'link': node['link'],
+            'bibtex': node['bibtex'],
+            'refs': {},
+        })['refs'][self.state.document.settings.env.docname] = {
+            'target': self.state.document.settings.env.docname,
+        }
 
         return [node]
 
@@ -149,6 +159,47 @@ class CiteDblpDirective(CiteDirective):
         return self.bibtex_entry_full
 
 
+def get_hierarchical_title(docname, app):
+    """
+    Get a hierarchical title for a Sphinx document, including its position in the toctree.
+
+    Args:
+        docname (str): The docname (e.g., 'something/text').
+        app (sphinx.application.Sphinx): The Sphinx application object.
+
+    Returns:
+        str: The hierarchical title, with sections separated by " > ".
+    """
+    def get_doc_title(docname):
+        """Get the title for a given docname."""
+        title_node = app.env.titles.get(docname)
+        return title_node.astext() if title_node else "Untitled"
+
+    def find_parents(docname, toctree):
+        """Find the parent hierarchy of a document in the toctree."""
+        for node in toctree.traverse():
+            if node.tagname == "reference" and node.get("refuri") == app.builder.get_target_uri(docname):
+                # Found the current doc in the toctree
+                parent_node = node.parent.parent
+                if parent_node.tagname == "toctree":
+                    parent_docname = parent_node.get("docname")
+                    if parent_docname:
+                        return find_parents(parent_docname, app.env.tocs[parent_docname]) + [parent_docname]
+        return []
+
+    # Find parents by walking up the toctree
+    parent_hierarchy = []
+    if docname in app.env.tocs:
+        parent_hierarchy = find_parents(docname, app.env.tocs[docname])
+
+    # Collect titles for the hierarchy
+    hierarchical_titles = [get_doc_title(parent) for parent in parent_hierarchy]
+    hierarchical_titles.append(get_doc_title(docname))
+
+    # Join titles with separators
+    return " » ".join(hierarchical_titles)
+
+
 def visit_cite_node_html(self, node):
     """HTML visitor to render the DblpNode."""
     citation = node['citation']
@@ -183,10 +234,52 @@ def depart_cite_node_html(self, node):
     pass
 
 
+def build_breadcrumb_titles(env, toc):
+    result = {}
+    for node in toc.traverse():
+        if node.tagname == 'toctree':
+            for page_title, page in node['entries']:
+                if page_title is None:
+                    page_title = env.titles.get(page)
+                    page_title = page_title.astext() if page_title else 'Untitled'
+                page_title = page_title.strip()
+                result[page] = page_title
+                if page in env.tocs:
+                    for subpage, subpage_title in build_breadcrumb_titles(env, env.tocs[page]).items():
+                        result[subpage] = f'{page_title} » {subpage_title}'
+    return result
+
+def collect_bibliiography(app):
+    if app.builder.embedded or len(app.env.bibliography) == 0:
+        # Building embedded (e.g. htmlhelp or ePub) or there were no bibs found
+        return []
+
+    breadcrumb_titles = build_breadcrumb_titles(app.env, app.env.tocs['index'])
+
+    for bib in app.env.bibliography.values():
+        bib['refs'] = list(bib['refs'].values())
+        for ref in bib['refs']:
+            ref['url'] = app.builder.get_target_uri(ref['target'])
+            ref['title'] = breadcrumb_titles.get(ref['target'], 'Untitled')
+
+    return [(
+        'bibliography',
+        {'bibliography': sorted(app.env.bibliography.values(), key=lambda x: x['citation'])},
+        'bibliography.html',
+    )]
+
+
+def setup_bibliiography_env(app, env, pages):
+    app.env.bibliography = {}
+
+
 def setup(app):
     app.add_node(CiteNode, html=(visit_cite_node_html, depart_cite_node_html))
     app.add_directive('cite', CiteDirective)
     app.add_directive('cite.dblp', CiteDblpDirective)
+    app.connect('env-before-read-docs', setup_bibliiography_env)
+    app.connect('html-collect-pages', collect_bibliiography)
+    StandardDomain._virtual_doc_names['bibliography'] = ('bibliography', 'Bibliography')
     return {
         'version': '0.1',
         'parallel_read_safe': True,

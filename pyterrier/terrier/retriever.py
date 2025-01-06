@@ -1,7 +1,6 @@
 from typing import Union, Optional
 import pandas as pd
 import numpy as np
-from deprecated import deprecated
 from warnings import warn
 from pyterrier.datasets import Dataset
 from pyterrier.model import coerce_queries_dataframe, FIRST_RANK

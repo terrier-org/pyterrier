@@ -2,7 +2,8 @@ import pyterrier as pt
 from . import Transformer, Estimator
 from .model import add_ranks
 from typing import Sequence, Union, Tuple
-import numpy as np, pandas as pd
+import numpy as np
+import pandas as pd
 
 FeatureList = Union[Sequence[int], int]
 
