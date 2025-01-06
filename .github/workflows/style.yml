@@ -41,4 +41,4 @@ jobs:
         pip install -e .
 
     - name: MyPy
-      run: 'mypy --disable-error-code=import-untyped pyterrier || true'
+      run: 'mypy pyterrier'
