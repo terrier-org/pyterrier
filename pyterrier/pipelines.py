@@ -232,8 +232,9 @@ def _precomputation(
             # round number of batches up for each system
             tqdm_args_precompute['total'] = math.ceil((len(topics) / batch_size))
             with pt.tqdm(**tqdm_args_precompute) as pbar:
-                precompute_results = []
+                precompute_results : List[pd.DataFrame] = []
                 for r in common_pipe.transform_gen(topics, batch_size=batch_size):
+                    assert isinstance(r, pd.DataFrame) # keep mypy happy
                     precompute_results.append(r)
                     pbar.update(1)
                 execution_topics = pd.concat(precompute_results)
@@ -246,7 +247,7 @@ def _precomputation(
                 pbar.update(1)
         
         endtime = timer()
-        precompute_time = (endtime - starttime) * 1000.
+        precompute_time = float(endtime - starttime) * 1000.
 
     elif precompute_prefix and common_pipe is None:
         warn('precompute_prefix was True for pt.Experiment, but no common pipeline prefix was found among %d pipelines' % len(retr_systems))
@@ -334,7 +335,7 @@ def _run_and_evaluate(
         starttime = timer()
         res = system.transform(topics)
         endtime = timer()
-        runtime =  (endtime - starttime) * 1000.
+        runtime =  float(endtime - starttime) * 1000.
 
         # write results to save_file; we can be sure this file does not exist
         if save_file is not None:
