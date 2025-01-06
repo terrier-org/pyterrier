@@ -84,7 +84,7 @@ class SetIntersection(Transformer):
         rtr = res1.merge(res2, on=on_cols, suffixes=('','_y'))
         rtr.drop(columns=["score", "rank", "score_y", "rank_y", "query_y"], inplace=True, errors='ignore')
         for col in rtr.columns:
-            if not '_y' in col:
+            if '_y' not in col:
                 continue
             new_name = col.replace('_y', '')
             if new_name in rtr.columns:
@@ -206,7 +206,7 @@ class FeatureUnion(NAryTransformerBase):
             pipe = cands >> (pl2f ** bm25f)
     """
     def transform(self, inputRes):
-        if not "docno" in inputRes.columns and "docid" not in inputRes.columns:
+        if "docno" not in inputRes.columns and "docid" not in inputRes.columns:
             raise ValueError("FeatureUnion operates as a re-ranker, but input did not have either "
                 "docno or docid columns, found columns were %s" %  str(inputRes.columns))
 
@@ -225,15 +225,15 @@ class FeatureUnion(NAryTransformerBase):
             results = m.transform(inputRes.copy())
             if len(results) == 0 and num_results != 0:
                 raise ValueError("Got no results from %s, expected %d" % (repr(m), num_results) )
-            assert not "features_x" in results.columns 
-            assert not "features_y" in results.columns
+            assert "features_x" not in results.columns 
+            assert "features_y" not in results.columns
             all_results.append( results )
 
     
         for i, (m, res) in enumerate(zip(self._transformers, all_results)):
             # IMPORTANT: dont do this BEFORE calling subsequent feature unions
-            if not "features" in res.columns:
-                if not "score" in res.columns:
+            if "features" not in res.columns:
+                if "score" not in res.columns:
                     raise ValueError("Results from %s did not include either score or features columns, found columns were %s" % (repr(m), str(res.columns)) )
 
                 if len(res) != num_results:
@@ -278,7 +278,7 @@ class FeatureUnion(NAryTransformerBase):
         assert "features" in final_DF.columns
 
         # we used .copy() earlier, inputRes should still have no features column
-        assert not "features" in inputRes.columns
+        assert "features" not in inputRes.columns
 
         # final merge - this brings us the score attribute from any previous transformer
         both_cols = set(inputRes.columns) & set(final_DF.columns)
@@ -289,8 +289,8 @@ class FeatureUnion(NAryTransformerBase):
         final_DF.drop(columns=["%s_y" % col for col in both_cols], inplace=True)
         # remove the duplicated columns
         #final_DF = final_DF.loc[:,~final_DF.columns.duplicated()]
-        assert not "features_x" in final_DF.columns 
-        assert not "features_y" in final_DF.columns 
+        assert "features_x" not in final_DF.columns 
+        assert "features_y" not in final_DF.columns 
         return final_DF
 
     def compile(self) -> Transformer:

@@ -42,3 +42,21 @@ jobs:
 
     - name: MyPy
       run: 'mypy --disable-error-code=import-untyped pyterrier || true'
+
+  ruff:
+    runs-on: 'ubuntu-latest'
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install
+      run: |
+        pip install --upgrade -r requirements.txt -r requirements-test.txt
+        pip install -e .
+
+    - name: Ruff
+      run: 'ruff check --output-format=github pyterrier'

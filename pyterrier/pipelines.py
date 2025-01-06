@@ -1,5 +1,6 @@
 from warnings import warn
-import os, sys
+import os
+import sys
 import pandas as pd
 import numpy as np
 from typing import Callable, Iterator, Union, Dict, List, Tuple, Sequence, Any, Literal, Optional
@@ -19,11 +20,11 @@ SYSTEM_OR_RESULTS_TYPE = Union[Transformer, pd.DataFrame]
 SAVEFORMAT_TYPE = Union[Literal['trec'], types.ModuleType]
 
 def _bold_cols(data : pd.Series, col_type):
-    if not data.name in col_type:
+    if data.name not in col_type:
         return [''] * len(data)
     
-    colormax_attr = f'font-weight: bold'
-    colormaxlast_attr = f'font-weight: bold'
+    colormax_attr = 'font-weight: bold'
+    colormaxlast_attr = 'font-weight: bold'
     if col_type[data.name] == "+":  
         max_value = data.max()
     else:
@@ -36,7 +37,7 @@ def _bold_cols(data : pd.Series, col_type):
 def _color_cols(data : pd.Series, col_type, 
                        colormax='antiquewhite', colormaxlast='lightgreen', 
                        colormin='antiquewhite', colorminlast='lightgreen' ):
-    if not data.name in col_type:
+    if data.name not in col_type:
       return [''] * len(data)
     
     if col_type[data.name] == "+":
@@ -285,7 +286,7 @@ def _run_and_evaluate(
         if save_mode == 'reuse':
             if save_format == 'trec':
                 system = read_results(save_file)
-            elif type(save_format) == types.ModuleType:
+            elif isinstance(save_format, types.ModuleType):
                 with pt.io.autoopen(save_file, 'rb') as fin:
                     system = save_format.load(fin)
             elif isinstance(save_format, tuple) and len(save_format) == 2:
@@ -339,7 +340,7 @@ def _run_and_evaluate(
         if save_file is not None:
             if save_format == 'trec':
                 write_results(res, save_file)
-            elif type(save_format) == types.ModuleType:
+            elif isinstance(save_format, types.ModuleType):
                 with pt.io.autoopen(save_file, 'wb') as fout:
                     save_format.dump(res, fout)
             elif isinstance(save_format, tuple) and len(save_format) == 2:
@@ -534,11 +535,9 @@ def Experiment(
         assert not perquery
 
     if isinstance(topics, str):
-        from . import Utils
         if os.path.isfile(topics):
             topics = pt.io.read_topics(topics)
     if isinstance(qrels, str):
-        from . import Utils
         if os.path.isfile(qrels):
             qrels = pt.io.read_qrels(qrels)
 
@@ -641,7 +640,7 @@ def Experiment(
             if save_dir is not None:
                 if save_format == 'trec':
                     save_ext = 'res.gz'
-                elif type(save_format) == types.ModuleType:
+                elif isinstance(save_format, types.ModuleType):
                     save_ext = 'mod'
                 elif isinstance(save_format, tuple):
                     save_ext = 'custom'
@@ -661,7 +660,6 @@ def Experiment(
 
             if baseline is not None:
                 evalDictsPerQ.append(evalMeasuresDict)
-                from . import Utils
                 evalMeasuresDict = _mean_of_measures(evalMeasuresDict)
 
             if perquery:
@@ -678,7 +676,6 @@ def Experiment(
                         ])
                 evalDict[name] = evalMeasuresDict
             else:
-                import builtins
                 if mrt_needed:
                     time += precompute_time
                     evalMeasuresDict["mrt"] = time / float(len(all_topic_qids))
@@ -800,7 +797,6 @@ def Evaluate(res : pd.DataFrame, qrels : pd.DataFrame, metrics=['map', 'ndcg'], 
         metrics(list): A list of strings specifying which evaluation metrics to use. Default=['map', 'ndcg']
         perquery(bool): If true return each metric for each query, else return mean metrics. Default=False
     """
-    from .io import coerce_dataframe
     if len(res) == 0:
         raise ValueError("No results for evaluation")
 
@@ -1038,7 +1034,6 @@ def GridScan(
 
     """
     import itertools
-    from . import Utils
 
     if verbose and jobs > 1:
         from warnings import warn
@@ -1058,7 +1053,7 @@ def GridScan(
     for tran, param in candi_dict:
         try:
             tran.get_parameter(param)
-        except:
+        except Exception:
             raise ValueError("Transformer %s does not expose a parameter named %s" % (str(tran), param))
     
     keys,values = zip(*candi_dict.items())
