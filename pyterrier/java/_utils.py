@@ -1,4 +1,3 @@
-# type: ignore
 import sys
 import warnings
 from functools import wraps

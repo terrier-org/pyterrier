@@ -1,4 +1,3 @@
-# type: ignore
 import pandas as pd
 from warnings import warn
 from typing import List,Union
