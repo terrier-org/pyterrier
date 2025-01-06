@@ -26,6 +26,11 @@ jobs:
         flake8 ./pyterrier --select=PT --show-source --statistics --count
 
   mypy:
+    # mypy results differ based on the python version, so run on multiple ones
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.12']
+
     runs-on: 'ubuntu-latest'
     steps:
     - uses: actions/checkout@v4
@@ -33,7 +38,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        python-version: ${{ matrix.python-version }}
 
     - name: Install
       run: |
