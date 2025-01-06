@@ -828,7 +828,7 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
                 if not ready: # either first iteration or deque is empty
                     if len(fifos) > 1:
                         # Not all the fifos may be ready yet for the next document. Rather than
-                        # witing for the next one to finish up, go ahead and can check wich are ready
+                        # waiting for the next one to finish up, go ahead and can check wich are ready
                         # with the select syscall. This will block until at least one is ready. This
                         # optimization can actually have a pretty big impact-- on CORD19, indexing
                         # with 8 threads was 30% faster with this.
