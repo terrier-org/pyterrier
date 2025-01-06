@@ -235,7 +235,7 @@ class _apply:
         _bind(self, lambda self, fn, *args, **kwargs : by_query(fn, *args, **kwargs), as_name='by_query')
         _bind(self, lambda self, fn, *args, **kwargs : generic(fn, *args, **kwargs), as_name='generic')     
     
-    def __getattr__(self, item: str) -> Callable:
+    def __getattr__(self, item: str) -> Callable[..., pt.Transformer]:
         return partial(generic_apply, item)
 
 def generic_apply(

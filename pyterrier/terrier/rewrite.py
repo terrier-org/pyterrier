@@ -1,6 +1,6 @@
 import pandas as pd
 from warnings import warn
-from typing import List,Union
+from typing import List, Union, Callable
 from types import FunctionType
 import pyterrier as pt
 from pyterrier.terrier.index import TerrierTokeniser
@@ -39,7 +39,7 @@ def tokenise(tokeniser : Union[str,TerrierTokeniser,FunctionType] = 'english', m
         retr_pipe = query_toks >> br
     
     """
-    _query_fn = None
+    _query_fn: Callable[[str], List[str]]
     if isinstance(tokeniser, FunctionType):
         _query_fn = tokeniser
     else:
@@ -58,7 +58,7 @@ def tokenise(tokeniser : Union[str,TerrierTokeniser,FunctionType] = 'english', m
     def _join_str_matchop(input : List[str]):
         assert not isinstance(input, str), "Expected a list of strings"
         return ' '.join(map(pt.terrier.Retriever.matchop, input))
-    
+
     if matchop:
         return pt.apply.query(lambda r: _join_str_matchop(_query_fn(r.query)))
     return pt.apply.query(lambda r: _join_str(_query_fn(r.query)))
