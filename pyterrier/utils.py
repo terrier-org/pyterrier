@@ -176,7 +176,7 @@ def get_class_methods(cls) -> List[Tuple[str, Callable]]:
         base_attrs.update(name for name, _ in inspect.getmembers(base, predicate=inspect.isfunction))
     
     # Filter out methods that are in base classes and not overridden in the subclass
-    class_methods = []
+    class_methods : List[Tuple[str, Callable]] = []
     for name, func in all_attrs:
         if name not in base_attrs or func.__qualname__.split('.')[0] == cls.__name__:
             # bind classmethod and staticmethod functions to this class
