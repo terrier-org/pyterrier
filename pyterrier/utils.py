@@ -106,10 +106,11 @@ def entry_points(group: str) -> Tuple[EntryPoint, ...]:
 
     See <https://docs.python.org/3/library/importlib.metadata.html#entry-points> for more details.
     """
+    orig_res: Sequence[EntryPoint]
     try:
-        orig_res = tuple(eps(group=group))
+        orig_res = tuple(eps(group=group)) # type: ignore # support EntryPoints.get() API on different python versions
     except TypeError:
-        orig_res = tuple(eps().get(group, tuple())) # type: ignore # support EntryPoints.get() API on older python versions
+        orig_res = tuple(eps().get(group, tuple())) # type: ignore # support EntryPoints.get() API on different python versions
 
     names = set()
     res = []
