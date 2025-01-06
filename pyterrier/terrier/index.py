@@ -13,7 +13,7 @@ import math
 from warnings import warn
 from deprecated import deprecated
 from collections import deque
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Any, Callable
 import more_itertools
 import pyterrier as pt
 from pyterrier.terrier.stemmer import TerrierStemmer
@@ -22,11 +22,11 @@ from pyterrier.terrier.stopwords import TerrierStopwords
 
 
 # These classes are only defined after pt.java.init() in pyterrier.terrier.java._post_init
-DocListIterator = None
-PythonListIterator = None
-FlatJSONDocumentIterator = None
-TQDMCollection = None
-TQDMSizeCollection = None
+DocListIterator: Any = None
+PythonListIterator: Any = None
+FlatJSONDocumentIterator: Any = None
+TQDMCollection: Any = None
+TQDMSizeCollection: Any = None
 
 # for backward compatibility
 class IterDictIndexerBase(pt.Indexer):
@@ -263,7 +263,7 @@ class TerrierIndexer:
         self.overwrite = overwrite
         self.verbose = verbose
         self.meta_reverse = meta_reverse
-        self.cleanup_hooks = []
+        self.cleanup_hooks: List[Callable[[TerrierIndexer, Any], None]] = []
 
     def setProperty(self, k, v):
         """

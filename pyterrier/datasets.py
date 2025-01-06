@@ -1242,7 +1242,10 @@ def transformer_from_dataset(
         dataset = get_dataset(dataset)
     if version != "latest":
         raise ValueError("index versioning not yet supported")
-    indexref = dataset.get_index(variant)
+    if hasattr(dataset, 'get_index'):
+        indexref = dataset.get_index(variant)
+    else:
+        raise ValueError('dataset doe not support get_index()')
 
     classname = clz.__name__
     classnames = [classname]
