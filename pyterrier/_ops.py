@@ -37,9 +37,9 @@ class NAryTransformerBase(Transformer):
         return iter(self._transformers)
 
 
-def _flatten(transformers: Iterable[Transformer], cls: type) -> Tuple[Transformer]:
-    return list(chain.from_iterable(
-        (t._transformers if isinstance(t, cls) else [t]) # type: ignore
+def _flatten(transformers: Iterable[Transformer], cls: type) -> Tuple[Transformer, ...]:
+    return tuple(chain.from_iterable(
+        (t._transformers if isinstance(t, cls) else [t]) # type: ignore[attr-defined]
         for t in transformers
     ))
 
