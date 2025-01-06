@@ -212,7 +212,7 @@ def _precomputation(
     # on that prefix, and returns that, which is used later for evaluating the remainder
     # of each pipeline.
 
-    tqdm_args_precompute={
+    tqdm_args_precompute: Dict[str, Any] = {
         'disable' : not verbose,
     }
     
