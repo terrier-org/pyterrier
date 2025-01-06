@@ -988,7 +988,7 @@ def GridScan(
         verbose: bool = False,
         batch_size = None,
         dataframe = True,
-    ) -> Union[pd.DataFrame, List [ Tuple [ List[ GRID_SCAN_PARAM_SETTING ], Dict[str,float]  ]  ] ]:
+    ) -> Union[pd.DataFrame, List [ Tuple [ List[ GRID_SCAN_PARAM_SETTING ], Dict[Union[str, Measure] ,float]  ]  ] ]:
     """
     GridScan applies a set of named parameters on a given pipeline and evaluates the outcome. The topics and qrels 
     must be specified. The trec_eval measure names can be optionally specified.

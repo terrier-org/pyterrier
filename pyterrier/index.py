@@ -13,7 +13,7 @@ from enum import Enum
 import pyterrier as pt
 
 @deprecated(version='0.11.0', reason="use pt.terrier.IterDictIndexer() instead")
-class IterDictIndexer(pt.terrier.IterDictIndexer):
+class IterDictIndexer(pt.terrier.IterDictIndexer): # type: ignore[valid-type,misc] # IterDictIndexer can be either fifo or non-fifo version
     pass
 
 @deprecated(version='0.11.0', reason="use pt.terrier.DFIndexer() instead")

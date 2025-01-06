@@ -13,7 +13,7 @@ import math
 from warnings import warn
 from deprecated import deprecated
 from collections import deque
-from typing import List, Dict, Union, Any, Callable
+from typing import List, Dict, Union, Any, Callable, Type
 import more_itertools
 import pyterrier as pt
 from pyterrier.terrier.stemmer import TerrierStemmer
@@ -49,7 +49,6 @@ def createCollection(files_path : List[str], coll_type : str = 'trec', props = {
         collectionClzName = type_to_class[coll_type]
     else:
         collectionClzName = coll_type
-    collectionClzName = collectionClzName.split(",")
     _props = pt.java.J.HashMap()
     for k, v in props.items():
         _props[k] = v
@@ -60,7 +59,7 @@ def createCollection(files_path : List[str], coll_type : str = 'trec', props = {
         raise ValueError("list files_path cannot be empty")
     asList = createAsList(files_path)
     colObj = pt.terrier.J.CollectionFactory.loadCollections(
-        collectionClzName,
+        collectionClzName.split(","),
         [cls_list, cls_string, cls_string, cls_string],
         [asList, pt.terrier.J.TagSet.TREC_DOC_TAGS, "", ""])
     return colObj
@@ -811,6 +810,7 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
 
 # Windows doesn't support fifos -- so we have 2 versions.
 # Choose which one to expose based on whether os.mkfifo exists.
+IterDictIndexer: Type[Union[_IterDictIndexer_fifo, _IterDictIndexer_nofifo]]
 if hasattr(os, 'mkfifo'):
     IterDictIndexer = _IterDictIndexer_fifo
 else:
