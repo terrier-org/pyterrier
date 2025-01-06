@@ -25,6 +25,7 @@ from pyterrier import transformer
 from pyterrier import datasets
 from pyterrier.datasets import get_dataset, find_datasets, list_datasets
 from pyterrier.pipelines import Experiment, GridScan, GridSearch, KFoldGridSearch, Evaluate
+from pyterrier import apply as _apply_base
 
 # old name
 Utils = utils
@@ -33,6 +34,8 @@ Utils = utils
 IndexRef = None
 # will be set in once utils.set_tqdm() once _() runs
 tqdm = None
+
+apply: '_apply_base._apply'
 
 
 # deprecated functions explored to the main namespace, which will be removed in a future version
