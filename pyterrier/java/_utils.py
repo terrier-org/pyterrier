@@ -1,7 +1,7 @@
 import sys
 import warnings
 from functools import wraps
-from typing import Dict, Any, Tuple, Callable, Optional, Union
+from typing import Dict, Any, Tuple, Callable, Optional, Union, TypeVar
 from copy import deepcopy
 import pyterrier as pt
 
@@ -19,8 +19,10 @@ _configs = {}
 # already started).
 # ----------------------------------------------------------
 
+T = TypeVar("T", bound=Callable[..., Any])
+
 @pt.utils.pre_invocation_decorator
-def required(fn: Callable):
+def required(fn: T) -> None:
     """
     Requires the Java Virtual Machine to be started. If the JVM has not yet been started, it runs pt.java.init().
 
@@ -31,14 +33,10 @@ def required(fn: Callable):
         trigger = fn.__qualname__ if hasattr(fn, '__qualname__') else fn.__name__
         _init(trigger=trigger)
 
-
-def required_raise(fn: Optional[Callable] = None) -> Union[Callable, bool]:
+def required_raise(fn: T) -> T:
     """
     Similar to `pt.java.required`, but raises an error if called before pt.java.init().
     """
-    if fn is None:
-        return required_raise(pt.utils.noop)()
-
     @wraps(fn)
     def _wrapper(*args, **kwargs):
         if not started():
@@ -47,15 +45,10 @@ def required_raise(fn: Optional[Callable] = None) -> Union[Callable, bool]:
     return _wrapper
 
 
-def before_init(fn: Optional[Callable] = None) -> Union[Callable, bool]:
+def before_init(fn: T) -> T:
     """
     If the JVM has already started, an error is raised.
-
-    Can be used as either a standalone function or a function decorator.
     """
-    if fn is None:
-        return before_init(pt.utils.noop)()
-
     @wraps(fn)
     def _wrapper(*args, **kwargs):
         if started():
@@ -394,7 +387,7 @@ class JavaClasses:
         return list(self._mapping.keys())
 
     @required_raise
-    def __getattr__(self, key):
+    def __getattr__(self, key: str) -> Any:
         if key not in self._mapping:
             return AttributeError(f'{self} has no attribute {key!r}')
         if key not in self._cache:
