@@ -105,7 +105,7 @@ type.
     >>> artifact.to_zenodo()
 
 Note that at this point, the artifact is not yet published. :meth:`~pyterrier.Artifact.to_zenodo` prints the URL
-of the uplaod. You will need to complete the provided form (e.g., adding title, authors, etc.) and publish
+of the upload. You will need to complete the provided form (e.g., adding title, authors, etc.) and publish
 before it is accessible to others.
 
 .. note::
@@ -154,14 +154,14 @@ The above command will initiate a peer-to-peer transfer using `magic-wormhole <h
 and return the loaded artifact.
 
 .. note::
-    You need to have the package ``magic-wormhole`` installed to use P2P sharing.
+    You need to have the Python package ``magic-wormhole`` installed to use P2P sharing.
 
 
 Sharing Artifacts with Other Services
 =================================================
 
 You can share an artifact anywhere that you can host the artifact distribution package file. You can construct
-the pckage using :meth:`~pyterrier.Artifact.build_package` and then upload the file to your desired service.
+the package using :meth:`~pyterrier.Artifact.build_package` and then upload the file to your desired service.
 
 To load an artifact that is shared this way, you just need the URL of the artifact distribution package file,
 which can be passed to :meth:`~pyterrier.Artifact.from_url`.
