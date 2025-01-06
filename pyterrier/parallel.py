@@ -27,7 +27,7 @@ def _joblib_with_initializer(p, _f_init, args=None):
 
 def _check_ray():
     try:
-        import ray
+        import ray # type: ignore
     except ImportError:
         raise NotImplementedError("ray is not installed. Run pip install ray")
     if not ray.is_initialized():
@@ -45,7 +45,7 @@ def parallel_lambda(function, inputs, jobs, backend='joblib'):
         return _parallel_lambda_joblib(function, inputs, jobs)
 
 def _parallel_lambda_ray(function, inputs, jobs):
-    from ray.util.multiprocessing import Pool
+    from ray.util.multiprocessing import Pool # type: ignore
     with Pool(jobs, pt.java.parallel_init, pt.java.parallel_init_args()) as pool:
         return pool.map(function, inputs)
 
