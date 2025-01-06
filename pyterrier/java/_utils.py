@@ -1,6 +1,7 @@
 import sys
 import warnings
 from functools import wraps
+import typing
 from typing import Dict, Any, Tuple, Callable, Optional, Union, TypeVar
 from copy import deepcopy
 import pyterrier as pt
@@ -42,7 +43,7 @@ def required_raise(fn: T) -> T:
         if not started():
             raise RuntimeError(f'You need to call pt.java.init() required before you can call {fn}')
         return fn(*args, **kwargs)
-    return _wrapper
+    return typing.cast(T, _wrapper)
 
 
 def before_init(fn: T) -> T:
@@ -54,7 +55,7 @@ def before_init(fn: T) -> T:
         if started():
             raise RuntimeError(f'You can only call {fn} before either you start using java or call pt.java.init()')
         return fn(*args, **kwargs)
-    return _wrapper
+    return typing.cast(T, _wrapper)
 
 
 # ----------------------------------------------------------

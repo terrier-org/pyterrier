@@ -1,6 +1,6 @@
 import inspect
 import sys
-from typing import Tuple, List, Callable, Dict, Set
+from typing import Tuple, List, Callable, Dict, Set, Sequence
 import platform
 from functools import wraps
 from importlib.metadata import EntryPoint
@@ -109,7 +109,7 @@ def entry_points(group: str) -> Tuple[EntryPoint, ...]:
     try:
         orig_res = tuple(eps(group=group))
     except TypeError:
-        orig_res = tuple(eps().get(group, tuple()))
+        orig_res = tuple(eps().get(group, tuple())) # type: ignore # support EntryPoints.get() API on older python versions
 
     names = set()
     res = []
@@ -169,7 +169,7 @@ def get_class_methods(cls) -> List[Tuple[str, Callable]]:
     Returns methods defined directly by the provided class. This will ignore inherited methods unless they are
     overridden by this class.
     """
-    all_attrs = inspect.getmembers(cls, predicate=inspect.isfunction)
+    all_attrs: Sequence[Tuple[str, Callable]] = inspect.getmembers(cls, predicate=inspect.isfunction)
 
     base_attrs : Set[str] = set()
     for base in cls.__bases__:
