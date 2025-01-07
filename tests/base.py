@@ -13,7 +13,7 @@ class BaseTestCase(unittest.TestCase):
             terrier_version = os.environ.get("TERRIER_VERSION", None)
             terrier_helper_version = os.environ.get("TERRIER_HELPER_VERSION", None)
 
-            # display for debugging what is being used
+            # display for debugging what is being used - the env-vars are picked up in pt/terrier/java.py
             if terrier_version is not None:
                 print("Testing with Terrier version " + terrier_version)
             if terrier_helper_version is not None:
