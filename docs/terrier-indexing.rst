@@ -90,7 +90,7 @@ Similarly, indexing of JSONL files is similarly a few lines of Python::
       import json
       with open(filename, 'rt') as file:
         for l in file:
-          # assumes that each line contains 'docno', 'text' attributes
+          # assumes that each line contains 'docno', 'text' attributes
           # yields a dictionary for each json line 
           yield json.loads(l)
 
@@ -182,7 +182,12 @@ All indexer classes expose a `blocks` boolean constructor argument to allow posi
 
 **Fields**
 
-Fields refers to storing the frequency of a terms occurrence in different parts of a document, e.g. title vs body vs anchor text. In the IterDictIndexer, fields are set in the `index()` method; otherwise the `"FieldTags.process"` property must be set. See the Terrier `indexing documentation on fields <https://github.com/terrier-org/terrier-core/blob/5.x/doc/configure_indexing.md#fields>`_ for more information. 
+Fields refers to storing the frequency of a terms occurrence in different parts of a document, e.g. title vs body vs anchor text. FieldsIterDictIndexer provides an interface to create an index with fields. 
+
+.. autoclass:: pyterrier.terrier.FieldsIterDictIndexer
+   :members: index
+
+See the Terrier `indexing documentation on fields <https://github.com/terrier-org/terrier-core/blob/5.x/doc/configure_indexing.md#fields>`_ for more information. 
 
 **Changing the tags parsed by TREC Collection** 
 

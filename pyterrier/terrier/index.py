@@ -646,7 +646,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
         """
 
         if fields is not None:
-            raise NotImplementedError("Use FieldIterDictIndexer instead for indexing fields")
+            raise NotImplementedError("Use FieldsIterDictIndexer instead for indexing fields")
 
         self._setup(self.meta, None)
         assert self.threads == 1, 'IterDictIndexer does not support multiple threads on Windows'
@@ -692,7 +692,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
 
         return indexref
 
-class _FieldIterDictIndexer_nofifo(_IterDictIndexer_nofifo):
+class _FieldsIterDictIndexer_nofifo(_IterDictIndexer_nofifo):
     def __init__(self, index_path, fields : List[str], *args, pretokenised=False, **kwargs):
             if pretokenised:
                 raise ValueError("pretokenised not supported for fields")
@@ -755,7 +755,7 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
         ParallelIndexer = pt.terrier.J.ParallelIndexer
 
         if fields is not None:
-            raise NotImplementedError("Use FieldIterDictIndexer instead for indexing fields")
+            raise NotImplementedError("Use FieldsIterDictIndexer instead for indexing fields")
 
         self._setup(self.meta, None)
 
@@ -848,13 +848,13 @@ IterDictIndexer: Type[Union[_IterDictIndexer_fifo, _IterDictIndexer_nofifo]]
 if hasattr(os, 'mkfifo'):
     #IterDictIndexer = _IterDictIndexer_nofifo
     IterDictIndexer = _IterDictIndexer_fifo
-    FieldIterDictIndexer = _FieldIterDictIndexer_nofifo
+    FieldsIterDictIndexer = _FieldsIterDictIndexer_nofifo
 else:
     IterDictIndexer = _IterDictIndexer_nofifo
-    FieldIterDictIndexer = _FieldIterDictIndexer_nofifo
+    FieldsIterDictIndexer = _FieldsIterDictIndexer_nofifo
  # trick sphinx into not using "alias of"
 IterDictIndexer.__name__ = 'IterDictIndexer'
-FieldIterDictIndexer.__name__ = 'FieldIterDictIndexer'
+FieldsIterDictIndexer.__name__ = 'FieldsIterDictIndexer'
 
 class TRECCollectionIndexer(TerrierIndexer):
 

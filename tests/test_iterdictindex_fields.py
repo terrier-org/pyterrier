@@ -21,9 +21,9 @@ class TestIterDictIndexer(TempDirTestCase):
         from pyterrier.terrier.index import IndexingType
         # Test both versions: _fifo (for UNIX) and _nofifo (for Windows)
         indexers = [
-            #pt.index._FieldIterDictIndexer_fifo(self.test_dir, type=index_type, meta=meta),
-            #pt.index._FieldIterDictIndexer_fifo(self.test_dir, type=index_type, threads=4, meta=meta),
-            pt.index._FieldIterDictIndexer_nofifo(self.test_dir, fields, type=index_type, meta=meta),
+            #pt.index._FieldsIterDictIndexer_fifo(self.test_dir, type=index_type, meta=meta),
+            #pt.index._FieldsIterDictIndexer_fifo(self.test_dir, type=index_type, threads=4, meta=meta),
+            pt.index._FieldsIterDictIndexer_nofifo(self.test_dir, fields, type=index_type, meta=meta),
         ]
         if pt.utils.is_windows():
            indexers = [indexers[-1]] 
