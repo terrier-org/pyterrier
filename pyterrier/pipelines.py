@@ -390,7 +390,7 @@ def _run_and_evaluate(
                 batch_qrels = qrels[qrels.query_id.isin(batch_qids)] # filter qrels down to just the qids that appear in this batch
                 remaining_qrel_qids.difference_update(batch_qids)
                 batch_backfill = [qid for qid in backfill_qids if qid in batch_qids] if backfill_qids is not None else None
-                evalMeasuresDict.update(_ir_measures_to_dict(
+                evalMeasuresDict.update(_ir_measures_to_dict( # type: ignore[arg-type]
                     ir_measures.iter_calc(metrics, batch_qrels, res.rename(columns=_irmeasures_columns)),
                     metrics,
                     rev_mapping,
@@ -408,7 +408,7 @@ def _run_and_evaluate(
             # there are some qids in the qrels that were not in the topics. Get the default values for these and update evalMeasuresDict
             missing_qrels = qrels[qrels.query_id.isin(remaining_qrel_qids)]
             empty_res = pd.DataFrame([], columns=['query_id', 'doc_id', 'score'])
-            evalMeasuresDict.update(_ir_measures_to_dict(
+            evalMeasuresDict.update(_ir_measures_to_dict( # type: ignore[arg-type]
                 ir_measures.iter_calc(metrics, missing_qrels, empty_res),
                 metrics,
                 rev_mapping,
@@ -416,7 +416,7 @@ def _run_and_evaluate(
                 perquery=True))
         if not perquery:
             # aggregate measures if not in per query mode
-            aggregators = {rev_mapping.get(m, str(m)): m.aggregator() for m in metrics}
+            aggregators: Dict[str, Any] = {rev_mapping.get(m, str(m)): m.aggregator() for m in metrics}
             q : str
             for q in evalMeasuresDict:
                 for metric in metrics:
@@ -711,7 +711,7 @@ def Experiment(
                 baselinePerQuery[m] = np.array([ evalDictsPerQ[baseline][q][m] for q in evalDictsPerQ[baseline] ])
 
             for i in range(0, len(retr_systems)):
-                additionals=[]
+                additionals: List[Optional[Union[float, int, complex]]] = []
                 if i == baseline:
                     additionals = [None] * (3*len(per_q_metrics))
                 else:
@@ -720,7 +720,7 @@ def Experiment(
                         perQuery = np.array( [ evalDictsPerQ[i][q][m] for q in evalDictsPerQ[baseline] ])
                         delta_plus = (perQuery > baselinePerQuery[m]).sum()
                         delta_minus = (perQuery < baselinePerQuery[m]).sum()
-                        p = test_fn(perQuery, baselinePerQuery[m])[1]
+                        p = test_fn(perQuery, baselinePerQuery[m])[1] # type: ignore[arg-type]
                         additionals.extend([delta_plus, delta_minus, p])
                 evalsRows[i].extend(additionals)
             delta_names=[]
