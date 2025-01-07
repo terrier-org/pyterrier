@@ -558,6 +558,7 @@ class _BaseIterDictIndexer(TerrierIndexer, pt.Indexer):
             self.stopwords = None
 
     def _setup_fields(self, fields):
+        # this assumes a one-to-one mapping between dataframe columns and fields. ELSE field is not yet supported.
         self.setProperties(**{
                 'FieldTags.process': ','.join(fields),
                 'FieldTags.casesensitive': 'true',
@@ -694,7 +695,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
         return indexref
 
 class _FieldIterDictIndexer_nofifo(_IterDictIndexer_nofifo):
-    def __init__(self, index_path, fields : Union[List[str], Dict[str,str]], *args, pretokenised=False, **kwargs):
+    def __init__(self, index_path, fields : List[str], *args, pretokenised=False, **kwargs):
             if pretokenised:
                 raise ValueError("pretokenised not supported for fields")
             
