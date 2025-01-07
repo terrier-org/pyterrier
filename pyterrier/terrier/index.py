@@ -850,6 +850,7 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
 # Windows doesn't support fifos -- so we have 2 versions.
 # Choose which one to expose based on whether os.mkfifo exists.
 IterDictIndexer: Type[Union[_IterDictIndexer_fifo, _IterDictIndexer_nofifo]]
+FieldsIterDictIndexer: Type[_IterDictIndexer_nofifo]
 if hasattr(os, 'mkfifo'):
     #IterDictIndexer = _IterDictIndexer_nofifo
     IterDictIndexer = _IterDictIndexer_fifo
