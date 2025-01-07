@@ -647,7 +647,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
 
         if fields is not None:
             if len(fields) > 1:
-                raise NotImplementedError("Use FieldsIterDictIndexer instead for indexing fields")
+                raise NotImplementedError("Use FieldsIterDictIndexer instead for indexing with fields")
             raise ValueError("Specify the text attribute to index in the constructor.")
 
         self._setup(self.meta, None)
@@ -758,7 +758,7 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
 
         if fields is not None:
             if len(fields) > 1:
-                raise NotImplementedError("Use FieldsIterDictIndexer instead for indexing fields")
+                raise NotImplementedError("Use FieldsIterDictIndexer instead for indexing with fields")
             raise ValueError("Specify the text attribute to index in the constructor.")
         
         self._setup(self.meta, None)
