@@ -3,7 +3,7 @@ import os
 import sys
 import pandas as pd
 import numpy as np
-from typing import Callable, Iterator, Union, Dict, List, Tuple, Sequence, Any, Literal, Optional
+from typing import Callable, Iterator, Union, Dict, List, Tuple, Sequence, Any, Literal, Optional, overload
 import types
 from . import Transformer
 from .model import coerce_dataframe_types
@@ -166,13 +166,13 @@ def _identifyCommon(pipes : List[Union[pt.Transformer, pd.DataFrame]]) -> Tuple[
     # no precomputation for single-system case
     if len(pipes) == 1:
         return None, pipes
-    pipe_lists = []
+    pipe_lists: List[List[pt.Transformer]] = []
     for p in pipes:
         # no optimisation possible for experiments involving dataframes as systems
         if isinstance(p, pd.DataFrame):
             return None, pipes
         if isinstance(p, Compose):
-            pipe_lists.append(p._transformers)
+            pipe_lists.append(list(p._transformers))
         else:
             if not isinstance(p, pt.Transformer):
                 raise ValueError("pt.Experiment has systems that are not either DataFrames or Transformers")
@@ -212,12 +212,12 @@ def _precomputation(
     # on that prefix, and returns that, which is used later for evaluating the remainder
     # of each pipeline.
 
-    tqdm_args_precompute={
+    tqdm_args_precompute: Dict[str, Any] = {
         'disable' : not verbose,
     }
     
     common_pipe, execution_retr_systems = _identifyCommon(retr_systems)
-    precompute_time = 0
+    precompute_time = 0.
     if precompute_prefix and common_pipe is not None: 
         print("Precomputing results of %d topics on shared pipeline component %s" % (len(topics), str(common_pipe)), file=sys.stderr)
 
@@ -232,8 +232,9 @@ def _precomputation(
             # round number of batches up for each system
             tqdm_args_precompute['total'] = math.ceil((len(topics) / batch_size))
             with pt.tqdm(**tqdm_args_precompute) as pbar:
-                precompute_results = []
+                precompute_results : List[pd.DataFrame] = []
                 for r in common_pipe.transform_gen(topics, batch_size=batch_size):
+                    assert isinstance(r, pd.DataFrame) # keep mypy happy
                     precompute_results.append(r)
                     pbar.update(1)
                 execution_topics = pd.concat(precompute_results)
@@ -246,7 +247,7 @@ def _precomputation(
                 pbar.update(1)
         
         endtime = timer()
-        precompute_time = (endtime - starttime) * 1000.
+        precompute_time = float(endtime - starttime) * 1000.
 
     elif precompute_prefix and common_pipe is None:
         warn('precompute_prefix was True for pt.Experiment, but no common pipeline prefix was found among %d pipelines' % len(retr_systems))
@@ -275,7 +276,7 @@ def _run_and_evaluate(
     from .io import read_results, write_results
 
     if pbar is None:
-        pbar = pt.tqdm(disable=True) # type: ignore
+        pbar = pt.tqdm(disable=True)
 
     metrics, rev_mapping = _convert_measures(metrics)
     qrels = qrels.rename(columns={'qid': 'query_id', 'docno': 'doc_id', 'label': 'relevance'})
@@ -334,7 +335,7 @@ def _run_and_evaluate(
         starttime = timer()
         res = system.transform(topics)
         endtime = timer()
-        runtime =  (endtime - starttime) * 1000.
+        runtime =  float(endtime - starttime) * 1000.
 
         # write results to save_file; we can be sure this file does not exist
         if save_file is not None:
@@ -389,7 +390,7 @@ def _run_and_evaluate(
                 batch_qrels = qrels[qrels.query_id.isin(batch_qids)] # filter qrels down to just the qids that appear in this batch
                 remaining_qrel_qids.difference_update(batch_qids)
                 batch_backfill = [qid for qid in backfill_qids if qid in batch_qids] if backfill_qids is not None else None
-                evalMeasuresDict.update(_ir_measures_to_dict(
+                evalMeasuresDict.update(_ir_measures_to_dict( # type: ignore[arg-type]
                     ir_measures.iter_calc(metrics, batch_qrels, res.rename(columns=_irmeasures_columns)),
                     metrics,
                     rev_mapping,
@@ -407,7 +408,7 @@ def _run_and_evaluate(
             # there are some qids in the qrels that were not in the topics. Get the default values for these and update evalMeasuresDict
             missing_qrels = qrels[qrels.query_id.isin(remaining_qrel_qids)]
             empty_res = pd.DataFrame([], columns=['query_id', 'doc_id', 'score'])
-            evalMeasuresDict.update(_ir_measures_to_dict(
+            evalMeasuresDict.update(_ir_measures_to_dict( # type: ignore[arg-type]
                 ir_measures.iter_calc(metrics, missing_qrels, empty_res),
                 metrics,
                 rev_mapping,
@@ -415,12 +416,12 @@ def _run_and_evaluate(
                 perquery=True))
         if not perquery:
             # aggregate measures if not in per query mode
-            aggregators = {rev_mapping.get(m, str(m)): m.aggregator() for m in metrics}
+            aggregators: Dict[str, Any] = {rev_mapping.get(m, str(m)): m.aggregator() for m in metrics}
             q : str
             for q in evalMeasuresDict:
                 for metric in metrics:
                     s_metric = rev_mapping.get(metric, str(metric))
-                    aggregators[s_metric].add(evalMeasuresDict[q][s_metric])
+                    aggregators[s_metric].add(evalMeasuresDict[q][s_metric]) #type: ignore
             evalMeasuresDict = {m: agg.result() for m, agg in aggregators.items()}
     return (runtime, evalMeasuresDict)
 
@@ -633,7 +634,7 @@ def Experiment(
         # round number of batches up for each system
         tqdm_args['total'] = math.ceil((len(topics) / batch_size)) * len(retr_systems)
 
-    with pt.tqdm(**tqdm_args) as pbar: # type: ignore
+    with pt.tqdm(**tqdm_args) as pbar:
         # run and evaluate each system
         for name, system in zip(names, execution_retr_systems):
             save_file = None
@@ -710,7 +711,7 @@ def Experiment(
                 baselinePerQuery[m] = np.array([ evalDictsPerQ[baseline][q][m] for q in evalDictsPerQ[baseline] ])
 
             for i in range(0, len(retr_systems)):
-                additionals=[]
+                additionals: List[Optional[Union[float, int, complex]]] = []
                 if i == baseline:
                     additionals = [None] * (3*len(per_q_metrics))
                 else:
@@ -719,7 +720,7 @@ def Experiment(
                         perQuery = np.array( [ evalDictsPerQ[i][q][m] for q in evalDictsPerQ[baseline] ])
                         delta_plus = (perQuery > baselinePerQuery[m]).sum()
                         delta_minus = (perQuery < baselinePerQuery[m]).sum()
-                        p = test_fn(perQuery, baselinePerQuery[m])[1]
+                        p = test_fn(perQuery, baselinePerQuery[m])[1] # type: ignore[arg-type]
                         additionals.extend([delta_plus, delta_minus, p])
                 evalsRows[i].extend(additionals)
             delta_names=[]
@@ -812,7 +813,7 @@ def KFoldGridSearch(
         jobs : int = 1,
         backend='joblib',
         verbose: bool = False,
-        batch_size : Optional[int] = None) -> Tuple[pd.DataFrame, GRID_SEARCH_RETURN_TYPE_SETTING]:
+        batch_size : Optional[int] = None) -> Tuple[pd.DataFrame, List[List[GRID_SCAN_PARAM_SETTING]]]:
     """
     Applies a GridSearch using different folds. It returns the *results* of the 
     tuned transformer pipeline on the test topics. The number of topics dataframes passed
@@ -903,6 +904,48 @@ def KFoldGridSearch(
     
     return (pd.concat(results), settings)
 
+@overload
+def GridSearch(
+        pipeline : Transformer,
+        params : Dict[Transformer,Dict[str,List[TRANSFORMER_PARAMETER_VALUE_TYPE]]],
+        topics : pd.DataFrame,
+        qrels : pd.DataFrame,
+        metric : MEASURE_TYPE,
+        jobs : int,
+        backend: str,
+        verbose: bool ,
+        batch_size : Optional[int],
+        return_type : Literal['opt_pipeline'],
+    ) -> Transformer: ...
+
+@overload
+def GridSearch(
+        pipeline : Transformer,
+        params : Dict[Transformer,Dict[str,List[TRANSFORMER_PARAMETER_VALUE_TYPE]]],
+        topics : pd.DataFrame,
+        qrels : pd.DataFrame,
+        metric : MEASURE_TYPE,
+        jobs : int,
+        backend: str,
+        verbose: bool ,
+        batch_size : Optional[int],
+        return_type : Literal['best_setting'],
+    ) -> GRID_SEARCH_RETURN_TYPE_SETTING: ...
+
+@overload
+def GridSearch(
+        pipeline : Transformer,
+        params : Dict[Transformer,Dict[str,List[TRANSFORMER_PARAMETER_VALUE_TYPE]]],
+        topics : pd.DataFrame,
+        qrels : pd.DataFrame,
+        metric : MEASURE_TYPE,
+        jobs : int,
+        backend: str,
+        verbose: bool ,
+        batch_size : Optional[int],
+        return_type : Literal['both'],
+    ) -> GRID_SEARCH_RETURN_TYPE_BOTH: ...
+
 def GridSearch(
         pipeline : Transformer,
         params : Dict[Transformer,Dict[str,List[TRANSFORMER_PARAMETER_VALUE_TYPE]]],
@@ -988,7 +1031,7 @@ def GridScan(
         verbose: bool = False,
         batch_size = None,
         dataframe = True,
-    ) -> Union[pd.DataFrame, List [ Tuple [ List[ GRID_SCAN_PARAM_SETTING ], Dict[str,float]  ]  ] ]:
+    ) -> Union[pd.DataFrame, List [ Tuple [ List[ GRID_SCAN_PARAM_SETTING ], Dict[Union[str, Measure] ,float]  ]  ] ]:
     """
     GridScan applies a set of named parameters on a given pipeline and evaluates the outcome. The topics and qrels 
     must be specified. The trec_eval measure names can be optionally specified.
@@ -1043,11 +1086,10 @@ def GridScan(
 
     # Store the all parameter names and candidate values into a dictionary, keyed by a tuple of the transformer and the parameter name
     # such as {(Retriever, 'wmodel'): ['BM25', 'PL2'], (Retriever, 'c'): [0.1, 0.2, 0.3], (Bla, 'lr'): [0.001, 0.01, 0.1]}
-    candi_dict={}
+    candi_dict: Dict[Tuple[Transformer, str], List[TRANSFORMER_PARAMETER_VALUE_TYPE]] = {}
     for tran, param_set in params.items():
         for param_name, values in param_set.items():
             candi_dict[ (tran, param_name) ] = values
-    #candi_dict = { : params[tran][param_name] for tran in params for param_name in params[tran]}
     if len(candi_dict) == 0:
         raise ValueError("No parameters specified to optimise")
     for tran, param in candi_dict:
@@ -1056,8 +1098,8 @@ def GridScan(
         except Exception:
             raise ValueError("Transformer %s does not expose a parameter named %s" % (str(tran), param))
     
-    keys,values = zip(*candi_dict.items())
-    combinations = list(itertools.product(*values))
+    keys, vals = zip(*candi_dict.items())
+    combinations = list(itertools.product(*vals))
     assert len(combinations) > 0, "No combinations selected"
 
     def _evaluate_one_setting(keys, values):
@@ -1080,7 +1122,7 @@ def GridScan(
     eval_list = []
     #for each combination of parameter values
     if jobs == 1:
-        for v in pt.tqdm(combinations, total=len(combinations), desc="GridScan", mininterval=0.3) if verbose else combinations: # type: ignore
+        for v in pt.tqdm(combinations, total=len(combinations), desc="GridScan", mininterval=0.3) if verbose else combinations:
             parameter_list, eval_scores = _evaluate_one_setting(keys, v)
             eval_list.append( (parameter_list, eval_scores) )
     else:

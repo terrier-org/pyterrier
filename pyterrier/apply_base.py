@@ -92,7 +92,7 @@ class ApplyByRowTransformer(pt.Transformer):
         # batching
         iterator = pt.model.split_df(inp, batch_size=self.batch_size)
         if self.verbose:
-            iterator = pt.tqdm(iterator, desc="pt.apply", unit='row') # type: ignore 
+            iterator = pt.tqdm(iterator, desc="pt.apply", unit='row')
         return pd.concat([self._apply_df(chunk_df) for chunk_df in iterator])
 
     def _apply_df(self, inp: pd.DataFrame) -> pd.DataFrame:
@@ -148,7 +148,7 @@ class ApplyForEachQuery(pt.Transformer):
         it = res.groupby("qid")
         lastqid = None
         if self.verbose:
-            it = pt.tqdm(it, unit='query') # type: ignore
+            it = pt.tqdm(it, unit='query')
         try:
             if self.batch_size is None:
                 query_dfs = []
@@ -279,7 +279,7 @@ class ApplyDocumentScoringTransformer(pt.Transformer):
 
         iterator = pt.model.split_df(outputRes, batch_size=self.batch_size)
         if self.verbose:
-            iterator = pt.tqdm(iterator, desc="pt.apply", unit='row') # type: ignore
+            iterator = pt.tqdm(iterator, desc="pt.apply", unit='row')
         rtr = pd.concat([self._transform_batchwise(chunk_df) for chunk_df in iterator])
         rtr = pt.model.add_ranks(rtr)
         return rtr
@@ -317,7 +317,7 @@ class ApplyDocFeatureTransformer(pt.Transformer):
         # we assume that the function can take a dictionary as well as a pandas.Series. As long as [""] notation is used
         # to access fields, both should work
         if self.verbose:
-            inp = pt.tqdm(inp, desc="pt.apply.doc_features") # type: ignore
+            inp = pt.tqdm(inp, desc="pt.apply.doc_features")
         for row in inp:
             row["features"] = self.fn(row)
             yield row
@@ -326,7 +326,7 @@ class ApplyDocFeatureTransformer(pt.Transformer):
         fn = self.fn
         outputRes = inp.copy()
         if self.verbose:
-            pt.tqdm.pandas(desc="pt.apply.doc_features", unit="d") # type: ignore
+            pt.tqdm.pandas(desc="pt.apply.doc_features", unit="d")
             outputRes["features"] = outputRes.progress_apply(fn, axis=1) # type: ignore
         else:
             outputRes["features"] = outputRes.apply(fn, axis=1)
@@ -372,7 +372,7 @@ class ApplyQueryTransformer(pt.Transformer):
         # we assume that the function can take a dictionary as well as a pandas.Series. As long as [""] notation is used
         # to access fields, both should work
         if self.verbose:
-            inp = pt.tqdm(inp, desc="pt.apply.query") # type: ignore
+            inp = pt.tqdm(inp, desc="pt.apply.query")
         for row in inp:
             row = row.copy()
             if "query" in row:
@@ -388,7 +388,7 @@ class ApplyQueryTransformer(pt.Transformer):
             outputRes = inp.copy()
         try:
             if self.verbose:
-                pt.tqdm.pandas(desc="pt.apply.query", unit="d") # type: ignore
+                pt.tqdm.pandas(desc="pt.apply.query", unit="d")
                 outputRes["query"] = outputRes.progress_apply(self.fn, axis=1) # type: ignore
             else:
                 outputRes["query"] = outputRes.apply(self.fn, axis=1)
@@ -448,7 +448,7 @@ class ApplyGenericTransformer(pt.Transformer):
         # batching
         iterator = pt.model.split_df(inp, batch_size=self.batch_size)
         if self.verbose:
-            iterator = pt.tqdm(iterator, desc="pt.apply", unit='row') # type: ignore
+            iterator = pt.tqdm(iterator, desc="pt.apply", unit='row')
         rtr = pd.concat([self.fn(chunk_df) for chunk_df in iterator])
         return rtr
 

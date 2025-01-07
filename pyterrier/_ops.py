@@ -2,7 +2,7 @@ from .transformer import Transformer, Estimator, get_transformer, SupportsFuseFe
 from .model import add_ranks
 from collections import deque
 from warnings import warn
-from typing import Optional, Iterable, Tuple
+from typing import Optional, Iterable, Tuple, Iterator
 from itertools import chain
 import pandas as pd
 import pyterrier as pt
@@ -30,9 +30,16 @@ class NAryTransformerBase(Transformer):
         """
         return len(self._transformers)
 
-def _flatten(transformers: Iterable[Transformer], cls: type) -> Tuple[Transformer]:
-    return list(chain.from_iterable(
-        (t._transformers if isinstance(t, cls) else [t]) # type: ignore
+    def __iter__(self) -> Iterator[Transformer]:
+        """
+            Returns an iterator over the transformers in this pipeline.
+        """
+        return iter(self._transformers)
+
+
+def _flatten(transformers: Iterable[Transformer], cls: type) -> Tuple[Transformer, ...]:
+    return tuple(chain.from_iterable(
+        (t._transformers if isinstance(t, cls) else [t]) # type: ignore[attr-defined]
         for t in transformers
     ))
 
@@ -338,17 +345,13 @@ class Compose(NAryTransformerBase):
         """
         from more_itertools import chunked
         
-        if len(self._transformers) > 2:
-            #this compose could have > 2 models. we need a composite transform() on all but the last
-            prev_transformer = Compose(*self._transformers[0:-1])
-        else:
-            prev_transformer = self._transformers[0]
+        prev_transformer = Compose(*self._transformers[0:-1])
         last_transformer = self._transformers[-1]
 
         # guess a good batch size from the batch_size of individual components earlier in the pipeline
         if batch_size is None:
             batch_size = 100 # default to 100 as a reasonable minimum (and fallback if no batch sizes found)
-            for tr in prev_transformer if len(self._transformers) > 2 else [prev_transformer]:
+            for tr in prev_transformer:
                 if hasattr(tr, 'batch_size') and isinstance(tr.batch_size, int) and tr.batch_size > batch_size:
                     batch_size = tr.batch_size
 

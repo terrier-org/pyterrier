@@ -115,7 +115,7 @@ def print_rows(
         if columns is not None:
             render = render[columns]
         if jupyter:
-            from IPython.display import display
+            from IPython.display import display # type: ignore
             display(render)
         else:
             print(render)

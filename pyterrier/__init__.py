@@ -1,6 +1,7 @@
 __version__ = '0.12.1'
 # NB: version number must be the first line and must use single quotes for the sed expression in .github/workflows/publish-to-pypi.yml
 
+from typing import Any
 from deprecated import deprecated
 
 from pyterrier import model, utils
@@ -25,14 +26,17 @@ from pyterrier import transformer
 from pyterrier import datasets
 from pyterrier.datasets import get_dataset, find_datasets, list_datasets
 from pyterrier.pipelines import Experiment, GridScan, GridSearch, KFoldGridSearch, Evaluate
+from pyterrier import apply as _apply_base
 
 # old name
 Utils = utils
 
 # will be set in terrier.terrier.java once java is loaded
 IndexRef = None
-# will be set in once utils.set_tqdm() once _() runs
-tqdm = None
+
+# these will be set once _() runs, but we need to define them here to get type checking to work properly
+tqdm: Any
+apply: _apply_base._apply
 
 
 # deprecated functions explored to the main namespace, which will be removed in a future version
