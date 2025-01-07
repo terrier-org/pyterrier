@@ -32,7 +32,7 @@ class NAryTransformerBase(Transformer):
 
     def __iter__(self) -> Iterator[Transformer]:
         """
-            Returns an iterator over the transformer sin this pipeline
+            Returns an iterator over the transformers in this pipeline.
         """
         return iter(self._transformers)
 
