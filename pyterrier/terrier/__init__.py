@@ -63,7 +63,7 @@ __all__ = [
     'BatchRetrieveBase', 'Retriever', 'RetrieverBase', 'BatchRetrieve', 'TerrierRetrieve', 'FeaturesRetriever', 'FeaturesBatchRetrieve', 'TerrierRetrieve', 'TextScorer',
 
     # indexing
-    'index', 'TerrierIndexer', 'FilesIndexer', 'TRECCollectionIndexer', 'DFIndexer', 'DFIndexUtils', 'IterDictIndexer', 'IndexingType', 'treccollection2textgen',
+    'index', 'TerrierIndexer', 'FilesIndexer', 'TRECCollectionIndexer', 'DFIndexer', 'DFIndexUtils', 'IterDictIndexer', 'FieldsIterDictIndexer', 'IndexingType', 'treccollection2textgen',
 
     # rewriting
     'rewrite',
