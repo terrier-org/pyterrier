@@ -2,7 +2,8 @@ import pyterrier as pt
 from . import Transformer, Estimator
 from .model import add_ranks
 from typing import Sequence, Union, Tuple
-import numpy as np, pandas as pd
+import numpy as np
+import pandas as pd
 
 FeatureList = Union[Sequence[int], int]
 
@@ -165,7 +166,7 @@ class FastRankEstimator(Estimator):
         
         from collections import defaultdict
         from itertools import count
-        from fastrank import CDataset
+        from fastrank import CDataset # type: ignore
         qid_map = defaultdict(count().__next__)
         features = np.stack(test_DF["features"].values).astype('float32')
         qids = test_DF["qid"].apply(lambda qid : qid_map[qid]).values

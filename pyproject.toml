@@ -51,3 +51,6 @@ CI = "https://github.com/terrier-org/pyterrier/actions"
 [project.entry-points."pyterrier.artifact.url_protocol_resolver"]
 "hf" = "pyterrier._artifact:_hf_url_resolver"
 "zenodo" = "pyterrier._artifact:_zenodo_url_resolver"
+
+[tool.mypy]
+disable_error_code = "import-untyped"

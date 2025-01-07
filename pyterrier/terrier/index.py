@@ -1,4 +1,3 @@
-# type: ignore
 """
 This file contains all the indexers.
 """
@@ -14,7 +13,7 @@ import math
 from warnings import warn
 from deprecated import deprecated
 from collections import deque
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Any, Callable, Type
 import more_itertools
 import pyterrier as pt
 from pyterrier.terrier.stemmer import TerrierStemmer
@@ -23,11 +22,11 @@ from pyterrier.terrier.stopwords import TerrierStopwords
 
 
 # These classes are only defined after pt.java.init() in pyterrier.terrier.java._post_init
-DocListIterator = None
-PythonListIterator = None
-FlatJSONDocumentIterator = None
-TQDMCollection = None
-TQDMSizeCollection = None
+DocListIterator: Any = None
+PythonListIterator: Any = None
+FlatJSONDocumentIterator: Any = None
+TQDMCollection: Any = None
+TQDMSizeCollection: Any = None
 
 # for backward compatibility
 class IterDictIndexerBase(pt.Indexer):
@@ -50,7 +49,6 @@ def createCollection(files_path : List[str], coll_type : str = 'trec', props = {
         collectionClzName = type_to_class[coll_type]
     else:
         collectionClzName = coll_type
-    collectionClzName = collectionClzName.split(",")
     _props = pt.java.J.HashMap()
     for k, v in props.items():
         _props[k] = v
@@ -61,7 +59,7 @@ def createCollection(files_path : List[str], coll_type : str = 'trec', props = {
         raise ValueError("list files_path cannot be empty")
     asList = createAsList(files_path)
     colObj = pt.terrier.J.CollectionFactory.loadCollections(
-        collectionClzName,
+        collectionClzName.split(","),
         [cls_list, cls_string, cls_string, cls_string],
         [asList, pt.terrier.J.TagSet.TREC_DOC_TAGS, "", ""])
     return colObj
@@ -264,7 +262,7 @@ class TerrierIndexer:
         self.overwrite = overwrite
         self.verbose = verbose
         self.meta_reverse = meta_reverse
-        self.cleanup_hooks = []
+        self.cleanup_hooks: List[Callable[[TerrierIndexer, Any], None]] = []
 
     def setProperty(self, k, v):
         """
@@ -332,7 +330,7 @@ class TerrierIndexer:
 
         # configure the meta index
         self.properties['indexer.meta.forward.keys'] = ','.join(self.meta.keys())
-        self.properties['indexer.meta.forward.keylens'] = ','.join([str(l) for l in self.meta.values()])
+        self.properties['indexer.meta.forward.keylens'] = ','.join([str(le) for le in self.meta.values()])
         self.properties['indexer.meta.reverse.keys'] = ','.join(self.meta_reverse)
 
         # configure the term pipeline
@@ -425,9 +423,9 @@ class DFIndexUtils:
 
     @staticmethod
     def get_column_lengths(df):
-        meta2len = dict([(v, df[v].apply(lambda r: len(str(r)) if r!=None else 0).max())for v in df.columns.values])
+        meta2len = dict([(v, df[v].apply(lambda r: len(str(r)) if r is not None else 0).max())for v in df.columns.values])
         # nan values can arise if df is empty. Here we take a metalength of 1 instead.
-        meta2len = {k : 1 if math.isnan(l) else l for k, l in meta2len.items()}
+        meta2len = {k : 1 if math.isnan(le) else le for k, le in meta2len.items()}
         return meta2len
 
     @staticmethod
@@ -787,7 +785,6 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
         return indexref
 
     def _write_fifos(self, it, fifos):
-        c = len(fifos)
         with contextlib.ExitStack() as stack:
             fifos = [stack.enter_context(open(f, 'wt')) for f in fifos]
             ready = None
@@ -813,6 +810,7 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
 
 # Windows doesn't support fifos -- so we have 2 versions.
 # Choose which one to expose based on whether os.mkfifo exists.
+IterDictIndexer: Type[Union[_IterDictIndexer_fifo, _IterDictIndexer_nofifo]]
 if hasattr(os, 'mkfifo'):
     IterDictIndexer = _IterDictIndexer_fifo
 else:
@@ -870,7 +868,8 @@ class TRECCollectionIndexer(TerrierIndexer):
         """
         self.checkIndexExists()
         index = self.createIndexer()
-        asList = createAsList(files_path)
+        if not isinstance(files_path, list):
+            raise ValueError('files_path must be a list')
 
         _TaggedDocumentSetup(self.meta, self.meta_tags)
 

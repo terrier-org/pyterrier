@@ -1,4 +1,3 @@
-# type: ignore
 # java stuff
 from pyterrier.terrier import java
 from pyterrier.terrier._index import TerrierIndex

@@ -45,3 +45,4 @@ Welcome to PyTerrier's documentation!
    :caption: Indices and tables
 
    genindex
+   bibliography

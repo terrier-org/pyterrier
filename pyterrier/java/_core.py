@@ -1,4 +1,3 @@
-# type: ignore
 import os
 from pyterrier.java import required_raise, required, before_init, started, mavenresolver, JavaClasses, JavaInitializer, register_config
 from typing import Optional
