@@ -367,11 +367,11 @@ class SlidingWindowPassager(pt.Transformer):
             self.detokenize = ' '.join
 
     def _check_columns(self, topics_and_res):
-        if not self.text_attr in topics_and_res.columns:
+        if self.text_attr not in topics_and_res.columns:
             raise KeyError("%s is a required input column, but not found in input dataframe. Found %s" % (self.text_attr, str(list(topics_and_res.columns))))
-        if self.prepend_title and not self.title_attr in topics_and_res.columns:
+        if self.prepend_title and self.title_attr not in topics_and_res.columns:
             raise KeyError("%s is a required input column, but not found in input dataframe. Set prepend_title=False to disable its use. Found %s" % (self.title_attr, str(list(topics_and_res.columns))))
-        if not "docno" in topics_and_res.columns:
+        if "docno" not in topics_and_res.columns:
             raise KeyError("%s is a required input column, but not found in input dataframe. Found %s" % ("docno", str(list(topics_and_res.columns))))
 
     def transform(self, topics_and_res):

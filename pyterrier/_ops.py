@@ -2,7 +2,7 @@ from .transformer import Transformer, Estimator, get_transformer, SupportsFuseFe
 from .model import add_ranks
 from collections import deque
 from warnings import warn
-from typing import Optional, Iterable, Tuple
+from typing import Optional, Iterable, Tuple, Iterator
 from itertools import chain
 import pandas as pd
 import pyterrier as pt
@@ -30,9 +30,16 @@ class NAryTransformerBase(Transformer):
         """
         return len(self._transformers)
 
-def _flatten(transformers: Iterable[Transformer], cls: type) -> Tuple[Transformer]:
-    return list(chain.from_iterable(
-        (t._transformers if isinstance(t, cls) else [t]) # type: ignore
+    def __iter__(self) -> Iterator[Transformer]:
+        """
+            Returns an iterator over the transformers in this pipeline.
+        """
+        return iter(self._transformers)
+
+
+def _flatten(transformers: Iterable[Transformer], cls: type) -> Tuple[Transformer, ...]:
+    return tuple(chain.from_iterable(
+        (t._transformers if isinstance(t, cls) else [t]) # type: ignore[attr-defined]
         for t in transformers
     ))
 
@@ -84,7 +91,7 @@ class SetIntersection(Transformer):
         rtr = res1.merge(res2, on=on_cols, suffixes=('','_y'))
         rtr.drop(columns=["score", "rank", "score_y", "rank_y", "query_y"], inplace=True, errors='ignore')
         for col in rtr.columns:
-            if not '_y' in col:
+            if '_y' not in col:
                 continue
             new_name = col.replace('_y', '')
             if new_name in rtr.columns:
@@ -206,7 +213,7 @@ class FeatureUnion(NAryTransformerBase):
             pipe = cands >> (pl2f ** bm25f)
     """
     def transform(self, inputRes):
-        if not "docno" in inputRes.columns and "docid" not in inputRes.columns:
+        if "docno" not in inputRes.columns and "docid" not in inputRes.columns:
             raise ValueError("FeatureUnion operates as a re-ranker, but input did not have either "
                 "docno or docid columns, found columns were %s" %  str(inputRes.columns))
 
@@ -225,15 +232,15 @@ class FeatureUnion(NAryTransformerBase):
             results = m.transform(inputRes.copy())
             if len(results) == 0 and num_results != 0:
                 raise ValueError("Got no results from %s, expected %d" % (repr(m), num_results) )
-            assert not "features_x" in results.columns 
-            assert not "features_y" in results.columns
+            assert "features_x" not in results.columns 
+            assert "features_y" not in results.columns
             all_results.append( results )
 
     
         for i, (m, res) in enumerate(zip(self._transformers, all_results)):
             # IMPORTANT: dont do this BEFORE calling subsequent feature unions
-            if not "features" in res.columns:
-                if not "score" in res.columns:
+            if "features" not in res.columns:
+                if "score" not in res.columns:
                     raise ValueError("Results from %s did not include either score or features columns, found columns were %s" % (repr(m), str(res.columns)) )
 
                 if len(res) != num_results:
@@ -278,7 +285,7 @@ class FeatureUnion(NAryTransformerBase):
         assert "features" in final_DF.columns
 
         # we used .copy() earlier, inputRes should still have no features column
-        assert not "features" in inputRes.columns
+        assert "features" not in inputRes.columns
 
         # final merge - this brings us the score attribute from any previous transformer
         both_cols = set(inputRes.columns) & set(final_DF.columns)
@@ -289,8 +296,8 @@ class FeatureUnion(NAryTransformerBase):
         final_DF.drop(columns=["%s_y" % col for col in both_cols], inplace=True)
         # remove the duplicated columns
         #final_DF = final_DF.loc[:,~final_DF.columns.duplicated()]
-        assert not "features_x" in final_DF.columns 
-        assert not "features_y" in final_DF.columns 
+        assert "features_x" not in final_DF.columns 
+        assert "features_y" not in final_DF.columns 
         return final_DF
 
     def compile(self) -> Transformer:
@@ -331,20 +338,23 @@ class Compose(NAryTransformerBase):
     """
     name = "Compose"
 
-    def index(self, iter : pt.model.IterDict, batch_size=100):
+    def index(self, iter : pt.model.IterDict, batch_size=None):
         """
         This methods implements indexing pipelines. It is responsible for calling the transform_iter() method of its 
         constituent transformers (except the last one) on batches of records, and the index() method on the last transformer.
         """
         from more_itertools import chunked
         
-        if len(self._transformers) > 2:
-            #this compose could have > 2 models. we need a composite transform() on all but the last
-            prev_transformer = Compose(*self._transformers[0:-1])
-        else:
-            prev_transformer = self._transformers[0]
+        prev_transformer = Compose(*self._transformers[0:-1])
         last_transformer = self._transformers[-1]
-        
+
+        # guess a good batch size from the batch_size of individual components earlier in the pipeline
+        if batch_size is None:
+            batch_size = 100 # default to 100 as a reasonable minimum (and fallback if no batch sizes found)
+            for tr in prev_transformer:
+                if hasattr(tr, 'batch_size') and isinstance(tr.batch_size, int) and tr.batch_size > batch_size:
+                    batch_size = tr.batch_size
+
         def gen():
             for batch in chunked(iter, batch_size):
                 yield from prev_transformer.transform_iter(batch)

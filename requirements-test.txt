@@ -5,3 +5,5 @@ torch
 lz4
 transformers
 scikit-learn
+ruff
+mypy==1.14.1
