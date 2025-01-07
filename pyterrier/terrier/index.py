@@ -702,6 +702,7 @@ class _FieldsIterDictIndexer_nofifo(_IterDictIndexer_nofifo):
             _BaseIterDictIndexer.__init__(self, index_path, *args, **kwargs)
             self.fields = fields
 
+    @pt.java.required
     def index(self, it : pt.model.IterDict):
         assert self.threads == 1, 'IterDictIndexer does not support multiple threads on Windows'
 
