@@ -5,13 +5,18 @@ from pathlib import Path
 import pyterrier as pt
 
 
-class Model(Enum):
+class TerrierModel(Enum):
     bm25 = 'bm25'
     dph = 'dph'
 
 
-_IN_MEM_PATH_PLACEHOLDER = '__IGNORE__'
+_NO_PATH_PLACEHOLDER = '__NO_PATH__'
 
+
+######################################
+# This is a work-in-progress Artifact-compatible wrapper for a Terrier Index. It doesn't support most
+# features yet, but does allow for uploading/downloading Terrier indexes from HuggingFace, etc.
+######################################
 class TerrierIndex(pt.Artifact):
     """A Terrier index."""
 
@@ -23,15 +28,15 @@ class TerrierIndex(pt.Artifact):
         """Initialises a TerrierIndex for the given path."""
         super().__init__(path)
         if _index_ref is not None:
-            assert path == _IN_MEM_PATH_PLACEHOLDER and _index_obj is None
+            assert path == _NO_PATH_PLACEHOLDER and _index_obj is None
         self._index_ref = _index_ref
         if _index_obj is not None:
-            assert path == _IN_MEM_PATH_PLACEHOLDER and _index_ref is None
+            assert path == _NO_PATH_PLACEHOLDER and _index_ref is None
         self._index_obj = _index_obj
 
     def retriever(
         self,
-        model: Union[Model, str],
+        model: Union[TerrierModel, str],
         model_args: Optional[Dict[str, Any]] = None,
         *,
         num_results: int = 1000,
@@ -52,7 +57,21 @@ class TerrierIndex(pt.Artifact):
         Returns:
             A retriever transformer for this index.
         """
-        return TerrierRetriever(self, model, model_args, include_fields=include_fields, num_results=num_results, threads=threads, verbose=verbose)
+        if include_fields is None:
+            include_fields = ['docno']
+        else:
+            if 'docno' not in include_fields:
+                include_fields = ['docno'] + include_fields
+        return pt.terrier.Retriever(
+            self.index_obj(),
+            controls=_map_controls(model_args),
+            properties=_map_properties(model_args),
+            metadata=include_fields,
+            num_results=num_results,
+            wmodel=_map_wmodel(model),
+            threads=threads,
+            verbose=verbose,
+        )
 
     def bm25(
         self,
@@ -75,7 +94,7 @@ class TerrierIndex(pt.Artifact):
             verbose: Whether to progress information during retrieval
         """
         return self.retriever(
-            Model.bm25,
+            TerrierModel.bm25,
             {'bm25.k1': k1, 'bm25.b': b},
             num_results=num_results,
             include_fields=include_fields,
@@ -100,7 +119,7 @@ class TerrierIndex(pt.Artifact):
             verbose: Whether to progress information during retrieval
         """
         return self.retriever(
-            Model.dph,
+            TerrierModel.dph,
             num_results=num_results,
             include_fields=include_fields,
             threads=threads,
@@ -153,70 +172,15 @@ class TerrierIndex(pt.Artifact):
         if isinstance(index_like, (str, Path)):
             return TerrierIndex(index_like)
         if isinstance(index_like, pt.terrier.J.IndexRef):
-            return TerrierIndex(_IN_MEM_PATH_PLACEHOLDER, _index_ref=index_like)
+            return TerrierIndex(_NO_PATH_PLACEHOLDER, _index_ref=index_like)
         if isinstance(index_like, pt.terrier.J.Index):
-            return TerrierIndex(_IN_MEM_PATH_PLACEHOLDER, _index_obj=index_like)
+            return TerrierIndex(_NO_PATH_PLACEHOLDER, _index_obj=index_like)
         raise RuntimeError(f'Could not coerce {index_like!r} into a TerrierIndex')
 
 
-class TerrierRetriever(pt.Transformer):
-    """A Terrier retriever.
-
-    This is a simplified (but less powerful) wrapper around ``pt.terrier.Retriever``.
-    """
-
-    def __init__(self,
-        index: TerrierIndex,
-        model: Union[Model, str],
-        model_args: Optional[Dict[str, Any]] = None,
-        *,
-        num_results: int = 1000,
-        include_fields: Optional[List[str]] = None,
-        threads: int = 1,
-        verbose: bool = False,
-    ):
-        """Initialises a TerrierRetriever."""
-        self._index = index
-        self.model = Model(model)
-        self.model_args = model_args
-        self.num_results = num_results
-        self.include_fields = include_fields
-        self.threads = threads
-        self.verbose = verbose
-
-    def transform(self, queries):
-        """Retrieves documents for the given queries."""
-        include_fields = self.include_fields
-        if include_fields is None:
-            include_fields = ['docno']
-        else:
-            if 'docno' not in include_fields:
-                include_fields = ['docno'] + include_fields
-        retr = pt.terrier.Retriever(
-            self._index.index_obj(),
-            controls=_map_controls(self.model_args),
-            properties=_map_properties(self.model_args),
-            metadata=include_fields,
-            num_results=self.num_results,
-            wmodel=_map_wmodel(self.model),
-            threads=self.threads,
-            verbose=self.verbose,
-        )
-        return retr(queries)
-
-    def __repr__(self):
-        return (f'TerrierRetriever({self.index!r}, {self.model!r}, {self.model_args!r}, '
-                f'num_results={self.num_results!r}, include_fields={self.include_fields!r}, threads={self.threads!r}, '
-                f'verbose={self.verbose!r})')
-
-    def fuse_rank_cutoff(self, k: int) -> Optional[pt.Transformer]:
-        if self.num_results > k:
-            return TerrierRetriever(self.index, self.model, self.model_args, num_results=k, include_fields=self.include_fields, threads=self.threads, verbose=self.verbose)
-
-
 _WMODEL_MAP = {
-    Model.bm25: 'BM25',
-    Model.dph: 'DPH',
+    TerrierModel.bm25: 'BM25',
+    TerrierModel.dph: 'DPH',
 }
 def _map_wmodel(model):
     return _WMODEL_MAP[model]
@@ -244,3 +208,62 @@ def _map_properties(model_args):
         for k, v in model_args.items()
         if k in _PROPERTY_MAP
     }
+
+
+######################################
+# Below is a proposal for a different (more declarative and more flexible?) API for retriever.
+# But I'm not yet super convinced by it, so leaving it out for now.
+######################################
+# class TerrierRetriever(pt.Transformer):
+#     """A Terrier retriever.
+
+#     This is a simplified (but less powerful) wrapper around ``pt.terrier.Retriever``.
+#     """
+
+#     def __init__(self,
+#         index: TerrierIndex,
+#         model: Union[Model, str],
+#         model_args: Optional[Dict[str, Any]] = None,
+#         *,
+#         num_results: int = 1000,
+#         include_fields: Optional[List[str]] = None,
+#         threads: int = 1,
+#         verbose: bool = False,
+#     ):
+#         """Initialises a TerrierRetriever."""
+#         self._index = index
+#         self.model = Model(model)
+#         self.model_args = model_args
+#         self.num_results = num_results
+#         self.include_fields = include_fields
+#         self.threads = threads
+#         self.verbose = verbose
+
+#     def transform(self, queries):
+#         """Retrieves documents for the given queries."""
+#         include_fields = self.include_fields
+#         if include_fields is None:
+#             include_fields = ['docno']
+#         else:
+#             if 'docno' not in include_fields:
+#                 include_fields = ['docno'] + include_fields
+#         retr = pt.terrier.Retriever(
+#             self._index.index_obj(),
+#             controls=_map_controls(self.model_args),
+#             properties=_map_properties(self.model_args),
+#             metadata=include_fields,
+#             num_results=self.num_results,
+#             wmodel=_map_wmodel(self.model),
+#             threads=self.threads,
+#             verbose=self.verbose,
+#         )
+#         return retr(queries)
+
+#     def __repr__(self):
+#         return (f'TerrierRetriever({self.index!r}, {self.model!r}, {self.model_args!r}, '
+#                 f'num_results={self.num_results!r}, include_fields={self.include_fields!r}, threads={self.threads!r}, '
+#                 f'verbose={self.verbose!r})')
+
+#     def fuse_rank_cutoff(self, k: int) -> Optional[pt.Transformer]:
+#         if self.num_results > k:
+#             return TerrierRetriever(self.index, self.model, self.model_args, num_results=k, include_fields=self.include_fields, threads=self.threads, verbose=self.verbose)
