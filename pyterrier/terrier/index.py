@@ -646,7 +646,9 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
         """
 
         if fields is not None:
-            raise NotImplementedError("Use FieldsIterDictIndexer instead for indexing fields")
+            if len(fields) > 1:
+                raise NotImplementedError("Use FieldsIterDictIndexer instead for indexing fields")
+            raise ValueError("Specify the text attribute to index in the constructor.")
 
         self._setup(self.meta, None)
         assert self.threads == 1, 'IterDictIndexer does not support multiple threads on Windows'
@@ -755,8 +757,10 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
         ParallelIndexer = pt.terrier.J.ParallelIndexer
 
         if fields is not None:
-            raise NotImplementedError("Use FieldsIterDictIndexer instead for indexing fields")
-
+            if len(fields) > 1:
+                raise NotImplementedError("Use FieldsIterDictIndexer instead for indexing fields")
+            raise ValueError("Specify the text attribute to index in the constructor.")
+        
         self._setup(self.meta, None)
 
         os.makedirs(self.index_dir, exist_ok=True) # ParallelIndexer expects the directory to exist
