@@ -1,4 +1,5 @@
-import os, sys
+import os
+import sys
 from pyterrier.java import required_raise, required, before_init, started, mavenresolver, JavaClasses, JavaInitializer, register_config
 from typing import Optional
 import pyterrier as pt
@@ -14,7 +15,7 @@ _stderr_ref = None
 
 def _get_notebook() -> Optional[str]:
     try:
-        import IPython
+        import IPython # type: ignore
     except:
         return None
 
