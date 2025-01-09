@@ -1,4 +1,4 @@
-import os
+import os, sys
 from pyterrier.java import required_raise, required, before_init, started, mavenresolver, JavaClasses, JavaInitializer, register_config
 from typing import Optional
 import pyterrier as pt
@@ -11,6 +11,24 @@ _stderr_ref = None
 # ----------------------------------------------------------
 # Java Initialization
 # ----------------------------------------------------------
+
+def _get_notebook() -> Optional[str]:
+    try:
+        import IPython
+    except:
+        return None
+
+    # Try to get IPython and return None if not found.
+    ipython = IPython.get_ipython()
+    if not ipython:
+        return None
+    locals = IPython.get_ipython().user_ns
+
+    if "__vsc_ipynb_file__" in locals:
+        return locals["__vsc_ipynb_file__"]
+    if "__session__" in locals:
+        return locals["__session__"]
+    return None
 
 class CoreJavaInit(JavaInitializer):
     def priority(self) -> int:
@@ -34,6 +52,14 @@ class CoreJavaInit(JavaInitializer):
 
         for jar in pt.java.configure['jars']:
             jnius_config.add_classpath(jar)
+
+        # set the property that makes a process name visible in jps
+        process_name : str =  _get_notebook()
+        if process_name is None:
+            process_name = "python[pyterrier]:" + (sys.argv[0] if sys.argv[0] else '<interactive>')
+        else:
+            process_name = "jupyter[pyterrier]:" + process_name
+        jnius_config.add_options("-Dsun.java.command=%s" % process_name)
 
     @required_raise
     def post_init(self, jnius):
