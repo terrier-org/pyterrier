@@ -16,7 +16,7 @@ _stderr_ref = None
 def _get_notebook() -> Optional[str]:
     try:
         import IPython # type: ignore
-    except:
+    except Exception:
         return None
 
     # Try to get IPython and return None if not found.
