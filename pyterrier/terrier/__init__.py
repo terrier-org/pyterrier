@@ -8,7 +8,7 @@ from pyterrier.terrier.stemmer import TerrierStemmer
 from pyterrier.terrier.tokeniser import TerrierTokeniser
 from pyterrier.terrier.stopwords import TerrierStopwords
 from pyterrier.terrier import index
-from pyterrier.terrier.index import TerrierIndexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, FieldsIterDictIndexer, IndexingType, treccollection2textgen
+from pyterrier.terrier.index import TerrierIndexer, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, IndexingType, treccollection2textgen
 from pyterrier.terrier import rewrite
 from deprecated import deprecated
 import pyterrier as pt
@@ -63,7 +63,7 @@ __all__ = [
     'BatchRetrieveBase', 'Retriever', 'RetrieverBase', 'BatchRetrieve', 'TerrierRetrieve', 'FeaturesRetriever', 'FeaturesBatchRetrieve', 'TerrierRetrieve', 'TextScorer',
 
     # indexing
-    'index', 'TerrierIndexer', 'FilesIndexer', 'TRECCollectionIndexer', 'DFIndexer', 'DFIndexUtils', 'IterDictIndexer', 'FieldsIterDictIndexer', 'IndexingType', 'treccollection2textgen',
+    'index', 'TerrierIndexer', 'FilesIndexer', 'TRECCollectionIndexer', 'DFIndexer', 'DFIndexUtils', 'IterDictIndexer', 'IndexingType', 'treccollection2textgen',
 
     # rewriting
     'rewrite',

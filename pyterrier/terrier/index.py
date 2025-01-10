@@ -529,7 +529,7 @@ class DFIndexer(TerrierIndexer):
 
 
 class _BaseIterDictIndexer(TerrierIndexer, pt.Indexer):
-    def __init__(self, index_path, *args, meta = {'docno' : 20}, text_attr="text", meta_reverse=['docno'], pretokenised=False, threads=1, **kwargs):
+    def __init__(self, index_path, *args, meta = {'docno' : 20}, text_attrs = ["text"], meta_reverse=['docno'], pretokenised : bool =False, fields : bool = False, threads=1, **kwargs):
         """
         
         Args:
@@ -543,27 +543,21 @@ class _BaseIterDictIndexer(TerrierIndexer, pt.Indexer):
         assert pt.terrier.check_version("5.11"), "Terrier 5.11 is required"
 
         self.threads = threads
-        self.text_attr = text_attr 
-        if isinstance(self.text_attr, list):
-            raise ValueError("Indexing over more than one input column not supported. Use a pt.apply to merge the columns, e.g. \n" +
-                             "pt.apply.text(lambda row: row['title'] + " " + row['body']) >> pt.terrier.IterDictIndexer('./index/', 'text') ")
+        self.text_attrs = text_attrs
         self.meta = meta
         self.meta_reverse = meta_reverse
         self.pretokenised = pretokenised
+        self.fields = fields
         if self.pretokenised:
+            if self.fields:
+                raise ValueError("pretokenised not supported for fields")
+            if len(self.text_attrs) > 1:
+                raise ValueError("pretokenised can only process one attribute")
             # we disable stemming and stopwords for pretokenised indices
             self.stemmer = None
             self.stopwords = None
 
-    def _setup_fields(self, fields):
-        # this assumes a one-to-one mapping between dataframe columns and fields. ELSE field is not yet supported.
-        self.setProperties(**{
-                'FieldTags.process': ','.join(fields),
-                'FieldTags.casesensitive': 'true',
-                'FlatJSONDocument.process' : ','.join(fields),
-            })
-
-    def _setup(self, meta, meta_lengths):
+    def _setup(self, text_attrs, fields, meta, meta_lengths):
         """
         Index the specified iter of dicts with the (optional) specified fields
 
@@ -581,14 +575,21 @@ class _BaseIterDictIndexer(TerrierIndexer, pt.Indexer):
                 meta_lengths = ['512'] * len(meta)
             self.meta = { k:v for k,v in zip( meta, meta_lengths)}
 
-        self.setProperties(**{
+        if fields:
+            self.setProperties(**{
                 'metaindex.compressed.crop.long' : 'true',
                 'FieldTags.process': '',
-                'FlatJSONDocument.process' : self.text_attr,
+                'FlatJSONDocument.process' : ','.join(text_attrs),
                 'FieldTags.casesensitive': 'true',
-        })
+            })
+        else:
+            self.setProperties(**{
+                'metaindex.compressed.crop.long' : 'true',
+                'FieldTags.process': ','.join(text_attrs),
+                'FlatJSONDocument.process' : ','.join(text_attrs),
+                'FieldTags.casesensitive': 'true',
+            })            
         
-
     def _filter_iterable(self, it, indexed_columns):
         # Only include necessary columns: those that are indexed, metadata columns, and docno
         # Also, check that the provided iterator is a suitable format
@@ -647,10 +648,10 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
 
         if fields is not None:
             if len(fields) > 1:
-                raise NotImplementedError("Use FieldsIterDictIndexer instead for indexing with fields")
+                raise ValueError("Use fields and text_attrs constructor kwargs")
             raise ValueError("Specify the text attribute to index in the constructor.")
 
-        self._setup(self.meta, None)
+        self._setup(self.text_attrs, self.fields, self.meta, None)
         assert self.threads == 1, 'IterDictIndexer does not support multiple threads on Windows'
 
         indexer = self.createIndexer()
@@ -662,7 +663,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
             #     {'docno' : 'd1', 'toks' : {'a' : 1, 'aa' : 2}}
             # ]
             
-            iter_docs = DocListIterator(self._filter_iterable(it, [self.text_attr]))
+            iter_docs = DocListIterator(self._filter_iterable(it, [self.text_attrs[0]]))
             self.index_called = True
             indexer.indexDocuments(iter_docs)
             iter_docs = None
@@ -670,7 +671,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
         else:
 
             # we need to prevent collectionIterator from being GCd
-            collectionIterator = FlatJSONDocumentIterator(self._filter_iterable(it, [self.text_attr]))
+            collectionIterator = FlatJSONDocumentIterator(self._filter_iterable(it, self.text_attrs))
             javaDocCollection = pt.terrier.J.CollectionFromDocumentIterator(collectionIterator)
             indexer.index(javaDocCollection)
             global lastdoc
@@ -694,49 +695,6 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
 
         return indexref
 
-class _FieldsIterDictIndexer_nofifo(_IterDictIndexer_nofifo):
-    def __init__(self, index_path, fields : List[str], *args, pretokenised=False, **kwargs):
-            if pretokenised:
-                raise ValueError("pretokenised not supported for fields")
-            
-            _BaseIterDictIndexer.__init__(self, index_path, *args, **kwargs)
-            self.fields = fields
-
-    @pt.java.required
-    def index(self, it : pt.model.IterDict):
-        assert self.threads == 1, 'IterDictIndexer does not support multiple threads on Windows'
-
-        self._setup(self.meta, None)
-        self._setup_fields(self.fields)
-        
-        indexer = self.createIndexer()
-
-        # we need to prevent collectionIterator from being GCd
-        collectionIterator = FlatJSONDocumentIterator(self._filter_iterable(it, self.fields))
-        javaDocCollection = pt.terrier.J.CollectionFromDocumentIterator(collectionIterator)
-        indexer.index(javaDocCollection)
-        global lastdoc
-        lastdoc = None
-        self.index_called = True
-        collectionIterator = None
-
-        indexref = None
-        if self.type is IndexingType.MEMORY:
-            index = indexer.getIndex()
-            indexref = index.getIndexRef()
-        else:
-            indexref = pt.terrier.J.IndexRef.of(self.index_dir + "/data.properties")
-            if len(self.cleanup_hooks) > 0:
-                sindex = pt.terrier.J.Index
-                sindex.setIndexLoadingProfileAsRetrieval(False)
-                index = pt.terrier.IndexFactory.of(indexref)
-                for hook in self.cleanup_hooks:
-                    hook(self, index)
-                sindex.setIndexLoadingProfileAsRetrieval(True)
-
-        return indexref
-
-
 class _IterDictIndexer_fifo(_BaseIterDictIndexer):
     """
     Use this Indexer if you wish to index an iter of dicts (possibly with multiple fields).
@@ -759,10 +717,10 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
 
         if fields is not None:
             if len(fields) > 1:
-                raise NotImplementedError("Use FieldsIterDictIndexer instead for indexing with fields")
+                raise ValueError("Use fields and text_attrs constructor kwargs")
             raise ValueError("Specify the text attribute to index in the constructor.")
         
-        self._setup(self.meta, None)
+        self._setup(self.text_attrs, self.fields, self.meta, None)
 
         os.makedirs(self.index_dir, exist_ok=True) # ParallelIndexer expects the directory to exist
 
@@ -790,7 +748,7 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
                 fifos.append(fifo)
 
             # Start dishing out the docs to the fifos
-            threading.Thread(target=self._write_fifos, args=(self._filter_iterable(it, [self.text_attr]), fifos), daemon=True).start()
+            threading.Thread(target=self._write_fifos, args=(self._filter_iterable(it, self.text_attrs), fifos), daemon=True).start()
 
             # Different process for memory indexer (still taking advantage of faster fifos)
             if Indexer is pt.terrier.J.BasicMemoryIndexer:
@@ -850,17 +808,13 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
 # Windows doesn't support fifos -- so we have 2 versions.
 # Choose which one to expose based on whether os.mkfifo exists.
 IterDictIndexer: Type[Union[_IterDictIndexer_fifo, _IterDictIndexer_nofifo]]
-FieldsIterDictIndexer: Type[_IterDictIndexer_nofifo]
 if hasattr(os, 'mkfifo'):
     #IterDictIndexer = _IterDictIndexer_nofifo
     IterDictIndexer = _IterDictIndexer_fifo
-    FieldsIterDictIndexer = _FieldsIterDictIndexer_nofifo
 else:
     IterDictIndexer = _IterDictIndexer_nofifo
-    FieldsIterDictIndexer = _FieldsIterDictIndexer_nofifo
  # trick sphinx into not using "alias of"
 IterDictIndexer.__name__ = 'IterDictIndexer'
-FieldsIterDictIndexer.__name__ = 'FieldsIterDictIndexer'
 
 class TRECCollectionIndexer(TerrierIndexer):
 

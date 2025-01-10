@@ -17,13 +17,13 @@ class TestIterDictIndexer(TempDirTestCase):
         self.assertIsNotNone(indexref)
         return indexref
 
-    def _make_check_index(self, n, index_type, fields=('text',), meta=('docno', 'url', 'title')):
+    def _make_check_index(self, n, index_type, attrs=('text',), meta=('docno', 'url', 'title')):
         from pyterrier.terrier.index import IndexingType
         # Test both versions: _fifo (for UNIX) and _nofifo (for Windows)
         indexers = [
-            #pt.index._FieldsIterDictIndexer_fifo(self.test_dir, type=index_type, meta=meta),
-            #pt.index._FieldsIterDictIndexer_fifo(self.test_dir, type=index_type, threads=4, meta=meta),
-            pt.index._FieldsIterDictIndexer_nofifo(self.test_dir, fields, type=index_type, meta=meta),
+            pt.index._IterDictIndexer_fifo(self.test_dir, text_attrs=attrs, type=index_type, meta=meta, fields=True),
+            pt.index._IterDictIndexer_fifo(self.test_dir, text_attrs=attrs, type=index_type, threads=4, meta=meta, fields=True),
+            pt.index._IterDictIndexer_nofifo(self.test_dir, text_attrs=attrs, type=index_type, meta=meta, fields=True),
         ]
         if pt.utils.is_windows():
            indexers = [indexers[-1]] 
@@ -42,8 +42,8 @@ class TestIterDictIndexer(TempDirTestCase):
                 self.assertEqual(len(set(meta)), len(index.getMetaIndex().getKeys()))
                 for m in meta:
                     self.assertTrue(m in index.getMetaIndex().getKeys())
-                self.assertEqual(len(fields), index.getCollectionStatistics().numberOfFields)
-                for f in fields:
+                self.assertEqual(len(attrs), index.getCollectionStatistics().numberOfFields)
+                for f in attrs:
                     self.assertTrue(f in index.getCollectionStatistics().getFieldNames())
                 if index_type is IndexingType.CLASSIC:
                     self.assertTrue(os.path.isfile(self.test_dir + '/data.direct.bf'))
@@ -56,7 +56,7 @@ class TestIterDictIndexer(TempDirTestCase):
                 post.next()
                 from jnius import cast
                 post = cast("org.terrier.structures.postings.FieldPosting", post)
-                if 'title' in fields:
+                if 'title' in attrs:
                     self.assertEqual(2, post.frequency)
                     self.assertEqual(1, post.fieldFrequencies[0])
                     self.assertEqual(1, post.fieldFrequencies[1])
@@ -70,27 +70,27 @@ class TestIterDictIndexer(TempDirTestCase):
 
     def test_createindex1_2fields(self):
         from pyterrier.terrier.index import IndexingType
-        self._make_check_index(1, IndexingType.CLASSIC, fields=['text', 'title'])
+        self._make_check_index(1, IndexingType.CLASSIC, attrs=['text', 'title'])
 
     def test_createindex2_2fields(self):
         from pyterrier.terrier.index import IndexingType
-        self._make_check_index(2, IndexingType.CLASSIC, fields=['text', 'title'])
+        self._make_check_index(2, IndexingType.CLASSIC, attrs=['text', 'title'])
 
     def test_createindex3_2fields(self):
         from pyterrier.terrier.index import IndexingType
-        self._make_check_index(3, IndexingType.CLASSIC, fields=['text', 'title'])
+        self._make_check_index(3, IndexingType.CLASSIC, attrs=['text', 'title'])
 
     def test_createindex1_single_pass_2fields(self):
         from pyterrier.terrier.index import IndexingType
-        self._make_check_index(1, IndexingType.SINGLEPASS, fields=['text', 'title'])
+        self._make_check_index(1, IndexingType.SINGLEPASS, attrs=['text', 'title'])
 
     def test_createindex2_single_pass_2fields(self):
         from pyterrier.terrier.index import IndexingType
-        self._make_check_index(2, IndexingType.SINGLEPASS, fields=['text', 'title'])
+        self._make_check_index(2, IndexingType.SINGLEPASS, attrs=['text', 'title'])
 
     def test_createindex3_single_pass_2fields(self):
         from pyterrier.terrier.index import IndexingType
-        self._make_check_index(3, IndexingType.SINGLEPASS, fields=['text', 'title'])
+        self._make_check_index(3, IndexingType.SINGLEPASS, attrs=['text', 'title'])
 
 
 if __name__ == "__main__":
