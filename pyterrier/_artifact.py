@@ -11,13 +11,18 @@ from datetime import datetime
 from hashlib import sha256
 from pathlib import Path
 import typing
-from typing import Any, Dict, Iterator, Optional, Tuple, Union, Literal
+from typing import Any, Dict, Iterator, Optional, Tuple, Union
 from urllib.parse import ParseResult, urlparse
 
 from lz4.frame import LZ4FrameFile
 
 import pyterrier as pt
 
+# NO_PATH is a sentinel value that is used to indicate that an artifact has no file path (e.g., it's in-memory).
+class _NoPath:
+    def __repr__(self):
+        return 'Arfiact.NO_PATH'
+_NO_PATH = _NoPath()
 
 class Artifact:
     """Base class for PyTerrier artifacts.
@@ -28,12 +33,12 @@ class Artifact:
     may provide a `.retriever()` method that returns a transformer that searches the index.
     """
 
-    # NO_PATH is a sentinel value that is used to indicate that an artifact has no file path (e.g., it's in-memory).
-    NO_PATH = object()
+    # expose NO_PATH sentinel
+    NO_PATH = _NO_PATH
 
-    def __init__(self, path: Union[Path, str, Literal[NO_PATH]]):
+    def __init__(self, path: Union[Path, str, _NoPath]):
         """Initialize the artifact at the provided URL."""
-        self.path: Union[Path, Literal[Artifact.NO_PATH]] = Artifact.NO_PATH if path is Artifact.NO_PATH else Path(path)
+        self.path: Union[Path, _NoPath] = path if isinstance(path, _NoPath) else Path(path)
 
     @classmethod
     def load(cls, path: str) -> 'Artifact':
@@ -156,6 +161,7 @@ class Artifact:
         return cls.load(path)
 
     def _package_files(self) -> Iterator[Tuple[str, Union[str, io.BytesIO]]]:
+        assert not isinstance(self.path, _NoPath), "package cannot be built for artifacts without a path"
         has_pt_meta_file = False
         for root, dirs, files in os.walk(self.path):
             rel_root = os.path.relpath(root, start=self.path)
@@ -208,7 +214,7 @@ class Artifact:
         Returns:
             The path of the package created.
         """
-        assert self.path is not Artifact.NO_PATH, "package cannot be built for artifacts without a path"
+        assert not isinstance(self.path, _NoPath), "package cannot be built for artifacts without a path"
         if package_path is None:
             package_path = str(self.path) + '.tar.lz4'
 
