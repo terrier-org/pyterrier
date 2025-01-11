@@ -529,13 +529,22 @@ class DFIndexer(TerrierIndexer):
 
 
 class _BaseIterDictIndexer(TerrierIndexer, pt.Indexer):
-    def __init__(self, index_path, *args, meta = {'docno' : 20}, text_attrs = ["text"], meta_reverse=['docno'], pretokenised : bool =False, fields : bool = False, threads=1, **kwargs):
+    def __init__(self, index_path, *args, 
+                 meta : Dict[str,int] = {'docno' : 20}, 
+                 text_attrs : List[str] = ["text"], 
+                 meta_reverse : List[str] = ['docno'], 
+                 pretokenised : bool = False, 
+                 fields : bool = False, 
+                 threads : int = 1, 
+                 **kwargs):
         """
         
         Args:
             index_path(str): Directory to store index. Ignored for IndexingType.MEMORY.
-            meta(Dict[str,int]): What metadata for each document to record in the index, and what length to reserve. Metadata fields will be truncated to this length. Defaults to `{"docno" : 20}`.
-            meta_reverse(List[str]): What metadata should we be able to resolve back to a docid. Defaults to `["docno"]`,      
+            text_attrs(List[str]): List of columns of the input data that should be indexed. These are concatenated in the document representation. Defaults to `["text"]`.
+            meta(Dict[str,int]): What metadata for each document to record in the index, and what length to reserve. Metadata values will be truncated to this length. Defaults to `{"docno" : 20}`.
+            meta_reverse(List[str]): What metadata should we be able to resolve back to a docid. Defaults to `["docno"]`.
+            fields(bool) : Whether a fields-indexer should be used, i.e. whether the frequency in each attribute should be recorded separately in the Terrer index. This allows application of weighting models such as BM25F.
         """
         pt.Indexer.__init__(self)
         TerrierIndexer.__init__(self, index_path, *args, **kwargs)
