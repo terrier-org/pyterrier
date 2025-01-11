@@ -90,7 +90,7 @@ Similarly, indexing of JSONL files is similarly a few lines of Python::
       import json
       with open(filename, 'rt') as file:
         for l in file:
-          # assumes that each line contains 'docno', 'text' attributes
+          # assumes that each line contains 'docno', 'text' attributes
           # yields a dictionary for each json line 
           yield json.loads(l)
 
@@ -182,7 +182,20 @@ All indexer classes expose a `blocks` boolean constructor argument to allow posi
 
 **Fields**
 
-Fields refers to storing the frequency of a terms occurrence in different parts of a document, e.g. title vs body vs anchor text. In the IterDictIndexer, fields are set in the `index()` method; otherwise the `"FieldTags.process"` property must be set. See the Terrier `indexing documentation on fields <https://github.com/terrier-org/terrier-core/blob/5.x/doc/configure_indexing.md#fields>`_ for more information. 
+Fields refers to storing the frequency of a terms occurrence in different parts of a document, e.g. title vs. body vs. anchor text.
+
+IterDictIndexer can be configured to record fields by setting the ``fields=True`` kwarg to the constructor. For instance, if we have two different fields to a document::
+
+    docs = [ {'docno' : 'd1', 'title': 'This is the title', 'text' : 'This is the main document']
+    indexref = pt.IterDictIndexer("./index_fields", text_attrs=['text', 'title'], fields=True).index(docs)
+    index = pt.IndexFactory.of(indexref)
+    print(index.getCollectionStatistics().getNumberOfFields()) # will print 2
+    # make a BM25F retriever, places twice as much weight on the title as the main body
+    bm25 = pt.terrier.Retriever(index, wmodel='BM25F', controls={'w.0' = 1, 'w.1' = 2, 'c.0' = 0.75, 'c.1' = 0.5})
+
+See the Terrier `indexing documentation on fields <https://github.com/terrier-org/terrier-core/blob/5.x/doc/configure_indexing.md#fields>`_ for more information. 
+
+NB: Since PyTerrier 0.13, IterDictIndexer no longer records fields by default. This speeds up indexing and retrieval when field-based models such as BM25F are not required.
 
 **Changing the tags parsed by TREC Collection** 
 
