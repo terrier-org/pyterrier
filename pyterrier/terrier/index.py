@@ -216,17 +216,19 @@ class TerrierIndexer:
             "trec.collection.class": "TRECCollection",
     }
 
-    def __init__(self, index_path : str, *args, 
-            blocks : bool = False, 
-            overwrite: bool = False, 
-            verbose : bool = False, 
+    def __init__(self,
+            index_path : str,
+            *,
+            blocks : bool = False,
+            overwrite: bool = False,
+            verbose : bool = False,
             meta_reverse : List[str] = ["docno"],
             stemmer : Union[None, str, TerrierStemmer] = TerrierStemmer.porter,
             stopwords : Union[None, TerrierStopwords, List[str]] = TerrierStopwords.terrier,
             tokeniser : Union[str,TerrierTokeniser] = TerrierTokeniser.english,
             type=IndexingType.CLASSIC,
             properties : Dict[str,str] = {}
-            ):
+    ):
         """
         Constructor called by all indexer subclasses. All arguments listed below are available in 
         IterDictIndexer, DFIndexer, TRECCollectionIndexer and FilesIndsexer. 
@@ -531,7 +533,7 @@ class DFIndexer(TerrierIndexer):
 class _BaseIterDictIndexer(TerrierIndexer, pt.Indexer):
     def __init__(self,
                  index_path: str,
-                 *args,
+                 *,
                  meta : Dict[str,int] = {'docno' : 20},
                  text_attrs : List[str] = ["text"],
                  meta_reverse : List[str] = ['docno'],
@@ -549,9 +551,10 @@ class _BaseIterDictIndexer(TerrierIndexer, pt.Indexer):
             pretokenised(bool): Whether to index pre-tokenized text, e.g., through a Learned Sparse encoder. If True, will ignore ``text_attrs`` and indstead index the dictionary contained in the ``toks`` column.
             fields(bool) : Whether a fields-indexer should be used, i.e. whether the frequency in each attribute should be recorded separately in the Terrer index. This allows application of weighting models such as BM25F.
             threads(int): Number of threads to use for indexing. Defaults to 1.
+            kwargs: Additional keyword arguments passed to TerrierIndexer.
         """
         pt.Indexer.__init__(self)
-        TerrierIndexer.__init__(self, index_path, *args, **kwargs)
+        TerrierIndexer.__init__(self, index_path, **kwargs)
 
         assert pt.terrier.check_version("5.11"), "Terrier 5.11 is required"
 
@@ -910,8 +913,8 @@ class FilesIndexer(TerrierIndexer):
 
     '''
 
-    def __init__(self, index_path, *args, meta={"docno" : 20, "filename" : 512}, meta_reverse=["docno"], meta_tags={}, **kwargs):
-        super().__init__(index_path, *args, **kwargs)
+    def __init__(self, index_path, *, meta={"docno" : 20, "filename" : 512}, meta_reverse=["docno"], meta_tags={}, **kwargs):
+        super().__init__(index_path, **kwargs)
         self.meta = meta
         self.meta_reverse = meta_reverse
         self.meta_tags = meta_tags
