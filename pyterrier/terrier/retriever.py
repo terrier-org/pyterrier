@@ -176,6 +176,8 @@ class Retriever(pt.Transformer):
         self.concurrentIL = pt.java.autoclass("org.terrier.structures.ConcurrentIndexLoader")
         if pt.terrier.check_version(5.5) and "SimpleDecorateProcess" not in self.properties["querying.processes"]:
             self.properties["querying.processes"] += ",decorate:SimpleDecorateProcess"
+            controls = controls or {}
+            controls["decorate_batch"] = "on"
         self.metadata = metadata
         self.threads = threads
         self.RequestContextMatching = pt.java.autoclass("org.terrier.python.RequestContextMatching")
