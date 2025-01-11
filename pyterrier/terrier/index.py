@@ -529,22 +529,26 @@ class DFIndexer(TerrierIndexer):
 
 
 class _BaseIterDictIndexer(TerrierIndexer, pt.Indexer):
-    def __init__(self, index_path, *args, 
-                 meta : Dict[str,int] = {'docno' : 20}, 
-                 text_attrs : List[str] = ["text"], 
-                 meta_reverse : List[str] = ['docno'], 
-                 pretokenised : bool = False, 
-                 fields : bool = False, 
-                 threads : int = 1, 
+    def __init__(self,
+                 index_path: str,
+                 *args,
+                 meta : Dict[str,int] = {'docno' : 20},
+                 text_attrs : List[str] = ["text"],
+                 meta_reverse : List[str] = ['docno'],
+                 pretokenised : bool = False,
+                 fields : bool = False,
+                 threads : int = 1,
                  **kwargs):
         """
         
         Args:
             index_path(str): Directory to store index. Ignored for IndexingType.MEMORY.
-            text_attrs(List[str]): List of columns of the input data that should be indexed. These are concatenated in the document representation. Defaults to `["text"]`.
             meta(Dict[str,int]): What metadata for each document to record in the index, and what length to reserve. Metadata values will be truncated to this length. Defaults to `{"docno" : 20}`.
+            text_attrs(List[str]): List of columns of the input data that should be indexed. These are concatenated in the document representation. Defaults to `["text"]`.
             meta_reverse(List[str]): What metadata should we be able to resolve back to a docid. Defaults to `["docno"]`.
+            pretokenised(bool): Whether to index pre-tokenized text, e.g., through a Learned Sparse encoder. If True, will ignore ``text_attrs`` and indstead index the dictionary contained in the ``toks`` column.
             fields(bool) : Whether a fields-indexer should be used, i.e. whether the frequency in each attribute should be recorded separately in the Terrer index. This allows application of weighting models such as BM25F.
+            threads(int): Number of threads to use for indexing. Defaults to 1.
         """
         pt.Indexer.__init__(self)
         TerrierIndexer.__init__(self, index_path, *args, **kwargs)
@@ -560,53 +564,44 @@ class _BaseIterDictIndexer(TerrierIndexer, pt.Indexer):
         if self.pretokenised:
             if self.fields:
                 raise ValueError("pretokenised not supported for fields")
-            if len(self.text_attrs) > 1:
-                raise ValueError("pretokenised can only process one attribute")
+            if self.text_attrs != ['text']: # user provided text_attrs, which is ignored when pretokenised=True
+                raise ValueError("pretokenised ignores text_attrs")
             # we disable stemming and stopwords for pretokenised indices
             self.stemmer = None
             self.stopwords = None
+            self.text_attrs = ['toks'] # pretokenized always uses toks column
 
-    def _setup(self, text_attrs, fields, meta, meta_lengths):
+    def _setup(self):
         """
-        Index the specified iter of dicts with the (optional) specified fields
-
-        Args:
-            meta(dict[str,int]): keys to be considered as metdata, and their lengths
-            meta_lengths(list[int]): deprecated
+        Configure the indexing properties based on the current indexer configuration.
         """
         self.checkIndexExists()
-        if isinstance(meta, dict):
-            self.meta = meta
-        else: 
-            if meta_lengths is None:
-                # the ramifications of setting all lengths to a large value is an overhead in memory usage during decompression
-                # also increased reverse lookup file if reverse meta lookups are enabled.
-                meta_lengths = ['512'] * len(meta)
-            self.meta = { k:v for k,v in zip( meta, meta_lengths)}
+        if not isinstance(self.meta, dict):
+            # user did not specify the lengths of the metadata columns, so set them all to a default value of 512.
+            # the ramifications of setting all lengths to a large value is an overhead in memory usage during decompression
+            # also increased reverse lookup file if reverse meta lookups are enabled.
+            self.meta = {k: '512' for k in self.meta}
 
-        if fields:
+        if self.fields:
             self.setProperties(**{
                 'metaindex.compressed.crop.long' : 'true',
-                'FlatJSONDocument.process' : ','.join(text_attrs), # index all these json columns
-                'FieldTags.process': ','.join(text_attrs), # each of them will be a field for the indexer
+                'FlatJSONDocument.process' : ','.join(self.text_attrs), # index all these json columns
+                'FieldTags.process': ','.join(self.text_attrs), # each of them will be a field for the indexer
                 'FieldTags.casesensitive': 'true',
             })
         else:
             self.setProperties(**{
                 'metaindex.compressed.crop.long' : 'true',
-                'FlatJSONDocument.process' : ','.join(text_attrs), # index all these json columns
+                'FlatJSONDocument.process' : ','.join(self.text_attrs), # index all these json columns
                 'FieldTags.process': '', # but dont make them into fields
                 'FieldTags.casesensitive': 'true',
             })            
-        
-    def _filter_iterable(self, it, indexed_columns):
+
+    def _filter_iterable(self, it):
         # Only include necessary columns: those that are indexed, metadata columns, and docno
         # Also, check that the provided iterator is a suitable format
 
-        if self.pretokenised:
-            all_cols = {'docno', "toks"} | set(self.meta.keys())
-        else:
-            all_cols = {'docno'} | set(indexed_columns) | set(self.meta.keys())
+        all_cols = {'docno'} | set(self.text_attrs) | set(self.meta.keys())
 
         first_docs, it = more_itertools.spy(it) # peek at the first document and validate it
         if len(first_docs) > 0: # handle empty input
@@ -660,19 +655,19 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
                 raise ValueError("Use fields and text_attrs constructor kwargs")
             raise ValueError("Specify the text attribute to index in the constructor.")
 
-        self._setup(self.text_attrs, self.fields, self.meta, None)
+        self._setup()
         assert self.threads == 1, 'IterDictIndexer does not support multiple threads on Windows'
 
         indexer = self.createIndexer()
         if self.pretokenised:
             assert not self.blocks, "pretokenised isnt compatible with blocks"
 
-            # we generate DocumentPostingList from a dictionary of pretokenised text, e.g.
+            # we generate DocumentPostingList from a dictionary of pretokenised text, e.g.
             # [
             #     {'docno' : 'd1', 'toks' : {'a' : 1, 'aa' : 2}}
             # ]
             
-            iter_docs = DocListIterator(self._filter_iterable(it, [self.text_attrs[0]]))
+            iter_docs = DocListIterator(self._filter_iterable(it))
             self.index_called = True
             indexer.indexDocuments(iter_docs)
             iter_docs = None
@@ -680,7 +675,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
         else:
 
             # we need to prevent collectionIterator from being GCd
-            collectionIterator = FlatJSONDocumentIterator(self._filter_iterable(it, self.text_attrs))
+            collectionIterator = FlatJSONDocumentIterator(self._filter_iterable(it))
             javaDocCollection = pt.terrier.J.CollectionFromDocumentIterator(collectionIterator)
             indexer.index(javaDocCollection)
             global lastdoc
@@ -729,7 +724,7 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
                 raise ValueError("Use fields and text_attrs constructor kwargs")
             raise ValueError("Specify the text attribute to index in the constructor.")
         
-        self._setup(self.text_attrs, self.fields, self.meta, None)
+        self._setup()
 
         os.makedirs(self.index_dir, exist_ok=True) # ParallelIndexer expects the directory to exist
 
@@ -757,7 +752,7 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
                 fifos.append(fifo)
 
             # Start dishing out the docs to the fifos
-            threading.Thread(target=self._write_fifos, args=(self._filter_iterable(it, self.text_attrs), fifos), daemon=True).start()
+            threading.Thread(target=self._write_fifos, args=(self._filter_iterable(it), fifos), daemon=True).start()
 
             # Different process for memory indexer (still taking advantage of faster fifos)
             if Indexer is pt.terrier.J.BasicMemoryIndexer:
