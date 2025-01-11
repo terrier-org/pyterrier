@@ -587,15 +587,15 @@ class _BaseIterDictIndexer(TerrierIndexer, pt.Indexer):
         if fields:
             self.setProperties(**{
                 'metaindex.compressed.crop.long' : 'true',
-                'FieldTags.process': '',
-                'FlatJSONDocument.process' : ','.join(text_attrs),
+                'FlatJSONDocument.process' : ','.join(text_attrs), # index all these json columns
+                'FieldTags.process': ','.join(text_attrs), # each of them will be a field for the indexer
                 'FieldTags.casesensitive': 'true',
             })
         else:
             self.setProperties(**{
                 'metaindex.compressed.crop.long' : 'true',
-                'FieldTags.process': ','.join(text_attrs),
-                'FlatJSONDocument.process' : ','.join(text_attrs),
+                'FlatJSONDocument.process' : ','.join(text_attrs), # index all these json columns
+                'FieldTags.process': '', # but dont make them into fields
                 'FieldTags.casesensitive': 'true',
             })            
         
