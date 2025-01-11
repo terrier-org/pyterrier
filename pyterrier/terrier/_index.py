@@ -176,9 +176,9 @@ class TerrierIndex(pt.Artifact):
         if isinstance(index_like, (str, Path)):
             return TerrierIndex(index_like)
         if isinstance(index_like, pt.terrier.J.IndexRef):
-            return TerrierIndex(pt.Artifect.NO_PATH, _index_ref=index_like)
+            return TerrierIndex(pt.Artifact.NO_PATH, _index_ref=index_like)
         if isinstance(index_like, pt.terrier.J.Index):
-            return TerrierIndex(pt.Artifect.NO_PATH, _index_obj=index_like)
+            return TerrierIndex(pt.Artifact.NO_PATH, _index_obj=index_like)
         raise RuntimeError(f'Could not coerce {index_like!r} into a TerrierIndex')
 
 
