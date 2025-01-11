@@ -6,6 +6,10 @@ import pyterrier as pt
 
 
 class TerrierModel(Enum):
+    """A built-in Terrier weighting (scoring) model.
+
+    This is a beta feature and is not yet fully-featured or fully-tested.
+    """
     bm25 = 'bm25'
     dph = 'dph'
 
@@ -15,7 +19,10 @@ class TerrierModel(Enum):
 # features yet, but does allow for uploading/downloading Terrier indexes from HuggingFace, etc.
 ######################################
 class TerrierIndex(pt.Artifact):
-    """A Terrier index."""
+    """A Terrier index.
+
+    This is a beta feature and is not yet fully-featured or fully-tested.
+    """
 
     ARTIFACT_TYPE = 'sparse_index'
     ARTIFACT_FORMAT = 'terrier'
