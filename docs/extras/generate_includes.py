@@ -138,37 +138,3 @@ def experiment_includes():
     ).head().to_markdown(tablefmt="rst")
     with open("_includes/experiment-perq.rst", "wt") as f:
         f.write(table)
-
-
-def artifact_list_include():
-    table = [
-        {'class': 'pyterrier.terrier.TerrierIndex', 'package': 'python-terrier', 'package_url': 'https://github.com/terrier-org/pyterrier', 'type': 'sparse_index', 'format': 'terrier'},
-        {'class': 'pyterrier_pisa.PisaIndex', 'package': 'pyterrier-pisa', 'package_url': 'https://github.com/terrierteam/pyterrier_pisa', 'type': 'sparse_index', 'format': 'pisa'},
-        {'class': 'pyterrier_anserini.AnseriniIndex', 'package': 'pyterrier-anserini', 'package_url': 'https://github.com/seanmacavaney/pyterrier-anserini', 'type': 'sparse_index', 'format': 'anserini'},
-        {'class': 'pyterrier_adaptive.corpus_graph.NpTopKCorpusGraph', 'package': 'pyterrier-adaptive', 'package_url': 'https://github.com/terrierteam/pyterrier-adaptive', 'type': 'corpus_graph', 'format': 'np_topk'},
-        {'class': 'pyterrier_ciff.CiffIndex', 'package': 'pyterrier-ciff', 'package_url': 'https://github.com/seanmacavaney/pyterrier-ciff', 'type': 'sparse_index', 'format': 'ciff'},
-        {'class': 'pyterrier_dr.FlexIndex', 'package': 'pyterrier-dr', 'package_url': 'https://github.com/terrierteam/pyterrier_dr', 'type': 'dense_index', 'format': 'flex'},
-        {'class': 'pyterrier_dr.CDECache', 'package': 'pyterrier-dr', 'package_url': 'https://github.com/terrierteam/pyterrier_dr', 'type': 'cde_cache', 'format': 'np_pickle'},
-        {'class': 'pyterrier_quality.QualCache', 'package': 'pyterrier-quality', 'package_url': 'https://github.com/terrierteam/pyterrier-quality', 'type': 'quality_score_cache', 'format': 'numpy'},
-        {'class': 'pyterrier_caching.Lz4PickleIndexerCache', 'package': 'pyterrier-caching', 'package_url': 'https://github.com/seanmacavaney/pyterrier-caching', 'type': 'indexer_cache', 'format': 'lz4pickle'},
-        {'class': 'pyterrier_caching.DbmRetrieverCache', 'package': 'pyterrier-caching', 'package_url': 'https://github.com/seanmacavaney/pyterrier-caching', 'type': 'retriever_cache', 'format': 'dbm.dumb'},
-        {'class': 'pyterrier_caching.Hdf5ScorerCache', 'package': 'pyterrier-caching', 'package_url': 'https://github.com/seanmacavaney/pyterrier-caching', 'type': 'scorer_cache', 'format': 'hdf5'},
-        {'class': 'pyterrier_caching.Sqlite3ScorerCache', 'package': 'pyterrier-caching', 'package_url': 'https://github.com/seanmacavaney/pyterrier-caching', 'type': 'scorer_cache', 'format': 'sqlite3'},
-    ]
-    with open("_includes/artifact_list.rst", "wt") as f:
-        f.write('''
-.. list-table::
-   :header-rows: 1
-
-   * - Class
-     - Package
-     - Type / Format
-     - Links
-''')
-        for rec in table:
-            f.write('''
-   * - :class:`~{class}`
-     - `{package} <{package_url}>`_
-     - ``{type}``/``{format}``
-     - `HuggingFace <https://huggingface.co/datasets?other=pyterrier-artifact.{type}.{format}>`__
-'''.format(**rec))

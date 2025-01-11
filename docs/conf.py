@@ -23,11 +23,10 @@ import textwrap
 
 from extras import generate_includes
 from extras import generate_extensions
-generate_includes.setup()
 if not "QUICK" in os.environ:
+    generate_includes.setup()
     generate_includes.dataset_include()
     generate_includes.experiment_includes()
-generate_includes.artifact_list_include()
 generate_extensions.generate_extensions()
 
 # -- Project information -----------------------------------------------------
