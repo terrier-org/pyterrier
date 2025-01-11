@@ -598,7 +598,7 @@ class _BaseIterDictIndexer(TerrierIndexer, pt.Indexer):
                 'FlatJSONDocument.process' : ','.join(self.text_attrs), # index all these json columns
                 'FieldTags.process': '', # but dont make them into fields
                 'FieldTags.casesensitive': 'true',
-            })            
+            })
 
     def _filter_iterable(self, it):
         # Only include necessary columns: those that are indexed, metadata columns, and docno
