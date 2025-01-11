@@ -599,7 +599,7 @@ class HashWriter(_NosyWriter):
         super().__init__(writer)
         self.hash = hashfn()
 
-    def on_data(self, data: bytes) -> None:
+    def on_data(self, data: Buffer) -> None:
         """Called when data is written."""
         self.hash.update(data)
 
