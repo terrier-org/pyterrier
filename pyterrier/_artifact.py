@@ -10,6 +10,7 @@ import requests
 from datetime import datetime
 from hashlib import sha256
 from pathlib import Path
+import typing
 from typing import Any, Dict, Iterator, Optional, Tuple, Union
 from urllib.parse import ParseResult, urlparse
 
@@ -138,8 +139,9 @@ class Artifact:
                 if parsed_url.path.endswith('.lz4'):
                     cin = stack.enter_context(LZ4FrameFile(fin))
                 # TODO: support other compressions
+                cin = typing.cast(io.BytesIO, cin) # noqa: PT100 (this is typing.cast, not jinus.cast)
 
-                tar_in = stack.enter_context(tarfile.open(fileobj=cin, mode='r|')) # type: ignore[arg-type]
+                tar_in = stack.enter_context(tarfile.open(fileobj=cin, mode='r|'))
 
                 metadata_out.flush()
                 for member in tar_in:
