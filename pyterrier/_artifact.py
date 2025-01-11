@@ -11,7 +11,7 @@ from datetime import datetime
 from hashlib import sha256
 from pathlib import Path
 import typing
-from typing import Any, Dict, Iterator, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, Optional, Tuple, Union, Literal
 from urllib.parse import ParseResult, urlparse
 
 from lz4.frame import LZ4FrameFile
@@ -27,9 +27,13 @@ class Artifact:
     Artifacts usually act as factories for transformers that use them. For example, an index artifact
     may provide a `.retriever()` method that returns a transformer that searches the index.
     """
-    def __init__(self, path: Union[Path, str]):
+
+    # NO_PATH is a sentinel value that is used to indicate that an artifact has no file path (e.g., it's in-memory).
+    NO_PATH = object()
+
+    def __init__(self, path: Union[Path, str, Literal[NO_PATH]]):
         """Initialize the artifact at the provided URL."""
-        self.path: Path = Path(path)
+        self.path: Union[Path, Literal[Artifact.NO_PATH]] = Artifact.NO_PATH if path is Artifact.NO_PATH else Path(path)
 
     @classmethod
     def load(cls, path: str) -> 'Artifact':
@@ -204,6 +208,7 @@ class Artifact:
         Returns:
             The path of the package created.
         """
+        assert self.path is not Artifact.NO_PATH, "package cannot be built for artifacts without a path"
         if package_path is None:
             package_path = str(self.path) + '.tar.lz4'
 

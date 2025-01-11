@@ -10,9 +10,6 @@ class TerrierModel(Enum):
     dph = 'dph'
 
 
-_NO_PATH_PLACEHOLDER = '__NO_PATH__'
-
-
 ######################################
 # This is a work-in-progress Artifact-compatible wrapper for a Terrier Index. It doesn't support most
 # features yet, but does allow for uploading/downloading Terrier indexes from HuggingFace, etc.
@@ -28,10 +25,10 @@ class TerrierIndex(pt.Artifact):
         """Initialises a TerrierIndex for the given path."""
         super().__init__(path)
         if _index_ref is not None:
-            assert path == _NO_PATH_PLACEHOLDER and _index_obj is None
+            assert path is pt.Artifact.NO_PATH and _index_obj is None
         self._index_ref = _index_ref
         if _index_obj is not None:
-            assert path == _NO_PATH_PLACEHOLDER and _index_ref is None
+            assert path is pt.Artifact.NO_PATH and _index_ref is None
         self._index_obj = _index_obj
 
     def retriever(
@@ -159,7 +156,7 @@ class TerrierIndex(pt.Artifact):
     @classmethod
     @pt.java.required
     def coerce(cls, index_like: Union[str, Path, 'TerrierIndex']) -> 'TerrierIndex':
-        """Attempts to build a :class:`TerrierIndex`` from the given object.
+        """Attempts to build a :class:`TerrierIndex` from the given object.
         
         ``index_like`` can be either: (bulleted list below):
         - ``str`` or ``Path``: loads the index at the provided path
@@ -172,9 +169,9 @@ class TerrierIndex(pt.Artifact):
         if isinstance(index_like, (str, Path)):
             return TerrierIndex(index_like)
         if isinstance(index_like, pt.terrier.J.IndexRef):
-            return TerrierIndex(_NO_PATH_PLACEHOLDER, _index_ref=index_like)
+            return TerrierIndex(pt.Artifect.NO_PATH, _index_ref=index_like)
         if isinstance(index_like, pt.terrier.J.Index):
-            return TerrierIndex(_NO_PATH_PLACEHOLDER, _index_obj=index_like)
+            return TerrierIndex(pt.Artifect.NO_PATH, _index_obj=index_like)
         raise RuntimeError(f'Could not coerce {index_like!r} into a TerrierIndex')
 
 
