@@ -21,7 +21,7 @@ import pyterrier as pt
 # NO_PATH is a sentinel value that is used to indicate that an artifact has no file path (e.g., it's in-memory).
 class _NoPath:
     def __repr__(self):
-        return 'Arfiact.NO_PATH'
+        return 'Artifact.NO_PATH'
 _NO_PATH = _NoPath()
 
 class Artifact:
