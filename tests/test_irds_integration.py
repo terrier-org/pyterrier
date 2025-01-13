@@ -22,7 +22,7 @@ class TestIrDatasetsIntegration(BaseTestCase):
             self.assertEqual(len(corpus), 11429)
             with tempfile.TemporaryDirectory() as d:
                 indexer = pt.index.IterDictIndexer(d)
-                indexref = indexer.index(dataset.get_corpus_iter(), fields=('text',))
+                indexref = indexer.index(dataset.get_corpus_iter())
                 index = pt.IndexFactory.of(indexref)
                 self.assertEqual(index.lexicon['bit'].frequency, 33)
                 index.close()

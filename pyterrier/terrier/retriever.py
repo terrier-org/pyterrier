@@ -176,6 +176,8 @@ class Retriever(pt.Transformer):
         self.concurrentIL = pt.java.autoclass("org.terrier.structures.ConcurrentIndexLoader")
         if pt.terrier.check_version(5.5) and "SimpleDecorateProcess" not in self.properties["querying.processes"]:
             self.properties["querying.processes"] += ",decorate:SimpleDecorateProcess"
+            controls = controls or {}
+            controls["decorate_batch"] = "on"
         self.metadata = metadata
         self.threads = threads
         self.RequestContextMatching = pt.java.autoclass("org.terrier.python.RequestContextMatching")
@@ -203,13 +205,15 @@ class Retriever(pt.Transformer):
                 raise ValueError("Unknown parameter type passed for wmodel argument: %s" % str(wmodel))
                   
         if self.threads > 1:
-            warn("Multi-threaded retrieval is experimental, YMMV.")
+            warn(
+                "Multi-threaded retrieval is experimental, YMMV.")
             assert pt.terrier.check_version(5.5), "Terrier 5.5 is required for multi-threaded retrieval"
 
             # we need to see if our indexref is concurrent. if not, we upgrade it using ConcurrentIndexLoader
             # this will upgrade the underlying index too.
             if not self.concurrentIL.isConcurrent(self.indexref):
-                warn("Upgrading indexref %s to be concurrent" % self.indexref.toString())
+                warn(
+                    "Upgrading indexref %s to be concurrent" % self.indexref.toString())
                 self.indexref = self.concurrentIL.makeConcurrent(self.indexref)
 
         if num_results is not None:
@@ -269,14 +273,15 @@ class Retriever(pt.Transformer):
         qid = str(row.qid)
 
         # row is a namedtuple, whose fields are exposed in _fields
-        query_toks_present : bool = 'query_toks' in row._fields
+        query_toks_present = 'query_toks' in row._fields
         if query_toks_present:
             query = '' # Clear the query so it doesn't match the "applypipeline:off" or "_matchop" condictions below... The query_toks query is converted below.
             srq = self.manager.newSearchRequest(qid)
         else:
             query = row.query
             if len(query) == 0:
-                warn("Skipping empty query for qid %s" % qid)
+                warn(
+                    "Skipping empty query for qid %s" % qid)
                 return []
             srq = self.manager.newSearchRequest(qid, query)
 
@@ -300,7 +305,8 @@ class Retriever(pt.Transformer):
 
         if query_toks_present:
             if len(row.query_toks) == 0:
-                warn("Skipping empty query_toks for qid %s" % qid)
+                warn(
+                    "Skipping empty query_toks for qid %s" % qid)
                 return []
             srq.setControl("terrierql", "off")
             srq.setControl("parsecontrols", "off")
@@ -720,7 +726,7 @@ class FeaturesRetriever(Retriever):
         newscores=[]
         for row in pt.tqdm(queries.itertuples(), desc=str(self), total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
             qid = str(row.qid)
-            query_toks_present : bool = 'query_toks' in row._fields
+            query_toks_present = 'query_toks' in row._fields
             if query_toks_present:
                 # Even though it might look like we should parse the query toks here, we don't want the resulting query to be caught by the conditions
                 # that come before the "if query_toks_present" check. So we set it to an empty string and handle the parsing below.
@@ -729,7 +735,8 @@ class FeaturesRetriever(Retriever):
             else:
                 query = row.query
                 if len(query) == 0:
-                    warn("Skipping empty query for qid %s" % qid)
+                    warn(
+                        "Skipping empty query for qid %s" % qid)
                     continue
                 srq = self.manager.newSearchRequest(qid, query)
 
@@ -750,7 +757,8 @@ class FeaturesRetriever(Retriever):
 
             if query_toks_present:
                 if len(row.query_toks) == 0:
-                    warn("Skipping empty query_toks for qid %s" % qid)
+                    warn(
+                        "Skipping empty query_toks for qid %s" % qid)
                     return []
                 srq.setControl("terrierql", "off")
                 srq.setControl("parsecontrols", "off")
@@ -848,7 +856,7 @@ class FeaturesRetriever(Retriever):
     def fuse_feature_union(self, other: pt.Transformer, is_left: bool) -> Optional[pt.Transformer]:
         if isinstance(other, FeaturesRetriever) and \
            self.indexref == other.indexref and \
-           self.wmodel is None  and \
+           self.wmodel is None and \
            other.wmodel is None:
             features = self.features + other.features if is_left else other.features + self.features
             return FeaturesRetriever(self.indexref, features, controls=self.controls, properties=self.properties,

@@ -5,12 +5,15 @@ import pandas as pd
 from .transformer import is_lambda
 from abc import abstractmethod
 import types
-from typing import Union, Tuple, Iterator, Dict, Any, List, Literal, Optional
+from collections import defaultdict
+from typing import Union, Tuple, Dict, List, Literal, Optional
 from warnings import warn
 import requests
 from .io import autoopen, touch
 import pyterrier as pt
 import tarfile
+import zipfile
+import ir_datasets
 
 
 TERRIER_DATA_BASE="http://data.terrier.org/indices/"
@@ -143,7 +146,7 @@ class RemoteDataset(Dataset):
                 r = requests.get(url, allow_redirects=True, stream=True, **kwargs)
                 r.raise_for_status()
                 total = int(r.headers.get('content-length', 0))
-                with pt.io.finalized_open(filename, 'b') as file, pt.tqdm( # type: ignore
+                with pt.io.finalized_open(filename, 'b') as file, pt.tqdm(
                         desc=basename,
                         total=total,
                         unit='iB',
@@ -161,12 +164,13 @@ class RemoteDataset(Dataset):
                 if i == finalattempt:
                     raise error
                 else:
-                    warn("Problem fetching %s, resorting to next mirror" % url)
+                    warn(
+                        "Problem fetching %s, resorting to next mirror" % url)
             
 
     def _check_variant(self, component, variant=None):
         name=self.name
-        if not component in self.locations:
+        if component not in self.locations:
             raise ValueError("No %s in dataset %s" % (component, name))
         if variant is None:
             if not isinstance(self.locations[component], list):
@@ -174,7 +178,7 @@ class RemoteDataset(Dataset):
         else:
             if isinstance(self.locations[component], list):
                 raise ValueError("For %s in dataset %s, there are no variants, but you specified %s" % (component, name, variant))
-            if not variant in self.locations[component]:
+            if variant not in self.locations[component]:
                 raise ValueError("For %s in dataset %s, there is no variant %s. Available are: %s" % (component, name, variant, str(list(self.locations[component].keys()))))
 
     def _get_one_file(self, component, variant=None):
@@ -204,11 +208,12 @@ class RemoteDataset(Dataset):
         actualURL = URL if isinstance(URL, str) else URL[0]
         if "#" in actualURL and not os.path.exists(local):
             tarname, intarfile = actualURL.split("#")
-            assert not "/" in intarfile
-            assert ".tar" in tarname or ".tgz" in tarname
+            assert "/" not in intarfile
+            assert ".tar" in tarname or ".tgz" in tarname or ".zip" in tarname
             localtarfile, _ = self._get_one_file("tars", tarname)
-            tarobj = tarfile.open(localtarfile, "r")
-            tarobj.extract(intarfile, path=self.corpus_home)
+            extractor = zipfile.ZipFile if ".zip" in tarname else tarfile.open
+            with extractor(localtarfile, "r") as tarobj:
+                tarobj.extract(intarfile, path=self.corpus_home)
             os.rename(os.path.join(self.corpus_home, intarfile), local)
             return (local, filetype)        
         
@@ -270,11 +275,15 @@ class RemoteDataset(Dataset):
             if free < totalsize:
                 raise ValueError("Insufficient freedisk space at %s to download index" % localDir)
             if totalsize > 2 * 2**30:
-                warn("Downloading index of > 2GB.")
+                warn(
+                    "Downloading index of > 2GB.")
 
+        # all tarfiles that we will need to process        
+        tarfiles = defaultdict(list)
         for fileentry in file_list:
             local = fileentry[0]
             URL = fileentry[1]
+            assert "/" not in local, "cant handle / in %s, local name is %s" % (local)
             expectedlength = -1
             if len(fileentry) == 3:
                 expectedlength = fileentry[2]
@@ -285,21 +294,18 @@ class RemoteDataset(Dataset):
             if fileexists and expectedlength >= 0:
                 length = os.stat(local).st_size
                 if expectedlength != length:
-                    warn("Removing partial download of %s (expected %d bytes, found %d)" % (local, expectedlength, length ))
+                    warn(
+                        "Removing partial download of %s (expected %d bytes, found %d)" % (local, expectedlength, length ))
                     os.remove(local)
                     fileexists = False
 
             if not fileexists:
                 if "#" in URL:
                     tarname, intarfile = URL.split("#")
-                    assert not "/" in intarfile
-                    assert ".tar" in tarname or ".tgz" in tarname
+                    assert ".tar" in tarname or ".tgz" in tarname or ".zip" in tarname, "I dont know how to decompress file %s" % tarname
                     localtarfile, _ = self._get_one_file("tars", tarname)
-                    tarobj = tarfile.open(localtarfile, "r")
-                    tarobj.extract(intarfile, path=self.corpus_home)
-                    local = os.path.join(self.corpus_home, local)
-                    #TODO, files could be recompressed here to save space
-                    os.rename(os.path.join(self.corpus_home, intarfile), local)
+                    # append intarfile to the list of files to be extracted from localtarfile
+                    tarfiles[localtarfile].append((intarfile, local))
                 else:
                     try:
                         RemoteDataset.download(URL, local, **kwargs)
@@ -312,6 +318,18 @@ class RemoteDataset(Dataset):
                         if expectedlength != length:
                             raise ValueError("Failed download of %s to %s (expected %d bytes, found %d)" % (URL, local, expectedlength, length ))
 
+        # now extract all required files from each tar file
+        for localtarfile in tarfiles:
+            extractor = zipfile.ZipFile if ".zip" in tarname else tarfile.open
+            with extractor(localtarfile, "r") as tarobj:
+                # 5 is abrtary threshold - if we have lots of files to extract, give a progress bar. alternative would be delay=5?
+                iter = pt.tqdm(tarfiles[localtarfile], unit="file", desc="Extracting from " + localtarfile) if len(tarfiles[localtarfile]) > 5 else tarfiles[localtarfile]
+                for (intarfile, local) in iter:
+                    tarobj.extract(intarfile, path=self.corpus_home)
+                    local = os.path.join(self.corpus_home, local)
+                    os.rename(os.path.join(self.corpus_home, intarfile), local)
+                    #TODO, files /could/ be recompressed here to save space, if not already compressed
+
         # finally, touch a file signifying that download has been completed
         touch(os.path.join(localDir, ".complete"))
         return localDir
@@ -319,7 +337,7 @@ class RemoteDataset(Dataset):
     def _describe_component(self, component):
         if component not in self.locations:
             return None
-        if type(self.locations[component]) == type([]):
+        if isinstance(self.locations[component], list):
             return True
         if isinstance(self.locations[component], dict):
             return list(self.locations[component].keys())
@@ -329,7 +347,7 @@ class RemoteDataset(Dataset):
         return list(filter(lambda f : not f.endswith(".complete"), pt.io.find_files(self._get_all_files("corpus", **kwargs))))
 
     def get_corpus_iter(self, **kwargs):
-        if not "corpus_iter" in self.locations:
+        if "corpus_iter" not in self.locations:
             raise ValueError("Cannot supply a corpus iterator on dataset %s" % self.name)
         return self.locations["corpus_iter"](self, **kwargs)
         
@@ -614,7 +632,7 @@ class IRDSTextLoader(pt.Transformer):
         set_docnos = set(docnos)
         it = (tuple(getattr(doc, f) for f in fields) for doc in docstore.get_many_iter(set_docnos))
         if self.verbose:
-            it = pt.tqdm(it, unit='d', total=len(set_docnos), desc='IRDSTextLoader') # type: ignore
+            it = pt.tqdm(it, unit='d', total=len(set_docnos), desc='IRDSTextLoader')
         metadata = pd.DataFrame(list(it), columns=fields).set_index('doc_id')
         metadata_frame = metadata.loc[docnos].reset_index(drop=True)
 
@@ -627,8 +645,8 @@ class IRDSTextLoader(pt.Transformer):
 def passage_generate(dataset):
     for filename in dataset.get_corpus():
         with autoopen(filename, 'rt') as corpusfile:
-            for l in corpusfile: #for each line
-                docno, passage = l.split("\t")
+            for line in corpusfile: #for each line
+                docno, passage = line.split("\t")
                 yield {'docno' : docno, 'text' : passage}
 
 def _datarepo_index(self, component, variant=None, version='latest', **kwargs):
@@ -711,8 +729,8 @@ TREC_COVID_FILES = {
 def msmarco_document_generate(dataset):
     for filename in dataset.get_corpus(variant="corpus-tsv"):
         with autoopen(filename, 'rt') as corpusfile:
-            for l in corpusfile: #for each line
-                docno, url, title, passage = l.split("\t")
+            for line in corpusfile: #for each line
+                docno, url, title, passage = line.split("\t")
                 yield {'docno' : docno, 'url' : url, 'title' : title, 'text' : passage}
 
 MSMARCO_DOC_FILES = {
@@ -743,14 +761,6 @@ MSMARCO_DOC_FILES = {
 MSMARCO_PASSAGE_FILES = {
     "corpus" : 
         [("collection.tsv", "collection.tar.gz#collection.tsv")],
-    "index": {
-        "terrier_stemmed" : [(filename, TERRIER_DATA_BASE + "/msmarco_passage/terrier_stemmed/latest/" + filename) for filename in STANDARD_TERRIER_INDEX_FILES],
-        "terrier_unstemmed" : [(filename, TERRIER_DATA_BASE + "/msmarco_passage/terrier_unstemmed/latest/" + filename) for filename in STANDARD_TERRIER_INDEX_FILES],
-        "terrier_stemmed_text" : [(filename, TERRIER_DATA_BASE + "/msmarco_passage/terrier_stemmed_text/latest/" + filename) for filename in STANDARD_TERRIER_INDEX_FILES],
-        "terrier_unstemmed_text" : [(filename, TERRIER_DATA_BASE + "/msmarco_passage/terrier_unstemmed_text/latest/" + filename) for filename in STANDARD_TERRIER_INDEX_FILES],
-        "terrier_stemmed_deepct" : [(filename, TERRIER_DATA_BASE + "/msmarco_passage/terrier_stemmed_deepct/latest/" + filename) for filename in STANDARD_TERRIER_INDEX_FILES],
-        "terrier_stemmed_docT5query" : [(filename, TERRIER_DATA_BASE + "/msmarco_passage/terrier_stemmed_docT5query/latest/" + filename) for filename in STANDARD_TERRIER_INDEX_FILES],
-    },
     "topics" :
         { 
             "train" : ("queries.train.tsv", "queries.tar.gz#queries.train.tsv", "singleline"),
@@ -1148,7 +1158,6 @@ DATASET_MAP : Dict[str, Dataset] = {
 # irds:antique/test/non-offensive
 # irds:antique/train
 # ...
-import ir_datasets
 for ds_id in ir_datasets.registry:
     DATASET_MAP[f'irds:{ds_id}'] = IRDSDataset(ds_id, defer_load=True)
 
@@ -1234,7 +1243,10 @@ def transformer_from_dataset(
         dataset = get_dataset(dataset)
     if version != "latest":
         raise ValueError("index versioning not yet supported")
-    indexref = dataset.get_index(variant)
+    if hasattr(dataset, 'get_index'):
+        indexref = dataset.get_index(variant)
+    else:
+        raise ValueError('dataset doe not support get_index()')
 
     classname = clz.__name__
     classnames = [classname]

@@ -68,7 +68,6 @@ jobs:
         pip install --upgrade --upgrade-strategy eager -r requirements-test.txt
         #install this software
         pip install --timeout=120 .
-        pip install pytest
 
     - name: Lint with flake8
       run: |

@@ -1,6 +1,6 @@
-# type: ignore
 # java stuff
 from pyterrier.terrier import java
+from pyterrier.terrier._index import TerrierIndex, TerrierModel
 from pyterrier.terrier._text_loader import TerrierTextLoader, terrier_text_loader
 from pyterrier.terrier.java import configure, set_version, set_helper_version, extend_classpath, J, set_property, set_properties, run, version, check_version, check_helper_version
 from pyterrier.terrier.retriever import Retriever, FeaturesRetriever, TextScorer
@@ -73,4 +73,7 @@ __all__ = [
     'TerrierStemmer', 'TerrierStopwords', 'TerrierTokeniser',
     'IndexFactory', 'set_property', 'set_properties', 'run', 
     'TerrierTextLoader', 'terrier_text_loader',
+
+    # Beta High-level API
+    'TerrierIndex', 'TerrierModel',
 ]

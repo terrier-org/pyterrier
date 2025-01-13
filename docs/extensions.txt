@@ -1,19 +1,20 @@
-# Adaptive Re-Ranking <https://github.com/terrierteam/pyterrier_adaptive>
-pyterrier_alpha # Alpha Features
-pyterrier_anserini # Anserini
+pyterrier_adaptive # Adaptive Retrieval <https://github.com/terrierteam/pyterrier_adaptive>
+pyterrier_alpha # Alpha Features <https://github.com/seanmacavaney/pyterrier-alpha>
+pyterrier_anserini # Anserini <https://github.com/seanmacavaney/pyterrier-anserini>
+pyterrier_services # API Services <https://github.com/seanmacavaney/pyterrier-services>
 # AutoQrels <https://github.com/seanmacavaney/autoqrels>
-pyterrier_caching # Caching
+pyterrier_caching # Caching <https://github.com/seanmacavaney/pyterrier-caching>
 # ChatNoir <https://github.com/chatnoir-eu/chatnoir-pyterrier>
-pyterrier_ciff # CIFF
+pyterrier_ciff # CIFF <https://github.com/seanmacavaney/pyterrier-ciff>
 # ColBERT <https://github.com/terrierteam/pyterrier_colbert>
 # DeepCT <https://github.com/terrierteam/pyterrier_deepct>
 # DeepImpact <https://github.com/terrierteam/pyterrier_deepimpact>
-pyterrier_dr # Dense Retrieval
-# Doc2Query <https://github.com/terrierteam/pyterrier_doc2query>
+pyterrier_dr # Dense Retrieval <https://github.com/terrierteam/pyterrier_dr>
+pyterrier_doc2query # Doc2Query <https://github.com/terrierteam/pyterrier_doc2query>
 # Document Quality <https://github.com/terrierteam/pyterrier-quality>
 # GenRank <https://github.com/emory-irlab/pyterrier_genrank>
 # OpenNIR <https://opennir.net/>
-pyterrier_pisa # PISA
+pyterrier_pisa # PISA <https://github.com/terrierteam/pyterrier_pisa>
 # Sentence Transformers <https://github.com/soldni/pyterrier_sentence_transformers>
 # SPLADE <https://github.com/cmacdonald/pyt_splade>
 # T5 <https://github.com/terrierteam/pyterrier_t5>

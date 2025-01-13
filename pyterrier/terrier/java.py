@@ -1,10 +1,8 @@
-# type: ignore
 import os
 import sys
 import json
-from pathlib import Path
 from packaging.version import Version
-from typing import Optional, Union, List, Callable, Dict, Any
+from typing import Optional, Union, List, Dict, Any
 import pyterrier as pt
 
 TERRIER_PKG = "org.terrier"
@@ -91,6 +89,7 @@ class TerrierJavaInit(pt.java.JavaInitializer):
         }
 
         jnius.protocol_map["org.terrier.querying.IndexRef"] = {
+            '__eq__' : lambda self, other: self.equals(other),
             '__reduce__' : _index_ref_reduce,
             '__getstate__' : lambda self : None,
             'text_loader': pt.terrier.terrier_text_loader,
@@ -177,7 +176,7 @@ class TerrierJavaInit(pt.java.JavaInitializer):
             def next(self):
                 try:
                     doc_dict = next(self.pyiterator)
-                except StopIteration as se:
+                except StopIteration:
                     self.hasnext = False
                     # terrier will ignore a null return from an iterator
                     return None
