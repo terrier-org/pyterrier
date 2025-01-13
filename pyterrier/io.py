@@ -498,7 +498,7 @@ def open_or_download_stream(
 
             yield fin
     else:
-        raise OSError(f'path or url {path_or_url!r} not found')
+        raise OSError(f'path or url {path_or_url!r} not found') # error can occur here if protocol entrypoints were not found - try pip install .
 
 
 class _NosyReader(io.BufferedIOBase, ABC):
