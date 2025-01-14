@@ -159,17 +159,28 @@ class Retriever(pt.Transformer):
         "termpipelines": "Stopwords,PorterStemmer"
     }
 
-    def __init__(self, index_location, controls=None, properties=None, metadata=["docno"],  num_results=None, wmodel=None, threads=1, verbose=False):
+    def __init__(self, 
+                 index_location, 
+                 controls : Optional[Dict[str,str]] = None, 
+                 properties : Optional[Dict[str,str]] = None, 
+                 metadata : List[str] = ["docno"], 
+                 num_results : Optional[int] = None, 
+                 wmodel : Union[str,Callable] = None, 
+                 threads : int = 1, 
+                 verbose : bool = False):
         """
             Init method
 
             Args:
-                index_location: An index-like object - An Index, an IndexRef, or a String that can be resolved to an IndexRef
+                index_location: An index-like object - An Index, an IndexRef, or a string that can be resolved to an IndexRef
                 controls(dict): A dictionary with the control names and values
                 properties(dict): A dictionary with the property keys and values
                 verbose(bool): If True transform method will display progress
-                num_results(int): Number of results to retrieve. 
-                metadata(list): What metadata to retrieve
+                num_results(int): Number of results to retrieve. Defaults to None, which uses the Terrier default of 1000.
+                metadata(list): What metadata to retrieve from the metaindex for each retrieved. Defaults to ["docno"].
+                wmodel(str|Callable): The name of a Terrier `weighting model <http://terrier.org/docs/current/javadoc/org/terrier/matching/models/package-summary.html>`_, 
+                    or a Python function that can be used as a weighting model.
+                threads(int): Whether to use multi-threaded retrieval to improve throughput. Terrier scales linearly upto around 4-5 threads.
         """
         self.indexref = _parse_index_like(index_location)
         self.properties = _mergeDicts(Retriever.default_properties, properties)
