@@ -7,7 +7,7 @@ from pyterrier.model import coerce_queries_dataframe, FIRST_RANK
 import concurrent
 from concurrent.futures import ThreadPoolExecutor
 import pyterrier as pt
-from typing import Dict
+from typing import Dict, Union, Optional, List
 
 _matchops = ["#combine", "#uw", "#1", "#tag", "#prefix", "#band", "#base64", "#syn"]
 def _matchop(query):
