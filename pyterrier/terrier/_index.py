@@ -28,7 +28,7 @@ class TerrierIndex(pt.Artifact):
     ARTIFACT_FORMAT = 'terrier'
     ARTIFACT_PACKAGE_HINT = 'python-terrier'
 
-    def __init__(self, path, *, _index_ref=None, _index_obj=None):
+    def __init__(self, path, *, _index_ref=None, _index_obj=None, memory=False):
         """Initialises a TerrierIndex for the given path."""
         super().__init__(path)
         if _index_ref is not None:
@@ -37,6 +37,7 @@ class TerrierIndex(pt.Artifact):
         if _index_obj is not None:
             assert path is pt.Artifact.NO_PATH and _index_ref is None
         self._index_obj = _index_obj
+        self.memory = memory
 
     def retriever(
         self,
@@ -157,7 +158,7 @@ class TerrierIndex(pt.Artifact):
     def index_obj(self):
         """Returns the internal Java index object for this index."""
         if self._index_obj is None:
-            self._index_obj = pt.terrier.IndexFactory.of(self.index_ref())
+            self._index_obj = pt.terrier.IndexFactory.of(self.index_ref(), memory=self.memory)
         return self._index_obj
 
     @classmethod
