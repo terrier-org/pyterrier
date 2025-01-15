@@ -41,7 +41,7 @@ class Artifact:
         self.path: Union[Path, _NoPath] = path if isinstance(path, _NoPath) else Path(path)
 
     @classmethod
-    def load(cls, path: str) -> 'Artifact':
+    def load(cls, path: str, **kwargs) -> 'Artifact':
         """Load the artifact from the specified path.
 
         If invoked on the base class, this method will attempt to find a supporting Artifact
@@ -63,10 +63,10 @@ class Artifact:
         else:
             # called SomeArtifact.load(path), so load this specific artifact
             # TODO: add error message if not loaded
-            return cls(path)
+            return cls(path, **kwargs)
 
     @classmethod
-    def from_url(cls, url: str, *, expected_sha256: Optional[str] = None) -> 'Artifact':
+    def from_url(cls, url: str, *, expected_sha256: Optional[str] = None, **kwargs) -> 'Artifact':
         """Load the artifact from the specified URL.
 
         The artifact at the specified URL will be downloaded and stored in PyTerrier's artifact cache.
@@ -325,7 +325,7 @@ class Artifact:
     # -------------------------------------------------
 
     @classmethod
-    def from_hf(cls, repo: str, branch: Optional[str] = None, *, expected_sha256: Optional[str] = None) -> 'Artifact':
+    def from_hf(cls, repo: str, branch: Optional[str] = None, *, expected_sha256: Optional[str] = None, **kwargs) -> 'Artifact':
         """Load an artifact from Hugging Face Hub.
 
         Args:
@@ -339,7 +339,7 @@ class Artifact:
             if '@' in repo:
                 raise ValueError('Provided branch in both repository name (via @) and as argument to from_hf')
             repo = f'{repo}@{branch}'
-        return cls.from_url(f'hf:{repo}', expected_sha256=expected_sha256)
+        return cls.from_url(f'hf:{repo}', expected_sha256=expected_sha256, **kwargs)
 
     def to_hf(self, repo: str, *, branch: Optional[str] = None, pretty_name: Optional[str] = None) -> None:
         """Upload this artifact to Hugging Face Hub.
@@ -456,7 +456,7 @@ artifact = pt.Artifact.from_hf({repo!r})
     # -------------------------------------------------
 
     @classmethod
-    def from_zenodo(cls, zenodo_id: str, *, expected_sha256: Optional[str] = None) -> 'Artifact':
+    def from_zenodo(cls, zenodo_id: str, *, expected_sha256: Optional[str] = None, **kwargs) -> 'Artifact':
         """Load an artifact from Zenodo.
 
         Args:
@@ -464,7 +464,7 @@ artifact = pt.Artifact.from_hf({repo!r})
             expected_sha256: The expected SHA-256 hash of the artifact. If provided, the downloaded artifact will be
                 verified against this hash and an error will be raised if the hash does not match.
         """
-        return cls.from_url(f'zenodo:{zenodo_id}', expected_sha256=expected_sha256)
+        return cls.from_url(f'zenodo:{zenodo_id}', expected_sha256=expected_sha256, **kwargs)
 
     def to_zenodo(self, *, pretty_name: Optional[str] = None, sandbox: bool = False) -> None:
         """Upload this artifact to Zenodo.
@@ -664,7 +664,7 @@ def _metadata_adapter(path: str):
     return {}
 
 
-def _load(path: str) -> Artifact:
+def _load(path: str, **kwargs) -> Artifact:
     """Load the artifact from the specified path.
 
     This function attempts to load the artifact using a supporting Artifact implementation.
@@ -689,7 +689,7 @@ def _load(path: str) -> Artifact:
         matching_entry_points = [ep for ep in entry_points if ep.name == '{type}.{format}'.format(**metadata)]
         for entry_point in matching_entry_points:
             artifact_cls = entry_point.load()
-            return artifact_cls(path)
+            return artifact_cls(path, **kwargs)
 
     # coudn't find an implementation that supports this artifact
     error = [
