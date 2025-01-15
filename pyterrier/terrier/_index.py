@@ -28,7 +28,7 @@ class TerrierIndex(pt.Artifact):
     ARTIFACT_FORMAT = 'terrier'
     ARTIFACT_PACKAGE_HINT = 'python-terrier'
 
-    def __init__(self, path, *, _index_ref=None, _index_obj=None, memory=False):
+    def __init__(self, path, *, memory=False, _index_ref=None, _index_obj=None):
         """Initialises a TerrierIndex for the given path."""
         super().__init__(path)
         if _index_ref is not None:
