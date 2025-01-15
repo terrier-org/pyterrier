@@ -11,9 +11,10 @@ class TestArtifact(BaseTestCase):
         #  - downloading and validating package
         #  - loading correct artifact type
         #  - build_package
-        index = pt.Artifact.from_hf('pyterrier/vaswani.terrier')
-        retr = index.bm25(num_results=10)
-        self.assertEqual(10, len(retr.search('chemical reactions')))
+        for mem in [True, False]:
+            index = pt.Artifact.from_hf('pyterrier/vaswani.terrier', memory=mem)
+            retr = index.bm25(num_results=10)
+            self.assertEqual(10, len(retr.search('chemical reactions')))
         with tempfile.TemporaryDirectory() as d:
             index.build_package(d+'/artifact.tar.lz4')
 
