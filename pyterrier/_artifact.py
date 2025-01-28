@@ -746,8 +746,15 @@ def _hf_url_resolver(parsed_url: ParseResult) -> Optional[UrlResolverResult]:
     if '@' in org_repo:
         org_repo, ref = org_repo.split('@', 1)
     headers = {}
-    if os.environ.get('HF_TOKEN'): # include HF_TOKEN Authorization header
-        headers['Authorization'] = 'Bearer {HF_TOKEN}'.format(**os.environ)
+    try:
+        # try to get the token using huggingface_hub (takes from various sources: HF_TOKEN env, file, etc.)
+        import huggingface_hub.utils
+        token = huggingface_hub.utils.get_token()
+    except ImportError:
+        # since huggingface_hub isn't a required dependency, at least try to take from HF_TOKEN as a fallback
+        token = os.environ.get('HF_TOKEN')
+    if token:
+        headers['Authorization'] = f'Bearer {token}'
     return UrlResolverResult(f'https://huggingface.co/datasets/{org_repo}/resolve/{ref}/artifact.tar.lz4', headers)
 
 
