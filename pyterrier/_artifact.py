@@ -393,7 +393,7 @@ class Artifact:
             try:
                 huggingface_hub.create_branch(repo, repo_type='dataset', branch=branch)
             except huggingface_hub.utils.HfHubHTTPError as e:
-                if not e.server_message.startswith('Reference already exists:'):
+                if not str(e.server_message).startswith('Reference already exists:'):
                     raise
 
             path = huggingface_hub.upload_folder(
