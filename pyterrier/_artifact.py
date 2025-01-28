@@ -347,7 +347,13 @@ class Artifact:
             repo = f'{repo}@{branch}'
         return cls.from_url(f'hf:{repo}', expected_sha256=expected_sha256)
 
-    def to_hf(self, repo: str, *, branch: Optional[str] = None, pretty_name: Optional[str] = None) -> None:
+    def to_hf(self,
+        repo: str,
+        *,
+        branch: Optional[str] = None,
+        pretty_name: Optional[str] = None,
+        private: Optional[bool] = None,
+    ) -> None:
         """Upload this artifact to Hugging Face Hub.
 
         Args:
@@ -355,6 +361,8 @@ class Artifact:
             branch: The branch or tag of the repository to upload to. (Default: main) A branch can also be provided
                 directly in the repository name using ``owner/repo@branch``.
             pretty_name: The human-readable name of the artifact. (Default: the repository name)
+            private: Whether make the repository private. New repositories default to public unless the organization’s
+                default is private. No change to the repository's visiblity will be made if ``private=None`` (default).
         """
         import huggingface_hub
 
@@ -374,15 +382,20 @@ class Artifact:
                 with open(f'{d}/README.md', 'wt') as fout:
                     fout.write(readme)
             try:
-                huggingface_hub.create_repo(repo, repo_type='dataset')
+                huggingface_hub.create_repo(repo, repo_type='dataset', private=private)
             except huggingface_hub.utils.HfHubHTTPError as e:
                 if e.server_message != 'You already created this dataset repo':
                     raise
+
+            if private is not None:
+                huggingface_hub.update_repo_visibility(repo, repo_type='dataset', private=private)
+
             try:
                 huggingface_hub.create_branch(repo, repo_type='dataset', branch=branch)
             except huggingface_hub.utils.HfHubHTTPError as e:
                 if not e.server_message.startswith('Reference already exists:'):
                     raise
+
             path = huggingface_hub.upload_folder(
                 repo_id=repo,
                 folder_path=d,
