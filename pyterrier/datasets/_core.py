@@ -2,7 +2,7 @@ import os
 import json
 import pandas as pd
 from abc import ABC, abstractmethod
-from typing import Tuple, Iterable, List, Optional, Union, Protocol, runtime_checkable
+from typing import Tuple, Iterable, List, Optional, Union, Protocol, runtime_checkable, Dict, Any
 from collections import defaultdict
 import zipfile
 import tarfile
@@ -16,7 +16,7 @@ from pyterrier.transformer import is_lambda
 
 # DATASET_MAP provides legacy support for registering datasets in extensions. It will be removed in a future version
 # in favor of using a DatasetProvider registered with an entry point.
-DATASET_MAP = {}
+DATASET_MAP: Dict[str, Any] = {}
 
 
 class Dataset:
