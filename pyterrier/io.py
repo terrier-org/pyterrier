@@ -1,11 +1,24 @@
 import re
 import os
+import io
+import shutil
+import tempfile
+import urllib
+import typing
+from typing import Callable, Iterable, Optional, Generator, ContextManager, Union
 from types import GeneratorType
+from contextlib import ExitStack, contextmanager
+from abc import ABC, abstractmethod
+from hashlib import sha256
 import xml.etree.ElementTree as ET
 import numpy as np
 import pandas as pd
-from contextlib import contextmanager
 import pyterrier as pt
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Buffer # type: ignore[attr-defined]
+else:
+    Buffer = Union[bytes, bytearray, memoryview]
 
 
 def coerce_dataframe(obj):
@@ -45,7 +58,6 @@ def find_files(dir):
     Returns:
         paths(list): A list of the paths to the files
     """
-    lst = []
     files = []
     for (dirpath, dirnames, filenames) in os.walk(dir, followlinks=True):
         for name in filenames:
@@ -54,23 +66,29 @@ def find_files(dir):
 
 
 @contextmanager
-def _finalized_open_base(path, mode, open_fn):
+def _finalized_open_base(path: str, mode: str, open_fn: Callable) -> Generator[io.BufferedIOBase, None, None]:
     assert mode in ('b', 't') # must supply either binary or text mode
-    path_tmp = '{}.tmp{}'.format(*os.path.splitext(path)) # add tmp before extension (needed for autoopen)
-    # adapted from <https://github.com/allenai/ir_datasets/blob/master/ir_datasets/util/__init__.py#L34>
+    dirname = os.path.dirname(path)
+    prefix, suffix = os.path.splitext(os.path.basename(path))
+    prefix = f'.{prefix}.'
+    suffix = f'.tmp{suffix}' # last part of the suffix needed for autoopen
     try:
-        with open_fn(path_tmp, f'x{mode}') as f: # open in exclusive write mode (raises error if already exists)
-            yield f
-        os.replace(path_tmp, path) # on success, move temp file to original path
+        fd, path_tmp = tempfile.mkstemp(suffix=suffix, prefix=prefix, dir=dirname)
+        os.close(fd) # mkstemp returns a low-level file descriptor... Close it and re-open the file the normal way
+        with open_fn(path_tmp, f'w{mode}') as fout:
+            yield fout
+        os.chmod(path_tmp, 0o666) # default file umask
     except:
         try:
             os.remove(path_tmp)
-        except:
+        except Exception:
             pass # edge case: removing temp file failed. Ignore and just raise orig error
         raise
 
+    os.replace(path_tmp, path)
 
-def finalized_open(path: str, mode: str):
+
+def finalized_open(path: str, mode: str) -> ContextManager[io.BufferedIOBase]:
     """
     Opens a file for writing, but reverts it if there was an error in the process.
 
@@ -95,7 +113,7 @@ def finalized_open(path: str, mode: str):
     return _finalized_open_base(path, mode, open)
 
 
-def finalized_autoopen(path: str, mode: str):
+def finalized_autoopen(path: str, mode: str) -> ContextManager[io.BufferedIOBase]:
     """
     Opens a file for writing with ``autoopen``, but reverts it if there was an error in the process.
 
@@ -175,7 +193,7 @@ def read_results(filename, format="trec", topics=None, dataset=None, **kwargs):
         )
 
     """
-    if not format in SUPPORTED_RESULTS_FORMATS:
+    if format not in SUPPORTED_RESULTS_FORMATS:
         raise ValueError("Format %s not known, supported types are %s" % (format, str(SUPPORTED_RESULTS_FORMATS.keys())))
     results = SUPPORTED_RESULTS_FORMATS[format][0](filename, **kwargs)
     if dataset is not None:
@@ -189,14 +207,14 @@ def read_results(filename, format="trec", topics=None, dataset=None, **kwargs):
 
 def _read_results_letor(filename, labels=False):
 
-    def _parse_line(l):
+    def _parse_line(line):
             # $line =~ s/(#.*)$//;
             # my $comment = $1;
             # my @parts = split /\s+/, $line;
             # my $label = shift @parts;
             # my %hash = map {split /:/, $_} @parts;
             # return ($label, $comment, %hash);
-        line, comment = l.split("#")
+        line, comment = line.split("#")
         line = line.strip()
         parts = re.split(r'\s+|:', line)
         label = parts.pop(0)
@@ -226,7 +244,6 @@ def _read_results_letor(filename, labels=False):
         return pd.DataFrame(rows, columns=["qid", "docno", "features", "label"] if labels else ["qid", "docno", "features"])
 
 def _read_results_trec(filename):
-    results = []
     df = pd.read_csv(filename, sep=r'\s+', names=["qid", "iter", "docno", "rank", "score", "name"], dtype={'qid': str, 'docno': str, 'rank': int, 'score': float}) 
     df = df.drop(columns="iter")
     return df
@@ -248,7 +265,7 @@ def write_results(res, filename, format="trec", append=False, **kwargs):
         * "minimal": output columns are $qid $docno $rank, tab-separated. This is used for submissions to the MSMARCO leaderboard.
 
     """
-    if not format in SUPPORTED_RESULTS_FORMATS:
+    if format not in SUPPORTED_RESULTS_FORMATS:
         raise ValueError("Format %s not known, supported types are %s" % (format, str(SUPPORTED_RESULTS_FORMATS.keys())))
     # convert generators to results
     res = coerce_dataframe(res)
@@ -294,7 +311,7 @@ def read_topics(filename, format="trec", **kwargs):
     """
     if format is None:
         format = "trec"
-    if not format in SUPPORTED_TOPICS_FORMATS:
+    if format not in SUPPORTED_TOPICS_FORMATS:
         raise ValueError("Format %s not known, supported types are %s" % (format, str(SUPPORTED_TOPICS_FORMATS.keys())))
     return SUPPORTED_TOPICS_FORMATS[format](filename, **kwargs)
 
@@ -408,3 +425,293 @@ def pyterrier_home() -> str:
     if not os.path.exists(home):
         os.makedirs(home)
     return home
+
+
+@contextmanager
+def finalized_directory(path: str) -> Generator[str, None, None]:
+    """Creates a directory, but reverts it if there was an error in the process."""
+    dirname = os.path.dirname(path)
+    prefix, suffix = os.path.splitext(os.path.basename(path))
+    prefix = f'.{prefix}.'
+    suffix = f'.tmp{suffix}' # keep final suffix/extension
+    try:
+        path_tmp = tempfile.mkdtemp(suffix=suffix, prefix=prefix, dir=dirname)
+        yield path_tmp
+        os.chmod(path_tmp, 0o777) # default directory umask
+    except:
+        try:
+            shutil.rmtree(path_tmp)
+        except:
+            raise
+        raise
+
+    os.replace(path_tmp, path)
+
+
+def download(url: str, path: str, *, expected_sha256: Optional[str] = None, verbose: bool = True) -> None:
+    """Downloads a file from a URL to a local path."""
+    with finalized_open(path, 'b') as fout, \
+         download_stream(url, expected_sha256=expected_sha256, verbose=verbose) as fin:
+        while chunk := fin.read1():
+            fout.write(chunk)
+
+
+@contextmanager
+def download_stream(url: str, *, expected_sha256: Optional[str] = None, verbose: bool = True) -> Generator[io.BufferedIOBase, None, None]:
+    """Downloads a file from a URL to a stream."""
+    with ExitStack() as stack:
+        fin = stack.enter_context(urllib.request.urlopen(url))
+        if fin.status != 200:
+            raise OSError(f'Unhandled status code: {fin.status}')
+
+        if verbose:
+            total = int(fin.headers.get('Content-Length', 0)) or None
+            fin = stack.enter_context(TqdmReader(fin, total=total, desc=url))
+
+        if expected_sha256 is not None:
+            fin = stack.enter_context(HashReader(fin, expected=expected_sha256))
+
+        yield fin
+
+
+@contextmanager
+def open_or_download_stream(
+    path_or_url: str,
+    *,
+    expected_sha256: Optional[str] = None,
+    verbose: bool = True
+) -> Generator[io.BufferedIOBase, None, None]:
+    """Opens a file or downloads a file from a URL to a stream."""
+    if path_or_url.startswith('http://') or path_or_url.startswith('https://'):
+        with download_stream(path_or_url, expected_sha256=expected_sha256, verbose=verbose) as fin:
+            yield fin
+    elif os.path.isfile(path_or_url):
+        with ExitStack() as stack:
+            fin = stack.enter_context(open(path_or_url, 'rb'))
+
+            if verbose:
+                total = os.path.getsize(path_or_url)
+                fin = stack.enter_context(TqdmReader(fin, total=total, desc=path_or_url))
+
+            if expected_sha256 is not None:
+                fin = stack.enter_context(HashReader(fin, expected=expected_sha256))
+
+            yield fin
+    else:
+        raise OSError(f'path or url {path_or_url!r} not found') # error can occur here if protocol entrypoints were not found - try pip install .
+
+
+class _NosyReader(io.BufferedIOBase, ABC):
+    def __init__(self, reader: io.BufferedIOBase):
+        self.reader = reader
+        self.seek = self.reader.seek # type: ignore[method-assign]
+        self.tell = self.reader.tell # type: ignore[method-assign]
+        self.seekable = self.reader.seekable # type: ignore[method-assign]
+        self.readable = self.reader.readable # type: ignore[method-assign]
+        self.writable = self.reader.writable # type: ignore[method-assign]
+        self.flush = self.reader.flush # type: ignore[method-assign]
+        self.isatty = self.reader.isatty # type: ignore[method-assign]
+
+    @abstractmethod
+    def on_data(self, data: bytes) -> None:
+        pass
+
+    def read1(self, size: Optional[int] = None) -> bytes:
+        if size is None:
+            size = io.DEFAULT_BUFFER_SIZE
+        chunk = self.reader.read1(size)
+        self.on_data(chunk)
+        return chunk
+
+    def read(self, size: Optional[int] = None) -> bytes:
+        if size is None:
+            size = io.DEFAULT_BUFFER_SIZE
+        chunk = self.reader.read(size)
+        self.on_data(chunk)
+        return chunk
+
+    def close(self) -> None:
+        self.reader.close()
+
+
+class _NosyWriter(io.BufferedIOBase, ABC):
+    def __init__(self, writer: io.BufferedIOBase):
+        self.writer = writer
+        self.seek = self.writer.seek # type: ignore[method-assign]
+        self.tell = self.writer.tell # type: ignore[method-assign]
+        self.seekable = self.writer.seekable # type: ignore[method-assign]
+        self.readable = self.writer.readable # type: ignore[method-assign]
+        self.writable = self.writer.writable # type: ignore[method-assign]
+        self.flush = self.writer.flush # type: ignore[method-assign]
+        self.isatty = self.writer.isatty # type: ignore[method-assign]
+        self.close = self.writer.close # type: ignore[method-assign]
+        self.sha256 = sha256()
+
+    @abstractmethod
+    def on_data(self, data: Buffer) -> None:
+        pass
+
+    def write(self, data: Buffer) -> int:
+        res = self.writer.write(data)
+        self.on_data(data)
+        return res
+
+    def replace_writer(self, writer: io.BufferedIOBase) -> None:
+        self.writer = writer # type: ignore[method-assign]
+        self.seek = self.writer.seek # type: ignore[method-assign]
+        self.tell = self.writer.tell # type: ignore[method-assign]
+        self.seekable = self.writer.seekable # type: ignore[method-assign]
+        self.readable = self.writer.readable # type: ignore[method-assign]
+        self.writable = self.writer.writable # type: ignore[method-assign]
+        self.flush = self.writer.flush # type: ignore[method-assign]
+        self.isatty = self.writer.isatty # type: ignore[method-assign]
+        self.close = self.writer.close # type: ignore[method-assign]
+
+
+class HashReader(_NosyReader):
+    """A reader that computes the sha256 hash of the data read."""
+    def __init__(self, reader: io.BufferedIOBase, *, hashfn: Callable = sha256, expected: Optional[str] = None):
+        """Create a HashReader."""
+        super().__init__(reader)
+        self.hash = hashfn()
+        self.expected = expected
+
+    def on_data(self, data: bytes) -> None:
+        """Called when data is read."""
+        self.hash.update(data)
+
+    def hexdigest(self) -> str:
+        """Return the hexdigest of the hash."""
+        return self.hash.hexdigest()
+
+    def close(self) -> None:
+        """Close the reader and check the hash."""
+        self.reader.close()
+        if self.expected is not None:
+            if self.expected.lower() != self.hexdigest():
+                raise ValueError(f'Expected sha256 {self.expected!r} but found {self.hexdigest()!r}')
+
+
+class HashWriter(_NosyWriter):
+    """A writer that computes the sha256 hash of the data written."""
+    def __init__(self, writer: io.BufferedIOBase, *, hashfn: Callable = sha256):
+        """Create a HashWriter."""
+        super().__init__(writer)
+        self.hash = hashfn()
+
+    def on_data(self, data: Buffer) -> None:
+        """Called when data is written."""
+        self.hash.update(data)
+
+    def hexdigest(self) -> str:
+        """Return the hexdigest of the hash."""
+        return self.hash.hexdigest()
+
+
+class TqdmReader(_NosyReader):
+    """A reader that displays a progress bar."""
+    def __init__(self, reader: io.BufferedIOBase, *, total: Optional[int] = None, desc: Optional[str] = None, disable: bool = False):
+        """Create a TqdmReader."""
+        super().__init__(reader)
+        self.pbar = pt.tqdm(total=total, desc=desc, unit="B", unit_scale=True, unit_divisor=1024, disable=disable) # type: ignore[misc]
+
+    def on_data(self, data: bytes) -> None:
+        """Called when data is read."""
+        self.pbar.update(len(data))
+
+    def close(self) -> None:
+        """Close the reader and the progress bar."""
+        super().close()
+        self.reader.close()
+        self.pbar.close()
+
+
+class CallbackReader(_NosyReader):
+    """A reader that calls a callback with the data read."""
+    def __init__(self, reader: io.BufferedIOBase, callback: Callable):
+        """Create a CallbackReader."""
+        super().__init__(reader)
+        self.callback = callback
+
+    def on_data(self, data: bytes) -> None:
+        """Called when data is read."""
+        self.callback(data)
+
+
+class MultiReader(io.BufferedIOBase):
+    """A reader that reads from multiple readers in sequence."""
+    def __init__(self, readers: Iterable[io.BufferedIOBase]):
+        """Create a MultiReader."""
+        self.readers = iter(readers)
+        self._reader: Optional[io.BufferedIOBase] = next(self.readers)
+        self.reader: Optional[io.BufferedIOBase] = self._reader.__enter__()
+        self.seek = self.reader.seek # type: ignore[method-assign]
+        self.tell = self.reader.tell # type: ignore[method-assign]
+        self.seekable = self.reader.seekable # type: ignore[method-assign]
+        self.readable = self.reader.readable # type: ignore[method-assign]
+        self.writable = self.reader.writable # type: ignore[method-assign]
+        self.flush = self.reader.flush # type: ignore[method-assign]
+        self.isatty = self.reader.isatty # type: ignore[method-assign]
+        self.close = self.reader.close # type: ignore[method-assign]
+
+    def read1(self, size: Optional[int] = None) -> bytes:
+        """Read a single chunk of data."""
+        if self.reader is None:
+            raise RuntimeError('reader is closed')
+        if size is None:
+            size = io.DEFAULT_BUFFER_SIZE
+        chunk = self.reader.read1(min(size, io.DEFAULT_BUFFER_SIZE))
+        if len(chunk) == 0:
+            self.reader.close()
+            try:
+                self._reader = next(self.readers)
+            except StopIteration:
+                self._reader = None
+                self.reader = None
+                return chunk
+            self.reader = self._reader.__enter__()
+            if hasattr(self.reader, 'pbar'):
+                self.pbar = self.reader.pbar
+            self.seek = self.reader.seek # type: ignore[method-assign]
+            self.tell = self.reader.tell # type: ignore[method-assign]
+            self.seekable = self.reader.seekable # type: ignore[method-assign]
+            self.readable = self.reader.readable # type: ignore[method-assign]
+            self.writable = self.reader.writable # type: ignore[method-assign]
+            self.flush = self.reader.flush # type: ignore[method-assign]
+            self.isatty = self.reader.isatty # type: ignore[method-assign]
+            self.close = self.reader.close # type: ignore[method-assign]
+            chunk = self.reader.read1(min(size, io.DEFAULT_BUFFER_SIZE))
+        return chunk
+
+    def read(self, size: Optional[int] = None) -> bytes:
+        """Read data."""
+        chunk = b''
+        if size is None:
+            size = io.DEFAULT_BUFFER_SIZE
+        while len(chunk) < size and self.reader is not None:
+            chunk += self.reader.read(size - len(chunk))
+            if len(chunk) < size:
+                self.reader.close()
+                try:
+                    self._reader = next(self.readers)
+                except StopIteration:
+                    self._reader = None
+                    self.reader = None
+                    return chunk
+                self.reader = self._reader.__enter__()
+                if hasattr(self.reader, 'pbar'):
+                    self.pbar = self.reader.pbar
+                self.seek = self.reader.seek # type: ignore[method-assign]
+                self.tell = self.reader.tell # type: ignore[method-assign]
+                self.seekable = self.reader.seekable # type: ignore[method-assign]
+                self.readable = self.reader.readable # type: ignore[method-assign]
+                self.writable = self.reader.writable # type: ignore[method-assign]
+                self.flush = self.reader.flush # type: ignore[method-assign]
+                self.isatty = self.reader.isatty # type: ignore[method-assign]
+                self.close = self.reader.close # type: ignore[method-assign]
+        return chunk
+
+
+def path_is_under_base(path: str, base: str) -> bool:
+    """Returns True if the path is under the base directory."""
+    return os.path.realpath(os.path.abspath(os.path.join(base, path))).startswith(os.path.realpath(base))

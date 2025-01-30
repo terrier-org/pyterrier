@@ -95,7 +95,6 @@ class ChestCacheTransformer(Transformer):
 
     def __init__(self, inner, **kwargs):
         super().__init__(**kwargs)
-        on="qid"
         self.inner = inner
         self.disable = False
         if CACHE_DIR is None:
@@ -167,7 +166,7 @@ class ChestCacheTransformer(Transformer):
             self.requests += 1
             try:
                 df = self.chest.get(qid, None)
-            except:
+            except Exception:
                 # occasionally we have file not founds, 
                 # lets remove from the cache and continue
                 del self.chest[qid]

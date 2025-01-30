@@ -34,10 +34,10 @@ def queries(queries : Union[str, Sequence[str]], qid : Optional[Union[str, Itera
             one_query = pt.new.queries(["query text A", "query text B"], ["1", "2"], categories=["catA", "catB"])
   
     """
-    if type(queries) == str:
+    if isinstance(queries, str):
         if qid is None:
             qid = "1"
-        assert type(qid) == str
+        assert isinstance(qid, str)
         return pd.DataFrame({"qid" : [qid], "query" : [queries], **others})
     if qid is None:
         qid = cast(Iterable[str], map(str, range(1, len(queries)+1))) # noqa: PT100 (this is typing.cast, not jinus.cast)
@@ -88,11 +88,10 @@ def ranked_documents(
 
     """
     from itertools import chain
-    import numpy as np
     if len(scores) == 0:
         return empty_R()
     rtr = None
-    if type(scores[0]) == list:
+    if isinstance(scores[0], list):
         # multiple queries
         if qid is None:
             qid = list(map(str, range(1, len(scores)+1)))
@@ -105,7 +104,6 @@ def ranked_documents(
         else:
             assert len(docno) == len(scores)
         
-        from itertools import chain
         rtr = pd.DataFrame(list(chain.from_iterable(scores)), columns=["score"]) 
         
         rtr["docno"] = list(chain.from_iterable(docno))
