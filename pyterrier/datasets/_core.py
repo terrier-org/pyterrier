@@ -9,6 +9,7 @@ import tarfile
 import types
 import requests
 import urllib
+import functools
 from warnings import warn
 import pyterrier as pt
 from pyterrier.transformer import is_lambda
@@ -437,26 +438,17 @@ class HasConfigure(Protocol):
     def _configure(self, **kwargs):
         pass
 
-# This is a temporary wrapper to give the option of whether or not to tokenize the queries.
-class TokenizeTopicsDatasetWrapper:
-    def __init__(self, wrapped_dataset: Dataset):
-        self.wrapped_dataset = wrapped_dataset
-
-    def get_topics(self, variant: Optional[str] = None, tokenise_query: bool = True) -> Optional[pd.DataFrame]:
-        topics = self.wrapped_dataset.get_topics(variant)
+# This is a temporary decorator to give the option of whether or not to tokenize the queries.
+def add_tokenize_query_arg(fn):
+    @functools.wraps(fn)
+    def _wrapper(variant: Optional[str] = None, tokenise_query: bool = True):
+        topics = fn(variant)
         if topics is not None and tokenise_query and 'query' in topics:
             tokeniser = _pt_tokeniser()
             topics['query'] = topics['query'].apply(tokeniser)
         return topics
-
-    def __getattr__(self, name):
-        return getattr(self.wrapped_dataset, name)
-
-    def __repr__(self):
-        return repr(self.wrapped_dataset)
-
-    def __str__(self):
-        return str(self.wrapped_dataset)
+    _wrapper._has_add_tokenize_query_arg_applied = True
+    return _wrapper
 
 
 @pt.java.required
@@ -526,7 +518,8 @@ def get_dataset(name: str, **configure_kwargs) -> Dataset:
         raise TypeError(f'Unsupported keyword arguments passed to get_dataset: {get_dataset}')
 
     # Temporary handling of topic tokenization
-    result = TokenizeTopicsDatasetWrapper(result)
+    if not hasattr(result.get_topics, '_has_add_tokenize_query_arg_applied'):
+        result.get_topics = add_tokenize_query_arg(result.get_topics)
     return result
 
 
