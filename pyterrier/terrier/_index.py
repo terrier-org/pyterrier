@@ -169,6 +169,10 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
         self.indexer().index(iter)
         return self
 
+    def built(self):
+        """Returns whether the index has been built (or is a built in-memory index)."""
+        return self.path == pt.Artifact.NO_PATH or os.path.exists(os.path.join(self.path, 'data.properties'))
+
     @classmethod
     @pt.java.required
     def coerce(cls, index_like: Union[str, Path, 'TerrierIndex']) -> 'TerrierIndex':
