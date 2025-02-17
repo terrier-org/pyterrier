@@ -151,7 +151,7 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
     def index_ref(self):
         """Returns the internal Java index reference object for this index."""
         if self._index_ref is None:
-            self._index_ref = pt.terrier.J.IndexRef.of(os.path.realpath(self.path))
+            self._index_ref = pt.terrier.J.IndexRef.of(os.path.realpath(str(self.path)))
         return self._index_ref
 
     def index_obj(self):
@@ -162,12 +162,12 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
 
     def indexer(self) -> pt.Indexer:
         """Returns an indexer object for this index."""
-        return pt.terrier.IterDictIndexer(os.path.realpath(self.path))
+        return pt.terrier.IterDictIndexer(os.path.realpath(str(self.path)))
 
-    def index(self, inp: pt.model.IterDict, **kwargs: Any) -> 'TerrierIndex':
+    def index(self, iter: pt.model.IterDict, **kwargs: Any) -> 'TerrierIndex':
         """Indexes the given input data, creating the index if it does not yet exist, or raising an error if it does."""
         assert len(kwargs) == 0, f"unknown keyword argument(s) given: {kwargs}"
-        self.indexer().index(inp)
+        self.indexer().index(iter)
         return self
 
     @classmethod
