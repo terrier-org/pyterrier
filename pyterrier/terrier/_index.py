@@ -206,7 +206,7 @@ _CONTROL_MAP = {
 def _map_controls(model_args):
     return {
         _CONTROL_MAP[k]: v
-        for k, v in model_args.items()
+        for k, v in (model_args or {}).items()
         if k in _CONTROL_MAP
     }
 
@@ -218,6 +218,6 @@ _PROPERTY_MAP = {
 def _map_properties(model_args):
     return {
         _PROPERTY_MAP[k]: v
-        for k, v in model_args.items()
+        for k, v in (model_args or {}).items()
         if k in _PROPERTY_MAP
     }
