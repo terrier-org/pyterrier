@@ -131,7 +131,6 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
         )
 
     def text_loader(self,
-        index,
         fields: Union[List[str], str, Literal['*']] = '*',
         *,
         verbose=False
