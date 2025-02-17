@@ -164,8 +164,9 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
         """Returns an indexer object for this index."""
         return pt.terrier.IterDictIndexer(os.path.realpath(self.path))
 
-    def index(self, inp: pt.model.IterDict) -> 'TerrierIndex':
+    def index(self, inp: pt.model.IterDict, **kwargs: Any) -> 'TerrierIndex':
         """Indexes the given input data, creating the index if it does not yet exist, or raising an error if it does."""
+        assert len(kwargs) == 0, f"unknown keyword argument(s) given: {kwargs}"
         self.indexer().index(inp)
         return self
 
