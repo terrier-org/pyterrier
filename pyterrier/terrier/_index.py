@@ -159,9 +159,9 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
             self._index_obj = pt.terrier.IndexFactory.of(self.index_ref())
         return self._index_obj
 
-    def indexer(self) -> pt.Indexer:
+    def indexer(self, *, meta: Dict = {'docno': 20}) -> pt.Indexer:
         """Returns an indexer object for this index."""
-        return pt.terrier.IterDictIndexer(os.path.realpath(str(self.path)))
+        return pt.terrier.IterDictIndexer(os.path.realpath(str(self.path)), meta=meta)
 
     def index(self, iter: pt.model.IterDict, **kwargs: Any) -> 'TerrierIndex':
         """Indexes the given input data, creating the index if it does not yet exist, or raising an error if it does."""
