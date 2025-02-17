@@ -160,6 +160,15 @@ class TerrierIndex(pt.Artifact):
             self._index_obj = pt.terrier.IndexFactory.of(self.index_ref())
         return self._index_obj
 
+    def indexer(self) -> pt.Indexer:
+        """Returns an indexer object for this index."""
+        return pt.terrier.IterDictIndexer(os.path.realpath(self.path))
+
+    def index(self, inp: pt.model.IterDict) -> 'TerrierIndex':
+        """Indexes the given input data, creating the index if it does not yet exist, or raising an error if it does."""
+        self.indexer().index(inp)
+        return self
+
     @classmethod
     @pt.java.required
     def coerce(cls, index_like: Union[str, Path, 'TerrierIndex']) -> 'TerrierIndex':
