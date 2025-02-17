@@ -18,7 +18,7 @@ class TerrierModel(Enum):
 # This is a work-in-progress Artifact-compatible wrapper for a Terrier Index. It doesn't support most
 # features yet, but does allow for uploading/downloading Terrier indexes from HuggingFace, etc.
 ######################################
-class TerrierIndex(pt.Artifact):
+class TerrierIndex(pt.Artifact, pt.Indexer):
     """A Terrier index.
 
     This is a beta feature and is not yet fully-featured or fully-tested.
