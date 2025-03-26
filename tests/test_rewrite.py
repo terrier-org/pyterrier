@@ -382,6 +382,15 @@ class TestRewrite(TempDirTestCase):
         self.assertEqual('#base64(ZsO4cg==)', pt.rewrite.tokenise('identity', matchop=True).search("før").iloc[0].query)
         self.assertEqual('a b', pt.rewrite.tokenise(lambda q : q.split('/')).search("a/b").iloc[0].query)
 
+    def test_tokenise_hgf(self):
+        try:
+            from transformers import AutoTokenizer
+        except:
+            self.skipTest()
+        tok = AutoTokenizer.from_pretrained("bert-base-uncased")
+        query_toks = pt.rewrite.tokenise(tok.tokenize, matchop=True)
+        self.assertEqual('a b', query_toks.search("a b").iloc[0].query)
+
     def test_qe(self):
         if not pt.terrier.check_version("5.3"):
             self.skipTest("Requires Terrier 5.3")

@@ -40,7 +40,7 @@ def tokenise(tokeniser : Union[str,TerrierTokeniser,FunctionType] = 'english', m
     
     """
     _query_fn: Callable[[str], List[str]]
-    if isinstance(tokeniser, FunctionType):
+    if callable(tokeniser):
         _query_fn = tokeniser
     else:
         tokeniser = TerrierTokeniser._to_obj(tokeniser)
