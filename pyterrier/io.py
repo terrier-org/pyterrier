@@ -5,7 +5,7 @@ import shutil
 import tempfile
 import urllib
 import typing
-from typing import Callable, Iterable, Optional, Generator, ContextManager, Union
+from typing import Callable, Iterable, Optional, Generator, ContextManager, Union, Dict
 from types import GeneratorType
 from contextlib import ExitStack, contextmanager
 from abc import ABC, abstractmethod
@@ -457,10 +457,17 @@ def download(url: str, path: str, *, expected_sha256: Optional[str] = None, verb
 
 
 @contextmanager
-def download_stream(url: str, *, expected_sha256: Optional[str] = None, verbose: bool = True) -> Generator[io.BufferedIOBase, None, None]:
+def download_stream(
+    url: str,
+    *,
+    expected_sha256: Optional[str] = None,
+    headers: Optional[Dict[str, str]] = None,
+    verbose: bool = True
+) -> Generator[io.BufferedIOBase, None, None]:
     """Downloads a file from a URL to a stream."""
     with ExitStack() as stack:
-        fin = stack.enter_context(urllib.request.urlopen(url))
+        request = urllib.request.Request(url, headers=headers or {})
+        fin = stack.enter_context(urllib.request.urlopen(request))
         if fin.status != 200:
             raise OSError(f'Unhandled status code: {fin.status}')
 
@@ -479,11 +486,12 @@ def open_or_download_stream(
     path_or_url: str,
     *,
     expected_sha256: Optional[str] = None,
+    headers: Optional[Dict[str, str]] = None,
     verbose: bool = True
 ) -> Generator[io.BufferedIOBase, None, None]:
     """Opens a file or downloads a file from a URL to a stream."""
     if path_or_url.startswith('http://') or path_or_url.startswith('https://'):
-        with download_stream(path_or_url, expected_sha256=expected_sha256, verbose=verbose) as fin:
+        with download_stream(path_or_url, headers=headers, expected_sha256=expected_sha256, verbose=verbose) as fin:
             yield fin
     elif os.path.isfile(path_or_url):
         with ExitStack() as stack:

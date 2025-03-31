@@ -18,7 +18,7 @@ class TerrierModel(Enum):
 # This is a work-in-progress Artifact-compatible wrapper for a Terrier Index. It doesn't support most
 # features yet, but does allow for uploading/downloading Terrier indexes from HuggingFace, etc.
 ######################################
-class TerrierIndex(pt.Artifact):
+class TerrierIndex(pt.Artifact, pt.Indexer):
     """A Terrier index.
 
     This is a beta feature and is not yet fully-featured or fully-tested.
@@ -131,7 +131,6 @@ class TerrierIndex(pt.Artifact):
         )
 
     def text_loader(self,
-        index,
         fields: Union[List[str], str, Literal['*']] = '*',
         *,
         verbose=False
@@ -151,7 +150,7 @@ class TerrierIndex(pt.Artifact):
     def index_ref(self):
         """Returns the internal Java index reference object for this index."""
         if self._index_ref is None:
-            self._index_ref = pt.terrier.J.IndexRef.of(os.path.realpath(self.path))
+            self._index_ref = pt.terrier.J.IndexRef.of(os.path.realpath(str(self.path)))
         return self._index_ref
 
     def index_obj(self):
@@ -159,6 +158,20 @@ class TerrierIndex(pt.Artifact):
         if self._index_obj is None:
             self._index_obj = pt.terrier.IndexFactory.of(self.index_ref())
         return self._index_obj
+
+    def indexer(self, *, meta: Dict = {'docno': 20}) -> pt.Indexer:
+        """Returns an indexer object for this index."""
+        return pt.terrier.IterDictIndexer(os.path.realpath(str(self.path)), meta=meta)
+
+    def index(self, iter: pt.model.IterDict, **kwargs: Any) -> 'TerrierIndex':
+        """Indexes the given input data, creating the index if it does not yet exist, or raising an error if it does."""
+        assert len(kwargs) == 0, f"unknown keyword argument(s) given: {kwargs}"
+        self.indexer().index(iter)
+        return self
+
+    def built(self):
+        """Returns whether the index has been built (or is a built in-memory index)."""
+        return self.path == pt.Artifact.NO_PATH or os.path.exists(os.path.join(self.path, 'data.properties'))
 
     @classmethod
     @pt.java.required
@@ -197,7 +210,7 @@ _CONTROL_MAP = {
 def _map_controls(model_args):
     return {
         _CONTROL_MAP[k]: v
-        for k, v in model_args.items()
+        for k, v in (model_args or {}).items()
         if k in _CONTROL_MAP
     }
 
@@ -209,6 +222,6 @@ _PROPERTY_MAP = {
 def _map_properties(model_args):
     return {
         _PROPERTY_MAP[k]: v
-        for k, v in model_args.items()
+        for k, v in (model_args or {}).items()
         if k in _PROPERTY_MAP
     }
