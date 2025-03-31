@@ -48,11 +48,21 @@ def get_text(
             the behaviour is defined by the provided ``indexlike``.
         kwargs: other arguments to pass through to the text_loader.
 
-    Example::
+    Example (Terrier Index)::
 
+        index = pt.IndexFactory.of("./index/")
         pipe = ( pt.terrier.Retriever(index, wmodel="DPH")
-            >> pt.text.get_text(index)
+            >> pt.text.get_text(index) # load text using a PyTerrier index
             >> pt.text.scorer(wmodel="DPH") )
+
+    Example (IR Datasets)::
+
+        # see https://github.com/terrierteam/pyterrier_t5
+        from pyterrier_t5 import MonoT5ReRanker
+        bm25 = pt.terrier.Retriever.from_dataset(pt.get_dataset('msmarcov2_passage'), wmodel='BM25')
+        # load text using IR Datasets
+        loader = pt.text.get_text(pt.get_dataset('irds:msmarco-passage-v2'), ['text'])
+        monoT5 = bm25 >> loader >> MonoT5ReRanker()
 
     """
     if isinstance(indexlike, str):
