@@ -27,6 +27,7 @@ This page summarises the available notebooks for PyTerrier.
 
 |    Notebook      |   On Colab?     | Description                      |  Read More | 
 | ---------------- | --------------- | -------------------------------- | ---------- |
+| [wow20205-msmarco-v1.ipynb](experiments/wow20205-msmarco-v1.ipynb) <br> [wow20205-msmarco-v2.ipynb](experiments/wow20205-msmarco-v2.ipynb) | | Demonstration of precomputation & caching | [WOWS 2025 paper](tbc) |
 | [pt_indexed_epic.ipynb](https://github.com/Georgetown-IR-Lab/OpenNIR/blob/master/examples/pt_indexed_epic.ipynb)  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Georgetown-IR-Lab/OpenNIR/blob/master/examples/pt_indexed_epic.ipynb) | Demonstration of pre-computing EPIC vectors and using them for second-stage scoring using PyTerrier on the TREC COVID benchmark | [OpenNIR repository](https://github.com/Georgetown-IR-Lab/OpenNIR)
 | [sentence_transformers.ipynb](https://github.com/terrier-org/pyterrier/blob/master/examples/notebooks/sentence_transformers.ipynb)  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/terrier-org/pyterrier/blob/master/examples/notebooks/sentence_transformers.ipynb) | Demonstration of using pt.apply functions for performing neural reranking with [SentenceTransformers](https://sbert.net/) | [pt.text documentation]([https://github.com/Georgetown-IR-Lab/OpenNIR](https://pyterrier.readthedocs.io/en/latest/text.html#examples-of-sentence-transformers))
 
