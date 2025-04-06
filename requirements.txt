@@ -3,10 +3,9 @@ numpy
 pandas
 more_itertools
 tqdm
-# used by datasets
+# used by datasets, pt.io.download
 requests
 ir_datasets>=0.3.2
-wget # used by mavenresolver to download jar files 
 pyjnius>=1.4.2 # used by pt.java to execute Java code, such as Terrier
 deprecated # used for marking APIs as deprecated
 scipy # used for significance testing

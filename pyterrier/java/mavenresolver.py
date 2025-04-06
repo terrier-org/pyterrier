@@ -4,7 +4,7 @@ from packaging.version import Version
 from pathlib import Path
 from enum import Enum
 from warnings import warn
-import wget
+import requests
 import os
 import re
 import pyterrier as pt
@@ -84,7 +84,7 @@ def get_package_jar(orgName, packageName, version, file_path=None, artifact="jar
         if not force_download:
             return target_file
         else:
-            # ensure that wget doesnt put the file in a different name
+            # ensure that we put the file in a different name
             os.rename(target_file, f'{target_file}.bak')
 
     # check local Maven repo, and use that if it exists
@@ -96,7 +96,7 @@ def get_package_jar(orgName, packageName, version, file_path=None, artifact="jar
         return mvnLocalLocation
 
     if mode == OnlineMode.OFFLINE:
-        raise ValueError(f'{filename} not found')
+        raise ValueError(f'Offline mode, and {filename} not found')
 
     if force_download:
         print("Downloading "+ packageName + " " + version + " " + artifact  + " to " + file_path + "...")
@@ -109,8 +109,8 @@ def get_package_jar(orgName, packageName, version, file_path=None, artifact="jar
         mvnUrl = MAVEN_BASE_URL + filelocation
 
     try:
-        wget.download(mvnUrl, file_path)
-    except (urllib.error.HTTPError, urllib.error.URLError) as he:
+        pt.io.download(mvnUrl, target_file, verbose=True)
+    except requests.exceptions.ConnectionError as he:
         if mode == OnlineMode.UNSET:
             offline() # now we're in offline mode
         if file_exists:
