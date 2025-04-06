@@ -9,6 +9,11 @@ Extending PyTerrier with New Datasets
 
     If you want to use existing built-in datasets, you can find them on :doc:`this page <../datasets>`.
 
+.. hint::
+
+    If you're adding a typical "Cranfield-style" dataset (queries/docs/qrels), consider contributing to
+    `ir-datasets <https://ir-datasets.com/>`_ instead -- they will be imported into PyTerrier automatically.
+
 You can add new datasets to PyTerrier through the Datasets API. This involves:
 
 1. Creating a new ``Dataset`` class, which contains the logic for processing your data into the :doc:`PyTerrier Data Model <../datamodel>`.
@@ -27,6 +32,10 @@ the following methods:
 - ``get_topics()``: Returns the topics for the dataset.
 - ``get_qrels()``: Returns the qrels for the dataset.
 - ``get_corpus_iter()``: Returns an iterator over the corpus for the dataset.
+
+You can also provide other methods to provide data based on your specific needs. For instance, the implementation in
+`PyTerrier_rag <https://github.com/terrierteam/pyterrier_rag/blob/main/pyterrier_rag/_datasets.py>` includes a ``get_answers()``
+method to provide reference answers.
 
 For example:
 
