@@ -125,6 +125,16 @@ class TestDFIndexer(TempDirTestCase):
         # this should pass - it picks up the metadata name from the series name
         ref = pt.DFIndexer(self.test_dir).index(df_docids["body"], df_docnos['docno'])
 
+    def test_stopwords(self):
+        import pandas as pd
+        df = pd.DataFrame([{'docno': 'd1', 'text' : 'greatest hits'}])
+        indexer = pt.DFIndexer(self.test_dir, stopwords=['hits'])
+        indexref = indexer.index(df["text"], df["docno"])
+        index = pt.IndexFactory.of(indexref)
+        self.assertIsNotNone(index)
+        self.assertEqual(1, index.getCollectionStatistics().getNumberOfDocuments())
+        self.assertTrue("hits" not in index.getLexicon())
+    
     def test_createindex1_two_metadata(self):
         from pyterrier.terrier.index import IndexingType
         self._make_check_index(1, IndexingType.CLASSIC, include_urls=True)
