@@ -27,6 +27,7 @@ Welcome to PyTerrier's documentation!
    parallel
    tuning
    experiments/Robust04
+   extending/index
 
 .. toctree::
    :maxdepth: 1
