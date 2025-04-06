@@ -1,6 +1,8 @@
+import os
 import inspect
 import sys
-from typing import Tuple, List, Callable, Dict, Set, Sequence
+from typing import Callable, Tuple, List, Dict, Set, Sequence
+from contextlib import contextmanager
 import platform
 from functools import wraps
 from importlib.metadata import EntryPoint
@@ -219,3 +221,28 @@ def byte_count_to_human_readable(byte_count: float) -> str:
     if units[0] == 'B':
         return f'{byte_count:.0f} {units[0]}'
     return f'{byte_count:.1f} {units[0]}'
+
+
+@contextmanager
+def temp_env(key: str, value: str):
+    old_value = os.environ.get(key, None)
+    try:
+        os.environ[key] = value
+        yield
+    finally:
+        if old_value is None:
+            del os.environ[key]
+        else:
+            os.environ[key] = old_value
+
+
+class GeneratorLen(object):
+    def __init__(self, gen, length):
+        self.gen = gen
+        self.length = length
+
+    def __len__(self): 
+        return self.length
+
+    def __iter__(self):
+        return self.gen
