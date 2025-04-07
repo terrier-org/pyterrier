@@ -5,16 +5,17 @@ Extending PyTerrier with New Datasets
 
     This guide is for adding new datasets to PyTerrier, allowing them to be easily used by others.
     If you simply want to run PyTerrier with your own data, you can build Pandas DataFrames compatible
-    with the :doc:`PyTerrier Data Model <../datamodel>`.
+    with the :doc:`PyTerrier Data Model <../datamodel>` - for example, using ``pt.io.read_topics()`` 
+    to read from a file.
 
     If you want to use existing built-in datasets, you can find them on :doc:`this page <../datasets>`.
 
 .. hint::
 
-    If you're adding a typical "Cranfield-style" dataset (queries/docs/qrels), consider contributing to
+    If you're adding a typical "Cranfield-style" open source dataset (queries/docs/qrels), consider contributing to
     `ir-datasets <https://ir-datasets.com/>`_ instead -- they will be imported into PyTerrier automatically.
 
-You can add new datasets to PyTerrier through the Datasets API. This involves:
+If you want to make a whole set of new datasets to PyTerrier through the Datasets API (an advanced use case), then this involves:
 
 1. Creating a new ``Dataset`` class, which contains the logic for processing your data into the :doc:`PyTerrier Data Model <../datamodel>`.
 2. Creating a new ``DatasetProvider`` class, which provides access to your datasets.
