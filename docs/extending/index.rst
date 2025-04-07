@@ -13,3 +13,4 @@ PyTerrier is designed to be extensible. This section describes how to extend PyT
 
    packages
    datasets
+   indexer_retrieval
