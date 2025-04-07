@@ -74,6 +74,14 @@ You can also index datasets that include a corpus using IterDictIndexer and get_
 Available Datasets
 ==================
 
+.. note::
+
+    If you want to run PyTerrier with your own data, you can build Pandas DataFrames compatible
+    with the :doc:`PyTerrier Data Model <datamodel>`.
+
+    If you want to add new datasets to PyTerrier, you can use :doc:`this guide <extending/datasets>`.
+
+
 The table below lists the provided datasets, detailing the attributes available for each dataset.
 In each column, True designates the presence of a single artefact of that type, while a list denotes the available variants.
 Datasets with the ``irds:`` prefix are from the `ir_datasets package <https://github.com/allenai/ir_datasets>`_; further
