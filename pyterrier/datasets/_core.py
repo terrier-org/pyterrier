@@ -503,6 +503,10 @@ def get_dataset(name: str, **configure_kwargs) -> Dataset:
         provider = _load_provider(provider_name)
 
         if provider is None:
+            if provider_name == 'builtin':
+                # builtin should always be found; an absence of builtin means the pyterrier is not installed properly
+                raise KeyError(f'Dataset {orig_name!r} not found due to missing provider {provider_name!r}. '
+                               +'You need to pip install python-terrier to ensure dataset providers can be found.')
             # We could provide suggestions here on packages to install for missing entry points in due course
             raise KeyError(f'Dataset {orig_name!r} not found due to missing provider {provider_name!r}. Are you missing a package?')
 
