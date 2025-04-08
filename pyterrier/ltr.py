@@ -87,10 +87,10 @@ class RegressionTransformer(Estimator):
         found_numf = test_DF.iloc[0].features.shape[0]
         if self.num_f is not None:
             if found_numf != self.num_f:
-                raise ValueError("Expected %d features, but found %d features" % (self.num_f, found_numf))
+                raise ValueError("Was trained using %d features, but found %d features for inference. This typically occurs because you have changed the pipeline between training and inference." % (self.num_f, found_numf))
         if hasattr(self.learner, 'feature_importances_'):
             if len(self.learner.feature_importances_) != found_numf:
-                raise ValueError("Expected %d features, but found %d features" % (len(self.learner.feature_importances_), found_numf))
+                raise ValueError("Model %s expected %d features, but found %d features for inference. This typically occurs because you are reusing the learned model between different LTR pipelines." % (str(self.learner), len(self.learner.feature_importances_), found_numf))
 
         test_DF["score"] = self.learner.predict(np.stack(test_DF["features"].values))
         return add_ranks(test_DF)
@@ -204,10 +204,10 @@ class FastRankEstimator(Estimator):
         # check for change in number of features
         found_numf = dataset.num_features()
         if self.num_f is not None and found_numf != self.num_f:
-            raise ValueError("Expected %d features, but found %d features" % (self.num_f, found_numf))
+            raise ValueError("FastRankEstimator expected %d features, but found %d features. This typically occurs because you have changed the pipeline between training and inference." % (self.num_f, found_numf))
         if hasattr(self.learner, 'feature_importances_'):
             if len(self.learner.feature_importances_) != found_numf:
-                raise ValueError("Expected %d features, but found %d features" % (len(self.learner.feature_importances_), found_numf))
+                raise ValueError("FastRank model %s expected %d features, but found %d features" % (str(self.learner), len(self.learner.feature_importances_), found_numf))
         
         rtr = dataset.predict_scores(self.model)
         scores = [rtr[i] for i in range(len(rtr))]

@@ -11,7 +11,7 @@ from datetime import datetime
 from hashlib import sha256
 from pathlib import Path
 import typing
-from typing import Any, Dict, Iterator, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, Optional, Tuple, Union, NamedTuple
 from urllib.parse import ParseResult, urlparse
 
 from lz4.frame import LZ4FrameFile
@@ -41,7 +41,7 @@ class Artifact:
         self.path: Union[Path, _NoPath] = path if isinstance(path, _NoPath) else Path(path)
 
     @classmethod
-    def load(cls, path: str) -> 'Artifact':
+    def load(cls, path: str, **kwargs : Any) -> 'Artifact':
         """Load the artifact from the specified path.
 
         If invoked on the base class, this method will attempt to find a supporting Artifact
@@ -50,6 +50,7 @@ class Artifact:
 
         Args:
             path: The path of the artifact on disk.
+            **kwargs: arguments that will be passed to the constructor of the artifact class 
 
         Returns:
             The loaded artifact.
@@ -63,10 +64,10 @@ class Artifact:
         else:
             # called SomeArtifact.load(path), so load this specific artifact
             # TODO: add error message if not loaded
-            return cls(path)
+            return cls(path, **kwargs)
 
     @classmethod
-    def from_url(cls, url: str, *, expected_sha256: Optional[str] = None) -> 'Artifact':
+    def from_url(cls, url: str, *, expected_sha256: Optional[str] = None, **kwargs : Any) -> 'Artifact':
         """Load the artifact from the specified URL.
 
         The artifact at the specified URL will be downloaded and stored in PyTerrier's artifact cache.
@@ -75,6 +76,7 @@ class Artifact:
             url: The URL or file path of the artifact.
             expected_sha256: The expected SHA-256 hash of the artifact. If provided, the downloaded artifact will be
                 verified against this hash and an error will be raised if the hash does not match.
+            **kwargs: arguments that will be passed to the constructor of the artifact class
 
         Returns:
             The loaded artifact.
@@ -85,14 +87,20 @@ class Artifact:
         # Support mapping "protocols" of the URL other than http[s]
         # e.g., "hf:abc/xyz@branch" -> "https://huggingface.co/datasets/abc/xyz/resolve/branch/artifact.tar"
         parsed_url = urlparse(url)
+        headers = {}
         protocol_entry_points = {ep.name: ep for ep in pt.utils.entry_points('pyterrier.artifact.url_protocol_resolver')}
         while parsed_url.scheme in protocol_entry_points:
             resolver = protocol_entry_points[parsed_url.scheme].load()
-            tmp_url = resolver(parsed_url)
+            resolver_result = resolver(parsed_url)
             del protocol_entry_points[parsed_url.scheme] # avoid the possiblity of an infinite loop here
-            if tmp_url is not None:
-                url = tmp_url
-                parsed_url = urlparse(tmp_url)
+            if resolver_result is not None:
+                if isinstance(resolver_result, str):
+                    resolver_result = UrlResolverResult(resolver_result) # url
+                elif isinstance(resolver_result, tuple):
+                    resolver_result = UrlResolverResult(*resolver_result)
+                url = resolver_result.url
+                parsed_url = urlparse(url)
+                headers.update(resolver_result.headers)
 
         if parsed_url.scheme == '' and os.path.exists(url):
             return cls.load(url) # already resolved, load it
@@ -107,7 +115,7 @@ class Artifact:
             # try to load the package metadata file (if it exists)
             download_info = {}
             try:
-                with pt.io.open_or_download_stream(f'{url}.json', verbose=False) as fin:
+                with pt.io.open_or_download_stream(f'{url}.json', headers=headers, verbose=False) as fin:
                     download_info = json.load(fin)
                 if 'expected_sha256' in download_info:
                     new_expected_sha256 = download_info['expected_sha256'].lower()
@@ -136,13 +144,13 @@ class Artifact:
                 if 'segments' in download_info:
                     # the file is segmented -- use a sequence reader to stitch them back together
                     fin = stack.enter_context(pt.io.MultiReader(
-                        stack.enter_context(pt.io.open_or_download_stream(f'{url}.{i}'))
+                        stack.enter_context(pt.io.open_or_download_stream(f'{url}.{i}', headers=headers))
                         for i in range(len(download_info['segments']))
                     ))
                     if expected_sha256 is not None:
                         fin = stack.enter_context(pt.io.HashReader(fin, expected=expected_sha256))
                 else:
-                    fin = stack.enter_context(pt.io.open_or_download_stream(url, expected_sha256=expected_sha256))
+                    fin = stack.enter_context(pt.io.open_or_download_stream(url, headers=headers, expected_sha256=expected_sha256))
 
                 cin = fin
                 if parsed_url.path.endswith('.lz4'):
@@ -325,7 +333,7 @@ class Artifact:
     # -------------------------------------------------
 
     @classmethod
-    def from_hf(cls, repo: str, branch: Optional[str] = None, *, expected_sha256: Optional[str] = None) -> 'Artifact':
+    def from_hf(cls, repo: str, branch: Optional[str] = None, *, expected_sha256: Optional[str] = None, **kwargs : Any) -> 'Artifact':
         """Load an artifact from Hugging Face Hub.
 
         Args:
@@ -334,14 +342,21 @@ class Artifact:
                 in the repository name using ``owner/repo@branch``.
             expected_sha256: The expected SHA-256 hash of the artifact. If provided, the downloaded artifact will be
                 verified against this hash and an error will be raised if the hash does not match.
+            **kwargs: arguments that will be passed to the constructor of the artifact class
         """
         if branch is not None:
             if '@' in repo:
                 raise ValueError('Provided branch in both repository name (via @) and as argument to from_hf')
             repo = f'{repo}@{branch}'
-        return cls.from_url(f'hf:{repo}', expected_sha256=expected_sha256)
+        return cls.from_url(f'hf:{repo}', expected_sha256=expected_sha256, **kwargs)
 
-    def to_hf(self, repo: str, *, branch: Optional[str] = None, pretty_name: Optional[str] = None) -> None:
+    def to_hf(self,
+        repo: str,
+        *,
+        branch: Optional[str] = None,
+        pretty_name: Optional[str] = None,
+        private: Optional[bool] = None,
+    ) -> None:
         """Upload this artifact to Hugging Face Hub.
 
         Args:
@@ -349,6 +364,8 @@ class Artifact:
             branch: The branch or tag of the repository to upload to. (Default: main) A branch can also be provided
                 directly in the repository name using ``owner/repo@branch``.
             pretty_name: The human-readable name of the artifact. (Default: the repository name)
+            private: Whether make the repository private. New repositories default to public unless the organization’s
+                default is private. No change to the repository's visiblity will be made if ``private=None`` (default).
         """
         import huggingface_hub
 
@@ -368,15 +385,20 @@ class Artifact:
                 with open(f'{d}/README.md', 'wt') as fout:
                     fout.write(readme)
             try:
-                huggingface_hub.create_repo(repo, repo_type='dataset')
+                huggingface_hub.create_repo(repo, repo_type='dataset', private=private)
             except huggingface_hub.utils.HfHubHTTPError as e:
                 if e.server_message != 'You already created this dataset repo':
                     raise
+
+            if private is not None:
+                huggingface_hub.update_repo_visibility(repo, repo_type='dataset', private=private)
+
             try:
                 huggingface_hub.create_branch(repo, repo_type='dataset', branch=branch)
             except huggingface_hub.utils.HfHubHTTPError as e:
-                if not e.server_message.startswith('Reference already exists:'):
+                if not str(e.server_message).startswith('Reference already exists:'):
                     raise
+
             path = huggingface_hub.upload_folder(
                 repo_id=repo,
                 folder_path=d,
@@ -456,15 +478,16 @@ artifact = pt.Artifact.from_hf({repo!r})
     # -------------------------------------------------
 
     @classmethod
-    def from_zenodo(cls, zenodo_id: str, *, expected_sha256: Optional[str] = None) -> 'Artifact':
+    def from_zenodo(cls, zenodo_id: str, *, expected_sha256: Optional[str] = None, **kwargs : Any) -> 'Artifact':
         """Load an artifact from Zenodo.
 
         Args:
             zenodo_id: The Zenodo record ID of the artifact.
             expected_sha256: The expected SHA-256 hash of the artifact. If provided, the downloaded artifact will be
                 verified against this hash and an error will be raised if the hash does not match.
+            **kwargs: arguments that will be passed to the constructor of the artifact class
         """
-        return cls.from_url(f'zenodo:{zenodo_id}', expected_sha256=expected_sha256)
+        return cls.from_url(f'zenodo:{zenodo_id}', expected_sha256=expected_sha256, **kwargs)
 
     def to_zenodo(self, *, pretty_name: Optional[str] = None, sandbox: bool = False) -> None:
         """Upload this artifact to Zenodo.
@@ -574,7 +597,7 @@ artifact = pt.Artifact.from_zenodo({str(zenodo_id)!r})
     # -------------------------------------------------
 
     @classmethod
-    def from_p2p(cls, code: str, path: str, *, expected_sha256: Optional[str] = None) -> 'Artifact':
+    def from_p2p(cls, code: str, path: str, *, expected_sha256: Optional[str] = None, **kwargs : Any) -> 'Artifact':
         """Load an artifact from a peer using a Magic Wormhole code.
 
         Args:
@@ -582,6 +605,7 @@ artifact = pt.Artifact.from_zenodo({str(zenodo_id)!r})
             path: The path to save the artifact to.
             expected_sha256: The expected SHA-256 hash of the artifact. If provided, the downloaded artifact will be
                 verified against this hash and an error will be raised if the hash does not match.
+            **kwargs: arguments that will be passed to the constructor of the artifact class
         """
         import wormhole # noqa check that magic-wormhole is installed
         import subprocess
@@ -664,13 +688,14 @@ def _metadata_adapter(path: str):
     return {}
 
 
-def _load(path: str) -> Artifact:
+def _load(path: str, **kwargs : Any) -> Artifact:
     """Load the artifact from the specified path.
 
     This function attempts to load the artifact using a supporting Artifact implementation.
 
     Args:
         path: The path of the artifact on disk.
+        **kwargs: arguments that will be passed to the constructor of the artifact class
 
     Returns:
         The loaded artifact.
@@ -689,7 +714,7 @@ def _load(path: str) -> Artifact:
         matching_entry_points = [ep for ep in entry_points if ep.name == '{type}.{format}'.format(**metadata)]
         for entry_point in matching_entry_points:
             artifact_cls = entry_point.load()
-            return artifact_cls(path)
+            return artifact_cls(path, **kwargs)
 
     # coudn't find an implementation that supports this artifact
     error = [
@@ -714,14 +739,29 @@ def _path_repr(path: str) -> str:
     return repr(path)
 
 
-def _hf_url_resolver(parsed_url: ParseResult) -> str:
+class UrlResolverResult(NamedTuple):
+    url: str
+    headers: Dict[str, str] = {}
+
+
+def _hf_url_resolver(parsed_url: ParseResult) -> Optional[UrlResolverResult]:
     # paths like: hf:macavaney/msmarco-passage.terrier
     org_repo = parsed_url.path
     # default to ref=main, but allow user to specify another branch, hash, etc, with abc/xyz@branch
     ref = 'main'
     if '@' in org_repo:
         org_repo, ref = org_repo.split('@', 1)
-    return f'https://huggingface.co/datasets/{org_repo}/resolve/{ref}/artifact.tar.lz4'
+    headers = {}
+    try:
+        # try to get the token using huggingface_hub (takes from various sources: HF_TOKEN env, file, etc.)
+        import huggingface_hub.utils
+        token = huggingface_hub.utils.get_token()
+    except ImportError:
+        # since huggingface_hub isn't a required dependency, at least try to take from HF_TOKEN as a fallback
+        token = os.environ.get('HF_TOKEN')
+    if token:
+        headers['Authorization'] = f'Bearer {token}'
+    return UrlResolverResult(f'https://huggingface.co/datasets/{org_repo}/resolve/{ref}/artifact.tar.lz4', headers)
 
 
 def _zenodo_url_resolver(parsed_url: ParseResult) -> str:

@@ -516,12 +516,20 @@ class DFIndexer(TerrierIndexer):
         self.index_called = True
         collectionIterator = None
 
-        for hook in self.cleanup_hooks:
-            hook(self, index.getIndex())
-
+        indexref = None
         if self.type is IndexingType.MEMORY:
-            return index.getIndex().getIndexRef()
-        return pt.terrier.J.IndexRef.of(self.index_dir + "/data.properties")
+            index = index.getIndex()
+            indexref = index.getIndexRef()
+        else:
+            indexref = pt.terrier.J.IndexRef.of(self.index_dir + "/data.properties")
+            if len(self.cleanup_hooks) > 0:
+                sindex = pt.terrier.J.Index
+                sindex.setIndexLoadingProfileAsRetrieval(False)
+                index = pt.terrier.IndexFactory.of(indexref)
+                for hook in self.cleanup_hooks:
+                    hook(self, index)
+                sindex.setIndexLoadingProfileAsRetrieval(True)
+        return indexref
 
 
 class _BaseIterDictIndexer(TerrierIndexer, pt.Indexer):
@@ -934,9 +942,17 @@ class FilesIndexer(TerrierIndexer):
         lastdoc = None
         self.index_called = True
 
-        for hook in self.cleanup_hooks:
-            hook(self, index.getIndex())
-
+        indexref = None
         if self.type is IndexingType.MEMORY:
-            return index.getIndex().getIndexRef()
-        return pt.terrier.J.IndexRef.of(self.index_dir + "/data.properties")
+            index = index.getIndex()
+            indexref = index.getIndexRef()
+        else:
+            indexref = pt.terrier.J.IndexRef.of(self.index_dir + "/data.properties")
+            if len(self.cleanup_hooks) > 0:
+                sindex = pt.terrier.J.Index
+                sindex.setIndexLoadingProfileAsRetrieval(False)
+                index = pt.terrier.IndexFactory.of(indexref)
+                for hook in self.cleanup_hooks:
+                    hook(self, index)
+                sindex.setIndexLoadingProfileAsRetrieval(True)
+        return indexref
