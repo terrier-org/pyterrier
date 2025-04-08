@@ -1,11 +1,10 @@
 import inspect
 import sys
-from typing import Tuple, List, Callable, Dict, Set, Sequence
+from typing import Tuple, List, Callable, Set, Sequence
 import platform
 from functools import wraps
 from importlib.metadata import EntryPoint
 from importlib.metadata import entry_points as eps
-import pandas as pd
 import pyterrier as pt
 
 def once() -> Callable:

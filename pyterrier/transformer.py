@@ -1,5 +1,4 @@
 import types
-from warnings import warn
 import pandas as pd
 from deprecated import deprecated
 from typing import Iterator, List, Union, Tuple, Protocol, runtime_checkable, Optional
