@@ -24,9 +24,6 @@ class TestTransformer(BaseTestCase):
         class MyTransformer1a(pt.Transformer):
             def transform_iter(self, df):
                 pass
-        class MyTransformer2(pt.transformer.TransformerBase):
-            def transform(self, df):
-                pass
         class MyTransformer3(pt.Indexer):
             pass # indexers dont need a transform
         class MyTransformer3a(pt.transformer.IterDictIndexerBase):
@@ -46,7 +43,7 @@ class TestTransformer(BaseTestCase):
             self.assertTrue(pt.transformer.is_transformer(T()))
 
         # check deprecated API
-        for T in [MyTransformer2, MyTransformer3a, MyTransformer4]:
+        for T in [MyTransformer3a, MyTransformer4]:
             with warns(DeprecationWarning, match='instead of'):
                 instance = T()
             self.assertTrue(pt.transformer.is_transformer(instance))
