@@ -43,7 +43,7 @@ jobs:
 
     - name: Install
       run: |
-        pip install --upgrade -r requirements.txt -r requirements-test.txt
+        pip install --upgrade -r requirements.txt
         pip install -e .
 
     - name: MyPy
@@ -61,7 +61,7 @@ jobs:
 
     - name: Install
       run: |
-        pip install --upgrade -r requirements.txt -r requirements-test.txt
+        pip install --upgrade -r requirements.txt
         pip install -e .
 
     - name: Ruff
