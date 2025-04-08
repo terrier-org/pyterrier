@@ -282,12 +282,6 @@ class TestExperiment(TempDirTestCase):
         self.assertEqual(10, rtr.iloc[0]["num_q"])
         
         rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"], dataframe=False)
-        
-        with warnings.catch_warnings(record=True) as w:
-            rtr = pt.Experiment(vaswani.get_topics().head(10), [br], ["map", "ndcg"], vaswani.get_qrels(), dataframe=False)
-            assert len(w) == 1
-            assert issubclass(w[-1].category, DeprecationWarning)
-            assert "Signature" in str(w[-1].message)
 
     def test_one_row_round(self):
         import pyterrier as pt
