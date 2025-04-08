@@ -5,33 +5,43 @@ from pathlib import Path
 import pyterrier as pt
 
 
-class Model(Enum):
+class TerrierModel(Enum):
+    """A built-in Terrier weighting (scoring) model.
+
+    This is a beta feature and is not yet fully-featured or fully-tested.
+    """
     bm25 = 'bm25'
     dph = 'dph'
 
 
-_IN_MEM_PATH_PLACEHOLDER = '__IGNORE__'
+######################################
+# This is a work-in-progress Artifact-compatible wrapper for a Terrier Index. It doesn't support most
+# features yet, but does allow for uploading/downloading Terrier indexes from HuggingFace, etc.
+######################################
+class TerrierIndex(pt.Artifact, pt.Indexer):
+    """A Terrier index.
 
-class TerrierIndex(pt.Artifact):
-    """A Terrier index."""
+    This is a beta feature and is not yet fully-featured or fully-tested.
+    """
 
     ARTIFACT_TYPE = 'sparse_index'
     ARTIFACT_FORMAT = 'terrier'
     ARTIFACT_PACKAGE_HINT = 'python-terrier'
 
-    def __init__(self, path, *, _index_ref=None, _index_obj=None):
+    def __init__(self, path, *, memory=False, _index_ref=None, _index_obj=None):
         """Initialises a TerrierIndex for the given path."""
         super().__init__(path)
         if _index_ref is not None:
-            assert path == _IN_MEM_PATH_PLACEHOLDER and _index_obj is None
+            assert path is pt.Artifact.NO_PATH and _index_obj is None
         self._index_ref = _index_ref
         if _index_obj is not None:
-            assert path == _IN_MEM_PATH_PLACEHOLDER and _index_ref is None
+            assert path is pt.Artifact.NO_PATH and _index_ref is None
         self._index_obj = _index_obj
+        self.memory = memory
 
     def retriever(
         self,
-        model: Union[Model, str],
+        model: Union[TerrierModel, str],
         model_args: Optional[Dict[str, Any]] = None,
         *,
         num_results: int = 1000,
@@ -52,7 +62,21 @@ class TerrierIndex(pt.Artifact):
         Returns:
             A retriever transformer for this index.
         """
-        return TerrierRetriever(self, model, model_args, include_fields=include_fields, num_results=num_results, threads=threads, verbose=verbose)
+        if include_fields is None:
+            include_fields = ['docno']
+        else:
+            if 'docno' not in include_fields:
+                include_fields = ['docno'] + include_fields
+        return pt.terrier.Retriever(
+            self.index_obj(),
+            controls=_map_controls(model_args),
+            properties=_map_properties(model_args),
+            metadata=include_fields,
+            num_results=num_results,
+            wmodel=_map_wmodel(model),
+            threads=threads,
+            verbose=verbose,
+        )
 
     def bm25(
         self,
@@ -75,7 +99,7 @@ class TerrierIndex(pt.Artifact):
             verbose: Whether to progress information during retrieval
         """
         return self.retriever(
-            Model.bm25,
+            TerrierModel.bm25,
             {'bm25.k1': k1, 'bm25.b': b},
             num_results=num_results,
             include_fields=include_fields,
@@ -100,7 +124,7 @@ class TerrierIndex(pt.Artifact):
             verbose: Whether to progress information during retrieval
         """
         return self.retriever(
-            Model.dph,
+            TerrierModel.dph,
             num_results=num_results,
             include_fields=include_fields,
             threads=threads,
@@ -108,7 +132,6 @@ class TerrierIndex(pt.Artifact):
         )
 
     def text_loader(self,
-        index,
         fields: Union[List[str], str, Literal['*']] = '*',
         *,
         verbose=False
@@ -128,19 +151,33 @@ class TerrierIndex(pt.Artifact):
     def index_ref(self):
         """Returns the internal Java index reference object for this index."""
         if self._index_ref is None:
-            self._index_ref = pt.terrier.J.IndexRef.of(os.path.realpath(self.path))
+            self._index_ref = pt.terrier.J.IndexRef.of(os.path.realpath(str(self.path)))
         return self._index_ref
 
     def index_obj(self):
         """Returns the internal Java index object for this index."""
         if self._index_obj is None:
-            self._index_obj = pt.terrier.IndexFactory.of(self.index_ref())
+            self._index_obj = pt.terrier.IndexFactory.of(self.index_ref(), memory=self.memory)
         return self._index_obj
+
+    def indexer(self, *, meta: Dict = {'docno': 20}) -> pt.Indexer:
+        """Returns an indexer object for this index."""
+        return pt.terrier.IterDictIndexer(os.path.realpath(str(self.path)), meta=meta)
+
+    def index(self, iter: pt.model.IterDict, **kwargs: Any) -> 'TerrierIndex':
+        """Indexes the given input data, creating the index if it does not yet exist, or raising an error if it does."""
+        assert len(kwargs) == 0, f"unknown keyword argument(s) given: {kwargs}"
+        self.indexer().index(iter)
+        return self
+
+    def built(self):
+        """Returns whether the index has been built (or is a built in-memory index)."""
+        return self.path == pt.Artifact.NO_PATH or os.path.exists(os.path.join(self.path, 'data.properties'))
 
     @classmethod
     @pt.java.required
     def coerce(cls, index_like: Union[str, Path, 'TerrierIndex']) -> 'TerrierIndex':
-        """Attempts to build a :class:`TerrierIndex`` from the given object.
+        """Attempts to build a :class:`TerrierIndex` from the given object.
         
         ``index_like`` can be either: (bulleted list below):
         - ``str`` or ``Path``: loads the index at the provided path
@@ -153,70 +190,15 @@ class TerrierIndex(pt.Artifact):
         if isinstance(index_like, (str, Path)):
             return TerrierIndex(index_like)
         if isinstance(index_like, pt.terrier.J.IndexRef):
-            return TerrierIndex(_IN_MEM_PATH_PLACEHOLDER, _index_ref=index_like)
+            return TerrierIndex(pt.Artifact.NO_PATH, _index_ref=index_like)
         if isinstance(index_like, pt.terrier.J.Index):
-            return TerrierIndex(_IN_MEM_PATH_PLACEHOLDER, _index_obj=index_like)
+            return TerrierIndex(pt.Artifact.NO_PATH, _index_obj=index_like)
         raise RuntimeError(f'Could not coerce {index_like!r} into a TerrierIndex')
 
 
-class TerrierRetriever(pt.Transformer):
-    """A Terrier retriever.
-
-    This is a simplified (but less powerful) wrapper around ``pt.terrier.Retriever``.
-    """
-
-    def __init__(self,
-        index: TerrierIndex,
-        model: Union[Model, str],
-        model_args: Optional[Dict[str, Any]] = None,
-        *,
-        num_results: int = 1000,
-        include_fields: Optional[List[str]] = None,
-        threads: int = 1,
-        verbose: bool = False,
-    ):
-        """Initialises a TerrierRetriever."""
-        self._index = index
-        self.model = Model(model)
-        self.model_args = model_args
-        self.num_results = num_results
-        self.include_fields = include_fields
-        self.threads = threads
-        self.verbose = verbose
-
-    def transform(self, queries):
-        """Retrieves documents for the given queries."""
-        include_fields = self.include_fields
-        if include_fields is None:
-            include_fields = ['docno']
-        else:
-            if 'docno' not in include_fields:
-                include_fields = ['docno'] + include_fields
-        retr = pt.terrier.Retriever(
-            self._index.index_obj(),
-            controls=_map_controls(self.model_args),
-            properties=_map_properties(self.model_args),
-            metadata=include_fields,
-            num_results=self.num_results,
-            wmodel=_map_wmodel(self.model),
-            threads=self.threads,
-            verbose=self.verbose,
-        )
-        return retr(queries)
-
-    def __repr__(self):
-        return (f'TerrierRetriever({self.index!r}, {self.model!r}, {self.model_args!r}, '
-                f'num_results={self.num_results!r}, include_fields={self.include_fields!r}, threads={self.threads!r}, '
-                f'verbose={self.verbose!r})')
-
-    def fuse_rank_cutoff(self, k: int) -> Optional[pt.Transformer]:
-        if self.num_results > k:
-            return TerrierRetriever(self.index, self.model, self.model_args, num_results=k, include_fields=self.include_fields, threads=self.threads, verbose=self.verbose)
-
-
 _WMODEL_MAP = {
-    Model.bm25: 'BM25',
-    Model.dph: 'DPH',
+    TerrierModel.bm25: 'BM25',
+    TerrierModel.dph: 'DPH',
 }
 def _map_wmodel(model):
     return _WMODEL_MAP[model]
@@ -229,7 +211,7 @@ _CONTROL_MAP = {
 def _map_controls(model_args):
     return {
         _CONTROL_MAP[k]: v
-        for k, v in model_args.items()
+        for k, v in (model_args or {}).items()
         if k in _CONTROL_MAP
     }
 
@@ -241,6 +223,6 @@ _PROPERTY_MAP = {
 def _map_properties(model_args):
     return {
         _PROPERTY_MAP[k]: v
-        for k, v in model_args.items()
+        for k, v in (model_args or {}).items()
         if k in _PROPERTY_MAP
     }

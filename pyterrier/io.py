@@ -5,7 +5,7 @@ import shutil
 import tempfile
 import urllib
 import typing
-from typing import Callable, Iterable, Optional, Generator, ContextManager, Union
+from typing import Callable, Iterable, Optional, Generator, ContextManager, Union, Dict
 from types import GeneratorType
 from contextlib import ExitStack, contextmanager
 from abc import ABC, abstractmethod
@@ -58,7 +58,6 @@ def find_files(dir):
     Returns:
         paths(list): A list of the paths to the files
     """
-    lst = []
     files = []
     for (dirpath, dirnames, filenames) in os.walk(dir, followlinks=True):
         for name in filenames:
@@ -80,7 +79,10 @@ def _finalized_open_base(path: str, mode: str, open_fn: Callable) -> Generator[i
             yield fout
         os.chmod(path_tmp, 0o666) # default file umask
     except:
-        os.remove(path_tmp)
+        try:
+            os.remove(path_tmp)
+        except Exception:
+            pass # edge case: removing temp file failed. Ignore and just raise orig error
         raise
 
     os.replace(path_tmp, path)
@@ -191,7 +193,7 @@ def read_results(filename, format="trec", topics=None, dataset=None, **kwargs):
         )
 
     """
-    if not format in SUPPORTED_RESULTS_FORMATS:
+    if format not in SUPPORTED_RESULTS_FORMATS:
         raise ValueError("Format %s not known, supported types are %s" % (format, str(SUPPORTED_RESULTS_FORMATS.keys())))
     results = SUPPORTED_RESULTS_FORMATS[format][0](filename, **kwargs)
     if dataset is not None:
@@ -205,14 +207,14 @@ def read_results(filename, format="trec", topics=None, dataset=None, **kwargs):
 
 def _read_results_letor(filename, labels=False):
 
-    def _parse_line(l):
+    def _parse_line(line):
             # $line =~ s/(#.*)$//;
             # my $comment = $1;
             # my @parts = split /\s+/, $line;
             # my $label = shift @parts;
             # my %hash = map {split /:/, $_} @parts;
             # return ($label, $comment, %hash);
-        line, comment = l.split("#")
+        line, comment = line.split("#")
         line = line.strip()
         parts = re.split(r'\s+|:', line)
         label = parts.pop(0)
@@ -242,7 +244,6 @@ def _read_results_letor(filename, labels=False):
         return pd.DataFrame(rows, columns=["qid", "docno", "features", "label"] if labels else ["qid", "docno", "features"])
 
 def _read_results_trec(filename):
-    results = []
     df = pd.read_csv(filename, sep=r'\s+', names=["qid", "iter", "docno", "rank", "score", "name"], dtype={'qid': str, 'docno': str, 'rank': int, 'score': float}) 
     df = df.drop(columns="iter")
     return df
@@ -264,7 +265,7 @@ def write_results(res, filename, format="trec", append=False, **kwargs):
         * "minimal": output columns are $qid $docno $rank, tab-separated. This is used for submissions to the MSMARCO leaderboard.
 
     """
-    if not format in SUPPORTED_RESULTS_FORMATS:
+    if format not in SUPPORTED_RESULTS_FORMATS:
         raise ValueError("Format %s not known, supported types are %s" % (format, str(SUPPORTED_RESULTS_FORMATS.keys())))
     # convert generators to results
     res = coerce_dataframe(res)
@@ -310,7 +311,7 @@ def read_topics(filename, format="trec", **kwargs):
     """
     if format is None:
         format = "trec"
-    if not format in SUPPORTED_TOPICS_FORMATS:
+    if format not in SUPPORTED_TOPICS_FORMATS:
         raise ValueError("Format %s not known, supported types are %s" % (format, str(SUPPORTED_TOPICS_FORMATS.keys())))
     return SUPPORTED_TOPICS_FORMATS[format](filename, **kwargs)
 
@@ -456,10 +457,17 @@ def download(url: str, path: str, *, expected_sha256: Optional[str] = None, verb
 
 
 @contextmanager
-def download_stream(url: str, *, expected_sha256: Optional[str] = None, verbose: bool = True) -> Generator[io.BufferedIOBase, None, None]:
+def download_stream(
+    url: str,
+    *,
+    expected_sha256: Optional[str] = None,
+    headers: Optional[Dict[str, str]] = None,
+    verbose: bool = True
+) -> Generator[io.BufferedIOBase, None, None]:
     """Downloads a file from a URL to a stream."""
     with ExitStack() as stack:
-        fin = stack.enter_context(urllib.request.urlopen(url))
+        request = urllib.request.Request(url, headers=headers or {})
+        fin = stack.enter_context(urllib.request.urlopen(request))
         if fin.status != 200:
             raise OSError(f'Unhandled status code: {fin.status}')
 
@@ -478,11 +486,12 @@ def open_or_download_stream(
     path_or_url: str,
     *,
     expected_sha256: Optional[str] = None,
+    headers: Optional[Dict[str, str]] = None,
     verbose: bool = True
 ) -> Generator[io.BufferedIOBase, None, None]:
     """Opens a file or downloads a file from a URL to a stream."""
     if path_or_url.startswith('http://') or path_or_url.startswith('https://'):
-        with download_stream(path_or_url, expected_sha256=expected_sha256, verbose=verbose) as fin:
+        with download_stream(path_or_url, headers=headers, expected_sha256=expected_sha256, verbose=verbose) as fin:
             yield fin
     elif os.path.isfile(path_or_url):
         with ExitStack() as stack:
@@ -497,7 +506,7 @@ def open_or_download_stream(
 
             yield fin
     else:
-        raise OSError(f'path or url {path_or_url!r} not found')
+        raise OSError(f'path or url {path_or_url!r} not found') # error can occur here if protocol entrypoints were not found - try pip install .
 
 
 class _NosyReader(io.BufferedIOBase, ABC):
@@ -598,7 +607,7 @@ class HashWriter(_NosyWriter):
         super().__init__(writer)
         self.hash = hashfn()
 
-    def on_data(self, data: bytes) -> None:
+    def on_data(self, data: Buffer) -> None:
         """Called when data is written."""
         self.hash.update(data)
 

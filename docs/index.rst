@@ -28,6 +28,7 @@ Welcome to PyTerrier's documentation!
    parallel
    tuning
    experiments/Robust04
+   extending/index
 
 .. toctree::
    :maxdepth: 1
@@ -45,3 +46,4 @@ Welcome to PyTerrier's documentation!
    :caption: Indices and tables
 
    genindex
+   bibliography

@@ -1,7 +1,6 @@
 from typing import Union, Optional
 import pandas as pd
 import numpy as np
-from deprecated import deprecated
 from warnings import warn
 from pyterrier.datasets import Dataset
 from pyterrier.model import coerce_queries_dataframe, FIRST_RANK
@@ -177,6 +176,8 @@ class Retriever(pt.Transformer):
         self.concurrentIL = pt.java.autoclass("org.terrier.structures.ConcurrentIndexLoader")
         if pt.terrier.check_version(5.5) and "SimpleDecorateProcess" not in self.properties["querying.processes"]:
             self.properties["querying.processes"] += ",decorate:SimpleDecorateProcess"
+            controls = controls or {}
+            controls["decorate_batch"] = "on"
         self.metadata = metadata
         self.threads = threads
         self.RequestContextMatching = pt.java.autoclass("org.terrier.python.RequestContextMatching")
@@ -272,7 +273,7 @@ class Retriever(pt.Transformer):
         qid = str(row.qid)
 
         # row is a namedtuple, whose fields are exposed in _fields
-        query_toks_present : bool = 'query_toks' in row._fields
+        query_toks_present = 'query_toks' in row._fields
         if query_toks_present:
             query = '' # Clear the query so it doesn't match the "applypipeline:off" or "_matchop" condictions below... The query_toks query is converted below.
             srq = self.manager.newSearchRequest(qid)
@@ -727,7 +728,7 @@ class FeaturesRetriever(Retriever):
         newscores=[]
         for row in pt.tqdm(queries.itertuples(), desc=str(self), total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
             qid = str(row.qid)
-            query_toks_present : bool = 'query_toks' in row._fields
+            query_toks_present = 'query_toks' in row._fields
             if query_toks_present:
                 # Even though it might look like we should parse the query toks here, we don't want the resulting query to be caught by the conditions
                 # that come before the "if query_toks_present" check. So we set it to an empty string and handle the parsing below.

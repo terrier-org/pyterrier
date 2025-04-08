@@ -16,7 +16,7 @@ jobs:
         python-version: ['3.8', '3.12']
         java: [11, 21]
         os: ['ubuntu-latest', 'macos-13', 'windows-latest', 'macos-latest']
-        terrier: ['snapshot'] #'5.3', '5.4-SNAPSHOT', 
+        terrier: [''] # blank indicates latest
         # include:
         #     - os: 'macos-latest'
         #       python-version: '3.9'
@@ -68,7 +68,6 @@ jobs:
         pip install --upgrade --upgrade-strategy eager -r requirements-test.txt
         #install this software
         pip install --timeout=120 .
-        pip install pytest
 
     - name: Lint with flake8
       run: |

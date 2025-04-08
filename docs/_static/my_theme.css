@@ -143,12 +143,26 @@ body {
     --sidebar-tree-space-above: 0;
 }
 
+.bibliography {
+    margin: 16px;
+}
+
+.bibliography .refs {
+    margin: 0;
+}
+
+.bibliography summary,
 .dblp-citation summary {
     cursor: pointer;
 }
 
+.bibliography pre,
 .dblp-citation pre {
     margin-top: 6px;
     font-size: 0.7em;
-    line-height: 1,1;
+    line-height: 1.1;
+}
+
+.sidebar-tree {
+    margin-bottom: 24px;
 }

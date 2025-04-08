@@ -1,6 +1,8 @@
+import os
 import inspect
 import sys
-from typing import Callable, Tuple, List, Callable, Dict, Set
+from typing import Callable, Tuple, List, Dict, Set, Sequence
+from contextlib import contextmanager
 import platform
 from functools import wraps
 from importlib.metadata import EntryPoint
@@ -106,10 +108,11 @@ def entry_points(group: str) -> Tuple[EntryPoint, ...]:
 
     See <https://docs.python.org/3/library/importlib.metadata.html#entry-points> for more details.
     """
+    orig_res: Sequence[EntryPoint]
     try:
-        orig_res = tuple(eps(group=group))
+        orig_res = tuple(eps(group=group)) # type: ignore # support EntryPoints.get() API on different python versions
     except TypeError:
-        orig_res = tuple(eps().get(group, tuple()))
+        orig_res = tuple(eps().get(group, tuple())) # type: ignore # support EntryPoints.get() API on different python versions
 
     names = set()
     res = []
@@ -169,14 +172,14 @@ def get_class_methods(cls) -> List[Tuple[str, Callable]]:
     Returns methods defined directly by the provided class. This will ignore inherited methods unless they are
     overridden by this class.
     """
-    all_attrs = inspect.getmembers(cls, predicate=inspect.isfunction)
+    all_attrs: Sequence[Tuple[str, Callable]] = inspect.getmembers(cls, predicate=inspect.isfunction)
 
     base_attrs : Set[str] = set()
     for base in cls.__bases__:
         base_attrs.update(name for name, _ in inspect.getmembers(base, predicate=inspect.isfunction))
     
     # Filter out methods that are in base classes and not overridden in the subclass
-    class_methods = []
+    class_methods : List[Tuple[str, Callable]] = []
     for name, func in all_attrs:
         if name not in base_attrs or func.__qualname__.split('.')[0] == cls.__name__:
             # bind classmethod and staticmethod functions to this class
@@ -218,3 +221,28 @@ def byte_count_to_human_readable(byte_count: float) -> str:
     if units[0] == 'B':
         return f'{byte_count:.0f} {units[0]}'
     return f'{byte_count:.1f} {units[0]}'
+
+
+@contextmanager
+def temp_env(key: str, value: str):
+    old_value = os.environ.get(key, None)
+    try:
+        os.environ[key] = value
+        yield
+    finally:
+        if old_value is None:
+            del os.environ[key]
+        else:
+            os.environ[key] = old_value
+
+
+class GeneratorLen(object):
+    def __init__(self, gen, length):
+        self.gen = gen
+        self.length = length
+
+    def __len__(self): 
+        return self.length
+
+    def __iter__(self):
+        return self.gen
