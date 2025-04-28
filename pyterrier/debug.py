@@ -2,7 +2,7 @@ import pandas as pd
 from . import Transformer
 from typing import List, Optional
 
-def print_columns(by_query : Optional[bool] = False, message : Optional[str] = None) -> Transformer:
+def print_columns(by_query : bool = False, message : Optional[str] = None) -> Transformer:
     """
     Returns a transformer that can be inserted into pipelines that can print the column names of the dataframe
     at this stage in the pipeline:
@@ -37,8 +37,8 @@ def print_columns(by_query : Optional[bool] = False, message : Optional[str] = N
     return pt.apply.by_query(_do_print) if by_query else pt.apply.generic(_do_print) 
 
 def print_num_rows(
-        by_query = True, 
-        msg="num_rows") -> Transformer:
+        by_query : bool = True, 
+        msg : str = "num_rows") -> Transformer:
     """
     Returns a transformer that can be inserted into pipelines that can print the number of rows names of the dataframe
     at this stage in the pipeline:
