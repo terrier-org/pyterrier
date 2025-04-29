@@ -36,6 +36,18 @@ class TestOperators(BaseTestCase):
         self.assertEqual(1, len(rtr))
         self.assertEqual("AA test", rtr.iloc[0]["query"])
 
+    def test_then_alteration(self):
+
+        def rewrite(topics):
+            for index, row in topics.iterrows():
+                row["query"] = row["query"] + " test"
+            return topics
+        fn1 = lambda topics : rewrite(topics)
+        pipe = pt.Transformer.identity() >> pt.apply.generic(fn1)
+        with self.assertRaises(RuntimeError)as re:
+            pipe.search("hello")
+            self.assertIn("Hash of input dataframe changed", re.msg)
+
     def test_then(self):
         
         def rewrite(topics):

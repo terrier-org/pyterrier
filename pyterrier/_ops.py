@@ -367,9 +367,28 @@ class Compose(NAryTransformerBase):
         return out
     
     def transform(self, inp : pd.DataFrame) -> pd.DataFrame:
+        hash_input_immutability_check = True
+
         out = inp
         for m in self._transformers:
-            out = m.transform(out)
+            inp = out
+            
+            # hash the input to verify
+            if hash_input_immutability_check:
+                try: 
+                    df_in_hash_before = pd.util.hash_pandas_object(inp, index=True).sum()
+                except TypeError:
+                    # typically an unhashable type, like a numpy array, None, or a list
+                    hash_input_immutability_check = False
+
+            # apply the transformer
+            out = m.transform(inp)
+
+            # verify the hash of the input is unchanged
+            if hash_input_immutability_check:
+                df_in_hash_after = pd.util.hash_pandas_object(inp, index=True).sum()
+                if df_in_hash_before != df_in_hash_after:
+                    raise RuntimeError("Hash of input dataframe changed - transformer %s made in-place edit to input dataframe: %s vs %s" % (str(m), str(df_in_hash_before), str(df_in_hash_after)))
         return out
 
     def fit(self, topics_or_res_tr, qrels_tr, topics_or_res_va=None, qrels_va=None):
