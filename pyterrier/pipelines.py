@@ -3,7 +3,7 @@ import os
 import sys
 import pandas as pd
 import numpy as np
-from typing import Callable, Iterator, Union, Dict, List, Tuple, Sequence, Any, Literal, Optional, overload
+from typing import Callable, Iterator, Union, Dict, List, Tuple, Sequence, Any, Literal, Optional, overload, IO
 import types
 from . import Transformer
 from .model import coerce_dataframe_types
@@ -17,7 +17,7 @@ MEASURES_TYPE=Sequence[MEASURE_TYPE]
 SAVEMODE_TYPE=Literal['reuse', 'overwrite', 'error', 'warn']
 
 SYSTEM_OR_RESULTS_TYPE = Union[Transformer, pd.DataFrame]
-SAVEFORMAT_TYPE = Union[Literal['trec'], types.ModuleType]
+SAVEFORMAT_TYPE = Union[Literal['trec'], types.ModuleType, Tuple[Callable[[IO], pd.DataFrame], Callable[[pd.DataFrame, IO], None]]]
 
 def _bold_cols(data : pd.Series, col_type):
     if data.name not in col_type:
