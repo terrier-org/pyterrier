@@ -47,16 +47,9 @@ class TestOperators(BaseTestCase):
         fn2 = lambda topics : rewrite(topics)
         import pyterrier.apply_base as ptt
         sequence1 = ptt.ApplyGenericTransformer(fn1) >> ptt.ApplyGenericTransformer(fn2)
-        with warns(DeprecationWarning, match='Coercion of a'):
-            sequence2 = ptt.ApplyGenericTransformer(fn1) >> fn2
-        with warns(DeprecationWarning, match='Coercion of a'):
-            sequence3 = ptt.ApplyGenericTransformer(fn1) >> rewrite
-        with warns(DeprecationWarning, match='Coercion of a'):
-            sequence4 = fn1 >> ptt.ApplyGenericTransformer(fn2)
-        with warns(DeprecationWarning, match='Coercion of a'):
-            sequence5 = rewrite >> ptt.ApplyGenericTransformer(fn2)
+
         
-        for sequence in [sequence1, sequence2, sequence3, sequence4, sequence5]:
+        for sequence in [sequence1]:
             self.assertTrue(isinstance(sequence, pt.Transformer))
             #check we can access items
             self.assertEqual(2, len(sequence))

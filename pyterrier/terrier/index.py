@@ -28,12 +28,6 @@ FlatJSONDocumentIterator: Any = None
 TQDMCollection: Any = None
 TQDMSizeCollection: Any = None
 
-# for backward compatibility
-class IterDictIndexerBase(pt.Indexer):
-    @deprecated(version="0.9", reason="Use pt.Indexer instead of IterDictIndexerBase")
-    def __init__(self, *args, **kwargs):
-        super(pt.Indexer, self).__init__(*args, **kwargs)
-
 # lastdoc ensures that a Document instance from a Collection is not GCd before Java has used it.
 lastdoc = None
 

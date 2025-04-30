@@ -1,5 +1,4 @@
 import types
-from warnings import warn
 import pandas as pd
 from deprecated import deprecated
 from typing import Iterator, List, Union, Tuple, Protocol, runtime_checkable, Optional
@@ -25,16 +24,11 @@ def get_transformer(v, stacklevel=1):
     if is_transformer(v):
         return v
     if is_lambda(v):
-        warn('Coercion of a lambda into a transformer is deprecated; use a pt.apply instead', stacklevel=stacklevel, category=DeprecationWarning)
-        from .apply_base import ApplyGenericTransformer
-        return ApplyGenericTransformer(v)
+        raise ValueError('Coercion of a lambda into a transformer is no longer supported; use a pt.apply instead')
     if is_function(v):
-        from .apply_base import ApplyGenericTransformer
-        warn('Coercion of a function (called "%s") into a transformer is deprecated; use a pt.apply instead' % v.__name__, stacklevel=stacklevel, category=DeprecationWarning)
-        return ApplyGenericTransformer(v)
+        raise ValueError('Coercion of a function (called "%s") into a transformer is no longer supported; use a pt.apply instead' % v.__name__)
     if isinstance(v, pd.DataFrame):
-        warn('Coercion of a dataframe into a transformer is deprecated; use a pt.Transformer.from_df() instead', stacklevel=stacklevel, category=DeprecationWarning)
-        return SourceTransformer(v)
+        raise ValueError('Coercion of a dataframe into a transformer is no longer supported; use a pt.Transformer.from_df() instead')
     raise ValueError("Passed parameter %s of type %s cannot be coerced into a transformer" % (str(v), type(v)))
 
 
@@ -335,11 +329,6 @@ class Transformer:
     def __hash__(self):
         return hash(repr(self))
 
-class TransformerBase(Transformer):
-    @deprecated(version="0.9", reason="Use pt.Transformer instead of TransformerBase")
-    def __init__(self, *args, **kwargs):
-        super(Transformer, self).__init__(*args, **kwargs)
-
 class Indexer(Transformer):
     def __new__(cls, *args, **kwargs):
         instance = super().__new__(cls, *args, **kwargs)
@@ -371,11 +360,6 @@ class Indexer(Transformer):
     def transform_iter(self, inp: pt.model.IterDict) -> pt.model.IterDict:
         raise NotImplementedError('You called `transform_iter()` on an indexer. Did you mean to call `index()`?')
 
-class IterDictIndexerBase(Indexer):
-    @deprecated(version="0.9", reason="Use pt.Indexer instead of IterDictIndexerBase")
-    def __init__(self, *args, **kwargs):
-        super(Indexer, self).__init__(*args, **kwargs)
-
 class Estimator(Transformer):
     """
         This is a base class for things that can be fitted.
@@ -391,11 +375,6 @@ class Estimator(Transformer):
                 qrels_va(DataFrame): validation qrels
         """
         pass
-
-class EstimatorBase(Estimator):
-    @deprecated(version="0.9", reason="Use pt.Estimator instead of EstimatorBase")
-    def __init__(self, *args, **kwargs):
-        super(Estimator, self).__init__(*args, **kwargs)
 
 class IdentityTransformer(Transformer):
     """

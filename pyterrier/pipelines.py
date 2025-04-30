@@ -504,30 +504,9 @@ def Experiment(
         A Dataframe with each retrieval system with each metric evaluated.
     """
     
-    
-    # map to the old signature of Experiment
-    warn_old_sig=False
-    if isinstance(retr_systems, pd.DataFrame) and isinstance(topics, list):
-        tmp = topics
-        topics = retr_systems
-        retr_systems = tmp
-        warn_old_sig = True
-    if isinstance(eval_metrics, pd.DataFrame) and isinstance(qrels, list):
-        tmp = eval_metrics
-        eval_metrics = qrels
-        qrels = tmp
-        warn_old_sig = True
-    if warn_old_sig:
-        warn(
-            "Signature of Experiment() is now (retr_systems, topics, qrels, eval_metrics), please update your code", DeprecationWarning, 2)
-
     if not isinstance(retr_systems, list):
         raise TypeError("Expected list of transformers for retr_systems, instead received %s" % str(type(retr_systems)))
 
-    if 'drop_unused' in kwargs:
-        filter_by_qrels = kwargs.pop('drop_unused')
-        warn(
-            'drop_unused is deprecated; use filter_by_qrels instead', DeprecationWarning)
     if len(kwargs):
         raise TypeError("Unknown kwargs: %s" % (str(list(kwargs.keys()))))
 

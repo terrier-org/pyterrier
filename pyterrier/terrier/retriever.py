@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from warnings import warn
 from pyterrier.datasets import Dataset
-from pyterrier.model import coerce_queries_dataframe, FIRST_RANK
+from pyterrier.model import FIRST_RANK
 import concurrent
 from concurrent.futures import ThreadPoolExecutor
 import pyterrier as pt
@@ -374,8 +374,7 @@ class Retriever(pt.Transformer):
         """
         results=[]
         if not isinstance(queries, pd.DataFrame):
-            warn(".transform() should be passed a dataframe. Use .search() to execute a single query.", FutureWarning, 2)
-            queries = coerce_queries_dataframe(queries)
+            raise ValueError(".transform() should be passed a dataframe. Use .search() to execute a single query; Use .transform_iter() for iter-dicts")
         
         docno_provided = "docno" in queries.columns
         docid_provided = "docid" in queries.columns
@@ -696,8 +695,7 @@ class FeaturesRetriever(Retriever):
         """
         results = []
         if not isinstance(queries, pd.DataFrame):
-            warn(".transform() should be passed a dataframe. Use .search() to execute a single query.", FutureWarning, 2)
-            queries = coerce_queries_dataframe(queries)
+            raise ValueError(".transform() should be passed a dataframe. Use .search() to execute a single query; Use .transform_iter() for iter-dicts")
 
         docno_provided = "docno" in queries.columns
         docid_provided = "docid" in queries.columns
