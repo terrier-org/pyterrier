@@ -269,7 +269,7 @@ def _validate_R(df : pd.DataFrame):
         else:
             unfound.append(c)
     if len(unfound):
-        raise TypeError("save_dir was set, but results dont look like R (found %s, missing %s). You probably need to set save_format kwarg, "
+        raise TypeError("save_dir was set, but results dont look like R (expected and found %s, missing %s). You probably need to set save_format kwarg, "
                         "e.g. save_format='pickle" %
                         (str(found), str(unfound)))
 
