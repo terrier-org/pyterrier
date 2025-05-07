@@ -3,7 +3,7 @@ import os
 import sys
 import pandas as pd
 import numpy as np
-from typing import Callable, Iterator, Union, Dict, List, Tuple, Sequence, Any, Literal, Optional, overload
+from typing import Callable, Iterator, Union, Dict, List, Tuple, Sequence, Any, Literal, Optional, overload, IO
 import types
 from . import Transformer
 from .model import coerce_dataframe_types
@@ -17,7 +17,7 @@ MEASURES_TYPE=Sequence[MEASURE_TYPE]
 SAVEMODE_TYPE=Literal['reuse', 'overwrite', 'error', 'warn']
 
 SYSTEM_OR_RESULTS_TYPE = Union[Transformer, pd.DataFrame]
-SAVEFORMAT_TYPE = Union[Literal['trec'], types.ModuleType]
+SAVEFORMAT_TYPE = Union[Literal['trec'], types.ModuleType, Tuple[Callable[[IO], pd.DataFrame], Callable[[pd.DataFrame, IO], None]]]
 
 def _bold_cols(data : pd.Series, col_type):
     if data.name not in col_type:
@@ -260,6 +260,20 @@ def _precomputation(
     
     return precompute_time, execution_topics, execution_retr_systems
 
+def _validate_R(df : pd.DataFrame):
+    found = []
+    unfound = []
+    for c in ["qid", "docno", "score", "rank"]:
+        if c in df.columns:
+            found.append(c)
+        else:
+            unfound.append(c)
+    if len(unfound):
+        raise TypeError("save_dir was set, but results dont look like R (expected and found %s, missing %s). You probably need to set save_format kwarg, "
+                        "e.g. save_format=pickle" %
+                        (str(found), str(unfound)))
+
+
 def _run_and_evaluate(
         system : SYSTEM_OR_RESULTS_TYPE, 
         topics : Optional[pd.DataFrame], 
@@ -340,6 +354,7 @@ def _run_and_evaluate(
         # write results to save_file; we can be sure this file does not exist
         if save_file is not None:
             if save_format == 'trec':
+                _validate_R(res)
                 write_results(res, save_file)
             elif isinstance(save_format, types.ModuleType):
                 with pt.io.autoopen(save_file, 'wb') as fout:
@@ -383,6 +398,7 @@ def _run_and_evaluate(
 
                 # write results to save_file; we will append for subsequent batches
                 if save_file is not None:
+                    _validate_R(res)
                     write_results(res, save_file, append=True)
 
                 res = coerce_dataframe_types(res)

@@ -169,6 +169,24 @@ class TestExperiment(TempDirTestCase):
         pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], highlight="color")
         pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], baseline=0, highlight="color")
 
+    def test_save_invalid_format(self):
+        topics = pt.datasets.get_dataset("vaswani").get_topics().head(10)
+        qrels =  pt.datasets.get_dataset("vaswani").get_qrels()
+        t = pt.Transformer.from_df(pd.DataFrame([{'qid' : topics.iloc[0].qid, 'query' : 'hello', "context" : "here"}]))
+        with self.assertRaises(TypeError) as te:
+            pt.Experiment([t], topics, qrels, ['map'], save_dir=self.test_dir, names=['t'])
+            self.assertIn("missing ['docno', 'score', 'rank']" in te.msg)
+        # save_format with pickle should work - we need a dummy measure though.
+        dummy_measure = ir_measures.define_byquery(lambda a,b: 0)
+        import pickle
+        pt.Experiment([t], 
+                      topics, 
+                      qrels, 
+                      [dummy_measure], 
+                      save_dir=self.test_dir, 
+                      names=['t'], 
+                      save_format=pickle)
+
     def test_save(self):
         index = pt.datasets.get_dataset("vaswani").get_index()
         brs = [
