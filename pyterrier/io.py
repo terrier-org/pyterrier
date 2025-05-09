@@ -5,7 +5,7 @@ import shutil
 import tempfile
 import urllib
 import typing
-from typing import Callable, Iterable, Optional, Generator, ContextManager, Union, Dict, Literal
+from typing import Callable, Iterable, Optional, Generator, ContextManager, Union, Dict, Literal, Tuple
 from types import GeneratorType
 from contextlib import ExitStack, contextmanager
 from abc import ABC, abstractmethod
@@ -394,7 +394,7 @@ SUPPORTED_TOPICS_FORMATS = {
     "singleline": _read_topics_singleline
 }
 
-SUPPORTED_RESULTS_FORMATS = {
+SUPPORTED_RESULTS_FORMATS : Dict[str,Tuple[Callable,Callable]] = {
     "trec" : (_read_results_trec, _write_results_trec),
     "letor" : (_read_results_letor, _write_results_letor),
     "minimal" : (None, _write_results_minimal)

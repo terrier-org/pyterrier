@@ -59,7 +59,7 @@ def _function2wmodel(function):
     wmodel = pt.java.autoclass("org.terrier.python.CallableWeightingModel")( callback )
     return callback, wmodel
 
-def _mergeDicts(defaults, settings):
+def _mergeDicts(defaults : Dict[str,str], settings : Optional[Dict[str,str]] = None) -> Dict[str,str]:
     KV = defaults.copy()
     if settings is not None and len(settings) > 0:
         KV.update(settings)
