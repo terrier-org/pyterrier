@@ -191,6 +191,7 @@ def read_results(filename : str, format="trec", topics : Optional[pd.DataFrame] 
         raise ValueError("Format %s not known, supported types are %s" % (format, str(SUPPORTED_RESULTS_FORMATS.keys())))
     if SUPPORTED_RESULTS_FORMATS[format][0] is None:
         raise ValueError("Format %s does not support reading" % format)
+    assert SUPPORTED_RESULTS_FORMATS[format][0] is not None
     results = SUPPORTED_RESULTS_FORMATS[format][0](filename, **kwargs)
     if dataset is not None:
         assert topics is None, "Cannot provide both dataset and topics"
@@ -264,6 +265,7 @@ def write_results(res : pd.DataFrame, filename : str, format : Literal['trec', '
         raise ValueError("Format %s not known, supported types are %s" % (format, str(SUPPORTED_RESULTS_FORMATS.keys())))
     if SUPPORTED_RESULTS_FORMATS[format][1] is None:
         raise ValueError("Format %s does not support writing" % format)
+    assert SUPPORTED_RESULTS_FORMATS[format][1] is not None
     # convert generators to results
     res = coerce_dataframe(res)
     return SUPPORTED_RESULTS_FORMATS[format][1](res, filename, append=append, **kwargs)
