@@ -160,7 +160,7 @@ def push_columns_dict(
     return [*map(per_element, inp)]
 
 
-def find_maximum_push(inp: pd.DataFrame, base_column: str = "query") -> Tuple[str, int]:
+def find_maximum_push(inp: pd.DataFrame, base_column: str = "query") -> Tuple[Union[str,None], int]:
     columns = inp.columns
     maxcol = None
     maxval = -1
@@ -207,7 +207,7 @@ def push_queries(df: pd.DataFrame, *, keep_original: bool = False, inplace: bool
     return push_columns(df, keep_original=keep_original, inplace=inplace, base_column="query")
 
 
-def push_queries_dict(inp: IterDictRecord, *, keep_original: bool = False, inplace: bool = False) -> IterDictRecord:
+def push_queries_dict(inp: Union[IterDictRecord,IterDict], *, keep_original: bool = False, inplace: bool = False) -> Union[IterDictRecord,IterDict]:
     """
     Works like ``push_queries`` but over a dict instead of a dataframe.
     """
