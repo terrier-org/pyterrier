@@ -5,7 +5,7 @@ import shutil
 import tempfile
 import urllib
 import typing
-from typing import Callable, Iterable, Optional, Generator, ContextManager, Union, Dict, Literal, Tuple
+from typing import Callable, Iterable, Optional, Generator, ContextManager, Union, Dict, Literal, Tuple, List
 from types import GeneratorType
 from contextlib import ExitStack, contextmanager
 from abc import ABC, abstractmethod
@@ -189,6 +189,8 @@ def read_results(filename : str, format="trec", topics : Optional[pd.DataFrame] 
     """
     if format not in SUPPORTED_RESULTS_FORMATS:
         raise ValueError("Format %s not known, supported types are %s" % (format, str(SUPPORTED_RESULTS_FORMATS.keys())))
+    if SUPPORTED_RESULTS_FORMATS[format][0] is None:
+        raise ValueError("Format %s does not support reading" % format)
     results = SUPPORTED_RESULTS_FORMATS[format][0](filename, **kwargs)
     if dataset is not None:
         assert topics is None, "Cannot provide both dataset and topics"
@@ -260,6 +262,8 @@ def write_results(res : pd.DataFrame, filename : str, format : Literal['trec', '
     """
     if format not in SUPPORTED_RESULTS_FORMATS:
         raise ValueError("Format %s not known, supported types are %s" % (format, str(SUPPORTED_RESULTS_FORMATS.keys())))
+    if SUPPORTED_RESULTS_FORMATS[format][1] is None:
+        raise ValueError("Format %s does not support writing" % format)
     # convert generators to results
     res = coerce_dataframe(res)
     return SUPPORTED_RESULTS_FORMATS[format][1](res, filename, append=append, **kwargs)
@@ -322,7 +326,7 @@ def _read_topics_trec(file_path, doc_tag="TOP", id_tag="NUM", whitelist=["TITLE"
     return topics_dt
 
 @pt.java.required
-def _read_topics_trecxml(filename, tags=["query", "question", "narrative"], tokenise=True) -> pd.DataFrame:
+def _read_topics_trecxml(filename : str, tags : List[str] = ["query", "question", "narrative"], tokenise=True) -> pd.DataFrame:
     """
     Parse a file containing topics in TREC-like XML format
 
@@ -337,14 +341,14 @@ def _read_topics_trecxml(filename, tags=["query", "question", "narrative"], toke
     tree = ET.parse(filename)
     root = tree.getroot()
     tokeniser = pt.java.autoclass("org.terrier.indexing.tokenisation.Tokeniser").getTokeniser()
-    for child in root.iter('topic'):
+    for child in root.iter('topic'):  # type: ignore
         try:
             qid = child.attrib["number"]
         except KeyError:
             qid = child.find("number").text
         query = ""
         for tag in child:
-            if tag.tag in tags:
+            if tag.tag in tags:  # type: ignore
                 query_text = tag.text
                 if tokenise:
                     query_text = " ".join(tokeniser.getTokens(query_text))
