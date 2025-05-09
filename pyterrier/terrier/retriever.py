@@ -464,7 +464,7 @@ class Retriever(pt.Transformer):
         """
         Support fusing with RankCutoffTransformer.
         """
-        if self.controls.get('end', float('inf')) < k:
+        if float(self.controls.get('end', float('inf'))) < k:
             return self # the applied rank cutoff is greater than the one already applied
         if self.controls.get('context_wmodel') == 'on':
             return None # we don't store the original wmodel value so we can't reconstruct
@@ -856,7 +856,7 @@ class FeaturesRetriever(Retriever):
         """
         Support fusing with RankCutoffTransformer.
         """
-        if self.controls.get('end', float('inf')) < k:
+        if float(self.controls.get('end', float('inf'))) < k:
             return self # the applied rank cutoff is greater than the one already applied
         if self.wmodel is None:
             return None # not a retriever
