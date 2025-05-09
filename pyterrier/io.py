@@ -191,8 +191,7 @@ def read_results(filename : str, format="trec", topics : Optional[pd.DataFrame] 
         raise ValueError("Format %s not known, supported types are %s" % (format, str(SUPPORTED_RESULTS_FORMATS.keys())))
     if SUPPORTED_RESULTS_FORMATS[format][0] is None:
         raise ValueError("Format %s does not support reading" % format)
-    assert SUPPORTED_RESULTS_FORMATS[format][0] is not None
-    results = SUPPORTED_RESULTS_FORMATS[format][0](filename, **kwargs)
+    results = SUPPORTED_RESULTS_FORMATS[format][0](filename, **kwargs) # type: ignore
     if dataset is not None:
         assert topics is None, "Cannot provide both dataset and topics"
         if isinstance(dataset, str):
@@ -265,10 +264,9 @@ def write_results(res : pd.DataFrame, filename : str, format : Literal['trec', '
         raise ValueError("Format %s not known, supported types are %s" % (format, str(SUPPORTED_RESULTS_FORMATS.keys())))
     if SUPPORTED_RESULTS_FORMATS[format][1] is None:
         raise ValueError("Format %s does not support writing" % format)
-    assert SUPPORTED_RESULTS_FORMATS[format][1] is not None
     # convert generators to results
     res = coerce_dataframe(res)
-    return SUPPORTED_RESULTS_FORMATS[format][1](res, filename, append=append, **kwargs)
+    return SUPPORTED_RESULTS_FORMATS[format][1](res, filename, append=append, **kwargs)  # type: ignore
 
 def _write_results_trec(res, filename, run_name="pyterrier", append=False):
         res_copy = res.copy()[["qid", "docno", "rank", "score"]]
@@ -327,8 +325,8 @@ def _read_topics_trec(file_path, doc_tag="TOP", id_tag="NUM", whitelist=["TITLE"
     topics_dt = pd.DataFrame(topics_lst,columns=['qid','query'])
     return topics_dt
 
-@pt.java.required
 @typing.no_type_check
+@pt.java.required
 def _read_topics_trecxml(filename : str, tags : List[str] = ["query", "question", "narrative"], tokenise=True) -> pd.DataFrame:
     """
     Parse a file containing topics in TREC-like XML format
