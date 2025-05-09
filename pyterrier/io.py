@@ -162,9 +162,9 @@ def read_results(filename : str, format="trec", topics : Optional[pd.DataFrame] 
     :param format: The format of the results file: one of "trec", "letor". Default is "trec".
     :param topics: If provided, will merge the topics to merge into the results. This is helpful for providing query text. Cannot be used in conjunction with dataset argument.
     :param dataset: If provided, loads topics from the dataset (or dataset ID) and merges them into the results. This is helpful for providing query text. Cannot be used in conjunction with dataset topics.
-        **kwargs (dict): Other arguments for the internal method
+    :param kwargs: Other arguments for the internal method
 
-    :return dataframe with usual qid, docno, score columns etc
+    :return: dataframe with usual qid, docno, score columns etc
 
     Examples::
 
@@ -250,12 +250,12 @@ def write_results(res : pd.DataFrame, filename : str, format : Literal['trec', '
     :param filename: The filename of the file to be written. Compressed files are handled automatically.
     :param format: The format of the results file: one of "trec", "letor", "minimal"
     :param append: Append to an existing file. Defaults to False.
-    :param **kwargs: Other arguments for the internal method
+    :param kwargs: Other arguments for the internal method
 
     Supported Formats:
-        * "trec" -- output columns are $qid Q0 $docno $rank $score $runname, space separated
-        * "letor" -- This follows the LETOR and MSLR datasets, in that output columns are $label qid:$qid [$fid:$value]+ # docno=$docno
-        * "minimal": output columns are $qid $docno $rank, tab-separated. This is used for submissions to the MSMARCO leaderboard.
+        * "trec" -- output columns are `$qid Q0 $docno $rank $score $runname, space separated`
+        * "letor" -- This follows the LETOR and MSLR datasets, in that output columns are `$label qid:$qid [$fid:$value]+ # docno=$docno`
+        * "minimal": output columns are `$qid $docno $rank`, tab-separated. This is used for submissions to the MSMARCO leaderboard.
 
     """
     if format not in SUPPORTED_RESULTS_FORMATS:
@@ -292,9 +292,7 @@ def read_topics(filename : str, format :Literal['trec', 'trecxml', 'singleline']
     :param filename: The filename of the topics file. A URL is supported for the "trec" and "singleline" formats.
     :param format: One of "trec", "trecxml" or "singleline". Default is "trec"
 
-    Returns:
-        pandas.Dataframe with columns=['qid','query']
-        both columns have type string
+    :return: pandas.Dataframe with columns=['qid','query'], where both columns have type str.
 
     Supported Formats:
         * "trec" -- an SGML-formatted TREC topics file. Delimited by TOP tags, each having NUM and TITLE tags; DESC and NARR tags are skipped by default. Control using whitelist and blacklist kwargs
