@@ -394,7 +394,7 @@ SUPPORTED_TOPICS_FORMATS = {
     "singleline": _read_topics_singleline
 }
 
-SUPPORTED_RESULTS_FORMATS : Dict[str,Tuple[Callable,Callable]] = {
+SUPPORTED_RESULTS_FORMATS : Dict[str,Tuple[Optional[Callable],Optional[Callable]]] = {
     "trec" : (_read_results_trec, _write_results_trec),
     "letor" : (_read_results_letor, _write_results_letor),
     "minimal" : (None, _write_results_minimal)
