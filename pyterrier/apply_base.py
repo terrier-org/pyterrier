@@ -383,7 +383,7 @@ class ApplyQueryTransformer(pt.Transformer):
     def transform(self, inp: pd.DataFrame) -> pd.DataFrame:    
         if "query" in inp.columns:
             # we only push if a query already exists
-            outputRes = pt.model.push_queries(inp.copy(), inplace=True, keep_original=True)
+            outputRes = pt.model.push_queries(inp, keep_original=True)
         else:
             outputRes = inp.copy()
         try:
