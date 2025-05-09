@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Callable, Any, Dict, Union, Optional, Sequence
+from typing import Callable, Any, Dict, Union, Optional, Sequence, Literal
 import numpy.typing as npt
 import pandas as pd
 import pyterrier as pt
@@ -29,9 +29,8 @@ def query(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], str], *args,
         The previous query formulation is saved in the "query_0" column. If a later pipeline stage is intended to resort to
         be executed on the previous query formulation, a ``pt.rewrite.reset()`` transformer can be applied.  
 
-        Arguments:
-            fn(Callable): the function to apply to each row. It must return a string containing the new query formulation.
-            verbose(bool): if set to True, a TQDM progress bar will be displayed
+        :param fn: the function to apply to each row. It must return a string containing the new query formulation.
+        :param verbose: if set to True, a TQDM progress bar will be displayed
 
         Examples::
 
@@ -69,10 +68,9 @@ def doc_score(fn : Union[Callable[[Union[pd.Series,pt.model.IterDictRecord]], fl
         The supplied function is called once for each document, and must return a float containing the new score for that document.
         Each time it is called, the function is supplied with a Panda Series representing the attributes of the query and document.
 
-        Arguments:
-            fn(Callable): the function to apply to each row
-            batch_size (int or None). How many documents to operate on at once (batch-wise). If None, operates row-wise
-            verbose(bool): if set to True, a TQDM progress bar will be displayed
+        :param fn: the function to apply to each row
+        :param batch_size: How many documents to operate on at once (batch-wise). If None, operates row-wise
+        :param verbose: if set to True, a TQDM progress bar will be displayed
 
         Example (Row-wise)::
 
@@ -105,10 +103,9 @@ def doc_features(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], npt.N
         particular type of the input is not controlled by the implementor, so the function should be written to support both, e.g. using ``row["key"]``
         notation and not the ``row.key`` that is supported by a Series.
 
-        Arguments:
-            fn(Callable): the function to apply to each row
-            verbose(bool): if set to True, a TQDM progress bar will be displayed
-
+        :param fn: the function to apply to each row. It must return a 1D numpy array
+        :param verbose: if set to True, a TQDM progress bar will be displayed
+        
         Example::
 
             # this transformer will compute the character and number of word in each document retrieved
@@ -138,8 +135,7 @@ def indexer(fn : Callable[[pt.model.IterDict], Any], **kwargs) -> pt.Indexer:
 
         The supplied function is called once. It may optionally return something (typically a reference to the "index").
 
-        Arguments:
-            fn(Callable): the function that consumed documents.
+        :param fn: the function that consumes documents as IterDicts.
 
         Example::
 
@@ -154,13 +150,12 @@ def indexer(fn : Callable[[pt.model.IterDict], Any], **kwargs) -> pt.Indexer:
     """
     return ApplyIndexer(fn, **kwargs)
 
-def rename(columns : Dict[str,str], *args, errors='raise', **kwargs) -> pt.Transformer:
+def rename(columns : Dict[str,str], *args, errors : Literal['raise', 'ignore']='raise', **kwargs) -> pt.Transformer:
     """
         Creates a transformer that renames columns in a dataframe. 
 
-        Args:
-            columns(dict): A dictionary mapping from old column name to new column name
-            errors(str): Maps to df.rename() errors kwarg - default to 'raise', alternatively can be 'ignore'
+        :param columns: A dictionary mapping from old column name to new column name
+        :param errors: Maps to df.rename() errors kwarg - default to 'raise', alternatively can be 'ignore'
 
         Example::
             
@@ -176,11 +171,10 @@ def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.mode
         more queries and one or more documents). Each time it should return a new dataframe. The returned dataframe (or yielded row) 
         should abide by the general PyTerrier Data Model, for instance updating the rank column if the scores are amended.
 
-        Arguments:
-            fn(Callable): the function to apply to each result set
-            batch_size(int or None): whether to apply fn on batches of rows or all that are received
-            verbose(bool): Whether to display a progress bar over batches (only used if batch_size is set, and iter is not set).
-            iter(bool): Whether to use the iter-dict API - if-so, then ``fn`` receives an iterable, and returns an iterable. 
+        :param fn: the function to apply to each result set
+        :param batch_size: whether to apply fn on batches of rows or all that are received
+        :param verbose: Whether to display a progress bar over batches (only used if batch_size is set, and iter is not set).
+        :param iter: Whether to use the iter-dict API - if-so, then ``fn`` receives an iterable, and returns an iterable. 
 
         Example (dataframe)::
 
@@ -212,11 +206,10 @@ def by_query(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.mod
         If batch_size is set, fn will receive no more than batch_size documents for any query. The verbose kwargs controls whether
         to display a progress bar over queries.  
 
-        Arguments:
-            fn(Callable): the function to apply to each row. Should return a generator
-            batch_size(int or None): whether to apply fn on batches of rows or all that are received.
-            verbose(bool): Whether to display a progress bar over batches (only used if batch_size is set, and iter is not set).
-            iter(bool): Whether to use the iter-dict API - if-so, then ``fn`` receives an iterable, and must return an iterable. 
+        :param fn: the function to apply to each row. Should return a generator
+        :param batch_size: whether to apply fn on batches of rows or all that are received.
+        :param verbose: Whether to display a progress bar over batches (only used if batch_size is set, and iter is not set).
+        :param iter: Whether to use the iter-dict API - if-so, then ``fn`` receives an iterable, and must return an iterable. 
     """
     if iter:
         if kwargs.get("add_ranks", False):

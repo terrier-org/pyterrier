@@ -5,7 +5,7 @@ import shutil
 import tempfile
 import urllib
 import typing
-from typing import Callable, Iterable, Optional, Generator, ContextManager, Union, Dict
+from typing import Callable, Iterable, Optional, Generator, ContextManager, Union, Dict, Literal
 from types import GeneratorType
 from contextlib import ExitStack, contextmanager
 from abc import ABC, abstractmethod
@@ -52,11 +52,9 @@ def find_files(dir):
     """
     Returns all the files present in a directory and its subdirectories
 
-    Args:
-        dir(str): The directory containing the files
+    :param dir: The directory containing the files
 
-    Returns:
-        paths(list): A list of the paths to the files
+    :return: A list of the paths to the files
     """
     files = []
     for (dirpath, dirnames, filenames) in os.walk(dir, followlinks=True):
@@ -92,9 +90,8 @@ def finalized_open(path: str, mode: str) -> ContextManager[io.BufferedIOBase]:
     """
     Opens a file for writing, but reverts it if there was an error in the process.
 
-    Args:
-        path(str): Path of file to open
-        mode(str): Either t or b, for text or binary mode
+    :param path: Path of file to open
+    :param mode: Either t or b, for text or binary mode
 
     Example:
         Returns a contextmanager that provides a file object, so should be used in a "with" statement. E.g.::
@@ -117,9 +114,8 @@ def finalized_autoopen(path: str, mode: str) -> ContextManager[io.BufferedIOBase
     """
     Opens a file for writing with ``autoopen``, but reverts it if there was an error in the process.
 
-    Args:
-        path(str): Path of file to open
-        mode(str): Either t or b, for text or binary mode
+    :param path: Path of file to open
+    :param mode: Either t or b, for text or binary mode
 
     Example:
         Returns a contextmanager that provides a file object, so should be used in a "with" statement. E.g.::
@@ -137,7 +133,7 @@ def finalized_autoopen(path: str, mode: str) -> ContextManager[io.BufferedIOBase
     """
     return _finalized_open_base(path, mode, autoopen)
 
-def ok_filename(fname) -> bool:
+def ok_filename(fname : str) -> bool:
     """
     Checks to see if a filename is valid.
     """
@@ -147,7 +143,7 @@ def ok_filename(fname) -> bool:
             return False
     return True
 
-def touch(fname, mode=0o666, dir_fd=None, **kwargs):
+def touch(fname : str, mode=0o666, dir_fd=None, **kwargs):
     """
     Eqiuvalent to touch command on linux.
     Implementation from https://stackoverflow.com/a/1160227
@@ -158,19 +154,17 @@ def touch(fname, mode=0o666, dir_fd=None, **kwargs):
             dir_fd=None if os.supports_fd else dir_fd, **kwargs)
 
 
-def read_results(filename, format="trec", topics=None, dataset=None, **kwargs):
+def read_results(filename : str, format="trec", topics : Optional[pd.DataFrame] = None, dataset : Optional[pt.datasets.Dataset] =None, **kwargs) -> pd.DataFrame:
     """
     Reads a file into a results dataframe.
 
-    Parameters:
-        filename (str): The filename of the file to be read. Compressed files are handled automatically. A URL is also supported for the "trec" format.
-        format (str): The format of the results file: one of "trec", "letor". Default is "trec".
-        topics (None or pandas.DataFrame): If provided, will merge the topics to merge into the results. This is helpful for providing query text. Cannot be used in conjunction with dataset argument.
-        dataset (None, str or pyterrier.datasets.Dataset): If provided, loads topics from the dataset (or dataset ID) and merges them into the results. This is helpful for providing query text. Cannot be used in conjunction with dataset topics.
+    :param filename: The filename of the file to be read. Compressed files are handled automatically. A URL is also supported for the "trec" format.
+    :param format: The format of the results file: one of "trec", "letor". Default is "trec".
+    :param topics: If provided, will merge the topics to merge into the results. This is helpful for providing query text. Cannot be used in conjunction with dataset argument.
+    :param dataset: If provided, loads topics from the dataset (or dataset ID) and merges them into the results. This is helpful for providing query text. Cannot be used in conjunction with dataset topics.
         **kwargs (dict): Other arguments for the internal method
 
-    Returns:
-        dataframe with usual qid, docno, score columns etc
+    :return dataframe with usual qid, docno, score columns etc
 
     Examples::
 
@@ -248,16 +242,15 @@ def _read_results_trec(filename):
     df = df.drop(columns="iter")
     return df
 
-def write_results(res, filename, format="trec", append=False, **kwargs):
+def write_results(res : pd.DataFrame, filename : str, format : Literal['trec', 'letor', 'minimal'] ="trec", append=False, **kwargs):
     """
     Write a results dataframe to a file.
 
-    Parameters:
-        res (DataFrame): A results dataframe, with usual columns of qid, docno etc
-        filename (str): The filename of the file to be written. Compressed files are handled automatically.
-        format (str): The format of the results file: one of "trec", "letor", "minimal"
-        append (bool): Append to an existing file. Defaults to False.
-        **kwargs (dict): Other arguments for the internal method
+    :param res: A results dataframe, with usual columns of qid, docno etc
+    :param filename: The filename of the file to be written. Compressed files are handled automatically.
+    :param format: The format of the results file: one of "trec", "letor", "minimal"
+    :param append: Append to an existing file. Defaults to False.
+    :param **kwargs: Other arguments for the internal method
 
     Supported Formats:
         * "trec" -- output columns are $qid Q0 $docno $rank $score $runname, space separated
@@ -292,13 +285,12 @@ def _write_results_letor(res, filename, qrels=None, default_label=0, append=Fals
             feat_str = ' '.join( [ '%i:%f' % (i+1,values[i]) for i in range(len(values)) ] )
             f.write("%d qid:%s %s # docno=%s\n" % (label, row.qid, feat_str, row.docno))
 
-def read_topics(filename, format="trec", **kwargs):
+def read_topics(filename : str, format :Literal['trec', 'trecxml', 'singleline'] = "trec", **kwargs) -> pd.DataFrame:
     """
     Reads a file containing topics.
 
-    Parameters:
-        filename(str): The filename of the topics file. A URL is supported for the "trec" and "singleline" formats.
-        format(str): One of "trec", "trecxml" or "singleline". Default is "trec"
+    :param filename: The filename of the topics file. A URL is supported for the "trec" and "singleline" formats.
+    :param format: One of "trec", "trecxml" or "singleline". Default is "trec"
 
     Returns:
         pandas.Dataframe with columns=['qid','query']
@@ -382,15 +374,13 @@ def _read_topics_singleline(filepath, tokenise=True):
         rows.append([slqIter.getQueryId(), q])
     return pd.DataFrame(rows, columns=["qid", "query"])
 
-def read_qrels(file_path):
+def read_qrels(file_path : str) -> pd.DataFrame:
     """
     Reads a file containing qrels (relevance assessments)
 
-    Parameters:
-        file_path(str): The path to the qrels file.  A URL is also supported.
+    :param file_path: The path to the qrels file.  A URL is also supported.
 
-    Returns:
-        pandas.Dataframe with columns=['qid','docno', 'label']
+    :return: pandas.Dataframe with columns=['qid','docno', 'label']
         with column types string, string, and int
     """
     df = pd.read_csv(file_path,
