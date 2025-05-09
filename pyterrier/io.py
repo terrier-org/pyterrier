@@ -328,6 +328,7 @@ def _read_topics_trec(file_path, doc_tag="TOP", id_tag="NUM", whitelist=["TITLE"
     return topics_dt
 
 @pt.java.required
+@typing.no_type_check
 def _read_topics_trecxml(filename : str, tags : List[str] = ["query", "question", "narrative"], tokenise=True) -> pd.DataFrame:
     """
     Parse a file containing topics in TREC-like XML format
@@ -338,19 +339,19 @@ def _read_topics_trecxml(filename : str, tags : List[str] = ["query", "question"
     Returns:
         pandas.Dataframe with columns=['qid','query']
     """
-    tags=set(tags)
+    _tags=set(tags)
     topics=[]
     tree = ET.parse(filename)
     root = tree.getroot()
     tokeniser = pt.java.autoclass("org.terrier.indexing.tokenisation.Tokeniser").getTokeniser()
-    for child in root.iter('topic'):  # type: ignore
+    for child in root.iter('topic'):
         try:
             qid = child.attrib["number"]
         except KeyError:
             qid = child.find("number").text
         query = ""
         for tag in child:
-            if tag.tag in tags:  # type: ignore
+            if tag.tag in _tags:
                 query_text = tag.text
                 if tokenise:
                     query_text = " ".join(tokeniser.getTokens(query_text))
