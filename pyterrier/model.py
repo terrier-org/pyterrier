@@ -125,11 +125,11 @@ def push_columns(
 
 
 def push_columns_dict(
-    inp: Union[Iterable[dict], dict],
+    inp: Union[IterDict, IterDictRecord],
     keep_original: bool = False,
     base_column: str = "query",
-) -> Union[Iterable[dict], dict]:
-    def per_element(i: dict):
+) -> Union[IterDict, IterDictRecord]:
+    def per_element(i: IterDictRecord) -> IterDictRecord:
         cols = i.keys()
         if base_column not in cols:
             raise KeyError(f"Expected a {base_column} column, but found {list(cols)}")
@@ -158,38 +158,6 @@ def push_columns_dict(
     if isinstance(inp, dict):
         return per_element(inp)
     return [*map(per_element, inp)]
-
-
-def find_maximum_push(inp: pd.DataFrame, base_column: str = "query") -> Tuple[Union[str,None], int]:
-    columns = inp.columns
-    maxcol = None
-    maxval = -1
-    for col in columns:
-        if col.startswith(f"{base_column}_"):
-            val = int(col.split("_")[1])
-            if val > maxval:
-                maxval = val
-                maxcol = col
-    return maxcol, maxval
-
-
-def find_maximum_push_dict(inp: Union[Iterable[dict], dict], base_column: str = "query") -> Tuple[str, int]:
-    def per_element(i: dict):
-        cols = i.keys()
-        maxcol = None
-        maxval = -1
-        for col in cols:
-            if col.startswith(f"{base_column}_"):
-                val = int(col.split("_")[1])
-                if val > maxval:
-                    maxval = val
-                    maxcol = col
-        return maxcol, maxval
-
-    if isinstance(inp, dict):
-        return per_element(inp)
-    return map(per_element, inp)
-
 
 def push_queries(df: pd.DataFrame, *, keep_original: bool = False, inplace: bool = False) -> pd.DataFrame:
     """
