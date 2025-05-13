@@ -195,7 +195,7 @@ def push_queries_dict(inp: IterDictRecord, keep_original: bool = False, inplace:
 @overload
 def push_queries_dict(inp: IterDict, keep_original: bool = False, inplace: bool = False) -> IterDict: ...
 
-def push_queries_dict(inp: Union[IterDictRecord,IterDict], *, keep_original: bool = False, inplace: bool = False) -> Union[IterDictRecord,IterDict]:
+def push_queries_dict(inp: Union[IterDictRecord,IterDict], keep_original: bool = False, inplace: bool = False) -> Union[IterDictRecord,IterDict]:
     """
     Works like ``push_queries`` but over a dict/iterdict instead of a dataframe.
     """
