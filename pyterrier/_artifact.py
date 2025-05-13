@@ -396,8 +396,11 @@ class Artifact:
             try:
                 huggingface_hub.create_branch(repo, repo_type='dataset', branch=branch)
             except huggingface_hub.utils.HfHubHTTPError as e:
-                if not str(e.server_message).startswith('Reference already exists:'):
-                    raise
+                # detect the "already exists" error -- either as the 409 (Conflict) status code or 'already exists' appearing in the message
+                if (hasattr(e, 'response') and e.response.status_code == 409) or 'already exists' in str(e.server_message).lower():
+                    pass # ignore -- the branch already exists
+                else:
+                    raise # another error
 
             path = huggingface_hub.upload_folder(
                 repo_id=repo,
