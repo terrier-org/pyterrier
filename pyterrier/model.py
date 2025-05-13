@@ -2,7 +2,7 @@ import math
 import itertools
 import numpy as np
 import pandas as pd
-from typing import Any, Dict, Iterable, List, Sequence, Optional, Union, Tuple
+from typing import Any, Dict, Iterable, List, Sequence, Optional, Union, overload
 
 IterDictRecord = Dict[str, Any]
 IterDict = Iterable[IterDictRecord]
@@ -87,7 +87,6 @@ def query_columns(df : pd.DataFrame, qid=True) -> Sequence[str]:
 
 def push_columns(
     df: pd.DataFrame,
-    *,
     keep_original: bool = False,
     inplace: bool = False,
     base_column: str = "query",
@@ -123,12 +122,28 @@ def push_columns(
         df[base_column] = df[f"{base_column}_0"]
     return df
 
+@overload
+def push_columns_dict(
+    inp: IterDict,
+    keep_original: bool = False,
+    base_column: str = "query",
+) -> IterDict: ...
+
+@overload
+def push_columns_dict(
+    inp: IterDictRecord,
+    keep_original: bool = False,
+    base_column: str = "query",
+) -> IterDictRecord: ...
 
 def push_columns_dict(
     inp: Union[IterDict, IterDictRecord],
     keep_original: bool = False,
     base_column: str = "query",
 ) -> Union[IterDict, IterDictRecord]:
+    """
+    Works like ``push_columns`` but over a dict/iterdict instead of a dataframe.
+    """
     def per_element(i: IterDictRecord) -> IterDictRecord:
         cols = i.keys()
         if base_column not in cols:
@@ -175,15 +190,20 @@ def push_queries(df: pd.DataFrame, *, keep_original: bool = False, inplace: bool
     return push_columns(df, keep_original=keep_original, inplace=inplace, base_column="query")
 
 
+@overload
+def push_queries_dict(inp: IterDictRecord, keep_original: bool = False, inplace: bool = False) -> IterDictRecord: ...
+@overload
+def push_queries_dict(inp: IterDict, keep_original: bool = False, inplace: bool = False) -> IterDict: ...
+
 def push_queries_dict(inp: Union[IterDictRecord,IterDict], *, keep_original: bool = False, inplace: bool = False) -> Union[IterDictRecord,IterDict]:
     """
-    Works like ``push_queries`` but over a dict instead of a dataframe.
+    Works like ``push_queries`` but over a dict/iterdict instead of a dataframe.
     """
     assert not inplace, "push_queries_dict does not support inplace"
     return push_columns_dict(inp, keep_original=keep_original, base_column="query")
 
 
-def pop_columns(df: pd.DataFrame, *, base_column="query") -> pd.DataFrame:
+def pop_columns(df: pd.DataFrame, base_column="query") -> pd.DataFrame:
     cols = set(df.columns)
     if base_column + "_0" not in cols:
         raise KeyError(f"Expected a {base_column}_0 column, but found {list(cols)}")
