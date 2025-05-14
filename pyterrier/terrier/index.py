@@ -707,7 +707,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
 class _IterDictIndexer_fifo(_BaseIterDictIndexer):
     """
     Use this Indexer if you wish to index an iter of dicts (possibly with multiple fields).
-    This version is optimized by using multiple threads and POSIX fifos to tranfer data,
+    This version is optimized by using multiple threads and POSIX fifos to transfer data,
     which ends up being much faster.
     """
     @pt.java.required
