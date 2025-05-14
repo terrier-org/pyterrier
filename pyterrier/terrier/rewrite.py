@@ -144,7 +144,7 @@ class SDM(pt.Transformer):
             results.append([qid, new_query])
         new_queries = pd.DataFrame(results, columns=["qid", "query"])
         # restore any other columns, e.g. put back docs if we are re-ranking
-        return new_queries.merge(pt.model.push_queries(topics_and_res, inplace=True) , on="qid")
+        return new_queries.merge(pt.model.push_queries(topics_and_res) , on="qid")
 
 class SequentialDependence(SDM):
     '''
@@ -310,7 +310,7 @@ class QueryExpansion(pt.Transformer):
             new_query = new_query[:-1]
             results.append([qid, new_query])
         new_queries = pd.DataFrame(results, columns=["qid", "query"])
-        return pt.model.push_queries(queries, inplace=True).merge(new_queries, on="qid")
+        return pt.model.push_queries(queries).merge(new_queries, on="qid")
 
 class DFRQueryExpansion(QueryExpansion):
 
