@@ -1,7 +1,7 @@
 import types
 import pandas as pd
 from deprecated import deprecated
-from typing import Iterator, List, Union, Tuple, Protocol, runtime_checkable, Optional
+from typing import Iterator, List, Union, Tuple, Protocol, runtime_checkable, Optional, Any
 import pyterrier as pt
 
 LAMBDA = lambda:0  # noqa: E731 LAMBDA is used for the is_lambda method below, so the type is important
@@ -345,7 +345,7 @@ class Indexer(Transformer):
             instance.transform = types.MethodType(Transformer.transform, instance)
         return instance
 
-    def index(self, iter : pt.model.IterDict, **kwargs):
+    def index(self, iter : pt.model.IterDict, **kwargs) -> Any:
         """
             Takes an iterable of dictionaries ("iterdict"), and consumes them. The index method may return
             an instance of the index or retriever. This method is typically used to implement indexers that
