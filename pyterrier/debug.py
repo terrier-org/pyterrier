@@ -2,14 +2,13 @@ import pandas as pd
 from . import Transformer
 from typing import List, Optional
 
-def print_columns(by_query : Optional[bool] = False, message : Optional[str] = None) -> Transformer:
+def print_columns(by_query : bool = False, message : Optional[str] = None) -> Transformer:
     """
     Returns a transformer that can be inserted into pipelines that can print the column names of the dataframe
     at this stage in the pipeline:
 
-    Arguments:
-     - by_query(bool): whether to display for each query. Defaults to False.
-     - message(str): whether to display a message before printing. Defaults to None, which means no message. This
+    :param by_query: whether to display for each query. Defaults to False.
+    :param message: whether to display a message before printing. Defaults to None, which means no message. This
        is useful when ``print_columns()`` is being used multiple times within a pipeline 
      
 
@@ -37,15 +36,14 @@ def print_columns(by_query : Optional[bool] = False, message : Optional[str] = N
     return pt.apply.by_query(_do_print) if by_query else pt.apply.generic(_do_print) 
 
 def print_num_rows(
-        by_query = True, 
-        msg="num_rows") -> Transformer:
+        by_query : bool = True, 
+        msg : str = "num_rows") -> Transformer:
     """
     Returns a transformer that can be inserted into pipelines that can print the number of rows names of the dataframe
     at this stage in the pipeline:
 
-    Arguments:
-     - by_query(bool): whether to display for each query. Defaults to True.
-     - message(str): whether to display a message before printing. Defaults to "num_rows". This
+    :param by_query: whether to display for each query. Defaults to True.
+    :param message: whether to display a message before printing. Defaults to "num_rows". This
        is useful when ``print_columns()`` is being used multiple times within a pipeline 
      
     Example::
@@ -89,12 +87,11 @@ def print_rows(
     Returns a transformer that can be inserted into pipelines that can print some of the dataframe
     at this stage in the pipeline:
 
-    Arguments:
-     - by_query(bool): whether to display for each query. Defaults to True.
-     - jupyter(bool): Whether to use IPython's display function to display the dataframe. Defaults to True.
-     - head(int): The number of rows to display. None means all rows.
-     - columns(List[str]): Limit the columns for which data is displayed. Default of None displays all columns.
-     - message(str): whether to display a message before printing. Defaults to None, which means no message. This
+    :param by_query: whether to display for each query. Defaults to True.
+    :param jupyter: Whether to use IPython's display function to display the dataframe. Defaults to True.
+    :param head: The number of rows to display. None means all rows.
+    :param columns: Limit the columns for which data is displayed. Default of None displays all columns.
+    :param message: whether to display a message before printing. Defaults to None, which means no message. This
        is useful when ``print_rows()`` is being used multiple times within a pipeline 
 
     Example::

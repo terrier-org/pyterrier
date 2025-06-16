@@ -193,8 +193,7 @@ class FastRankEstimator(Estimator):
         """
         Predicts the scores for the given topics.
 
-        Args:
-            topicsTest(DataFrame): A dataframe with the test topics.
+        :param topics_and_docs_Test: A dataframe with the test topics.
         """
         if self.model is None:
             raise ValueError("fit() must be called first")
@@ -220,8 +219,7 @@ def ablate_features(fids : FeatureList) -> Transformer:
         performing feature ablation studies, whereby a feature is removed from the pipeline
         before learning. 
 
-        Args: 
-            fids: one or a list of integers corresponding to features indices to be removed
+        :param fids: one or a list of integers corresponding to features indices to be removed
     """
     return AblateFeatures(fids)
 
@@ -231,8 +229,7 @@ def keep_features(fids : FeatureList) -> Transformer:
         performing feature ablation studies, whereby only some features are kept 
         (and other removed) from a pipeline before learning occurs. 
 
-        Args: 
-            fids: one or a list of integers corresponding to the features indice to be kept
+        :param fids: one or a list of integers corresponding to the features indice to be kept
     """
     return KeepFeatures(fids)
 
@@ -241,8 +238,7 @@ def feature_to_score(fid : int) -> Transformer:
         Applies a specified feature for ranking. Useful for evaluating which of a number of 
         pre-computed features are useful for ranking. 
 
-        Args: 
-            fid: a single feature id that should be kept
+        :param fid: a single feature id that should be kept
     """
     return pt.apply.doc_score(lambda row : row["features"][fid])
 
@@ -257,9 +253,8 @@ def apply_learned_model(learner, form : str = 'regression', **kwargs) -> Transfo
 
         xgBoost and LightGBM are also supported through the use of `type='ltr'` kwarg.
 
-        Args: 
-            learner: an sklearn-compatible estimator
-            form(str): either 'regression', 'ltr' or 'fastrank'        
+        :param learner: an sklearn-compatible estimator
+        :param form: either 'regression', 'ltr' or 'fastrank'        
     """
     if form == 'ltr':
         return LTRTransformer(learner, **kwargs)

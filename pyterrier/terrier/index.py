@@ -28,12 +28,6 @@ FlatJSONDocumentIterator: Any = None
 TQDMCollection: Any = None
 TQDMSizeCollection: Any = None
 
-# for backward compatibility
-class IterDictIndexerBase(pt.Indexer):
-    @deprecated(version="0.9", reason="Use pt.Indexer instead of IterDictIndexerBase")
-    def __init__(self, *args, **kwargs):
-        super(pt.Indexer, self).__init__(*args, **kwargs)
-
 # lastdoc ensures that a Document instance from a Collection is not GCd before Java has used it.
 lastdoc = None
 
@@ -77,8 +71,8 @@ def treccollection2textgen(
     for parsing TREC-formatted corpora in indexers like IterDictIndexer, or similar 
     indexers in other plugins (e.g. ColBERTIndexer).
 
-    Arguments:
-     - files(List[str]): list of files to parse in TREC format.
+    "Arguments:
+     -" files(List[str]): list of files to parse in TREC format.
      - meta(List[str]): list of attributes to expose in the dictionaries as metadata.
      - meta_tags(Dict[str,str]): mapping of TREC tags as metadata.
      - tag_text_length(int): maximium length of metadata. Defaults to 4096.
@@ -233,16 +227,15 @@ class TerrierIndexer:
         Constructor called by all indexer subclasses. All arguments listed below are available in 
         IterDictIndexer, DFIndexer, TRECCollectionIndexer and FilesIndsexer. 
 
-        Args:
-            index_path (str): Directory to store index. Ignored for IndexingType.MEMORY.
-            blocks (bool): Create indexer with blocks if true, else without blocks. Default is False.
-            overwrite (bool): If index already present at `index_path`, True would overwrite it, False throws an Exception. Default is False.
-            verbose (bool): Provide progess bars if possible. Default is False.
-            stemmer (TerrierStemmer): the stemmer to apply. Default is ``TerrierStemmer.porter``.
-            stopwords (TerrierStopwords): the stopwords list to apply. Default is ``TerrierStemmer.terrier``.
-            tokeniser (TerrierTokeniser): the stemmer to apply. Default is ``TerrierTokeniser.english``.
-            type (IndexingType): the specific indexing procedure to use. Default is ``IndexingType.CLASSIC``.
-            properties (dict): Terrier properties that you wish to overrride.
+        :param index_path: Directory to store index. Ignored for IndexingType.MEMORY.
+        :param blocks: Create indexer with blocks if true, else without blocks. Default is False.
+        :param overwrite: If index already present at `index_path`, True would overwrite it, False throws an Exception. Default is False.
+        :param verbose: Provide progess bars if possible. Default is False.
+        :param stemmer: the stemmer to apply. Default is ``TerrierStemmer.porter``.
+        :param stopwords: the stopwords list to apply. Default is ``TerrierStemmer.terrier``.
+        :param tokeniser: the stemmer to apply. Default is ``TerrierTokeniser.english``.
+        :param type: the specific indexing procedure to use. Default is ``IndexingType.CLASSIC``.
+        :param properties: Terrier properties that you wish to overrride.
         """
         if type is IndexingType.MEMORY:
             self.path = None
@@ -551,15 +544,14 @@ class _BaseIterDictIndexer(TerrierIndexer, pt.Indexer):
                  **kwargs):
         """
         
-        Args:
-            index_path(str): Directory to store index. Ignored for IndexingType.MEMORY.
-            meta(Dict[str,int]): What metadata for each document to record in the index, and what length to reserve. Metadata values will be truncated to this length. Defaults to `{"docno" : 20}`.
-            text_attrs(List[str]): List of columns of the input data that should be indexed. These are concatenated in the document representation. Defaults to `["text"]`.
-            meta_reverse(List[str]): What metadata should we be able to resolve back to a docid. Defaults to `["docno"]`.
-            pretokenised(bool): Whether to index pre-tokenized text, e.g., through a Learned Sparse encoder. If True, will ignore ``text_attrs`` and indstead index the dictionary contained in the ``toks`` column.
-            fields(bool) : Whether a fields-indexer should be used, i.e. whether the frequency in each attribute should be recorded separately in the Terrer index. This allows application of weighting models such as BM25F.
-            threads(int): Number of threads to use for indexing. Defaults to 1.
-            kwargs: Additional keyword arguments passed to TerrierIndexer.
+        :param index_path: Directory to store index. Ignored for IndexingType.MEMORY.
+        :param meta: What metadata for each document to record in the index, and what length to reserve. Metadata values will be truncated to this length. Defaults to `{"docno" : 20}`.
+        :param text_attrs: List of columns of the input data that should be indexed. These are concatenated in the document representation. Defaults to `["text"]`.
+        :param meta_reverse: What metadata should we be able to resolve back to a docid. Defaults to `["docno"]`.
+        :param pretokenised: Whether to index pre-tokenized text, e.g., through a Learned Sparse encoder. If True, will ignore ``text_attrs`` and indstead index the dictionary contained in the ``toks`` column.
+        :param fields: Whether a fields-indexer should be used, i.e. whether the frequency in each attribute should be recorded separately in the Terrer index. This allows application of weighting models such as BM25F.
+        :param threads: Number of threads to use for indexing. Defaults to 1.
+        :param kwargs: Additional keyword arguments passed to TerrierIndexer.
         """
         pt.Indexer.__init__(self)
         TerrierIndexer.__init__(self, index_path, **kwargs)
@@ -657,8 +649,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
         """
         Index the specified iter of dicts with the (optional) specified fields
 
-        Args:
-            it(iter[dict]): an iter of document dict to be indexed
+        :param it: an iter of document dicts to be indexed
         """
 
         if fields is not None:
@@ -713,7 +704,7 @@ class _IterDictIndexer_nofifo(_BaseIterDictIndexer):
 class _IterDictIndexer_fifo(_BaseIterDictIndexer):
     """
     Use this Indexer if you wish to index an iter of dicts (possibly with multiple fields).
-    This version is optimized by using multiple threads and POSIX fifos to tranfer data,
+    This version is optimized by using multiple threads and POSIX fifos to transfer data,
     which ends up being much faster.
     """
     @pt.java.required
@@ -721,8 +712,7 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
         """
         Index the specified iter of dicts with the (optional) specified fields
 
-        Args:
-            it(iter[dict]): an iter of document dict to be indexed
+        :param it: an iter of document dicts to be indexed
         """
         CollectionFromDocumentIterator = pt.terrier.J.CollectionFromDocumentIterator
         JsonlDocumentIterator = pt.terrier.J.JsonlDocumentIterator
@@ -850,15 +840,14 @@ class TRECCollectionIndexer(TerrierIndexer):
         """
         Init method
 
-        Args:
-            index_path (str): Directory to store index. Ignored for IndexingType.MEMORY.
-            blocks (bool): Create indexer with blocks if true, else without blocks. Default is False.
-            overwrite (bool): If index already present at `index_path`, True would overwrite it, False throws an Exception. Default is False.
-            type (IndexingType): the specific indexing procedure to use. Default is IndexingType.CLASSIC.
-            collection (Class name, or Class instance, or one of "trec", "trecweb", "warc"). Default is "trec".
-            meta(Dict[str,int]): What metadata for each document to record in the index, and what length to reserve. Metadata fields will be truncated to this length. Defaults to `{"docno" : 20}`.
-            meta_reverse(List[str]): What metadata shoudl we be able to resolve back to a docid. Defaults to `["docno"]`.
-            meta_tags(Dict[str,str]): For collections formed using tagged data (e.g. HTML), which tags correspond to which metadata. This is useful for recording the text of documents for use in neural rankers - see :ref:`pt.text`.
+        :param index_path: Directory to store index. Ignored for IndexingType.MEMORY.
+        :param blocks: Create indexer with blocks if true, else without blocks. Default is False.
+        :param overwrite: If index already present at `index_path`, True would overwrite it, False throws an Exception. Default is False.
+        :param type: the specific indexing procedure to use. Default is IndexingType.CLASSIC.
+        :param collection: name, or Class instance, or one of "trec", "trecweb", "warc"). Default is "trec".
+        :param meta: What metadata for each document to record in the index, and what length to reserve. Metadata fields will be truncated to this length. Defaults to `{"docno" : 20}`.
+        :param meta_reverse: What metadata shoudl we be able to resolve back to a docid. Defaults to `["docno"]`.
+        :param meta_tags: For collections formed using tagged data (e.g. HTML), which tags correspond to which metadata. This is useful for recording the text of documents for use in neural rankers - see :ref:`pt.text`.
 
         """
         super().__init__(index_path, **kwargs)
@@ -932,8 +921,7 @@ class FilesIndexer(TerrierIndexer):
         """
         Index the specified files.
 
-        Args:
-            files_path: can be a String of the path or a list of Strings of the paths for multiple files
+        :param files_path: can be a String of the path or a list of Strings of the paths for multiple files
         """
         self.checkIndexExists()
         index = self.createIndexer()

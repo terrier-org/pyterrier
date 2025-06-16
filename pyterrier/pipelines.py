@@ -3,7 +3,7 @@ import os
 import sys
 import pandas as pd
 import numpy as np
-from typing import Callable, Iterator, Union, Dict, List, Tuple, Sequence, Any, Literal, Optional, overload
+from typing import Callable, Iterator, Union, Dict, List, Tuple, Sequence, Any, Literal, Optional, overload, IO
 import types
 from . import Transformer
 from .model import coerce_dataframe_types
@@ -17,7 +17,7 @@ MEASURES_TYPE=Sequence[MEASURE_TYPE]
 SAVEMODE_TYPE=Literal['reuse', 'overwrite', 'error', 'warn']
 
 SYSTEM_OR_RESULTS_TYPE = Union[Transformer, pd.DataFrame]
-SAVEFORMAT_TYPE = Union[Literal['trec'], types.ModuleType]
+SAVEFORMAT_TYPE = Union[Literal['trec'], types.ModuleType, Tuple[Callable[[IO], pd.DataFrame], Callable[[pd.DataFrame, IO], None]]]
 
 def _bold_cols(data : pd.Series, col_type):
     if data.name not in col_type:
@@ -260,6 +260,20 @@ def _precomputation(
     
     return precompute_time, execution_topics, execution_retr_systems
 
+def _validate_R(df : pd.DataFrame):
+    found = []
+    unfound = []
+    for c in ["qid", "docno", "score", "rank"]:
+        if c in df.columns:
+            found.append(c)
+        else:
+            unfound.append(c)
+    if len(unfound):
+        raise TypeError("save_dir was set, but results dont look like R (expected and found %s, missing %s). You probably need to set save_format kwarg, "
+                        "e.g. save_format=pickle" %
+                        (str(found), str(unfound)))
+
+
 def _run_and_evaluate(
         system : SYSTEM_OR_RESULTS_TYPE, 
         topics : Optional[pd.DataFrame], 
@@ -340,6 +354,7 @@ def _run_and_evaluate(
         # write results to save_file; we can be sure this file does not exist
         if save_file is not None:
             if save_format == 'trec':
+                _validate_R(res)
                 write_results(res, save_file)
             elif isinstance(save_format, types.ModuleType):
                 with pt.io.autoopen(save_file, 'wb') as fout:
@@ -383,6 +398,7 @@ def _run_and_evaluate(
 
                 # write results to save_file; we will append for subsequent batches
                 if save_file is not None:
+                    _validate_R(res)
                     write_results(res, save_file, append=True)
 
                 res = coerce_dataframe_types(res)
@@ -456,78 +472,55 @@ def Experiment(
     identical evaluation measures computed using the same qrels. In essence, each transformer is applied on 
     the provided set of topics. Then the named evaluation measures are computed for each system.
 
-    Args:
-        retr_systems(list): A list of transformers to evaluate. If you already have the results for one 
-            (or more) of your systems, a results dataframe can also be used here. Results produced by 
-            the transformers must have "qid", "docno", "score", "rank" columns.
-        topics: Either a path to a topics file or a pandas.Dataframe with columns=['qid', 'query']
-        qrels: Either a path to a qrels file or a pandas.Dataframe with columns=['qid','docno', 'label']   
-        eval_metrics(list): Which evaluation metrics to use. E.g. ['map']
-        names(list): List of names for each retrieval system when presenting the results.
-            Default=None. If None: Obtains the `str()` representation of each transformer as its name.
-        batch_size(int): If not None, evaluation is conducted in batches of batch_size topics. Default=None, which evaluates all topics at once. 
-            Applying a batch_size is useful if you have large numbers of topics, and/or if your pipeline requires large amounts of temporary memory
-            during a run.
-        filter_by_qrels(bool): If True, will drop topics from the topics dataframe that have qids not appearing in the qrels dataframe. 
-        filter_by_topics(bool): If True, will drop topics from the qrels dataframe that have qids not appearing in the topics dataframe. 
-        perquery(bool): If True return each metric for each query, else return mean metrics across all queries. Default=False.
-        save_dir(str): If set to the name of a directory, the results of each transformer will be saved in TREC-formatted results file, whose 
-            filename is based on the systems names (as specified by ``names`` kwarg). If the file exists and ``save_mode`` is set to "reuse", then the file
-            will be used for evaluation rather than the transformer. Default is None, such that saving and loading from files is disabled.
-        save_mode(str): Defines how existing files are used when ``save_dir`` is set. If set to "reuse", then files will be preferred
-            over transformers for evaluation. If set to "overwrite", existing files will be replaced. If set to "warn" or "error", the presence of any 
-            existing file will cause a warning or error, respectively. Default is "warn".
-        save_format(str): How are result being saved. Defaults to 'trec', which uses ``pt.io.read_results()`` and ``pt.io.write_results()`` for saving system outputs. 
-            If TREC results format is insufficient, set ``save_format=pickle``. Alternatively, a tuple of read and write function can be specified, for instance, 
-            ``save_format=(pandas.from_csv, pandas.DataFrame.to_csv)``, or even ``save_format=(pandas.from_parquet, pandas.DataFrame.to_parquet)``.
-        dataframe(bool): If True return results as a dataframe, else as a dictionary of dictionaries. Default=True.
-        baseline(int): If set to the index of an item of the retr_system list, will calculate the number of queries 
-            improved, degraded and the statistical significance (paired t-test p value) for each measure.
-            Default=None: If None, no additional columns will be added for each measure.
-        test(string): Which significance testing approach to apply. Defaults to "t". Alternatives are "wilcoxon" - not typically used for IR experiments. A Callable can also be passed - it should
-            follow the specification of `scipy.stats.ttest_rel() <https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.ttest_rel.html>`_, 
-            i.e. it expect two arrays of numbers, and return an array or tuple, of which the second value will be placed in the p-value column.
-        correction(string): Whether any multiple testing correction should be applied. E.g. 'bonferroni', 'holm', 'hs' aka 'holm-sidak'. Default is None.
-            Additional columns are added denoting whether the null hypothesis can be rejected, and the corrected p value. 
-            See `statsmodels.stats.multitest.multipletests() <https://www.statsmodels.org/dev/generated/statsmodels.stats.multitest.multipletests.html#statsmodels.stats.multitest.multipletests>`_
-            for more information about available testing correction.
-        correction_alpha(float): What alpha value for multiple testing correction. Default is 0.05.
-        highlight(str): If `highlight="bold"`, highlights in bold the best measure value in each column; 
-            if `highlight="color"` or `"colour"`, then the cell with the highest metric value will have a green background.
-        round(int): How many decimal places to round each measure value to. This can also be a dictionary mapping measure name to number of decimal places.
-            Default is None, which is no rounding.
-        precompute_prefix(bool): If set to True, then pt.Experiment will look for a common prefix on all input pipelines, and execute that common prefix pipeline only once. 
-            This functionality assumes that the intermidiate results of the common prefix can fit in memory. Set to False by default.
-        verbose(bool): If True, a tqdm progress bar is shown as systems (or systems*batches if batch_size is set) are executed. Default=False.
+    :param retr_systems: A list of transformers to evaluate. If you already have the results for one 
+        (or more) of your systems, a results dataframe can also be used here. Results produced by 
+        the transformers must have "qid", "docno", "score", "rank" columns.
+    :param topics: Either a path to a topics file or a pandas.Dataframe with columns=['qid', 'query']
+    :param qrels: Either a path to a qrels file or a pandas.Dataframe with columns=['qid','docno', 'label']   
+    :param eval_metrics: Which evaluation metrics to use. E.g. ['map']
+    :param names: List of names for each retrieval system when presenting the results.
+        Default=None. If None: Obtains the `str()` representation of each transformer as its name.
+    :param batch_size: If not None, evaluation is conducted in batches of batch_size topics. Default=None, which evaluates all topics at once. 
+        Applying a batch_size is useful if you have large numbers of topics, and/or if your pipeline requires large amounts of temporary memory
+        during a run.
+    :param filter_by_qrels: If True, will drop topics from the topics dataframe that have qids not appearing in the qrels dataframe. 
+    :param filter_by_topics: If True, will drop topics from the qrels dataframe that have qids not appearing in the topics dataframe. 
+    :param perquery: If True return each metric for each query, else return mean metrics across all queries. Default=False.
+    :param save_dir: If set to the name of a directory, the results of each transformer will be saved in TREC-formatted results file, whose 
+        filename is based on the systems names (as specified by ``names`` kwarg). If the file exists and ``save_mode`` is set to "reuse", then the file
+        will be used for evaluation rather than the transformer. Default is None, such that saving and loading from files is disabled.
+    :param save_mode: Defines how existing files are used when ``save_dir`` is set. If set to "reuse", then files will be preferred
+        over transformers for evaluation. If set to "overwrite", existing files will be replaced. If set to "warn" or "error", the presence of any 
+        existing file will cause a warning or error, respectively. Default is "warn".
+    :param save_format: How are result being saved. Defaults to 'trec', which uses ``pt.io.read_results()`` and ``pt.io.write_results()`` for saving system outputs. 
+        If TREC results format is insufficient, set ``save_format=pickle``. Alternatively, a tuple of read and write function can be specified, for instance, 
+        ``save_format=(pandas.from_csv, pandas.DataFrame.to_csv)``, or even ``save_format=(pandas.from_parquet, pandas.DataFrame.to_parquet)``.
+    :param dataframe: If True return results as a dataframe, else as a dictionary of dictionaries. Default=True.
+    :param baseline: If set to the index of an item of the retr_system list, will calculate the number of queries 
+        improved, degraded and the statistical significance (paired t-test p value) for each measure.
+        Default=None: If None, no additional columns will be added for each measure.
+    :param test: Which significance testing approach to apply. Defaults to "t". Alternatives are "wilcoxon" - not typically used for IR experiments. A Callable can also be passed - it should
+        follow the specification of `scipy.stats.ttest_rel() <https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.ttest_rel.html>`_, 
+        i.e. it expect two arrays of numbers, and return an array or tuple, of which the second value will be placed in the p-value column.
+    :param correction: Whether any multiple testing correction should be applied. E.g. 'bonferroni', 'holm', 'hs' aka 'holm-sidak'. Default is None.
+        Additional columns are added denoting whether the null hypothesis can be rejected, and the corrected p value. 
+        See `statsmodels.stats.multitest.multipletests() <https://www.statsmodels.org/dev/generated/statsmodels.stats.multitest.multipletests.html#statsmodels.stats.multitest.multipletests>`_
+        for more information about available testing correction.
+    :param correction_alpha: What alpha value for multiple testing correction. Default is 0.05.
+    :param highlight: If `highlight="bold"`, highlights in bold the best measure value in each column; 
+        if `highlight="color"` or `"colour"`, then the cell with the highest metric value will have a green background.
+    :param round: How many decimal places to round each measure value to. This can also be a dictionary mapping measure name to number of decimal places.
+        Default is None, which is no rounding.
+    :param precompute_prefix: If set to True, then pt.Experiment will look for a common prefix on all input pipelines, and execute that common prefix pipeline only once. 
+        This functionality assumes that the intermidiate results of the common prefix can fit in memory. Set to False by default.
+    :param verbose: If True, a tqdm progress bar is shown as systems (or systems*batches if batch_size is set) are executed. Default=False.
 
-    Returns:
-        A Dataframe with each retrieval system with each metric evaluated.
+    :return: A Dataframe with each retrieval system with each metric evaluated.
     """
     
-    
-    # map to the old signature of Experiment
-    warn_old_sig=False
-    if isinstance(retr_systems, pd.DataFrame) and isinstance(topics, list):
-        tmp = topics
-        topics = retr_systems
-        retr_systems = tmp
-        warn_old_sig = True
-    if isinstance(eval_metrics, pd.DataFrame) and isinstance(qrels, list):
-        tmp = eval_metrics
-        eval_metrics = qrels
-        qrels = tmp
-        warn_old_sig = True
-    if warn_old_sig:
-        warn(
-            "Signature of Experiment() is now (retr_systems, topics, qrels, eval_metrics), please update your code", DeprecationWarning, 2)
-
     if not isinstance(retr_systems, list):
         raise TypeError("Expected list of transformers for retr_systems, instead received %s" % str(type(retr_systems)))
 
-    if 'drop_unused' in kwargs:
-        filter_by_qrels = kwargs.pop('drop_unused')
-        warn(
-            'drop_unused is deprecated; use filter_by_qrels instead', DeprecationWarning)
     if len(kwargs):
         raise TypeError("Unknown kwargs: %s" % (str(list(kwargs.keys()))))
 
@@ -787,16 +780,18 @@ def _restore_state(param_state):
     for (tran, param_name, param_value) in param_state:
         tran.set_parameter(param_name, param_value)
 
-def Evaluate(res : pd.DataFrame, qrels : pd.DataFrame, metrics=['map', 'ndcg'], perquery=False) -> Dict:
+def Evaluate(res : pd.DataFrame, qrels : pd.DataFrame, metrics : MEASURES_TYPE= ['map', 'ndcg'], perquery : bool = False) -> Dict:
     """
     Evaluate a single result dataframe with the given qrels. This method may be used as an alternative to
     ``pt.Experiment()`` for getting only the evaluation measurements given a single set of existing results.
 
-    Args:
-        res: Either a dataframe with columns=['qid', 'docno', 'score'] or a dict {qid:{docno:score,},}
-        qrels: Either a dataframe with columns=['qid','docno', 'label'] or a dict {qid:{docno:label,},}
-        metrics(list): A list of strings specifying which evaluation metrics to use. Default=['map', 'ndcg']
-        perquery(bool): If true return each metric for each query, else return mean metrics. Default=False
+    The PyTerrier-way is to use ``pt.Experiment()`` to evaluate a set of transformers, but this method is useful
+    if you have a set of results already, and want to evaluate them without having to create a transformer pipeline.
+
+    :param res: Either a dataframe with columns=['qid', 'docno', 'score'] or a dict {qid:{docno:score,},}
+    :param qrels: Either a dataframe with columns=['qid','docno', 'label'] or a dict {qid:{docno:label,},}
+    :param metrics: A list of strings specifying which evaluation metrics to use. Default=['map', 'ndcg']
+    :param perquery: If true return each metric for each query, else return mean metrics. Default=False
     """
     if len(res) == 0:
         raise ValueError("No results for evaluation")
@@ -823,23 +818,21 @@ def KFoldGridSearch(
     The state of the transformers in the pipeline is restored after the KFoldGridSearch has
     been executed.
 
-    Args:
-        pipeline(Transformer): a transformer or pipeline to tune
-        params(dict): a two-level dictionary, mapping transformer to param name to a list of values
-        topics_list(List[DataFrame]): a *list* of topics dataframes to tune upon
-        qrels(DataFrame or List[DataFrame]): qrels to tune upon. A single dataframe, or a list for each fold.       
-        metric(str): name of the metric on which to determine the most effective setting. Defaults to "map".
-        batch_size(int): If not None, evaluation is conducted in batches of batch_size topics. Default=None, which evaluates all topics at once. 
-            Applying a batch_size is useful if you have large numbers of topics, and/or if your pipeline requires large amounts of temporary memory
-            during a run. Default is None.
-        jobs(int): Number of parallel jobs to run. Default is 1, which means sequentially.
-        backend(str): Parallelisation backend to use. Defaults to "joblib". 
-        verbose(bool): whether to display progress bars or not
+    :param pipeline: a transformer or pipeline to tune
+    :param params: a two-level dictionary, mapping transformer to param name to a list of values
+    :param topics_list: a *list* of topics dataframes to tune upon
+    :param qrels: qrels to tune upon. A single dataframe, or a list for each fold.       
+    :param metric: name of the metric on which to determine the most effective setting. Defaults to "map".
+    :param batch_size: If not None, evaluation is conducted in batches of batch_size topics. Default=None, which evaluates all topics at once. 
+        Applying a batch_size is useful if you have large numbers of topics, and/or if your pipeline requires large amounts of temporary memory
+        during a run. Default is None.
+    :param jobs: Number of parallel jobs to run. Default is 1, which means sequentially.
+    :param backend: Parallelisation backend to use. Defaults to "joblib". 
+    :param verbose(bool): whether to display progress bars or not
 
-    Returns:
-    A tuple containing, firstly, the results of pipeline on the test topics after tuning, and secondly, a list of the best parameter settings for each fold.
+    :return: A tuple containing, firstly, the results of pipeline on the test topics after tuning, and secondly, a list of the best parameter settings for each fold.
 
-    Consider tuning PL2 where folds of queries are pre-determined::
+    Consider tuning a terrier.Retriever PL2 where the folds of queries are pre-determined::
 
         pl2 = pt.terrier.Retriever(index, wmodel="PL2", controls={'c' : 1})
         tuned_pl2, _ = pt.KFoldGridSearch(
@@ -963,20 +956,19 @@ def GridSearch(
     with the best parameter settings among params, that were found that were obtained using the specified
     topics and qrels, and for the specified measure.
 
-    Args:
-        pipeline(Transformer): a transformer or pipeline to tune
-        params(dict): a two-level dictionary, mapping transformer to param name to a list of values
-        topics(DataFrame): topics to tune upon
-        qrels(DataFrame): qrels to tune upon       
-        metric(str): name of the metric on which to determine the most effective setting. Defaults to "map".
-        batch_size(int): If not None, evaluation is conducted in batches of batch_size topics. Default=None, which evaluates all topics at once. 
-            Applying a batch_size is useful if you have large numbers of topics, and/or if your pipeline requires large amounts of temporary memory
-            during a run. Default is None.
-        jobs(int): Number of parallel jobs to run. Default is 1, which means sequentially.
-        backend(str): Parallelisation backend to use. Defaults to "joblib". 
-        verbose(bool): whether to display progress bars or not
-        return_type(str): whether to return the same transformer with optimal pipeline setting, and/or a setting of the
-            higher metric value, and the resulting transformers and settings.
+    :param pipeline: a transformer or pipeline to tune
+    :param params: a two-level dictionary, mapping transformer to param name to a list of values
+    :param topics: topics to tune upon
+    :param qrels: qrels to tune upon       
+    :param metric: name of the metric on which to determine the most effective setting. Defaults to "map".
+    :param batch_size: If not None, evaluation is conducted in batches of batch_size topics. Default=None, which evaluates all topics at once. 
+        Applying a batch_size is useful if you have large numbers of topics, and/or if your pipeline requires large amounts of temporary memory
+        during a run. Default is None.
+    :param jobs: Number of parallel jobs to run. Default is 1, which means sequentially.
+    :param backend: Parallelisation backend to use. Defaults to "joblib". 
+    :param verbose: whether to display progress bars or not
+    :param return_type: whether to return the same transformer with optimal pipeline setting, and/or a setting of the
+        higher metric value, and the resulting transformers and settings.
     """
     # save state
     initial_state = _save_state(params)
@@ -1039,22 +1031,22 @@ def GridScan(
     varied must be changable using the :func:`set_parameter()` method. This means instance variables,
     as well as controls in the case of Retriever.
 
-    Args:
-        pipeline(Transformer): a transformer or pipeline
-        params(dict): a two-level dictionary, mapping transformer to param name to a list of values
-        topics(DataFrame): topics to tune upon
-        qrels(DataFrame): qrels to tune upon       
-        metrics(List[str]): name of the metrics to report for each setting. Defaults to ["map"].
-        batch_size(int): If not None, evaluation is conducted in batches of batch_size topics. Default=None, which evaluates all topics at once. 
-            Applying a batch_size is useful if you have large numbers of topics, and/or if your pipeline requires large amounts of temporary memory
-            during a run. Default is None.
-        jobs(int): Number of parallel jobs to run. Default is 1, which means sequentially.
-        backend(str): Parallelisation backend to use. Defaults to "joblib". 
-        verbose(bool): whether to display progress bars or not
-        dataframe(bool): return a dataframe or a list
-    Returns:
-        A dataframe showing the effectiveness of all evaluated settings, if dataframe=True
+    :param pipeline: a transformer or pipeline
+    :param params: a two-level dictionary, mapping transformer to param name to a list of values
+    :param topics: topics to tune upon
+    :param qrels: qrels to tune upon       
+    :param metrics): name of the metrics to report for each setting. Defaults to ["map"].
+    :param batch_size: If not None, evaluation is conducted in batches of batch_size topics. Default=None, which evaluates all topics at once. 
+        Applying a batch_size is useful if you have large numbers of topics, and/or if your pipeline requires large amounts of temporary memory
+        during a run. Default is None.
+    :param jobs: Number of parallel jobs to run. Default is 1, which means sequentially.
+    :param backend: Parallelisation backend to use. Defaults to "joblib". 
+    :param verbose: whether to display progress bars or not
+    :param dataframe: return a dataframe or a list
+
+    :return: A dataframe showing the effectiveness of all evaluated settings, if dataframe=True
         A list of settings and resulting evaluation measures, if dataframe=False
+    
     Raises:
         ValueError: if a specified transformer does not have such a parameter
 
