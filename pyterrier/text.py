@@ -18,11 +18,10 @@ class HasTextLoader(Protocol):
         Returns a transformer that loads and populates text columns for each document in the
         provided input frame.
 
-        Arguments:
-            fields: The names of the fields to load. If a list of strings, all fields are provided.
+        :param fields: The names of the fields to load. If a list of strings, all fields are provided.
             If a single string, this single field is provided. If the special value of '*' (default,
             all available fields are provided.
-            verbose: Show a progress bar.
+        :param verbose: Show a progress bar.
         """
 
 
@@ -36,17 +35,19 @@ def get_text(
     A utility transformer for obtaining the text from the text of documents (or other document metadata) from Terrier's MetaIndex
     or an IRDSDataset docstore.
 
-    Arguments:
-        indexlike: an object that provides a .text_loader() factory method, such as a Terrier index or IRDSDataset.
-            If a ``str`` is provided, it will try to load a Terrier index from the provided path.
-        metadata: The names of the fields to load. If a list of strings, all fields are provided.
-            If a single string, this single field is provided. If the special value of '*' (default), all
-            available fields are provided.
-        by_query: whether the entire dataframe should be progressed at once, rather than one query at a time. 
-            Defaults to false, which means that all document metadata will be fetched at once.
-        verbose: whether to print a tqdm progress bar. When by_query=True, prints progress by query. Otherwise,
-            the behaviour is defined by the provided ``indexlike``.
-        kwargs: other arguments to pass through to the text_loader.
+    :param indexlike: an object that provides a .text_loader() factory method, such as a Terrier index or IRDSDataset.
+        If a ``str`` is provided, it will try to load a Terrier index from the provided path.
+    :param metadata: The names of the fields to load. If a list of strings, all fields are provided.
+        If a single string, this single field is provided. If the special value of '*' (default), all
+        available fields are provided.
+    :param by_query: whether the entire dataframe should be progressed at once, rather than one query at a time.
+        Defaults to false, which means that all document metadata will be fetched at once.
+    :param verbose: whether to print a tqdm progress bar. When by_query=True, prints progress by query. Otherwise,
+        the behaviour is defined by the provided ``indexlike``.
+    :param kwargs: other arguments to pass through to the text_loader.
+    :return: a transformer that loads the text of documents from the provided indexlike.
+    :rtype: pt.Transformer
+    :raises ValueError: if indexlike does not provide a .text_loader() method.
 
     Example (Terrier Index)::
 
@@ -88,12 +89,15 @@ def scorer(*args, **kwargs) -> pt.Transformer:
     This is an alias to pt.TextScorer(). Internally, a Terrier memory index is created, before being
     used for scoring.
 
-    Arguments:
-        body_attr(str): what dataframe input column contains the text of the document. Default is `"body"`.
-        wmodel(str): name of the weighting model to use for scoring.
-        background_index(index_like): An optional background index to use for collection statistics. If a weighting
-            model such as BM25 or TF_IDF or PL2 is used without setting the background_index, the background statistics
-            will be calculated from the dataframe, which is ususally not the desired behaviour.
+    :pararm body_attr: what dataframe input column contains the text of the document. Default is `"body"`.
+    :param wmodel: name of the weighting model to use for scoring.
+    :param background_index: An optional background index to use for collection statistics. If a weighting
+        model such as BM25 or TF_IDF or PL2 is used without setting the background_index, the background statistics
+        will be calculated from the dataframe, which is ususally not the desired behaviour.
+    :param args: other arguments to pass through to the TextScorer.
+    :param kwargs: other arguments to pass through to the TextScorer.
+    :return: a transformer that scores the documents with respect to a query.
+    :rtype: pt.Transformer   
 
     Example::
     
@@ -131,16 +135,18 @@ def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='ti
     as the `tokenizer` kwarg argument. In short, the `tokenizer` object must have a `.tokenize(str) -> list[str]` method and 
     `.convert_tokens_to_string(list[str]) -> str` for detokenisation.
     
-    Parameters:
-        text_attr(str): what is the name of the dataframe attribute containing the main text of the document to be split into passages.
-            Default is 'body'.
-        length(int): how many tokens in each passage. Default is 150.
-        stride(int): how many tokens to advance each passage by. Default is 75.
-        prepend_attr(str): whether another document attribute, such as the title of the document, to each passage, following [Dai2019]. Defaults to 'title'. 
-        title_attr(str): what is the name of the dataframe attribute containing the title the document to be split into passages.
-            Default is 'title'. Only used if prepend_title is set to True.
-        tokenizer(obj): which model to use for tokenizing. The object must have a `.tokenize(str) -> list[str]` method for tokenization and `.convert_tokens_to_string(list[str]) -> str` for detokenization.
+    :param text_attr: what is the name of the dataframe attribute containing the main text of the document to be split into passages.
+        Default is 'body'.
+    :param length: how many tokens in each passage. Default is 150.
+    :param stride: how many tokens to advance each passage by. Default is 75.
+    :param join: how to join the tokens of the passage together. Default is ' '.
+    :param prepend_attr: whether another document attribute, such as the title of the document, to each passage, following [Dai2019]. Defaults to 'title'.
+    :param tokenizer: which model to use for tokenizing. The object must have a `.tokenize(str) -> list[str]` method for tokenization and `.convert_tokens_to_string(list[str]) -> str` for detokenization.
             Default is None. Tokenisation is perfomed by splitting on one-or-more spaces, i.e. based on the Python regular expression ``re.compile(r'\s+')``
+    :param kwargs: other arguments to pass through to the SlidingWindowPassager.
+    :return: a transformer that splits the documents into passages.
+    :rtype: pt.Transformer
+    :raises KeyError: if the text_attr or title_attr columns are not found in the input dataframe.
     
     Example::
     
@@ -216,8 +222,7 @@ def kmaxavg_passage(k : int) -> pt.Transformer:
     Scores each document based on the average score of the top scoring k passages. Generalises combination of mean_passage()
     and max_passage(). Proposed in [Chen2020].
 
-    Parameters:
-        k(int): The number of top-scored passages for each document to use when scoring
+    :param k: The number of top-scored passages for each document to use when scoring
     
     """
     return KMaxAvgPassage(k)
@@ -226,6 +231,12 @@ def slidingWindow(sequence : list, winSize : int, step : int) -> list:
     """
     For the specified sequence, break into sliding windows of size winSize, 
     stepping forward by the specified amount each time
+
+    :param sequence: the sequence to break into sliding windows
+    :param winSize: the size of the sliding window
+    :param step: how much to step forward each time
+    :return: a list of sliding windows, where each window is a list of the elements in that window
+    :rtype: list
     """
     return [x for x in list(more_itertools.windowed(sequence,n=winSize, step=step)) if x[-1] is not None]
 
@@ -237,13 +248,17 @@ def snippets(
         joinstr : str ='...') -> pt.Transformer:
     """
     Applies query-biased summarisation (snippet), by applying the specified text scoring pipeline.
+    Takes a return a dataframe with the columns ['qid', 'query', 'docno', text_attr], and returns a dataframe
+    with the columns ['qid', 'query', 'docno', text_attr, summary_attr]. The summary_attr column contains the
+    query-biased summary for that document, upto num_psgs passages, joined together with the specified joinstr.
 
-    Parameters:
-        text_scorer_pipe(Transformer): the pipeline for scoring passages in response to the query. Normally this applies passaging.
-        text_attr(str): what is the name of the attribute that contains the text of the document
-        summary_attr(str): what is the name of the attribute that should contain the query-biased summary for that document
-        num_psgs(int): how many passages to select for the summary of each document
-        joinstr(str): how to join passages for a given document together
+    :param text_scorer_pipe: the pipeline for scoring passages in response to the query. Normally this applies passaging.
+        The pipeline should take a dataframe with the columns ['qid', 'query', 'docno', text_attr] and return a dataframe
+        with the columns ['qid', 'query', 'docno', text_attr, 'score', 'rank'], where these are smaller passages than the input df.
+    :param text_attr: what is the name of the attribute that contains the text of the document
+    :param summary_attr: what is the name of the attribute that should contain the query-biased summary for that document
+    :param num_psgs: how many passages to select for the summary of each document
+    :param joinstr: how to join passages for a given document together
 
     Example::
 

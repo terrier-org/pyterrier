@@ -1,4 +1,4 @@
-from typing import Union, Optional
+from typing import Union, Optional, Callable, List, Any
 import pandas as pd
 import numpy as np
 from warnings import warn
@@ -59,7 +59,7 @@ def _function2wmodel(function):
     wmodel = pt.java.autoclass("org.terrier.python.CallableWeightingModel")( callback )
     return callback, wmodel
 
-def _mergeDicts(defaults, settings):
+def _mergeDicts(defaults : Dict[str,str], settings : Optional[Dict[str,str]] = None) -> Dict[str,str]:
     KV = defaults.copy()
     if settings is not None and len(settings) > 0:
         KV.update(settings)
@@ -116,8 +116,12 @@ class Retriever(pt.Transformer):
             version='latest',            
             **kwargs):
         """
-        Instantiates a Retriever object from a pre-built index access via a dataset.
+        Static method that instantiates a Retriever object from a pre-built index access via a dataset.
         Pre-built indices are ofen provided via the `Terrier Data Repository <http://data.terrier.org/>`_.
+
+        :param dataset: The name of the dataset, or a Dataset object that contains the index
+        :param variant: The variant of the index to use. If None, the default index will be used.
+        :param version: The version of the dataset to use. If None, the latest version will be used.
 
         Examples::
 
@@ -159,17 +163,24 @@ class Retriever(pt.Transformer):
         "termpipelines": "Stopwords,PorterStemmer"
     }
 
-    def __init__(self, index_location, controls=None, properties=None, metadata=["docno"],  num_results=None, wmodel=None, threads=1, verbose=False):
+    def __init__(self, 
+                 index_location : Union[str,Any], 
+                 controls : Optional[Dict[str,str]] = None, 
+                 properties : Optional[Dict[str,str]]= None, 
+                 metadata : List[str] = ["docno"], 
+                 num_results : Optional[int] = None, 
+                 wmodel : Optional[Union[str, Callable]] = None, 
+                 threads : int = 1, 
+                 verbose : bool = False):
         """
             Init method
 
-            Args:
-                index_location: An index-like object - An Index, an IndexRef, or a String that can be resolved to an IndexRef
-                controls(dict): A dictionary with the control names and values
-                properties(dict): A dictionary with the property keys and values
-                verbose(bool): If True transform method will display progress
-                num_results(int): Number of results to retrieve. 
-                metadata(list): What metadata to retrieve
+            :param index_location: An index-like object - An Index, an IndexRef, or a String that can be resolved to an IndexRef
+            :param controls: A dictionary with the control names and values
+            :param properties: A dictionary with the property keys and values
+            :param verbose: If True transform method will display progress
+            :param num_results: Number of results to retrieve. 
+            :param metadata: What metadata to retrieve. Default is ["docno"]. 
         """
         self.indexref = _parse_index_like(index_location)
         self.properties = _mergeDicts(Retriever.default_properties, properties)
@@ -365,12 +376,10 @@ class Retriever(pt.Transformer):
         """
         Performs the retrieval
 
-        Args:
-            queries: String for a single query, list of queries, or a pandas.Dataframe with columns=['qid', 'query']. For re-ranking,
+        :param queries: a pandas.Dataframe with columns=['qid', 'query']. For re-ranking,
                 the DataFrame may also have a 'docid' and or 'docno' column.
 
-        Returns:
-            pandas.Dataframe with columns=['qid', 'docno', 'rank', 'score']
+        :return: pandas.Dataframe with columns=['qid', 'docno', 'rank', 'score']
         """
         results=[]
         if not isinstance(queries, pd.DataFrame):
@@ -455,7 +464,7 @@ class Retriever(pt.Transformer):
         """
         Support fusing with RankCutoffTransformer.
         """
-        if self.controls.get('end', float('inf')) < k:
+        if float(self.controls.get('end', float('inf'))) < k:
             return self # the applied rank cutoff is greater than the one already applied
         if self.controls.get('context_wmodel') == 'on':
             return None # we don't store the original wmodel value so we can't reconstruct
@@ -562,14 +571,13 @@ class TextScorer(TextIndexProcessor):
         A re-ranker class, which takes the queries and the contents of documents, indexes the contents of the documents using a MemoryIndex, and performs ranking of those documents with respect to the queries.
         Unknown kwargs are passed to Retriever.
 
-        Arguments:
-            takes(str): configuration - what is needed as input: `"queries"`, or `"docs"`. Default is `"docs"` since v0.8.
-            returns(str): configuration - what is needed as output: `"queries"`, or `"docs"`. Default is `"docs"`.
-            body_attr(str): what dataframe input column contains the text of the document. Default is `"body"`.
-            wmodel(str): name of the weighting model to use for scoring.
-            background_index(index_like): An optional background index to use for term and collection statistics. If a weighting
-                model such as BM25 or TF_IDF or PL2 is used without setting the background_index, the background statistics
-                will be calculated from the dataframe, which is ususally not the desired behaviour.
+        :param takes: configuration - what is needed as input: `"queries"`, or `"docs"`. Default is `"docs"` since v0.8.
+        :param returns: configuration - what is needed as output: `"queries"`, or `"docs"`. Default is `"docs"`.
+        :param body_attr: what dataframe input column contains the text of the document. Default is `"body"`.
+        :param wmodel: name of the weighting model to use for scoring.
+        :param background_index: An optional background index to use for term and collection statistics. If a weighting
+            model such as BM25 or TF_IDF or PL2 is used without setting the background_index, the background statistics
+            will be calculated from the dataframe, which is ususally not the desired behaviour.
 
         Example::
 
@@ -612,17 +620,22 @@ class FeaturesRetriever(Retriever):
     #: FBR_default_properties(dict): stores the default properties
     FBR_default_properties = Retriever.default_properties.copy()
 
-    def __init__(self, index_location, features, controls=None, properties=None, threads=1, **kwargs):
+    def __init__(self, 
+                 index_location : Union[str,Any], 
+                 features : List[str], 
+                 controls : Optional[Dict[str,str]] = None, 
+                 properties : Optional[Dict[str,str]] = None, 
+                 threads : int = 1, 
+                 **kwargs):
         """
             Init method
 
-            Args:
-                index_location: An index-like object - An Index, an IndexRef, or a String that can be resolved to an IndexRef
-                features(list): List of features to use
-                controls(dict): A dictionary with the control names and values
-                properties(dict): A dictionary with the property keys and values
-                verbose(bool): If True transform method will display progress
-                num_results(int): Number of results to retrieve. 
+            :param index_location: An index-like object - An Index, an IndexRef, or a String that can be resolved to an IndexRef
+            :param features: List of features to use
+            :param controls: A dictionary with the control names and values
+            :param properties: A dictionary with the property keys and values
+            :param verbose: If True transform method will display progress
+            :param num_results: Number of results to retrieve. 
         """
         controls = _mergeDicts(FeaturesRetriever.FBR_default_controls, controls)
         properties = _mergeDicts(FeaturesRetriever.FBR_default_properties, properties)
@@ -686,12 +699,10 @@ class FeaturesRetriever(Retriever):
         """
         Performs the retrieval with multiple features
 
-        Args:
-            queries: A pandas.Dataframe with columns=['qid', 'query']. For re-ranking,
+        :param queries: A pandas.Dataframe with columns=['qid', 'query']. For re-ranking,
                 the DataFrame may also have a 'docid' and or 'docno' column.
 
-        Returns:
-            pandas.DataFrame with columns=['qid', 'docno', 'score', 'features']
+        :return: a pandas.DataFrame with columns=['qid', 'docno', 'score', 'rank, 'features']
         """
         results = []
         if not isinstance(queries, pd.DataFrame):
@@ -845,7 +856,7 @@ class FeaturesRetriever(Retriever):
         """
         Support fusing with RankCutoffTransformer.
         """
-        if self.controls.get('end', float('inf')) < k:
+        if float(self.controls.get('end', float('inf'))) < k:
             return self # the applied rank cutoff is greater than the one already applied
         if self.wmodel is None:
             return None # not a retriever
