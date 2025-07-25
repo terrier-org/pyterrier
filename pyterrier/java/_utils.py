@@ -99,10 +99,14 @@ def init() -> None:
 @pt.utils.once()
 def _init(trigger=None):
     global _started
-    # TODO: if we make java optional some day, should check here that it's installed. E.g.,
-    # if find_spec('jnius_config') is None:
-    #     warnings.warn('pyterrier[java] not installed; no need to run pt.java.init()')
-    #     return
+    # java/jnius is now optional, should check here that it's installed. E.g.,
+    from importlib.util import find_spec
+    if find_spec('jnius_config') is None:
+        if trigger:
+            raise ImportError(f'python-terrier[java] not installed; cannot run pt.java.init(), triggered by {trigger}. Run `pip install python-terrier[java]` to install it.')
+        else:
+            warnings.warn('python-terrier[java] not installed; no need to run pt.java.init()')
+        return
 
     # TODO: what about errors during init? What happens to _started? Etc.
 
