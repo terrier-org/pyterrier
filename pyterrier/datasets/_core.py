@@ -421,8 +421,6 @@ class RemoteDataset(Dataset):
         return None
 
     def get_index(self, variant=None, **kwargs):
-        if self.name == "50pct" and variant is None:
-            variant="ex1"
         thedir = self._get_all_files("index", variant=variant, **kwargs)
         return thedir
 
