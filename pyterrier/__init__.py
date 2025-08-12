@@ -4,7 +4,7 @@ __version__ = '0.13.1'
 from typing import Any
 from deprecated import deprecated
 
-from pyterrier import model, utils
+from pyterrier import model, utils, validate
 from pyterrier.transformer import Transformer, Estimator, Indexer
 from pyterrier._ops import RankCutoff, Compose
 from pyterrier._artifact import Artifact
@@ -58,10 +58,9 @@ cast = deprecated(version='0.11.0', reason="use pt.java.cast(...) instead")(java
 
 __all__ = [
     'java', 'terrier', 'cache', 'debug', 'io', 'inspect', 'measures', 'model', 'new', 'ltr', 'parallel', 'pipelines',
-    'text', 'transformer', 'datasets', 'get_dataset', 'find_datasets', 'list_datasets', 'Experiment', 'GridScan',
+    'text', 'transformer', 'datasets', 'validate', 'get_dataset', 'find_datasets', 'list_datasets', 'Experiment', 'GridScan',
     'GridSearch', 'KFoldGridSearch', 'Evaluate',
     'utils', 'Utils', 'Transformer', 'Estimator', 'Indexer', 'Artifact',
-    'utils', 'Utils', 'Transformer', 'Estimator', 'Indexer',
     'RankCutoff', 'Compose',
     'BatchRetrieve', 'TerrierRetrieve', 'FeaturesBatchRetrieve', 'IndexFactory',
     'run', 'rewrite', 'index', 'FilesIndexer', 'TRECCollectionIndexer', 'DFIndexer', 'DFIndexUtils', 'IterDictIndexer',

@@ -39,6 +39,10 @@ Depending on the expected input and output column of a transformer, they can be 
 | Q x D |  Q x Df |   1 to 1    | Feature scoring     | `pt.terrier.FeaturesRetriever()`                                                         |
 +-------+---------+-------------+---------------------+------------------------------------------------------------------------------------------+
 
+.. hint:: 
+    When writing transformers, it's a good idea to validate the inputs to make sure they contain the values you expect.
+    See :ref:`pyterrier.validate` for more details.
+
 Optimisation
 ============
 

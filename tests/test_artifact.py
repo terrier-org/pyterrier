@@ -1,5 +1,6 @@
 import unittest
 import tempfile
+import urllib
 import pyterrier as pt
 from .base import BaseTestCase
 
@@ -12,7 +13,11 @@ class TestArtifact(BaseTestCase):
         #  - loading correct artifact type
         #  - build_package
         for mem in [True, False]:
-            index = pt.Artifact.from_hf('pyterrier/vaswani.terrier', memory=mem)
+            try:
+                index = pt.Artifact.from_hf('pyterrier/vaswani.terrier', memory=mem)
+            except urllib.error.HTTPError as ex:
+                if ex.code != 429: # too many requests ... can just ignore
+                    raise
             retr = index.bm25(num_results=10)
             self.assertEqual(10, len(retr.search('chemical reactions')))
         with tempfile.TemporaryDirectory() as d:
