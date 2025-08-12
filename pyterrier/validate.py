@@ -1,7 +1,7 @@
 """Validation utilities for checking the inputs of transformers."""
 import warnings
 from types import TracebackType
-from typing import List, Optional, Type, Union
+from typing import List, Optional, Type, Union, Set
 import pandas as pd
 import pyterrier as pt
 
@@ -165,9 +165,9 @@ class _ValidationContextManager:
             self.inp_columns = list(inp.columns)
         else:
             self.inp_columns = inp
-        self.mode = None
+        self.mode: Optional[str] = None
         self.attempts = 0
-        self.errors = []
+        self.errors: List[_TransformerMode] = []
         self.warn = warn
 
     def __enter__(self):
@@ -189,12 +189,13 @@ class _ValidationContextManager:
                 warnings.warn(f"{message} {self.errors}", InputValidationWarning)
             else:
                 raise InputValidationError(message, self.errors)
+        return None
 
     def columns(self,
                 *,
                 includes: Optional[List[str]] = None,
                 excludes: Optional[List[str]] = None,
-                mode: str = None) -> bool:
+                mode: Optional[str] = None) -> bool:
         """Check that the input frame has the ``includes`` columns and doesn't have the ``excludes`` columns."""
         includes = includes if includes is not None else []
         excludes = excludes if excludes is not None else []
@@ -215,17 +216,17 @@ class _ValidationContextManager:
 
         return True
 
-    def query_frame(self, extra_columns: Optional[List[str]] = None, mode: str = None) -> bool:
+    def query_frame(self, extra_columns: Optional[List[str]] = None, mode: Optional[str] = None) -> bool:
         """Check that the input frame is a valid query frame, with optional extra columns."""
         extra_columns = list(extra_columns) if extra_columns is not None else []
         return self.columns(includes=['qid'] + extra_columns, excludes=['docno'], mode=mode)
 
-    def result_frame(self, extra_columns: Optional[List[str]] = None, mode: str = None) -> bool:
+    def result_frame(self, extra_columns: Optional[List[str]] = None, mode: Optional[str] = None) -> bool:
         """Check that the input frame is a valid result frame, with optional extra columns."""
         extra_columns = list(extra_columns) if extra_columns is not None else []
         return self.columns(includes=['qid', 'docno'] + extra_columns, mode=mode)
 
-    def document_frame(self, extra_columns: Optional[List[str]] = None, mode: str = None) -> bool:
+    def document_frame(self, extra_columns: Optional[List[str]] = None, mode: Optional[str] = None) -> bool:
         """Check that the input frame is a valid document frame, with optional extra columns."""
         extra_columns = list(extra_columns) if extra_columns is not None else []
         return self.columns(includes=['docno'] + extra_columns, excludes=['qid'], mode=mode)
@@ -235,13 +236,14 @@ _EMPTY_ITER = object()
 
 class _IterValidationContextManager:
     def __init__(self, inp: 'pt.utils.PeekableIter', warn: bool = False):
+        self.sample_cols: Union[Set[str], object]
         try:
             self.sample_cols = set(inp.peek().keys())
         except StopIteration:
             self.sample_cols = _EMPTY_ITER
-        self.mode = None
+        self.mode: Optional[str] = None
         self.attempts = 0
-        self.errors = []
+        self.errors: List[_TransformerMode] = []
         self.warn = warn
 
     def __enter__(self):
@@ -263,16 +265,18 @@ class _IterValidationContextManager:
                 warnings.warn(f"{message} {self.errors}", InputValidationWarning)
             else:
                 raise InputValidationError(message, self.errors)
+        return None
 
     def columns(self,
                 *,
                 includes: Optional[List[str]] = None,
                 excludes: Optional[List[str]] = None,
-                mode: str = None) -> bool:
+                mode: Optional[str] = None) -> bool:
         self.attempts += 1
         includes = includes if includes is not None else []
         excludes = excludes if excludes is not None else []
-        if self.sample_cols == _EMPTY_ITER:
+        if not isinstance(self.sample_cols, set):
+            assert self.sample_cols == _EMPTY_ITER # AKA, but need to check type to make mypy happy
             self.errors.append(_TransformerMode(
                 missing_columns=list(includes),
                 extra_columns=[],
@@ -295,7 +299,7 @@ class _IterValidationContextManager:
 
         return True
 
-    def empty(self, *, mode: str = 'empty'):
+    def empty(self, *, mode: Optional[str] = 'empty'):
         self.attempts += 1
         if self.sample_cols != _EMPTY_ITER:
             self.errors.append(_TransformerMode(
