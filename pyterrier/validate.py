@@ -122,7 +122,7 @@ def document_frame(inp: pd.DataFrame, extra_columns: Optional[List[str]] = None,
         v.document_frame(extra_columns)
 
 
-def columns_iter(inp: 'pyterrier.utils.PeekableIter',
+def columns_iter(inp: 'pt.utils.PeekableIter',
             *,
             includes: Optional[List[str]] = None,
             excludes: Optional[List[str]] = None,
@@ -148,7 +148,7 @@ def any(inp: Union[pd.DataFrame, List[str]], warn: bool = False) -> '_Validation
     return _ValidationContextManager(inp, warn=warn)
 
 
-def any_iter(inp: 'pyterrier.utils.PeekableIter', warn: bool = False) -> '_IterValidationContextManager':
+def any_iter(inp: 'pt.utils.PeekableIter', warn: bool = False) -> '_IterValidationContextManager':
     """Create a validation context manager for an iterator."""
     if not isinstance(inp, pt.utils.PeekableIter):
         raise AttributeError('inp is not peekable. Run the following before calling this function.\n'
@@ -234,7 +234,7 @@ class _ValidationContextManager:
 _EMPTY_ITER = object()
 
 class _IterValidationContextManager:
-    def __init__(self, inp: 'pyterrier.utils.PeekableIter', warn: bool = False):
+    def __init__(self, inp: 'pt.utils.PeekableIter', warn: bool = False):
         try:
             self.sample_cols = set(inp.peek().keys())
         except StopIteration:
