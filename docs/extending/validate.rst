@@ -80,8 +80,14 @@ API Documentation
 
 .. autofunction:: pyterrier.validate.document_frame
 
+.. autofunction:: pyterrier.validate.any
+
 .. autofunction:: pyterrier.validate.columns_iter
 
-.. autofunction:: pyterrier.validate.any
+.. autofunction:: pyterrier.validate.query_iter
+
+.. autofunction:: pyterrier.validate.document_iter
+
+.. autofunction:: pyterrier.validate.result_iter
 
 .. autofunction:: pyterrier.validate.any_iter
