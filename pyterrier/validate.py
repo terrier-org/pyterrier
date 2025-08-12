@@ -41,15 +41,17 @@ class InputValidationWarning(Warning):
     pass
 
 
-def columns(inp: pd.DataFrame,
-            *,
-            includes: Optional[List[str]] = None,
-            excludes: Optional[List[str]] = None,
-            warn: bool = False) -> None:
+def columns(
+    inp: Union[pd.DataFrame, List[str]],
+    *,
+    includes: Optional[List[str]] = None,
+    excludes: Optional[List[str]] = None,
+    warn: bool = False
+) -> None:
     """Check that the input frame has the expected columns.
 
     Args:
-        inp: Input DataFrame to validate
+        inp: Input DataFrame or columns to validate
         includes: List of required columns
         excludes: List of forbidden columns
         warn: If True, raise warnings instead of exceptions for validation errors
@@ -65,11 +67,11 @@ def columns(inp: pd.DataFrame,
         v.columns(includes=includes, excludes=excludes)
 
 
-def query_frame(inp: pd.DataFrame, extra_columns: Optional[List[str]] = None, warn: bool = False) -> None:
+def query_frame(inp: Union[pd.DataFrame, List[str]], extra_columns: Optional[List[str]] = None, warn: bool = False) -> None:
     """Check that the input frame is a valid query frame.
 
     Args:
-        inp: Input DataFrame to validate
+        inp: Input DataFrame or columns to validate
         extra_columns: Additional required columns
         warn: If True, raise warnings instead of exceptions for validation errors
 
@@ -84,11 +86,11 @@ def query_frame(inp: pd.DataFrame, extra_columns: Optional[List[str]] = None, wa
         v.query_frame(extra_columns)
 
 
-def result_frame(inp: pd.DataFrame, extra_columns: Optional[List[str]] = None, warn: bool = False) -> None:
+def result_frame(inp: Union[pd.DataFrame, List[str]], extra_columns: Optional[List[str]] = None, warn: bool = False) -> None:
     """Check that the input frame is a valid result frame.
 
     Args:
-        inp: Input DataFrame to validate
+        inp: Input DataFrame or columns to validate
         extra_columns: Additional required columns
         warn: If True, raise warnings instead of exceptions for validation errors
 
@@ -103,11 +105,11 @@ def result_frame(inp: pd.DataFrame, extra_columns: Optional[List[str]] = None, w
         v.result_frame(extra_columns)
 
 
-def document_frame(inp: pd.DataFrame, extra_columns: Optional[List[str]] = None, warn: bool = False) -> None:
+def document_frame(inp: Union[pd.DataFrame, List[str]], extra_columns: Optional[List[str]] = None, warn: bool = False) -> None:
     """Check that the input frame is a valid document frame.
 
     Args:
-        inp: Input DataFrame to validate
+        inp: Input DataFrame or columns to validate
         extra_columns: Additional required columns
         warn: If True, raise warnings instead of exceptions for validation errors
 
@@ -122,11 +124,13 @@ def document_frame(inp: pd.DataFrame, extra_columns: Optional[List[str]] = None,
         v.document_frame(extra_columns)
 
 
-def columns_iter(inp: 'pt.utils.PeekableIter',
-            *,
-            includes: Optional[List[str]] = None,
-            excludes: Optional[List[str]] = None,
-            warn: bool = False) -> None:
+def columns_iter(
+    inp: 'pt.utils.PeekableIter',
+    *,
+    includes: Optional[List[str]] = None,
+    excludes: Optional[List[str]] = None,
+    warn: bool = False
+) -> None:
     """Check that the input frame has the expected columns.
 
     Args:
@@ -143,13 +147,68 @@ def columns_iter(inp: 'pt.utils.PeekableIter',
         v.columns(includes=includes, excludes=excludes)
 
 
+def query_iter(inp: 'pt.utils.PeekableIter', extra_columns: Optional[List[str]] = None, warn: bool = False) -> None:
+    """Check that the input iterator is a valid query iterator.
+
+    Args:
+        inp: Input iterator to validate
+        extra_columns: Additional required columns
+        warn: If True, raise warnings instead of exceptions for validation errors
+    Raises:
+        InputValidationError: If warn=False and validation fails
+        InputValidationWarning: If warn=True and validation fails
+    """
+    with any_iter(inp, warn=warn) as v:
+        v.query_iter(extra_columns)
+
+
+def result_iter(inp: 'pt.utils.PeekableIter', extra_columns: Optional[List[str]] = None, warn: bool = False) -> None:
+    """Check that the input iterator is a valid result iterator.
+
+    Args:
+        inp: Input iterator to validate
+        extra_columns: Additional required columns
+        warn: If True, raise warnings instead of exceptions for validation errors
+    Raises:
+        InputValidationError: If warn=False and validation fails
+        InputValidationWarning: If warn=True and validation fails
+    """
+    with any_iter(inp, warn=warn) as v:
+        v.result_iter(extra_columns)
+
+
+def document_iter(inp: 'pt.utils.PeekableIter', extra_columns: Optional[List[str]] = None, warn: bool = False) -> None:
+    """Check that the input iterator is a valid document iterator.
+
+    Args:
+        inp: Input iterator to validate
+        extra_columns: Additional required columns
+        warn: If True, raise warnings instead of exceptions for validation errors
+    Raises:
+        InputValidationError: If warn=False and validation fails
+        InputValidationWarning: If warn=True and validation fails
+    """
+    with any_iter(inp, warn=warn) as v:
+        v.document_iter(extra_columns)
+
+
 def any(inp: Union[pd.DataFrame, List[str]], warn: bool = False) -> '_ValidationContextManager':
-    """Create a validation context manager for a DataFrame."""
+    """Create a validation context manager for a DataFrame or list of columns to test multiple possible modes.
+
+    Args:
+        inp: Input DataFrame or list of columns to validate
+        warn: If True, raise warnings instead of exceptions for validation errors
+    """
     return _ValidationContextManager(inp, warn=warn)
 
 
 def any_iter(inp: 'pt.utils.PeekableIter', warn: bool = False) -> '_IterValidationContextManager':
-    """Create a validation context manager for an iterator."""
+    """Create a validation context manager for an iterator to test multiple possible modes.
+
+    Args:
+        inp: Input iterator to validate
+        warn: If True, raise warnings instead of exceptions for validation errors
+    """
     if not isinstance(inp, pt.utils.PeekableIter):
         raise AttributeError('inp is not peekable. Run the following before calling this function.\n'
                              'inp = pta.utils.peekable(inp) # !! IMPORTANT: you must re-assign the input to peekable '
@@ -298,6 +357,21 @@ class _IterValidationContextManager:
             self.mode = mode
 
         return True
+
+    def query_iter(self, extra_columns: Optional[List[str]] = None, mode: Optional[str] = None) -> bool:
+        """Check that the input iterator is a valid query iterator, with optional extra columns."""
+        extra_columns = list(extra_columns) if extra_columns is not None else []
+        return self.columns(includes=['qid'] + extra_columns, excludes=['docno'], mode=mode)
+
+    def result_iter(self, extra_columns: Optional[List[str]] = None, mode: Optional[str] = None) -> bool:
+        """Check that the input iterator is a valid result iterator, with optional extra columns."""
+        extra_columns = list(extra_columns) if extra_columns is not None else []
+        return self.columns(includes=['qid', 'docno'] + extra_columns, mode=mode)
+
+    def document_iter(self, extra_columns: Optional[List[str]] = None, mode: Optional[str] = None) -> bool:
+        """Check that the input iterator is a valid document iterator, with optional extra columns."""
+        extra_columns = list(extra_columns) if extra_columns is not None else []
+        return self.columns(includes=['docno'] + extra_columns, excludes=['qid'], mode=mode)
 
     def empty(self, *, mode: Optional[str] = 'empty'):
         self.attempts += 1
