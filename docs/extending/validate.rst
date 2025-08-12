@@ -1,3 +1,5 @@
+.. _pyterrier.validate:
+
 Input Validation
 ===================================
 
