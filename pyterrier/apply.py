@@ -168,7 +168,10 @@ def rename(columns : Dict[str,str], *args, errors : Literal['raise', 'ignore']='
         required_columns = list(columns.keys())
     else:
         required_columns = None
-    return ApplyGenericTransformer(lambda df: df.rename(columns=columns, errors=errors), *args, required_columns=required_columns, **kwargs)
+    t = ApplyGenericTransformer(lambda df: df.rename(columns=columns, errors=errors), *args, required_columns=required_columns, **kwargs)
+    t._schematic_title = "Rename Columns"
+    t._schematic_settings = {"columns": columns}
+    return t
 
 def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.model.IterDict], pt.model.IterDict]], *args, batch_size=None, iter=False, **kwargs) -> pt.Transformer:
     """
