@@ -16,7 +16,6 @@ the available operators:
 `%`          Apply rank cutoff                  
 `^`          Concatenate the output of one transformer with another       
 `**`         Feature Union           
-`~`          Cache transformer result              
 ============ =======================================================
 
 NB: These operators retain their default Python operator precedence - that may not be aligned with your expectations
