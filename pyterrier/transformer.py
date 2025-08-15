@@ -1,6 +1,5 @@
 import types
 import pandas as pd
-from deprecated import deprecated
 from typing import Iterator, List, Union, Tuple, Protocol, runtime_checkable, Optional, Any
 import pyterrier as pt
 
