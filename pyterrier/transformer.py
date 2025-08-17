@@ -1,6 +1,5 @@
 import types
 import pandas as pd
-from deprecated import deprecated
 from typing import Iterator, List, Union, Tuple, Protocol, runtime_checkable, Optional, Any
 import pyterrier as pt
 
@@ -303,10 +302,8 @@ class Transformer:
         from ._ops import Concatenate
         return Concatenate(self, right)
 
-    @deprecated(version="0.11.1", reason="Use pyterrier-caching for more fine-grained caching, e.g. RetrieverCache or ScorerCache")
     def __invert__(self : 'Transformer') -> 'Transformer':
-        from .cache import ChestCacheTransformer
-        return ChestCacheTransformer(self)
+        raise NotImplementedError("Use pyterrier-caching for more fine-grained caching, e.g. RetrieverCache or ScorerCache")
 
     def __hash__(self):
         return hash(repr(self))
