@@ -211,7 +211,7 @@ def any_iter(inp: 'pt.utils.PeekableIter', warn: bool = False) -> '_IterValidati
     """
     if not isinstance(inp, pt.utils.PeekableIter):
         raise AttributeError('inp is not peekable. Run the following before calling this function.\n'
-                             'inp = pta.utils.peekable(inp) # !! IMPORTANT: you must re-assign the input to peekable '
+                             'inp = pt.utils.peekable(inp) # !! IMPORTANT: you must re-assign the input to peekable '
                              '(not just pass it in), otherwise you will skip the first record !!')
     return _IterValidationContextManager(inp, warn=warn)
 
