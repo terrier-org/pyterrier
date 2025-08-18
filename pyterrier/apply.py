@@ -165,9 +165,9 @@ def rename(columns : Dict[str,str], *args, errors : Literal['raise', 'ignore']='
     rtr = ApplyGenericTransformer(lambda df: df.rename(columns=columns, errors=errors), *args, **kwargs)
     # required input is the specific columns that are being renamed if errors='raise', otherwise no required input columns
     if errors == 'raise':
-        rtr.transform_inputs = [list(columns.keys())]
+        rtr.transform_inputs = [list(columns.keys())] # type: ignore
     else:
-        rtr.transform_inputs = [[]]
+        rtr.transform_inputs = [[]] # type: ignore
     return rtr
 
 def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.model.IterDict], pt.model.IterDict]], *args, batch_size=None, iter=False, **kwargs) -> pt.Transformer:
