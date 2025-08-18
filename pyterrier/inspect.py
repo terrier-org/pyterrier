@@ -89,7 +89,7 @@ def transformer_inputs(
     result = []
     if isinstance(transformer, ProvidesTransformerInputs):
         try:
-            result = transformer.transformer_inputs()
+            result = transformer.transform_inputs()
         except Exception as ex:
             if strict:
                 raise InspectError(f"Cannot determine inputs for {transformer}") from ex
@@ -208,9 +208,9 @@ def subtransformers(transformer: pt.Transformer) -> Dict[str, Union[pt.Transform
 
 @runtime_checkable
 class ProvidesTransformerInputs(Protocol):
-    """Protocol for transformers that provide a ``transformer_inputs`` method.
+    """Protocol for transformers that provide a ``transform_inputs`` method.
 
-    ``transformer_inputs`` allows for inspection of the inputs accepted by transformers without needing to run it.
+    ``transform_inputs`` allows for inspection of the inputs accepted by transformers without needing to run it.
 
     When this method is present in a :class:`~pyterrier.Transformer` object, it must return a list of the input column
     configurations accepted by the transformer.
@@ -219,7 +219,7 @@ class ProvidesTransformerInputs(Protocol):
     an alternative is that the input columns are determined by calling the transformer with an empty ``DataFrame``.
 
     .. code-block:: python
-        :caption: Example ``transformer_inputs`` function, implementing :class:`~pyterrier.inspect.ProvidesTransformerInputs`.
+        :caption: Example ``transform_inputs`` function, implementing :class:`~pyterrier.inspect.ProvidesTransformerInputs`.
 
         class MyRetriever(pt.Transformer):
 
@@ -228,11 +228,11 @@ class ProvidesTransformerInputs(Protocol):
                 # ... perform retrieval ...
                 # return the same columns as inp plus docno, score, and rank. E.g., using DataFrameBuilder.
 
-            def transformer_inputs(self) -> List[List[str]]:
+            def transform_inputs(self) -> List[List[str]]:
                 return [['qid', 'query']]
 
     """
-    def transformer_inputs(self) -> List[List[str]]:
+    def transform_inputs(self) -> List[List[str]]:
         """Returns a list of input columns accepted by the transformer.
 
         Returns:
