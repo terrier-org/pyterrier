@@ -53,6 +53,10 @@ class TestApply(BaseTestCase):
             rtr = pd.DataFrame(list(rtr)) if not isinstance(rtr, pd.DataFrame) else rtr  # recover DF for easier testing
             self.assertTrue("Bla2" in rtr.columns)
             self.assertFalse("Bla" in rtr.columns)
+
+        # test inspection
+        self.assertEqual(["Bla"], list(pt.inspect.transformer_inputs(p)))
+        self.assertEqual(["qid", "query", "Bla2"], pt.inspect.transformer_outputs(p, ["qid", "query", "Bla"]))
         
         testDF2 = pd.DataFrame([["q1", "the bear and the wolf", 1]], columns=["qid", "query", "Bla2"])
         for input in [testDF2, testDF2.to_dict(orient='records')]:

@@ -3,6 +3,7 @@ from typing import Callable, Any, Dict, Union, Optional, Sequence, Literal
 import numpy.typing as npt
 import pandas as pd
 import pyterrier as pt
+import types
 from pyterrier.apply_base import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyIterForEachQuery, ApplyGenericTransformer, ApplyGenericIterTransformer, ApplyIndexer, DropColumnTransformer, ApplyByRowTransformer
 
 def _bind(instance, func, as_name=None):
@@ -161,7 +162,12 @@ def rename(columns : Dict[str,str], *args, errors : Literal['raise', 'ignore']='
             
             pipe = pt.terrier.Retriever(index, metadata=["docno", "body"]) >> pt.apply.rename({'body':'text'})
     """
-    return ApplyGenericTransformer(lambda df: df.rename(columns=columns, errors=errors), *args, **kwargs)
+    rtr = ApplyGenericTransformer(lambda df: df.rename(columns=columns, errors=errors), *args, **kwargs)
+    # required input is the specific columns that are being renamed 
+    rtr.transform_inputs = types.MethodType(lambda self: [columns.keys()], rtr)
+    # outputs are the renamed columns + and the original columns that were not renamed
+    rtr.transform_outputs = types.MethodType(lambda self, inp_cols: [columns.get(col, col) for col in inp_cols], rtr)
+    return rtr
 
 def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.model.IterDict], pt.model.IterDict]], *args, batch_size=None, iter=False, **kwargs) -> pt.Transformer:
     """
