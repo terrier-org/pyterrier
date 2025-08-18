@@ -170,7 +170,7 @@ def transformer_outputs(
         A list of the columns present in the output for ``transformer`` given ``input_columns``.
 
     Raises:
-        InspectError: If the artifact's type or format could not be determined and ``strict==True``.
+        InspectError: If the transformer's outputs could not be determined and ``strict==True``.
         pt.validate.InputValidationError: If input validation fails in the transformer and ``strict==True``.
     """
     if isinstance(transformer, ProvidesTransformOutputs):

@@ -56,9 +56,9 @@ writing your own transformer, consider implementing the following protocols to a
 +======================================================================+=============================================================================+
 | Returning fewer results per query                                    | :class:`~pyterrier.transformer.SupportsFuseRankCutoff.fuse_rank_cutoff`     |
 +----------------------------------------------------------------------+-----------------------------------------------------------------------------+
-| Combining with another known transformer **preceding** it            | :class:`~pyterrier.transformer.SupportsFuseLeft.fuse_left`                  |
+| Combining with a known transformer **before** it in a pipeline       | :class:`~pyterrier.transformer.SupportsFuseLeft.fuse_left`                  |
 +----------------------------------------------------------------------+-----------------------------------------------------------------------------+
-| Combining with another known transformer **following** it            | :class:`~pyterrier.transformer.SupportsFuseRight.fuse_right`                |
+| Combining with a known transformer **before** it in a pipeline       | :class:`~pyterrier.transformer.SupportsFuseRight.fuse_right`                |
 +----------------------------------------------------------------------+-----------------------------------------------------------------------------+
 | Computing multiple scores/features at once (instead of individually) | :class:`~pyterrier.transformer.SupportsFuseFeatureUnion.fuse_feature_union` |
 +----------------------------------------------------------------------+-----------------------------------------------------------------------------+
