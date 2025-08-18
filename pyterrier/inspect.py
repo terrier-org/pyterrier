@@ -303,7 +303,8 @@ class ProvidesSubtransformers(Protocol):
     dict where the keys are the names of the subtransformers and the values are the subtransformers (or list
     of subtransformers) themselves.
 
-    This method need not be present in a Transformer class - it is an optional extension.
+    This method need not be present in a Transformer class - it is an optional extension. See :meth:`pyterrier.inspect.subtransformers`
+    for the default implementation.
     """
     def subtransformers(self) -> Dict[str, Union[pt.Transformer, List[pt.Transformer]]]:
         """Returns a dictionary of subtransformers for the transformer.
