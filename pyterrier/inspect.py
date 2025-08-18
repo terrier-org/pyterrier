@@ -215,7 +215,7 @@ class ProvidesTransformerInputs(Protocol):
     When this method is present in a :class:`~pyterrier.Transformer` object, it must return a list of the input column
     configurations accepted by the transformer.
 
-    This method need not be present in Transformer - it is an optional extension;
+    This method need not be present in a Transformer class - it is an optional extension;
     an alternative is that the input columns are determined by calling the transformer with an empty ``DataFrame``.
 
     .. code-block:: python
@@ -251,7 +251,7 @@ class ProvidesTransformerOutputs(Protocol):
     list of the output columns present given the provided input columns or raise an ``InputValidationError``
     if the inputs are not accepted by the transformer.
 
-    This method need not be present in Transformer - it is an optional extension;
+    This method need not be present in a Transformer class - it is an optional extension;
     an alternative is that the output columns are determined by calling the transformer
     with an empty ``DataFrame``.
 
@@ -303,7 +303,7 @@ class ProvidesSubtransformers(Protocol):
     dict where the keys are the names of the subtransformers and the values are the subtransformers (or list
     of subtransformers) themselves.
 
-    This method need not be present in Transformer - it is an optional extension.
+    This method need not be present in a Transformer class - it is an optional extension.
     """
     def subtransformers(self) -> Dict[str, Union[pt.Transformer, List[pt.Transformer]]]:
         """Returns a dictionary of subtransformers for the transformer.
