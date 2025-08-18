@@ -108,6 +108,15 @@ pygments_style = 'sphinx'
 #
 html_theme = 'furo'
 
+# Avoid showing over-qualified name in the sidebar, reducing redundancy and avoiding wrapping in many cases.
+# I.e., instead of:
+#   MyClass
+#     MyClass.my_method()
+# It will show:
+#    MyClass
+#      my_method()
+toc_object_entries_show_parents = 'hide'
+
 # increasing sphinx width
 # https://stackoverflow.com/a/43186995
 def setup(app):
