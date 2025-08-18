@@ -3,7 +3,6 @@ from typing import Callable, Any, Dict, Union, Optional, Sequence, Literal
 import numpy.typing as npt
 import pandas as pd
 import pyterrier as pt
-import types
 from pyterrier.apply_base import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyIterForEachQuery, ApplyGenericTransformer, ApplyGenericIterTransformer, ApplyIndexer, DropColumnTransformer, ApplyByRowTransformer
 
 def _bind(instance, func, as_name=None):
