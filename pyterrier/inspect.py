@@ -20,8 +20,8 @@ __all__ = [
     'subtransformers',
     'InspectError',
     'TransformerAttribute',
-    'ProvidesTransformerInputs',
-    'ProvidesTransformerOutputs',
+    'ProvidesTransformInputs',
+    'ProvidesTransformOutputs',
     'ProvidesSubtransformers',
     'ProvidesAttributes',
 ]
@@ -103,7 +103,7 @@ def transformer_inputs(
         InspectError: If the transformer cannot be inspected and ``strict==True``.
     """
     result = []
-    if isinstance(transformer, ProvidesTransformerInputs):
+    if isinstance(transformer, ProvidesTransformInputs):
         try:
             result = transformer.transform_inputs()
         except Exception as ex:
@@ -144,7 +144,7 @@ def transformer_outputs(
 ) -> Optional[List[str]]:
     """Infers the output columns for a transformer based on the provided input columns.
 
-    If the transformer implements the :class:`~pyterrier.inspect.ProvidesTransformerOutputs` protocol,
+    If the transformer implements the :class:`~pyterrier.inspect.ProvidesTransformOutputs` protocol,
     the method calls its ``transform_outputs`` method to determine the output columns. If the transformer does not
     implement the protocol, it attempts to infer the output columns by calling the transformer with an empty DataFrame.
 
@@ -161,7 +161,7 @@ def transformer_outputs(
         InspectError: If the artifact's type or format could not be determined and ``strict==True``.
         pt.validate.InputValidationError: If input validation fails in the trnsformer and ``strict==True``.
     """
-    if isinstance(transformer, ProvidesTransformerOutputs):
+    if isinstance(transformer, ProvidesTransformOutputs):
         try:
             return transformer.transform_outputs(input_columns)
         except pt.validate.InputValidationError:
@@ -212,9 +212,11 @@ def transformer_attributes(transformer: pt.Transformer) -> List[TransformerAttri
     Here, an attribute is defined as any attribute of the transformer that is explicity set by the ``__init__`` method,
     either under the same name (e.g., ``self.foo = foo``) or as a private attribute (e.g., ``self._foo = foo``).
 
-    This method first checks if the transformer implements the :class:`~pyterrier.inspect.ProvidesAttributes` protocol.
-    If it does, it calls the ``attributes`` method to retrieve the attributes. If it does not, it inspects the
-    transformer's ``__init__`` method and retrieves the attributes by checking the parameters of the method.
+    This definition allow for a set of attributes that should describe the state of a transformer. These attributes can
+    be used to reconstruct the transformer from its attributes, e.g., by calling :meth:`~pyterrier.inspect.transformer_apply_attributes`.
+
+    To handle edge cases (e.g., where the ``__init__`` paraemters do not match the attribute names), you can implement
+    the :class:`~pyterrier.inspect.ProvidesAttributes` protocol.
 
     Args:
         transformer: The transformer to inspect.
@@ -230,13 +232,12 @@ def transformer_attributes(transformer: pt.Transformer) -> List[TransformerAttri
     result = []
     signature = inspect.signature(transformer.__init__)
     for p in signature.parameters.values():
-        try:
+        if hasattr(transformer, f'_{p.name}'):
             val = getattr(transformer, f'_{p.name}')
-        except AttributeError:
-            try:
-                val = getattr(transformer, p.name)
-            except AttributeError:
-                raise InspectError(f"Cannot identify attribute {p.name} in transformer {transformer}. Ensure that the attribute is set in the __init__ method.")
+        elif hasattr(transformer, p.name):
+            val = getattr(transformer, p.name)
+        else:
+            raise InspectError(f"Cannot identify attribute {p.name} in transformer {transformer}. Ensure that the attribute is set in the __init__ method.")
         result.append(TransformerAttribute(
             name=p.name,
             value=val,
@@ -244,6 +245,50 @@ def transformer_attributes(transformer: pt.Transformer) -> List[TransformerAttri
             init_parameter_kind=p.kind,
         ))
     return result
+
+
+def transformer_apply_attributes(transformer: pt.Transformer, **kwargs: Any) -> pt.Transformer:
+    """Returns a new transformer instance from the provided transformer and updated attributes (as keyword arguments).
+
+    This method uses :meth:`~pyterrier.inspect.transformer_attributes` to identify the attributes of the transformer and
+    then applies the provided keyword arguments to the transformer attributes. The method then reconstructs the transformer
+    by calling its ``__init__`` method with the updated attributes.
+
+    To handle edge cases (e.g., where the ``__init__`` parameters do not match the attribute names), you can implement
+    the :class:`~pyterrier.inspect.ProvidesApplyAttributes` protocol.
+
+    Args:
+        transformer: The transformer to apply the attributes to.
+        **kwargs: Keyword arguments representing the attributes to set on the transformer.
+
+    Returns:
+        A new instance of the transformer with the provided attributes applied.
+
+    Raises:
+        InspectError: If an attribute is not found in the transformer or if attributes cannot be identified from the transformer.
+    """
+    if isinstance(transformer, ProvidesApplyAttributes):
+        return transformer.apply_attributes(**kwargs)
+    attributes = transformer_attributes(transformer)
+    for attr in attributes:
+        if attr.name in kwargs:
+            attr.value = kwargs.pop(attr.name)
+    if any(kwargs):
+        raise InspectError(f"Unknown attributes {list(kwargs.keys())} for transformer {transformer}")
+    init_args = []
+    init_kwargs = {}
+    for attr in attributes:
+        if attr.init_parameter_kind == inspect.Parameter.POSITIONAL_OR_KEYWORD:
+            init_args.append(attr.value)
+        elif attr.init_parameter_kind == inspect.Parameter.KEYWORD_ONLY:
+            init_kwargs[attr.name] = attr.value
+        elif attr.init_parameter_kind == inspect.Parameter.POSITIONAL_ONLY:
+            init_args.append(attr.value)
+        elif attr.init_parameter_kind == inspect.Parameter.VAR_POSITIONAL:
+            init_args.extend(attr.value)
+        elif attr.init_parameter_kind == inspect.Parameter.VAR_KEYWORD:
+            init_kwargs.update(attr.value)
+    return transformer.__class__(*init_args, **init_kwargs)
 
 
 def subtransformers(transformer: pt.Transformer) -> Dict[str, Union[pt.Transformer, List[pt.Transformer]]]:
@@ -280,43 +325,8 @@ def subtransformers(transformer: pt.Transformer) -> Dict[str, Union[pt.Transform
     return result
 
 
-def transformer_apply_attributes(transformer: pt.Transformer, **kwargs) -> pt.Transformer:
-    """Returns a new transformer instance from the provided transformer and updated attributes (as keyword arguments).
-
-    Args:
-        transformer: The transformer to apply the attributes to.
-        **kwargs: Keyword arguments representing the attributes to set on the transformer.
-
-    Returns:
-        A new instance of the transformer with the provided attributes applied.
-
-    Raises:
-        InspectError: If an attribute is not found in the transformer or if attributes cannot be identified from the transformer.
-    """
-    attributes = transformer_attributes(transformer)
-    for attr in attributes:
-        if attr.name in kwargs:
-            attr.value = kwargs.pop(attr.name)
-    if any(kwargs):
-        raise InspectError(f"Unknown attributes {list(kwargs.keys())} for transformer {transformer}")
-    init_args = []
-    init_kwargs = {}
-    for attr in attributes:
-        if attr.init_parameter_kind == inspect.Parameter.POSITIONAL_OR_KEYWORD:
-            init_args.append(attr.value)
-        elif attr.init_parameter_kind == inspect.Parameter.KEYWORD_ONLY:
-            init_kwargs[attr.name] = attr.value
-        elif attr.init_parameter_kind == inspect.Parameter.POSITIONAL_ONLY:
-            init_args.append(attr.value)
-        elif attr.init_parameter_kind == inspect.Parameter.VAR_POSITIONAL:
-            init_args.extend(attr.value)
-        elif attr.init_parameter_kind == inspect.Parameter.VAR_KEYWORD:
-            init_kwargs.update(attr.value)
-    return transformer.__class__(*init_args, **init_kwargs)
-
-
 @runtime_checkable
-class ProvidesTransformerInputs(Protocol):
+class ProvidesTransformInputs(Protocol):
     """Protocol for transformers that provide a ``transform_inputs`` method.
 
     ``transform_inputs`` allows for inspection of the inputs accepted by transformers without needing to run it.
@@ -328,7 +338,7 @@ class ProvidesTransformerInputs(Protocol):
     an alternative is that the input columns are determined by calling the transformer with an empty ``DataFrame``.
 
     .. code-block:: python
-        :caption: Example ``transform_inputs`` function, implementing :class:`~pyterrier.inspect.ProvidesTransformerInputs`.
+        :caption: Example ``transform_inputs`` function, implementing :class:`~pyterrier.inspect.ProvidesTransformInputs`.
 
         class MyRetriever(pt.Transformer):
 
@@ -351,7 +361,7 @@ class ProvidesTransformerInputs(Protocol):
 
 
 @runtime_checkable
-class ProvidesTransformerOutputs(Protocol):
+class ProvidesTransformOutputs(Protocol):
     """Protocol for transformers that provide a ``transform_outputs`` method.
 
     ``transform_outputs`` allows for inspection of the outputs of transformers without needing to run it.
@@ -369,7 +379,7 @@ class ProvidesTransformerOutputs(Protocol):
     inspect the behavior is undesireable, e.g., if calling the transformer is expensive.
 
     .. code-block:: python
-        :caption: Example ``transform_output`` function, implementing :class:`~pyterrier.inspect.ProvidesTransformerOutputs`.
+        :caption: Example ``transform_outputs`` function, implementing :class:`~pyterrier.inspect.ProvidesTransformOutputs`.
 
         class MyRetriever(pt.Transformer):
 
@@ -416,6 +426,19 @@ class ProvidesAttributes(Protocol):
     """
     def attributes(self) -> List[TransformerAttribute]:
         """Returns a list of attributes of the transformer."""
+
+
+@runtime_checkable
+class ProvidesApplyAttributes(Protocol):
+    """Protocol for transformers that provide an ``apply_attributes`` method.
+
+    ``apply_attributes`` returns a new transformer with updated attributes (as keyword arguments).
+
+    This method need not be present in a Transformer class - it is an optional extension.
+    """
+    def apply_attributes(self, **kwargs: Any) -> pt.Transformer:
+        """Returns a new transformer instance from the provided transformer and updated attributes (as keyword arguments)."""
+
 
 
 @runtime_checkable
