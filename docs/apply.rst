@@ -1,6 +1,6 @@
 .. _pyterrier.apply:
 
-pt.apply - Custom Transformers
+pyterrier.apply - Custom Transformers
 -------------------------------------
 
 PyTerrier pipelines are easily extensible through the use of apply functions.

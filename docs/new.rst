@@ -1,4 +1,4 @@
-pt.new - Creating new dataframes
+pyterrier.new - Creating new dataframes
 ---------------------------------------
 
 

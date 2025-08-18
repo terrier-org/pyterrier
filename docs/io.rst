@@ -1,4 +1,4 @@
-pt.io - Reading/writing files
+pyterrier.io - Reading/writing files
 ------------------------------------
 
 
