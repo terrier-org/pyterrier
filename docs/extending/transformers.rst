@@ -25,5 +25,7 @@ method with a specific signature that implements the same functionality).
 +--------------------------------------------------------------+--------------------------------------------------------------------------+
 | :meth:`pyterrier.inspect.transformer_outputs`                | :class:`pyterrier.inspect.ProvidesTransformerOutputs`                    |
 +--------------------------------------------------------------+--------------------------------------------------------------------------+
+| :meth:`pyterrier.inspect.transformer_attributes`             | :class:`pyterrier.inspect.ProvidesAttributes`                            |
++--------------------------------------------------------------+--------------------------------------------------------------------------+
 | :meth:`pyterrier.inspect.subtransformers`                    | :class:`pyterrier.inspect.ProvidesSubtransformers`                       |
 +--------------------------------------------------------------+--------------------------------------------------------------------------+
