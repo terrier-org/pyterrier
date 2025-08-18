@@ -155,8 +155,8 @@ class TestExperiment(TempDirTestCase):
             pt.Experiment(brs, topics, qrels, eval_metrics=["map"], filter_qrels=True)
         
     def test_expected_columns(self):
-        br0 = pt.Transformer.from_df(pd.DataFrame([{'qid' : '1', 'query' : 'hello'}]))
-        br1 = pt.Transformer.from_df(pd.DataFrame([{'qid' : '1', 'query' : 'hello', "context" : "here"}]))
+        br0 = pt.Transformer.from_df(pd.DataFrame([{'qid' : '1', 'query' : 'hello'}]), uniform=True)
+        br1 = pt.Transformer.from_df(pd.DataFrame([{'qid' : '1', 'query' : 'hello', "context" : "here"}]), uniform=True)
 
         topics = pt.datasets.get_dataset("vaswani").get_topics().head(10)
         qrels =  pt.datasets.get_dataset("vaswani").get_qrels()
@@ -176,6 +176,9 @@ class TestExperiment(TempDirTestCase):
         eval = pt.Experiment([br1], topics, qrels, eval_metrics=[custom_measure], validate='error')
         self.assertIn("context_length", eval.columns)
         self.assertEqual(eval.iloc[0]["context_length"], 0.4)  # "here" has length 4, divide by 10 topics in the qrels.
+
+        with self.assertRaises(ValueError) as ve:
+            pt.Experiment([br0 >> pt.apply.rename({'context' : 'prompt'})], topics, qrels, eval_metrics=[custom_measure], validate='error')
         
     def test_mrt(self):
         index = pt.datasets.get_dataset("vaswani").get_index()

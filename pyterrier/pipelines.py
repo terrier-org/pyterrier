@@ -786,6 +786,10 @@ def _validate(
                 try:
                     found_cols = pt.inspect.transformer_outputs(system, input_columns=topics.columns.tolist())
                     # perhaps in the future, we can check that the metrics have all the columns they need
+                # two exceptions can be raised here:
+                    # InputValidationError (when input validation fails)
+                    # InspectError ...?
+                
                 except pt.validate.InputValidationError as ie:
                     if validate == 'warn':
                         warn("%s failed to validate: %s" % (friendly_name, str(ie)))
