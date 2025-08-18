@@ -81,7 +81,7 @@ def artifact_type_format(
 def transformer_inputs(
     transformer: pt.Transformer,
     *,
-    single: bool = True,
+    single: bool = False,
     strict: bool = True,
 ) -> Optional[Union[List[str], List[List[str]]]]:
     """Infers supported input column configurations for a transformer.
@@ -89,6 +89,11 @@ def transformer_inputs(
     The method tries to infer the input columns that the transformer accepts by calling it with an empty DataFrame and inspecting
     a resulting ``pt.validate.InputValidationError``. If the transformer does not raise an error, it tries to infer the input columns
     by calling it with a pre-defined set of input columns.
+
+    To handle edge cases, you can implement the :class:`~pyterrier.inspect.ProvidesTransformInputs` protocol, which allows you to define a custom
+    ``transform_inputs`` method that returns a list of input column configurations accepted by the transformer. ``transform_inputs``
+    can also be an attribute instead of a method. In this case, it be a list of lists of input columns (i.e., a list of valid
+    input column configurations).
 
     Args:
         transformer: An instance of the transformer to inspect.
@@ -104,13 +109,16 @@ def transformer_inputs(
     """
     result = []
     if isinstance(transformer, ProvidesTransformInputs):
-        try:
-            result = transformer.transform_inputs()
-        except Exception as ex:
-            if strict:
-                raise InspectError(f"Cannot determine inputs for {transformer}") from ex
-            else:
-                return None
+        if not callable(transformer.transform_inputs):
+            result = transformer.transform_inputs
+        else:
+            try:
+                result = transformer.transform_inputs()
+            except Exception as ex:
+                if strict:
+                    raise InspectError(f"Cannot determine inputs for {transformer}") from ex
+                else:
+                    return None
     else:
         try:
             transformer(pd.DataFrame())
@@ -126,11 +134,14 @@ def transformer_inputs(
                     result.append(mode)
                 except Exception:
                     continue
-    if len(result) == 0:
+    if not isinstance(result, list) or len(result) == 0:
         if strict:
             raise InspectError(f"Cannot determine inputs for {transformer}")
-        else:
-            return None
+        return None
+    if not isinstance(result[0], list) or (len(result[0]) > 0 and not isinstance(result[0][0], str)):
+        if strict:
+            raise InspectError(f"Cannot determine inputs for {transformer}")
+        return None
     if single:
         return result[0]
     return result
