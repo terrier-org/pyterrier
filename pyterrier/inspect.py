@@ -22,8 +22,9 @@ __all__ = [
     'TransformerAttribute',
     'ProvidesTransformInputs',
     'ProvidesTransformOutputs',
-    'ProvidesSubtransformers',
     'ProvidesAttributes',
+    'ProvidesApplyAttributes',
+    'ProvidesSubtransformers',
 ]
 
 
