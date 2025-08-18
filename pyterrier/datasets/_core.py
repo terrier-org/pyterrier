@@ -21,7 +21,9 @@ DATASET_MAP: Dict[str, Any] = {}
 
 
 class Dataset:
-    """Represents a dataset (test collection) for indexing and/or retrieval. A common use case is for an Experiment::
+    """Represents a dataset (test collection) for indexing and/or retrieval.
+
+    A common use case is for an Experiment::
 
         dataset = pt.get_dataset("trec-robust-2004")
         pt.Experiment([br1, br2], dataset.get_topics(), dataset.get_qrels(), eval_metrics=["map", "recip_rank"])
