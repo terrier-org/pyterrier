@@ -55,7 +55,7 @@ class TestApply(BaseTestCase):
             self.assertFalse("Bla" in rtr.columns)
 
         # test inspection
-        self.assertEqual(["Bla"], list(pt.inspect.transformer_inputs(p)))
+        self.assertEqual([["Bla"]], list(pt.inspect.transformer_inputs(p)))
         self.assertEqual(["qid", "query", "Bla2"], pt.inspect.transformer_outputs(p, ["qid", "query", "Bla"]))
         
         testDF2 = pd.DataFrame([["q1", "the bear and the wolf", 1]], columns=["qid", "query", "Bla2"])
