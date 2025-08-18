@@ -154,7 +154,29 @@ class TestExperiment(TempDirTestCase):
         with self.assertRaises(TypeError):
             pt.Experiment(brs, topics, qrels, eval_metrics=["map"], filter_qrels=True)
         
+    def test_expected_columns(self):
+        br0 = pt.Transformer.from_df(pd.DataFrame([{'qid' : '1', 'query' : 'hello'}]))
+        br1 = pt.Transformer.from_df(pd.DataFrame([{'qid' : '1', 'query' : 'hello', "context" : "here"}]))
 
+        topics = pt.datasets.get_dataset("vaswani").get_topics().head(10)
+        qrels =  pt.datasets.get_dataset("vaswani").get_qrels()
+        # check that we have the expected columns
+        with self.assertRaises(ValueError) as ve:
+            pt.Experiment([br1], topics, qrels, eval_metrics=["map"], validate='error')
+            self.assertIn("Transformer", str(ve.exception))
+            self.assertIn("does not produce all required columns", str(ve.exception))
+
+        # lets make a custom measure that requires the 'context' column
+        import ir_measures
+        custom_measure = ir_measures.define_byquery(lambda qrels, run: len(run.iloc[0]["context"]), run_inputs=['context'], name='context_length')
+        with self.assertRaises(ValueError) as ve:
+            pt.Experiment([br0], topics, qrels, eval_metrics=[custom_measure], validate='error')
+            self.assertIn("Transformer", str(ve.exception))
+            self.assertIn("does not produce all required columns", str(ve.exception))
+        eval = pt.Experiment([br1], topics, qrels, eval_metrics=[custom_measure], validate='error')
+        self.assertIn("context_length", eval.columns)
+        self.assertEqual(eval.iloc[0]["context_length"], 0.4)  # "here" has length 4, divide by 10 topics in the qrels.
+        
     def test_mrt(self):
         index = pt.datasets.get_dataset("vaswani").get_index()
         brs = [

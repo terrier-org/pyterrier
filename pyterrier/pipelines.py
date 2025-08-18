@@ -15,6 +15,7 @@ import pyterrier as pt
 MEASURE_TYPE=Union[str,Measure]
 MEASURES_TYPE=Sequence[MEASURE_TYPE]
 SAVEMODE_TYPE=Literal['reuse', 'overwrite', 'error', 'warn']
+VALIDATE_TYPE = Literal['warn', 'error', 'ignore']
 
 SYSTEM_OR_RESULTS_TYPE = Union[Transformer, pd.DataFrame]
 SAVEFORMAT_TYPE = Union[Literal['trec'], types.ModuleType, Tuple[Callable[[IO], pd.DataFrame], Callable[[pd.DataFrame, IO], None]]]
@@ -57,6 +58,7 @@ _irmeasures_columns = {
     'qid' : 'query_id',
     'docno' : 'doc_id'
 }
+_irmeasures_columns_rev = {v: k for k, v in _irmeasures_columns.items()}
 
 def _mean_of_measures(result, measures=None, num_q = None):
         if len(result) == 0:
@@ -260,7 +262,8 @@ def _precomputation(
     
     return precompute_time, execution_topics, execution_retr_systems
 
-def _validate_R(df : pd.DataFrame):
+
+def _validate_R_is_res(df : pd.DataFrame):
     found = []
     unfound = []
     for c in ["qid", "docno", "score", "rank"]:
@@ -354,7 +357,7 @@ def _run_and_evaluate(
         # write results to save_file; we can be sure this file does not exist
         if save_file is not None:
             if save_format == 'trec':
-                _validate_R(res)
+                _validate_R_is_res(res)
                 write_results(res, save_file)
             elif isinstance(save_format, types.ModuleType):
                 with pt.io.autoopen(save_file, 'wb') as fout:
@@ -398,7 +401,7 @@ def _run_and_evaluate(
 
                 # write results to save_file; we will append for subsequent batches
                 if save_file is not None:
-                    _validate_R(res)
+                    _validate_R_is_res(res)
                     write_results(res, save_file, append=True)
 
                 res = coerce_dataframe_types(res)
@@ -462,7 +465,7 @@ def Experiment(
         highlight : Optional[str] = None,
         round : Optional[Union[int,Dict[str,int]]] = None,
         verbose : bool = False,
-        validate : bool = True,
+        validate : VALIDATE_TYPE = 'warn',
         save_dir : Optional[str] = None,
         save_mode : SAVEMODE_TYPE = 'warn',
         save_format : SAVEFORMAT_TYPE = 'trec',
@@ -613,22 +616,7 @@ def Experiment(
         eval_metrics = list(eval_metrics).copy()
         eval_metrics.remove("mrt")
 
-    for i, (name, system) in enumerate(zip(names, retr_systems)):
-        if isinstance(system, pd.DataFrame):
-            continue # skip DataFrames, they are handled separately?
-        if isinstance(system, pt.Transformer):
-            if validate:
-                try:
-                    found_cols = pt.inspect.transformer_outputs(system, input_columns=topics.columns.tolist())
-                    # perhaps in the future, we can check that the metrics have all the columns they need
-                # TODO what do to about InspectError 
-                # TODO When should we recommend that validate=False
-                except pt.validate.InputValidationError as ie:
-                    raise ValueError("Transformer %s (%s) at position %i failed to validate" % (name, str(system), i)) from ie
-                if found_cols is None:
-                    raise ValueError("Transformer %s (%s) at position %i does not produce any columns" % (name, str(system), i))
-        else:
-            raise TypeError("Expected a list of Transformers or DataFrames, but received %s for retrieval system at position %d" % (str(type(system)), i))
+    _validate(retr_systems, topics, eval_metrics, names, validate)
 
     precompute_time, execution_topics, execution_retr_systems = _precomputation(retr_systems, topics, precompute_prefix, verbose, batch_size)
 
@@ -770,6 +758,54 @@ def Experiment(
             
         return df 
     return evalDict
+
+def _validate(
+        retr_systems : Sequence[SYSTEM_OR_RESULTS_TYPE], 
+        topics : pd.DataFrame, 
+        eval_metrics : MEASURES_TYPE, 
+        names : List[str], 
+        validate : VALIDATE_TYPE):
+    
+    if validate == 'ignore':
+        return
+
+    # convert metrics to a list of Measure objects
+    # TODO: this mapping is already performed in _run_and_evaluate, but we need it here to 
+    # validate the transformers; I think its inexpensive
+    _metrics, rev_mapping = _convert_measures(eval_metrics)
+    # TODO: i'd expected run_inputs to be exported in the ir_measures namespace, but it is not
+    required_cols = set(ir_measures.DefaultPipeline.run_inputs(_metrics))
+
+    for i, (name, system) in enumerate(zip(names, retr_systems)):
+        friendly_name = "Transformer %s (%s) at position %i" % (name, str(system), i) if name != str(system) else "Transformer %s at position %i" % (str(system), i)
+        found_cols = []
+        if isinstance(system, pd.DataFrame):
+            found_cols = system.columns.tolist()  
+        elif isinstance(system, pt.Transformer):
+            if validate:
+                try:
+                    found_cols = pt.inspect.transformer_outputs(system, input_columns=topics.columns.tolist())
+                    # perhaps in the future, we can check that the metrics have all the columns they need
+                except pt.validate.InputValidationError as ie:
+                    if validate == 'warn':
+                        warn("%s failed to validate: %s" % (friendly_name, str(ie)))
+                    elif validate == 'error':
+                        raise ValueError("%s failed to validate: %s" % (friendly_name, str(ie))) from ie
+        else:
+            raise TypeError("Expected a list of Transformers or DataFrames, but received %s for retrieval system at position %d" % (str(type(system)), i))
+        
+        # apply the ir_measures columns mapping
+        _found_cols = [_irmeasures_columns.get(c,c) for c in found_cols]
+        _found_cols = set(found_cols)
+        if required_cols.difference(_found_cols):
+            required_cols_friendly = [_irmeasures_columns_rev.get(c, c) for c in required_cols]
+            # TODO make the error more user-friendly by mapping the missing columns back to the original names
+            message = "Transformer %s (%s) at position %i does not produce all required columns %s, found only %s" % (
+                name, str(system), i, str(required_cols_friendly), str(found_cols))
+            if validate == 'warn':
+                warn(message)
+            elif validate == 'error':
+                raise ValueError(message)
 
 TRANSFORMER_PARAMETER_VALUE_TYPE = Union[str,float,int,str]
 GRID_SCAN_PARAM_SETTING = Tuple[
