@@ -255,7 +255,8 @@ def subtransformers(transformer: pt.Transformer) -> Dict[str, Union[pt.Transform
 
     If the transformer implements the :class:`~pyterrier.inspect.ProvidesSubtransformers` protocol,
     the method calls its ``subtransformers`` method to retrieve the subtransformers. If the transformer does not
-    implement the protocol, the method inspects the transformer's attributes and returns a dictionary where the keys
+    implement the protocol, the method inspects the transformer to identify any attributes of a transformer that
+    are instance of pt.Transformer (or list/tuple of Transformer), returning a dictionary where the keys
     where the keys are the names of the subtransformers and the values are the subtransformers themselves. If the
     transformer does not have any subtransformers, an empty dictionary is returned.
 
