@@ -15,8 +15,8 @@ input/output specifications. Default implementations for these methods usually w
 you may need to override them to handle idiosyncratic cases.
 
 You can override the behavior of the following methods by implementing python
-`Protocols <https://typing.python.org/en/latest/spec/protocol.html>`__ (in these cases, it's just a specific
-method signature).
+`Protocols <https://typing.python.org/en/latest/spec/protocol.html>`__ (in these cases, it's just adding a
+method with a specific signature that implements the same functionality).
 
 +--------------------------------------------------------------+--------------------------------------------------------------------------+
 | Override...                                                  | By implementing...                                                       |
