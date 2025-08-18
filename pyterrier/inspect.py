@@ -241,8 +241,8 @@ def transformer_attributes(transformer: pt.Transformer) -> List[TransformerAttri
     if isinstance(transformer, ProvidesAttributes):
         return transformer.attributes()
     result = []
-    signature = inspect.signature(transformer.__init__)
-    for p in signature.parameters.values():
+    signature = inspect.signature(transformer.__class__.__init__)
+    for p in list(signature.parameters.values())[1:]: # [1:] to skip first arg ("self") which is bound to the instance.
         if hasattr(transformer, f'_{p.name}'):
             val = getattr(transformer, f'_{p.name}')
         elif hasattr(transformer, p.name):
@@ -327,12 +327,12 @@ def subtransformers(transformer: pt.Transformer) -> Dict[str, Union[pt.Transform
     """
     if isinstance(transformer, ProvidesSubtransformers):
         return transformer.subtransformers()
-    result = {}
+    result: Dict[str, Union[pt.Transformer, List[pt.Transformer]]] = {}
     for attr in transformer_attributes(transformer):
         if isinstance(attr.value, pt.Transformer):
             result[attr.name] = attr.value
-        elif isinstance(attr.value, (list, tuple)) and len(attr.value) > 0 and isinstance(attr.value[0], pt.Transformer):
-            result[attr] = list(attr.value)
+        elif isinstance(attr.value, (list, tuple)) and all(isinstance(v, pt.Transformer) for v in attr.value):
+            result[attr.name] = list(attr.value)
     return result
 
 
