@@ -159,7 +159,7 @@ def transformer_outputs(
 
     Raises:
         InspectError: If the artifact's type or format could not be determined and ``strict==True``.
-        pt.validate.InputValidationError: If input validation fails in the trnsformer and ``strict==True``.
+        pt.validate.InputValidationError: If input validation fails in the transformer and ``strict==True``.
     """
     if isinstance(transformer, ProvidesTransformerOutputs):
         try:
