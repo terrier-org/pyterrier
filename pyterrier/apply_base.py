@@ -1,4 +1,4 @@
-from typing import Callable, Any, Union, Optional, Iterable
+from typing import Callable, Any, Union, Optional, Iterable, List
 import itertools
 import more_itertools
 import numpy.typing as npt
@@ -29,6 +29,7 @@ class DropColumnTransformer(pt.Transformer):
         Returns:
             The input DataFrame with the column dropped.
         """
+        pt.validate.columns(inp, includes=[self.col])
         return inp.drop(columns=[self.col])
 
     def transform_iter(self, inp: pt.model.IterDict) -> pt.model.IterDict:
@@ -41,6 +42,8 @@ class DropColumnTransformer(pt.Transformer):
         Returns:
             The input with the column dropped.
         """
+        inp = pt.utils.peekable(inp)
+        pt.validate.columns_iter(inp, includes=[self.col])
         for rec in inp:
             new_rec = rec.copy()
             new_rec.pop(self.col, None) # None ensures no error if key doesn't exist
@@ -425,7 +428,8 @@ class ApplyGenericTransformer(pt.Transformer):
         fn: Callable[[pd.DataFrame], pd.DataFrame],
         *,
         batch_size: Optional[int] = None,
-        verbose: bool = False
+        required_columns: Optional[List[str]] = None,
+        verbose: bool = False,
     ):
         """
         Arguments:
@@ -436,11 +440,15 @@ class ApplyGenericTransformer(pt.Transformer):
         self.fn = fn
         self.batch_size = batch_size
         self.verbose = verbose
+        self.required_columns = required_columns
 
     def __repr__(self):
         return "pt.apply.generic()"
 
     def transform(self, inp: pd.DataFrame) -> pd.DataFrame:
+        if self.required_columns is not None:
+            pt.validate.columns(inp, includes=self.required_columns)
+
         # no batching
         if self.batch_size is None:
             return self.fn(inp)
