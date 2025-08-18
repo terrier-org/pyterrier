@@ -462,6 +462,7 @@ def Experiment(
         highlight : Optional[str] = None,
         round : Optional[Union[int,Dict[str,int]]] = None,
         verbose : bool = False,
+        validate : bool = True,
         save_dir : Optional[str] = None,
         save_mode : SAVEMODE_TYPE = 'warn',
         save_format : SAVEFORMAT_TYPE = 'trec',
@@ -514,6 +515,7 @@ def Experiment(
     :param precompute_prefix: If set to True, then pt.Experiment will look for a common prefix on all input pipelines, and execute that common prefix pipeline only once. 
         This functionality assumes that the intermidiate results of the common prefix can fit in memory. Set to False by default.
     :param verbose: If True, a tqdm progress bar is shown as systems (or systems*batches if batch_size is set) are executed. Default=False.
+    :param validate: If True, each transformer is validated against the topics dataframe, to ensure that it produces the expected columns. Default=True.
 
     :return: A Dataframe with each retrieval system with each metric evaluated.
     """
@@ -610,6 +612,23 @@ def Experiment(
         mrt_needed = True
         eval_metrics = list(eval_metrics).copy()
         eval_metrics.remove("mrt")
+
+    for i, (name, system) in enumerate(zip(names, retr_systems)):
+        if isinstance(system, pd.DataFrame):
+            continue # skip DataFrames, they are handled separately?
+        if isinstance(system, pt.Transformer):
+            if validate:
+                try:
+                    found_cols = pt.inspect.transformer_outputs(system, input_columns=topics.columns.tolist())
+                    # perhaps in the future, we can check that the metrics have all the columns they need
+                # TODO what do to about InspectError 
+                # TODO When should we recommend that validate=False
+                except pt.validate.InputValidationError as ie:
+                    raise ValueError("Transformer %s (%s) at position %i failed to validate" % (name, str(system), i)) from ie
+                if found_cols is None:
+                    raise ValueError("Transformer %s (%s) at position %i does not produce any columns" % (name, str(system), i))
+        else:
+            raise TypeError("Expected a list of Transformers or DataFrames, but received %s for retrieval system at position %d" % (str(type(system)), i))
 
     precompute_time, execution_topics, execution_retr_systems = _precomputation(retr_systems, topics, precompute_prefix, verbose, batch_size)
 
