@@ -34,6 +34,11 @@ class TestModel(BaseTestCase):
             self.assertTrue(col in query_cols)
         for col in ["docno", "score", "rank"]:
             self.assertFalse(col in query_cols)
+        
+        df = pd.DataFrame(columns=["qid", "query", "query_toks", "docno"])
+        actual = pt.model.query_columns(df)
+        expected = ["qid", "query", "query_toks"]
+        self.assertEqual(actual, expected)
 
     def test_push_query(self):
         df = pt.new.queries(["q1", "q2"])
