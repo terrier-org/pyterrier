@@ -70,8 +70,8 @@ Supporting Inspection
 -------------------------------------
 
 :ref:`pt.inspect <pyterrier.inspect>` allows users to gather information about live transformer objects, for instance
-input/output specifications. Default implementations for these methods usually work well, but sometimes
-you may need to override them to handle idiosyncratic cases.
+input/output specifications. This can be useful for things like pipeline validation or or drawing schematic diagrams of pipelines.
+Default implementations for these methods usually work well, but sometimes you may need to override them to handle idiosyncratic cases.
 
 You can override the behavior of the following methods by implementing python
 `Protocols <https://typing.python.org/en/latest/spec/protocol.html>`__ (in these cases, it's just adding a
