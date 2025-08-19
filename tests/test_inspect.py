@@ -1,9 +1,8 @@
 import pandas as pd
 import unittest
 import pyterrier as pt
-import warnings
+import inspect
 from .base import BaseTestCase
-from pytest import warns
 
 class TestInspect(BaseTestCase):
 
@@ -11,6 +10,13 @@ class TestInspect(BaseTestCase):
         JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of(self.here + "/fixtures/index/data.properties")
         retr = pt.terrier.Retriever(indexref)
+        textl = pt.text.get_text(pt.get_dataset('irds:vaswani'), "text")
+
+        inputs = pt.inspect.transformer_inputs(retr)
+        self.assertEqual([['qid', 'query'],  ['qid', 'query', 'docno', 'score', 'rank']], inputs)
+        # with a text loader:
+        inputs = pt.inspect.transformer_inputs(retr >> textl)
+        self.assertEqual([['qid', 'query'],  ['qid', 'query', 'docno', 'score', 'rank']], inputs)
 
         # as a retriever
         rank_cols = pt.inspect.transformer_outputs(retr, ["qid", "query"])
@@ -35,7 +41,6 @@ class TestInspect(BaseTestCase):
         self.assertEqual(feat_cols, example_res.columns.tolist())
 
         # with a text loader:
-        textl = pt.text.get_text(pt.get_dataset('irds:vaswani'), "text")
         textl_pipe = retr >> textl
         text_cols = pt.inspect.transformer_outputs(textl_pipe, ["qid", "query"])
         self.assertEqual(rank_cols + ["text"], text_cols)
@@ -51,6 +56,44 @@ class TestInspect(BaseTestCase):
         intersect_cols = pt.inspect.transformer_outputs(intersect_pipe, ["qid", "query"])
         example_res = intersect_pipe.search("what are chemical reactions")
         self.assertEqual(sorted(intersect_cols), sorted(example_res.columns.tolist()))
+
+        subtransformers = pt.inspect.subtransformers(retr)
+        self.assertEqual({}, subtransformers)
+
+        attributes = pt.inspect.transformer_attributes(retr)
+        self.assertEqual([
+            pt.inspect.TransformerAttribute('index_location', retr.indexref),
+            pt.inspect.TransformerAttribute('num_results', 1000),
+            pt.inspect.TransformerAttribute('metadata', ['docno']),
+            pt.inspect.TransformerAttribute('wmodel', 'DPH'),
+            pt.inspect.TransformerAttribute('threads', 1),
+            pt.inspect.TransformerAttribute('verbose', False),
+            pt.inspect.TransformerAttribute('terrierql', 'on'),
+            pt.inspect.TransformerAttribute('parsecontrols', 'on'),
+            pt.inspect.TransformerAttribute('parseql', 'on'),
+            pt.inspect.TransformerAttribute('applypipeline', 'on'),
+            pt.inspect.TransformerAttribute('localmatching', 'on'),
+            pt.inspect.TransformerAttribute('filters', 'on'),
+            pt.inspect.TransformerAttribute('decorate', 'on'),
+            pt.inspect.TransformerAttribute('decorate_batch', 'on'),
+            pt.inspect.TransformerAttribute('querying.processes', 'terrierql:TerrierQLParser,parsecontrols:TerrierQLToControls,parseql:TerrierQLToMatchingQueryTerms,matchopql:MatchingOpQLParser,applypipeline:ApplyTermPipeline,context_wmodel:org.terrier.python.WmodelFromContextProcess,localmatching:LocalManager$ApplyLocalMatching,qe:QueryExpansion,labels:org.terrier.learning.LabelDecorator,filters:LocalManager$PostFilterProcess,decorate:SimpleDecorateProcess'),
+            pt.inspect.TransformerAttribute('querying.postfilters', 'decorate:SimpleDecorate,site:SiteFilter,scope:Scope'),
+            pt.inspect.TransformerAttribute('querying.default.controls', 'wmodel:DPH,parsecontrols:on,parseql:on,applypipeline:on,terrierql:on,localmatching:on,filters:on,decorate:on'),
+            pt.inspect.TransformerAttribute('querying.allowed.controls', 'scope,qe,qemodel,start,end,site,scope,applypipeline'),
+            pt.inspect.TransformerAttribute('termpipelines', 'Stopwords,PorterStemmer'),
+        ], attributes)
+
+        new_retr = pt.inspect.transformer_apply_attributes(retr, num_results=10)
+        self.assertEqual(new_retr.controls['end'], '9')
+
+        subtransformers = pt.inspect.subtransformers(retr >> textl)
+        self.assertEqual({'transformers': [retr, textl]}, subtransformers)
+
+        attributes = pt.inspect.transformer_attributes(retr >> textl)
+        self.assertEqual(attributes, [
+            pt.inspect.TransformerAttribute('transformers', (retr, textl), init_parameter_kind=inspect.Parameter.VAR_POSITIONAL)
+        ], attributes)
+
 
     def test_ltr_pipeline(self):
         import numpy as np

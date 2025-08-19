@@ -212,6 +212,19 @@ class TransformerAttribute:
         init_default_value: The default value of the attribute for the ``__init__`` method (if available) or ``inspect.Parameter.empty`` if not available.
         init_parameter_kind: The kind of the parameter in the ``__init__`` method (if available) or ``None`` if not available.
     """
+    def __init__(
+        self,
+        name: str,
+        value: Any,
+        init_default_value: Any = inspect.Parameter.empty,
+        init_parameter_kind: Optional[inspect._ParameterKind] = None,
+    ):
+        # we need to define __init__ directly to avoid issues with sphinx thinking that self.init_parameter_kind is an alias to inspect.Parameter.empty
+        self.name = name
+        self.value = value
+        self.init_default_value = init_default_value
+        self.init_parameter_kind = init_parameter_kind
+
     name: str
     value: Any
     init_default_value: Any
