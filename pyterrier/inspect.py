@@ -275,6 +275,10 @@ def transformer_attributes(transformer: pt.Transformer) -> List[TransformerAttri
 def transformer_apply_attributes(transformer: pt.Transformer, **kwargs: Any) -> pt.Transformer:
     """Returns a new transformer instance from the provided transformer and updated attributes (as keyword arguments).
 
+    This method is useful for constructing new transformer with some attributes replaced. For instance, when implemeting
+    methods like :meth:`~pyterrier.transformers.SupportsFuseRankCutoff.fuse_rank_cutoff`, you frequently need to replace the
+    ``num_results`` attribute of a transformer with a new value while keeping the remainder of the attributes the same.
+
     This method uses :meth:`~pyterrier.inspect.transformer_attributes` to identify the attributes of the transformer and
     then applies the provided keyword arguments to the transformer attributes. The method then reconstructs the transformer
     by calling its ``__init__`` method with the updated attributes.
