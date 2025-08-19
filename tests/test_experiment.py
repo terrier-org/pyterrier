@@ -187,8 +187,16 @@ class TestExperiment(TempDirTestCase):
             if len(df) == 0:
                 raise ValueError("Empty DataFrame")
             return df.rename(columns={'context' : 'prompt'})
-        print(pt.inspect.transformer_outputs(br0 >> pt.apply.generic(_rename_context), ["qid", "query"]))
-        pt.Experiment([br0 >> pt.apply.generic(_rename_context)], topics, qrels, eval_metrics=[custom_measure], validate='error')
+        with self.assertRaises(KeyError) as ke:
+            with warnings.catch_warnings(record=True) as w:
+            # this should give a warning, as the 'context' column is not present in the output of the br0 transformer, but we cant validate the rename
+            # the experiment will then fail with a KeyError, as the 'context' column is not present in the output of the br0 transformer
+                pt.Experiment([br0 >> pt.apply.generic(_rename_context)], topics, qrels, eval_metrics=[custom_measure], validate='error')
+                # context is not present in the output of the br0 transformer, so we should get a KeyError
+                self.assertIn("context", str(ke.exception))
+                # but we coudlnt validate the rename, so we should get a warning, even if validate='error'
+                self.assertIn("at position 0 failed to validate: Cannot determine output", str(w))
+
         
     def test_mrt(self):
         index = pt.datasets.get_dataset("vaswani").get_index()
