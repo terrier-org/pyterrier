@@ -40,6 +40,68 @@ class TestInspect(BaseTestCase):
         text_cols = pt.inspect.transformer_outputs(textl_pipe, ["qid", "query"])
         self.assertEqual(rank_cols + ["text"], text_cols)
 
+    def test_ltr_pipeline(self):
+        import numpy as np
+
+        feat_res = pd.DataFrame([
+            ["q1", "a", np.array([1,2])],
+            ["q2", "a", np.array([2, 5])],
+            ["q1", "b", np.array([3, 5])],
+            ["q2", "b", np.array([4, 4])],
+            ["q1", "c", np.array([5, 0])]
+        ], columns=["qid", "docno", "features"])
+        qrels = pd.DataFrame([
+            ["q1", "a", 1],
+            ["q1", "b", 0],
+            ["q2", "a", 1],
+            ["q2", "b", 0]
+        ], columns=["qid", "docno", "label"])
+
+        from sklearn.ensemble import RandomForestClassifier
+        rf = RandomForestClassifier()
+        
+
+        pipelines = [
+            pt.ltr.apply_learned_model(rf),
+            pt.ltr.ablate_features(1) >> pt.ltr.apply_learned_model(rf),
+            pt.ltr.keep_features(0) >> pt.ltr.apply_learned_model(rf)
+        ]
+        try:
+            import xgboost as xgb
+            xgparams = {
+                'objective': 'rank:ndcg',
+                'learning_rate': 0.1,
+                'gamma': 1.0, 'min_child_weight': 0.1,
+                'max_depth': 6,
+                'random_state': 42
+            }
+            pipelines.append(pt.ltr.apply_learned_model(xgb.XGBRanker(**xgparams), form="ltr"))
+        except Exception as e:
+            print("xgboost not installed, skipping xgboost pipeline test", e)
+            pass
+
+        try:
+            import fastrank
+            train_request = fastrank.TrainRequest.coordinate_ascent()
+            params = train_request.params
+            params.init_random = True
+            params.normalize = True
+            params.seed = 1234567
+            pipelines.append(pt.ltr.apply_learned_model(train_request, form="fastrank"))
+        except Exception as e: 
+            print("fastrank not installed, skipping xgboost pipeline test", e)
+            pass
+
+        print("testing %d pipelines" % len(pipelines))
+        for pipeline in pipelines:
+            with self.subTest(pipeline=pipeline):
+                print("Testing pipeline:", pipeline)
+                pipeline.fit(feat_res, qrels, feat_res, qrels)
+                result_res = pipeline.transform(feat_res)
+
+                ltr_cols = pt.inspect.transformer_outputs(pipeline, feat_res.columns.tolist())
+                self.assertEqual(ltr_cols, result_res.columns.tolist())
+
     def test_rename(self):
         df = pd.DataFrame({
             'qid': ['1', '2'],
