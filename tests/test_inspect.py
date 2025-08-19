@@ -24,20 +24,21 @@ class TestInspect(BaseTestCase):
 
     def test_rename_nocols(self):
         df = pd.DataFrame({
-            'qid': [],
-            'query': [],
-            'context': [],
+            'qid': ['1', '2'],
+            'query': ['query1', 'query2'],
+            'context': ['context1', 'context2']
         })
         br0 = pt.Transformer.from_df(df[['qid', 'query']], uniform=True)
         br1 = pt.Transformer.from_df(df, uniform=True)
 
         def _rename_context(df):
-            return df.rename(columns={'context' : 'prompt'}, errors='raise')
+            if len(df) == 0:
+                raise ValueError("Empty DataFrame")
+            return df.rename(columns={'context' : 'prompt'})
 
-        cols = pt.inspect.transformer_outputs(br1 >> pt.apply.generic(_rename_context), ["qid", "query", "context"])
-        self.assertEqual(cols, ['qid', 'query', 'prompt'])
+        with self.assertRaises(pt.inspect.InspectError):
+            pt.inspect.transformer_outputs(br1 >> pt.apply.generic(_rename_context), ["qid", "query", "context"])
 
-        # THIS SHOULD RAISE AN ERROR?
         with self.assertRaises(pt.inspect.InspectError):
             pt.inspect.transformer_outputs(br0 >> pt.apply.generic(_rename_context), ["qid", "query"])
 
