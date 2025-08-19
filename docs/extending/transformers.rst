@@ -77,16 +77,16 @@ You can override the behavior of the following methods by implementing python
 `Protocols <https://typing.python.org/en/latest/spec/protocol.html>`__ (in these cases, it's just adding a
 method with a specific signature that implements the same functionality).
 
-+---------------------------------------------------------+-------------------------------------------------------------------------+
-| Override...                                             | By implementing...                                                      |
-+=========================================================+=========================================================================+
-| :meth:`pyterrier.inspect.transformer_inputs`            | :class:`~pyterrier.inspect.ProvidesTransformInputs.transform_inputs`    |
-+---------------------------------------------------------+-------------------------------------------------------------------------+
-| :meth:`pyterrier.inspect.transformer_outputs`           | :class:`~pyterrier.inspect.ProvidesTransformOutputs.transform_outputs`  |
-+---------------------------------------------------------+-------------------------------------------------------------------------+
-| :meth:`pyterrier.inspect.transformer_attributes`        | :class:`~pyterrier.inspect.ProvidesAttributes.attributes`               |
-+---------------------------------------------------------+-------------------------------------------------------------------------+
-| :meth:`pyterrier.inspect.transformer_apply_attributes`  | :class:`~pyterrier.inspect.ProvidesApplyAttributes.apply_attributes`    |
-+---------------------------------------------------------+-------------------------------------------------------------------------+
-| :meth:`pyterrier.inspect.subtransformers`               | :class:`~pyterrier.inspect.ProvidesSubtransformers.subtransformers`     |
-+---------------------------------------------------------+-------------------------------------------------------------------------+
++---------------------------------------------------------+--------------------------------------------------------------------+
+| Override...                                             | By implementing...                                                 |
++=========================================================+====================================================================+
+| :meth:`pyterrier.inspect.transformer_inputs`            | :class:`~pyterrier.inspect.HasTransformInputs.transform_inputs`    |
++---------------------------------------------------------+--------------------------------------------------------------------+
+| :meth:`pyterrier.inspect.transformer_outputs`           | :class:`~pyterrier.inspect.HasTransformOutputs.transform_outputs`  |
++---------------------------------------------------------+--------------------------------------------------------------------+
+| :meth:`pyterrier.inspect.transformer_attributes`        | :class:`~pyterrier.inspect.HasAttributes.attributes`               |
++---------------------------------------------------------+--------------------------------------------------------------------+
+| :meth:`pyterrier.inspect.transformer_apply_attributes`  | :class:`~pyterrier.inspect.HasApplyAttributes.apply_attributes`    |
++---------------------------------------------------------+--------------------------------------------------------------------+
+| :meth:`pyterrier.inspect.subtransformers`               | :class:`~pyterrier.inspect.HasSubtransformers.subtransformers`     |
++---------------------------------------------------------+--------------------------------------------------------------------+

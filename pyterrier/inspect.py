@@ -20,11 +20,11 @@ __all__ = [
     'subtransformers',
     'InspectError',
     'TransformerAttribute',
-    'ProvidesTransformInputs',
-    'ProvidesTransformOutputs',
-    'ProvidesAttributes',
-    'ProvidesApplyAttributes',
-    'ProvidesSubtransformers',
+    'HasTransformInputs',
+    'HasTransformOutputs',
+    'HasAttributes',
+    'HasApplyAttributes',
+    'HasSubtransformers',
 ]
 
 
@@ -91,7 +91,7 @@ def transformer_inputs(
     a resulting ``pt.validate.InputValidationError``. If the transformer does not raise an error, it tries to infer the input columns
     by calling it with a pre-defined set of input columns.
 
-    To handle edge cases, you can implement the :class:`~pyterrier.inspect.ProvidesTransformInputs` protocol, which allows you to define a custom
+    To handle edge cases, you can implement the :class:`~pyterrier.inspect.HasTransformInputs` protocol, which allows you to define a custom
     ``transform_inputs`` method that returns a list of input column configurations accepted by the transformer. ``transform_inputs``
     can also be an attribute instead of a method. In this case, it be a list of lists of input columns (i.e., a list of valid
     input column configurations).
@@ -109,7 +109,7 @@ def transformer_inputs(
         InspectError: If the transformer cannot be inspected and ``strict==True``.
     """
     result = []
-    if isinstance(transformer, ProvidesTransformInputs):
+    if isinstance(transformer, HasTransformInputs):
         if not callable(transformer.transform_inputs):
             result = transformer.transform_inputs
         else:
@@ -156,7 +156,7 @@ def transformer_outputs(
 ) -> Optional[List[str]]:
     """Infers the output columns for a transformer based on the provided input columns.
 
-    If the transformer implements the :class:`~pyterrier.inspect.ProvidesTransformOutputs` protocol,
+    If the transformer implements the :class:`~pyterrier.inspect.HasTransformOutputs` protocol,
     the method calls its ``transform_outputs`` method to determine the output columns. If the transformer does not
     implement the protocol, it attempts to infer the output columns by calling the transformer with an empty DataFrame.
 
@@ -173,7 +173,7 @@ def transformer_outputs(
         InspectError: If the transformer's outputs could not be determined and ``strict==True``.
         pt.validate.InputValidationError: If input validation fails in the transformer and ``strict==True``.
     """
-    if isinstance(transformer, ProvidesTransformOutputs):
+    if isinstance(transformer, HasTransformOutputs):
         try:
             return transformer.transform_outputs(input_columns)
         except pt.validate.InputValidationError:
@@ -228,7 +228,7 @@ def transformer_attributes(transformer: pt.Transformer) -> List[TransformerAttri
     be used to reconstruct the transformer from its attributes, e.g., by calling :meth:`~pyterrier.inspect.transformer_apply_attributes`.
 
     To handle edge cases (e.g., where the ``__init__`` paraemters do not match the attribute names), you can implement
-    the :class:`~pyterrier.inspect.ProvidesAttributes` protocol.
+    the :class:`~pyterrier.inspect.HasAttributes` protocol.
 
     Args:
         transformer: The transformer to inspect.
@@ -239,7 +239,7 @@ def transformer_attributes(transformer: pt.Transformer) -> List[TransformerAttri
     Raises:
         InspectError: If the attributes cannot be identified from the transformer.
     """
-    if isinstance(transformer, ProvidesAttributes):
+    if isinstance(transformer, HasAttributes):
         return transformer.attributes()
     result = []
     signature = inspect.signature(transformer.__class__.__init__)
@@ -267,7 +267,7 @@ def transformer_apply_attributes(transformer: pt.Transformer, **kwargs: Any) -> 
     by calling its ``__init__`` method with the updated attributes.
 
     To handle edge cases (e.g., where the ``__init__`` parameters do not match the attribute names), you can implement
-    the :class:`~pyterrier.inspect.ProvidesApplyAttributes` protocol.
+    the :class:`~pyterrier.inspect.HasApplyAttributes` protocol.
 
     Args:
         transformer: The transformer to apply the attributes to.
@@ -279,7 +279,7 @@ def transformer_apply_attributes(transformer: pt.Transformer, **kwargs: Any) -> 
     Raises:
         InspectError: If an attribute is not found in the transformer or if attributes cannot be identified from the transformer.
     """
-    if isinstance(transformer, ProvidesApplyAttributes):
+    if isinstance(transformer, HasApplyAttributes):
         return transformer.apply_attributes(**kwargs)
     attributes = transformer_attributes(transformer)
     for attr in attributes:
@@ -310,7 +310,7 @@ def subtransformers(transformer: pt.Transformer) -> Dict[str, Union[pt.Transform
     include those used by caches (e.g., ``scorer`` in :class:`pyterrier_caching.ScorerCache`) and the list
     of transformers that are used by a :class:`pyterrier_alpha.fusion.RRFusion` transformer.
 
-    If the transformer implements the :class:`~pyterrier.inspect.ProvidesSubtransformers` protocol,
+    If the transformer implements the :class:`~pyterrier.inspect.HasSubtransformers` protocol,
     the method calls its ``subtransformers`` method to retrieve the subtransformers. If the transformer does not
     implement the protocol, the method inspects the transformer to identify any attributes of a transformer that
     are instance of pt.Transformer (or list/tuple of Transformer), returning a dictionary where the keys
@@ -326,7 +326,7 @@ def subtransformers(transformer: pt.Transformer) -> Dict[str, Union[pt.Transform
     Raises:
         InspectError: If the subtransformers cannot be identified from the transformer.
     """
-    if isinstance(transformer, ProvidesSubtransformers):
+    if isinstance(transformer, HasSubtransformers):
         return transformer.subtransformers()
     result: Dict[str, Union[pt.Transformer, List[pt.Transformer]]] = {}
     for attr in transformer_attributes(transformer):
@@ -338,7 +338,7 @@ def subtransformers(transformer: pt.Transformer) -> Dict[str, Union[pt.Transform
 
 
 @runtime_checkable
-class ProvidesTransformInputs(Protocol):
+class HasTransformInputs(Protocol):
     """Protocol for transformers that provide a ``transform_inputs`` method.
 
     ``transform_inputs`` allows for inspection of the inputs accepted by transformers without needing to run it.
@@ -350,7 +350,7 @@ class ProvidesTransformInputs(Protocol):
     an alternative is that the input columns are determined by calling the transformer with an empty ``DataFrame``.
 
     .. code-block:: python
-        :caption: Example ``transform_inputs`` function, implementing :class:`~pyterrier.inspect.ProvidesTransformInputs`.
+        :caption: Example ``transform_inputs`` function, implementing :class:`~pyterrier.inspect.HasTransformInputs`.
 
         class MyRetriever(pt.Transformer):
 
@@ -373,7 +373,7 @@ class ProvidesTransformInputs(Protocol):
 
 
 @runtime_checkable
-class ProvidesTransformOutputs(Protocol):
+class HasTransformOutputs(Protocol):
     """Protocol for transformers that provide a ``transform_outputs`` method.
 
     ``transform_outputs`` allows for inspection of the outputs of transformers without needing to run it.
@@ -391,7 +391,7 @@ class ProvidesTransformOutputs(Protocol):
     inspect the behavior is undesireable, e.g., if calling the transformer is expensive.
 
     .. code-block:: python
-        :caption: Example ``transform_outputs`` function, implementing :class:`~pyterrier.inspect.ProvidesTransformOutputs`.
+        :caption: Example ``transform_outputs`` function, implementing :class:`~pyterrier.inspect.HasTransformOutputs`.
 
         class MyRetriever(pt.Transformer):
 
@@ -424,7 +424,7 @@ class ProvidesTransformOutputs(Protocol):
 
 
 @runtime_checkable
-class ProvidesAttributes(Protocol):
+class HasAttributes(Protocol):
     """Protocol for transformers that provide an ``attributes`` method.
 
     ``attributes`` allows for identifying the attributes of a transformer without needing to traverse
@@ -441,7 +441,7 @@ class ProvidesAttributes(Protocol):
 
 
 @runtime_checkable
-class ProvidesApplyAttributes(Protocol):
+class HasApplyAttributes(Protocol):
     """Protocol for transformers that provide an ``apply_attributes`` method.
 
     ``apply_attributes`` returns a new transformer with updated attributes (as keyword arguments).
@@ -454,7 +454,7 @@ class ProvidesApplyAttributes(Protocol):
 
 
 @runtime_checkable
-class ProvidesSubtransformers(Protocol):
+class HasSubtransformers(Protocol):
     """Protocol for transformers that provide a ``subtransformers`` method.
 
     ``subtransformers`` allows for identifying subtransformers of a transformer without needing to traverse
