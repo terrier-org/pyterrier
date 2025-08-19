@@ -58,7 +58,7 @@ writing your own transformer, consider implementing the following protocols to a
 +----------------------------------------------------------------------+-----------------------------------------------------------------------------+
 | Combining with a known transformer **before** it in a pipeline       | :class:`~pyterrier.transformer.SupportsFuseLeft.fuse_left`                  |
 +----------------------------------------------------------------------+-----------------------------------------------------------------------------+
-| Combining with a known transformer **before** it in a pipeline       | :class:`~pyterrier.transformer.SupportsFuseRight.fuse_right`                |
+| Combining with a known transformer **after** it in a pipeline        | :class:`~pyterrier.transformer.SupportsFuseRight.fuse_right`                |
 +----------------------------------------------------------------------+-----------------------------------------------------------------------------+
 | Computing multiple scores/features at once (instead of individually) | :class:`~pyterrier.transformer.SupportsFuseFeatureUnion.fuse_feature_union` |
 +----------------------------------------------------------------------+-----------------------------------------------------------------------------+
