@@ -7,6 +7,27 @@ from pytest import warns
 
 class TestInspect(BaseTestCase):
 
+    def test_terrier_retriever(self):
+        JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
+        indexref = JIR.of(self.here + "/fixtures/index/data.properties")
+        retr = pt.terrier.Retriever(indexref)
+
+        # as a retriever
+        rank_cols = pt.inspect.transformer_outputs(retr, ["qid", "query"])
+        example_res = retr.search("what are chemical reactions")
+        self.assertEqual(rank_cols, example_res.columns.tolist())
+
+        # as a reranker
+        rerank_cols = pt.inspect.transformer_outputs(retr, rank_cols)
+        example_res = retr.transform(example_res)
+        self.assertEqual(rerank_cols, example_res.columns.tolist())
+
+        # as a feature pipeline
+        feat_pipe = retr >> (retr ** retr)
+        feat_cols = pt.inspect.transformer_outputs(feat_pipe, ["qid", "query"])
+        example_res = feat_pipe.search("what are chemical reactions")
+        self.assertEqual(feat_cols, example_res.columns.tolist())
+
     def test_rename(self):
         df = pd.DataFrame({
             'qid': ['1', '2'],
