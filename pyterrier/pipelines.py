@@ -616,8 +616,10 @@ def Experiment(
         eval_metrics = list(eval_metrics).copy()
         eval_metrics.remove("mrt")
 
+    # validate the transformers produce the expected columns
     _validate(retr_systems, topics, eval_metrics, names, validate)
 
+    # split the transformers into a common prefix and individual suffixes, improved efficiency
     precompute_time, execution_topics, execution_retr_systems = _precomputation(retr_systems, topics, precompute_prefix, verbose, batch_size)
 
     # progress bar construction
@@ -796,7 +798,7 @@ def _validate(
             raise TypeError("Expected a list of Transformers or DataFrames, but received unexpected type %s for retrieval system at position %d" % (str(type(system)), i))
         
         # apply the ir_measures columns mapping
-        _found_cols = [_irmeasures_columns.get(c,c) for c in found_cols]
+        _found_cols = [_irmeasures_columns.get(c, c) for c in found_cols]
         _found_cols = set(found_cols)
         if required_cols.difference(_found_cols):
             # make the error more user-friendly by mapping the missing columns (from ir_measures) back to the original PyTerrier names
