@@ -40,6 +40,18 @@ class TestInspect(BaseTestCase):
         text_cols = pt.inspect.transformer_outputs(textl_pipe, ["qid", "query"])
         self.assertEqual(rank_cols + ["text"], text_cols)
 
+        # in a linear combination
+        linear_pipe = retr + retr
+        linear_cols = pt.inspect.transformer_outputs(linear_pipe, ["qid", "query"])
+        example_res = linear_pipe.search("what are chemical reactions")
+        self.assertEqual(linear_cols, example_res.columns.tolist())
+
+        # in a set combination
+        intersect_pipe = retr & retr
+        intersect_cols = pt.inspect.transformer_outputs(intersect_pipe, ["qid", "query"])
+        example_res = intersect_pipe.search("what are chemical reactions")
+        self.assertEqual(sorted(intersect_cols), sorted(example_res.columns.tolist()))
+
     def test_ltr_pipeline(self):
         import numpy as np
 
