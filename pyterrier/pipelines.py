@@ -781,28 +781,24 @@ def _validate(
         if isinstance(system, pd.DataFrame):
             found_cols = system.columns.tolist()  
         elif isinstance(system, pt.Transformer):
-            if validate:
-                try:
-                    found_cols = pt.inspect.transformer_outputs(system, input_columns=topics.columns.tolist())
-                    # perhaps in the future, we can check that the metrics have all the columns they need
-                # two exceptions can be raised here:
-                    # InputValidationError (when input validation fails)
-                    # InspectError ...?
-                
-                except pt.validate.InputValidationError as ie:
-                    if validate == 'warn':
-                        warn("%s failed to validate: %s" % (friendly_name, str(ie)))
-                    elif validate == 'error':
-                        raise ValueError("%s failed to validate: %s" % (friendly_name, str(ie))) from ie
+            try:
+                found_cols = pt.inspect.transformer_outputs(system, input_columns=topics.columns.tolist())
+            except pt.inspect.InspectError as ie: # when we cant tell
+                warn("%s failed to validate: %s - if your pipeline works, set validate='ignore' to remove this warning, or add transform_output method to the transformers in this pipeline to clarify how it works" % (friendly_name, str(ie)))
+            except pt.validate.InputValidationError as ie: # (when input validation fails)
+                if validate == 'warn':
+                    warn("%s failed to validate: %s" % (friendly_name, str(ie)))
+                elif validate == 'error':
+                    raise ValueError("%s failed to validate: %s" % (friendly_name, str(ie))) from ie
         else:
-            raise TypeError("Expected a list of Transformers or DataFrames, but received %s for retrieval system at position %d" % (str(type(system)), i))
+            raise TypeError("Expected a list of Transformers or DataFrames, but received unexpected type %s for retrieval system at position %d" % (str(type(system)), i))
         
         # apply the ir_measures columns mapping
         _found_cols = [_irmeasures_columns.get(c,c) for c in found_cols]
         _found_cols = set(found_cols)
         if required_cols.difference(_found_cols):
+            # make the error more user-friendly by mapping the missing columns (from ir_measures) back to the original PyTerrier names
             required_cols_friendly = [_irmeasures_columns_rev.get(c, c) for c in required_cols]
-            # TODO make the error more user-friendly by mapping the missing columns back to the original names
             message = "Transformer %s (%s) at position %i does not produce all required columns %s, found only %s" % (
                 name, str(system), i, str(required_cols_friendly), str(found_cols))
             if validate == 'warn':
