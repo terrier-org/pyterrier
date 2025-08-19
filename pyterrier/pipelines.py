@@ -770,11 +770,10 @@ def _validate(
         return
 
     # convert metrics to a list of Measure objects
-    # TODO: this mapping is already performed in _run_and_evaluate, but we need it here to 
+    # NB: this mapping is already performed in _run_and_evaluate, but we need it here to 
     # validate the transformers; I think its inexpensive
     _metrics, rev_mapping = _convert_measures(eval_metrics)
-    # TODO: i'd expected run_inputs to be exported in the ir_measures namespace, but it is not
-    required_cols = set(ir_measures.DefaultPipeline.run_inputs(_metrics))
+    required_cols = set(ir_measures.run_inputs(_metrics))
 
     for i, (name, system) in enumerate(zip(names, retr_systems)):
         friendly_name = "Transformer %s (%s) at position %i" % (name, str(system), i) if name != str(system) else "Transformer %s at position %i" % (str(system), i)

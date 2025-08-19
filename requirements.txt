@@ -10,7 +10,7 @@ pyjnius>=1.4.2 # used by pt.java to execute Java code, such as Terrier
 deprecated # used for marking APIs as deprecated
 scipy # used for significance testing
 # evaluation related:
-ir_measures>=0.4.0 # used for evaluation measure computation
+ir_measures>=0.4.1 # used for evaluation measure computation
 pytrec_eval_terrier>=0.5.3
 jinja2 # used to get rendering of colour in Pandas by pt.Experiment
 statsmodels # used for multiple testing correction
