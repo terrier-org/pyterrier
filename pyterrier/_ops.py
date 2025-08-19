@@ -438,8 +438,6 @@ class Compose(NAryTransformerBase):
                 configuration['output_columns'] = pt.inspect.transformer_outputs(transformer, configuration['output_columns'], strict=False)
         return [io_cfg['input_columns'] for io_cfg in io_configurations if io_cfg['output_columns'] is not None]
 
-
-
     def transform_outputs(self, input_columns: List[str]) -> List[str]:
         # Figure out the output columns for the given input columns. This is a more direct and robust way of getting the outputs
         # for a composed pipeline than using inspect's default implementation (running an empty dataframe through the whole pipeline)
