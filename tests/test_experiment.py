@@ -181,6 +181,14 @@ class TestExperiment(TempDirTestCase):
         # this should fail, as the 'context' column is not present in the output of the br0 transformer
         with self.assertRaises(ValueError) as ve:
             pt.Experiment([br0 >> pt.apply.rename({'context' : 'prompt'})], topics, qrels, eval_metrics=[custom_measure], validate='error')
+
+        # this one doesnt set expected columns, and doesnt support the empty df trick.
+        def _rename_context(df):
+            if len(df) == 0:
+                raise ValueError("Empty DataFrame")
+            return df.rename(columns={'context' : 'prompt'})
+        print(pt.inspect.transformer_outputs(br0 >> pt.apply.generic(_rename_context), ["qid", "query"]))
+        pt.Experiment([br0 >> pt.apply.generic(_rename_context)], topics, qrels, eval_metrics=[custom_measure], validate='error')
         
     def test_mrt(self):
         index = pt.datasets.get_dataset("vaswani").get_index()
