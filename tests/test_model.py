@@ -45,6 +45,11 @@ class TestModel(BaseTestCase):
         self.assertEqual("q1", df2.iloc[0]["query_0"])
         self.assertEqual("q2", df2.iloc[1]["query_0"])
 
+        df_empty = df.head(0)
+        df2_empty = pt.model.push_queries(df_empty, keep_original=False)
+        self.assertTrue("query_0" in df2_empty.columns)
+        self.assertFalse("query" in df2_empty.columns)
+
         df2 = pt.model.push_queries(df, keep_original=True)
         for col in ["query", "query_0"]:
             self.assertTrue(col in df2.columns)

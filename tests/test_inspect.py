@@ -102,6 +102,15 @@ class TestInspect(BaseTestCase):
                 ltr_cols = pt.inspect.transformer_outputs(pipeline, feat_res.columns.tolist())
                 self.assertEqual(ltr_cols, result_res.columns.tolist())
 
+    def test_rewrite_query(self):
+        df = pd.DataFrame({
+            'qid': ['1', '2'],
+            'query': ['query1', 'query2'],
+        })
+        t = pt.apply.query(lambda x: x["query"] + " context")
+        cols = pt.inspect.transformer_outputs(t, df.columns.tolist())
+        self.assertEqual(cols, t(df).columns.tolist())
+
     def test_rename(self):
         df = pd.DataFrame({
             'qid': ['1', '2'],
