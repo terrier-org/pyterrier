@@ -785,9 +785,11 @@ def _validate(
                 found_cols = pt.inspect.transformer_outputs(system, input_columns=topics.columns.tolist())
             except pt.inspect.InspectError as ie: # when we cant tell
                 warn("%s failed to validate: %s - if your pipeline works, set validate='ignore' to remove this warning, or add transform_output method to the transformers in this pipeline to clarify how it works" % (friendly_name, str(ie)))
+                continue
             except pt.validate.InputValidationError as ie: # (when input validation fails)
                 if validate == 'warn':
                     warn("%s failed to validate: %s" % (friendly_name, str(ie)))
+                    continue
                 elif validate == 'error':
                     raise ValueError("%s failed to validate: %s" % (friendly_name, str(ie))) from ie
         else:
