@@ -22,11 +22,23 @@ class TestInspect(BaseTestCase):
         example_res = retr.transform(example_res)
         self.assertEqual(rerank_cols, example_res.columns.tolist())
 
+        # with prf
+        rm3 = pt.terrier.rewrite.RM3(indexref)
+        prf_cols = pt.inspect.transformer_outputs(rm3, rank_cols)
+        example_res = rm3.transform(example_res)
+        self.assertEqual(prf_cols, example_res.columns.tolist())
+
         # as a feature pipeline
         feat_pipe = retr >> (retr ** retr)
         feat_cols = pt.inspect.transformer_outputs(feat_pipe, ["qid", "query"])
         example_res = feat_pipe.search("what are chemical reactions")
         self.assertEqual(feat_cols, example_res.columns.tolist())
+
+        # with a text loader:
+        textl = pt.text.get_text(pt.get_dataset('irds:vaswani'), "text")
+        textl_pipe = retr >> textl
+        text_cols = pt.inspect.transformer_outputs(textl_pipe, ["qid", "query"])
+        self.assertEqual(rank_cols + ["text"], text_cols)
 
     def test_rename(self):
         df = pd.DataFrame({
