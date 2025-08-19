@@ -177,6 +177,8 @@ class TestExperiment(TempDirTestCase):
         self.assertIn("context_length", eval.columns)
         self.assertEqual(eval.iloc[0]["context_length"], 0.4)  # "here" has length 4, divide by 10 topics in the qrels.
 
+        # check that we can detect a renaming of a column that is missing
+        # this should fail, as the 'context' column is not present in the output of the br0 transformer
         with self.assertRaises(ValueError) as ve:
             pt.Experiment([br0 >> pt.apply.rename({'context' : 'prompt'})], topics, qrels, eval_metrics=[custom_measure], validate='error')
         
