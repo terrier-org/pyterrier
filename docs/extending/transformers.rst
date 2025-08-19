@@ -41,7 +41,7 @@ method if your transformer can benefit from being combined with a :class:`~pyter
 
 .. hint::
     :meth:`~pyterrier.inspect.transformer_apply_attributes` lets you easily construct a new transformer with some attributes
-    replaces (here, ``num_results``). This can be expecially handy when your transformer has a lot of attributes.
+    replaced (here, ``num_results``). This can be expecially handy when your transformer has a lot of attributes.
 
 .. caution::
     The result of fusion methods should be *functionally equivalent* to the original transformer. If the
