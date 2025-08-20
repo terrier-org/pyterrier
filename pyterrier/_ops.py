@@ -2,7 +2,7 @@ from .transformer import Transformer, Estimator, get_transformer, SupportsFuseFe
 from .model import add_ranks
 from collections import deque
 from warnings import warn
-from typing import Optional, Iterable, Tuple, Iterator, List, Dict
+from typing import Optional, Iterable, Tuple, Iterator
 from itertools import chain
 import pandas as pd
 import pyterrier as pt
