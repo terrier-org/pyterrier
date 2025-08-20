@@ -469,7 +469,7 @@ class Retriever(pt.Transformer):
         if self.controls.get('context_wmodel') == 'on':
             return None # we don't store the original wmodel value so we can't reconstruct
         # apply the new k as num_results
-        return pt.inspect.apply_attributes(self, num_results=k)
+        return pt.inspect.transformer_apply_attributes(self, num_results=k)
 
     def fuse_feature_union(self, other: pt.Transformer, is_left: bool) -> Optional[pt.Transformer]:
         if isinstance(other, Retriever) and \

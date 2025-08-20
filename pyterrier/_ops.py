@@ -2,7 +2,7 @@ from .transformer import Transformer, Estimator, get_transformer, SupportsFuseFe
 from .model import add_ranks
 from collections import deque
 from warnings import warn
-from typing import Optional, Iterable, Tuple, Iterator, List
+from typing import Optional, Iterable, Tuple, Iterator, List, Dict
 from itertools import chain
 import pandas as pd
 import pyterrier as pt
@@ -424,12 +424,15 @@ class Compose(NAryTransformerBase):
     def transform_inputs(self) -> List[List[str]]:
         # The first transformer in the pipeline may accept multiple input configurations, but not all of these
         # may work for the rest of the pipeline. So find out which (if any) of the input configurations work.
-        io_configurations = [
+        transformer_inputs = pt.inspect.transformer_inputs(self._transformers[0])
+        if not transformer_inputs:
+            return []
+        io_configurations: Dict[str, Optional[List[str]]] = [
             {
                 'input_columns': input_columns,
                 'output_columns': input_columns,
             }
-            for input_columns in pt.inspect.transformer_inputs(self._transformers[0])
+            for input_columns in transformer_inputs
         ]
         for transformer in self:
             for configuration in io_configurations:
