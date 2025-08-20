@@ -257,6 +257,8 @@ def transformer_attributes(transformer: pt.Transformer) -> List[TransformerAttri
     result = []
     signature = inspect.signature(transformer.__class__.__init__)
     for p in list(signature.parameters.values())[1:]: # [1:] to skip first arg ("self") which is bound to the instance.
+        if p.name.startswith('_'):
+            continue # Skip private constructor parameters
         if hasattr(transformer, f'_{p.name}'):
             val = getattr(transformer, f'_{p.name}')
         elif hasattr(transformer, p.name):
