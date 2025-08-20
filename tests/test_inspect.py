@@ -7,7 +7,7 @@ from .base import BaseTestCase
 class TestInspect(BaseTestCase):
 
     def assertSortedEquals(self, arr1, arr2):
-        self.assertEquals(sorted(arr1), sorted(arr2)
+        self.assertEquals(sorted(arr1), sorted(arr2))
 
     def test_terrier_retriever(self):
         JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
