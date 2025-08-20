@@ -759,7 +759,7 @@ def _validate(
         retr_systems : Sequence[SYSTEM_OR_RESULTS_TYPE], 
         topics : pd.DataFrame, 
         eval_metrics : MEASURES_TYPE, 
-        names : List[str], 
+        names : Sequence[str], 
         validate : VALIDATE_TYPE):
     
     if validate == 'ignore':
@@ -770,8 +770,8 @@ def _validate(
     # validate the transformers; I think its inexpensive
     _metrics, rev_mapping = _convert_measures(eval_metrics)
 
-    required_cols = ir_measures.run_inputs(_metrics) # find required columns for the measures (usually: query_id, doc_id, score)
-    required_cols = set(pt.model.from_ir_measures(required_cols)) # convert to pyterrier naming conventions (usually: qid, docno, score)
+    required_cols = set(ir_measures.run_inputs(_metrics)) # find required columns for the measures (usually: query_id, doc_id, score)
+    required_cols = set(list(pt.model.from_ir_measures(required_cols))) # convert to pyterrier naming conventions (usually: qid, docno, score)
 
     for i, (name, system) in enumerate(zip(names, retr_systems)):
         friendly_name = "Transformer %s (%s) at position %i" % (name, str(system), i) if name != str(system) else "Transformer %s at position %i" % (str(system), i)
@@ -780,7 +780,7 @@ def _validate(
             found_cols = system.columns.tolist()  
         elif isinstance(system, pt.Transformer):
             try:
-                found_cols = pt.inspect.transformer_outputs(system, input_columns=topics.columns.tolist())
+                found_cols = pt.inspect.transformer_outputs(system, input_columns=topics.columns.tolist()) or [] # or [] will never be called, but is needed to make mypy happy
             except pt.inspect.InspectError as ie: # when we cant tell
                 warn("%s failed to validate: %s - if your pipeline works, set validate='ignore' to remove this warning, or add transform_output method to the transformers in this pipeline to clarify how it works" % (friendly_name, str(ie)))
                 continue
