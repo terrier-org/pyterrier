@@ -73,11 +73,12 @@ def query_columns(df : pd.DataFrame, qid=True) -> Sequence[str]:
         rtr.append("qid")
     if "query" in columns:
         rtr.append("query")
-    import re
-    query_col_re = re.compile('^query_[\\d]+')
     for c in columns:
-        if query_col_re.search(c):
+        if c.startswith("q") and c not in rtr:
+            if c == 'qid' and not qid:
+                continue
             rtr.append(c)
+    import re
     saved_docs_col_re = re.compile('^stashed_results_[\\d]+')
     for c in columns:
         if saved_docs_col_re.search(c):
