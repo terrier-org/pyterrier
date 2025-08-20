@@ -2,7 +2,7 @@ from .transformer import Transformer, Estimator, get_transformer, SupportsFuseFe
 from .model import add_ranks
 from collections import deque
 from warnings import warn
-from typing import Optional, Iterable, Tuple, Iterator, List
+from typing import Optional, Iterable, Tuple, Iterator
 from itertools import chain
 import pandas as pd
 import pyterrier as pt
@@ -421,7 +421,7 @@ class Compose(NAryTransformerBase):
             return out[0]
         return Compose(*out)
 
-    def transform_inputs(self) -> List[List[str]]:
+    def transform_inputs(self):
         # The first transformer in the pipeline may accept multiple input configurations, but not all of these
         # may work for the rest of the pipeline. So find out which (if any) of the input configurations work.
         io_configurations = [
@@ -438,7 +438,7 @@ class Compose(NAryTransformerBase):
                 configuration['output_columns'] = pt.inspect.transformer_outputs(transformer, configuration['output_columns'], strict=False)
         return [io_cfg['input_columns'] for io_cfg in io_configurations if io_cfg['output_columns'] is not None]
 
-    def transform_outputs(self, input_columns: List[str]) -> List[str]:
+    def transform_outputs(self, input_columns):
         # Figure out the output columns for the given input columns. This is a more direct and robust way of getting the outputs
         # for a composed pipeline than using inspect's default implementation (running an empty dataframe through the whole pipeline)
         # since it can leverage `transform_outputs` implementation of each transformer.

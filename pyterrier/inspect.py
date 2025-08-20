@@ -212,6 +212,19 @@ class TransformerAttribute:
         init_default_value: The default value of the attribute for the ``__init__`` method (if available) or ``inspect.Parameter.empty`` if not available.
         init_parameter_kind: The kind of the parameter in the ``__init__`` method (if available) or ``None`` if not available.
     """
+    def __init__(
+        self,
+        name: str,
+        value: Any,
+        init_default_value: Any = inspect.Parameter.empty,
+        init_parameter_kind: Optional[inspect._ParameterKind] = None,
+    ):
+        # we need to define __init__ directly to avoid issues with sphinx thinking that self.init_parameter_kind is an alias to inspect.Parameter.empty
+        self.name = name
+        self.value = value
+        self.init_default_value = init_default_value
+        self.init_parameter_kind = init_parameter_kind
+
     name: str
     value: Any
     init_default_value: Any
@@ -244,6 +257,8 @@ def transformer_attributes(transformer: pt.Transformer) -> List[TransformerAttri
     result = []
     signature = inspect.signature(transformer.__class__.__init__)
     for p in list(signature.parameters.values())[1:]: # [1:] to skip first arg ("self") which is bound to the instance.
+        if p.name.startswith('_'):
+            continue # Skip private constructor parameters
         if hasattr(transformer, f'_{p.name}'):
             val = getattr(transformer, f'_{p.name}')
         elif hasattr(transformer, p.name):
@@ -261,6 +276,10 @@ def transformer_attributes(transformer: pt.Transformer) -> List[TransformerAttri
 
 def transformer_apply_attributes(transformer: pt.Transformer, **kwargs: Any) -> pt.Transformer:
     """Returns a new transformer instance from the provided transformer and updated attributes (as keyword arguments).
+
+    This method is useful for constructing new transformer with some attributes replaced. For instance, when implemeting
+    methods like :meth:`~pyterrier.transformers.SupportsFuseRankCutoff.fuse_rank_cutoff`, you frequently need to replace the
+    ``num_results`` attribute of a transformer with a new value while keeping the remainder of the attributes the same.
 
     This method uses :meth:`~pyterrier.inspect.transformer_attributes` to identify the attributes of the transformer and
     then applies the provided keyword arguments to the transformer attributes. The method then reconstructs the transformer

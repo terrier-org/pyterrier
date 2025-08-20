@@ -469,8 +469,7 @@ class Retriever(pt.Transformer):
         if self.controls.get('context_wmodel') == 'on':
             return None # we don't store the original wmodel value so we can't reconstruct
         # apply the new k as num_results
-        return Retriever(self.indexref, controls=self.controls, properties=self.properties, metadata=self.metadata,
-            num_results=k, wmodel=self.controls["wmodel"], threads=self.threads, verbose=self.verbose)
+        return pt.inspect.transformer_apply_attributes(self, num_results=k)
 
     def fuse_feature_union(self, other: pt.Transformer, is_left: bool) -> Optional[pt.Transformer]:
         if isinstance(other, Retriever) and \
@@ -483,6 +482,44 @@ class Retriever(pt.Transformer):
             return FeaturesRetriever(self.indexref, features, controls=controls, properties=self.properties,
                 metadata=self.metadata, threads=self.threads, verbose=self.verbose)
         return None
+
+    def attributes(self):
+        if 'wmodel' in self.controls:
+            wmodel = self.controls['wmodel']
+        elif self.controls.get('context_wmodel') == 'on':
+            wmodel = self.search_context['context_wmodel']
+        return [
+            pt.inspect.TransformerAttribute('index_location', self.indexref),
+            pt.inspect.TransformerAttribute('num_results', int(self.controls.get('end', '999')) + 1),
+            pt.inspect.TransformerAttribute('metadata', self.metadata),
+            pt.inspect.TransformerAttribute('wmodel', wmodel),
+            pt.inspect.TransformerAttribute('threads', self.threads),
+            pt.inspect.TransformerAttribute('verbose', self.verbose),
+        ] + [
+            pt.inspect.TransformerAttribute(key, value)
+            for key, value in self.controls.items()
+            if key not in ('end', 'wmodel')
+        ] + [
+            pt.inspect.TransformerAttribute(key, value)
+            for key, value in self.properties.items()
+        ]
+
+    def apply_attributes(self, **kwargs):
+        for attr in self.attributes():
+            if attr.name not in kwargs:
+                kwargs[attr.name] = attr.value
+        kwargs['controls'] = {}
+        kwargs['properties'] = {}
+        for key, value in list(kwargs.items()):
+            if key in ('index_location', 'controls', 'properties', 'metadata', 'num_results', 'wmodel', 'threads', 'verbose'):
+                pass
+            elif key in self.properties:
+                kwargs['properties'][key] = value
+                del kwargs[key]
+            else:
+                kwargs['controls'][key] = value
+                del kwargs[key]
+        return Retriever(**kwargs)
 
 
 @pt.java.required

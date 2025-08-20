@@ -41,7 +41,7 @@ method if your transformer can benefit from being combined with a :class:`~pyter
 
 .. hint::
     :meth:`~pyterrier.inspect.transformer_apply_attributes` lets you easily construct a new transformer with some attributes
-    replaces (here, ``num_results``). This can be expecially handy when your transformer has a lot of attributes.
+    replaced (here, ``num_results``). This can be expecially handy when your transformer has a lot of attributes.
 
 .. caution::
     The result of fusion methods should be *functionally equivalent* to the original transformer. If the
@@ -58,7 +58,7 @@ writing your own transformer, consider implementing the following protocols to a
 +----------------------------------------------------------------------+-----------------------------------------------------------------------------+
 | Combining with a known transformer **before** it in a pipeline       | :class:`~pyterrier.transformer.SupportsFuseLeft.fuse_left`                  |
 +----------------------------------------------------------------------+-----------------------------------------------------------------------------+
-| Combining with a known transformer **before** it in a pipeline       | :class:`~pyterrier.transformer.SupportsFuseRight.fuse_right`                |
+| Combining with a known transformer **after** it in a pipeline        | :class:`~pyterrier.transformer.SupportsFuseRight.fuse_right`                |
 +----------------------------------------------------------------------+-----------------------------------------------------------------------------+
 | Computing multiple scores/features at once (instead of individually) | :class:`~pyterrier.transformer.SupportsFuseFeatureUnion.fuse_feature_union` |
 +----------------------------------------------------------------------+-----------------------------------------------------------------------------+
@@ -70,8 +70,8 @@ Supporting Inspection
 -------------------------------------
 
 :ref:`pt.inspect <pyterrier.inspect>` allows users to gather information about live transformer objects, for instance
-input/output specifications. Default implementations for these methods usually work well, but sometimes
-you may need to override them to handle idiosyncratic cases.
+input/output specifications. This can be useful for things like pipeline validation or or drawing schematic diagrams of pipelines.
+Default implementations for these methods usually work well, but sometimes you may need to override them to handle idiosyncratic cases.
 
 You can override the behavior of the following methods by implementing python
 `Protocols <https://typing.python.org/en/latest/spec/protocol.html>`__ (in these cases, it's just adding a

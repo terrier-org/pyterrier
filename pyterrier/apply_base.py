@@ -435,6 +435,12 @@ class ApplyQueryTransformer(pt.Transformer):
             outputRes = pt.model.push_queries(inp.copy(), inplace=True, keep_original=True)
         else:
             outputRes = inp.copy()
+
+        # handle empty DataFrame case
+        if len(outputRes) == 0:
+            outputRes["query"] = pd.Series(dtype='object')
+            return outputRes
+        
         try:
             if self.verbose:
                 pt.tqdm.pandas(desc="pt.apply.query", unit="d")
