@@ -37,6 +37,7 @@ Welcome to PyTerrier's documentation!
    apply
    new
    debug
+   inspect
 
 .. include:: ./_includes/ext_toc.rst
 

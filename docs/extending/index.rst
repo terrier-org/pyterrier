@@ -12,6 +12,7 @@ PyTerrier is designed to be extensible. This section describes how to extend PyT
    :maxdepth: 1
 
    packages
+   transformers
    datasets
    indexer_retrieval
    validate
