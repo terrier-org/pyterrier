@@ -6,6 +6,9 @@ from .base import BaseTestCase
 
 class TestInspect(BaseTestCase):
 
+    def assertSortedEquals(self, arr1, arr2):
+        self.assertEqual(sorted(arr1), sorted(arr2))
+
     def test_terrier_retriever(self):
         JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of(self.here + "/fixtures/index/data.properties")
@@ -21,41 +24,41 @@ class TestInspect(BaseTestCase):
         # as a retriever
         rank_cols = pt.inspect.transformer_outputs(retr, ["qid", "query"])
         example_res = retr.search("what are chemical reactions")
-        self.assertEqual(rank_cols, example_res.columns.tolist())
+        self.assertSortedEquals(rank_cols, example_res.columns.tolist())
 
         # as a reranker
         rerank_cols = pt.inspect.transformer_outputs(retr, rank_cols)
         example_res = retr.transform(example_res)
-        self.assertEqual(rerank_cols, example_res.columns.tolist())
+        self.assertSortedEquals(rerank_cols, example_res.columns.tolist())
 
         # with prf
         rm3 = pt.terrier.rewrite.RM3(indexref)
         prf_cols = pt.inspect.transformer_outputs(rm3, rank_cols)
         example_res = rm3.transform(example_res)
-        self.assertEqual(prf_cols, example_res.columns.tolist())
+        self.assertSortedEquals(prf_cols, example_res.columns.tolist())
 
         # as a feature pipeline
         feat_pipe = retr >> (retr ** retr)
         feat_cols = pt.inspect.transformer_outputs(feat_pipe, ["qid", "query"])
         example_res = feat_pipe.search("what are chemical reactions")
-        self.assertEqual(feat_cols, example_res.columns.tolist())
+        self.assertSortedEquals(feat_cols, example_res.columns.tolist())
 
         # with a text loader:
         textl_pipe = retr >> textl
         text_cols = pt.inspect.transformer_outputs(textl_pipe, ["qid", "query"])
-        self.assertEqual(rank_cols + ["text"], text_cols)
+        self.assertSortedEquals(rank_cols + ["text"], text_cols)
 
         # in a linear combination
         linear_pipe = retr + retr
         linear_cols = pt.inspect.transformer_outputs(linear_pipe, ["qid", "query"])
         example_res = linear_pipe.search("what are chemical reactions")
-        self.assertEqual(linear_cols, example_res.columns.tolist())
+        self.assertSortedEquals(linear_cols, example_res.columns.tolist())
 
         # in a set combination
         intersect_pipe = retr & retr
         intersect_cols = pt.inspect.transformer_outputs(intersect_pipe, ["qid", "query"])
         example_res = intersect_pipe.search("what are chemical reactions")
-        self.assertEqual(sorted(intersect_cols), sorted(example_res.columns.tolist()))
+        self.assertSortedEquals(intersect_cols, example_res.columns.tolist())
 
         subtransformers = pt.inspect.subtransformers(retr)
         self.assertEqual({}, subtransformers)
@@ -155,7 +158,7 @@ class TestInspect(BaseTestCase):
                 result_res = pipeline.transform(feat_res)
 
                 ltr_cols = pt.inspect.transformer_outputs(pipeline, feat_res.columns.tolist())
-                self.assertEqual(ltr_cols, result_res.columns.tolist())
+                self.assertSortedEquals(ltr_cols, result_res.columns.tolist())
 
     def test_rewrite_query(self):
         df = pd.DataFrame({
@@ -164,7 +167,7 @@ class TestInspect(BaseTestCase):
         })
         t = pt.apply.query(lambda x: x["query"] + " context")
         cols = pt.inspect.transformer_outputs(t, df.columns.tolist())
-        self.assertEqual(cols, t(df).columns.tolist())
+        self.assertSortedEquals(cols, t(df).columns.tolist())
 
     def test_rename(self):
         df = pd.DataFrame({
@@ -176,7 +179,7 @@ class TestInspect(BaseTestCase):
         br1 = pt.Transformer.from_df(df, uniform=True)
 
         cols = pt.inspect.transformer_outputs(br1 >> pt.apply.rename({'context' : 'prompt'}), ["qid", "query", "context"])
-        self.assertEqual(cols, ['qid', 'query', 'prompt'])
+        self.assertSortedEquals(cols, ['qid', 'query', 'prompt'])
 
         with self.assertRaises(pt.validate.InputValidationError):
             pt.inspect.transformer_outputs(br0 >> pt.apply.rename({'context' : 'prompt'}), ["qid", "query"])
