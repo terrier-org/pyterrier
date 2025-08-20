@@ -154,7 +154,50 @@ class TestExperiment(TempDirTestCase):
         with self.assertRaises(TypeError):
             pt.Experiment(brs, topics, qrels, eval_metrics=["map"], filter_qrels=True)
         
+    def test_expected_columns(self):
+        br0 = pt.Transformer.from_df(pd.DataFrame([{'qid' : '1', 'query' : 'hello'}]), uniform=True)
+        br1 = pt.Transformer.from_df(pd.DataFrame([{'qid' : '1', 'query' : 'hello', "context" : "here"}]), uniform=True)
 
+        topics = pt.datasets.get_dataset("vaswani").get_topics().head(10)
+        qrels =  pt.datasets.get_dataset("vaswani").get_qrels()
+        # check that we have the expected columns
+        with self.assertRaises(ValueError) as ve:
+            pt.Experiment([br1], topics, qrels, eval_metrics=["map"], validate='error')
+            self.assertIn("Transformer", str(ve.exception))
+            self.assertIn("does not produce all required columns", str(ve.exception))
+
+        # lets make a custom measure that requires the 'context' column
+        import ir_measures
+        custom_measure = ir_measures.define_byquery(lambda qrels, run: len(run.iloc[0]["context"]), run_inputs=['context'], name='context_length')
+        with self.assertRaises(ValueError) as ve:
+            pt.Experiment([br0], topics, qrels, eval_metrics=[custom_measure], validate='error')
+            self.assertIn("Transformer", str(ve.exception))
+            self.assertIn("does not produce all required columns", str(ve.exception))
+        eval = pt.Experiment([br1], topics, qrels, eval_metrics=[custom_measure], validate='error')
+        self.assertIn("context_length", eval.columns)
+        self.assertEqual(eval.iloc[0]["context_length"], 0.4)  # "here" has length 4, divide by 10 topics in the qrels.
+
+        # check that we can detect a renaming of a column that is missing
+        # this should fail, as the 'context' column is not present in the output of the br0 transformer
+        with self.assertRaises(ValueError) as ve:
+            pt.Experiment([br0 >> pt.apply.rename({'context' : 'prompt'})], topics, qrels, eval_metrics=[custom_measure], validate='error')
+
+        # this one doesnt set expected columns, and doesnt support the empty df trick.
+        def _rename_context(df):
+            if len(df) == 0:
+                raise ValueError("Empty DataFrame")
+            return df.rename(columns={'context' : 'prompt'})
+        with self.assertRaises(KeyError) as ke:
+            with warnings.catch_warnings(record=True) as w:
+            # this should give a warning, as the 'context' column is not present in the output of the br0 transformer, but we cant validate the rename
+            # the experiment will then fail with a KeyError, as the 'context' column is not present in the output of the br0 transformer
+                pt.Experiment([br0 >> pt.apply.generic(_rename_context)], topics, qrels, eval_metrics=[custom_measure], validate='error')
+                # context is not present in the output of the br0 transformer, so we should get a KeyError
+                self.assertIn("context", str(ke.exception))
+                # but we coudlnt validate the rename, so we should get a warning, even if validate='error'
+                self.assertIn("at position 0 failed to validate: Cannot determine output", str(w))
+
+        
     def test_mrt(self):
         index = pt.datasets.get_dataset("vaswani").get_index()
         brs = [
