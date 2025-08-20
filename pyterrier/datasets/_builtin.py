@@ -4,7 +4,7 @@ import requests
 import pyterrier as pt
 
 
-TERRIER_DATA_BASE="http://data.terrier.org/indices/"
+TERRIER_DATA_BASE="http://data-terrier-org.apps.os.dcs.gla.ac.uk/indices/"
 STANDARD_TERRIER_INDEX_FILES = [
     "data.direct.bf",
     "data.document.fsarrayfile",
@@ -28,7 +28,7 @@ def passage_generate(dataset):
 def _datarepo_index(self, component, variant=None, version='latest', **kwargs):
     if variant is None:
         raise ValueError(f"Must specify index variant for {self.name}. See http://data.terrier.org/{self.name}.dataset.html")
-    urlprefix= f"http://data.terrier.org/indices/{self.name}/{variant}/{version}/"
+    urlprefix= f"http://data-terrier-org.apps.os.dcs.gla.ac.uk/indices/{self.name}/{variant}/{version}/"
     url = urlprefix + "files"
     try:
         r = requests.get(url, **kwargs)

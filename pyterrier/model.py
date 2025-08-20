@@ -289,10 +289,10 @@ def from_ir_measures(inp: pd.DataFrame) -> pd.DataFrame: ...
 @overload
 def from_ir_measures(inp: Dict[str, Any]) -> Dict[str, Any]: ...
 @overload
-def from_ir_measures(inp: Sequence[str]) -> Sequence[str]: ...
+def from_ir_measures(inp: List[str]) -> List[str]: ...
 def from_ir_measures(
-    inp: Union[str, pd.DataFrame, Dict[str, Any], Sequence[str]],
-) -> Union[str, pd.DataFrame, Dict[str, Any], Sequence[str]]:
+    inp: Union[str, pd.DataFrame, Dict[str, Any], List[str]],
+) -> Union[str, pd.DataFrame, Dict[str, Any], List[str]]:
     """This function maps ir-measues column names to PyTerrier column names.
 
     It's useful when converting between PyTerrier and ir-measures data formats.
@@ -323,10 +323,10 @@ def to_ir_measures(inp: pd.DataFrame) -> pd.DataFrame: ...
 @overload
 def to_ir_measures(inp: Dict[str, Any]) -> Dict[str, Any]: ...
 @overload
-def to_ir_measures(inp: Sequence[str]) -> Sequence[str]: ...
+def to_ir_measures(inp: List[str]) -> List[str]: ...
 def to_ir_measures(
-    inp: Union[str, pd.DataFrame, Dict[str, Any], Sequence[str]],
-) -> Union[str, pd.DataFrame, Dict[str, Any], Sequence[str]]:
+    inp: Union[str, pd.DataFrame, Dict[str, Any], List[str]],
+) -> Union[str, pd.DataFrame, Dict[str, Any], List[str]]:
     """This function maps PyTerrier column names to ir-measures column names.
 
     It's useful when converting between PyTerrier and ir-measures data formats.
