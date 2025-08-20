@@ -74,7 +74,7 @@ def query_columns(df : pd.DataFrame, qid=True) -> Sequence[str]:
     if "query" in columns:
         rtr.append("query")
     for c in columns:
-        if c.startswith("q") and not c in rtr:
+        if c.startswith("q") and c not in rtr:
             if c == 'qid' and not qid:
                 continue
             rtr.append(c)
