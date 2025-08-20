@@ -54,12 +54,6 @@ def _color_cols(data : pd.Series, col_type,
     is_max[len(data) - list(reversed(data)).index(max_value) -  1] = colormaxlast_attr
     return is_max
 
-_irmeasures_columns = {
-    'qid' : 'query_id',
-    'docno' : 'doc_id'
-}
-_irmeasures_columns_rev = {v: k for k, v in _irmeasures_columns.items()}
-
 def _mean_of_measures(result, measures=None, num_q = None):
         if len(result) == 0:
             raise ValueError("No measures received - perhaps qrels and topics had no results in common")
@@ -296,7 +290,7 @@ def _run_and_evaluate(
         pbar = pt.tqdm(disable=True)
 
     metrics, rev_mapping = _convert_measures(metrics)
-    qrels = qrels.rename(columns={'qid': 'query_id', 'docno': 'doc_id', 'label': 'relevance'})
+    qrels = pt.model.to_ir_measures(qrels)
     from timeit import default_timer as timer
     runtime : float = 0.
     num_q = qrels['query_id'].nunique()
@@ -336,7 +330,7 @@ def _run_and_evaluate(
             else:
                 raise ValueError("%d topics, but no results in dataframe" % len(topics))
         evalMeasuresDict = _ir_measures_to_dict(
-            ir_measures.iter_calc(metrics, qrels, res.rename(columns=_irmeasures_columns)), 
+            ir_measures.iter_calc(metrics, qrels, pt.model.to_ir_measures(res)),
             metrics,
             rev_mapping,
             num_q,
@@ -373,7 +367,7 @@ def _run_and_evaluate(
             raise ValueError("%d topics, but no results received from %s" % (len(topics), str(system)) )
 
         evalMeasuresDict = _ir_measures_to_dict(
-            ir_measures.iter_calc(metrics, qrels, res.rename(columns=_irmeasures_columns)), 
+            ir_measures.iter_calc(metrics, qrels, pt.model.to_ir_measures(res)),
             metrics,
             rev_mapping,
             num_q,
@@ -410,7 +404,7 @@ def _run_and_evaluate(
                 remaining_qrel_qids.difference_update(batch_qids)
                 batch_backfill = [qid for qid in backfill_qids if qid in batch_qids] if backfill_qids is not None else None
                 evalMeasuresDict.update(_ir_measures_to_dict( # type: ignore[arg-type]
-                    ir_measures.iter_calc(metrics, batch_qrels, res.rename(columns=_irmeasures_columns)),
+                    ir_measures.iter_calc(metrics, batch_qrels, pt.model.to_ir_measures(res)),
                     metrics,
                     rev_mapping,
                     num_q,
@@ -775,7 +769,9 @@ def _validate(
     # NB: this mapping is already performed in _run_and_evaluate, but we need it here to 
     # validate the transformers; I think its inexpensive
     _metrics, rev_mapping = _convert_measures(eval_metrics)
-    required_cols = set(ir_measures.run_inputs(_metrics))
+
+    required_cols = ir_measures.run_inputs(_metrics) # find required columns for the measures (usually: query_id, doc_id, score)
+    required_cols = set(pt.model.from_ir_measures(required_cols)) # convert to pyterrier naming conventions (usually: qid, docno, score)
 
     for i, (name, system) in enumerate(zip(names, retr_systems)):
         friendly_name = "Transformer %s (%s) at position %i" % (name, str(system), i) if name != str(system) else "Transformer %s at position %i" % (str(system), i)
@@ -796,15 +792,10 @@ def _validate(
                     raise ValueError("%s failed to validate: %s" % (friendly_name, str(ie))) from ie
         else:
             raise TypeError("Expected a list of Transformers or DataFrames, but received unexpected type %s for retrieval system at position %d" % (str(type(system)), i))
-        
-        # apply the ir_measures columns mapping
-        _found_cols = [_irmeasures_columns.get(c, c) for c in found_cols]
-        _found_cols = set(found_cols)
-        if required_cols.difference(_found_cols):
-            # make the error more user-friendly by mapping the missing columns (from ir_measures) back to the original PyTerrier names
-            required_cols_friendly = [_irmeasures_columns_rev.get(c, c) for c in required_cols]
+
+        if required_cols.difference(found_cols):
             message = "Transformer %s (%s) at position %i does not produce all required columns %s, found only %s" % (
-                name, str(system), i, str(required_cols_friendly), str(found_cols))
+                name, str(system), i, str(list(required_cols)), str(found_cols))
             if validate == 'warn':
                 warn(message)
             elif validate == 'error':
