@@ -56,6 +56,8 @@ class SetUnion(Transformer):
         self.left = left
         self.right = right
 
+    schematic = {'label': 'SetUnion |'}
+
     def transform(self, topics):
         res1 = self.left.transform(topics)
         res2 = self.right.transform(topics)
@@ -82,6 +84,8 @@ class SetIntersection(Transformer):
     def __init__(self, left: Transformer, right: Transformer):
         self.left = left
         self.right = right
+
+    schematic = {'label': 'SetIntersection &'}
 
     def transform(self, topics):
         res1 = self.left.transform(topics)
@@ -111,6 +115,8 @@ class Sum(Transformer):
     def __init__(self, left: Transformer, right: Transformer):
         self.left = left
         self.right = right
+
+    schematic = {'label': 'Sum +'}
 
     def transform(self, topics_and_res):
         res1 = self.left.transform(topics_and_res)
@@ -176,6 +182,9 @@ class ScalarProduct(Transformer):
         if self.scalar < 0:
             out = add_ranks(out)
         return out
+    
+    def schematic(self, *, input_columns = None): 
+        return {'label': f'* {self.scalar}'}
 
     def __repr__(self):
         return f'ScalarProduct({self.scalar!r})'
@@ -195,6 +204,9 @@ class RankCutoff(Transformer):
 
     def __repr__(self):
         return f'RankCutoff({self.k!r})'
+    
+    def schematic(self, *, input_columns = None): 
+        return {'label': f'* {self.scalar}'}
 
     def fuse_left(self, left: Transformer) -> Optional[Transformer]:
         # If the preceding component supports a native rank cutoff (via fuse_rank_cutoff), apply it.

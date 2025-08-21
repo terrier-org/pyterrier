@@ -101,6 +101,8 @@ class SDM(pt.Transformer):
         assert pt.terrier.check_version("5.3")
         self.ApplyTermPipeline_stopsonly = pt.terrier.J.ApplyTermPipeline('Stopwords')
 
+    schematic = {'label': 'SDM'}
+
     def __repr__(self):
         return "SDM()"
 

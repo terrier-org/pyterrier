@@ -103,7 +103,7 @@ def transformer_schematic(
     input_columns: Optional[List[str]] = _INFER,
     default: bool = False,
 ) -> dict:
-    """Builds a structured schematic of the trnasformer."""
+    """Builds a structured schematic of the transformer."""
     if input_columns is _INFER:
         input_columns = pta.inspect.transformer_inputs(transformer, single=True, strict=False)
     if not default and isinstance(transformer, HasSchematic):
@@ -120,21 +120,6 @@ def transformer_schematic(
         }
     _apply_default_schematic(schematic, transformer, input_columns=input_columns)
     return schematic
-
-
-# A few temporary shims:
-#   (these will need to be moved to the approprate place and/or implemented correctly)
-
-pt.terrier.Retriever.schematic = lambda self, *, input_columns:  {'label': self.controls['wmodel']}
-pt._ops.RankCutoff.schematic = lambda self, *, input_columns: {'label': f'% {self.k}'}
-pt._ops.ScalarProduct.schematic = lambda self, *, input_columns: {'label': f'* {self.scalar}'}
-pt._ops.SetIntersection.schematic = {'label': 'SetIntersection &'}
-pt._ops.SetUnion.schematic = {'label': 'SetUnion |'}
-pt._ops.Sum.schematic = {'label': 'Sum +'}
-pt.rewrite.SequentialDependence.schematic = {'label': 'SDM'}
-
-
-
 
 # Tools for converting the schematic diagrams to html
 _css = None

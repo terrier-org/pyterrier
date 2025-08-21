@@ -460,6 +460,9 @@ class Retriever(pt.Transformer):
     def setControl(self, control, value):
         self.controls[str(control)] = str(value)
 
+    def schematic(self, *, input_columns = None): 
+        return {'label': f'% {self.k}'}
+
     def fuse_rank_cutoff(self, k: int) -> Optional[pt.Transformer]:
         """
         Support fusing with RankCutoffTransformer.
