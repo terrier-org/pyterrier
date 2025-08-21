@@ -206,7 +206,7 @@ class RankCutoff(Transformer):
         return f'RankCutoff({self.k!r})'
     
     def schematic(self, *, input_columns = None): 
-        return {'label': f'* {self.scalar}'}
+        return {'label': f'* {self.k}'}
 
     def fuse_left(self, left: Transformer) -> Optional[Transformer]:
         # If the preceding component supports a native rank cutoff (via fuse_rank_cutoff), apply it.
