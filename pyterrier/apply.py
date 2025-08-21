@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Callable, Any, Dict, Union, Optional, Sequence, Literal, List
+from typing import Callable, Any, Dict, Union, Optional, Sequence, Literal, List, cast
 import numpy.typing as npt
 import pandas as pd
 import pyterrier as pt
@@ -211,11 +211,14 @@ def generic(
             pipe2 = pt.terrier.Retriever(index) >> pt.apply.generic(lambda res: [row for row in res if row["rank"] < 2], iter=True)
 
     """
+    rtr : pt.Transformer
     if iter:
         if kwargs.get("add_ranks", False):
             raise ValueError("add_ranks=True not supported with iter=True")
+        fn = cast(Callable[[pt.model.IterDict], pt.model.IterDict], fn)
         rtr = ApplyGenericIterTransformer(fn, *args, batch_size=batch_size, **kwargs)
     else:
+        fn = cast(Callable[[pd.DataFrame], pd.DataFrame], fn)
         rtr = ApplyGenericTransformer(fn, *args, batch_size=batch_size, **kwargs)
     if transform_outputs is not None:
         _bind(rtr, transform_outputs, as_name='transform_outputs')
@@ -243,11 +246,14 @@ def by_query(
             self and input columns as input arguments, and return a list of columns that the transformer will output. 
             This need only be set if you have iter=True, or your transformer doesn't respond well to empty dataframes.
     """
+    rtr : pt.Transformer
     if iter:
+        fn = cast(Callable[[pt.model.IterDict], pt.model.IterDict], fn)
         if kwargs.get("add_ranks", False):
             raise ValueError("add_ranks=True not supported with iter=True")
         rtr = ApplyIterForEachQuery(fn, *args, batch_size=batch_size, verbose=verbose, **kwargs)
     else:
+        fn = cast(Callable[[pd.DataFrame], pd.DataFrame], fn)
         rtr = ApplyForEachQuery(fn, *args, batch_size=batch_size, verbose=verbose, **kwargs)
     if transform_outputs is not None:
         _bind(rtr, transform_outputs, as_name='transform_outputs')
