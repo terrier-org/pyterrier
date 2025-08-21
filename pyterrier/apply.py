@@ -215,10 +215,10 @@ def generic(
     if iter:
         if kwargs.get("add_ranks", False):
             raise ValueError("add_ranks=True not supported with iter=True")
-        fn = cast(Callable[[pt.model.IterDict], pt.model.IterDict], fn)
+        fn = cast(Callable[[pt.model.IterDict], pt.model.IterDict], fn) # noqa: PT100 (this is typing.cast, not jinus.cast)
         rtr = ApplyGenericIterTransformer(fn, *args, batch_size=batch_size, **kwargs)
     else:
-        fn = cast(Callable[[pd.DataFrame], pd.DataFrame], fn)
+        fn = cast(Callable[[pd.DataFrame], pd.DataFrame], fn) # noqa: PT100 (this is typing.cast, not jinus.cast)
         rtr = ApplyGenericTransformer(fn, *args, batch_size=batch_size, **kwargs)
     if transform_outputs is not None:
         _bind(rtr, transform_outputs, as_name='transform_outputs')
@@ -248,12 +248,12 @@ def by_query(
     """
     rtr : pt.Transformer
     if iter:
-        fn = cast(Callable[[pt.model.IterDict], pt.model.IterDict], fn)
+        fn = cast(Callable[[pt.model.IterDict], pt.model.IterDict], fn) # noqa: PT100 (this is typing.cast, not jinus.cast)
         if kwargs.get("add_ranks", False):
             raise ValueError("add_ranks=True not supported with iter=True")
         rtr = ApplyIterForEachQuery(fn, *args, batch_size=batch_size, verbose=verbose, **kwargs)
     else:
-        fn = cast(Callable[[pd.DataFrame], pd.DataFrame], fn)
+        fn = cast(Callable[[pd.DataFrame], pd.DataFrame], fn) # noqa: PT100 (this is typing.cast, not jinus.cast)
         rtr = ApplyForEachQuery(fn, *args, batch_size=batch_size, verbose=verbose, **kwargs)
     if transform_outputs is not None:
         _bind(rtr, transform_outputs, as_name='transform_outputs')
