@@ -1,3 +1,5 @@
+import warnings
+import traceback
 import types
 import pandas as pd
 from typing import Iterator, List, Union, Tuple, Protocol, runtime_checkable, Optional, Any
@@ -309,7 +311,14 @@ class Transformer:
         return hash(repr(self))
 
     def _repr_html_(self):
-        return pt.schematic.draw(self, outer_cls='repr_html')
+        try:
+            return pt.schematic.draw(self, outer_class='repr_html')
+        except Exception as e:
+            # This handles cases where there's a problem generating the schematic.
+            # signal to ipython not to display HTML representation (falls back on __repr__)
+            tb = traceback.format_exc()
+            warnings.warn(f"Failed to render transformer as HTML: {e}\n\n{tb}", stacklevel=2)
+            return None 
 
 
 class Indexer(Transformer):
