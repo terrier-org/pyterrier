@@ -405,3 +405,4 @@ def column_info(column: str) -> Optional[dict]:
             'short_desc': 'Feature array for learning-to-rank',
             'type': np.array,
         }
+    return
