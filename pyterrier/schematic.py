@@ -289,9 +289,15 @@ def _draw_df_html(columns: Optional[List[str]], prev_columns: Optional[List[str]
     if columns is None:
         columns = []
         df_class = ' df-alert'
+    elif 'qid' in columns and 'docno' in columns and 'features' in columns:
+        df_label = 'R<sub>f</sub>'
+        df_label_long = 'Result Frame with Features'
     elif 'qid' in columns and 'docno' in columns:
         df_label = 'R'
         df_label_long = 'Result Frame'
+    elif 'qanswer' in columns:
+        df_label = 'A'
+        df_label_long = 'Query Answer Frame'
     elif 'qid' in columns:
         df_label = 'Q'
         df_label_long = 'Query Frame'
