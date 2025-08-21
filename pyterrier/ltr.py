@@ -15,6 +15,8 @@ class AblateFeatures(Transformer):
         self.null = 0
         
     def transform(self, topics_and_res):
+        if len(topics_and_res) == 0:
+            return topics_and_res
         
         def _reset(row):
             fvalues = row["features"].copy() 
@@ -36,6 +38,10 @@ class KeepFeatures(Transformer):
     def transform(self, topics_and_res):
         
         assert "features" in topics_and_res.columns
+
+        if len(topics_and_res) == 0:
+            return topics_and_res
+        
         topics_and_res = topics_and_res.copy()
         topics_and_res["features"] = topics_and_res.apply(lambda row: row["features"][self.fids], axis=1)
         return topics_and_res
@@ -94,6 +100,20 @@ class RegressionTransformer(Estimator):
 
         test_DF["score"] = self.learner.predict(np.stack(test_DF["features"].values))
         return add_ranks(test_DF)
+    
+    def transform_outputs(self, inp_cols):
+        """
+        Returns the output columns of the transformer.
+        
+        Args:
+            inp_cols: The input columns to the transformer.
+        """
+        out = inp_cols.copy()
+        if "score" not in out:
+            out.append("score")
+        if "rank" not in out:
+            out.append("rank")
+        return out
 
 class LTRTransformer(RegressionTransformer):
     """
@@ -212,6 +232,20 @@ class FastRankEstimator(Estimator):
         scores = [rtr[i] for i in range(len(rtr))]
         test_DF["score"] = scores
         return add_ranks(test_DF)
+    
+    def transform_outputs(self, inp_cols):
+        """
+        Returns the output columns of the transformer.
+        
+        Args:
+            inp_cols: The input columns to the transformer.
+        """
+        out = inp_cols.copy()
+        if "score" not in out:
+            out.append("score")
+        if "rank" not in out:
+            out.append("rank")
+        return out
 
 def ablate_features(fids : FeatureList) -> Transformer:
     """

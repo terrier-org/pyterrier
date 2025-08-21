@@ -22,7 +22,11 @@ class _TransformerMode:
 
 
 class InputValidationError(KeyError):
-    """Exception raised when input validation fails."""
+    """Exception raised when input validation of a single transformer fails.
+    
+    This is raised when the input DataFrame does not match the expected columns for a transformer.
+    its typically raised by pt.validate.* methods.
+    """
     def __init__(self, message: str, modes: List[_TransformerMode]):
         """Create an InputValidationError."""
         assert len(modes) > 0
@@ -37,7 +41,10 @@ class InputValidationError(KeyError):
 
 
 class InputValidationWarning(Warning):
-    """Warning raised when input validation fails in warn mode."""
+    """Warning raised when input validation fails in warn mode.
+    
+    This is raised when the input DataFrame does not match the expected columns for a transformer,
+    but the validation is in warn mode. It is typically produced by pt.validate.* methods."""
     pass
 
 

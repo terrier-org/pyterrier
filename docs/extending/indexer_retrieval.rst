@@ -90,7 +90,7 @@ float query weights are typically supported here):
 .. code:: python
 
    [
-     { 'qid' : 'q1', 'query' : 'hello hello there'  'toks' : {'hello' : 2.0, 'there' : 1.0 }],
+     { 'qid' : 'q1', 'query' : 'hello hello there'  'query_toks' : {'hello' : 2.0, 'there' : 1.0 }],
    ]
 
 Examples of learned sparse integrations are available at

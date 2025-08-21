@@ -406,6 +406,9 @@ class UniformTransformer(Transformer):
 
     def __repr__(self):
         return 'UniformTransformer()'
+    
+    def transform_outputs(self, input_columns: List[str]) -> List[str]:
+        return self.rtr.columns.tolist()
 
 @runtime_checkable
 class SupportsFuseRankCutoff(Protocol):

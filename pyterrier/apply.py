@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Callable, Any, Dict, Union, Optional, Sequence, Literal
+from typing import Callable, Any, Dict, Union, Optional, Sequence, Literal, List
 import numpy.typing as npt
 import pandas as pd
 import pyterrier as pt
@@ -30,6 +30,7 @@ def query(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], str], *args,
         be executed on the previous query formulation, a ``pt.rewrite.reset()`` transformer can be applied.  
 
         :param fn: the function to apply to each row. It must return a string containing the new query formulation.
+        :param required_columns: If provided, should be a list of columns that must be present in the input dataframe.
         :param verbose: if set to True, a TQDM progress bar will be displayed
 
         Examples::
@@ -70,6 +71,7 @@ def doc_score(fn : Union[Callable[[Union[pd.Series,pt.model.IterDictRecord]], fl
 
         :param fn: the function to apply to each row
         :param batch_size: How many documents to operate on at once (batch-wise). If None, operates row-wise
+        :param required_columns: If provided, should be a list of columns that must be present in the input dataframe.
         :param verbose: if set to True, a TQDM progress bar will be displayed
 
         Example (Row-wise)::
@@ -104,6 +106,7 @@ def doc_features(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], npt.N
         notation and not the ``row.key`` that is supported by a Series.
 
         :param fn: the function to apply to each row. It must return a 1D numpy array
+        :param required_columns: If provided, should be a list of columns that must be present in the input dataframe.
         :param verbose: if set to True, a TQDM progress bar will be displayed
         
         Example::
@@ -161,7 +164,11 @@ def rename(columns : Dict[str,str], *args, errors : Literal['raise', 'ignore']='
             
             pipe = pt.terrier.Retriever(index, metadata=["docno", "body"]) >> pt.apply.rename({'body':'text'})
     """
-    return ApplyGenericTransformer(lambda df: df.rename(columns=columns, errors=errors), *args, **kwargs)
+    if errors == 'raise':
+        required_columns = list(columns.keys())
+    else:
+        required_columns = None
+    return ApplyGenericTransformer(lambda df: df.rename(columns=columns, errors=errors), *args, required_columns=required_columns, **kwargs)
 
 def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.model.IterDict], pt.model.IterDict]], *args, batch_size=None, iter=False, **kwargs) -> pt.Transformer:
     """
@@ -173,6 +180,7 @@ def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.mode
 
         :param fn: the function to apply to each result set
         :param batch_size: whether to apply fn on batches of rows or all that are received
+        :param required_columns: If provided, should be a list of columns that must be present in the input dataframe.
         :param verbose: Whether to display a progress bar over batches (only used if batch_size is set, and iter is not set).
         :param iter: Whether to use the iter-dict API - if-so, then ``fn`` receives an iterable, and returns an iterable. 
 
@@ -208,6 +216,7 @@ def by_query(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.mod
 
         :param fn: the function to apply to each row. Should return a generator
         :param batch_size: whether to apply fn on batches of rows or all that are received.
+        :param required_columns: If provided, should be a list of columns that must be present in the input dataframe.
         :param verbose: Whether to display a progress bar over batches (only used if batch_size is set, and iter is not set).
         :param iter: Whether to use the iter-dict API - if-so, then ``fn`` receives an iterable, and must return an iterable. 
     """
@@ -237,10 +246,11 @@ def generic_apply(
     *,
     drop: bool = False,
     batch_size: Optional[int] = None,
+    required_columns: Optional[List[str]] = None,
     verbose=False
 ) -> pt.Transformer:
     if drop:
         assert fn is None, "cannot provide both fn and drop=True"
         return DropColumnTransformer(name)
 
-    return ApplyByRowTransformer(name, fn, batch_size=batch_size, verbose=verbose)
+    return ApplyByRowTransformer(name, fn, batch_size=batch_size, required_columns=required_columns, verbose=verbose)

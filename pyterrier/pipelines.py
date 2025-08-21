@@ -15,6 +15,7 @@ import pyterrier as pt
 MEASURE_TYPE=Union[str,Measure]
 MEASURES_TYPE=Sequence[MEASURE_TYPE]
 SAVEMODE_TYPE=Literal['reuse', 'overwrite', 'error', 'warn']
+VALIDATE_TYPE = Literal['warn', 'error', 'ignore']
 
 SYSTEM_OR_RESULTS_TYPE = Union[Transformer, pd.DataFrame]
 SAVEFORMAT_TYPE = Union[Literal['trec'], types.ModuleType, Tuple[Callable[[IO], pd.DataFrame], Callable[[pd.DataFrame, IO], None]]]
@@ -52,11 +53,6 @@ def _color_cols(data : pd.Series, col_type,
     is_max = [colormax_attr if v == max_value else '' for v in data]
     is_max[len(data) - list(reversed(data)).index(max_value) -  1] = colormaxlast_attr
     return is_max
-
-_irmeasures_columns = {
-    'qid' : 'query_id',
-    'docno' : 'doc_id'
-}
 
 def _mean_of_measures(result, measures=None, num_q = None):
         if len(result) == 0:
@@ -260,7 +256,8 @@ def _precomputation(
     
     return precompute_time, execution_topics, execution_retr_systems
 
-def _validate_R(df : pd.DataFrame):
+
+def _validate_R_is_res(df : pd.DataFrame):
     found = []
     unfound = []
     for c in ["qid", "docno", "score", "rank"]:
@@ -293,7 +290,7 @@ def _run_and_evaluate(
         pbar = pt.tqdm(disable=True)
 
     metrics, rev_mapping = _convert_measures(metrics)
-    qrels = qrels.rename(columns={'qid': 'query_id', 'docno': 'doc_id', 'label': 'relevance'})
+    qrels = pt.model.to_ir_measures(qrels)
     from timeit import default_timer as timer
     runtime : float = 0.
     num_q = qrels['query_id'].nunique()
@@ -333,7 +330,7 @@ def _run_and_evaluate(
             else:
                 raise ValueError("%d topics, but no results in dataframe" % len(topics))
         evalMeasuresDict = _ir_measures_to_dict(
-            ir_measures.iter_calc(metrics, qrels, res.rename(columns=_irmeasures_columns)), 
+            ir_measures.iter_calc(metrics, qrels, pt.model.to_ir_measures(res)),
             metrics,
             rev_mapping,
             num_q,
@@ -354,7 +351,7 @@ def _run_and_evaluate(
         # write results to save_file; we can be sure this file does not exist
         if save_file is not None:
             if save_format == 'trec':
-                _validate_R(res)
+                _validate_R_is_res(res)
                 write_results(res, save_file)
             elif isinstance(save_format, types.ModuleType):
                 with pt.io.autoopen(save_file, 'wb') as fout:
@@ -370,7 +367,7 @@ def _run_and_evaluate(
             raise ValueError("%d topics, but no results received from %s" % (len(topics), str(system)) )
 
         evalMeasuresDict = _ir_measures_to_dict(
-            ir_measures.iter_calc(metrics, qrels, res.rename(columns=_irmeasures_columns)), 
+            ir_measures.iter_calc(metrics, qrels, pt.model.to_ir_measures(res)),
             metrics,
             rev_mapping,
             num_q,
@@ -398,7 +395,7 @@ def _run_and_evaluate(
 
                 # write results to save_file; we will append for subsequent batches
                 if save_file is not None:
-                    _validate_R(res)
+                    _validate_R_is_res(res)
                     write_results(res, save_file, append=True)
 
                 res = coerce_dataframe_types(res)
@@ -407,7 +404,7 @@ def _run_and_evaluate(
                 remaining_qrel_qids.difference_update(batch_qids)
                 batch_backfill = [qid for qid in backfill_qids if qid in batch_qids] if backfill_qids is not None else None
                 evalMeasuresDict.update(_ir_measures_to_dict( # type: ignore[arg-type]
-                    ir_measures.iter_calc(metrics, batch_qrels, res.rename(columns=_irmeasures_columns)),
+                    ir_measures.iter_calc(metrics, batch_qrels, pt.model.to_ir_measures(res)),
                     metrics,
                     rev_mapping,
                     num_q,
@@ -462,6 +459,7 @@ def Experiment(
         highlight : Optional[str] = None,
         round : Optional[Union[int,Dict[str,int]]] = None,
         verbose : bool = False,
+        validate : VALIDATE_TYPE = 'warn',
         save_dir : Optional[str] = None,
         save_mode : SAVEMODE_TYPE = 'warn',
         save_format : SAVEFORMAT_TYPE = 'trec',
@@ -514,6 +512,7 @@ def Experiment(
     :param precompute_prefix: If set to True, then pt.Experiment will look for a common prefix on all input pipelines, and execute that common prefix pipeline only once. 
         This functionality assumes that the intermidiate results of the common prefix can fit in memory. Set to False by default.
     :param verbose: If True, a tqdm progress bar is shown as systems (or systems*batches if batch_size is set) are executed. Default=False.
+    :param validate: If True, each transformer is validated against the topics dataframe, to ensure that it produces the expected columns. Default=True.
 
     :return: A Dataframe with each retrieval system with each metric evaluated.
     """
@@ -611,6 +610,10 @@ def Experiment(
         eval_metrics = list(eval_metrics).copy()
         eval_metrics.remove("mrt")
 
+    # validate the transformers produce the expected columns
+    _validate(retr_systems, topics, eval_metrics, names, validate)
+
+    # split the transformers into a common prefix and individual suffixes, improved efficiency
     precompute_time, execution_topics, execution_retr_systems = _precomputation(retr_systems, topics, precompute_prefix, verbose, batch_size)
 
     # progress bar construction
@@ -751,6 +754,52 @@ def Experiment(
             
         return df 
     return evalDict
+
+def _validate(
+        retr_systems : Sequence[SYSTEM_OR_RESULTS_TYPE], 
+        topics : pd.DataFrame, 
+        eval_metrics : MEASURES_TYPE, 
+        names : Sequence[str], 
+        validate : VALIDATE_TYPE):
+    
+    if validate == 'ignore':
+        return
+
+    # convert metrics to a list of Measure objects
+    # NB: this mapping is already performed in _run_and_evaluate, but we need it here to 
+    # validate the transformers; I think its inexpensive
+    _metrics, rev_mapping = _convert_measures(eval_metrics)
+
+    required_cols = set(ir_measures.run_inputs(_metrics)) # find required columns for the measures (usually: query_id, doc_id, score)
+    required_cols = set(list(pt.model.from_ir_measures(required_cols))) # convert to pyterrier naming conventions (usually: qid, docno, score)
+
+    for i, (name, system) in enumerate(zip(names, retr_systems)):
+        friendly_name = "Transformer %s (%s) at position %i" % (name, str(system), i) if name != str(system) else "Transformer %s at position %i" % (str(system), i)
+        found_cols = []
+        if isinstance(system, pd.DataFrame):
+            found_cols = system.columns.tolist()  
+        elif isinstance(system, pt.Transformer):
+            try:
+                found_cols = pt.inspect.transformer_outputs(system, input_columns=topics.columns.tolist()) or [] # or [] will never be called, but is needed to make mypy happy
+            except pt.inspect.InspectError as ie: # when we cant tell
+                warn("%s failed to validate: %s - if your pipeline works, set validate='ignore' to remove this warning, or add transform_output method to the transformers in this pipeline to clarify how it works" % (friendly_name, str(ie)))
+                continue
+            except pt.validate.InputValidationError as ie: # (when input validation fails)
+                if validate == 'warn':
+                    warn("%s failed to validate: %s" % (friendly_name, str(ie)))
+                    continue
+                elif validate == 'error':
+                    raise ValueError("%s failed to validate: %s" % (friendly_name, str(ie))) from ie
+        else:
+            raise TypeError("Expected a list of Transformers or DataFrames, but received unexpected type %s for retrieval system at position %d" % (str(type(system)), i))
+
+        if required_cols.difference(found_cols):
+            message = "Transformer %s (%s) at position %i does not produce all required columns %s, found only %s" % (
+                name, str(system), i, str(list(required_cols)), str(found_cols))
+            if validate == 'warn':
+                warn(message)
+            elif validate == 'error':
+                raise ValueError(message)
 
 TRANSFORMER_PARAMETER_VALUE_TYPE = Union[str,float,int,str]
 GRID_SCAN_PARAM_SETTING = Tuple[

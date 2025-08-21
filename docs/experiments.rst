@@ -322,6 +322,23 @@ The available evaluation measure objects are listed below.
 
 .. autofunction:: pyterrier.measures.infAP
 
+Validation of Transformers
+==========================
+
+When formulating pipelines for a ``pt.Experiment()``, its possible to formulate invalid pipelines, e.g. a transformer that does not produce the expected columns, or a transformer that does not accept the input columns of the previous transformer. 
+To mitigate this, ``pt.Experiment()`` will validate the transformers in the pipeline, and raise an error if the pipeline is invalid.
+
+This validation is controlled by the `validate=` kwarg, which can take the following values:
+- ``"warn"`` (default): If the pipeline is invalid, a warning is issued, but the experiment proceeds. Pipelines that do not validate will still run, but may produce unexpected results.
+- ``"error"``: If the pipeline is invalid, an error is raised, and the experiment does not proceed. If a pipeline is not validated, the user is informed such that the experiment fails-fast.
+- ``"ignore"``: No validation is performed, and the experiment proceeds. This is useful for pipelines that are known to be valid, but cannot be validated due to transformer objects that cannot be inspected to determing their input and output columns.
+
+Validation uses ``pt.inspect.transformer_outputs()`` to determine the output columns of each transformer in the pipeline, and whether they match the expected input columns of the next transformer, and that the overall result of the pipeline has the expected columns for the evaluation measures requested. 
+Most transformers can be validated automatically, particularly if they respond correctly to an empty DataFrame input. Other transformers may require a `transform_output` method to be implemented, which returns the expected output columns of the transformer.
+
+If a pipeline fails validation, the user is informed of the problem, and, if `validate="error"` is set, the experiment does not proceed.
+On the other hand, if a pipeline cannot be validated (because a transformer cannot be inspected), a warning is issued, and the experiment proceeds.
+
 Precomputation of Common Pipeline Prefixes
 ==========================================
 
