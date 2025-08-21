@@ -2,7 +2,7 @@
 import zlib
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Union, Dict, Tuple
 
 import pyterrier as pt
 import requests
@@ -51,7 +51,7 @@ def objects_inv() -> dict:
                 raise ValueError(f'Invalid objects.inv file: expected comment line, got {line}')
         data = f.read()
     lines = zlib.decompress(data).decode('utf-8').splitlines()
-    objects = {}
+    objects : Dict[Tuple[str,str], Tuple[str, str, int]] = {}
     for line in lines:
         if line.startswith('#'):
             continue  # skip comments
