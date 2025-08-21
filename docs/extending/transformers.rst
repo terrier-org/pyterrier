@@ -22,7 +22,7 @@ as follows:
         def compile(self) -> pt.Transformer:
             return pt.RankCutoff(self.fb_docs) >> self
 
-Why is this helpful? :class:`~pyterrier.RankCutoff` itself implements ``optimize`` to combine ("fuse") itself with
+Why is this helpful? :class:`~pyterrier.RankCutoff` knows it can combine ("fuse") itself with any preceeding
 transformers that are able to reduce computation by knowing how many documents are required by the subsequent step.
 For instance, most retrievers can reduce computaional cost by reducing the top ``k`` documents retrieved per query.
 
