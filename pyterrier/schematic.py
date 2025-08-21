@@ -171,7 +171,7 @@ def draw_html_schematic(schematic: dict, *, outer_class: Optional[str] = None) -
     '''
 
 
-def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> None:
+def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
     if schematic['type'] == 'transformer':
         return _draw_html_schematic({
             'type': 'pipeline',
