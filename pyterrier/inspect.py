@@ -141,7 +141,7 @@ def transformer_inputs(
         return None
     if not isinstance(result[0], list) or (len(result[0]) > 0 and not isinstance(result[0][0], str)):
         if strict:
-            raise InspectError(f"Cannot determine inputs for {transformer}")
+            raise InspectError(f"Cannot determine inputs for {transformer} - invalid columns specified: {result}")
         return None
     if single:
         return result[0]
