@@ -342,8 +342,7 @@ def to_ir_measures(
         return inp.rename(columns=_pyterrier_to_ir_measures)
     elif isinstance(inp, dict):
         return { _pyterrier_to_ir_measures.get(k, k): v for k, v in inp.items() }
-    else:
-        return [_pyterrier_to_ir_measures.get(x, x) for x in inp]
+    return [_pyterrier_to_ir_measures.get(x, x) for x in inp]
 
 
 def column_info(column: str) -> Optional[dict]:
