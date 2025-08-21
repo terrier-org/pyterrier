@@ -169,6 +169,125 @@ class TestInspect(BaseTestCase):
         cols = pt.inspect.transformer_outputs(t, df.columns.tolist())
         self.assertSortedEquals(cols, t(df).columns.tolist())
 
+    def test_apply_docscore(self):
+        df = pd.DataFrame({
+            'qid': ['1', '2'],
+            'query': ['query1', 'query2'],
+            'docno': ['doc1', 'doc2']
+        })
+        t = pt.apply.doc_score(lambda x: 1)
+        cols = pt.inspect.transformer_outputs(t, df.columns.tolist())
+        self.assertIn('score', cols)
+        self.assertIn('rank', cols)
+        self.assertSortedEquals(cols, t(df).columns.tolist())
+
+    def test_apply_docfeatures(self):
+        import numpy as np
+        df = pd.DataFrame({
+            'qid': ['1', '2'],
+            'query': ['query1', 'query2'],
+            'docno': ['doc1', 'doc2']
+        })
+        t = pt.apply.doc_features(lambda x: np.array([1.0, 2.0]))
+        cols = pt.inspect.transformer_outputs(t, df.columns.tolist())
+        self.assertIn('features', cols)
+        self.assertSortedEquals(cols, t(df).columns.tolist())
+
+    def test_apply_mkcol(self):
+        df = pd.DataFrame({
+            'qid': ['1', '2'],
+            'query': ['query1', 'query2'],
+            'docno': ['doc1', 'doc2']
+        })
+        t = pt.apply.newcol(lambda x: x['query'] + " context")
+        cols = pt.inspect.transformer_outputs(t, df.columns.tolist())
+        self.assertIn('newcol', cols)
+        self.assertSortedEquals(cols, t(df).columns.tolist())
+
+    def test_apply_dropcol(self):
+        df = pd.DataFrame({
+            'qid': ['1', '2'],
+            'query': ['query1', 'query2'],
+            'docno': ['doc1', 'doc2']
+        })
+        t = pt.apply.docno(drop=True)
+        cols = pt.inspect.transformer_outputs(t, df.columns.tolist())
+        self.assertNotIn('docno', cols)
+        self.assertSortedEquals(cols, t(df).columns.tolist())
+
+    def test_apply_generic(self):
+        df = pd.DataFrame({
+            'qid': ['1', '2'],
+            'query': ['query1', 'query2'],
+            'docno': ['doc1', 'doc2']
+        })
+
+        # Define a generic function that adds a new column based on existing columns
+        # this assugnment works with an empty DataFrame
+        def _generic_func(df):
+            return df.assign(newcol=df['query'] + " context")
+
+        t = pt.apply.generic(_generic_func)
+        cols = pt.inspect.transformer_outputs(t, df.columns.tolist())
+        self.assertIn('newcol', cols)
+        self.assertSortedEquals(cols, t(df).columns.tolist())
+
+        def _generic_func_noempty(df):
+            if len(df) == 0:
+                return df # bad behavior, but we want to empty dfs to have the same return columns
+            return df.assign(newcol=df['query'] + " context")
+
+        t = pt.apply.generic(_generic_func_noempty)
+        cols = pt.inspect.transformer_outputs(t, df.columns.tolist())
+        self.assertNotIn('newcol', cols)
+        
+        # undesired behavior: raises error on empty DataFrame - cannot be inspected
+        def _generic_func_empty(df):
+            if len(df) == 0:
+                raise ValueError("Empty DataFrame")
+            return df.assign(newcol=df['query'] + " context")
+        
+        t = pt.apply.generic(_generic_func_empty)
+        with self.assertRaises(pt.inspect.InspectError):
+            cols = pt.inspect.transformer_outputs(t, df.columns.tolist())
+
+        # now check we can specify the columns when specifying transform_outputs
+        t = pt.apply.generic(_generic_func_empty, transform_outputs=lambda self, cols: cols + ['newcol'])
+        cols = pt.inspect.transformer_outputs(t, df.columns.tolist())
+        self.assertIn('newcol', cols)
+        self.assertSortedEquals(cols, t(df).columns.tolist())
+
+        # same for the erroring function
+        t = pt.apply.generic(_generic_func_noempty, transform_outputs=lambda self, cols: cols + ['newcol'])
+        cols = pt.inspect.transformer_outputs(t, df.columns.tolist())
+        self.assertIn('newcol', cols)
+        self.assertSortedEquals(cols, t(df).columns.tolist())
+
+    def test_apply_generic_iter(self):
+        df = pd.DataFrame({
+            'qid': ['1', '2'],
+            'query': ['query1', 'query2'],
+            'docno': ['doc1', 'doc2']
+        })
+
+        # Define a generic function that adds a new column based on existing columns
+        def _generic_func_iter(iter):
+            for r in iter:
+                r["newcol"] = r['query'] + " context"
+                yield r
+
+        t = pt.apply.generic(_generic_func_iter, iter=True)
+        print(t(df.head(0)))
+        with self.assertRaises(pt.inspect.InspectError):
+            cols = pt.inspect.transformer_outputs(t, df.columns.tolist())
+        #self.assertIn('newcol', cols)
+        #self.assertSortedEquals(cols, t(df).columns.tolist())
+
+        t = pt.apply.generic(_generic_func_iter, iter=True, transform_outputs=lambda self, cols: cols + ['newcol'])
+        cols = pt.inspect.transformer_outputs(t, df.columns.tolist())
+        self.assertIn('newcol', cols)
+        self.assertSortedEquals(cols, t(df).columns.tolist())
+    
     def test_rename(self):
         df = pd.DataFrame({
             'qid': ['1', '2'],

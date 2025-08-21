@@ -170,7 +170,13 @@ def rename(columns : Dict[str,str], *args, errors : Literal['raise', 'ignore']='
         required_columns = None
     return ApplyGenericTransformer(lambda df: df.rename(columns=columns, errors=errors), *args, required_columns=required_columns, **kwargs)
 
-def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.model.IterDict], pt.model.IterDict]], *args, batch_size=None, iter=False, **kwargs) -> pt.Transformer:
+def generic(
+        fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.model.IterDict], pt.model.IterDict]], 
+        *args, 
+        batch_size : Optional[int] = None, 
+        iter : bool = False, 
+        transform_outputs : Optional[Callable[[pt.Transformer, List[str]], List[str]]] = None, 
+        **kwargs) -> pt.Transformer:
     """
         Create a transformer that changes the input dataframe to another dataframe in an unspecified way.
 
@@ -183,6 +189,9 @@ def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.mode
         :param required_columns: If provided, should be a list of columns that must be present in the input dataframe.
         :param verbose: Whether to display a progress bar over batches (only used if batch_size is set, and iter is not set).
         :param iter: Whether to use the iter-dict API - if-so, then ``fn`` receives an iterable, and returns an iterable. 
+        :param transform_outputs: Used to support inspection. If provided, should be a function (e.g. lambda) that takes 
+            self and input columns as input arguments, and return a list of columns that the transformer will output. 
+            This need only be set if you have iter=True, or your transformer doesn't respond well to empty dataframes.
 
         Example (dataframe)::
 
@@ -205,10 +214,21 @@ def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.mode
     if iter:
         if kwargs.get("add_ranks", False):
             raise ValueError("add_ranks=True not supported with iter=True")
-        return ApplyGenericIterTransformer(fn, *args, batch_size=batch_size, **kwargs)
-    return ApplyGenericTransformer(fn, *args, batch_size=batch_size, **kwargs)
+        rtr = ApplyGenericIterTransformer(fn, *args, batch_size=batch_size, **kwargs)
+    else:
+        rtr = ApplyGenericTransformer(fn, *args, batch_size=batch_size, **kwargs)
+    if transform_outputs is not None:
+        _bind(rtr, transform_outputs, as_name='transform_outputs')
+    return rtr
 
-def by_query(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.model.IterDict], pt.model.IterDict]], *args, batch_size=None, iter=False, verbose=False, **kwargs) -> pt.Transformer:
+def by_query(
+        fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.model.IterDict], pt.model.IterDict]], 
+        *args, 
+        batch_size : Optional[int] = None, 
+        iter : bool = False, 
+        verbose : bool = False,
+        transform_outputs : Optional[Callable[[pt.Transformer, List[str]], List[str]]] = None,  
+        **kwargs) -> pt.Transformer:
     """
         As `pt.apply.generic()` except that fn receives a dataframe (or iter-dict) for one query at at time, rather than all results at once.
         If batch_size is set, fn will receive no more than batch_size documents for any query. The verbose kwargs controls whether
@@ -219,12 +239,19 @@ def by_query(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.mod
         :param required_columns: If provided, should be a list of columns that must be present in the input dataframe.
         :param verbose: Whether to display a progress bar over batches (only used if batch_size is set, and iter is not set).
         :param iter: Whether to use the iter-dict API - if-so, then ``fn`` receives an iterable, and must return an iterable. 
+        :param transform_outputs: Used to support inspection. If provided, should be a function (e.g. lambda) that takes 
+            self and input columns as input arguments, and return a list of columns that the transformer will output. 
+            This need only be set if you have iter=True, or your transformer doesn't respond well to empty dataframes.
     """
     if iter:
         if kwargs.get("add_ranks", False):
             raise ValueError("add_ranks=True not supported with iter=True")
-        return ApplyIterForEachQuery(fn, *args, batch_size=batch_size, verbose=verbose, **kwargs)
-    return ApplyForEachQuery(fn, *args, batch_size=batch_size, verbose=verbose, **kwargs)
+        rtr = ApplyIterForEachQuery(fn, *args, batch_size=batch_size, verbose=verbose, **kwargs)
+    else:
+        rtr = ApplyForEachQuery(fn, *args, batch_size=batch_size, verbose=verbose, **kwargs)
+    if transform_outputs is not None:
+        _bind(rtr, transform_outputs, as_name='transform_outputs')
+    return rtr
 
 class _apply:
 
