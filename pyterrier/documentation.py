@@ -2,7 +2,7 @@
 import zlib
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 import pyterrier as pt
 import requests
@@ -66,7 +66,7 @@ def objects_inv() -> dict:
     return _cached_objects_inv
 
 
-def url_for_class(cls: type | object) -> Optional[str]:
+def url_for_class(cls: Union[type, object]) -> Optional[str]:
     """Returns the URL of the documentation page for the specified class."""
     objects = objects_inv()
     if not isinstance(cls, type):
