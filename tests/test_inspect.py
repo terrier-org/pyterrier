@@ -276,12 +276,11 @@ class TestInspect(BaseTestCase):
                 r["newcol"] = r['query'] + " context"
                 yield r
 
+        # an iter-only transformer is not inspectable
         t = pt.apply.generic(_generic_func_iter, iter=True)
-        print(t(df.head(0)))
-        with self.assertRaises(pt.inspect.InspectError):
+        with self.assertRaises(pt.inspect.InspectError) as ie:
             cols = pt.inspect.transformer_outputs(t, df.columns.tolist())
-        #self.assertIn('newcol', cols)
-        #self.assertSortedEquals(cols, t(df).columns.tolist())
+        self.assertIn('not inspectable', str(ie.exception.__cause__))
 
         t = pt.apply.generic(_generic_func_iter, iter=True, transform_outputs=lambda cols: cols + ['newcol'])
         cols = pt.inspect.transformer_outputs(t, df.columns.tolist())

@@ -45,7 +45,16 @@ class Transformer:
     def __new__(cls, *args, **kwargs):
         if cls.transform == Transformer.transform and cls.transform_iter == Transformer.transform_iter:
             raise NotImplementedError("You need to implement either .transform() or .transform_iter() in %s" % str(cls))
-        return super().__new__(cls)
+        
+        instance = super().__new__(cls)
+        if cls.transform == Transformer.transform and cls.transform_iter != Transformer.transform_iter:
+            # User implemented transform_iter on this transformer but not transform.
+            # transform_iter is not inspectable, so place a transform_outputs method on the instance if not exists
+            if not hasattr(instance, 'transform_outputs'):
+                def _transform_outputs(self, inp_cols):
+                    raise pt.inspect.InspectError("This transformer is not inspectable - you can override/implement the transform_outputs method to make it inspectable")
+                instance.transform_outputs = types.MethodType(_transform_outputs, instance)
+        return instance
 
     @staticmethod
     def identity() -> 'Transformer':
