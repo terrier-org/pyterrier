@@ -3,6 +3,7 @@ import unittest
 import pyterrier as pt
 import inspect
 from .base import BaseTestCase
+from functools import partial
 
 class TestInspect(BaseTestCase):
 
@@ -216,6 +217,12 @@ class TestInspect(BaseTestCase):
         self.assertSortedEquals(cols, t(df).columns.tolist())
 
     def test_apply_generic(self):
+        self._apply_generic(pt.apply.generic)
+
+    def test_apply_byquery(self):
+        self._apply_generic(partial(pt.apply.by_query, add_ranks=False))
+
+    def _apply_generic(self, applyfn):
         df = pd.DataFrame({
             'qid': ['1', '2'],
             'query': ['query1', 'query2'],
@@ -227,7 +234,7 @@ class TestInspect(BaseTestCase):
         def _generic_func(df):
             return df.assign(newcol=df['query'] + " context")
 
-        t = pt.apply.generic(_generic_func)
+        t = applyfn(_generic_func)
         cols = pt.inspect.transformer_outputs(t, df.columns.tolist())
         self.assertIn('newcol', cols)
         self.assertSortedEquals(cols, t(df).columns.tolist())
@@ -237,7 +244,7 @@ class TestInspect(BaseTestCase):
                 return df # bad behavior, but we want to empty dfs to have the same return columns
             return df.assign(newcol=df['query'] + " context")
 
-        t = pt.apply.generic(_generic_func_noempty)
+        t = applyfn(_generic_func_noempty)
         cols = pt.inspect.transformer_outputs(t, df.columns.tolist())
         self.assertNotIn('newcol', cols)
         
@@ -247,23 +254,29 @@ class TestInspect(BaseTestCase):
                 raise ValueError("Empty DataFrame")
             return df.assign(newcol=df['query'] + " context")
         
-        t = pt.apply.generic(_generic_func_empty)
+        t = applyfn(_generic_func_empty)
         with self.assertRaises(pt.inspect.InspectError):
             cols = pt.inspect.transformer_outputs(t, df.columns.tolist())
 
         # now check we can specify the columns when specifying transform_outputs
-        t = pt.apply.generic(_generic_func_empty, transform_outputs=lambda cols: cols + ['newcol'])
+        t = applyfn(_generic_func_empty, transform_outputs=lambda cols: cols + ['newcol'])
         cols = pt.inspect.transformer_outputs(t, df.columns.tolist())
         self.assertIn('newcol', cols)
         self.assertSortedEquals(cols, t(df).columns.tolist())
 
         # same for the erroring function
-        t = pt.apply.generic(_generic_func_noempty, transform_outputs=lambda cols: cols + ['newcol'])
+        t = applyfn(_generic_func_noempty, transform_outputs=lambda cols: cols + ['newcol'])
         cols = pt.inspect.transformer_outputs(t, df.columns.tolist())
         self.assertIn('newcol', cols)
         self.assertSortedEquals(cols, t(df).columns.tolist())
 
     def test_apply_generic_iter(self):
+        self._apply_generic_iter(pt.apply.generic)
+
+    def test_apply_byquery_iter(self):
+        self._apply_generic_iter(pt.apply.by_query)
+
+    def _apply_generic_iter(self, applyfn):
         df = pd.DataFrame({
             'qid': ['1', '2'],
             'query': ['query1', 'query2'],
@@ -277,12 +290,12 @@ class TestInspect(BaseTestCase):
                 yield r
 
         # an iter-only transformer is not inspectable
-        t = pt.apply.generic(_generic_func_iter, iter=True)
+        t = applyfn(_generic_func_iter, iter=True)
         with self.assertRaises(pt.inspect.InspectError) as ie:
             cols = pt.inspect.transformer_outputs(t, df.columns.tolist())
         self.assertIn('not inspectable', str(ie.exception.__cause__))
 
-        t = pt.apply.generic(_generic_func_iter, iter=True, transform_outputs=lambda cols: cols + ['newcol'])
+        t = applyfn(_generic_func_iter, iter=True, transform_outputs=lambda cols: cols + ['newcol'])
         cols = pt.inspect.transformer_outputs(t, df.columns.tolist())
         self.assertIn('newcol', cols)
         self.assertSortedEquals(cols, t(df).columns.tolist())
