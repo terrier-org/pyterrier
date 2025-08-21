@@ -391,6 +391,16 @@ def column_info(column: str) -> Optional[dict]:
             'short_desc': 'Document text',
             'type': str,
         }
+    if column == 'title':
+        return {
+            'short_desc': 'Document title',
+            'type': str,
+        }
+    if column == 'qanswer':
+        return {
+            'short_desc': 'Answer to the query',
+            'type': str,
+        }
     if column == 'features':
         return {
             'short_desc': 'Feature array for learning-to-rank',
