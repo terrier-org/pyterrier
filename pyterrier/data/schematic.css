@@ -243,3 +243,7 @@
     display: flex;
     align-items: center;
 }
+
+#ID .inner-labeled > .transformer-title {
+    font-weight: normal;
+}
