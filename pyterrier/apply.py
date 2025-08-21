@@ -221,7 +221,7 @@ def generic(
         fn = cast(Callable[[pd.DataFrame], pd.DataFrame], fn) # noqa: PT100 (this is typing.cast, not jinus.cast)
         rtr = ApplyGenericTransformer(fn, *args, batch_size=batch_size, **kwargs)
     if transform_outputs is not None:
-        rtr.transform_outputs = transform_outputs
+        rtr.transform_outputs = transform_outputs # type: ignore[attr-defined]
     return rtr
 
 def by_query(
@@ -243,8 +243,9 @@ def by_query(
         :param verbose: Whether to display a progress bar over batches (only used if batch_size is set, and iter is not set).
         :param iter: Whether to use the iter-dict API - if-so, then ``fn`` receives an iterable, and must return an iterable. 
         :param transform_outputs: Used to support inspection. If provided, should be a function (e.g. lambda) that takes 
-            self and input columns as input arguments, and return a list of columns that the transformer will output. 
-            This need only be set if you have iter=True, or your transformer doesn't respond well to empty dataframes.
+            the input columns as an argument, and returns the list of columns that the transformer will output. 
+            This need only be set if you need inspectability and iter=True, or your transformer doesn't respond well to 
+            being inspected by empty dataframes.
     """
     rtr : pt.Transformer
     if iter:
@@ -256,7 +257,7 @@ def by_query(
         fn = cast(Callable[[pd.DataFrame], pd.DataFrame], fn) # noqa: PT100 (this is typing.cast, not jinus.cast)
         rtr = ApplyForEachQuery(fn, *args, batch_size=batch_size, verbose=verbose, **kwargs)
     if transform_outputs is not None:
-        rtr.transform_outputs = transform_outputs
+        rtr.transform_outputs = transform_outputs # type: ignore[attr-defined]
     return rtr
 
 class _apply:
