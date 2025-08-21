@@ -151,7 +151,6 @@ API Documentation
 ============================================================
 
 .. autofunction:: pyterrier.schematic.draw
-    :members:
 
 .. autoclass:: pyterrier.schematic.HasSchematic()
     :members:
