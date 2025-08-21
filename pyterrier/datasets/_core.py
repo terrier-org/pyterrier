@@ -253,7 +253,6 @@ class RemoteDataset(Dataset):
         if "#" in actualURL and not os.path.exists(local):
             tarname, intarfile = actualURL.split("#")
             assert "/" not in intarfile
-            assert ".tar" in tarname or ".tgz" in tarname
             assert ".tar" in tarname or ".tgz" in tarname or ".zip" in tarname
             localtarfile, _ = self._get_one_file("tars", tarname)
             tarobj = tarfile.open(localtarfile, "r")
