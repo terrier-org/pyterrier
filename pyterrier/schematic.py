@@ -7,8 +7,6 @@ from typing import Any, Dict, List, Optional, Protocol, Union, runtime_checkable
 import numpy as np
 import pyterrier as pt
 
-import pyterrier_alpha as pta
-
 
 """
     SCHEMATIC = PIPELINES | PIPELINE | TRANSFORMER
@@ -54,11 +52,11 @@ def _apply_default_schematic(schematic: Dict[str, Any], transformer: pt.Transfor
 
     if 'input_columns' not in schematic or 'output_columns' not in schematic:
         if input_columns is None:
-            input_columns = pta.inspect.transformer_inputs(transformer, single=True, strict=False)
+            input_columns = pt.inspect.transformer_inputs(transformer, single=True, strict=False)
         if 'input_columns' not in schematic:
             schematic['input_columns'] = input_columns
         if 'output_columns' not in schematic:
-            schematic['output_columns'] = pta.inspect.transformer_outputs(transformer, input_columns, strict=False)
+            schematic['output_columns'] = pt.inspect.transformer_outputs(transformer, input_columns, strict=False)
 
     default_settings_applied = False
     if 'settings' not in schematic:
@@ -73,8 +71,8 @@ def _apply_default_schematic(schematic: Dict[str, Any], transformer: pt.Transfor
 
     if 'inner_pipelines' not in schematic:
         try:
-            subtransformers = pta.inspect.subtransformers(transformer)
-        except pta.inspect.InspectError:
+            subtransformers = pt.inspect.subtransformers(transformer)
+        except pt.inspect.InspectError:
             subtransformers = {}
         if subtransformers:
             pipelines = []
@@ -105,7 +103,7 @@ def transformer_schematic(
 ) -> dict:
     """Builds a structured schematic of the transformer."""
     if input_columns is _INFER:
-        input_columns = pta.inspect.transformer_inputs(transformer, single=True, strict=False)
+        input_columns = pt.inspect.transformer_inputs(transformer, single=True, strict=False)
     if not default and isinstance(transformer, HasSchematic):
         if callable(transformer.schematic):
             schematic = transformer.schematic(input_columns=input_columns)
@@ -304,7 +302,7 @@ def _draw_df_html(columns: Optional[List[str]], prev_columns: Optional[List[str]
     if columns:
         column_rows = []
         for col in columns:
-            col_info = pta.documentation.column_info(col) or {}
+            col_info = pt.model.column_info(col) or {}
             col_desc = ''
             type_name = ''
             if 'type' in col_info:

@@ -309,7 +309,7 @@ class Transformer:
         return hash(repr(self))
 
     def _repr_html_(self):
-        return pt.schematic.draw(self, outer_cls='repr_html')
+        return pt.schematic.draw(self, outer_class='repr_html')
 
 
 class Indexer(Transformer):
