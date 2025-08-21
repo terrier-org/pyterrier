@@ -1,5 +1,4 @@
 import os
-import sys
 import json
 from packaging.version import Version
 from typing import Optional, Union, List, Dict, Any
@@ -436,10 +435,6 @@ def _index_corpusiter(self, return_toks=True):
             yield {k : item[keys_offset[k]] for k in keys_offset}
 
     def _index_corpusiter_direct_pretok(self):
-        MIN_PYTHON = (3, 8)
-        if sys.version_info < MIN_PYTHON:
-            raise NotImplementedError("Sorry, Python 3.8+ is required for this functionality")
-
         meta_inputstream = self.getIndexStructureInputStream("meta")
         keys = self.getMetaIndex().getKeys()
         keys_offset = { k: offset for offset, k in enumerate(keys) }
