@@ -461,7 +461,7 @@ class Retriever(pt.Transformer):
         self.controls[str(control)] = str(value)
 
     def schematic(self, *, input_columns = None): 
-        return {'label': f'% {self.k}'}
+        return {'label': self.controls['wmodel']}
 
     def fuse_rank_cutoff(self, k: int) -> Optional[pt.Transformer]:
         """
