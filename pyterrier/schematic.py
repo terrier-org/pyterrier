@@ -8,33 +8,6 @@ import numpy as np
 import pyterrier as pt
 
 
-"""
-    SCHEMATIC = PIPELINES | PIPELINE | TRANSFORMER
-
-    PIPELINES = [PIPELINE | TRANSFORMER]
-
-    PIPELINE = {
-        "type": "pipeline",
-        "label": str | None,           # Short label for presentation on schematic
-        "input_columns": [str],        # Overall input columns of entire pipeline
-        "output_columns": [str],       # Overall output columns of entire pipeline
-        "transformers": [TRANSFORMER], # List of transformers in this pipeline
-    }
-
-    TRANSFORMER = {
-        "type": "transformer",
-        "label": str,                        # Short label for presentation on schematic (default from .__class__.__name__)
-        "name": str,                         # Full name of the transformer class for the title of the tooltip (default from .__class__.__name__)
-        "input_columns": [str],              # (default from pt.inspect.transformer_inputs)
-        "output_columns": [str],             # (default from pt.inspect.transformer_outputs)
-        "help_url": str | None,              # URL of documentation page (default from pt.documentation.url_for_class)
-        "settings": Dict[str, Any],          # Transformer configruation to show in body of tooltip (default from pt.inspect.transformer_attributes)
-        "inner_pipelines": PIPELINES | None, # Pipelines to show within this block (default from pt.inspect.subtransformers)
-        "inner_pipelines_mode": "unlinked" | "linked" # How to display the inner pipelines, either as a linked or unlinked set of pipelines (default unlinked)
-    }
-"""
-
-
 def _apply_default_schematic(schematic: Dict[str, Any], transformer: pt.Transformer, *, input_columns: Optional[List[str]] = None):
     assert schematic.setdefault('type', 'transformer') == 'transformer'
 
@@ -88,7 +61,7 @@ def _apply_default_schematic(schematic: Dict[str, Any], transformer: pt.Transfor
                     pipelines.append(transformer_schematic(value, input_columns=input_columns))
                     pipeline_labels.append(key)
             schematic['inner_pipelines'] = pipelines
-            schematic['inner_pipeline_labels'] = pipeline_labels
+            schematic['inner_pipelines_labels'] = pipeline_labels
 
     if schematic.get('inner_pipelines') and 'inner_pipelines_mode' not in schematic:
         schematic['inner_pipelines_mode'] = 'unlinked'
@@ -250,8 +223,15 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                     '''
                 elif record['inner_pipelines_mode'] == 'unlinked':
                     pipelines = ''
-                    for pipeline in record['inner_pipelines']:
-                        pipelines += _draw_html_schematic(pipeline, mode='inner_labeled')
+                    if len(record['inner_pipelines_labels']) == len(record['inner_pipelines']):
+                        for label, pipeline in zip(record['inner_pipelines_labels'], record['inner_pipelines']):
+                            pipelines += f'''
+                            <div class="transformer-title">{html.escape(label)}</div>
+                            <div class="inner-schematic inner-labeled">{_draw_html_schematic(pipeline, mode='inner_labeled')}</div>
+                            '''
+                    else:
+                        for pipeline in record['inner_pipelines']:
+                            pipelines += _draw_html_schematic(pipeline, mode='inner_labeled')
                     result += f'''
                     <div class="transformer inner" {infobox_attr}>
                         {infobox}

@@ -62,7 +62,8 @@ See below for the structure of the ``SchematicDict`` representation.
         "help_url": str | None,              # URL of documentation page (default from pt.documentation.url_for_class)
         "settings": Dict[str, Any],          # Transformer configruation to show in body of tooltip (default from pt.inspect.transformer_attributes)
         "inner_pipelines": PIPELINES | None, # Pipelines to show within this block (default from pt.inspect.subtransformers)
-        "inner_pipelines_mode": "unlinked" | "linked" | None # How to display the inner pipelines, either as a linked or unlinked set of pipelines (default unlinked)
+        "inner_pipelines_mode": "unlinked" | "linked" | "combine" | None, # How to display the inner pipelines
+        "inner_pipelines_labels": [str],     # When inner_pipelines_mode="unlinked", the names to show beside each inner pipeline
     }
 
 Rendering in Documentation
@@ -106,8 +107,51 @@ PyTerrier is imported by default, so you can use the ``pt`` shorthand.
     }
 
 
+Inner Pipelines
+============================================================
+
+Some transformers can contain other transformers (i.e., subtransformers). There are a few ways to display these
+inner pipelines in schematics, depending on the how it the inner pipeline is used. These are configured with the
+``inner_pipelines_mode`` setting.
+
+``inner_pipelines_mode="unlinked"`` (default). This mode shows each inner pipeline as a separate block without linking
+them together. This is useful when the transformer has logic that controls how it applies its subtransformers. Each
+inner pipeline is labeled with the name of the subtransformer. An example is :class:`~pyterrier_caching.RetrieverCache`,
+which conditionally applies its ``retriever`` based on whether the query is in the cache or not:
+
+.. schematic::
+    import pyterrier_caching
+    retr = pt.Artifact.from_hf('pyterrier/vaswani.terrier').bm25()
+    pyterrier_caching.RetrieverCache(retriever=retr)
+
+This format is in all cases where a transformer has subtransformers (which is why it is the default). However, it may not
+be the most visually descriptive for all cases, which is why ``"linked"`` and ``"combine"`` modes are also available.
+
+``inner_pipelines_mode="linked"``. This mode shows the inputs and outputs of the inner pipelines linked together, with
+the values contained in the transformer block itself. This signifies that all the pipelines are always run with the same
+inputs (potentially modified by the transformer first) and that the outputs of the inner pipelines are merged together.
+
+``inner_pipelines_mode="combine"``. This is a special case of ``linked`` mode where the transformer runs all of its inner
+pipelines with the original input and then combines the outputs into a single output. An example is :class:`~pyterrier_alpha.fusion.RRFusion`,
+which runs multiple retrieval methods and combines their outputs into a single result set:
+
+.. schematic::
+    import pyterrier_alpha as pta
+    index = pt.Artifact.from_hf('pyterrier/vaswani.terrier')
+    dataset = pt.get_dataset('irds:vaswani')
+    pta.fusion.RRFusion(
+        index.bm25(),
+        pt.rewrite.SDM() >> index.bm25(),
+        index.bm25() >> pt.rewrite.RM3(index.index_ref()) >> index.bm25(),
+    )
+
+
+
 API Documentation
 ============================================================
+
+.. autofunction:: pyterrier.schematic.draw
+    :members:
 
 .. autoclass:: pyterrier.schematic.HasSchematic()
     :members:
