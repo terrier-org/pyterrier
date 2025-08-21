@@ -175,7 +175,7 @@ def generic(
         *args, 
         batch_size : Optional[int] = None, 
         iter : bool = False, 
-        transform_outputs : Optional[Callable[[pt.Transformer, List[str]], List[str]]] = None, 
+        transform_outputs : Optional[Callable[[List[str]], List[str]]] = None, 
         **kwargs) -> pt.Transformer:
     """
         Create a transformer that changes the input dataframe to another dataframe in an unspecified way.
@@ -221,7 +221,7 @@ def generic(
         fn = cast(Callable[[pd.DataFrame], pd.DataFrame], fn) # noqa: PT100 (this is typing.cast, not jinus.cast)
         rtr = ApplyGenericTransformer(fn, *args, batch_size=batch_size, **kwargs)
     if transform_outputs is not None:
-        _bind(rtr, transform_outputs, as_name='transform_outputs')
+        rtr.transform_outputs = transform_outputs
     return rtr
 
 def by_query(
@@ -230,7 +230,7 @@ def by_query(
         batch_size : Optional[int] = None, 
         iter : bool = False, 
         verbose : bool = False,
-        transform_outputs : Optional[Callable[[pt.Transformer, List[str]], List[str]]] = None,  
+        transform_outputs : Optional[Callable[[List[str]], List[str]]] = None,  
         **kwargs) -> pt.Transformer:
     """
         As `pt.apply.generic()` except that fn receives a dataframe (or iter-dict) for one query at at time, rather than all results at once.
@@ -256,7 +256,7 @@ def by_query(
         fn = cast(Callable[[pd.DataFrame], pd.DataFrame], fn) # noqa: PT100 (this is typing.cast, not jinus.cast)
         rtr = ApplyForEachQuery(fn, *args, batch_size=batch_size, verbose=verbose, **kwargs)
     if transform_outputs is not None:
-        _bind(rtr, transform_outputs, as_name='transform_outputs')
+        rtr.transform_outputs = transform_outputs
     return rtr
 
 class _apply:

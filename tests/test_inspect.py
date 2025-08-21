@@ -252,13 +252,13 @@ class TestInspect(BaseTestCase):
             cols = pt.inspect.transformer_outputs(t, df.columns.tolist())
 
         # now check we can specify the columns when specifying transform_outputs
-        t = pt.apply.generic(_generic_func_empty, transform_outputs=lambda self, cols: cols + ['newcol'])
+        t = pt.apply.generic(_generic_func_empty, transform_outputs=lambda cols: cols + ['newcol'])
         cols = pt.inspect.transformer_outputs(t, df.columns.tolist())
         self.assertIn('newcol', cols)
         self.assertSortedEquals(cols, t(df).columns.tolist())
 
         # same for the erroring function
-        t = pt.apply.generic(_generic_func_noempty, transform_outputs=lambda self, cols: cols + ['newcol'])
+        t = pt.apply.generic(_generic_func_noempty, transform_outputs=lambda cols: cols + ['newcol'])
         cols = pt.inspect.transformer_outputs(t, df.columns.tolist())
         self.assertIn('newcol', cols)
         self.assertSortedEquals(cols, t(df).columns.tolist())
@@ -283,7 +283,7 @@ class TestInspect(BaseTestCase):
         #self.assertIn('newcol', cols)
         #self.assertSortedEquals(cols, t(df).columns.tolist())
 
-        t = pt.apply.generic(_generic_func_iter, iter=True, transform_outputs=lambda self, cols: cols + ['newcol'])
+        t = pt.apply.generic(_generic_func_iter, iter=True, transform_outputs=lambda cols: cols + ['newcol'])
         cols = pt.inspect.transformer_outputs(t, df.columns.tolist())
         self.assertIn('newcol', cols)
         self.assertSortedEquals(cols, t(df).columns.tolist())
