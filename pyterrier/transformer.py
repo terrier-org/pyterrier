@@ -308,6 +308,10 @@ class Transformer:
     def __hash__(self):
         return hash(repr(self))
 
+    def _repr_html_(self):
+        return pt.schematic.draw(self, outer_cls='repr_html')
+
+
 class Indexer(Transformer):
     def __new__(cls, *args, **kwargs):
         instance = super().__new__(cls, *args, **kwargs)

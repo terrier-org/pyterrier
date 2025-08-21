@@ -1,3 +1,4 @@
+import re
 import math
 import itertools
 import numpy as np
@@ -343,3 +344,55 @@ def to_ir_measures(
         return { _pyterrier_to_ir_measures.get(k, k): v for k, v in inp.items() }
     else:
         return [_pyterrier_to_ir_measures.get(x, x) for x in inp]
+
+
+def column_info(column: str) -> Optional[dict]:
+    """Returns a dictionary with information about the specified column name."""
+    if column == 'qid':
+        return {
+            'phrase': 'Query ID',
+            'short_desc': 'ID of query in frame',
+            'type': str,
+        }
+    if column == 'docno':
+        return {
+            'phrase': 'External Document ID',
+            'short_desc': 'String ID of document in collection',
+            'type': str,
+        }
+    if column == 'docid':
+        return {
+            'phrase': 'Internal Document ID',
+            'short_desc': 'Integer ID of document in a specific index',
+            'type': int,
+        }
+    if column == 'score':
+        return {
+            'short_desc': 'Ranking score of document to query (higher=better)',
+            'type': float,
+        }
+    if column == 'rank':
+        return {
+            'short_desc': 'Ranking order of document to query (lower=better)',
+            'type': int,
+        }
+    if column == 'query':
+        return {
+            'short_desc': 'Query text',
+            'type': str,
+        }
+    if re.match(r'^query_[0-9]+$', column):
+        return {
+            'short_desc': 'Stashed query text',
+            'type': str,
+        }
+    if column == 'text':
+        return {
+            'short_desc': 'Document text',
+            'type': str,
+        }
+    if column == 'features':
+        return {
+            'short_desc': 'Feature array for learning-to-rank',
+            'type': np.array,
+        }

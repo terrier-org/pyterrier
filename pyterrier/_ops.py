@@ -212,6 +212,8 @@ class FeatureUnion(NAryTransformerBase):
             bm25f = pt.terrier.Retriever(index wmodel="BM25F")
             pipe = cands >> (pl2f ** bm25f)
     """
+    schematic = {'inner_pipelines_mode': 'linked', 'label': 'FeatureUnion **'}
+
     def transform(self, inputRes):
         if "docno" not in inputRes.columns and "docid" not in inputRes.columns:
             raise ValueError("FeatureUnion operates as a re-ranker, but input did not have either "
@@ -446,6 +448,21 @@ class Compose(NAryTransformerBase):
         for transformer in self:
             output_columns = pt.inspect.transformer_outputs(transformer, output_columns)
         return output_columns
+
+    def schematic(self, *, input_columns):
+        pipeline = []
+        columns = input_columns
+        for transformer in self:
+            schematic = pt.schematic.transformer_schematic(transformer, input_columns=columns)
+            pipeline.append(schematic)
+            columns = schematic['output_columns']
+        return {
+            'type': 'pipeline',
+            'input_columns': pipeline[0]['input_columns'] if pipeline else None,
+            'output_columns': pipeline[-1]['output_columns'] if pipeline else None,
+            'title': None,
+            'transformers': pipeline,
+        }
 
 
 MAX_COMPILE_ITER = 10_000

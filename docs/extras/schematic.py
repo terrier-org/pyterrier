@@ -1,6 +1,5 @@
 import ast
 import pyterrier as pt
-import pyterrier_alpha as pta
 from docutils import nodes
 from docutils.parsers.rst import Directive
 
@@ -42,7 +41,7 @@ class SchematicDirective(Directive):
         result = run_and_return_last(code, {'pt': pt}, {})
         if not isinstance(result, (dict, pt.Transformer)):
             return [self.state_machine.reporter.error(f"Expected dict or Transformer, got {result!r} (type: {type(result)})", line=self.lineno)]
-        html = pta.schematic.draw(result)
+        html = pt.schematic.draw(result)
         return [nodes.raw('', html, format='html')]
 
 

@@ -1,0 +1,245 @@
+#ID {
+    position: relative;
+    min-height: 32px;
+    padding: 16px;
+    --jp-ui-font-size1: 12px;
+    display: flex;
+    justify-content: center;
+    font-size: 12px;
+}
+#ID.repr_html {
+    min-height: 96px;
+}
+
+#ID .infobox {
+    position: absolute;
+    max-height: 300px;
+    top: 0;
+    left: 0;
+    border: 1px solid rgb(66, 153, 225);
+    overflow-y: auto;
+    display: none;
+    background: white;
+    box-shadow: 0 0 4px black;
+    opacity: 0.9;
+    margin: 4px;
+    font-size: 0.8em;
+    max-width: 360px;
+    min-width: 128px;
+}
+#ID.repr_html .infobox {
+    max-height: 100%;
+}
+#ID .infobox-item {
+    display: none;
+}
+#ID .infobox-title {
+    background: rgb(66, 153, 225);
+    color: white;
+    padding: 2px 6px;
+    position: sticky;
+    top: 0;
+}
+#ID .infobox-body {
+    overflow-x: auto;
+}
+#ID [data-infobox] {
+    cursor: pointer;
+}
+#ID .infobox-source.transformer {
+    background: rgba(66, 153, 225, 0.4);
+}
+#ID .infobox-source.df {
+    background-color: #ddd;
+}
+
+#ID .hline {
+    width: 64px;
+    border-bottom: 2px solid black;
+    align-self: center;
+    position: relative;
+}
+#ID .arr-inner {
+    margin-right: -6px;
+}
+#ID .arr-input {
+    margin-right: -6px;
+    width: 16px;
+    margin-left: 28px;
+}
+#ID .arr-output {
+    width: 16px;
+    margin-right: 32px;
+}
+#ID .arr::after {
+    content: "";
+    position: absolute;
+    right: -4px;
+    top: 1px;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 6px solid black;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+}
+#ID .io-label {
+    margin: 0 5px 4px 5px;
+}
+
+#ID .vline {
+    border-right: 2px solid black;
+    position: relative;
+    margin-right: -2px;
+    margin-left: -2px;
+}
+
+#ID .df {
+    display: inline-block;
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+    border: 3px double black;
+    background-color: white;
+    box-sizing: border-box;
+    border-radius: 3px;
+    text-align: center;
+    line-height: 1;
+    padding-top: 3px;
+    margin: 1px;
+    font-weight: bold;
+}
+#ID .df.df-alert {
+    border-color: #a35;
+    color: #a35;
+}
+#ID .hline > .df {
+    position: absolute;
+    top: -14px;
+    left: 18px;
+}
+#ID .arr-input > .df {
+    left: -28px;
+}
+#ID .arr-output > .df {
+    left: 22px;
+}
+#ID .df-columns {
+    margin-bottom: 0;
+    min-width: 100%;
+    border-collapse: collapse;
+}
+#ID .df-columns td, #ID .df-columns th {
+    border-top: 1px solid #bbb;
+    background: white;
+    text-align: left;
+    padding: 2px 2px 2px 4px;
+    white-space: nowrap;
+}
+#ID .df-columns .add th, #ID .df-columns .add td {
+    background-color: rgb(203, 223, 244);
+}
+#ID .df-columns td {
+    width: 100%;
+}
+
+#ID .pipeline {
+    display: flex;
+    align-items: center;
+    align-content: stretch;
+    overflow-x: auto;
+}
+#ID .pipeline > * {
+    flex-shrink: 0;
+}
+
+#ID .transformer {
+    font-size: 13px;
+    display: inline-block;
+    position: relative;
+    color: #333;
+    background: rgba(66, 153, 225, 0.3);
+    box-sizing: border-box;
+    padding: 4px 18px;
+    clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 0 100%, 16px 50%);
+}
+#ID .transformer-title {
+    text-align: center;
+    font-weight: bold;
+}
+
+/* re-size things within an inner block */
+#ID .inner .df {
+    width: 21px;
+    height: 21px;
+    font-size: 12px;
+    padding-top: 1px;
+}
+#ID .inner .hline {
+    width: 34px;
+}
+#ID .inner .transformer {
+    font-size: 12px;
+    padding: 2px 18px;
+}
+#ID .inner .hline > .df {
+    position: absolute;
+    top: -10px;
+    left: 5px;
+}
+#ID .inner .arr-input {
+    margin-left: 8px;
+}
+#ID .inner .arr-output {
+    margin-right: 4px;
+}
+
+#ID .inner-schematic {
+    display: flex;
+    flex-direction: column;
+}
+
+#ID .parallel-scaffold {
+    display: grid;
+    grid-template-areas:
+      "larr title rarr"
+      "larr body  rarr";
+}
+#ID .parallel-scaffold > .hline {
+    grid-area: larr;
+    width: 16px;
+}
+#ID .parallel-scaffold > .hline.arr {
+    grid-area: rarr;
+    margin-right: -8px;
+}
+#ID .parallel-scaffold > .transformer-title {
+    grid-area: title;
+}
+#ID .parallel-scaffold > .inner-schematic {
+    grid-area: body;
+}
+
+#ID .parallel-item {
+    display: flex;
+    align-content: stretch;
+    justify-content: stretch;
+}
+#ID .parallel-item:first-child > .vline {
+    height: 50%;
+    align-self: end;
+}
+#ID .parallel-item:last-child > .vline {
+    height: 50%;
+    align-self: start;
+}
+#ID .parallel-item > .pipeline {
+    flex-grow: 1;
+    margin: 4px 0;
+}
+
+#ID .combine-box {
+    border: 1px dashed #999;
+    display: flex;
+    align-items: center;
+}
