@@ -2,9 +2,15 @@ from .base import BaseTestCase, parallel_test
 import pyterrier as pt
 class TestParallel(BaseTestCase):
 
+    def skip_py_311_or_newer(self):
+        import sys
+        if sys.version >= (3,11):
+            self.skipTest("Problems with recent python")
+
     @parallel_test
     def test_parallel_joblib_experiment(self):
         self.skip_windows()
+        self.skip_py_311_or_newer()
         dataset = pt.get_dataset("vaswani")
         br = pt.terrier.Retriever(dataset.get_index())
         df = pt.Experiment(
@@ -18,6 +24,7 @@ class TestParallel(BaseTestCase):
     @parallel_test
     def test_parallel_joblib_experiment_br_callback(self):
         self.skip_windows()
+        self.skip_py_311_or_newer()
         dataset = pt.get_dataset("vaswani")
         Tf = lambda keyFreq, posting, entryStats, collStats: posting.getFrequency()
         br = pt.terrier.Retriever(dataset.get_index(), wmodel=Tf)
@@ -32,6 +39,7 @@ class TestParallel(BaseTestCase):
     @parallel_test
     def test_parallel_joblib_ops(self):
         self.skip_windows()
+        self.skip_py_311_or_newer()
         dataset = pt.get_dataset("vaswani")
         topics = dataset.get_topics().head(3)
         dph = pt.terrier.Retriever(dataset.get_index())

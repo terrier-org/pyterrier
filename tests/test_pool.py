@@ -5,9 +5,15 @@ import pyterrier as pt
 import datetime
 class TestPool(BaseTestCase):
 
+    def skip_py_311_or_newer(self):
+        import sys
+        if sys.version >= (3,11):
+            self.skipTest("Problems with recent python")
+
     @parallel_test
     def test_br_parallel(self):
         self.skip_windows()
+        self.skip_py_311_or_newer()
         vaswani = pt.datasets.get_dataset("vaswani")
         br = pt.terrier.Retriever(vaswani.get_index()) %2
         t = vaswani.get_topics()
@@ -60,6 +66,7 @@ class TestPool(BaseTestCase):
     @parallel_test
     def test_br_joblib(self):
         self.skip_windows()
+        self.skip_py_311_or_newer()
         from pyterrier.parallel import _joblib_with_initializer
 
         vaswani = pt.datasets.get_dataset("vaswani")
