@@ -138,7 +138,7 @@ def transformer_inputs(
                     continue
     if not isinstance(result, list) or len(result) == 0:
         if strict:
-            raise InspectError(f"Cannot determine inputs for {transformer}")
+            raise InspectError(f"Cannot determine inputs for {transformer} - received from transformer: {result}")
         return None
     if not isinstance(result[0], list) or (len(result[0]) > 0 and not isinstance(result[0][0], str)):
         if strict:
