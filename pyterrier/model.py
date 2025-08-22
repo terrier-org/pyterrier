@@ -3,7 +3,7 @@ import math
 import itertools
 import numpy as np
 import pandas as pd
-from typing import Any, Dict, Iterable, List, Sequence, Optional, Union, overload
+from typing import Any, Dict, Iterable, List, Sequence, Set, Optional, Union, overload
 
 IterDictRecord = Dict[str, Any]
 IterDict = Iterable[IterDictRecord]
@@ -291,9 +291,11 @@ def from_ir_measures(inp: Dict[str, Any]) -> Dict[str, Any]: ...
 @overload
 def from_ir_measures(inp: List[str]) -> List[str]: ...
 @overload
+def from_ir_measures(inp: Set[str]) -> List[str]: ...
+@overload
 def from_ir_measures(inp: pd.DataFrame) -> pd.DataFrame: ...
 def from_ir_measures(
-    inp: Union[str, pd.DataFrame, Dict[str, Any], List[str]],
+    inp: Union[str, pd.DataFrame, Dict[str, Any], List[str], Set[str]],
 ) -> Union[str, pd.DataFrame, Dict[str, Any], List[str]]:
     """This function maps ir-measues column names to PyTerrier column names.
 
