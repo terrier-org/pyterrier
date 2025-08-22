@@ -77,6 +77,8 @@ def transformer_schematic(
         all_input_column_configs = pt.inspect.transformer_inputs(transformer, strict=False)
         if all_input_column_configs is not None and len(all_input_column_configs) > 0:
             input_columns = all_input_column_configs[0] # pick the first one
+        else:
+            input_columns = None
     if not default and isinstance(transformer, HasSchematic):
         if callable(transformer.schematic):
             schematic = transformer.schematic(input_columns=input_columns)
