@@ -6,7 +6,7 @@ PyTerrier is a declarative platform for information retrieval experiemnts in Pyt
 Pre-requisites
 ==============
 
-PyTerrier requires Python 3.8 or newer, and Java 11 or newer. PyTerrier is natively supported on Linux, Mac OS X and Windows. 
+PyTerrier requires Python 3.9 or newer, and Java 11 or newer. PyTerrier is natively supported on Linux, Mac OS X and Windows. 
 
 Installation
 ============
