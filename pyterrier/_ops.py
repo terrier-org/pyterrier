@@ -437,7 +437,8 @@ class Compose(NAryTransformerBase):
 
     def transform_inputs(self):
         # The first transformer in the pipeline may accept multiple input configurations, but not all of these
-        # may work for the rest of the pipeline. So find out which (if any) of the input configurations work.
+        # may work for the rest of the pipeline. So find out which (if any) of the input configurations work, and
+        # prioritise those.
         io_configurations = [
             {
                 'input_columns': input_columns,
@@ -450,7 +451,7 @@ class Compose(NAryTransformerBase):
                 if configuration['output_columns'] is None:
                     continue
                 configuration['output_columns'] = pt.inspect.transformer_outputs(transformer, configuration['output_columns'], strict=False)
-        return [io_cfg['input_columns'] for io_cfg in io_configurations if io_cfg['output_columns'] is not None]
+        return [io_cfg['input_columns'] for io_cfg in sorted(io_configurations, key=lambda x: x['output_columns'] is None)]
 
     def transform_outputs(self, input_columns):
         # Figure out the output columns for the given input columns. This is a more direct and robust way of getting the outputs

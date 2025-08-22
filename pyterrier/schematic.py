@@ -27,7 +27,13 @@ def _apply_default_schematic(schematic: Dict[str, Any], transformer: pt.Transfor
         if 'input_columns' not in schematic:
             schematic['input_columns'] = input_columns
         if 'output_columns' not in schematic:
-            schematic['output_columns'] = pt.inspect.transformer_outputs(transformer, input_columns, strict=False)
+            try:
+                schematic['output_columns'] = pt.inspect.transformer_outputs(transformer, input_columns)
+            except pt.validate.InputValidationError as e:
+                schematic['output_columns'] = None
+                schematic['input_validation_error'] = e
+            except pt.inspect.InspectError:
+                schematic['output_columns'] = None
 
     default_settings_applied = False
     if 'settings' not in schematic:
@@ -53,10 +59,10 @@ def _apply_default_schematic(schematic: Dict[str, Any], transformer: pt.Transfor
                     del schematic['settings'][key]
                 if isinstance(value, list):
                     for i, v in enumerate(value):
-                        pipelines.append(transformer_schematic(v, input_columns=input_columns))
+                        pipelines.append(transformer_schematic(v, input_columns=input_columns or _INFER))
                         pipeline_labels.append(f'{key}[{i}]')
                 else:
-                    pipelines.append(transformer_schematic(value, input_columns=input_columns))
+                    pipelines.append(transformer_schematic(value, input_columns=input_columns or _INFER))
                     pipeline_labels.append(key)
             schematic['inner_pipelines'] = pipelines
             schematic['inner_pipelines_labels'] = pipeline_labels
@@ -168,14 +174,37 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
         columns = schematic["input_columns"]
         for i, record in enumerate(schematic['transformers']):
             assert record['type'] == 'transformer'
-            # assert record['input_columns'] == columns # TODO: why does this fail?
+            assert record['input_columns'] == columns # TODO: why does this fail?
             uid = str(uuid.uuid4())
             infobox = ''
             infobox_attr = ''
-            if record.get('settings') or record.get('name'):
+            error_cls = ''
+            if record.get('settings') or record.get('name') or record.get('input_validation_error'):
                 help_url = record.get('help_url') or ''
                 name = record.get('name') or ''
                 attrs = ''
+                error_info = ''
+                if record.get('input_validation_error'):
+                    modes = record['input_validation_error'].modes
+                    error_cls = 'input-validation-error'
+                    if len(modes) == 1:
+                        # Normal case: there's just one mode
+                        error_info = '<div class="infobox-error">'
+                        if len(modes[0].missing_columns) > 0:
+                            error_info += f'Missing input columns: {", ".join(["<b>" + html.escape(c) + "</b>" for c in modes[0].missing_columns])}. '
+                        if len(modes[0].extra_columns) > 0:
+                            error_info += f'Unexpected input columns: {", ".join(["<b>" + html.escape(c) + "</b>" for c in modes[0].extra_columns])}. '
+                        error_info += '</div>'
+                    else:
+                        error_info = '<div class="infobox-error"><div>None of the supported input modes matched:</div><ul>'
+                        for i, error_mode in enumerate(modes):
+                            error_info += f'<li>Mode {html.escape(error_mode.mode_name or str(i+1))}: '
+                            if len(error_mode.missing_columns) > 0:
+                                error_info += f'Missing input columns: {", ".join(["<b>" + html.escape(c) + "</b>" for c in error_mode.missing_columns])}. '
+                            if len(error_mode.extra_columns) > 0:
+                                error_info += f'Unexpected input columns: {", ".join(["<b>" + html.escape(c) + "</b>" for c in error_mode.extra_columns])}. '
+                            error_info += '</li>'
+                        error_info += '</ul></div>'
                 if record['settings']:
                     attr_rows = []
                     for key, value in record['settings'].items():
@@ -188,6 +217,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                             {html.escape(name)}
                         {'</a>' if help_url else ''}
                     </div>
+                    {error_info}
                     {attrs}
                 </div>
                 '''
@@ -198,7 +228,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                     for i, pipeline in enumerate(record['inner_pipelines']):
                         pipelines += '<div class="parallel-item"><div class="vline"></div>' + _draw_html_schematic(pipeline, mode='inner_linked') + '<div class="vline"></div></div>'
                     result += f'''
-                    <div class="transformer inner parallel-scaffold" {infobox_attr}>
+                    <div class="transformer inner parallel-scaffold {error_cls}" {infobox_attr}>
                         {infobox}
                         <div class="hline"></div>
                         <div class="transformer-title">{html.escape(record.get("label") or "")}</div>
@@ -217,7 +247,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                             <div class="inner-schematic inner-linked">{pipelines}</div>
                             <div class="hline arr"></div>
                         </div>
-                        <div class="transformer" {infobox_attr}>
+                        <div class="transformer {error_cls}" {infobox_attr}>
                             {infobox}
                             <div class="transformer-title">{html.escape(record.get("label") or "")}</div>
                         </div>
@@ -235,7 +265,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                         for pipeline in record['inner_pipelines']:
                             pipelines += _draw_html_schematic(pipeline, mode='inner_labeled')
                     result += f'''
-                    <div class="transformer inner" {infobox_attr}>
+                    <div class="transformer inner {error_cls}" {infobox_attr}>
                         {infobox}
                         <div class="transformer-title">{html.escape(record.get("label") or "")}</div>
                         <div class="inner-schematic inner-labeled">{pipelines}</div>
@@ -243,7 +273,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                     '''
             else:
                 result += f'''
-                <div class="transformer" {infobox_attr}>
+                <div class="transformer {error_cls}" {infobox_attr}>
                     {infobox}
                     <div class="transformer-title">{html.escape(record.get("label") or "")}</div>
                 </div>
@@ -263,7 +293,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
     return result + '</div>'
 
 
-def _draw_df_html(columns: Optional[List[str]], prev_columns: Optional[List[str]] = None) -> str:
+def _draw_df_html(columns, prev_columns = None) -> str:
     """Draws a DataFrame as an HTML table."""
     df_label = '?'
     df_label_long = 'Unknown Frame'
@@ -324,7 +354,7 @@ def _draw_df_html(columns: Optional[List[str]], prev_columns: Optional[List[str]
     else:
         col_table = f'''
         <div id="id-{uid}" class="infobox-item" data-title="{df_label_long}">
-            <div style="margin: 4px; color: #a35; font-weight: bold;">Unknown/incompatible columns</div>
+            <div class="infobox-error">Unknown/incompatible columns</div>
         </div>'''
     return f'<div class="df {df_class}" data-infobox="id-{uid}">{df_label}{col_table}</div>'
 
