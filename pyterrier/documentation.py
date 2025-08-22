@@ -59,9 +59,9 @@ def objects_inv() -> dict:
         if len(parts) < 5:
             continue  # skip malformed lines
         name, type_, priority, url, title = parts
-        priority = int(priority)
-        if (type_, name) not in objects or objects[(type_, name)][2] > priority:
-            objects[type_, name] = (_BASE_URL + url, title, priority)
+        ipriority = int(priority)
+        if (type_, name) not in objects or objects[(type_, name)][2] > ipriority:
+            objects[type_, name] = (_BASE_URL + url, title, ipriority)
     _cached_objects_inv = objects
     return _cached_objects_inv
 
