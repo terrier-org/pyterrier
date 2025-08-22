@@ -5,7 +5,7 @@
 """
 import inspect
 import dataclasses
-from typing import Any, Dict, List, Optional, Protocol, Type, Tuple, Union, runtime_checkable
+from typing import Any, Dict, List, Literal, Optional, Protocol, Type, Tuple, Union, overload, runtime_checkable
 
 import pandas as pd
 
@@ -130,7 +130,7 @@ def transformer_inputs(
         except pt.validate.InputValidationError as ive:
             result = [mode.missing_columns for mode in ive.modes]
             received = "validation using invocation on empty 0-cols frame"
-        except Exception as ex:
+        except Exception:
             for mode, frame_type in [
                 (['qid', 'query'] , "Q"),
                 (['qid', 'query', 'docno', 'score', 'rank'], "R"),
@@ -156,6 +156,21 @@ def transformer_inputs(
         return None
     return result
 
+@overload
+def transformer_outputs(
+    transformer: pt.Transformer,
+    input_columns: List[str],
+    *,
+    strict: Literal[True],
+) -> List[str]: ...
+
+@overload
+def transformer_outputs(
+    transformer: pt.Transformer,
+    input_columns: List[str],
+    *,
+    strict: Literal[False],
+) -> Optional[List[str]]: ...
 
 def transformer_outputs(
     transformer: pt.Transformer,
