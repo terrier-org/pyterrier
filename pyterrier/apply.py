@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Callable, Any, Dict, Union, Optional, Sequence, Literal, List
+from typing import Callable, Any, Dict, Union, Optional, Sequence, Literal, List, cast
 import numpy.typing as npt
 import pandas as pd
 import pyterrier as pt
@@ -170,7 +170,13 @@ def rename(columns : Dict[str,str], *args, errors : Literal['raise', 'ignore']='
         required_columns = None
     return ApplyGenericTransformer(lambda df: df.rename(columns=columns, errors=errors), *args, required_columns=required_columns, **kwargs)
 
-def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.model.IterDict], pt.model.IterDict]], *args, batch_size=None, iter=False, **kwargs) -> pt.Transformer:
+def generic(
+        fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.model.IterDict], pt.model.IterDict]], 
+        *args, 
+        batch_size : Optional[int] = None, 
+        iter : bool = False, 
+        transform_outputs : Optional[Callable[[List[str]], List[str]]] = None, 
+        **kwargs) -> pt.Transformer:
     """
         Create a transformer that changes the input dataframe to another dataframe in an unspecified way.
 
@@ -183,6 +189,10 @@ def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.mode
         :param required_columns: If provided, should be a list of columns that must be present in the input dataframe.
         :param verbose: Whether to display a progress bar over batches (only used if batch_size is set, and iter is not set).
         :param iter: Whether to use the iter-dict API - if-so, then ``fn`` receives an iterable, and returns an iterable. 
+        :param transform_outputs: Used to support inspection. If provided, should be a function (e.g. lambda) that takes 
+            the input columns as an argument, and returns the list of columns that the transformer will output. 
+            This need only be set if you need inspectability and iter=True, or your transformer doesn't respond well to 
+            being inspected by empty dataframes.
 
         Example (dataframe)::
 
@@ -202,13 +212,27 @@ def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.mode
             pipe2 = pt.terrier.Retriever(index) >> pt.apply.generic(lambda res: [row for row in res if row["rank"] < 2], iter=True)
 
     """
+    rtr : pt.Transformer
     if iter:
         if kwargs.get("add_ranks", False):
             raise ValueError("add_ranks=True not supported with iter=True")
-        return ApplyGenericIterTransformer(fn, *args, batch_size=batch_size, **kwargs)
-    return ApplyGenericTransformer(fn, *args, batch_size=batch_size, **kwargs)
+        fn = cast(Callable[[pt.model.IterDict], pt.model.IterDict], fn) # noqa: PT100 (this is typing.cast, not jinus.cast)
+        rtr = ApplyGenericIterTransformer(fn, *args, batch_size=batch_size, **kwargs)
+    else:
+        fn = cast(Callable[[pd.DataFrame], pd.DataFrame], fn) # noqa: PT100 (this is typing.cast, not jinus.cast)
+        rtr = ApplyGenericTransformer(fn, *args, batch_size=batch_size, **kwargs)
+    if transform_outputs is not None:
+        rtr.transform_outputs = transform_outputs # type: ignore[attr-defined]
+    return rtr
 
-def by_query(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.model.IterDict], pt.model.IterDict]], *args, batch_size=None, iter=False, verbose=False, **kwargs) -> pt.Transformer:
+def by_query(
+        fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.model.IterDict], pt.model.IterDict]], 
+        *args, 
+        batch_size : Optional[int] = None, 
+        iter : bool = False, 
+        verbose : bool = False,
+        transform_outputs : Optional[Callable[[List[str]], List[str]]] = None,  
+        **kwargs) -> pt.Transformer:
     """
         As `pt.apply.generic()` except that fn receives a dataframe (or iter-dict) for one query at at time, rather than all results at once.
         If batch_size is set, fn will receive no more than batch_size documents for any query. The verbose kwargs controls whether
@@ -219,12 +243,23 @@ def by_query(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.mod
         :param required_columns: If provided, should be a list of columns that must be present in the input dataframe.
         :param verbose: Whether to display a progress bar over batches (only used if batch_size is set, and iter is not set).
         :param iter: Whether to use the iter-dict API - if-so, then ``fn`` receives an iterable, and must return an iterable. 
+        :param transform_outputs: Used to support inspection. If provided, should be a function (e.g. lambda) that takes 
+            the input columns as an argument, and returns the list of columns that the transformer will output. 
+            This need only be set if you need inspectability and iter=True, or your transformer doesn't respond well to 
+            being inspected by empty dataframes.
     """
+    rtr : pt.Transformer
     if iter:
+        fn = cast(Callable[[pt.model.IterDict], pt.model.IterDict], fn) # noqa: PT100 (this is typing.cast, not jinus.cast)
         if kwargs.get("add_ranks", False):
             raise ValueError("add_ranks=True not supported with iter=True")
-        return ApplyIterForEachQuery(fn, *args, batch_size=batch_size, verbose=verbose, **kwargs)
-    return ApplyForEachQuery(fn, *args, batch_size=batch_size, verbose=verbose, **kwargs)
+        rtr = ApplyIterForEachQuery(fn, *args, batch_size=batch_size, verbose=verbose, **kwargs)
+    else:
+        fn = cast(Callable[[pd.DataFrame], pd.DataFrame], fn) # noqa: PT100 (this is typing.cast, not jinus.cast)
+        rtr = ApplyForEachQuery(fn, *args, batch_size=batch_size, verbose=verbose, **kwargs)
+    if transform_outputs is not None:
+        rtr.transform_outputs = transform_outputs # type: ignore[attr-defined]
+    return rtr
 
 class _apply:
 

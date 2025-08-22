@@ -542,7 +542,7 @@ class ApplyGenericIterTransformer(pt.Transformer):
         self.required_columns = required_columns
 
     def __repr__(self):
-        return "pt.apply.generic()"
+        return "pt.apply.generic(, iter=True)"
 
     def transform_iter(self, inp: pt.model.IterDict) -> pt.model.IterDict:
         if self.required_columns is not None:

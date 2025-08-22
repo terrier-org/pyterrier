@@ -439,6 +439,7 @@ class HasTransformOutputs(Protocol):
 
         Raises:
             pt.validate.InputValidationError: If the input columns are not accepted by the transformer.
+            pt.inspect.InspectError: If the transformer is uninspectable.
         """
 
 
