@@ -300,7 +300,7 @@ def from_ir_measures(
     It's useful when converting between PyTerrier and ir-measures data formats.
 
     .. seealso::
-        :py:func:`pyterrier.utils.to_ir_measures` for the reverse operation.
+        :py:func:`pyterrier.model.to_ir_measures` for the reverse operation.
     """
     if isinstance(inp, str):
         return _ir_measures_to_pyterrier.get(inp, inp) # rename values in mapping, keep others the same
@@ -334,7 +334,7 @@ def to_ir_measures(
     It's useful when converting between PyTerrier and ir-measures data formats.
 
     .. seealso::
-        :py:func:`pyterrier.utils.from_ir_measures` for the reverse operation.
+        :py:func:`pyterrier.model.from_ir_measures` for the reverse operation.
     """
     if isinstance(inp, str):
         return _pyterrier_to_ir_measures.get(inp, inp) # rename values in mapping, keep others the same
