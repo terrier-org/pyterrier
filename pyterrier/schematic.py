@@ -278,6 +278,9 @@ def _draw_df_html(columns: Optional[List[str]], prev_columns: Optional[List[str]
     elif 'qanswer' in columns:
         df_label = 'A'
         df_label_long = 'Query Answer Frame'
+    elif 'qcontext' in columns:
+        df_label = 'Q<sub>c</sub>'
+        df_label_long = 'Query Context Frame'
     elif 'qid' in columns:
         df_label = 'Q'
         df_label_long = 'Query Frame'
