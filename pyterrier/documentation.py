@@ -42,13 +42,13 @@ def objects_inv() -> dict:
     if not objects_inv_path.exists() or _is_old(objects_inv_path, objects_inv_url):
         if not objects_inv_path.parent.exists():
             objects_inv_path.parent.mkdir(parents=True, exist_ok=True)
-        pt.io.download(objects_inv_url, objects_inv_path, verbose=False)
+        pt.io.download(objects_inv_url, str(objects_inv_path), verbose=False)
     # parse the objects.inv file
     with objects_inv_path.open('rb') as f:
         for _ in range(4):
             line = f.readline()
             if not line.startswith(b'#'):
-                raise ValueError(f'Invalid objects.inv file: expected comment line, got {line}')
+                raise ValueError(f'Invalid objects.inv file: expected comment line, got {line!r}')
         data = f.read()
     lines = zlib.decompress(data).decode('utf-8').splitlines()
     objects : Dict[Tuple[str,str], Tuple[str, str, int]] = {}
