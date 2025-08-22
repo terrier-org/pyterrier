@@ -299,7 +299,9 @@ def _draw_df_html(columns, prev_columns = None) -> str:
     if columns is None:
         columns = []
         df_class = ' df-alert'
-    df_label, df_label_long = pt.model.frame_info(columns)
+    frame_info = pt.model.frame_info(columns)
+    df_label = frame_info['label'] 
+    df_label_long = frame_info['label_long'] 
     # change underscore subscript into HTML subscript
     df_label = re.sub(r'_(\w+)', r'<sub>\1</sub>', df_label)
     uid = str(uuid.uuid4())

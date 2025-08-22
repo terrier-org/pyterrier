@@ -3,7 +3,7 @@ import math
 import itertools
 import numpy as np
 import pandas as pd
-from typing import Any, Dict, Iterable, List, Sequence, Optional, Union, overload, Tuple
+from typing import Any, Dict, Iterable, List, Sequence, Optional, Union, overload
 
 IterDictRecord = Dict[str, Any]
 IterDict = Iterable[IterDictRecord]
@@ -344,8 +344,8 @@ def to_ir_measures(
         return { _pyterrier_to_ir_measures.get(k, k): v for k, v in inp.items() }
     return [_pyterrier_to_ir_measures.get(x, x) for x in inp]
 
-def frame_info(columns : List[str]) -> Tuple[str,str]:
-    """Returns a tuple containing a short label and a name for given set of columns."""
+def frame_info(columns : List[str]) -> Dict[str,str]:
+    """Returns a dict containing a short label and a short description for given set of columns."""
     if len(columns) == 0:
         df_label = '?'
         df_label_long = 'Unknown Frame'
@@ -367,7 +367,7 @@ def frame_info(columns : List[str]) -> Tuple[str,str]:
     elif 'docno' in columns:
         df_label = 'D'
         df_label_long = 'Document Frame'
-    return df_label, df_label_long
+    return {'label' : df_label, 'label_long' : df_label_long}
 
 def column_info(column: str) -> Optional[dict]:
     """Returns a dictionary with information about the specified column name."""
