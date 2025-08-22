@@ -344,30 +344,36 @@ def to_ir_measures(
         return { _pyterrier_to_ir_measures.get(k, k): v for k, v in inp.items() }
     return [_pyterrier_to_ir_measures.get(x, x) for x in inp]
 
-def frame_info(columns : List[str]) -> Dict[str,str]:
+
+def frame_info(columns : List[str]) -> Optional[Dict[str, str]]:
     """Returns a dict containing a short label and a short description for given set of columns."""
-    if len(columns) == 0:
-        df_label = '?'
-        df_label_long = 'Unknown Frame'
-    elif 'qid' in columns and 'docno' in columns and 'features' in columns:
-        df_label = 'R<sub>f</sub>'
-        df_label_long = 'Result Frame with Features'
+    if 'qid' in columns and 'docno' in columns and 'features' in columns:
+        return {
+            "label": 'R_f',
+            "title": 'Result Frame with Features',
+        }
     elif 'qid' in columns and 'docno' in columns:
-        df_label = 'R'
-        df_label_long = 'Result Frame'
+        return {
+            "label": 'R',
+            "title": 'Result Frame',
+        }
     elif 'qanswer' in columns:
-        df_label = 'A'
-        df_label_long = 'Query Answer Frame'
-    elif 'qcontext' in columns:
-        df_label = 'Q<sub>c</sub>'
-        df_label_long = 'Query Context Frame'
+        return {
+            "label": 'A',
+            "title": 'Query Answer Frame',
+        }
     elif 'qid' in columns:
-        df_label = 'Q'
-        df_label_long = 'Query Frame'
+        return {
+            "label": 'Q',
+            "title": 'Query Frame',
+        }
     elif 'docno' in columns:
-        df_label = 'D'
-        df_label_long = 'Document Frame'
-    return {'label' : df_label, 'label_long' : df_label_long}
+        return {
+            "label": 'D',
+            "title": 'Document Frame',
+        }
+    return
+
 
 def column_info(column: str) -> Optional[dict]:
     """Returns a dictionary with information about the specified column name."""

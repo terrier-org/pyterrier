@@ -52,6 +52,9 @@ def _apply_default_schematic(schematic: Dict[str, Any], transformer: pt.Transfor
         except pt.inspect.InspectError:
             subtransformers = {}
         if subtransformers:
+            subtransformer_inputs = input_columns or _INFER
+            if schematic.get('inner_pipelines', 'unlinked') == 'unlinked':
+                subtransformer_inputs = _INFER
             pipelines = []
             pipeline_labels = []
             for key, value in subtransformers.items():
@@ -59,10 +62,10 @@ def _apply_default_schematic(schematic: Dict[str, Any], transformer: pt.Transfor
                     del schematic['settings'][key]
                 if isinstance(value, list):
                     for i, v in enumerate(value):
-                        pipelines.append(transformer_schematic(v, input_columns=input_columns or _INFER))
+                        pipelines.append(transformer_schematic(v, input_columns=subtransformer_inputs))
                         pipeline_labels.append(f'{key}[{i}]')
                 else:
-                    pipelines.append(transformer_schematic(value, input_columns=input_columns or _INFER))
+                    pipelines.append(transformer_schematic(value, input_columns=subtransformer_inputs))
                     pipeline_labels.append(key)
             schematic['inner_pipelines'] = pipelines
             schematic['inner_pipelines_labels'] = pipeline_labels
@@ -174,7 +177,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
         columns = schematic["input_columns"]
         for i, record in enumerate(schematic['transformers']):
             assert record['type'] == 'transformer'
-            assert record['input_columns'] == columns # TODO: why does this fail?
+            assert record['input_columns'] == columns
             uid = str(uuid.uuid4())
             infobox = ''
             infobox_attr = ''
@@ -290,7 +293,6 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
             result += f'<div class="hline arr arr-output">{_draw_df_html(schematic["output_columns"], schematic["transformers"][-1]["input_columns"])}</div>'
         result += '</div>'
         return result
-    return result + '</div>'
 
 
 def _draw_df_html(columns, prev_columns = None) -> str:
@@ -299,9 +301,9 @@ def _draw_df_html(columns, prev_columns = None) -> str:
     if columns is None:
         columns = []
         df_class = ' df-alert'
-    frame_info = pt.model.frame_info(columns)
+    frame_info = pt.model.frame_info(columns) or {'label': '?', 'title': 'Unknown Frame'}
     df_label = frame_info['label'] 
-    df_label_long = frame_info['label_long'] 
+    df_label_long = frame_info['title'] 
     # change underscore subscript into HTML subscript
     df_label = re.sub(r'_(\w+)', r'<sub>\1</sub>', df_label)
     uid = str(uuid.uuid4())

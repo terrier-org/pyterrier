@@ -227,9 +227,7 @@ class FeatureUnion(NAryTransformerBase):
     schematic = {'inner_pipelines_mode': 'linked', 'label': 'FeatureUnion **'}
 
     def transform(self, inputRes):
-        if "docno" not in inputRes.columns and "docid" not in inputRes.columns:
-            raise ValueError("FeatureUnion operates as a re-ranker, but input did not have either "
-                "docno or docid columns, found columns were %s" %  str(inputRes.columns))
+        pt.validate.result_frame(inputRes)
 
         num_results = len(inputRes)
         import numpy as np
