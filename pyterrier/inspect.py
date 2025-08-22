@@ -82,10 +82,9 @@ def artifact_type_format(
 def transformer_inputs(
     transformer: pt.Transformer,
     *,
-    single: bool = False,
     strict: bool = True,
-) -> Optional[Union[List[str], List[List[str]]]]:
-    """Infers supported input column configurations for a transformer.
+) -> Optional[List[List[str]]]:
+    """Infers supported input column configurations (a ``List[List[str]]``) for a transformer.
 
     The method tries to infer the input columns that the transformer accepts by calling it with an empty DataFrame and inspecting
     a resulting ``pt.validate.InputValidationError``. If the transformer does not raise an error, it tries to infer the input columns
@@ -94,16 +93,16 @@ def transformer_inputs(
     To handle edge cases, you can implement the :class:`~pyterrier.inspect.HasTransformInputs` protocol, which allows you to define a custom
     ``transform_inputs`` method that returns a list of input column configurations accepted by the transformer. ``transform_inputs``
     can also be an attribute instead of a method. In this case, it be a list of lists of input columns (i.e., a list of valid
-    input column configurations).
+    input column configurations). Note that ``transform_inputs`` is allowed to return a ``List[str]``. If this is the case, it is converted
+    to a ``List[List[str]]`` automatically.
 
     Args:
         transformer: An instance of the transformer to inspect.
         strict: If True, raises an error if the transformer cannot be inferred or are not accepted. If False, returns
             None in these cases.
-        single: If True, returns a single list of input columns. If False, returns a list of lists of possible input column configurations.
 
     Returns:
-        A list of input columns that the transformer accepts, or a list of lists of input columns if ``single`` is False.
+        A list of input column configurations (``List[List[str]]``) accepted by this transformer.
 
     Raises:
         InspectError: If the transformer cannot be inspected and ``strict==True``.
@@ -120,6 +119,8 @@ def transformer_inputs(
                     raise InspectError(f"Cannot determine inputs for {transformer}") from ex
                 else:
                     return None
+        if len(result) > 0 and isinstance(result[0], str):
+            result = [result] # convert to a List[List[str]]
     else:
         try:
             transformer(pd.DataFrame())
@@ -143,8 +144,6 @@ def transformer_inputs(
         if strict:
             raise InspectError(f"Cannot determine inputs for {transformer} - invalid columns specified: {result}")
         return None
-    if single:
-        return result[0]
     return result
 
 
@@ -362,8 +361,13 @@ class HasTransformInputs(Protocol):
 
     ``transform_inputs`` allows for inspection of the inputs accepted by transformers without needing to run it.
 
-    When this method is present in a :class:`~pyterrier.Transformer` object, it must return a list of the input column
-    configurations accepted by the transformer.
+    When this method is present in a :class:`~pyterrier.Transformer` object, it must return either:
+    
+    - A list of lists of input columns (i.e., a list of valid input column configurations)
+    - A list of input columns (i.e., a single valid input column configuration)
+
+    If the input columns of the transformer do not depend on the instance, ``transform_inputs`` can also be
+    an attribute with a value of type ``List[str]`` or ``List[List[str]]``.
 
     This method need not be present in a Transformer class - it is an optional extension;
     an alternative is that the input columns are determined by calling the transformer with an empty ``DataFrame``.
@@ -378,15 +382,17 @@ class HasTransformInputs(Protocol):
                 # ... perform retrieval ...
                 # return the same columns as inp plus docno, score, and rank. E.g., using DataFrameBuilder.
 
-            def transform_inputs(self) -> List[List[str]]:
-                return [['qid', 'query']]
+            def transform_inputs(self) -> Union[List[str], List[List[str]]]:
+                # NOTE: This method isn't required in this case, since inspect will be able to infer required
+                # columns from pt.validate. It's just a demonstration.
+                return ['qid', 'query']
 
     """
-    def transform_inputs(self) -> List[List[str]]:
+    def transform_inputs(self) -> Union[List[List[str]], List[str]]:
         """Returns a list of input columns accepted by the transformer.
 
         Returns:
-            A list of input column configurations accepted by this transformer.
+            Input column configuration(s) accepted by this transformer.
         """
 
 
