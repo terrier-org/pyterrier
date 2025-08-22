@@ -23,9 +23,7 @@ def _apply_default_schematic(schematic: Dict[str, Any], transformer: pt.Transfor
             name = 'pt.' + name[len('pyterrier.'):]
         schematic['name'] = name
 
-    if 'input_columns' not in schematic or 'output_columns' not in schematic:
-        if input_columns is None:
-            input_columns = pt.inspect.transformer_inputs(transformer, single=True, strict=False)
+    if 'input_columns' not in schematic or 'output_columns' not in schematic and input_columns is not None:
         if 'input_columns' not in schematic:
             schematic['input_columns'] = input_columns
         if 'output_columns' not in schematic:
@@ -76,7 +74,9 @@ def transformer_schematic(
 ) -> dict:
     """Builds a structured schematic of the transformer."""
     if input_columns is _INFER:
-        input_columns = pt.inspect.transformer_inputs(transformer, single=True, strict=False)
+        all_input_column_configs = pt.inspect.transformer_inputs(transformer, strict=False)
+        if all_input_column_configs is not None and len(all_input_column_configs) > 0:
+            input_columns = all_input_column_configs[0] # pick the first one
     if not default and isinstance(transformer, HasSchematic):
         if callable(transformer.schematic):
             schematic = transformer.schematic(input_columns=input_columns)
