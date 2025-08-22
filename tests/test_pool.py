@@ -7,7 +7,7 @@ class TestPool(BaseTestCase):
 
     def skip_py_311_or_newer(self):
         import sys
-        if sys.version >= (3,11):
+        if sys.version_info >= (3,11):
             self.skipTest("Problems with recent python")
 
     @parallel_test

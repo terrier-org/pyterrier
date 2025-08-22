@@ -7,7 +7,7 @@ class TestGrid(BaseTestCase):
 
     def skip_py_311_or_newer(self):
         import sys
-        if sys.version >= (3,11):
+        if sys.version_info >= (3,11):
             self.skipTest("Problems with recent python")
 
     def test_gridscan_2pipe_2params(self):
