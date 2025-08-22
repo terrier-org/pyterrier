@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Protocol, Union, runtime_checkable
 
 import numpy as np
 import pyterrier as pt
-
+import re
 
 def _apply_default_schematic(schematic: Dict[str, Any], transformer: pt.Transformer, *, input_columns: Optional[List[str]] = None):
     assert schematic.setdefault('type', 'transformer') == 'transformer'
@@ -295,30 +295,13 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
 
 def _draw_df_html(columns, prev_columns = None) -> str:
     """Draws a DataFrame as an HTML table."""
-    df_label = '?'
-    df_label_long = 'Unknown Frame'
     df_class = ''
     if columns is None:
         columns = []
         df_class = ' df-alert'
-    elif 'qid' in columns and 'docno' in columns and 'features' in columns:
-        df_label = 'R<sub>f</sub>'
-        df_label_long = 'Result Frame with Features'
-    elif 'qid' in columns and 'docno' in columns:
-        df_label = 'R'
-        df_label_long = 'Result Frame'
-    elif 'qanswer' in columns:
-        df_label = 'A'
-        df_label_long = 'Query Answer Frame'
-    elif 'qcontext' in columns:
-        df_label = 'Q<sub>c</sub>'
-        df_label_long = 'Query Context Frame'
-    elif 'qid' in columns:
-        df_label = 'Q'
-        df_label_long = 'Query Frame'
-    elif 'docno' in columns:
-        df_label = 'D'
-        df_label_long = 'Document Frame'
+    df_label, df_label_long = pt.model.frame_info(columns)
+    # change underscore subscript into HTML subscript
+    df_label = re.sub(r'_(\w+)', r'<sub>\1</sub>', df_label)
     uid = str(uuid.uuid4())
     if columns:
         column_rows = []

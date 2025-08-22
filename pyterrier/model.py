@@ -3,7 +3,7 @@ import math
 import itertools
 import numpy as np
 import pandas as pd
-from typing import Any, Dict, Iterable, List, Sequence, Optional, Union, overload
+from typing import Any, Dict, Iterable, List, Sequence, Optional, Union, overload, Tuple
 
 IterDictRecord = Dict[str, Any]
 IterDict = Iterable[IterDictRecord]
@@ -344,6 +344,30 @@ def to_ir_measures(
         return { _pyterrier_to_ir_measures.get(k, k): v for k, v in inp.items() }
     return [_pyterrier_to_ir_measures.get(x, x) for x in inp]
 
+def frame_info(columns : List[str]) -> Tuple[str,str]:
+    """Returns a tuple containing a short label and a name for given set of columns."""
+    if len(columns) == 0:
+        df_label = '?'
+        df_label_long = 'Unknown Frame'
+    elif 'qid' in columns and 'docno' in columns and 'features' in columns:
+        df_label = 'R<sub>f</sub>'
+        df_label_long = 'Result Frame with Features'
+    elif 'qid' in columns and 'docno' in columns:
+        df_label = 'R'
+        df_label_long = 'Result Frame'
+    elif 'qanswer' in columns:
+        df_label = 'A'
+        df_label_long = 'Query Answer Frame'
+    elif 'qcontext' in columns:
+        df_label = 'Q<sub>c</sub>'
+        df_label_long = 'Query Context Frame'
+    elif 'qid' in columns:
+        df_label = 'Q'
+        df_label_long = 'Query Frame'
+    elif 'docno' in columns:
+        df_label = 'D'
+        df_label_long = 'Document Frame'
+    return df_label, df_label_long
 
 def column_info(column: str) -> Optional[dict]:
     """Returns a dictionary with information about the specified column name."""
