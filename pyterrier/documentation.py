@@ -46,9 +46,9 @@ def objects_inv() -> dict:
     # parse the objects.inv file
     with objects_inv_path.open('rb') as f:
         for _ in range(4):
-            line = f.readline()
-            if not line.startswith(b'#'):
-                raise ValueError(f'Invalid objects.inv file: expected comment line, got {line!r}')
+            lineb = f.readline()
+            if not lineb.startswith(b'#'):
+                raise ValueError(f'Invalid objects.inv file: expected comment line, got {lineb!r}')
         data = f.read()
     lines = zlib.decompress(data).decode('utf-8').splitlines()
     objects : Dict[Tuple[str,str], Tuple[str, str, int]] = {}
