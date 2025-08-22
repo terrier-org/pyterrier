@@ -161,7 +161,7 @@ def transformer_outputs(
     transformer: pt.Transformer,
     input_columns: List[str],
     *,
-    strict: Literal[True],
+    strict: Literal[True] = ...,
 ) -> List[str]: ...
 
 @overload
@@ -169,7 +169,7 @@ def transformer_outputs(
     transformer: pt.Transformer,
     input_columns: List[str],
     *,
-    strict: Literal[False],
+    strict: Literal[False] = ...,
 ) -> Optional[List[str]]: ...
 
 def transformer_outputs(
