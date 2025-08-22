@@ -52,6 +52,20 @@
 #ID .infobox-source.df {
     background-color: #ddd;
 }
+#ID .infobox-outer-error {
+    border: 1px solid #a35;
+}
+#ID .infobox-outer-error > .infobox-title {
+    background: #a35;
+}
+#ID .infobox-error {
+    margin: 4px;
+    color: #a35;
+}
+#ID .infobox-error ul {
+    margin: 0;
+    padding-left: 12px;
+}
 
 #ID .hline {
     width: 64px;
@@ -242,8 +256,14 @@
     border: 1px dashed #999;
     display: flex;
     align-items: center;
+    margin-right: -8px;
+    padding-right: 8px;
 }
 
 #ID .inner-labeled > .transformer-title {
     font-weight: normal;
+}
+
+#ID .transformer.input-validation-error {
+    background: rgba(255, 101, 101, 0.3);
 }

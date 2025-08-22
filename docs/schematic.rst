@@ -59,6 +59,7 @@ See below for the structure of the ``SchematicDict`` representation.
         "name": str,                         # Full name of the transformer class for the title of the tooltip (default from .__class__.__name__)
         "input_columns": [str],              # (default from pt.inspect.transformer_inputs)
         "output_columns": [str],             # (default from pt.inspect.transformer_outputs)
+        "input_validation_error": IVL | None # Input validation error, if any (default from pt.inspect.transformer_input_validation)
         "help_url": str | None,              # URL of documentation page (default from pt.documentation.url_for_class)
         "settings": Dict[str, Any],          # Transformer configruation to show in body of tooltip (default from pt.inspect.transformer_attributes)
         "inner_pipelines": PIPELINES | None, # Pipelines to show within this block (default from pt.inspect.subtransformers)

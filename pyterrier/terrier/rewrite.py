@@ -278,6 +278,9 @@ class QueryExpansion(pt.Transformer):
         rq.setControl("qe_fb_terms", str(self.fb_terms))
 
     def transform(self, topics_and_res):
+        with pt.validate.any(topics_and_res) as v:
+            v.columns(includes=['qid', 'docno', 'query'])
+            v.columns(includes=['qid', 'docid', 'query'])
 
         results = []
 

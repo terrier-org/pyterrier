@@ -16,6 +16,11 @@
         infobox_title.textContent = infobox_items[el.dataset.infobox].dataset.title || '';
         infobox.style.display = 'block';
         infobox_body.appendChild(infobox_items[el.dataset.infobox]);
+        if (infobox_body.querySelectorAll('.infobox-error').length > 0) {
+            infobox.classList.add('infobox-outer-error');
+        } else {
+            infobox.classList.remove('infobox-outer-error');
+        }
         infobox.scrollTop = 0;
         infobox_body.scrollLeft = 0;
         const infRect = infobox.getBoundingClientRect();

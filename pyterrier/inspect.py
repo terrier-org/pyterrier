@@ -348,9 +348,9 @@ def subtransformers(transformer: pt.Transformer) -> Dict[str, Union[pt.Transform
         return transformer.subtransformers()
     result: Dict[str, Union[pt.Transformer, List[pt.Transformer]]] = {}
     for attr in transformer_attributes(transformer):
-        if isinstance(attr.value, pt.Transformer):
+        if isinstance(attr.value, pt.Transformer) and not isinstance(attr.value, pt.Artifact):
             result[attr.name] = attr.value
-        elif isinstance(attr.value, (list, tuple)) and all(isinstance(v, pt.Transformer) for v in attr.value):
+        elif isinstance(attr.value, (list, tuple)) and all(isinstance(v, pt.Transformer) and not isinstance(v, pt.Artifact) for v in attr.value):
             result[attr.name] = list(attr.value)
     return result
 
