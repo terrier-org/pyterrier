@@ -372,8 +372,7 @@ def frame_info(columns : List[str]) -> Optional[Dict[str, str]]:
             "label": 'D',
             "title": 'Document Frame',
         }
-    return
-
+    return None
 
 def column_info(column: str) -> Optional[dict]:
     """Returns a dictionary with information about the specified column name."""
@@ -440,4 +439,4 @@ def column_info(column: str) -> Optional[dict]:
             'short_desc': 'Feature array for learning-to-rank',
             'type': np.array,
         }
-    return
+    return None
