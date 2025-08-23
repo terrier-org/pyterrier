@@ -23,17 +23,20 @@ def _apply_default_schematic(schematic: Dict[str, Any], transformer: pt.Transfor
             name = 'pt.' + name[len('pyterrier.'):]
         schematic['name'] = name
 
-    if 'input_columns' not in schematic or 'output_columns' not in schematic and input_columns is not None:
+    if 'input_columns' not in schematic or 'output_columns' not in schematic:
         if 'input_columns' not in schematic:
             schematic['input_columns'] = input_columns
         if 'output_columns' not in schematic:
-            try:
-                schematic['output_columns'] = pt.inspect.transformer_outputs(transformer, input_columns)
-            except pt.validate.InputValidationError as e:
+            if input_columns is None:
                 schematic['output_columns'] = None
-                schematic['input_validation_error'] = e
-            except pt.inspect.InspectError:
-                schematic['output_columns'] = None
+            else:
+                try:
+                    schematic['output_columns'] = pt.inspect.transformer_outputs(transformer, input_columns)
+                except pt.validate.InputValidationError as e:
+                    schematic['output_columns'] = None
+                    schematic['input_validation_error'] = e
+                except pt.inspect.InspectError:
+                    schematic['output_columns'] = None
 
     default_settings_applied = False
     if 'settings' not in schematic:
