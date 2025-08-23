@@ -16,10 +16,20 @@ Typical usage::
     pt.Experiment([tf_idf, bm25, pl2], topic, qrels, eval_metrics=["map"])
 
 As Retriever is a retrieval transformation, it takes as input dataframes with columns `["qid", "query"]`,
-and returns dataframes with columns `["qid", "query", "docno", "score", "rank"]`.
+and returns dataframes with columns `["qid", "query", "docno", "score", "rank"]`:
+
+.. schematic::
+    :input_columns: qid,query
+
+    pt.terrier.TerrierIndex.from_hf('pyterrier/vaswani.terrier').bm25()
 
 However, Retriever can also act as a re-ranker. In this scenario, it takes as input dataframes with 
-columns `["qid", "query", "docno"]`, and returns dataframes with columns `["qid", "query", "docno", "score", "rank"]`.
+columns `["qid", "query", "docno"]`, and returns dataframes with columns `["qid", "query", "docno", "score", "rank"]`:
+
+.. schematic::
+    :input_columns: qid,query,docno
+
+    pt.terrier.TerrierIndex.from_hf('pyterrier/vaswani.terrier').bm25()
 
 For instance, to create a re-ranking pipeline that re-scores the top 100 BM25 documents using PL2::
 

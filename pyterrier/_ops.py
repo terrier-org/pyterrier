@@ -56,6 +56,8 @@ class SetUnion(Transformer):
         self.left = left
         self.right = right
 
+    schematic = {'label': 'SetUnion |'}
+
     def transform(self, topics):
         res1 = self.left.transform(topics)
         res2 = self.right.transform(topics)
@@ -82,6 +84,8 @@ class SetIntersection(Transformer):
     def __init__(self, left: Transformer, right: Transformer):
         self.left = left
         self.right = right
+
+    schematic = {'label': 'SetIntersection &'}
 
     def transform(self, topics):
         res1 = self.left.transform(topics)
@@ -111,6 +115,8 @@ class Sum(Transformer):
     def __init__(self, left: Transformer, right: Transformer):
         self.left = left
         self.right = right
+
+    schematic = {'label': 'Sum +'}
 
     def transform(self, topics_and_res):
         res1 = self.left.transform(topics_and_res)
@@ -176,6 +182,9 @@ class ScalarProduct(Transformer):
         if self.scalar < 0:
             out = add_ranks(out)
         return out
+    
+    def schematic(self, *, input_columns = None): 
+        return {'label': f'* {self.scalar}'}
 
     def __repr__(self):
         return f'ScalarProduct({self.scalar!r})'
@@ -195,6 +204,9 @@ class RankCutoff(Transformer):
 
     def __repr__(self):
         return f'RankCutoff({self.k!r})'
+    
+    def schematic(self, *, input_columns = None): 
+        return {'label': f'% {self.k}'}
 
     def fuse_left(self, left: Transformer) -> Optional[Transformer]:
         # If the preceding component supports a native rank cutoff (via fuse_rank_cutoff), apply it.
@@ -212,10 +224,10 @@ class FeatureUnion(NAryTransformerBase):
             bm25f = pt.terrier.Retriever(index wmodel="BM25F")
             pipe = cands >> (pl2f ** bm25f)
     """
+    schematic = {'inner_pipelines_mode': 'linked', 'label': 'FeatureUnion **'}
+
     def transform(self, inputRes):
-        if "docno" not in inputRes.columns and "docid" not in inputRes.columns:
-            raise ValueError("FeatureUnion operates as a re-ranker, but input did not have either "
-                "docno or docid columns, found columns were %s" %  str(inputRes.columns))
+        pt.validate.result_frame(inputRes)
 
         num_results = len(inputRes)
         import numpy as np
@@ -423,7 +435,8 @@ class Compose(NAryTransformerBase):
 
     def transform_inputs(self):
         # The first transformer in the pipeline may accept multiple input configurations, but not all of these
-        # may work for the rest of the pipeline. So find out which (if any) of the input configurations work.
+        # may work for the rest of the pipeline. So find out which (if any) of the input configurations work, and
+        # prioritise those.
         io_configurations = [
             {
                 'input_columns': input_columns,
@@ -436,7 +449,7 @@ class Compose(NAryTransformerBase):
                 if configuration['output_columns'] is None:
                     continue
                 configuration['output_columns'] = pt.inspect.transformer_outputs(transformer, configuration['output_columns'], strict=False)
-        return [io_cfg['input_columns'] for io_cfg in io_configurations if io_cfg['output_columns'] is not None]
+        return [io_cfg['input_columns'] for io_cfg in sorted(io_configurations, key=lambda x: x['output_columns'] is None)]
 
     def transform_outputs(self, input_columns):
         # Figure out the output columns for the given input columns. This is a more direct and robust way of getting the outputs
@@ -446,6 +459,21 @@ class Compose(NAryTransformerBase):
         for transformer in self:
             output_columns = pt.inspect.transformer_outputs(transformer, output_columns)
         return output_columns
+
+    def schematic(self, *, input_columns):
+        pipeline = []
+        columns = input_columns
+        for transformer in self:
+            schematic = pt.schematic.transformer_schematic(transformer, input_columns=columns)
+            pipeline.append(schematic)
+            columns = schematic['output_columns']
+        return {
+            'type': 'pipeline',
+            'input_columns': pipeline[0]['input_columns'] if pipeline else None,
+            'output_columns': pipeline[-1]['output_columns'] if pipeline else None,
+            'title': None,
+            'transformers': pipeline,
+        }
 
 
 MAX_COMPILE_ITER = 10_000
