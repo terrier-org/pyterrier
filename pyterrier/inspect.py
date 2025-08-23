@@ -5,7 +5,7 @@
 """
 import inspect
 import dataclasses
-from typing import Any, Dict, List, Optional, Protocol, Type, Tuple, Union, runtime_checkable
+from typing import Any, Dict, List, Literal, Optional, Protocol, Type, Tuple, Union, overload, runtime_checkable
 
 import pandas as pd
 
@@ -108,12 +108,15 @@ def transformer_inputs(
         InspectError: If the transformer cannot be inspected and ``strict==True``.
     """
     result = []
+    received = None
     if isinstance(transformer, HasTransformInputs):
         if not callable(transformer.transform_inputs):
             result = transformer.transform_inputs
+            received = "transformer.transform_inputs variable"
         else:
             try:
                 result = transformer.transform_inputs()
+                received = "transformer.transform_inputs() method"
             except Exception as ex:
                 if strict:
                     raise InspectError(f"Cannot determine inputs for {transformer}") from ex
@@ -124,28 +127,50 @@ def transformer_inputs(
     else:
         try:
             transformer(pd.DataFrame())
-        except pt.validate.InputValidationError as ex:
-            result = [mode.missing_columns for mode in ex.modes]
+        except pt.validate.InputValidationError as ive:
+            result = [mode.missing_columns for mode in ive.modes]
+            received = "validation using invocation on empty 0-cols frame"
         except Exception:
-            for mode in [
-                ['qid', 'query'],
-                ['qid', 'query', 'docno', 'score', 'rank'],
+            for mode, frame_type in [
+                (['qid', 'query'] , "Q"),
+                (['qid', 'query', 'docno', 'score', 'rank'], "R"),
             ]:
                 try:
                     transformer(pd.DataFrame(columns=mode))
                     result.append(mode)
+                    received = f"validation using invocation on empty {frame_type} frame"
                 except Exception:
                     continue
     if not isinstance(result, list) or len(result) == 0:
         if strict:
-            raise InspectError(f"Cannot determine inputs for {transformer} - received from transformer: {result}")
+            msg = f"Cannot determine inputs for {transformer}"
+            if received is not None:
+                msg += f"received by {received}: {result}"
+            else:
+                msg += " - no inpsections succeeded"
+            raise InspectError(msg)
         return None
     if not isinstance(result[0], list) or (len(result[0]) > 0 and not isinstance(result[0][0], str)):
         if strict:
-            raise InspectError(f"Cannot determine inputs for {transformer} - invalid columns specified: {result}")
+            raise InspectError(f"Cannot determine inputs for {transformer} - invalid columns specified by {received}: {result}")
         return None
     return result
 
+@overload
+def transformer_outputs(
+    transformer: pt.Transformer,
+    input_columns: List[str],
+    *,
+    strict: Literal[True] = ...,
+) -> List[str]: ...
+
+@overload
+def transformer_outputs(
+    transformer: pt.Transformer,
+    input_columns: List[str],
+    *,
+    strict: Literal[False] = ...,
+) -> Optional[List[str]]: ...
 
 def transformer_outputs(
     transformer: pt.Transformer,

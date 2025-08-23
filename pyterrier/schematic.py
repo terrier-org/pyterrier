@@ -81,7 +81,7 @@ _INFER = object()
 def transformer_schematic(
     transformer: pt.Transformer,
     *,
-    input_columns: Optional[List[str]] = _INFER,
+    input_columns: Optional[Union[List[str],object]] = _INFER,
     default: bool = False,
 ) -> dict:
     """Builds a structured schematic of the transformer."""
@@ -296,6 +296,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
             result += f'<div class="hline arr arr-output">{_draw_df_html(schematic["output_columns"], schematic["transformers"][-1]["input_columns"])}</div>'
         result += '</div>'
         return result
+    raise ValueError(f"Unknown schematic type {schematic['type']}")
 
 
 def _draw_df_html(columns, prev_columns = None) -> str:
