@@ -86,6 +86,95 @@ def query_columns(df : pd.DataFrame, qid=True) -> Sequence[str]:
     return rtr
 
 
+def push_columns(
+    df: pd.DataFrame,
+    keep_original: bool = False,
+    inplace: bool = False,
+    base_column: str = "query",
+) -> pd.DataFrame:
+    """
+    Changes a dataframe such that the selected column becomes "<column>_0", and any
+    "<column>_0" columns becomes "<column>_1" etc.
+
+    Arguments:
+        df: Dataframe with a "<column>" column
+        keep_original: if True, the <column> column is also left unchanged. Useful for client code.
+            Defaults to False.
+        inplace: if False, a copy of the dataframe is returned. If True, changes are made to the
+            supplied dataframe. Defaults to False.
+    """
+    cols = set(df.columns)
+    if base_column not in cols:
+        raise KeyError(f"Expected a {base_column} column, but found {list(cols)}")
+    if not inplace:
+        df = df.copy()
+    prev_col = base_column
+    rename_cols = {}
+    for query_idx in itertools.count():
+        next_col = f"{base_column}_{query_idx}"
+        if prev_col in cols:
+            rename_cols[prev_col] = next_col
+            prev_col = next_col
+        else:
+            break
+    # apply renaming in-place or on the copy
+    df.rename(columns=rename_cols, inplace=True)
+    if keep_original:
+        df[base_column] = df[f"{base_column}_0"]
+    return df
+
+@overload
+def push_columns_dict(
+    inp: IterDict,
+    keep_original: bool = False,
+    base_column: str = "query",
+) -> IterDict: ...
+
+@overload
+def push_columns_dict(
+    inp: IterDictRecord,
+    keep_original: bool = False,
+    base_column: str = "query",
+) -> IterDictRecord: ...
+
+def push_columns_dict(
+    inp: Union[IterDict, IterDictRecord],
+    keep_original: bool = False,
+    base_column: str = "query",
+) -> Union[IterDict, IterDictRecord]:
+    """
+    Works like ``push_columns`` but over a dict/iterdict instead of a dataframe.
+    """
+    def per_element(i: IterDictRecord) -> IterDictRecord:
+        cols = i.keys()
+        if base_column not in cols:
+            raise KeyError(f"Expected a {base_column} column, but found {list(cols)}")
+        prev_col = base_column
+        rename_cols = {}
+        for query_idx in itertools.count():
+            next_col = f"{base_column}_{query_idx}"
+            if prev_col in cols:
+                rename_cols[prev_col] = next_col
+                prev_col = next_col
+            else:
+                break
+
+        renamed = {}
+        for k, v in i.items():
+            if k in rename_cols:
+                renamed[rename_cols[k]] = v
+            else:
+                renamed[k] = v
+
+        if keep_original:
+            renamed[base_column] = renamed[f"{base_column}_0"]
+
+        return renamed
+
+    if isinstance(inp, dict):
+        return per_element(inp)
+    return [*map(per_element, inp)]
+
 def push_queries(df: pd.DataFrame, *, keep_original: bool = False, inplace: bool = False) -> pd.DataFrame:
     """
         Changes a dataframe such that the "query" column becomes "query_0", and any
@@ -98,46 +187,40 @@ def push_queries(df: pd.DataFrame, *, keep_original: bool = False, inplace: bool
             inplace: if False, a copy of the dataframe is returned. If True, changes are made to the
                 supplied dataframe. Defaults to False. 
     """
+    assert not inplace, "push_queries no longer supports inplace"
+    return push_columns(df, keep_original=keep_original, inplace=inplace, base_column="query")
+
+
+@overload
+def push_queries_dict(inp: IterDictRecord, keep_original: bool = False, inplace: bool = False) -> IterDictRecord: ...
+@overload
+def push_queries_dict(inp: IterDict, keep_original: bool = False, inplace: bool = False) -> IterDict: ...
+
+def push_queries_dict(inp: Union[IterDictRecord,IterDict], keep_original: bool = False, inplace: bool = False) -> Union[IterDictRecord,IterDict]:
+    """
+    Works like ``push_queries`` but over a dict/iterdict instead of a dataframe.
+    """
+    assert not inplace, "push_queries_dict does not support inplace"
+    return push_columns_dict(inp, keep_original=keep_original, base_column="query")
+
+
+def pop_columns(df: pd.DataFrame, base_column="query") -> pd.DataFrame:
     cols = set(df.columns)
-    if "query" not in cols:
-        raise KeyError(f"Expected a query column, but found {list(cols)}")
-    if not inplace:
-        df = df.copy()
-    prev_col = 'query'
+    if base_column + "_0" not in cols:
+        raise KeyError(f"Expected a {base_column}_0 column, but found {list(cols)}")
+    df = df.copy()
+    df.drop(columns=[base_column], inplace=True)
+    prev_col = base_column
     rename_cols = {}
     for query_idx in itertools.count():
-        next_col = f'query_{query_idx}'
-        if prev_col in cols:
-            rename_cols[prev_col] = next_col # map e.g., query_0 to be renamed to query_1
+        next_col = f'{base_column}_{query_idx}'
+        if next_col in cols:
+            rename_cols[next_col] = prev_col # map e.g., query_1 to be renamed to query_0
             prev_col = next_col
         else:
              break
     df = df.rename(columns=rename_cols)
-    if keep_original:
-        df['query'] = df["query_0"]
     return df
-
-
-def push_queries_dict(inp: IterDictRecord, *, keep_original: bool = False, inplace: bool = False) -> IterDictRecord:
-    """
-    Works like ``push_queries`` but over a dict instead of a dataframe.
-    """
-    if "query" not in inp:
-        raise KeyError(f"Expected a query column, but found {list(inp.keys())}")
-    if not inplace:
-        inp = inp.copy()
-    prev_col = 'query'
-    for query_idx in itertools.count():
-        next_col = f'query_{query_idx}'
-        if prev_col in inp:
-            inp[next_col] = inp.pop(prev_col) # assign e.g., query_1 to query_0
-            prev_col = next_col
-        else:
-             break
-    if keep_original:
-        inp['query'] = inp['query_0']
-    return inp
-
 
 def pop_queries(df: pd.DataFrame, *, inplace: bool = False) -> pd.DataFrame:
     """
@@ -150,24 +233,8 @@ def pop_queries(df: pd.DataFrame, *, inplace: bool = False) -> pd.DataFrame:
             inplace: if False, a copy of the dataframe is returned. If True, changes are made to the
                 supplied dataframe. Defaults to False. 
     """
-    cols = set(df.columns)
-    if "query_0" not in cols:
-        raise KeyError(f"Expected a query_0 column, but found {list(cols)}")
-    if not inplace:
-        df = df.copy()
-    df.drop(columns=["query"], inplace=True)
-    prev_col = 'query'
-    rename_cols = {}
-    for query_idx in itertools.count():
-        next_col = f'query_{query_idx}'
-        if next_col in cols:
-            rename_cols[next_col] = prev_col # map e.g., query_1 to be renamed to query_0
-            prev_col = next_col
-        else:
-             break
-    df = df.rename(columns=rename_cols)
-    return df
-
+    assert not inplace
+    return pop_columns(df, base_column="query")
 
 def ranked_documents_to_queries(topics_and_res : pd.DataFrame):
     return topics_and_res[query_columns(topics_and_res, qid=True)].groupby(["qid"]).first().reset_index()

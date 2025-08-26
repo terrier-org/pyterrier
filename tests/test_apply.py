@@ -80,6 +80,15 @@ class TestApply(BaseTestCase):
         rtrDR2 = pt.apply.query(lambda row : row["qid"] )(testDF2)
         self.assertEqual(rtrDR2.iloc[0]["query"], "q1")
 
+        testIterDict = [{"qid": "q1", "query": origquery}]
+        rtr = p(testIterDict)
+        self.assertEqual(rtr[0]["query"], "bear wolf")
+        self.assertEqual(rtr[0]["query_0"], origquery)
+        
+        testIterDict2 = [{"qid": "q1"}]
+        rtrDR2 = pt.apply.query(lambda row : row["qid"] )(testIterDict2)
+        self.assertEqual(rtrDR2[0]["query"], "q1")
+
     def test_query_apply_error(self):
         origquery="the bear and the wolf"
         testDF = pd.DataFrame([["q1", origquery]], columns=["qid", "query"])

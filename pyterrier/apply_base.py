@@ -422,7 +422,7 @@ class ApplyQueryTransformer(pt.Transformer):
         for row in inp:
             row = row.copy()
             if "query" in row:
-                row = pt.model.push_queries_dict(row, inplace=True, keep_original=True)
+                row = pt.model.push_queries_dict(row, keep_original=True)
             row["query"] = self.fn(row)
             yield row
 
@@ -432,7 +432,7 @@ class ApplyQueryTransformer(pt.Transformer):
 
         if "query" in inp.columns:
             # we only push if a query already exists
-            outputRes = pt.model.push_queries(inp.copy(), inplace=True, keep_original=True)
+            outputRes = pt.model.push_queries(inp, keep_original=True)
         else:
             outputRes = inp.copy()
 
