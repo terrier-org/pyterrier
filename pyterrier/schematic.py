@@ -91,7 +91,7 @@ def transformer_schematic(
             input_columns = all_input_column_configs[0] # pick the first one
         else:
             input_columns = None
-    # input_colms can no longer by _INFER
+    # input_columns can no longer be _INFER
     input_columns = cast(Optional[List[str]], input_columns) # noqa: PT100 (this is typing.cast, not jinus.cast)
     if not default and isinstance(transformer, HasSchematic):
         if callable(transformer.schematic):
