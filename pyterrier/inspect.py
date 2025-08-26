@@ -5,7 +5,7 @@
 """
 import inspect
 import dataclasses
-from typing import Any, Dict, List, Literal, Optional, Protocol, Type, Tuple, Union, overload, runtime_checkable
+from typing import Any, Dict, List, Literal, Optional, Protocol, Type, Tuple, Union, cast, overload, runtime_checkable
 
 import pandas as pd
 
@@ -107,23 +107,29 @@ def transformer_inputs(
     Raises:
         InspectError: If the transformer cannot be inspected and ``strict==True``.
     """
-    result = []
+    result : List[List[str]] = []
     received = None
     if isinstance(transformer, HasTransformInputs):
+        ext_result : Union[List[str], List[List[str]]]
         if not callable(transformer.transform_inputs):
-            result = transformer.transform_inputs
+            ext_result = transformer.transform_inputs
             received = "transformer.transform_inputs variable"
         else:
             try:
-                result = transformer.transform_inputs()
+                ext_result = transformer.transform_inputs()
                 received = "transformer.transform_inputs() method"
             except Exception as ex:
                 if strict:
                     raise InspectError(f"Cannot determine inputs for {transformer}") from ex
                 else:
                     return None
-        if len(result) > 0 and isinstance(result[0], str):
-            result = [result] # convert to a List[List[str]]
+        if len(ext_result) > 0:
+            if isinstance(ext_result[0], str):
+                ext_result = cast(List[str], ext_result) # noqa: PT100 (this is typing.cast, not jinus.cast)
+                result = [ext_result] # convert to a List[List[str]]
+            else:
+                ext_result = cast(List[List[str]], ext_result) # noqa: PT100 (this is typing.cast, not jinus.cast)
+                result = ext_result
     else:
         try:
             transformer(pd.DataFrame())
