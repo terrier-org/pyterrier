@@ -18,6 +18,9 @@ before you start using it. ``pt.validate`` provides functions for this.
             pt.validate.query_frame(inp, extra_columns=['query_vec'])
             # raises an error if the specification doesn't match
 
+Validation also underlies inspection: ``pyterrier.inspect.transformer_inputs()`` will call a transformer with an
+empty DataFrame to see what it expects.
+
 =========================================================  ===============================  =======================
 Function                                                   Must have column(s)              Must NOT have column(s)
 =========================================================  ===============================  =======================
