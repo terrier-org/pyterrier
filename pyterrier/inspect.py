@@ -92,9 +92,11 @@ def transformer_inputs(
 
     To handle edge cases, you can implement the :class:`~pyterrier.inspect.HasTransformInputs` protocol, which allows you to define a custom
     ``transform_inputs`` method that returns a list of input column configurations accepted by the transformer. ``transform_inputs``
-    can also be an attribute instead of a method. In this case, it be a list of lists of input columns (i.e., a list of valid
+    can also be an attribute instead of a method. In this case, it can be a list of lists of input columns (i.e., a list of valid
     input column configurations). Note that ``transform_inputs`` is allowed to return a ``List[str]``. If this is the case, it is converted
     to a ``List[List[str]]`` automatically.
+
+    The first item in the ``List[List[str]]`` is assumed to be the most likely, and will be displayed in the schematic.
 
     Args:
         transformer: An instance of the transformer to inspect.
