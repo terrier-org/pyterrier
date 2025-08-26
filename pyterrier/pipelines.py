@@ -1204,8 +1204,7 @@ def GridScan(
     #2  BR(PL2)     5.0  0.230838
     return pd.DataFrame(rtr)
 
-from deprecated import deprecated
-@deprecated(version='0.14.0', reason="use pyterrier_alpha.fusion.PerQueryMaxMinScore() instead")
+
 class PerQueryMaxMinScoreTransformer(Transformer):
     '''
     applies per-query maxmin scaling on the input scores
