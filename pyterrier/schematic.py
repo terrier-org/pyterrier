@@ -2,7 +2,7 @@ from copy import copy
 import html
 import uuid
 from importlib import resources
-from typing import Any, Dict, List, Optional, Protocol, Union, runtime_checkable
+from typing import Any, Dict, List, Optional, Protocol, Union, cast, runtime_checkable
 
 import numpy as np
 import pyterrier as pt
@@ -91,7 +91,8 @@ def transformer_schematic(
             input_columns = all_input_column_configs[0] # pick the first one
         else:
             input_columns = None
-    assert not isinstance(input_columns, object) # make mypy happy
+    # input_colms can no longer by _INFER
+    input_columns = cast(Optional[List[str]], input_columns) # noqa: PT100 (this is typing.cast, not jinus.cast)
     if not default and isinstance(transformer, HasSchematic):
         if callable(transformer.schematic):
             schematic = transformer.schematic(input_columns=input_columns)
