@@ -441,4 +441,14 @@ def column_info(column: str) -> Optional[dict]:
             'short_desc': 'Feature array for learning-to-rank',
             'type': np.array,
         }
+    if column == 'query_vec':
+        return {
+            'short_desc': 'Embedding for query',
+            'type': np.array,
+        }
+    if column == 'doc_vec':
+        return {
+            'short_desc': 'Embedding for document',
+            'type': np.array,
+        }
     return None
