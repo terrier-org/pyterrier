@@ -441,4 +441,24 @@ def column_info(column: str) -> Optional[dict]:
             'short_desc': 'Feature array for learning-to-rank',
             'type': np.array,
         }
+    if column == 'query_vec':
+        return {
+            'short_desc': 'Dense query vector',
+            'type': np.array,
+        }
+    if column == 'doc_vec':
+        return {
+            'short_desc': 'Dense document vector',
+            'type': np.array,
+        }
+    if column == 'query_toks':
+        return {
+            'short_desc': 'Sparse query vector',
+            'type': dict,
+        }
+    if column == 'toks':
+        return {
+            'short_desc': 'Sparse document vector',
+            'type': dict,
+        }
     return None
