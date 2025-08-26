@@ -303,11 +303,16 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
 
 def _draw_df_html(columns, prev_columns = None) -> str:
     """Draws a DataFrame as an HTML table."""
-    df_class = ''
     if columns is None:
         columns = []
         df_class = ' df-alert'
-    frame_info = pt.model.frame_info(columns) or {'label': '?', 'title': 'Unknown Frame'}
+        frame_info = {
+            'label': '?',
+            'title': 'Unknown Frame',
+        }
+    else:
+        df_class = ''
+        frame_info = pt.model.frame_info(columns) or {'label': 'DF', 'title': 'DataFrame'}
     df_label = frame_info['label'] 
     df_label_long = frame_info['title'] 
     # change underscore subscript into HTML subscript
