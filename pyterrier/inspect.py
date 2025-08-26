@@ -96,7 +96,8 @@ def transformer_inputs(
     input column configurations). Note that ``transform_inputs`` is allowed to return a ``List[str]``. If this is the case, it is converted
     to a ``List[List[str]]`` automatically.
 
-    The first item in the ``List[List[str]]`` is assumed to be the most likely, and will be displayed in the schematic.
+    The list of input specifications is assumed to be prioritized. For instance, schematics will show the first valid specification
+    when multiple are valid for the pipeline.
 
     Args:
         transformer: An instance of the transformer to inspect.
