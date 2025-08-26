@@ -112,11 +112,11 @@ def transformer_inputs(
     """
     result : List[List[str]] = []
     received = None
-    if isinstance(transformer, HasTransformInputs):
+    if isinstance(transformer, HasTransformInputs) and transformer.transformer_inputs is not None:
         ext_result : Union[List[str], List[List[str]]]
         if not callable(transformer.transform_inputs):
             ext_result = transformer.transform_inputs
-            received = "transformer.transform_inputs variable"
+            received = "transformer.transform_inputs attribute"
         else:
             try:
                 ext_result = transformer.transform_inputs()
@@ -402,6 +402,8 @@ class HasTransformInputs(Protocol):
 
     If the input columns of the transformer do not depend on the instance, ``transform_inputs`` can also be
     an attribute with a value of type ``List[str]`` or ``List[List[str]]``.
+
+    If ``transform_inputs is None``, it is ignored.
 
     This method need not be present in a Transformer class - it is an optional extension;
     an alternative is that the input columns are determined by calling the transformer with an empty ``DataFrame``.
