@@ -91,6 +91,7 @@ def transformer_schematic(
             input_columns = all_input_column_configs[0] # pick the first one
         else:
             input_columns = None
+    assert not isinstance(input_columns, object) # make mypy happy
     if not default and isinstance(transformer, HasSchematic):
         if callable(transformer.schematic):
             schematic = transformer.schematic(input_columns=input_columns)
