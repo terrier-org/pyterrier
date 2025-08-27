@@ -216,10 +216,7 @@ def _map_controls(model_args):
     }
 
 
-_PROPERTY_MAP = {
-    'bm25.k1': 'bm25.k_1',
-    'bm25.b': 'bm25.b',
-}
+_PROPERTY_MAP = {}
 def _map_properties(model_args):
     return {
         _PROPERTY_MAP[k]: v
