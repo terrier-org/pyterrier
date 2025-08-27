@@ -1,4 +1,33 @@
 #ID {
+  color-scheme: light dark;
+  --pts-fg: #000000;
+  --pts-bg: #FFFFFF;
+  --pts-bg-hov: #DDDDDD;
+  --pts-alert: #a35;
+  --pts-bg-hl: #cbdff4;
+}
+@media (prefers-color-scheme: dark) {
+  #ID {
+    --pts-fg: #FFFFFF;
+    --pts-bg: #000000;
+    --pts-bg-hov: #444444;
+    --pts-bg-hl: #22476e;
+  }
+}
+[data-theme="dark"] #ID {
+  --pts-fg: #FFFFFF;
+  --pts-bg: #000000;
+  --pts-bg-hov: #444444;
+  --pts-bg-hl: #22476e;
+}
+[data-theme="light"] #ID {
+  --pts-fg: #000000;
+  --pts-bg: #FFFFFF;
+  --pts-bg-hov: #DDDDDD;
+  --pts-bg-hl: #cbdff4;
+}
+
+#ID {
     position: relative;
     min-height: 32px;
     padding: 16px;
@@ -8,6 +37,7 @@
     font-size: 12px;
 }
 #ID.repr_html {
+    /* when the shown in a notebook, make sure we have sufficient height to show infoboxes */
     min-height: 96px;
 }
 
@@ -19,8 +49,8 @@
     border: 1px solid rgb(66, 153, 225);
     overflow-y: auto;
     display: none;
-    background: white;
-    box-shadow: 0 0 4px black;
+    background: var(--pts-bg);
+    box-shadow: 0 0 4px var(--pts-fg);
     opacity: 0.9;
     margin: 4px;
     font-size: 0.8em;
@@ -50,17 +80,17 @@
     background: rgba(66, 153, 225, 0.4);
 }
 #ID .infobox-source.df {
-    background-color: #ddd;
+    background-color: var(--pts-bg-hov);
 }
 #ID .infobox-outer-error {
-    border: 1px solid #a35;
+    border: 1px solid var(--pts-alert);
 }
 #ID .infobox-outer-error > .infobox-title {
-    background: #a35;
+    background: var(--pts-alert);
 }
 #ID .infobox-error {
     margin: 4px;
-    color: #a35;
+    color: var(--pts-alert);
 }
 #ID .infobox-error ul {
     margin: 0;
@@ -69,7 +99,7 @@
 
 #ID .hline {
     width: 64px;
-    border-bottom: 2px solid black;
+    border-bottom: 2px solid var(--pts-fg);
     align-self: center;
     position: relative;
 }
@@ -93,7 +123,7 @@
     transform: translateY(-50%);
     width: 0;
     height: 0;
-    border-left: 6px solid black;
+    border-left: 6px solid var(--pts-fg);
     border-top: 4px solid transparent;
     border-bottom: 4px solid transparent;
 }
@@ -102,7 +132,7 @@
 }
 
 #ID .vline {
-    border-right: 2px solid black;
+    border-right: 2px solid var(--pts-fg);
     position: relative;
     margin-right: -2px;
     margin-left: -2px;
@@ -113,8 +143,9 @@
     width: 28px;
     height: 28px;
     font-size: 14px;
-    border: 3px double black;
-    background-color: white;
+    color: var(--pts-fg);
+    border: 3px double var(--pts-fg);
+    background-color: var(--pts-bg);
     box-sizing: border-box;
     border-radius: 3px;
     text-align: center;
@@ -124,8 +155,8 @@
     font-weight: bold;
 }
 #ID .df.df-alert {
-    border-color: #a35;
-    color: #a35;
+    border-color: var(--pts-alert);
+    color: var(--pts-alert);
 }
 #ID .hline > .df {
     position: absolute;
@@ -145,13 +176,14 @@
 }
 #ID .df-columns td, #ID .df-columns th {
     border-top: 1px solid #bbb;
-    background: white;
+    background: var(--pts-bg);
+    color: var(--pts-fg);
     text-align: left;
     padding: 2px 2px 2px 4px;
     white-space: nowrap;
 }
 #ID .df-columns .add th, #ID .df-columns .add td {
-    background-color: rgb(203, 223, 244);
+    background-color: var(--pts-bg-hl);
 }
 #ID .df-columns td {
     width: 100%;
@@ -171,7 +203,7 @@
     font-size: 13px;
     display: inline-block;
     position: relative;
-    color: #333;
+    color: var(--pts-fg);
     background: rgba(66, 153, 225, 0.3);
     box-sizing: border-box;
     padding: 4px 18px;
@@ -194,7 +226,7 @@
 }
 #ID .inner .transformer {
     font-size: 12px;
-    padding: 2px 18px;
+    padding: 3px 18px;
 }
 #ID .inner .hline > .df {
     position: absolute;
@@ -251,6 +283,9 @@
     flex-grow: 1;
     margin: 4px 0;
 }
+#ID .inner .pipeline {
+    overflow-x: visible;
+}
 
 #ID .combine-box {
     border: 1px dashed #999;
@@ -262,6 +297,7 @@
 
 #ID .inner-labeled > .transformer-title {
     font-weight: normal;
+    margin-top: 2px;
 }
 
 #ID .transformer.input-validation-error {
