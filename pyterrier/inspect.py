@@ -136,6 +136,8 @@ def transformer_inputs(
     else:
         try:
             transformer(pd.DataFrame())
+            # if this succeeds without an error, the transformer accepts frames without any columns
+            result = [[]]
         except pt.validate.InputValidationError as ive:
             result = [mode.missing_columns for mode in ive.modes]
             received = "validation using invocation on empty 0-cols frame"

@@ -3,7 +3,7 @@ from typing import Callable, Any, Dict, Union, Optional, Sequence, Literal, List
 import numpy.typing as npt
 import pandas as pd
 import pyterrier as pt
-from pyterrier.apply_base import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyIterForEachQuery, ApplyGenericTransformer, ApplyGenericIterTransformer, ApplyIndexer, DropColumnTransformer, ApplyByRowTransformer
+from pyterrier.apply_base import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyIterForEachQuery, ApplyGenericTransformer, ApplyGenericIterTransformer, ApplyIndexer, DropColumnTransformer, ApplyByRowTransformer, RenameColumnsTransformer
 
 def _bind(instance, func, as_name=None):
     """
@@ -153,7 +153,7 @@ def indexer(fn : Callable[[pt.model.IterDict], Any], **kwargs) -> pt.Indexer:
     """
     return ApplyIndexer(fn, **kwargs)
 
-def rename(columns : Dict[str,str], *args, errors : Literal['raise', 'ignore']='raise', **kwargs) -> pt.Transformer:
+def rename(columns: Dict[str,str], *, errors: Literal['raise', 'ignore'] = 'raise') -> pt.Transformer:
     """
         Creates a transformer that renames columns in a dataframe. 
 
@@ -164,14 +164,7 @@ def rename(columns : Dict[str,str], *args, errors : Literal['raise', 'ignore']='
             
             pipe = pt.terrier.Retriever(index, metadata=["docno", "body"]) >> pt.apply.rename({'body':'text'})
     """
-    if errors == 'raise':
-        required_columns = list(columns.keys())
-    else:
-        required_columns = None
-    t = ApplyGenericTransformer(lambda df: df.rename(columns=columns, errors=errors), *args, required_columns=required_columns, **kwargs)
-    t._schematic_title = "Rename Columns"
-    t._schematic_settings = {"columns": columns}
-    return t
+    return RenameColumnsTransformer(columns, errors=errors)
 
 def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.model.IterDict], pt.model.IterDict]], *args, batch_size=None, iter=False, **kwargs) -> pt.Transformer:
     """
