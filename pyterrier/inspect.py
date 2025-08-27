@@ -112,7 +112,7 @@ def transformer_inputs(
     """
     result : List[List[str]] = []
     received = None
-    if isinstance(transformer, HasTransformInputs) and transformer.transformer_inputs is not None:
+    if isinstance(transformer, HasTransformInputs) and transformer.transform_inputs is not None:
         ext_result : Union[List[str], List[List[str]]]
         if not callable(transformer.transform_inputs):
             ext_result = transformer.transform_inputs
