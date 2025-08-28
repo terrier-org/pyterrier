@@ -223,8 +223,7 @@
     background: rgba(66, 153, 225, 0.3);
     box-sizing: border-box;
     padding: 4px 18px;
-    /* clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 0 100%, 0 0); */
-    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 16px 50%);
+    clip-path: polygon(0 0, calc(100% - 14px) 0, calc(100% - 14px) 100%, 0 100%, 16px 50%);
 }
 
 /* re-size things within an inner block */
