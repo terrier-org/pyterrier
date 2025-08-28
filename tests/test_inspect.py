@@ -9,6 +9,20 @@ class TestInspect(BaseTestCase):
     def assertSortedEquals(self, arr1, arr2):
         self.assertEqual(sorted(arr1), sorted(arr2))
 
+    def assertInNoOrder(self, member, container):
+        container_set = [set(item) for item in container]
+        self.assertIn(set(member), container_set)     
+
+    def test_inspection_mincols(self):
+        op_input = [[['qid', 'docno']]]
+        sub_inputs = [
+            [['qid', 'docno', 'query']],
+            [['qid', 'docno', 'query']]
+        ]
+        plausible_configs = pt.inspect._minimal_inputs(op_input + sub_inputs)
+        self.assertInNoOrder(['qid', 'docno', 'query'], plausible_configs)
+
+
     def test_terrier_retriever(self):
         JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
         indexref = JIR.of(self.here + "/fixtures/index/data.properties")
