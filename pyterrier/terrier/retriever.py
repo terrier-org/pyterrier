@@ -707,6 +707,11 @@ class FeaturesRetriever(Retriever):
             (self.indexref, self.features),
             self.__getstate__()
         )
+    
+    def schematic(self, *, input_columns = None): 
+        if self.wmodel is None:
+            return {'label': "FeaturesRetriever: %df" % len(self.features)}
+        return {'label': "FeaturesRetriever: %s + %df" % (self.wmodel, len(self.features))}
 
     def __getstate__(self): 
         return  {
