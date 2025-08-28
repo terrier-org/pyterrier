@@ -540,6 +540,7 @@ class TextIndexProcessor(pt.Transformer):
         self.innerclass = innerclass
         self.takes = takes
         self.returns = returns
+        assert isinstance(body_attr, str)
         self.body_attr = body_attr
         if background_index is not None:
             self.background_indexref = _parse_index_like(background_index)
@@ -552,6 +553,7 @@ class TextIndexProcessor(pt.Transformer):
         # we use _IterDictIndexer_nofifo, as _IterDictIndexer_fifo (which is default on unix) doesnt support IndexingType.MEMORY as a destination
         from pyterrier.terrier import IndexFactory
         from pyterrier.terrier.index import IndexingType, _IterDictIndexer_nofifo
+        pt.validate.result_frame(topics_and_res, extra_columns=[self.body_attr, 'query'])
         documents = topics_and_res[["docno", self.body_attr]].drop_duplicates(subset="docno").rename(columns={self.body_attr:'text'})
         indexref = _IterDictIndexer_nofifo(None, type=IndexingType.MEMORY, verbose=self.verbose).index(documents.to_dict(orient='records'))
         docno2docid = { docno:id for id, docno in enumerate(documents["docno"]) }
