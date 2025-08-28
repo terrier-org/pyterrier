@@ -185,7 +185,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
             'transformers': [schematic],
         }, mode=mode)
     if schematic['type'] == 'pipeline':
-        result = '<div class="pipeline">'
+        result = '<div class="pts-pipeline">'
         if mode == 'outer':
             clz = 'arr' if schematic['transformers'][0].get('inner_pipelines_mode') != 'combine' else ''
             result += '<div class="io-label">Input</div>'
@@ -232,7 +232,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                     attr_rows = []
                     for key, value in record['settings'].items():
                         attr_rows.append(f'<tr><th>{html.escape(key)}</th><td>{html.escape(str(value))}</td></tr>')
-                    attrs = f'<table class="df-columns">{"".join(attr_rows)}</table>'
+                    attrs = f'<table class="pts-df-columns">{"".join(attr_rows)}</table>'
                 infobox = f'''
                 <div class="infobox-item" id="id-{uid}" data-title="Transformer">
                     <div style="font-family: monospace; padding: 3px 6px;">
@@ -251,10 +251,10 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                     for i, pipeline in enumerate(record['inner_pipelines']):
                         pipelines += '<div class="parallel-item"><div class="vline"></div>' + _draw_html_schematic(pipeline, mode='inner_linked') + '<div class="vline"></div></div>'
                     result += f'''
-                    <div class="transformer inner parallel-scaffold {error_cls}" {infobox_attr}>
+                    <div class="pts-transformer inner parallel-scaffold {error_cls}" {infobox_attr}>
                         {infobox}
                         <div class="hline"></div>
-                        <div class="transformer-title">{html.escape(record.get("label") or "")}</div>
+                        <div class="pts-transformer-title">{html.escape(record.get("label") or "")}</div>
                         <div class="inner-schematic inner-linked">{pipelines}</div>
                         <div class="hline arr"></div>
                     </div>
@@ -270,9 +270,9 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                             <div class="inner-schematic inner-linked">{pipelines}</div>
                             <div class="hline arr"></div>
                         </div>
-                        <div class="transformer {error_cls}" {infobox_attr}>
+                        <div class="pts-transformer {error_cls}" {infobox_attr}>
                             {infobox}
-                            <div class="transformer-title">{html.escape(record.get("label") or "")}</div>
+                            <div class="pts-transformer-title">{html.escape(record.get("label") or "")}</div>
                         </div>
                     </div>
                     '''
@@ -281,32 +281,32 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                     if len(record['inner_pipelines_labels']) == len(record['inner_pipelines']):
                         for label, pipeline in zip(record['inner_pipelines_labels'], record['inner_pipelines']):
                             pipelines += f'''
-                            <div class="transformer-title">{html.escape(label)}</div>
+                            <div class="pts-transformer-title">{html.escape(label)}</div>
                             <div class="inner-schematic inner-labeled">{_draw_html_schematic(pipeline, mode='inner_labeled')}</div>
                             '''
                     else:
                         for pipeline in record['inner_pipelines']:
                             pipelines += _draw_html_schematic(pipeline, mode='inner_labeled')
                     result += f'''
-                    <div class="transformer inner {error_cls}" {infobox_attr}>
+                    <div class="pts-transformer inner {error_cls}" {infobox_attr}>
                         {infobox}
-                        <div class="transformer-title">{html.escape(record.get("label") or "")}</div>
+                        <div class="pts-transformer-title">{html.escape(record.get("label") or "")}</div>
                         <div class="inner-schematic inner-labeled">{pipelines}</div>
                     </div>
                     '''
             elif record['type'] == 'indexer':
                 result += f'''
-                <div class="indexer {error_cls}" {infobox_attr}>
+                <div class="pts-indexer {error_cls}" {infobox_attr}>
                     {infobox}
-                    <div class="transformer-title">{html.escape(record.get("label") or "")}</div>
+                    <div class="pts-transformer-title">{html.escape(record.get("label") or "")}</div>
                 </div>
                 '''
             else:
                 assert record['type'] == 'transformer'
                 result += f'''
-                <div class="transformer {error_cls}" {infobox_attr}>
+                <div class="pts-transformer {error_cls}" {infobox_attr}>
                     {infobox}
-                    <div class="transformer-title">{html.escape(record.get("label") or "")}</div>
+                    <div class="pts-transformer-title">{html.escape(record.get("label") or "")}</div>
                 </div>
                 '''
             if i != len(schematic['transformers']) - 1:
@@ -369,7 +369,7 @@ def _draw_df_html(columns, prev_columns = None) -> str:
             ''')
         col_table = f'''
         <div id="id-{uid}" class="infobox-item" data-title="{df_label_long}">
-            <table class="df-columns">
+            <table class="pts-df-columns">
                 {''.join(column_rows)}
             </table>
         </div>'''
@@ -378,7 +378,7 @@ def _draw_df_html(columns, prev_columns = None) -> str:
         <div id="id-{uid}" class="infobox-item" data-title="{df_label_long}">
             <div class="infobox-error">Unknown/incompatible columns</div>
         </div>'''
-    return f'<div class="df {df_class}" data-infobox="id-{uid}">{df_label}{col_table}</div>'
+    return f'<div class="pts-df {df_class}" data-infobox="id-{uid}">{df_label}{col_table}</div>'
 
 
 @runtime_checkable

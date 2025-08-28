@@ -79,7 +79,7 @@
 #ID .infobox-source.transformer {
     background: rgba(66, 153, 225, 0.4);
 }
-#ID .infobox-source.df {
+#ID .infobox-source.pts-df {
     background-color: var(--pts-bg-hov);
 }
 #ID .infobox-outer-error {
@@ -138,7 +138,7 @@
     margin-left: -2px;
 }
 
-#ID .df {
+#ID .pts-df {
     display: inline-block;
     width: 28px;
     height: 28px;
@@ -154,27 +154,27 @@
     margin: 1px;
     font-weight: bold;
 }
-#ID .df.df-alert {
+#ID .pts-df.df-alert {
     border-color: var(--pts-alert);
     color: var(--pts-alert);
 }
-#ID .hline > .df {
+#ID .hline > .pts-df {
     position: absolute;
     top: -14px;
     left: 18px;
 }
-#ID .arr-input > .df {
+#ID .arr-input > .pts-df {
     left: -28px;
 }
-#ID .arr-output > .df {
+#ID .arr-output > .pts-df {
     left: 22px;
 }
-#ID .df-columns {
+#ID .pts-df-columns {
     margin-bottom: 0;
     min-width: 100%;
     border-collapse: collapse;
 }
-#ID .df-columns td, #ID .df-columns th {
+#ID .pts-df-columns td, #ID .pts-df-columns th {
     border-top: 1px solid #bbb;
     background: var(--pts-bg);
     color: var(--pts-fg);
@@ -182,24 +182,24 @@
     padding: 2px 2px 2px 4px;
     white-space: nowrap;
 }
-#ID .df-columns .add th, #ID .df-columns .add td {
+#ID .pts-df-columns .add th, #ID .pts-df-columns .add td {
     background-color: var(--pts-bg-hl);
 }
-#ID .df-columns td {
+#ID .pts-df-columns td {
     width: 100%;
 }
 
-#ID .pipeline {
+#ID .pts-pipeline {
     display: flex;
     align-items: center;
     align-content: stretch;
     overflow-x: auto;
 }
-#ID .pipeline > * {
+#ID .pts-pipeline > * {
     flex-shrink: 0;
 }
 
-#ID .transformer {
+#ID .pts-transformer {
     font-size: 13px;
     display: inline-block;
     position: relative;
@@ -210,12 +210,12 @@
     clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 0 100%, 16px 50%);
 }
 
-#ID .transformer-title {
+#ID .pts-transformer-title {
     text-align: center;
     font-weight: bold;
 }
 
-#ID .indexer {
+#ID .pts-indexer {
     font-size: 13px;
     display: inline-block;
     position: relative;
@@ -227,7 +227,7 @@
 }
 
 /* re-size things within an inner block */
-#ID .inner .df {
+#ID .inner .pts-df {
     width: 21px;
     height: 21px;
     font-size: 12px;
@@ -236,11 +236,11 @@
 #ID .inner .hline {
     width: 34px;
 }
-#ID .inner .transformer {
+#ID .inner .pts-transformer {
     font-size: 12px;
     padding: 3px 18px;
 }
-#ID .inner .hline > .df {
+#ID .inner .hline > .pts-df {
     position: absolute;
     top: -10px;
     left: 5px;
@@ -271,7 +271,7 @@
     grid-area: rarr;
     margin-right: -8px;
 }
-#ID .parallel-scaffold > .transformer-title {
+#ID .parallel-scaffold > .pts-transformer-title {
     grid-area: title;
 }
 #ID .parallel-scaffold > .inner-schematic {
@@ -291,11 +291,11 @@
     height: 50%;
     align-self: start;
 }
-#ID .parallel-item > .pipeline {
+#ID .parallel-item > .pts-pipeline {
     flex-grow: 1;
     margin: 4px 0;
 }
-#ID .inner .pipeline {
+#ID .inner .pts-pipeline {
     overflow-x: visible;
 }
 
@@ -307,11 +307,11 @@
     padding-right: 8px;
 }
 
-#ID .inner-labeled > .transformer-title {
+#ID .inner-labeled > .pts-transformer-title {
     font-weight: normal;
     margin-top: 2px;
 }
 
-#ID .transformer.input-validation-error {
+#ID .pts-transformer.input-validation-error {
     background: rgba(255, 101, 101, 0.3);
 }
