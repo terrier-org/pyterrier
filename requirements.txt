@@ -16,5 +16,4 @@ jinja2 # used to get rendering of colour in Pandas by pt.Experiment
 statsmodels # used for multiple testing correction
 # others
 dill # used for serialisation that is better than pickle, e.g. passing wmodel functions to terrier.Retriever
-joblib # used in parallel support 
 lz4 # used for compression
