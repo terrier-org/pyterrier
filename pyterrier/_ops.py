@@ -35,27 +35,6 @@ class NAryTransformerBase(Transformer):
             Returns an iterator over the transformers in this pipeline.
         """
         return iter(self._transformers)
-    
-    @staticmethod
-    def _minimal_inputs(all_configs : List[List[List[str]]]) -> List[str]:
-        all_configs_sets = [ 
-            set(a) for tconfig in all_configs for a in tconfig
-        ]
-        
-        from itertools import chain, combinations
-        # universe of all columns
-        universe = set(chain.from_iterable(all_configs_sets))
-
-        # test subsets in increasing size
-        plausible = []
-        for r in range(1, len(universe) + 1):
-            for subset in combinations(universe, r):
-                subset = set(subset)
-                # Check if subset works for all objects
-                if all(any(set(schema).issubset(subset) for schema in obj) for obj in all_configs):
-                    plausible.append(list(subset))
-        return plausible
-
 
 def _flatten(transformers: Iterable[Transformer], cls: type) -> Tuple[Transformer, ...]:
     return tuple(chain.from_iterable(
@@ -248,7 +227,7 @@ class FeatureUnion(NAryTransformerBase):
 
     def transform_inputs(self) -> List[List[str]]:
         this_minimum = [[['qid', 'docno']]]
-        return NAryTransformerBase._minimal_inputs(this_minimum + [ 
+        return pt.inspect._minimal_inputs(this_minimum + [ 
             pt.inspect.transformer_inputs(t) for t in self._transformers
         ])
 
