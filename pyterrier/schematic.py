@@ -9,7 +9,7 @@ import pyterrier as pt
 import re
 
 def _apply_default_schematic(schematic: Dict[str, Any], transformer: pt.Transformer, *, input_columns: Optional[List[str]] = None):
-    assert schematic.setdefault('type', 'transformer') == 'transformer'
+    assert schematic.setdefault('type', 'transformer') == 'transformer' or schematic.setdefault('type', 'transformer') == 'indexer'
 
     if 'label' not in schematic:
         label = transformer.__class__.__name__
@@ -101,6 +101,10 @@ def transformer_schematic(
         schematic = copy(schematic) # we don't want to accidently modify the original schematic
         if 'type' in schematic:
             return schematic
+    elif pt.inspect.transformer_type(transformer) == pt.inspect.TransformerType.indexer:
+        schematic = {
+            'type': 'indexer',
+        }
     else:
         schematic = {
             'type': 'transformer',
@@ -169,6 +173,13 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
             'title': None,
             'transformers': [schematic],
         }, mode=mode)
+    if schematic['type'] == 'indexer':
+        return _draw_html_schematic({
+            'type': 'pipeline',
+            'input_columns': schematic.get('input_columns'),
+            'title': None,
+            'transformers': [schematic],
+        }, mode=mode)
     if schematic['type'] == 'pipeline':
         result = '<div class="pipeline">'
         if mode == 'outer':
@@ -181,7 +192,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
             result += f'<div class="hline arr arr-input">{_draw_df_html(schematic["input_columns"])}</div>'
         columns = schematic["input_columns"]
         for i, record in enumerate(schematic['transformers']):
-            assert record['type'] == 'transformer'
+            assert record['type'] == 'transformer' or record['type'] == 'indexer'
             assert record['input_columns'] == columns
             uid = str(uuid.uuid4())
             infobox = ''
@@ -279,7 +290,15 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                         <div class="inner-schematic inner-labeled">{pipelines}</div>
                     </div>
                     '''
+            elif record['type'] == 'indexer':
+                result += f'''
+                <div class="indexer {error_cls}" {infobox_attr}>
+                    {infobox}
+                    <div class="transformer-title">{html.escape(record.get("label") or "")}</div>
+                </div>
+                '''
             else:
+                assert record['type'] == 'transformer'
                 result += f'''
                 <div class="transformer {error_cls}" {infobox_attr}>
                     {infobox}
@@ -290,8 +309,9 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                 result += f'<div class="hline arr arr-inner">{_draw_df_html(record["output_columns"], record["input_columns"])}</div>'
             columns = record['output_columns']
         if mode == 'outer':
-            result += f'<div class="hline arr arr-output">{_draw_df_html(schematic["output_columns"], schematic["transformers"][-1]["input_columns"])}</div>'
-            result += '<div class="io-label">Output</div>'
+            if schematic["transformers"][-1]["type"] != 'indexer':
+                result += f'<div class="hline arr arr-output">{_draw_df_html(schematic["output_columns"], schematic["transformers"][-1]["input_columns"])}</div>'
+                result += '<div class="io-label">Output</div>'
         elif mode == 'inner_linked':
             result += f'<div class="hline" style="flex-grow: 1;">{_draw_df_html(schematic["output_columns"], schematic["transformers"][-1]["input_columns"])}</div>'
         elif mode == 'inner_labeled':
