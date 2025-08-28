@@ -114,6 +114,9 @@ Example implementation
 
      def __init__(self, indexpath : str):
        pass
+
+    def index_inputs(self) -> List[str]:
+      return ['docno', 'text']
      
      def index(self, iterdict : Iterable[dict]):
        """

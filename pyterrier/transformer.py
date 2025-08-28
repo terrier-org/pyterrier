@@ -336,6 +336,14 @@ class Indexer(Transformer):
             # one, which invokes transform_iter automatically.
             instance.transform = types.MethodType(Transformer.transform, instance)
         return instance
+    
+    def index_inputs(self) -> Optional[List[str]]:
+        """
+            Returns the columns of the input that index() is expects. 
+            This default implementation returns None, and should be 
+            overridden by subclasses to allow accurate inspections and schematic visualisations.
+        """
+        return None
 
     def index(self, iter : pt.model.IterDict, **kwargs) -> Any:
         """

@@ -79,6 +79,34 @@ def artifact_type_format(
 
     return artifact_type, artifact_format
 
+def indexer_inputs(
+    indexer : pt.Indexer,
+    *,
+    strict : bool = True
+) -> Optional[List[str]]:
+    """
+    Infers supported input column configuration (a ``List[str]``) for a pt.Indexer instance.
+    Orthogonal to ``transformer_inputs``. This implementation inspects the ``index_inputs()``
+    method of the indexer, as other methods of transformer inspection arent applicable to indexers.
+
+    Args:
+        indexer: An instance of the indexer to inspect.
+        strict: If True, raises an error if the indexer cannot be inferred. If False, returns
+            None in these cases.
+
+    Returns:
+        A list of input column configurations (``List[str]``) accepted by this indexer.
+
+    Raises:
+        InspectError: If the indexer cannot be inspected and ``strict==True``.
+    """
+    result = indexer.index_inputs()
+    if not isinstance(result, list) or len(result) == 0:
+        if strict:
+            msg = f"Cannot determine inputs for {indexer} - index_inputs() should be implemented"
+            raise InspectError(msg)
+        return None
+    return result
 
 def transformer_inputs(
     transformer: pt.Transformer,

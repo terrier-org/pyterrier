@@ -85,12 +85,16 @@ def transformer_schematic(
     default: bool = False,
 ) -> dict:
     """Builds a structured schematic of the transformer."""
+    indexer = pt.inspect.transformer_type(transformer) == pt.inspect.TransformerType.indexer
     if input_columns is _INFER:
-        all_input_column_configs = pt.inspect.transformer_inputs(transformer, strict=False)
-        if all_input_column_configs is not None and len(all_input_column_configs) > 0:
-            input_columns = all_input_column_configs[0] # pick the first one
+        if indexer:
+            input_columns = pt.inspect.indexer_inputs(transformer, strict=False)
         else:
-            input_columns = None
+            all_input_column_configs = pt.inspect.transformer_inputs(transformer, strict=False)
+            if all_input_column_configs is not None and len(all_input_column_configs) > 0:
+                input_columns = all_input_column_configs[0] # pick the first one
+            else:
+                input_columns = None
     # input_columns can no longer be _INFER
     input_columns = cast(Optional[List[str]], input_columns) # noqa: PT100 (this is typing.cast, not jinus.cast)
     if not default and isinstance(transformer, HasSchematic):
@@ -101,7 +105,7 @@ def transformer_schematic(
         schematic = copy(schematic) # we don't want to accidently modify the original schematic
         if 'type' in schematic:
             return schematic
-    elif pt.inspect.transformer_type(transformer) == pt.inspect.TransformerType.indexer:
+    elif indexer:
         schematic = {
             'type': 'indexer',
         }
