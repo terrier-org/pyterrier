@@ -88,7 +88,7 @@ def transformer_schematic(
     indexer = pt.inspect.transformer_type(transformer) == pt.inspect.TransformerType.indexer
     if input_columns is _INFER:
         if indexer:
-            input_columns = pt.inspect.indexer_inputs(transformer, strict=False)
+            input_columns = pt.inspect.indexer_inputs(cast(pt.Indexer, transformer), strict=False) # noqa: PT100
         else:
             all_input_column_configs = pt.inspect.transformer_inputs(transformer, strict=False)
             if all_input_column_configs is not None and len(all_input_column_configs) > 0:
