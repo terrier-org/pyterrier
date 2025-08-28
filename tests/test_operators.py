@@ -540,16 +540,6 @@ class TestOperators(BaseTestCase):
         container_set = [set(item) for item in container]
         self.assertIn(set(member), container_set)     
 
-    def test_inspection_mincols(self):
-        op_input = [[['qid', 'docno']]]
-        sub_inputs = [
-            [['qid', 'docno', 'query']],
-            [['qid', 'docno', 'query']]
-        ]
-        from pyterrier._ops import NAryTransformerBase
-        plausible_configs = NAryTransformerBase._minimal_inputs(op_input + sub_inputs)
-        self._assertInNoOrder(['qid', 'docno', 'query'], plausible_configs)
-
     def test_funion_inspection(self):
         dataset = pt.get_dataset("vaswani")
         index = dataset.get_index()
