@@ -1170,9 +1170,9 @@ def GridScan(
         import itertools
         import more_itertools
         try:
-            from pyterrier_alpha.parallel import parallel_lambda
-        except:
-            raise ImportError("pyterrier-alpha[parallel] must be installed for jobs>1")
+            from pyterrier_alpha.parallel import parallel_lambda # type: ignore
+        except ImportError as ie:
+            raise ImportError("pyterrier-alpha[parallel] must be installed for jobs>1") from ie
     
         all_inputs = [(keys, values) for values in combinations]
 

@@ -239,9 +239,9 @@ class Transformer:
         from warnings import warn
         warn(".parallel() is experimental")
         try:
-            from pyterrier_alpha.parallel import PoolParallelTransformer
-        except:
-            raise ImportError("pyterrier-alpha[parallel] must be installed for .parallel()")
+            from pyterrier_alpha.parallel import PoolParallelTransformer # type: ignore
+        except ImportError as ie:
+            raise ImportError("pyterrier-alpha[parallel] must be installed for .parallel()") from ie
         return PoolParallelTransformer(self, N, backend)
 
     # Get and set specific parameter value by parameter's name
