@@ -188,7 +188,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
         result = '<div class="pts-pipeline">'
         if mode == 'outer':
             clz = 'arr' if schematic['transformers'][0].get('inner_pipelines_mode') != 'combine' else ''
-            result += '<div class="io-label">Input</div>'
+            result += '<div class="pts-io-label">Input</div>'
             result += f'<div class="hline {clz} arr-input">{_draw_df_html(schematic["input_columns"])}</div>'
         elif mode == 'inner_linked':
             result += '<div class="hline arr arr-inner" style="width: 16px;"></div>'
@@ -315,7 +315,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
         if mode == 'outer':
             if schematic["transformers"][-1]["type"] != 'indexer':
                 result += f'<div class="hline arr arr-output">{_draw_df_html(schematic["output_columns"], schematic["transformers"][-1]["input_columns"])}</div>'
-                result += '<div class="io-label">Output</div>'
+                result += '<div class="pts-io-label">Output</div>'
         elif mode == 'inner_linked':
             result += f'<div class="hline" style="flex-grow: 1;">{_draw_df_html(schematic["output_columns"], schematic["transformers"][-1]["input_columns"])}</div>'
         elif mode == 'inner_labeled':
