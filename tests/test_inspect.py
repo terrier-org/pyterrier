@@ -204,6 +204,24 @@ class TestInspect(BaseTestCase):
         with self.assertRaises(pt.inspect.InspectError):
             pt.inspect.transformer_outputs(br0 >> pt.apply.generic(_rename_context), ["qid", "query"])
 
+    def test_transformer_type(self):
+        class A(pt.Transformer):
+            def transform(self, inp):
+                pass
+        class B(pt.Indexer):
+            def index(self, inp):
+                pass
+        class C(pt.Indexer):
+            def transform(self, inp):
+                pass
+            def index(self, inp):
+                pass
+
+        self.assertEqual(pt.inspect.transformer_type(A()), pt.inspect.TransformerType.transformer)
+        self.assertEqual(pt.inspect.transformer_type(B()), pt.inspect.TransformerType.indexer)
+        self.assertEqual(pt.inspect.transformer_type(C()), pt.inspect.TransformerType.transformer | pt.inspect.TransformerType.indexer)
+        self.assertEqual(pt.inspect.transformer_type(object()), pt.inspect.TransformerType(0))
+
 if __name__ == "__main__":
     unittest.main()
         

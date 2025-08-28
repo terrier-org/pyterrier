@@ -3,6 +3,7 @@
 .. note::
     This is an advanced module that is not typically used by end users.
 """
+import enum
 import inspect
 import dataclasses
 from typing import Any, Dict, List, Literal, Optional, Protocol, Type, Tuple, Union, cast, overload, runtime_checkable
@@ -389,6 +390,39 @@ def subtransformers(transformer: pt.Transformer) -> Dict[str, Union[pt.Transform
         elif isinstance(attr.value, (list, tuple)) and all(isinstance(v, pt.Transformer) and not isinstance(v, pt.Artifact) for v in attr.value):
             result[attr.name] = list(attr.value)
     return result
+
+
+class TransformerType(enum.Flag):
+    """An enum representing the type of a transformer."""
+    transformer = enum.auto()
+    indexer = enum.auto()
+
+
+def transformer_type(transformer: pt.Transformer) -> TransformerType:
+    """Returns the type of the transformer as a :class:`~pyterrier.inspect.TransformerType` flag enum.
+
+    The type can be one of:
+    - ``TransformerType.transformer``: The transformer is a :class:`~pyterrier.Transformer` but not an :class:`~pyterrier.Indexer`.
+    - ``TransformerType.indexer``: The transformer is an :class:`~pyterrier.Indexer` but does not implement ``transform`` or ``transform_iter``.
+    - ``TransformerType.transformer | TransformerType.indexer``: The transformer is both a :class:`~pyterrier.Transformer` and an :class:`~pyterrier.Indexer`.
+    - ``TransformerType(0)``: The transformer is neither a :class:`~pyterrier.Transformer` nor an :class:`~pyterrier.Indexer`.
+
+    Args:
+        transformer: The transformer to inspect.
+
+    Returns:
+        A :class:`~pyterrier.inspect.TransformerType` flag representing the type of the transformer.
+    """
+    if isinstance(transformer, pt.Indexer):
+        if transformer.__class__.transform != pt.Indexer.transform or transformer.__class__.transform_iter != pt.Indexer.transform_iter:
+            # Indexer that also implements transform or transform_iter (or both)
+            return TransformerType.transformer | TransformerType.indexer # both a Transformer and an Indexer
+        else:
+            # Indexer that doesn't implement transform or transform_iter
+            return TransformerType.indexer # only Indexer
+    if isinstance(transformer, pt.Transformer):
+        return TransformerType.transformer # only Transformer
+    return TransformerType(0) # neither Transformer nor Indexer
 
 
 @runtime_checkable
