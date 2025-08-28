@@ -187,7 +187,7 @@ def transformer_inputs(
             if received is not None:
                 msg += f"received by {received}: {result}"
             else:
-                msg += " - no inpsections succeeded"
+                msg += " - no inspections succeeded"
             raise InspectError(msg)
         return None
     if not isinstance(result[0], list) or (len(result[0]) > 0 and not isinstance(result[0][0], str)):
