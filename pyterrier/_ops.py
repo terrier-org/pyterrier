@@ -2,7 +2,7 @@ from .transformer import Transformer, Estimator, get_transformer, SupportsFuseFe
 from .model import add_ranks
 from collections import deque
 from warnings import warn
-from typing import Optional, Iterable, Tuple, Iterator
+from typing import Optional, Iterable, Tuple, Iterator, List
 from itertools import chain
 import pandas as pd
 import pyterrier as pt
@@ -35,7 +35,6 @@ class NAryTransformerBase(Transformer):
             Returns an iterator over the transformers in this pipeline.
         """
         return iter(self._transformers)
-
 
 def _flatten(transformers: Iterable[Transformer], cls: type) -> Tuple[Transformer, ...]:
     return tuple(chain.from_iterable(
@@ -225,6 +224,12 @@ class FeatureUnion(NAryTransformerBase):
             pipe = cands >> (pl2f ** bm25f)
     """
     schematic = {'inner_pipelines_mode': 'linked', 'label': 'FeatureUnion **'}
+
+    def transform_inputs(self) -> List[List[str]]:
+        this_minimum = [[['qid', 'docno']]]
+        return pt.inspect._minimal_inputs(this_minimum + [ 
+            pt.inspect.transformer_inputs(t) for t in self._transformers
+        ])
 
     def transform(self, inputRes):
         pt.validate.result_frame(inputRes)

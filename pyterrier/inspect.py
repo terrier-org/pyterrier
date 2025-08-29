@@ -419,6 +419,28 @@ def subtransformers(transformer: pt.Transformer) -> Dict[str, Union[pt.Transform
             result[attr.name] = list(attr.value)
     return result
 
+def _minimal_inputs(all_configs : List[List[List[str]]]) -> List[List[str]]:
+    """
+    Among all input configurations, find the minimal common subset(s) of attributes needed
+    for success invocation.
+    """
+    all_configs_sets = [ 
+        set(a) for tconfig in all_configs for a in tconfig
+    ]
+    
+    from itertools import chain, combinations
+    # universe of all columns
+    universe = set(chain.from_iterable(all_configs_sets))
+
+    # test subsets in increasing size
+    plausible = []
+    for r in range(1, len(universe) + 1):
+        for subset in combinations(universe, r):
+            subset = set(subset)
+            # Check if subset works for all objects
+            if all(any(set(schema).issubset(subset) for schema in obj) for obj in all_configs):
+                plausible.append(list(subset))
+    return plausible
 
 class TransformerType(enum.Flag):
     """An enum representing the type of a transformer."""
