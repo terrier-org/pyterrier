@@ -264,7 +264,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                     for i, pipeline in enumerate(record['inner_pipelines']):
                         pipelines += '<div class="parallel-item"><div class="vline"></div>' + _draw_html_schematic(pipeline, mode='inner_linked') + '<div class="vline"></div></div>'
                     result += f'''
-                    <div class="combine-box">
+                    <div class="pts-combine-box">
                         <div class="pts-parallel-scaffold pts-inner">
                             <div class="hline"></div>
                             <div class="pts-inner-schematic pts-inner-linked">{pipelines}</div>

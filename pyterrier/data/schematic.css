@@ -299,7 +299,7 @@
     overflow-x: visible;
 }
 
-#ID .combine-box {
+#ID .pts-combine-box {
     border: 1px dashed #999;
     display: flex;
     align-items: center;
