@@ -592,8 +592,12 @@ class ApplyIndexer(pt.Indexer):
     Allows arbitrary indexer pipelines components to be written as functions.
     """
     
-    def __init__(self, fn: Callable[[pt.model.IterDict], Any]):
+    def __init__(self, fn: Callable[[pt.model.IterDict], Any], required_columns : Optional[List[str]] = None):
         self.fn = fn
+        self.required_columns = required_columns
 
     def index(self, iter_dict):
         return self.fn(iter_dict)
+    
+    def index_inputs(self) -> Optional[List[str]]:
+        return self.required_columns

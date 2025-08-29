@@ -17,7 +17,7 @@ def _bind(instance, func, as_name=None):
     setattr(instance, as_name, bound_method)
     return bound_method
 
-def query(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], str], *args, **kwargs) -> pt.Transformer:
+def query(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], str], *args, required_columns : Optional[List[str]] = ['qid', 'query'], **kwargs) -> pt.Transformer:
     """
         Create a transformer that takes as input a query, and applies a supplied function to compute a new query formulation.
 
@@ -30,7 +30,7 @@ def query(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], str], *args,
         be executed on the previous query formulation, a ``pt.rewrite.reset()`` transformer can be applied.  
 
         :param fn: the function to apply to each row. It must return a string containing the new query formulation.
-        :param required_columns: If provided, should be a list of columns that must be present in the input dataframe.
+        :param required_columns: The list of columns that must be present in the input dataframe. Defaults to ['qid', 'query'].
         :param verbose: if set to True, a TQDM progress bar will be displayed
 
         Examples::
@@ -59,9 +59,9 @@ def query(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], str], *args,
             
 
     """
-    return ApplyQueryTransformer(fn, *args, **kwargs)
+    return ApplyQueryTransformer(fn, *args, required_columns=required_columns, **kwargs)
 
-def doc_score(fn : Union[Callable[[Union[pd.Series,pt.model.IterDictRecord]], float], Callable[[pd.DataFrame], Sequence[float]]], *args, batch_size=None, **kwargs) -> pt.Transformer:
+def doc_score(fn : Union[Callable[[Union[pd.Series,pt.model.IterDictRecord]], float], Callable[[pd.DataFrame], Sequence[float]]], *args, required_columns : Optional[List[str]] = ['qid', 'query', 'docno'], batch_size=None, **kwargs) -> pt.Transformer:
     """
         Create a transformer that takes as input a ranked documents dataframe, and applies a supplied function to compute a new score.
         Ranks are automatically computed. doc_score() can operate row-wise, or batch-wise, depending on whether batch_size is set.
@@ -71,7 +71,7 @@ def doc_score(fn : Union[Callable[[Union[pd.Series,pt.model.IterDictRecord]], fl
 
         :param fn: the function to apply to each row
         :param batch_size: How many documents to operate on at once (batch-wise). If None, operates row-wise
-        :param required_columns: If provided, should be a list of columns that must be present in the input dataframe.
+        :param required_columns: If provided, should be a list of columns that must be present in the input dataframe. Defaults to ['qid', 'query', 'docno'].
         :param verbose: if set to True, a TQDM progress bar will be displayed
 
         Example (Row-wise)::
@@ -96,7 +96,7 @@ def doc_score(fn : Union[Callable[[Union[pd.Series,pt.model.IterDictRecord]], fl
     """
     return ApplyDocumentScoringTransformer(fn, *args, batch_size=batch_size, **kwargs)
 
-def doc_features(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], npt.NDArray[Any]], *args, **kwargs) -> pt.Transformer:
+def doc_features(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], npt.NDArray[Any]], *args, required_columns : Optional[List[str]] = ['qid', 'query', 'docno'], **kwargs) -> pt.Transformer:
     """
         Create a transformer that takes as input a ranked documents dataframe, and applies the supplied function to each document to compute feature scores. 
 
@@ -106,7 +106,7 @@ def doc_features(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], npt.N
         notation and not the ``row.key`` that is supported by a Series.
 
         :param fn: the function to apply to each row. It must return a 1D numpy array
-        :param required_columns: If provided, should be a list of columns that must be present in the input dataframe.
+        :param required_columns: The list of columns that must be present in the input dataframe.
         :param verbose: if set to True, a TQDM progress bar will be displayed
         
         Example::
@@ -130,15 +130,16 @@ def doc_features(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], npt.N
             pipeline = bm25 >> ( some_features ** pt.apply.doc_score(one_feature) )
 
     """
-    return ApplyDocFeatureTransformer(fn, *args, **kwargs)
+    return ApplyDocFeatureTransformer(fn, *args, required_columns = required_columns, **kwargs)
 
-def indexer(fn : Callable[[pt.model.IterDict], Any], **kwargs) -> pt.Indexer:
+def indexer(fn : Callable[[pt.model.IterDict], Any], required_columns: Optional[List[str]] = None, **kwargs) -> pt.Indexer:
     """
         Create an instance of pt.Indexer using a function that takes as input an interable dictionary.
 
         The supplied function is called once. It may optionally return something (typically a reference to the "index").
 
         :param fn: the function that consumes documents as IterDicts.
+        :param required_columns: If provided, should be a list of columns that must be present in the input IterDicts.
 
         Example::
 
@@ -151,7 +152,7 @@ def indexer(fn : Callable[[pt.model.IterDict], Any], **kwargs) -> pt.Indexer:
             indexer = pt.apply.indexer(_counter)
             rtr = indexer.index([ {'docno' : 'd1'}, {'docno' : 'd2'}])
     """
-    return ApplyIndexer(fn, **kwargs)
+    return ApplyIndexer(fn, required_columns = required_columns, **kwargs)
 
 def rename(columns: Dict[str,str], *, errors: Literal['raise', 'ignore'] = 'raise') -> pt.Transformer:
     """
