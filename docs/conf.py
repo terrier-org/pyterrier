@@ -57,6 +57,7 @@ html_short_title = project
 # ones.
 extensions = [
     'extras.cite',
+    'extras.schematic',
     'sphinx.ext.autodoc',
     'sphinx_autodoc_typehints',
     'sphinx.ext.coverage',

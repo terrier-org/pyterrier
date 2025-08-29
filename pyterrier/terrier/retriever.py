@@ -460,6 +460,9 @@ class Retriever(pt.Transformer):
     def setControl(self, control, value):
         self.controls[str(control)] = str(value)
 
+    def schematic(self, *, input_columns = None): 
+        return {'label': self.controls['wmodel']}
+
     def fuse_rank_cutoff(self, k: int) -> Optional[pt.Transformer]:
         """
         Support fusing with RankCutoffTransformer.
@@ -537,6 +540,7 @@ class TextIndexProcessor(pt.Transformer):
         self.innerclass = innerclass
         self.takes = takes
         self.returns = returns
+        assert isinstance(body_attr, str)
         self.body_attr = body_attr
         if background_index is not None:
             self.background_indexref = _parse_index_like(background_index)
@@ -549,6 +553,7 @@ class TextIndexProcessor(pt.Transformer):
         # we use _IterDictIndexer_nofifo, as _IterDictIndexer_fifo (which is default on unix) doesnt support IndexingType.MEMORY as a destination
         from pyterrier.terrier import IndexFactory
         from pyterrier.terrier.index import IndexingType, _IterDictIndexer_nofifo
+        pt.validate.result_frame(topics_and_res, extra_columns=[self.body_attr, 'query'])
         documents = topics_and_res[["docno", self.body_attr]].drop_duplicates(subset="docno").rename(columns={self.body_attr:'text'})
         indexref = _IterDictIndexer_nofifo(None, type=IndexingType.MEMORY, verbose=self.verbose).index(documents.to_dict(orient='records'))
         docno2docid = { docno:id for id, docno in enumerate(documents["docno"]) }
@@ -704,6 +709,11 @@ class FeaturesRetriever(Retriever):
             (self.indexref, self.features),
             self.__getstate__()
         )
+    
+    def schematic(self, *, input_columns = None): 
+        if self.wmodel is None:
+            return {'label': "FeaturesRetriever: %df" % len(self.features)}
+        return {'label': "FeaturesRetriever: %s + %df" % (self.wmodel, len(self.features))}
 
     def __getstate__(self): 
         return  {

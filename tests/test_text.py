@@ -230,4 +230,11 @@ class TestText(BaseTestCase):
         dfmeanK3 = pt.text.kmaxavg_passage(3)(dfscores)
         self.assertEqual(1, len(dfmeanK3))
         self.assertEqual(2, dfmeanK3["score"][0])
-        
+
+@pt.testing.transformer_test_class
+def test_text_sliding():
+    return pt.text.sliding()
+
+@pt.testing.transformer_test_class
+def test_max_passage():
+    return pt.text.max_passage()

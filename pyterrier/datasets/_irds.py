@@ -186,6 +186,7 @@ class IRDSDataset(pt.datasets.Dataset):
 
 class IRDSTextLoader(pt.Transformer):
     """A transformer that loads text fields from an ir_datasets dataset into a DataFrame by docno."""
+    schematic = {'label': 'TextLoader'}
     def __init__(
         self,
         dataset: IRDSDataset,
