@@ -74,16 +74,17 @@
         });
         el.addEventListener('click', (e) => {
             if (!infobox_stick) {
-                infobox_stick = el.dataset.infobox;
+                infobox_stick = el.dataset.ptsInfobox;
                 infobox.style.opacity = 1;
-                infobox_stick = el.dataset.infobox;
+                infobox_stick = el.dataset.ptsInfobox;
                 replace_infobox(el);
                 e.stopPropagation();
-            } else if (infobox_stick === el.dataset.infobox) {
+            } else if (infobox_stick === el.dataset.ptsInfobox) {
                 hide_infobox();
                 e.stopPropagation();
             } else {
-                infobox_stick = el.dataset.infobox;
+                infobox_stick = el.dataset.ptsInfobox;
+                show_hintbox();
                 replace_infobox(el);
                 e.stopPropagation();
             }
