@@ -233,69 +233,69 @@
     font-size: 12px;
     padding-top: 1px;
 }
-#ID .inner .hline {
+#ID .pts-inner .hline {
     width: 34px;
 }
-#ID .inner .pts-transformer {
+#ID .pts-inner .pts-transformer {
     font-size: 12px;
     padding: 3px 18px;
 }
-#ID .inner .hline > .pts-df {
+#ID .pts-inner .hline > .pts-df {
     position: absolute;
     top: -10px;
     left: 5px;
 }
-#ID .inner .arr-input {
+#ID .pts-inner .arr-input {
     margin-left: 8px;
 }
-#ID .inner .arr-output {
+#ID .pts-inner .arr-output {
     margin-right: 4px;
 }
 
-#ID .inner-schematic {
+#ID .pts-inner-schematic {
     display: flex;
     flex-direction: column;
 }
 
-#ID .parallel-scaffold {
+#ID .pts-parallel-scaffold {
     display: grid;
     grid-template-areas:
       "larr title rarr"
       "larr body  rarr";
 }
-#ID .parallel-scaffold > .hline {
+#ID .pts-parallel-scaffold > .hline {
     grid-area: larr;
     width: 16px;
 }
-#ID .parallel-scaffold > .hline.arr {
+#ID .pts-parallel-scaffold > .hline.arr {
     grid-area: rarr;
     margin-right: -8px;
 }
-#ID .parallel-scaffold > .pts-transformer-title {
+#ID .pts-parallel-scaffold > .pts-transformer-title {
     grid-area: title;
 }
-#ID .parallel-scaffold > .inner-schematic {
+#ID .pts-parallel-scaffold > .pts-inner-schematic {
     grid-area: body;
 }
 
-#ID .parallel-item {
+#ID .pts-parallel-item {
     display: flex;
     align-content: stretch;
     justify-content: stretch;
 }
-#ID .parallel-item:first-child > .vline {
+#ID .pts-parallel-item:first-child > .vline {
     height: 50%;
     align-self: end;
 }
-#ID .parallel-item:last-child > .vline {
+#ID .pts-parallel-item:last-child > .vline {
     height: 50%;
     align-self: start;
 }
-#ID .parallel-item > .pts-pipeline {
+#ID .pts-parallel-item > .pts-pipeline {
     flex-grow: 1;
     margin: 4px 0;
 }
-#ID .inner .pts-pipeline {
+#ID .pts-inner .pts-pipeline {
     overflow-x: visible;
 }
 
@@ -307,7 +307,7 @@
     padding-right: 8px;
 }
 
-#ID .inner-labeled > .pts-transformer-title {
+#ID .pts-inner-labeled > .pts-transformer-title {
     font-weight: normal;
     margin-top: 2px;
 }

@@ -249,13 +249,13 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                 if record['inner_pipelines_mode'] == 'linked':
                     pipelines = ''
                     for i, pipeline in enumerate(record['inner_pipelines']):
-                        pipelines += '<div class="parallel-item"><div class="vline"></div>' + _draw_html_schematic(pipeline, mode='inner_linked') + '<div class="vline"></div></div>'
+                        pipelines += '<div class="pts-parallel-item"><div class="vline"></div>' + _draw_html_schematic(pipeline, mode='inner_linked') + '<div class="vline"></div></div>'
                     result += f'''
-                    <div class="pts-transformer inner parallel-scaffold {error_cls}" {infobox_attr}>
+                    <div class="pts-transformer pts-inner pts-parallel-scaffold {error_cls}" {infobox_attr}>
                         {infobox}
                         <div class="hline"></div>
                         <div class="pts-transformer-title">{html.escape(record.get("label") or "")}</div>
-                        <div class="inner-schematic inner-linked">{pipelines}</div>
+                        <div class="pts-inner-schematic pts-inner-linked">{pipelines}</div>
                         <div class="hline arr"></div>
                     </div>
                     '''
@@ -265,9 +265,9 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                         pipelines += '<div class="parallel-item"><div class="vline"></div>' + _draw_html_schematic(pipeline, mode='inner_linked') + '<div class="vline"></div></div>'
                     result += f'''
                     <div class="combine-box">
-                        <div class="parallel-scaffold inner">
+                        <div class="pts-parallel-scaffold pts-inner">
                             <div class="hline"></div>
-                            <div class="inner-schematic inner-linked">{pipelines}</div>
+                            <div class="pts-inner-schematic pts-inner-linked">{pipelines}</div>
                             <div class="hline arr"></div>
                         </div>
                         <div class="pts-transformer {error_cls}" {infobox_attr}>
@@ -282,7 +282,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                         for label, pipeline in zip(record['inner_pipelines_labels'], record['inner_pipelines']):
                             pipelines += f'''
                             <div class="pts-transformer-title">{html.escape(label)}</div>
-                            <div class="inner-schematic inner-labeled">{_draw_html_schematic(pipeline, mode='inner_labeled')}</div>
+                            <div class="pts-inner-schematic pts-inner-labeled">{_draw_html_schematic(pipeline, mode='inner_labeled')}</div>
                             '''
                     else:
                         for pipeline in record['inner_pipelines']:
@@ -291,7 +291,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                     <div class="pts-transformer inner {error_cls}" {infobox_attr}>
                         {infobox}
                         <div class="pts-transformer-title">{html.escape(record.get("label") or "")}</div>
-                        <div class="inner-schematic inner-labeled">{pipelines}</div>
+                        <div class="pts-inner-schematic pts-inner-labeled">{pipelines}</div>
                     </div>
                     '''
             elif record['type'] == 'indexer':
