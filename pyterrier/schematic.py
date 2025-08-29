@@ -257,7 +257,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                         <div class="hline"></div>
                         <div class="pts-transformer-title">{html.escape(record.get("label") or "")}</div>
                         <div class="pts-inner-schematic pts-inner-linked">{pipelines}</div>
-                        <div class="hline pts-arr"></div>
+                        <div class="hline pts-arr"></div> <!-- TODO this is unusual - an arrow AFTER something -->
                     </div>
                     '''
                 elif record['inner_pipelines_mode'] == 'combine':
@@ -310,8 +310,9 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                     <div class="pts-transformer-title">{html.escape(record.get("label") or "")}</div>
                 </div>
                 '''
-            if i != len(schematic['transformers']) - 1:
-                result += f'<div class="hline pts-arr pts-arr-inner">{_draw_df_html(record["output_columns"], record["input_columns"])}</div>'
+            # TODO - review by Sean: this is removed, as these are typically drawn at line 318 instead
+            # if i != len(schematic['transformers']) - 1:
+            #     result += f'<div class="hline pts-arr pts-arr-inner">{_draw_df_html(record["output_columns"], record["input_columns"])}</div>'
             columns = record['output_columns']
         if mode == 'outer':
             if schematic["transformers"][-1]["type"] != 'indexer':
