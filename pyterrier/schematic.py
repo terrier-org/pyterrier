@@ -159,9 +159,9 @@ def draw_html_schematic(schematic: dict, *, outer_class: Optional[str] = None) -
     <div id="id-{uid}" class="{outer_class or ''}">
         <style>{css}</style>
         {_draw_html_schematic(schematic)}
-        <div class="infobox">
-            <div class="infobox-title"></div>
-            <div class="infobox-body"></div>
+        <div class="pts-infobox">
+            <div class="pts-infobox-title"></div>
+            <div class="pts-infobox-body"></div>
         </div>
         <script>{js}</script>
     </div>
@@ -212,14 +212,14 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                     error_cls = 'input-validation-error'
                     if len(modes) == 1:
                         # Normal case: there's just one mode
-                        error_info = '<div class="infobox-error">'
+                        error_info = '<div class="pts-infobox-error">'
                         if len(modes[0].missing_columns) > 0:
                             error_info += f'Missing input columns: {", ".join(["<b>" + html.escape(c) + "</b>" for c in modes[0].missing_columns])}. '
                         if len(modes[0].extra_columns) > 0:
                             error_info += f'Unexpected input columns: {", ".join(["<b>" + html.escape(c) + "</b>" for c in modes[0].extra_columns])}. '
                         error_info += '</div>'
                     else:
-                        error_info = '<div class="infobox-error"><div>None of the supported input modes matched:</div><ul>'
+                        error_info = '<div class="pts-infobox-error"><div>None of the supported input modes matched:</div><ul>'
                         for i, error_mode in enumerate(modes):
                             error_info += f'<li>Mode {html.escape(error_mode.mode_name or str(i+1))}: '
                             if len(error_mode.missing_columns) > 0:
@@ -234,7 +234,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                         attr_rows.append(f'<tr><th>{html.escape(key)}</th><td>{html.escape(str(value))}</td></tr>')
                     attrs = f'<table class="pts-df-columns">{"".join(attr_rows)}</table>'
                 infobox = f'''
-                <div class="infobox-item" id="id-{uid}" data-title="Transformer">
+                <div class="pts-infobox-item" id="id-{uid}" data-title="Transformer">
                     <div style="font-family: monospace; padding: 3px 6px;">
                         {'<a href="' + html.escape(help_url) + '" target="_blank" onclick="window.event.stopPropagation();">' if help_url else ''}
                             {html.escape(name)}
@@ -244,7 +244,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                     {attrs}
                 </div>
                 '''
-                infobox_attr = f'data-infobox="id-{uid}"'
+                infobox_attr = f'data-pts-infobox="id-{uid}"'
             if 'inner_pipelines' in record:
                 if record['inner_pipelines_mode'] == 'linked':
                     pipelines = ''
@@ -368,17 +368,17 @@ def _draw_df_html(columns, prev_columns = None) -> str:
                 </tr>
             ''')
         col_table = f'''
-        <div id="id-{uid}" class="infobox-item" data-title="{df_label_long}">
+        <div id="id-{uid}" class="pts-infobox-item" data-title="{df_label_long}">
             <table class="pts-df-columns">
                 {''.join(column_rows)}
             </table>
         </div>'''
     else:
         col_table = f'''
-        <div id="id-{uid}" class="infobox-item" data-title="{df_label_long}">
-            <div class="infobox-error">Unknown/incompatible columns</div>
+        <div id="id-{uid}" class="pts-infobox-item" data-title="{df_label_long}">
+            <div class="pts-infobox-error">Unknown/incompatible columns</div>
         </div>'''
-    return f'<div class="pts-df {df_class}" data-infobox="id-{uid}">{df_label}{col_table}</div>'
+    return f'<div class="pts-df {df_class}" data-pts-infobox="id-{uid}">{df_label}{col_table}</div>'
 
 
 @runtime_checkable

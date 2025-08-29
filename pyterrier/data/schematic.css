@@ -41,7 +41,7 @@
     min-height: 96px;
 }
 
-#ID .infobox {
+#ID .pts-infobox {
     position: absolute;
     max-height: 300px;
     top: 0;
@@ -57,42 +57,42 @@
     max-width: 360px;
     min-width: 128px;
 }
-#ID.repr_html .infobox {
+#ID.repr_html .pts-infobox {
     max-height: 100%;
 }
-#ID .infobox-item {
+#ID .pts-infobox-item {
     display: none;
 }
-#ID .infobox-title {
+#ID .pts-infobox-title {
     background: rgb(66, 153, 225);
     color: white;
     padding: 2px 6px;
     position: sticky;
     top: 0;
 }
-#ID .infobox-body {
+#ID .pts-infobox-body {
     overflow-x: auto;
 }
-#ID [data-infobox] {
+#ID [data-pts-infobox] {
     cursor: pointer;
 }
-#ID .infobox-source.transformer {
+#ID .pts-infobox-source.pts-transformer {
     background: rgba(66, 153, 225, 0.4);
 }
-#ID .infobox-source.pts-df {
+#ID .pts-infobox-source.pts-df {
     background-color: var(--pts-bg-hov);
 }
-#ID .infobox-outer-error {
+#ID .pts-infobox-outer-error {
     border: 1px solid var(--pts-alert);
 }
-#ID .infobox-outer-error > .infobox-title {
+#ID .pts-infobox-outer-error > .pts-infobox-title {
     background: var(--pts-alert);
 }
-#ID .infobox-error {
+#ID .pts-infobox-error {
     margin: 4px;
     color: var(--pts-alert);
 }
-#ID .infobox-error ul {
+#ID .pts-infobox-error ul {
     margin: 0;
     padding-left: 12px;
 }

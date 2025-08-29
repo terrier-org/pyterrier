@@ -2,24 +2,24 @@
     var infobox_stick = null;
     var infobox_source_el = null;
     const infobox_items = {};
-    const infobox = document.querySelectorAll('#ID .infobox')[0];
-    const infobox_title = document.querySelectorAll('#ID .infobox-title')[0];
-    const infobox_body = document.querySelectorAll('#ID .infobox-body')[0];
+    const infobox = document.querySelectorAll('#ID .pts-infobox')[0];
+    const infobox_title = document.querySelectorAll('#ID .pts-infobox-title')[0];
+    const infobox_body = document.querySelectorAll('#ID .pts-infobox-body')[0];
     const container = document.querySelectorAll('#ID')[0];
     const is_repr_html = container.classList.contains('repr_html');
     function replace_infobox(el) {
         if (infobox_source_el !== null) {
-            infobox_source_el.classList.remove('infobox-source');
+            infobox_source_el.classList.remove('pts-infobox-source');
             infobox_source_el = null;
         }
         infobox_body.innerHTML = '';
-        infobox_title.textContent = infobox_items[el.dataset.infobox].dataset.title || '';
+        infobox_title.textContent = infobox_items[el.dataset.ptsInfobox].dataset.title || '';
         infobox.style.display = 'block';
-        infobox_body.appendChild(infobox_items[el.dataset.infobox]);
-        if (infobox_body.querySelectorAll('.infobox-error').length > 0) {
-            infobox.classList.add('infobox-outer-error');
+        infobox_body.appendChild(infobox_items[el.dataset.ptsInfobox]);
+        if (infobox_body.querySelectorAll('.pts-infobox-error').length > 0) {
+            infobox.classList.add('pts-infobox-outer-error');
         } else {
-            infobox.classList.remove('infobox-outer-error');
+            infobox.classList.remove('pts-infobox-outer-error');
         }
         infobox.scrollTop = 0;
         infobox_body.scrollLeft = 0;
@@ -39,11 +39,11 @@
         }
         infobox.style.top = top + 'px';
         infobox_source_el = el;
-        el.classList.add('infobox-source');
+        el.classList.add('pts-infobox-source');
     }
     function hide_infobox() {
         if (infobox_source_el !== null) {
-            infobox_source_el.classList.remove('infobox-source');
+            infobox_source_el.classList.remove('pts-infobox-source');
             infobox_source_el = null;
         }
         infobox_stick = null;
@@ -55,12 +55,12 @@
             hide_infobox();
         }
     });
-    document.querySelectorAll('#ID .infobox-item').forEach(el => {
+    document.querySelectorAll('#ID .pts-infobox-item').forEach(el => {
         el.remove();
         el.style.display = 'block';
         infobox_items[el.id] = el;
     });
-    document.querySelectorAll('#ID [data-infobox]').forEach(el => {
+    document.querySelectorAll('#ID [data-pts-infobox]').forEach(el => {
         el.addEventListener('mouseenter', () => {
             if (!infobox_stick) {
                 replace_infobox(el);
