@@ -13,6 +13,7 @@
             infobox_source_el = null;
         }
         infobox_body.innerHTML = '';
+        // use camelcase to access dataset attributes with - in the name 
         infobox_title.textContent = infobox_items[el.dataset.ptsInfobox].dataset.title || '';
         infobox.style.display = 'block';
         infobox_body.appendChild(infobox_items[el.dataset.ptsInfobox]);
