@@ -163,6 +163,7 @@ def draw_html_schematic(schematic: dict, *, outer_class: Optional[str] = None) -
             <div class="pts-infobox-title"></div>
             <div class="pts-infobox-body"></div>
         </div>
+        <div class="pts-hintbox">Click to explore!</div>
         <script>{js}</script>
     </div>
     '''

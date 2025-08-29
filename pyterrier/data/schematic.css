@@ -41,6 +41,17 @@
     min-height: 96px;
 }
 
+#ID .pts-hintbox {
+    display: none;
+    position: absolute;        /* position relative to container */
+    bottom: 10px;              /* distance from bottom */
+    right: 10px;  
+    background: #333;
+    color: #fff;
+    padding: 10px;
+    border-radius: 8px;
+}
+
 #ID .pts-infobox {
     position: absolute;
     max-height: 300px;
