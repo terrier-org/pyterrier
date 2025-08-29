@@ -103,19 +103,19 @@
     align-self: center;
     position: relative;
 }
-#ID .arr-inner {
+#ID .pts-arr-inner {
     margin-right: -6px;
 }
-#ID .arr-input {
+#ID .pts-arr-input {
     margin-right: -6px;
     width: 16px;
     margin-left: 28px;
 }
-#ID .arr-output {
+#ID .pts-arr-output {
     width: 16px;
     margin-right: 32px;
 }
-#ID .arr::after {
+#ID .pts-arr::after {
     content: "";
     position: absolute;
     right: -4px;
@@ -163,10 +163,10 @@
     top: -14px;
     left: 18px;
 }
-#ID .arr-input > .pts-df {
+#ID .pts-arr-input > .pts-df {
     left: -28px;
 }
-#ID .arr-output > .pts-df {
+#ID .pts-arr-output > .pts-df {
     left: 22px;
 }
 #ID .pts-df-columns {
@@ -245,10 +245,10 @@
     top: -10px;
     left: 5px;
 }
-#ID .pts-inner .arr-input {
+#ID .pts-inner .pts-arr-input {
     margin-left: 8px;
 }
-#ID .pts-inner .arr-output {
+#ID .pts-inner .pts-arr-output {
     margin-right: 4px;
 }
 

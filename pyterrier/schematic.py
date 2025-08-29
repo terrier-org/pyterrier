@@ -187,13 +187,13 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
     if schematic['type'] == 'pipeline':
         result = '<div class="pts-pipeline">'
         if mode == 'outer':
-            clz = 'arr' if schematic['transformers'][0].get('inner_pipelines_mode') != 'combine' else ''
+            clz = 'pts-arr' if schematic['transformers'][0].get('inner_pipelines_mode') != 'combine' else ''
             result += '<div class="pts-io-label">Input</div>'
-            result += f'<div class="hline {clz} arr-input">{_draw_df_html(schematic["input_columns"])}</div>'
+            result += f'<div class="hline {clz} pts-arr-input">{_draw_df_html(schematic["input_columns"])}</div>'
         elif mode == 'inner_linked':
-            result += '<div class="hline arr arr-inner" style="width: 16px;"></div>'
+            result += '<div class="hline pts-arr pts-arr-inner" style="width: 16px;"></div>'
         elif mode == 'inner_labeled':
-            result += f'<div class="hline arr arr-input">{_draw_df_html(schematic["input_columns"])}</div>'
+            result += f'<div class="hline pts-arr pts-arr-input">{_draw_df_html(schematic["input_columns"])}</div>'
         columns = schematic["input_columns"]
         for i, record in enumerate(schematic['transformers']):
             assert record['type'] == 'transformer' or record['type'] == 'indexer'
@@ -256,7 +256,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                         <div class="hline"></div>
                         <div class="pts-transformer-title">{html.escape(record.get("label") or "")}</div>
                         <div class="pts-inner-schematic pts-inner-linked">{pipelines}</div>
-                        <div class="hline arr"></div>
+                        <div class="hline pts-arr"></div>
                     </div>
                     '''
                 elif record['inner_pipelines_mode'] == 'combine':
@@ -268,7 +268,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                         <div class="pts-parallel-scaffold pts-inner">
                             <div class="hline"></div>
                             <div class="pts-inner-schematic pts-inner-linked">{pipelines}</div>
-                            <div class="hline arr"></div>
+                            <div class="hline pts-arr"></div>
                         </div>
                         <div class="pts-transformer {error_cls}" {infobox_attr}>
                             {infobox}
@@ -310,16 +310,16 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                 </div>
                 '''
             if i != len(schematic['transformers']) - 1:
-                result += f'<div class="hline arr arr-inner">{_draw_df_html(record["output_columns"], record["input_columns"])}</div>'
+                result += f'<div class="hline pts-arr pts-arr-inner">{_draw_df_html(record["output_columns"], record["input_columns"])}</div>'
             columns = record['output_columns']
         if mode == 'outer':
             if schematic["transformers"][-1]["type"] != 'indexer':
-                result += f'<div class="hline arr arr-output">{_draw_df_html(schematic["output_columns"], schematic["transformers"][-1]["input_columns"])}</div>'
+                result += f'<div class="hline pts-arr pts-arr-output">{_draw_df_html(schematic["output_columns"], schematic["transformers"][-1]["input_columns"])}</div>'
                 result += '<div class="pts-io-label">Output</div>'
         elif mode == 'inner_linked':
             result += f'<div class="hline" style="flex-grow: 1;">{_draw_df_html(schematic["output_columns"], schematic["transformers"][-1]["input_columns"])}</div>'
         elif mode == 'inner_labeled':
-            result += f'<div class="hline arr arr-output">{_draw_df_html(schematic["output_columns"], schematic["transformers"][-1]["input_columns"])}</div>'
+            result += f'<div class="hline pts-arr pts-arr-output">{_draw_df_html(schematic["output_columns"], schematic["transformers"][-1]["input_columns"])}</div>'
         result += '</div>'
         return result
     raise ValueError(f"Unknown schematic type {schematic['type']}")
