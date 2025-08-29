@@ -77,7 +77,7 @@ class TestApply(BaseTestCase):
         self.assertEqual(rtr.iloc[0]["query_0"], origquery)
 
         testDF2 = pd.DataFrame([["q1"]], columns=["qid"])
-        rtrDR2 = pt.apply.query(lambda row : row["qid"] )(testDF2)
+        rtrDR2 = pt.apply.query(lambda row : row["qid"], required_columns=['qid'])(testDF2)
         self.assertEqual(rtrDR2.iloc[0]["query"], "q1")
 
     def test_query_apply_error(self):
