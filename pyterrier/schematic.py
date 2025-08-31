@@ -308,7 +308,6 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                     <div class="pts-transformer-title">{html.escape(record.get("label") or "")}</div>
                 </div>
                 '''
-            print(record['type'], record.get('label'), i, len(schematic['transformers']))
             if i != len(schematic['transformers']) - 1:
                 result += f'<div class="pts-hline pts-arr pts-arr-inner">{_draw_df_html(record["output_columns"], record["input_columns"])}</div>'
             columns = record['output_columns']
