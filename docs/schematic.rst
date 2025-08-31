@@ -135,11 +135,6 @@ An example of this kind of pipeline is :class:`~pyterrier._ops.FeatureUnion`:
 
 .. schematic::
     index = pt.Artifact.from_hf('pyterrier/vaswani.terrier')
-    dataset = pt.get_dataset('irds:vaswani')
-    (index.bm25() ** index.dph()) >> dataset.text_loader()
-
-.. schematic::
-    index = pt.Artifact.from_hf('pyterrier/vaswani.terrier')
     index.bm25() ** index.dph()
 
 ``inner_pipelines_mode="combine"``. This is a special case of ``linked`` mode where the transformer runs all of its inner
