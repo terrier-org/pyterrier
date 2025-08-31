@@ -108,7 +108,7 @@
     padding-left: 12px;
 }
 
-#ID .hline {
+#ID .pts-hline {
     width: 64px;
     border-bottom: 2px solid var(--pts-fg);
     align-self: center;
@@ -142,7 +142,7 @@
     margin: 0 5px 4px 5px;
 }
 
-#ID .vline {
+#ID .pts-vline {
     border-right: 2px solid var(--pts-fg);
     position: relative;
     margin-right: -2px;
@@ -165,11 +165,11 @@
     margin: 1px;
     font-weight: bold;
 }
-#ID .pts-df.df-alert {
+#ID .pts-df.pts-df-alert {
     border-color: var(--pts-alert);
     color: var(--pts-alert);
 }
-#ID .hline > .pts-df {
+#ID .pts-hline > .pts-df {
     position: absolute;
     top: -14px;
     left: 18px;
@@ -193,7 +193,7 @@
     padding: 2px 2px 2px 4px;
     white-space: nowrap;
 }
-#ID .pts-df-columns .add th, #ID .pts-df-columns .add td {
+#ID .pts-df-columns .pts-add th, #ID .pts-df-columns .pts-add td {
     background-color: var(--pts-bg-hl);
 }
 #ID .pts-df-columns td {
@@ -238,20 +238,20 @@
 }
 
 /* re-size things within an inner block */
-#ID .inner .pts-df {
+#ID .pts-inner .pts-df {
     width: 21px;
     height: 21px;
     font-size: 12px;
     padding-top: 1px;
 }
-#ID .pts-inner .hline {
+#ID .pts-inner .pts-hline {
     width: 34px;
 }
 #ID .pts-inner .pts-transformer {
     font-size: 12px;
     padding: 3px 18px;
 }
-#ID .pts-inner .hline > .pts-df {
+#ID .pts-inner .pts-hline > .pts-df {
     position: absolute;
     top: -10px;
     left: 5px;
@@ -274,11 +274,11 @@
       "larr title rarr"
       "larr body  rarr";
 }
-#ID .pts-parallel-scaffold > .hline {
+#ID .pts-parallel-scaffold > .pts-hline {
     grid-area: larr;
     width: 16px;
 }
-#ID .pts-parallel-scaffold > .hline.arr {
+#ID .pts-parallel-scaffold > .pts-hline.pts-arr {
     grid-area: rarr;
     margin-right: -8px;
 }
@@ -294,11 +294,11 @@
     align-content: stretch;
     justify-content: stretch;
 }
-#ID .pts-parallel-item:first-child > .vline {
+#ID .pts-parallel-item:first-child > .pts-vline {
     height: 50%;
     align-self: end;
 }
-#ID .pts-parallel-item:last-child > .vline {
+#ID .pts-parallel-item:last-child > .pts-vline {
     height: 50%;
     align-self: start;
 }
@@ -323,6 +323,6 @@
     margin-top: 2px;
 }
 
-#ID .pts-transformer.input-validation-error {
+#ID .pts-transformer.pts-input-validation-error {
     background: rgba(255, 101, 101, 0.3);
 }

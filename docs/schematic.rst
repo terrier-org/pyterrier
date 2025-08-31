@@ -54,7 +54,7 @@ See below for the structure of the ``SchematicDict`` representation.
     }
 
     TRANSFORMER = {
-        "type": "transformer",
+        "type": "transformer" | "indexer",
         "label": str,                        # Short label for presentation on schematic (default from .__class__.__name__)
         "name": str,                         # Full name of the transformer class for the title of the tooltip (default from .__class__.__name__)
         "input_columns": [str],              # (default from pt.inspect.transformer_inputs)
@@ -131,6 +131,16 @@ be the most visually descriptive for all cases, which is why ``"linked"`` and ``
 ``inner_pipelines_mode="linked"``. This mode shows the inputs and outputs of the inner pipelines linked together, with
 the values contained in the transformer block itself. This signifies that all the pipelines are always run with the same
 inputs (potentially modified by the transformer first) and that the outputs of the inner pipelines are merged together.
+An example of this kind of pipeline is :class:`~pyterrier._ops.FeatureUnion`:
+
+.. schematic::
+    index = pt.Artifact.from_hf('pyterrier/vaswani.terrier')
+    dataset = pt.get_dataset('irds:vaswani')
+    (index.bm25() ** index.dph()) >> dataset.text_loader()
+
+.. schematic::
+    index = pt.Artifact.from_hf('pyterrier/vaswani.terrier')
+    index.bm25() ** index.dph()
 
 ``inner_pipelines_mode="combine"``. This is a special case of ``linked`` mode where the transformer runs all of its inner
 pipelines with the original input and then combines the outputs into a single output. An example is :class:`~pyterrier_alpha.fusion.RRFusion`,

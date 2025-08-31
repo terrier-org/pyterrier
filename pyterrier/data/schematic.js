@@ -7,7 +7,6 @@
     const infobox_body = document.querySelectorAll('#ID .pts-infobox-body')[0];
     const container = document.querySelectorAll('#ID')[0];
     const hintbox =  document.querySelectorAll('#ID .pts-hintbox')[0];
-    const is_repr_html = container.classList.contains('repr_html');
     function replace_infobox(el) {
         if (infobox_source_el !== null) {
             infobox_source_el.classList.remove('pts-infobox-source');
