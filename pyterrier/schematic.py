@@ -175,14 +175,12 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
             'type': 'pipeline',
             'input_columns': schematic.get('input_columns'),
             'output_columns': schematic.get('output_columns'),
-            'title': None,
             'transformers': [schematic],
         }, mode=mode)
     if schematic['type'] == 'indexer':
         return _draw_html_schematic({
             'type': 'pipeline',
             'input_columns': schematic.get('input_columns'),
-            'title': None,
             'transformers': [schematic],
         }, mode=mode)
     if schematic['type'] == 'pipeline':
@@ -249,7 +247,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
             if 'inner_pipelines' in record:
                 if record['inner_pipelines_mode'] == 'linked':
                     pipelines = ''
-                    for i, pipeline in enumerate(record['inner_pipelines']):
+                    for pipeline in record['inner_pipelines']:
                         pipelines += '<div class="pts-parallel-item"><div class="pts-vline"></div>' + _draw_html_schematic(pipeline, mode='inner_linked') + '<div class="pts-vline"></div></div>'
                     result += f'''
                     <div class="pts-transformer pts-inner pts-parallel-scaffold {error_cls}" {infobox_attr}>
@@ -262,7 +260,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                     '''
                 elif record['inner_pipelines_mode'] == 'combine':
                     pipelines = ''
-                    for i, pipeline in enumerate(record['inner_pipelines']):
+                    for pipeline in record['inner_pipelines']:
                         pipelines += '<div class="pts-parallel-item"><div class="pts-vline"></div>' + _draw_html_schematic(pipeline, mode='inner_linked') + '<div class="pts-vline"></div></div>'
                     result += f'''
                     <div class="pts-combine-box">
@@ -310,9 +308,9 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                     <div class="pts-transformer-title">{html.escape(record.get("label") or "")}</div>
                 </div>
                 '''
-            # TODO - review by Sean: this is removed, as these are typically drawn at line 318 instead
-            # if i != len(schematic['transformers']) - 1:
-            #     result += f'<div class="hline pts-arr pts-arr-inner">{_draw_df_html(record["output_columns"], record["input_columns"])}</div>'
+            print(record['type'], record.get('label'), i, len(schematic['transformers']))
+            if i != len(schematic['transformers']) - 1:
+                result += f'<div class="pts-hline pts-arr pts-arr-inner">{_draw_df_html(record["output_columns"], record["input_columns"])}</div>'
             columns = record['output_columns']
         if mode == 'outer':
             if schematic["transformers"][-1]["type"] != 'indexer':
