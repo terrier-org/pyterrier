@@ -428,7 +428,7 @@ def _minimal_inputs(all_configs : List[Optional[List[List[str]]]]) -> Optional[L
     for success invocation.
     """
     # if any configs are unknown, the minimal inputs is unknown
-    if any([config is None for config in all_configs_sets]):
+    if any([config is None for config in all_configs]):
         return None
     all_configs_sets = [ 
         set(a) for tconfig in all_configs for a in tconfig
