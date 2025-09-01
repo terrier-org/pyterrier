@@ -1,3 +1,4 @@
+import os
 import warnings
 import traceback
 import types
@@ -311,6 +312,8 @@ class Transformer:
         return hash(repr(self))
 
     def _repr_html_(self):
+        if os.environ.get('PYTERRIER_DISABLE_NOTEBOOK_SCHEMATIC', '0') == '1':
+            return None
         try:
             return pt.schematic.draw(self, outer_class='repr_html')
         except Exception as e:

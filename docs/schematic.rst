@@ -67,13 +67,106 @@ See below for the structure of the ``SchematicDict`` representation.
         "inner_pipelines_labels": [str],     # When inner_pipelines_mode="unlinked", the names to show beside each inner pipeline
     }
 
+
+Transformers
+============================================================
+
+A ``type="transformer"`` value in a ``SchematicDict`` represents a typical :class:`~pyterrier.Transformer` object. A transformer block
+shows a short label (``label``) and its input columns (``"input_columns"``) and output columns (``"output_columns"``) on the schematic directly.
+A a tooltip shows the class name of the transformer (``"name"``) and its attributes (``"settings"``). Many of these values are obtained using
+:ref:`pt.inspect <pyterrier.inspect>` by default. The values can be overritten by implementing the :class:`~pyterrier.schematic.HasSchematic`
+protocol.
+
+Here is an example BM25 retrieval transformer schematic:
+
+.. schematic::
+    pt.Artifact.from_hf('pyterrier/vaswani.terrier').bm25()
+
+Its underlying ``SchematicDict`` representation looks like this:
+
+.. code-block:: python
+    :caption: BM25 ``SchematicDict`` representation
+
+    {
+        'type': 'transformer',
+        'label': 'BM25',
+        'name': 'pt.terrier.retriever.Retriever',
+        'help_url': 'https://pyterrier.readthedocs.io/en/latest/terrier-retrieval.html#pyterrier.terrier.Retriever',
+        'input_columns': ['qid', 'query'],
+        'output_columns': ['qid', 'docid', 'docno', 'rank', 'score', 'query'],
+        'settings': {
+            'applypipeline': 'on',
+            'bm25.b': 0.75,
+            'bm25.k_1': 1.2,
+            ...
+        }
+    }
+
+
+Inner Pipelines
+============================================================
+
+Some transformers can contain other transformers (i.e., subtransformers). There are a few ways to display these
+inner pipelines in schematics, depending on the how it the inner pipeline is used. These are configured with the
+``inner_pipelines_mode`` setting.
+
+**unlinked** (default). This mode shows each inner pipeline as a separate block without linking
+them together. This is useful when the transformer has logic that controls how it applies its subtransformers. Each
+inner pipeline is labeled with the name of the subtransformer. An example is :class:`~pyterrier_caching.RetrieverCache`,
+which conditionally applies its ``retriever`` based on whether the query is in the cache or not:
+
+.. schematic::
+    import pyterrier_caching
+    retr = pt.Artifact.from_hf('pyterrier/vaswani.terrier').bm25()
+    pyterrier_caching.RetrieverCache(retriever=retr)
+
+This format is in all cases where a transformer has subtransformers (which is why it is the default). However, it may not
+be the most visually descriptive for all cases, which is why ``"linked"`` and ``"combine"`` modes are also available.
+
+**linked**. This mode shows the inputs and outputs of the inner pipelines linked together, with
+the values contained in the transformer block itself. This signifies that all the pipelines are always run with the same
+inputs (potentially modified by the transformer first) and that the outputs of the inner pipelines are merged together.
+An example of this kind of pipeline is :class:`~pyterrier._ops.FeatureUnion`:
+
+.. schematic::
+    index = pt.Artifact.from_hf('pyterrier/vaswani.terrier')
+    index.bm25() ** index.dph()
+
+**combine**. This is a special case of ``linked`` mode where the transformer runs all of its inner
+pipelines with the original input and then combines the outputs into a single output. An example is :class:`~pyterrier_alpha.fusion.RRFusion`,
+which runs multiple retrieval methods and combines their outputs into a single result set:
+
+.. schematic::
+    import pyterrier_alpha as pta
+    index = pt.Artifact.from_hf('pyterrier/vaswani.terrier')
+    dataset = pt.get_dataset('irds:vaswani')
+    pta.fusion.RRFusion(
+        index.bm25(),
+        pt.rewrite.SDM() >> index.bm25(),
+        index.bm25() >> pt.rewrite.RM3(index.index_ref()) >> index.bm25(),
+    )
+
+
+Rendering in Notebooks
+=================================================================
+
+The :class:`pyterrier.Transformer` base class implements the ``_repr_html_`` method, which
+enables automatic rendering of schematics in Jupyter notebooks, Google Colab, and other notebook environments.
+This means that if the output of a cell is a transformer (including pipelines of transformers), its schematic
+will be rendered automatically as the output of the cell.
+
+If you want to disable this behavior, you can set the ``PYTERRIER_DISABLE_NOTEBOOK_SCHEMATIC=1`` environment
+variable. (This works even if PyTerrier is already imported.)
+
+
 Rendering in Documentation
 =================================================================
 
-You can render schematics directly in PyTerrier documentation using the ``.. schematic::`` directive. The body of the directive
-should be either a Python code block that creates a transformer to render or a ``SchematicDict`` object to render. The former is
-useful for documenting individual transformers, while the latter is useful for demonstrative/abstract purposes, or cases where
-running the code to construct the transformer is too costly for documentation (e.g., if it involves loading a large neural network).
+You can render schematics directly in PyTerrier documentation using the custom ``.. schematic::`` directive. The body
+of the directive should be either a Python code block that creates a transformer to render or a ``SchematicDict`` object
+to render. The former is useful for documenting individual transformers, while the latter is useful for demonstrative/abstract
+purposes, or cases where running the code to construct the transformer is too costly for documentation (e.g., if it involves
+loading a large neural network).
 
 PyTerrier is imported by default, so you can use the ``pt`` shorthand.
 
@@ -106,50 +199,6 @@ PyTerrier is imported by default, so you can use the ``pt`` shorthand.
         "input_columns": ["qid", "query"],
         "output_columns": ["qid", "query", "docno", "score", "rank"]
     }
-
-
-Inner Pipelines
-============================================================
-
-Some transformers can contain other transformers (i.e., subtransformers). There are a few ways to display these
-inner pipelines in schematics, depending on the how it the inner pipeline is used. These are configured with the
-``inner_pipelines_mode`` setting.
-
-``inner_pipelines_mode="unlinked"`` (default). This mode shows each inner pipeline as a separate block without linking
-them together. This is useful when the transformer has logic that controls how it applies its subtransformers. Each
-inner pipeline is labeled with the name of the subtransformer. An example is :class:`~pyterrier_caching.RetrieverCache`,
-which conditionally applies its ``retriever`` based on whether the query is in the cache or not:
-
-.. schematic::
-    import pyterrier_caching
-    retr = pt.Artifact.from_hf('pyterrier/vaswani.terrier').bm25()
-    pyterrier_caching.RetrieverCache(retriever=retr)
-
-This format is in all cases where a transformer has subtransformers (which is why it is the default). However, it may not
-be the most visually descriptive for all cases, which is why ``"linked"`` and ``"combine"`` modes are also available.
-
-``inner_pipelines_mode="linked"``. This mode shows the inputs and outputs of the inner pipelines linked together, with
-the values contained in the transformer block itself. This signifies that all the pipelines are always run with the same
-inputs (potentially modified by the transformer first) and that the outputs of the inner pipelines are merged together.
-An example of this kind of pipeline is :class:`~pyterrier._ops.FeatureUnion`:
-
-.. schematic::
-    index = pt.Artifact.from_hf('pyterrier/vaswani.terrier')
-    index.bm25() ** index.dph()
-
-``inner_pipelines_mode="combine"``. This is a special case of ``linked`` mode where the transformer runs all of its inner
-pipelines with the original input and then combines the outputs into a single output. An example is :class:`~pyterrier_alpha.fusion.RRFusion`,
-which runs multiple retrieval methods and combines their outputs into a single result set:
-
-.. schematic::
-    import pyterrier_alpha as pta
-    index = pt.Artifact.from_hf('pyterrier/vaswani.terrier')
-    dataset = pt.get_dataset('irds:vaswani')
-    pta.fusion.RRFusion(
-        index.bm25(),
-        pt.rewrite.SDM() >> index.bm25(),
-        index.bm25() >> pt.rewrite.RM3(index.index_ref()) >> index.bm25(),
-    )
 
 
 
