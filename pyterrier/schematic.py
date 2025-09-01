@@ -328,7 +328,7 @@ def _draw_df_html(columns, prev_columns = None) -> str:
     """Draws a DataFrame as an HTML table."""
     if columns is None:
         columns = []
-        df_class = ' df-alert'
+        df_class = ' pts-df-alert'
         frame_info = {
             'label': '?',
             'title': 'Unknown Frame',
