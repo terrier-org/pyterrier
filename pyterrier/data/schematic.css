@@ -14,13 +14,13 @@
     --pts-bg-hl: #22476e;
   }
 }
-[data-theme="dark"] #ID {
+[data-theme="dark"] #ID, [theme="dark"] #ID {
   --pts-fg: #FFFFFF;
   --pts-bg: #000000;
   --pts-bg-hov: #444444;
   --pts-bg-hl: #22476e;
 }
-[data-theme="light"] #ID {
+[data-theme="light"] #ID, [theme="light"] #ID {
   --pts-fg: #000000;
   --pts-bg: #FFFFFF;
   --pts-bg-hov: #DDDDDD;
