@@ -1,5 +1,4 @@
 #ID {
-  display: block !important; /* Some notebooks don't render CSS from other sources, so we set an inline display: none; which this reverts */
   color-scheme: light dark;
   --pts-fg: #000000;
   --pts-bg: #FFFFFF;
@@ -36,7 +35,7 @@
     min-height: 32px;
     padding: 16px;
     --jp-ui-font-size1: 12px;
-    display: flex;
+    display: flex !important; /* Some notebooks don't render CSS from other sources, so we set an inline display: none; which this reverts */
     justify-content: center;
     font-size: 12px;
     font-family: Arial, sans-serif;
@@ -49,11 +48,11 @@
 #ID .pts-infobox-hint {
     display: none;
     position: absolute;
-    top: 0px;
-    right: 0px;  
+    top: 1px;
+    right: 2px;  
     background: #f59f00;
     color: #fff;
-    padding: 1px 4px 2px 4px;
+    padding: 0 2px;
 }
 
 #ID .pts-infobox {
@@ -329,4 +328,10 @@
   height: 24px;
   max-width: 24px;
   top: -12px;
+}
+
+[data-vscode] #ID a {
+    /* links don't work in vscode, so pretend they don't exist */
+    color: inherit;
+    text-decoration: none;
 }
