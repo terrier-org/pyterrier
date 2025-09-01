@@ -430,8 +430,11 @@ def _minimal_inputs(all_configs : List[Optional[List[List[str]]]]) -> Optional[L
     # if any configs are unknown, the minimal inputs is unknown
     if any([config is None for config in all_configs]):
         return None
+    
+    # essentially a cast:
+    non_optional: List[List[List[str]]] = [config for config in all_configs if config is not None]
     all_configs_sets = [ 
-        set(a) for tconfig in all_configs for a in tconfig
+        set(a) for tconfig in non_optional for a in tconfig
     ]
     
     from itertools import chain, combinations
@@ -444,7 +447,7 @@ def _minimal_inputs(all_configs : List[Optional[List[List[str]]]]) -> Optional[L
         for subset in combinations(universe, r):
             subset = set(subset)
             # Check if subset works for all objects
-            if all(any(set(schema).issubset(subset) for schema in obj) for obj in all_configs):
+            if all(any(set(schema).issubset(subset) for schema in obj) for obj in non_optional):
                 plausible.append(list(subset))
     return plausible
 
