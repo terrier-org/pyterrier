@@ -113,7 +113,6 @@
     }
     const vscode_background_color = getComputedStyle(document.documentElement).getPropertyValue('--vscode-editor-background');
     const container = document.querySelectorAll('#ID')[0];
-    container.innerHTML += '<div>Color:' + vscode_background_color + ' ' + getLuminance(vscode_background_color) + '</div>';
     if (vscode_background_color) {
         if (getLuminance(vscode_background_color) < 0.5) {
             document.body.setAttribute('theme', 'dark');
