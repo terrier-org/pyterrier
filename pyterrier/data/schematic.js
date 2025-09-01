@@ -97,3 +97,28 @@
         });
     });
 })();
+
+
+(function () {
+    // Detect vscode dark mode (not reliably detectable from css directly)
+    function getLuminance(hex) {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        const a = [r, g, b].map(function (v) {
+            v /= 255;
+            return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+        });
+        return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722;
+    }
+    const vscode_background_color = getComputedStyle(document.documentElement).getPropertyValue('--vscode-editor-background');
+    const container = document.querySelectorAll('#ID')[0];
+    container.innerHTML += '<div>Color:' + vscode_background_color + ' ' + getLuminance(vscode_background_color) + '</div>';
+    if (vscode_background_color) {
+        if (getLuminance(vscode_background_color) < 0.5) {
+            document.body.setAttribute('theme', 'dark');
+        } else {
+            document.body.setAttribute('theme', 'light');
+        }
+    }
+})();
