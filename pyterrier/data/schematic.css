@@ -1,10 +1,14 @@
 #ID {
+  display: block !important; /* Some notebooks don't render CSS from other sources, so we set an inline display: none; which this reverts */
   color-scheme: light dark;
   --pts-fg: #000000;
   --pts-bg: #FFFFFF;
   --pts-bg-hov: #DDDDDD;
   --pts-alert: #a35;
   --pts-bg-hl: #cbdff4;
+}
+#ID-pts-rendering-issue {
+  display: none;
 }
 @media (prefers-color-scheme: dark) {
   #ID {
@@ -205,6 +209,7 @@
     align-items: center;
     align-content: stretch;
     overflow-x: auto;
+    min-height: 29px;
 }
 #ID .pts-pipeline > * {
     flex-shrink: 0;
@@ -297,6 +302,7 @@
 }
 #ID .pts-inner .pts-pipeline {
     overflow-x: visible;
+    min-height: 25px;
 }
 
 #ID .pts-combine-box {
