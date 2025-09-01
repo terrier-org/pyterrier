@@ -36,7 +36,7 @@
         // Move to top of this element (if there is vertical space, otherwise as close as possible)
         var top = elRect.top - contRect.top;
         if (top + infRect.height > contRect.height) {
-            top = contRect.height - infRect.height;
+            top = contRect.height - infRect.height - 4;
         }
         infobox.style.top = top + 'px';
         infobox_source_el = el;

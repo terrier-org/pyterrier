@@ -73,7 +73,7 @@
     min-width: 128px;
 }
 #ID.repr_html .pts-infobox {
-    max-height: 100%;
+    max-height: calc(100% - 8px);
 }
 #ID .pts-infobox-item {
     display: none;
