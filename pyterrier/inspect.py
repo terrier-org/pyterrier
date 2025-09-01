@@ -83,7 +83,7 @@ def indexer_inputs(
     indexer : pt.Indexer,
     *,
     strict : bool = True
-) -> Optional[List[str]]:
+) -> Optional[List[List[str]]]:
     """
     Infers supported input column configurations (a ``List[List[str]]``) for a pt.Indexer instance.
     Orthogonal to ``transformer_inputs``. This implementation inspects the ``index_inputs()``
