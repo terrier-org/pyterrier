@@ -248,7 +248,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                     <div class="pts-transformer pts-inner pts-parallel-scaffold {error_cls}" {infobox_attr}>
                         {infobox}
                         <div class="pts-hline"></div>
-                        <div class="pts-transformer-title">{html.escape(record.get("label") or "")}</div>
+                        <div class="pts-transformer-title">{html.escape(record["label"])}</div>
                         <div class="pts-inner-schematic pts-inner-linked">{pipelines}</div>
                         <div class="pts-hline pts-arr"></div> <!-- TODO this is unusual - an arrow AFTER something -->
                     </div>
@@ -266,7 +266,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                         </div>
                         <div class="pts-transformer {error_cls}" {infobox_attr}>
                             {infobox}
-                            <div class="pts-transformer-title">{html.escape(record.get("label") or "")}</div>
+                            <div class="pts-transformer-title">{html.escape(record["label"])}</div>
                         </div>
                     </div>
                     '''
@@ -284,15 +284,15 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                     result += f'''
                     <div class="pts-transformer pts-inner {error_cls}" {infobox_attr}>
                         {infobox}
-                        <div class="pts-transformer-title">{html.escape(record.get("label") or "")}</div>
+                        <div class="pts-transformer-title">{html.escape(record["label"])}</div>
                         <div class="pts-inner-schematic pts-inner-labeled">{pipelines}</div>
                     </div>
                     '''
             elif record['type'] == 'indexer':
                 result += f'''
-                <div class="pts-indexer {error_cls}" {infobox_attr}>
+                <div class="pts-transformer {error_cls}" {infobox_attr}>
                     {infobox}
-                    <div class="pts-transformer-title">{html.escape(record.get("label") or "")}</div>
+                    <div class="pts-transformer-title">{html.escape(record["label"])}</div>
                 </div>
                 '''
             else:
@@ -300,14 +300,17 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                 result += f'''
                 <div class="pts-transformer {error_cls}" {infobox_attr}>
                     {infobox}
-                    <div class="pts-transformer-title">{html.escape(record.get("label") or "")}</div>
+                    <div class="pts-transformer-title">{html.escape(record["label"])}</div>
                 </div>
                 '''
             if i != len(schematic['transformers']) - 1:
                 result += f'<div class="pts-hline pts-arr pts-arr-inner">{_draw_df_html(record["output_columns"], record["input_columns"])}</div>'
             columns = record['output_columns']
         if mode == 'outer':
-            if schematic["transformers"][-1]["type"] != 'indexer':
+            if schematic["transformers"][-1]["type"] == 'indexer':
+                result += '<div class="pts-hline pts-arr pts-arr-output"><svg xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round" class="pts-artifact-icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 6m-8 0a8 3 0 1 0 16 0a8 3 0 1 0 -16 0" /><path d="M4 6v6a8 3 0 0 0 16 0v-6" /><path d="M4 12v6a8 3 0 0 0 16 0v-6" /></svg></div>'
+                result += '<div class="pts-io-label">Output</div>'
+            else:
                 result += f'<div class="pts-hline pts-arr pts-arr-output">{_draw_df_html(schematic["output_columns"], schematic["transformers"][-1]["input_columns"])}</div>'
                 result += '<div class="pts-io-label">Output</div>'
         elif mode == 'inner_linked':

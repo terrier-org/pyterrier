@@ -35,6 +35,7 @@
     display: flex;
     justify-content: center;
     font-size: 12px;
+    font-family: Arial, sans-serif;
 }
 #ID.repr_html {
     /* when the shown in a notebook, make sure we have sufficient height to show infoboxes */
@@ -225,17 +226,6 @@
     font-weight: bold;
 }
 
-#ID .pts-indexer {
-    font-size: 13px;
-    display: inline-block;
-    position: relative;
-    color: var(--pts-fg);
-    background: rgba(66, 153, 225, 0.3);
-    box-sizing: border-box;
-    padding: 4px 18px;
-    clip-path: polygon(0 0, calc(100% - 14px) 0, calc(100% - 14px) 100%, 0 100%, 16px 50%);
-}
-
 /* re-size things within an inner block */
 #ID .pts-inner .pts-df {
     width: 21px;
@@ -324,4 +314,13 @@
 
 #ID .pts-transformer.pts-input-validation-error {
     background: rgba(255, 101, 101, 0.3);
+}
+
+#ID .pts-artifact-icon {
+  position: absolute;
+  left: 22px;
+  width: 24px;
+  height: 24px;
+  max-width: 24px;
+  top: -12px;
 }
