@@ -9,7 +9,8 @@ import pyterrier as pt
 import re
 
 def _apply_default_schematic(schematic: Dict[str, Any], transformer: pt.Transformer, *, input_columns: Optional[List[str]] = None):
-    assert schematic.setdefault('type', 'transformer') == 'transformer' or schematic.setdefault('type', 'transformer') == 'indexer'
+    schematic.setdefault('type', 'indexer' if pt.inspect.transformer_type(transformer) == pt.inspect.TransformerType.indexer else 'transformer')
+    assert schematic['type'] in ('transformer', 'indexer')
 
     if 'label' not in schematic:
         label = transformer.__class__.__name__
@@ -85,16 +86,16 @@ def transformer_schematic(
     default: bool = False,
 ) -> dict:
     """Builds a structured schematic of the transformer."""
-    indexer = pt.inspect.transformer_type(transformer) == pt.inspect.TransformerType.indexer
+    is_indexer = pt.inspect.transformer_type(transformer) == pt.inspect.TransformerType.indexer
     if input_columns is _INFER:
-        if indexer:
-            input_columns = pt.inspect.indexer_inputs(cast(pt.Indexer, transformer), strict=False) # noqa: PT100
+        if is_indexer:
+            all_input_column_configs = pt.inspect.indexer_inputs(cast(pt.Indexer, transformer), strict=False) # noqa: PT100
         else:
             all_input_column_configs = pt.inspect.transformer_inputs(transformer, strict=False)
-            if all_input_column_configs is not None and len(all_input_column_configs) > 0:
-                input_columns = all_input_column_configs[0] # pick the first one
-            else:
-                input_columns = None
+        if all_input_column_configs is not None and len(all_input_column_configs) > 0:
+            input_columns = all_input_column_configs[0] # pick the first one
+        else:
+            input_columns = None
     # input_columns can no longer be _INFER
     input_columns = cast(Optional[List[str]], input_columns) # noqa: PT100 (this is typing.cast, not jinus.cast)
     if not default and isinstance(transformer, HasSchematic):
@@ -105,14 +106,8 @@ def transformer_schematic(
         schematic = copy(schematic) # we don't want to accidently modify the original schematic
         if 'type' in schematic:
             return schematic
-    elif indexer:
-        schematic = {
-            'type': 'indexer',
-        }
     else:
-        schematic = {
-            'type': 'transformer',
-        }
+        schematic = {}
     _apply_default_schematic(schematic, transformer, input_columns=input_columns)
     return schematic
 

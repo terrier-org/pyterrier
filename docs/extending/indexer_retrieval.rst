@@ -115,16 +115,16 @@ Example implementation
      def __init__(self, indexpath : str):
        pass
 
-    def index_inputs(self) -> List[str]:
-      return ['docno', 'text']
-     
      def index(self, iterdict : Iterable[dict]):
        """
          Consume the documents in the iterator, assuming that it has keys
          docno (string) and text (string)
        """
        return index # return your Index class here.
-       
+
+     def index_inputs(self) -> List[List[str]]: # Optional: this helps with inspection/schematics
+       return [['docno', 'text']]
+
 
    class MyIndex:
      """

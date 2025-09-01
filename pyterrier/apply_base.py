@@ -599,5 +599,7 @@ class ApplyIndexer(pt.Indexer):
     def index(self, iter_dict):
         return self.fn(iter_dict)
     
-    def index_inputs(self) -> Optional[List[str]]:
+    def index_inputs(self) -> Optional[List[List[str]]]:
+        if self.required_columns is not None:
+            return [self.required_columns]
         return self.required_columns

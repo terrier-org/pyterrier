@@ -85,7 +85,7 @@ def indexer_inputs(
     strict : bool = True
 ) -> Optional[List[str]]:
     """
-    Infers supported input column configuration (a ``List[str]``) for a pt.Indexer instance.
+    Infers supported input column configurations (a ``List[List[str]]``) for a pt.Indexer instance.
     Orthogonal to ``transformer_inputs``. This implementation inspects the ``index_inputs()``
     method of the indexer, as other methods of transformer inspection arent applicable to indexers.
 
@@ -95,13 +95,13 @@ def indexer_inputs(
             None in these cases.
 
     Returns:
-        A list of input column configurations (``List[str]``) accepted by this indexer.
+        A list of input column configurations (``List[List[str]]``) accepted by this indexer.
 
     Raises:
         InspectError: If the indexer cannot be inspected and ``strict==True``.
     """
     result = indexer.index_inputs()
-    if not isinstance(result, list) or len(result) == 0:
+    if result is None or not isinstance(result[0], list) or (len(result[0]) > 0 and not isinstance(result[0][0], str)):
         if strict:
             msg = f"Cannot determine inputs for {indexer} - index_inputs() should be implemented"
             raise InspectError(msg)

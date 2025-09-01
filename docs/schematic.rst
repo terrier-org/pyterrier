@@ -72,7 +72,7 @@ Transformers
 ============================================================
 
 A ``type="transformer"`` value in a ``SchematicDict`` represents a typical :class:`~pyterrier.Transformer` object. A transformer block
-shows a short label (``label``) and its input columns (``"input_columns"``) and output columns (``"output_columns"``) on the schematic directly.
+shows a short label (``label``) and its input columns (``"input_columns"``) and output columns (``"output_columns"``) on the schematic.
 A a tooltip shows the class name of the transformer (``"name"``) and its attributes (``"settings"``). Many of these values are obtained using
 :ref:`pt.inspect <pyterrier.inspect>` by default. The values can be overritten by implementing the :class:`~pyterrier.schematic.HasSchematic`
 protocol.
@@ -101,6 +101,39 @@ Its underlying ``SchematicDict`` representation looks like this:
             ...
         }
     }
+
+
+Indexers
+============================================================
+
+A ``type="indexer"`` value in a ``SchematicDict`` represents a :class:`~pyterrier.Indexer` object. An indexer block
+shows a short label (``label``) and its input columns (``"input_columns"``) on the schematic.
+A a tooltip shows the class name of the indexer (``"name"``) and its attributes (``"settings"``). Many of these values are obtained using
+:ref:`pt.inspect <pyterrier.inspect>` by default. The values can be overritten by implementing the :class:`~pyterrier.schematic.HasSchematic`
+protocol. Indexers should not have ``output_columns`` specified and should only appear on their own or as the final transformer of a pipeline.
+
+When an indexer also implements ``transform()`` or ``transformer_iter()``, it is treated as a transformer instead of an indexer, by default.
+
+Here is an example indexer schematic:
+
+.. schematic::
+    pt.terrier.TerrierIndex('./test').indexer()
+
+Its underlying ``SchematicDict`` representation looks like this:
+
+.. code-block:: python
+    :caption: Indexer ``SchematicDict`` representation
+
+    {
+        'type': 'indexer'
+        'label': 'TerrierIndexer',
+        'name': 'pt.terrier.index.IterDictIndexer',
+        'help_url': None,
+        'input_columns': ['docno', 'text'],
+        'output_columns': None,
+        'settings': {}
+    }
+
 
 
 Inner Pipelines

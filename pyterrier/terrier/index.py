@@ -201,6 +201,7 @@ class TerrierIndexer:
     for all index types.
     
     """
+    schematic = {'label': 'TerrierIndexer'}
 
     default_properties = {
             "TrecDocTags.doctag": "DOC",
@@ -638,8 +639,8 @@ class _BaseIterDictIndexer(TerrierIndexer, pt.Indexer):
                         # Other fields may not matter as much; just show a warning
                         warn(msg)
     
-    def index_inputs(self) -> List[str]:
-        return list(set(list(self.meta.keys()) + self.text_attrs ))
+    def index_inputs(self) -> List[List[str]]:
+        return [list(set(list(self.meta.keys()) + self.text_attrs ))]
 
 
 class _IterDictIndexer_nofifo(_BaseIterDictIndexer):

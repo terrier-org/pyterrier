@@ -340,9 +340,9 @@ class Indexer(Transformer):
             instance.transform = types.MethodType(Transformer.transform, instance)
         return instance
     
-    def index_inputs(self) -> Optional[List[str]]:
+    def index_inputs(self) -> Optional[List[List[str]]]:
         """
-            Returns the columns of the input that index() is expects. 
+            Returns a list of column configurations that index() is expects. 
             This default implementation returns None, and should be 
             overridden by subclasses to allow accurate inspections and schematic visualisations.
         """
