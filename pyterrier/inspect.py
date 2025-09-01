@@ -422,11 +422,14 @@ def subtransformers(transformer: pt.Transformer) -> Dict[str, Union[pt.Transform
             result[attr.name] = list(attr.value)
     return result
 
-def _minimal_inputs(all_configs : List[List[List[str]]]) -> List[List[str]]:
+def _minimal_inputs(all_configs : List[Optional[List[List[str]]]]) -> Optional[List[List[str]]]:
     """
     Among all input configurations, find the minimal common subset(s) of attributes needed
     for success invocation.
     """
+    # if any configs are unknown, the minimal inputs is unknown
+    if any([config is None for config in all_configs_sets]):
+        return None
     all_configs_sets = [ 
         set(a) for tconfig in all_configs for a in tconfig
     ]
