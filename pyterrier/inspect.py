@@ -254,9 +254,12 @@ def transformer_outputs(
     try:
         res = transformer.transform(pd.DataFrame(columns=input_columns))
         return list(res.columns)
-    except pt.validate.InputValidationError:
+    except pt.validate.InputValidationError as ive:
         if strict:
-            raise
+            # add the underlying class to the IVE error, so its more clear whats not been validated
+            # this improves readability for subtransformers 
+            ive.args = (ive.args[0] + f" {transformer}", )
+            raise ive
         else:
             return None
     except Exception as ex:
