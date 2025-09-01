@@ -445,10 +445,10 @@ def _minimal_inputs(all_configs : List[Optional[List[List[str]]]]) -> Optional[L
     plausible = []
     for r in range(1, len(universe) + 1):
         for subset in combinations(universe, r):
-            subset = set(subset)
+            ssubset = set(subset)
             # Check if subset works for all objects
-            if all(any(set(schema).issubset(subset) for schema in obj) for obj in non_optional):
-                plausible.append(list(subset))
+            if all(any(set(schema).issubset(ssubset) for schema in obj) for obj in non_optional):
+                plausible.append(list(ssubset))
     return plausible
 
 class TransformerType(enum.Flag):
