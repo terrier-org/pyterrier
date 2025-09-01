@@ -226,7 +226,7 @@ class FeatureUnion(NAryTransformerBase):
     schematic = {'inner_pipelines_mode': 'linked', 'label': 'FeatureUnion **'}
 
     def transform_inputs(self) -> Optional[List[List[str]]]:
-        this_minimum = [[['qid', 'docno']]]
+        this_minimum : List[Optional[List[List[str]]]] = [[['qid', 'docno']]]
         return pt.inspect._minimal_inputs(this_minimum + [ 
             pt.inspect.transformer_inputs(t) for t in self._transformers
         ])
