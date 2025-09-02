@@ -1,8 +1,9 @@
+import re
 import math
 import itertools
 import numpy as np
 import pandas as pd
-from typing import Any, Dict, Iterable, List, Sequence, Optional, Union, overload
+from typing import Any, Dict, Iterable, List, Sequence, Set, Optional, Union, overload
 
 IterDictRecord = Dict[str, Any]
 IterDict = Iterable[IterDictRecord]
@@ -290,16 +291,18 @@ def from_ir_measures(inp: Dict[str, Any]) -> Dict[str, Any]: ...
 @overload
 def from_ir_measures(inp: List[str]) -> List[str]: ...
 @overload
+def from_ir_measures(inp: Set[str]) -> List[str]: ...
+@overload
 def from_ir_measures(inp: pd.DataFrame) -> pd.DataFrame: ...
 def from_ir_measures(
-    inp: Union[str, pd.DataFrame, Dict[str, Any], List[str]],
+    inp: Union[str, pd.DataFrame, Dict[str, Any], List[str], Set[str]],
 ) -> Union[str, pd.DataFrame, Dict[str, Any], List[str]]:
     """This function maps ir-measues column names to PyTerrier column names.
 
     It's useful when converting between PyTerrier and ir-measures data formats.
 
     .. seealso::
-        :py:func:`pyterrier.utils.to_ir_measures` for the reverse operation.
+        :py:func:`pyterrier.model.to_ir_measures` for the reverse operation.
     """
     if isinstance(inp, str):
         return _ir_measures_to_pyterrier.get(inp, inp) # rename values in mapping, keep others the same
@@ -333,7 +336,7 @@ def to_ir_measures(
     It's useful when converting between PyTerrier and ir-measures data formats.
 
     .. seealso::
-        :py:func:`pyterrier.utils.from_ir_measures` for the reverse operation.
+        :py:func:`pyterrier.model.from_ir_measures` for the reverse operation.
     """
     if isinstance(inp, str):
         return _pyterrier_to_ir_measures.get(inp, inp) # rename values in mapping, keep others the same
@@ -341,5 +344,121 @@ def to_ir_measures(
         return inp.rename(columns=_pyterrier_to_ir_measures)
     elif isinstance(inp, dict):
         return { _pyterrier_to_ir_measures.get(k, k): v for k, v in inp.items() }
-    else:
-        return [_pyterrier_to_ir_measures.get(x, x) for x in inp]
+    return [_pyterrier_to_ir_measures.get(x, x) for x in inp]
+
+
+def frame_info(columns : List[str]) -> Optional[Dict[str, str]]:
+    """Returns a dict containing a short label and a short description for given set of columns."""
+    if 'qid' in columns and 'docno' in columns and 'features' in columns:
+        return {
+            "label": 'R_f',
+            "title": 'Result Frame with Features',
+        }
+    elif 'qid' in columns and 'docno' in columns:
+        return {
+            "label": 'R',
+            "title": 'Result Frame',
+        }
+    elif 'qanswer' in columns:
+        return {
+            "label": 'A',
+            "title": 'Query Answer Frame',
+        }
+    elif 'qid' in columns:
+        return {
+            "label": 'Q',
+            "title": 'Query Frame',
+        }
+    elif 'docno' in columns:
+        return {
+            "label": 'D',
+            "title": 'Document Frame',
+        }
+    return None
+
+def column_info(column: str) -> Optional[dict]:
+    """Returns a dictionary with information about the specified column name."""
+    if column == 'qid':
+        return {
+            'phrase': 'Query ID',
+            'short_desc': 'ID of query in frame',
+            'type': str,
+        }
+    if column == 'docno':
+        return {
+            'phrase': 'External Document ID',
+            'short_desc': 'String ID of document in collection',
+            'type': str,
+        }
+    if column == 'docid':
+        return {
+            'phrase': 'Internal Document ID',
+            'short_desc': 'Integer ID of document in a specific index',
+            'type': int,
+        }
+    if column == 'score':
+        return {
+            'short_desc': 'Ranking score of document to query (higher=better)',
+            'type': float,
+        }
+    if column == 'rank':
+        return {
+            'short_desc': 'Ranking order of document to query (lower=better)',
+            'type': int,
+        }
+    if column == 'query':
+        return {
+            'short_desc': 'Query text',
+            'type': str,
+        }
+    if re.match(r'^query_[0-9]+$', column):
+        return {
+            'short_desc': 'Stashed query text',
+            'type': str,
+        }
+    if column == 'text':
+        return {
+            'short_desc': 'Document text',
+            'type': str,
+        }
+    if column == 'title':
+        return {
+            'short_desc': 'Document title',
+            'type': str,
+        }
+    if column == 'qanswer':
+        return {
+            'short_desc': 'Answer to the query',
+            'type': str,
+        }
+    if column == 'qcontext':
+        return {
+            'short_desc': 'Context to the query',
+            'type': str,
+        }
+    if column == 'features':
+        return {
+            'short_desc': 'Feature array for learning-to-rank',
+            'type': np.array,
+        }
+    if column == 'query_vec':
+        return {
+            'short_desc': 'Dense query vector',
+            'type': np.array,
+        }
+    if column == 'doc_vec':
+        return {
+            'short_desc': 'Dense document vector',
+            'type': np.array,
+        }
+    if column == 'query_toks':
+        return {
+            'short_desc': 'Sparse query vector',
+            'type': dict,
+        }
+    if column == 'toks':
+        return {
+            'short_desc': 'Sparse document vector',
+            'type': dict,
+        }
+    return None

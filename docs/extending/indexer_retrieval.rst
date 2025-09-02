@@ -114,14 +114,17 @@ Example implementation
 
      def __init__(self, indexpath : str):
        pass
-     
+
      def index(self, iterdict : Iterable[dict]):
        """
          Consume the documents in the iterator, assuming that it has keys
          docno (string) and text (string)
        """
        return index # return your Index class here.
-       
+
+     def index_inputs(self) -> List[List[str]]: # Optional: this helps with inspection/schematics
+       return [['docno', 'text']]
+
 
    class MyIndex:
      """
@@ -134,6 +137,8 @@ Example implementation
        
      def bm25(self) -> pt.Transformer:
        def _retr_fn(single_query_df : pd.DataFrame) -> pd.DataFrame
+         # check it has both qid and query columns - using pt.validate for easier inspection
+         pt.validate.query_frame(single_query_df, extra_columns=["query"])
        
          qid = single_query_df.iloc[0]["qid"]
          query = single_query_df.iloc[0]["query"]
