@@ -41,7 +41,12 @@ class SchematicDirective(Directive):
         result = run_and_return_last(code, {'pt': pt}, {})
         if not isinstance(result, (dict, pt.Transformer)):
             return [self.state_machine.reporter.error(f"Expected dict or Transformer, got {result!r} (type: {type(result)})", line=self.lineno)]
-        html = pt.schematic.draw(result)
+        # parse any input columns supplied in the directive 
+        input_columns = self.options.get('input_columns')
+        if input_columns is not None:
+            input_columns = [x.strip() for x in input_columns.split(',')]
+
+        html = pt.schematic.draw(result, input_columns=input_columns)
         return [nodes.raw('', html, format='html')]
 
 
