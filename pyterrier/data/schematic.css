@@ -1,0 +1,337 @@
+#ID {
+  color-scheme: light dark;
+  --pts-fg: #000000;
+  --pts-bg: #FFFFFF;
+  --pts-bg-hov: #DDDDDD;
+  --pts-alert: #a35;
+  --pts-bg-hl: #cbdff4;
+}
+#ID-pts-rendering-issue {
+  display: none;
+}
+@media (prefers-color-scheme: dark) {
+  #ID {
+    --pts-fg: #FFFFFF;
+    --pts-bg: #000000;
+    --pts-bg-hov: #444444;
+    --pts-bg-hl: #22476e;
+  }
+}
+[data-theme="dark"] #ID, [theme="dark"] #ID {
+  --pts-fg: #FFFFFF;
+  --pts-bg: #000000;
+  --pts-bg-hov: #444444;
+  --pts-bg-hl: #22476e;
+}
+[data-theme="light"] #ID, [theme="light"] #ID {
+  --pts-fg: #000000;
+  --pts-bg: #FFFFFF;
+  --pts-bg-hov: #DDDDDD;
+  --pts-bg-hl: #cbdff4;
+}
+
+#ID {
+    position: relative;
+    min-height: 32px;
+    padding: 16px;
+    --jp-ui-font-size1: 12px;
+    display: flex !important; /* Some notebooks don't render CSS from other sources, so we set an inline display: none; which this reverts */
+    justify-content: center;
+    font-size: 12px;
+    font-family: Arial, sans-serif;
+}
+#ID.repr_html {
+    /* when the shown in a notebook, make sure we have sufficient height to show infoboxes */
+    min-height: 96px;
+}
+
+#ID .pts-infobox-hint {
+    display: none;
+    position: absolute;
+    top: 1px;
+    right: 2px;  
+    background: #f59f00;
+    color: #fff;
+    padding: 0 2px;
+}
+
+#ID .pts-infobox {
+    position: absolute;
+    max-height: 300px;
+    top: 0;
+    left: 0;
+    border: 1px solid rgb(66, 153, 225);
+    overflow-y: auto;
+    display: none;
+    background: var(--pts-bg);
+    box-shadow: 0 0 4px var(--pts-fg);
+    opacity: 0.9;
+    margin: 4px;
+    font-size: 0.8em;
+    max-width: 360px;
+    min-width: 128px;
+}
+#ID.repr_html .pts-infobox {
+    max-height: calc(100% - 8px);
+}
+#ID .pts-infobox-item {
+    display: none;
+}
+#ID .pts-infobox-title {
+    background: rgb(66, 153, 225);
+    color: white;
+    padding: 2px 6px;
+    position: sticky;
+    top: 0;
+}
+#ID .pts-infobox-body {
+    overflow-x: auto;
+}
+#ID [data-pts-infobox] {
+    cursor: pointer;
+}
+#ID .pts-infobox-source.pts-transformer {
+    background: rgba(66, 153, 225, 0.4);
+}
+#ID .pts-infobox-source.pts-df {
+    background-color: var(--pts-bg-hov);
+}
+#ID .pts-infobox-outer-error {
+    border: 1px solid var(--pts-alert);
+}
+#ID .pts-infobox-outer-error > .pts-infobox-title {
+    background: var(--pts-alert);
+}
+#ID .pts-infobox-error {
+    margin: 4px;
+    color: var(--pts-alert);
+}
+#ID .pts-infobox-error ul {
+    margin: 0;
+    padding-left: 12px;
+}
+
+#ID .pts-hline {
+    width: 64px;
+    border-bottom: 2px solid var(--pts-fg);
+    align-self: center;
+    position: relative;
+}
+#ID .pts-arr-inner {
+    margin-right: -6px;
+}
+#ID .pts-arr-input {
+    margin-right: -6px;
+    width: 16px;
+    margin-left: 28px;
+}
+#ID .pts-arr-output {
+    width: 16px;
+    margin-right: 32px;
+}
+#ID .pts-arr::after {
+    content: "";
+    position: absolute;
+    right: -4px;
+    top: 1px;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 6px solid var(--pts-fg);
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+}
+#ID .pts-io-label {
+    margin: 0 5px 4px 5px;
+}
+
+#ID .pts-vline {
+    border-right: 2px solid var(--pts-fg);
+    position: relative;
+    margin-right: -2px;
+    margin-left: -2px;
+}
+
+#ID .pts-df {
+    display: inline-block;
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+    color: var(--pts-fg);
+    border: 3px double var(--pts-fg);
+    background-color: var(--pts-bg);
+    box-sizing: border-box;
+    border-radius: 3px;
+    text-align: center;
+    line-height: 1;
+    padding-top: 3px;
+    margin: 1px;
+    font-weight: bold;
+}
+#ID .pts-df.pts-df-alert {
+    border-color: var(--pts-alert);
+    color: var(--pts-alert);
+}
+#ID .pts-hline > .pts-df {
+    position: absolute;
+    top: -14px;
+    left: 18px;
+}
+#ID .pts-arr-input > .pts-df {
+    left: -28px;
+}
+#ID .pts-arr-output > .pts-df {
+    left: 22px;
+}
+#ID .pts-df-columns {
+    margin-bottom: 0;
+    min-width: 100%;
+    border-collapse: collapse;
+}
+#ID .pts-df-columns td, #ID .pts-df-columns th {
+    border-top: 1px solid #bbb;
+    background: var(--pts-bg);
+    color: var(--pts-fg);
+    text-align: left;
+    padding: 2px 2px 2px 4px;
+    white-space: nowrap;
+}
+#ID .pts-df-columns .pts-add th, #ID .pts-df-columns .pts-add td {
+    background-color: var(--pts-bg-hl);
+}
+#ID .pts-df-columns td {
+    width: 100%;
+}
+
+#ID .pts-pipeline {
+    display: flex;
+    align-items: center;
+    align-content: stretch;
+    overflow-x: auto;
+    min-height: 29px;
+}
+#ID .pts-pipeline > * {
+    flex-shrink: 0;
+}
+
+#ID .pts-transformer {
+    font-size: 13px;
+    display: inline-block;
+    position: relative;
+    color: var(--pts-fg);
+    background: rgba(66, 153, 225, 0.3);
+    box-sizing: border-box;
+    padding: 4px 18px;
+    clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 0 100%, 16px 50%);
+}
+
+#ID .pts-transformer-title {
+    text-align: center;
+    font-weight: bold;
+}
+
+/* re-size things within an inner block */
+#ID .pts-inner .pts-df {
+    width: 21px;
+    height: 21px;
+    font-size: 12px;
+    padding-top: 1px;
+}
+#ID .pts-inner .pts-hline {
+    width: 34px;
+}
+#ID .pts-inner .pts-transformer {
+    font-size: 12px;
+    padding: 3px 18px;
+}
+#ID .pts-inner .pts-hline > .pts-df {
+    position: absolute;
+    top: -10px;
+    left: 5px;
+}
+#ID .pts-inner .pts-arr-input {
+    margin-left: 8px;
+}
+#ID .pts-inner .pts-arr-output {
+    margin-right: 4px;
+}
+
+#ID .pts-inner-schematic {
+    display: flex;
+    flex-direction: column;
+}
+
+#ID .pts-parallel-scaffold {
+    display: grid;
+    grid-template-areas:
+      "larr title rarr"
+      "larr body  rarr";
+}
+#ID .pts-parallel-scaffold > .pts-hline {
+    grid-area: larr;
+    width: 16px;
+}
+#ID .pts-parallel-scaffold > .pts-hline.pts-arr {
+    grid-area: rarr;
+    margin-right: -8px;
+}
+#ID .pts-parallel-scaffold > .pts-transformer-title {
+    grid-area: title;
+}
+#ID .pts-parallel-scaffold > .pts-inner-schematic {
+    grid-area: body;
+}
+
+#ID .pts-parallel-item {
+    display: flex;
+    align-content: stretch;
+    justify-content: stretch;
+}
+#ID .pts-parallel-item:first-child > .pts-vline {
+    height: 50%;
+    align-self: end;
+}
+#ID .pts-parallel-item:last-child > .pts-vline {
+    height: 50%;
+    align-self: start;
+}
+#ID .pts-parallel-item > .pts-pipeline {
+    flex-grow: 1;
+    margin: 4px 0;
+}
+#ID .pts-inner .pts-pipeline {
+    overflow-x: visible;
+    min-height: 25px;
+}
+
+#ID .pts-combine-box {
+    border: 1px dashed #999;
+    display: flex;
+    align-items: center;
+    margin-right: -8px;
+    padding-right: 8px;
+}
+
+#ID .pts-inner-labeled > .pts-transformer-title {
+    font-weight: normal;
+    margin-top: 2px;
+}
+
+#ID .pts-transformer.pts-input-validation-error {
+    background: rgba(255, 101, 101, 0.3);
+}
+
+#ID .pts-artifact-icon {
+  position: absolute;
+  left: 22px;
+  width: 24px;
+  height: 24px;
+  max-width: 24px;
+  top: -12px;
+}
+
+[data-vscode] #ID a {
+    /* links don't work in vscode, so pretend they don't exist */
+    color: inherit;
+    text-decoration: none;
+}

@@ -310,8 +310,9 @@ class DePassager(pt.Transformer):
         self.agg = agg
 
     def transform(self, topics_and_res):
+        pt.validate.columns(topics_and_res, includes=['qid', 'docno'] + (['score'] if self.agg != 'first' else []))
         topics_and_res = topics_and_res.copy()
-        topics_and_res[["olddocno", "pid"]] = topics_and_res.docno.str.split("%p", expand=True)
+        topics_and_res[["olddocno", "pid"]] = topics_and_res.docno.str.split("%p", expand=True) if len(topics_and_res) > 0 else pd.DataFrame(columns=["olddocno", "pid"])
         if self.agg == 'max':
             groups = topics_and_res.groupby(['qid', 'olddocno'])
             group_max_idx = groups['score'].idxmax()
@@ -345,7 +346,8 @@ class DePassager(pt.Transformer):
 
 class KMaxAvgPassage(DePassager):
     """
-        See ICIP at TREC-2020 Deep Learning Track, X.Chen et al. Proc. TREC 2020.
+        .. cite.dblp:: conf/trec/ChenHSCH020
+
         Usage:
             X >> SlidingWindowPassager() >>  Y >>  KMaxAvgPassage(2)
         where X is some kind of model for obtaining the text of documents and Y is a text scorer, such as BERT or ColBERT
@@ -372,6 +374,7 @@ class MeanPassage(DePassager):
 
 
 class SlidingWindowPassager(pt.Transformer):
+    schematic = {'label': 'SlidingWindow'}
 
     def __init__(self, text_attr='body', title_attr='title', passage_length=150, passage_stride=75, join=' ', prepend_title=True, tokenizer=None, **kwargs):
         super().__init__(**kwargs)
@@ -391,17 +394,11 @@ class SlidingWindowPassager(pt.Transformer):
             self.tokenize = re.compile(r"\s+").split
             self.detokenize = ' '.join
 
-    def _check_columns(self, topics_and_res):
-        if self.text_attr not in topics_and_res.columns:
-            raise KeyError("%s is a required input column, but not found in input dataframe. Found %s" % (self.text_attr, str(list(topics_and_res.columns))))
-        if self.prepend_title and self.title_attr not in topics_and_res.columns:
-            raise KeyError("%s is a required input column, but not found in input dataframe. Set prepend_title=False to disable its use. Found %s" % (self.title_attr, str(list(topics_and_res.columns))))
-        if "docno" not in topics_and_res.columns:
-            raise KeyError("%s is a required input column, but not found in input dataframe. Found %s" % ("docno", str(list(topics_and_res.columns))))
-
     def transform(self, topics_and_res):
-        # validate input columns
-        self._check_columns(topics_and_res)
+        with pt.validate.any(topics_and_res) as v:
+            cols = [self.text_attr] + ([self.title_attr] if self.prepend_title else [])
+            v.result_frame(cols)
+            v.document_frame(cols)
         print("calling sliding on df of %d rows" % len(topics_and_res))
 
         # now apply the passaging
@@ -410,6 +407,9 @@ class SlidingWindowPassager(pt.Transformer):
         return self.applyPassaging_no_qid(topics_and_res)
 
     def applyPassaging_no_qid(self, df):
+        result_columns = list(df.columns)
+        if self.prepend_title:
+            result_columns = [c for c in result_columns if c != self.title_attr]
         rows=[]
         for row in df.itertuples():
             row = row._asdict()
@@ -432,7 +432,7 @@ class SlidingWindowPassager(pt.Transformer):
                         del(newRow[self.title_attr])
                     rows.append(newRow)
                     passageCount+=1
-        return pd.DataFrame(rows)
+        return pd.DataFrame(rows, columns=result_columns)
 
 
     def applyPassaging(self, df, labels=True):

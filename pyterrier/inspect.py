@@ -3,9 +3,10 @@
 .. note::
     This is an advanced module that is not typically used by end users.
 """
+import enum
 import inspect
 import dataclasses
-from typing import Any, Dict, List, Optional, Protocol, Type, Tuple, Union, runtime_checkable
+from typing import Any, Dict, List, Literal, Optional, Protocol, Type, Tuple, Union, cast, overload, runtime_checkable
 
 import pandas as pd
 
@@ -78,14 +79,41 @@ def artifact_type_format(
 
     return artifact_type, artifact_format
 
+def indexer_inputs(
+    indexer : pt.Indexer,
+    *,
+    strict : bool = True
+) -> Optional[List[List[str]]]:
+    """
+    Infers supported input column configurations (a ``List[List[str]]``) for a pt.Indexer instance.
+    Orthogonal to ``transformer_inputs``. This implementation inspects the ``index_inputs()``
+    method of the indexer, as other methods of transformer inspection arent applicable to indexers.
+
+    Args:
+        indexer: An instance of the indexer to inspect.
+        strict: If True, raises an error if the indexer cannot be inferred. If False, returns
+            None in these cases.
+
+    Returns:
+        A list of input column configurations (``List[List[str]]``) accepted by this indexer.
+
+    Raises:
+        InspectError: If the indexer cannot be inspected and ``strict==True``.
+    """
+    result = indexer.index_inputs()
+    if result is None or not isinstance(result[0], list) or (len(result[0]) > 0 and not isinstance(result[0][0], str)):
+        if strict:
+            msg = f"Cannot determine inputs for {indexer} - index_inputs() should be implemented"
+            raise InspectError(msg)
+        return None
+    return result
 
 def transformer_inputs(
     transformer: pt.Transformer,
     *,
-    single: bool = False,
     strict: bool = True,
-) -> Optional[Union[List[str], List[List[str]]]]:
-    """Infers supported input column configurations for a transformer.
+) -> Optional[List[List[str]]]:
+    """Infers supported input column configurations (a ``List[List[str]]``) for a transformer.
 
     The method tries to infer the input columns that the transformer accepts by calling it with an empty DataFrame and inspecting
     a resulting ``pt.validate.InputValidationError``. If the transformer does not raise an error, it tries to infer the input columns
@@ -93,60 +121,96 @@ def transformer_inputs(
 
     To handle edge cases, you can implement the :class:`~pyterrier.inspect.HasTransformInputs` protocol, which allows you to define a custom
     ``transform_inputs`` method that returns a list of input column configurations accepted by the transformer. ``transform_inputs``
-    can also be an attribute instead of a method. In this case, it be a list of lists of input columns (i.e., a list of valid
-    input column configurations).
+    can also be an attribute instead of a method. In this case, it can be a list of lists of input columns (i.e., a list of valid
+    input column configurations). Note that ``transform_inputs`` is allowed to return a ``List[str]``. If this is the case, it is converted
+    to a ``List[List[str]]`` automatically.
+
+    The list of input specifications is assumed to be prioritized. For instance, schematics will show the first valid specification
+    when multiple are valid for the pipeline.
 
     Args:
         transformer: An instance of the transformer to inspect.
         strict: If True, raises an error if the transformer cannot be inferred or are not accepted. If False, returns
             None in these cases.
-        single: If True, returns a single list of input columns. If False, returns a list of lists of possible input column configurations.
 
     Returns:
-        A list of input columns that the transformer accepts, or a list of lists of input columns if ``single`` is False.
+        A list of input column configurations (``List[List[str]]``) accepted by this transformer.
 
     Raises:
         InspectError: If the transformer cannot be inspected and ``strict==True``.
     """
-    result = []
-    if isinstance(transformer, HasTransformInputs):
+    result : List[List[str]] = []
+    received = None
+    if isinstance(transformer, HasTransformInputs) and transformer.transform_inputs is not None:
+        ext_result : Union[List[str], List[List[str]]]
         if not callable(transformer.transform_inputs):
-            result = transformer.transform_inputs
+            ext_result = transformer.transform_inputs
+            received = "transformer.transform_inputs attribute"
         else:
             try:
-                result = transformer.transform_inputs()
+                ext_result = transformer.transform_inputs()
+                received = "transformer.transform_inputs() method"
             except Exception as ex:
                 if strict:
                     raise InspectError(f"Cannot determine inputs for {transformer}") from ex
                 else:
                     return None
+        if len(ext_result) > 0:
+            if isinstance(ext_result[0], str):
+                ext_result = cast(List[str], ext_result) # noqa: PT100 (this is typing.cast, not jinus.cast)
+                result = [ext_result] # convert to a List[List[str]]
+            else:
+                ext_result = cast(List[List[str]], ext_result) # noqa: PT100 (this is typing.cast, not jinus.cast)
+                result = ext_result
     else:
         try:
             transformer(pd.DataFrame())
-        except pt.validate.InputValidationError as ex:
-            result = [mode.missing_columns for mode in ex.modes]
+            # if this succeeds without an error, the transformer accepts frames without any columns
+            result = [[]]
+        except pt.validate.InputValidationError as ive:
+            result = [mode.missing_columns for mode in ive.modes]
+            received = "validation using invocation on empty 0-cols frame"
         except Exception:
-            for mode in [
-                ['qid', 'query'],
-                ['qid', 'query', 'docno', 'score', 'rank'],
+            for mode, frame_type in [
+                (['qid', 'query'] , "Q"),
+                (['qid', 'query', 'docno', 'score', 'rank'], "R"),
             ]:
                 try:
                     transformer(pd.DataFrame(columns=mode))
                     result.append(mode)
+                    received = f"validation using invocation on empty {frame_type} frame"
                 except Exception:
                     continue
     if not isinstance(result, list) or len(result) == 0:
         if strict:
-            raise InspectError(f"Cannot determine inputs for {transformer}")
+            msg = f"Cannot determine inputs for {transformer}"
+            if received is not None:
+                msg += f"received by {received}: {result}"
+            else:
+                msg += " - no inspections succeeded"
+            raise InspectError(msg)
         return None
     if not isinstance(result[0], list) or (len(result[0]) > 0 and not isinstance(result[0][0], str)):
         if strict:
-            raise InspectError(f"Cannot determine inputs for {transformer}")
+            raise InspectError(f"Cannot determine inputs for {transformer} - invalid columns specified by {received}: {result}")
         return None
-    if single:
-        return result[0]
     return result
 
+@overload
+def transformer_outputs(
+    transformer: pt.Transformer,
+    input_columns: List[str],
+    *,
+    strict: Literal[True] = ...,
+) -> List[str]: ...
+
+@overload
+def transformer_outputs(
+    transformer: pt.Transformer,
+    input_columns: List[str],
+    *,
+    strict: Literal[False] = ...,
+) -> Optional[List[str]]: ...
 
 def transformer_outputs(
     transformer: pt.Transformer,
@@ -190,9 +254,12 @@ def transformer_outputs(
     try:
         res = transformer.transform(pd.DataFrame(columns=input_columns))
         return list(res.columns)
-    except pt.validate.InputValidationError:
+    except pt.validate.InputValidationError as ive:
         if strict:
-            raise
+            # add the underlying class to the IVE error, so its more clear whats not been validated
+            # this improves readability for subtransformers 
+            ive.args = (ive.args[0] + f" {transformer}", )
+            raise ive
         else:
             return None
     except Exception as ex:
@@ -349,11 +416,72 @@ def subtransformers(transformer: pt.Transformer) -> Dict[str, Union[pt.Transform
         return transformer.subtransformers()
     result: Dict[str, Union[pt.Transformer, List[pt.Transformer]]] = {}
     for attr in transformer_attributes(transformer):
-        if isinstance(attr.value, pt.Transformer):
+        if isinstance(attr.value, pt.Transformer) and not isinstance(attr.value, pt.Artifact):
             result[attr.name] = attr.value
-        elif isinstance(attr.value, (list, tuple)) and all(isinstance(v, pt.Transformer) for v in attr.value):
+        elif isinstance(attr.value, (list, tuple)) and all(isinstance(v, pt.Transformer) and not isinstance(v, pt.Artifact) for v in attr.value):
             result[attr.name] = list(attr.value)
     return result
+
+def _minimal_inputs(all_configs : List[Optional[List[List[str]]]]) -> Optional[List[List[str]]]:
+    """
+    Among all input configurations, find the minimal common subset(s) of attributes needed
+    for success invocation.
+    """
+    # if any configs are unknown, the minimal inputs is unknown
+    if any([config is None for config in all_configs]):
+        return None
+    
+    # essentially a cast:
+    non_optional: List[List[List[str]]] = [config for config in all_configs if config is not None]
+    all_configs_sets = [ 
+        set(a) for tconfig in non_optional for a in tconfig
+    ]
+    
+    from itertools import chain, combinations
+    # universe of all columns
+    universe = set(chain.from_iterable(all_configs_sets))
+
+    # test subsets in increasing size
+    plausible = []
+    for r in range(1, len(universe) + 1):
+        for subset in combinations(universe, r):
+            ssubset = set(subset)
+            # Check if subset works for all objects
+            if all(any(set(schema).issubset(ssubset) for schema in obj) for obj in non_optional):
+                plausible.append(list(ssubset))
+    return plausible
+
+class TransformerType(enum.Flag):
+    """An enum representing the type of a transformer."""
+    transformer = enum.auto()
+    indexer = enum.auto()
+
+
+def transformer_type(transformer: pt.Transformer) -> TransformerType:
+    """Returns the type of the transformer as a :class:`~pyterrier.inspect.TransformerType` flag enum.
+
+    The type can be one of:
+    - ``TransformerType.transformer``: The transformer is a :class:`~pyterrier.Transformer` but not an :class:`~pyterrier.Indexer`.
+    - ``TransformerType.indexer``: The transformer is an :class:`~pyterrier.Indexer` but does not implement ``transform`` or ``transform_iter``.
+    - ``TransformerType.transformer | TransformerType.indexer``: The transformer is both a :class:`~pyterrier.Transformer` and an :class:`~pyterrier.Indexer`.
+    - ``TransformerType(0)``: The transformer is neither a :class:`~pyterrier.Transformer` nor an :class:`~pyterrier.Indexer`.
+
+    Args:
+        transformer: The transformer to inspect.
+
+    Returns:
+        A :class:`~pyterrier.inspect.TransformerType` flag representing the type of the transformer.
+    """
+    if isinstance(transformer, pt.Indexer):
+        if transformer.__class__.transform != pt.Indexer.transform or transformer.__class__.transform_iter != pt.Indexer.transform_iter:
+            # Indexer that also implements transform or transform_iter (or both)
+            return TransformerType.transformer | TransformerType.indexer # both a Transformer and an Indexer
+        else:
+            # Indexer that doesn't implement transform or transform_iter
+            return TransformerType.indexer # only Indexer
+    if isinstance(transformer, pt.Transformer):
+        return TransformerType.transformer # only Transformer
+    return TransformerType(0) # neither Transformer nor Indexer
 
 
 @runtime_checkable
@@ -362,8 +490,15 @@ class HasTransformInputs(Protocol):
 
     ``transform_inputs`` allows for inspection of the inputs accepted by transformers without needing to run it.
 
-    When this method is present in a :class:`~pyterrier.Transformer` object, it must return a list of the input column
-    configurations accepted by the transformer.
+    When this method is present in a :class:`~pyterrier.Transformer` object, it must return either:
+    
+    - A list of lists of input columns (i.e., a list of valid input column configurations)
+    - A list of input columns (i.e., a single valid input column configuration)
+
+    If the input columns of the transformer do not depend on the instance, ``transform_inputs`` can also be
+    an attribute with a value of type ``List[str]`` or ``List[List[str]]``.
+
+    If ``transform_inputs is None``, it is ignored.
 
     This method need not be present in a Transformer class - it is an optional extension;
     an alternative is that the input columns are determined by calling the transformer with an empty ``DataFrame``.
@@ -378,15 +513,17 @@ class HasTransformInputs(Protocol):
                 # ... perform retrieval ...
                 # return the same columns as inp plus docno, score, and rank. E.g., using DataFrameBuilder.
 
-            def transform_inputs(self) -> List[List[str]]:
-                return [['qid', 'query']]
+            def transform_inputs(self) -> Union[List[str], List[List[str]]]:
+                # NOTE: This method isn't required in this case, since inspect will be able to infer required
+                # columns from pt.validate. It's just a demonstration.
+                return ['qid', 'query']
 
     """
-    def transform_inputs(self) -> List[List[str]]:
+    def transform_inputs(self) -> Union[List[List[str]], List[str]]:
         """Returns a list of input columns accepted by the transformer.
 
         Returns:
-            A list of input column configurations accepted by this transformer.
+            Input column configuration(s) accepted by this transformer.
         """
 
 

@@ -37,6 +37,7 @@ Welcome to PyTerrier's documentation!
    new
    debug
    inspect
+   schematic
 
 .. include:: ./_includes/ext_toc.rst
 

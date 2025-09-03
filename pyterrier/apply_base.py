@@ -1,4 +1,4 @@
-from typing import Callable, Any, Union, Optional, Iterable, List
+from typing import Callable, Any, Union, Optional, Iterable, List, Dict, Literal
 import itertools
 import more_itertools
 import numpy.typing as npt
@@ -51,6 +51,36 @@ class DropColumnTransformer(pt.Transformer):
 
     def __repr__(self):
         return f"pt.apply.{self.col}(drop=True)"
+
+
+class RenameColumnsTransformer(pt.Transformer):
+    """
+    This transformer renames the provided columns, akin to pandas.DataFrame.rename
+    """
+    def __init__(self, columns: Dict[str, str], *, errors: Literal['raise', 'ignore'] = 'raise'):
+        """
+        Arguments:
+            columns: A dictionary mapping old column names to new column names
+        """
+        self.columns = columns
+        self.errors = errors
+
+    def transform(self, inp: pd.DataFrame) -> pd.DataFrame:
+        """
+        Drops the column from the input DataFrame.
+
+        Arguments:
+            inp: The input DataFrame
+
+        Returns:
+            The input DataFrame with the column dropped.
+        """
+        if self.errors == 'raise':
+            pt.validate.columns(inp, includes=list(self.columns.keys()))
+        return inp.rename(columns=self.columns, errors=self.errors)
+
+    def __repr__(self):
+        return "pt.apply.rename()"
 
 
 class ApplyByRowTransformer(pt.Transformer):
@@ -562,8 +592,14 @@ class ApplyIndexer(pt.Indexer):
     Allows arbitrary indexer pipelines components to be written as functions.
     """
     
-    def __init__(self, fn: Callable[[pt.model.IterDict], Any]):
+    def __init__(self, fn: Callable[[pt.model.IterDict], Any], required_columns : Optional[List[str]] = None):
         self.fn = fn
+        self.required_columns = required_columns
 
     def index(self, iter_dict):
         return self.fn(iter_dict)
+    
+    def index_inputs(self) -> Optional[List[List[str]]]:
+        if self.required_columns is not None:
+            return [self.required_columns]
+        return self.required_columns

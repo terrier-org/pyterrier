@@ -1,3 +1,6 @@
+import os
+import warnings
+import traceback
 import types
 import pandas as pd
 from typing import Iterator, List, Union, Tuple, Protocol, runtime_checkable, Optional, Any
@@ -322,6 +325,19 @@ class Transformer:
     def __hash__(self):
         return hash(repr(self))
 
+    def _repr_html_(self):
+        if os.environ.get('PYTERRIER_DISABLE_NOTEBOOK_SCHEMATIC', '0') == '1':
+            return None
+        try:
+            return pt.schematic.draw(self, outer_class='repr_html')
+        except Exception as e:
+            # This handles cases where there's a problem generating the schematic.
+            # signal to ipython not to display HTML representation (falls back on __repr__)
+            tb = traceback.format_exc()
+            warnings.warn(f"Failed to render transformer as HTML: {e}\n\n{tb}", stacklevel=2)
+            return None 
+
+
 class Indexer(Transformer):
     def __new__(cls, *args, **kwargs):
         instance = super().__new__(cls, *args, **kwargs)
@@ -337,6 +353,14 @@ class Indexer(Transformer):
             # one, which invokes transform_iter automatically.
             instance.transform = types.MethodType(Transformer.transform, instance)
         return instance
+    
+    def index_inputs(self) -> Optional[List[List[str]]]:
+        """
+            Returns a list of column configurations that index() is expects. 
+            This default implementation returns None, and should be 
+            overridden by subclasses to allow accurate inspections and schematic visualisations.
+        """
+        return None
 
     def index(self, iter : pt.model.IterDict, **kwargs) -> Any:
         """
