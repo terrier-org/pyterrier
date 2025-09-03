@@ -125,7 +125,9 @@ def _get_schematic_css_js(container_id):
     return css, js
 
 
-def draw(transformer: Union[pt.Transformer, dict], *, outer_class: Optional[str] = None) -> str:
+def draw(transformer: Union[pt.Transformer, dict], *, 
+         outer_class: Optional[str] = None, 
+         input_columns: Optional[List[str]] = None) -> str:
     """Draws a transformer as an HTML schematic.
 
     If the transformer is already a ``SchematicDict``, it will be drawn directly.
@@ -134,15 +136,17 @@ def draw(transformer: Union[pt.Transformer, dict], *, outer_class: Optional[str]
 
     Args:
         transformer: The transformer to draw, or a dict in ``SchematicDict`` format.
+        input_columns: If you want to specify the input columns for the transformer (pipeline).
         outer_class: An optional CSS class to apply to the outer container of the schematic.
 
     Returns:
         An HTML string representing the schematic of the transformer.
     """
     if isinstance(transformer, dict):
+        assert input_columns is None, "Cannot set input_columns and provide a SchematicDict input."
         schematic = transformer
     else:
-        schematic = transformer_schematic(transformer)
+        schematic = transformer_schematic(transformer, input_columns=input_columns or _INFER)
     return draw_html_schematic(schematic, outer_class=outer_class)
 
 
