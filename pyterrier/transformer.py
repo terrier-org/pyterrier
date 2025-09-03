@@ -239,7 +239,12 @@ class Transformer:
         :param N: how many processes/machines to parallelise this transformer over.
         :param backend: which multiprocessing backend to use. Only two backends are supported, 'joblib' and 'ray'. Defaults to 'joblib'.
         """
-        from .parallel import PoolParallelTransformer
+        from warnings import warn
+        warn(".parallel() is experimental")
+        try:
+            from pyterrier_alpha.parallel import PoolParallelTransformer # type: ignore
+        except ImportError as ie:
+            raise ImportError("pyterrier-alpha[parallel] must be installed for .parallel()") from ie
         return PoolParallelTransformer(self, N, backend)
 
     # Get and set specific parameter value by parameter's name

@@ -24,7 +24,6 @@ Welcome to PyTerrier's documentation!
    text
    neural
    terrier-index-api
-   parallel
    tuning
    experiments/Robust04
    extending/index

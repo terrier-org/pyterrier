@@ -21,7 +21,6 @@ from pyterrier import inspect
 from pyterrier import measures
 from pyterrier import new
 from pyterrier import ltr
-from pyterrier import parallel
 from pyterrier import pipelines
 from pyterrier import text
 from pyterrier import transformer
@@ -58,7 +57,7 @@ cast = deprecated(version='0.11.0', reason="use pt.java.cast(...) instead")(java
 
 
 __all__ = [
-    'java', 'terrier', 'debug', 'documentation', 'io', 'inspect', 'measures', 'model', 'new', 'ltr', 'parallel', 'pipelines', 'schematic',
+    'java', 'terrier', 'debug', 'documentation', 'io', 'inspect', 'measures', 'model', 'new', 'ltr', 'pipelines', 'schematic',
     'text', 'transformer', 'datasets', 'validate', 'testing', 'get_dataset', 'find_datasets', 'list_datasets', 'Experiment', 'GridScan',
     'GridSearch', 'KFoldGridSearch', 'Evaluate',
     'utils', 'Utils', 'Transformer', 'Estimator', 'Indexer', 'Artifact',
