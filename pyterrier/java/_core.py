@@ -101,6 +101,7 @@ class Java24Init(JavaInitializer):
             java_home = os.environ["JAVA_HOME"]
             if any([f"{ver}." in java_home for ver in [24,25,26,28,29]]):
                 jnius_config.add_options("--enable-native-access=ALL-UNNAMED")
+                warn("Added --enable-native-access=ALL-UNNAMED")
             else:
                 warn("Found JAVA_HOME of %s but couldnt detect version" % java_home)
         else: 
@@ -111,8 +112,11 @@ class Java24Init(JavaInitializer):
         from packaging.version import Version
         from warnings import warn
         if Version(pt.java.J.System.getProperty("java.version")) >= Version("24"):
+            # monkey-patch the hadoop class to use the pure Java that is safe under JDK 24
             hadoop_comparator_class = pt.java.autoclass("org.apache.hadoop.io.FastByteComparisons$LexicographicalComparerHolder")
             hadoop_comparator_class.UNSAFE_COMPARER_NAME = 'org.apache.hadoop.io.FastByteComparisons$LexicographicalComparerHolder$PureJavaComparer'
+            hadoop_comparator_class.BEST_COMPARER = hadoop_comparator_class.getBestComparer()
+            warn("BEST_COMPARER set")
         else: 
             warn("java.version is " + pt.java.J.System.getProperty("java.version"))
 
