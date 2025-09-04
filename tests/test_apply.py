@@ -1,4 +1,4 @@
-
+import numpy as np
 import pandas as pd
 import pyterrier as pt
 import os
@@ -263,3 +263,12 @@ class TestApply(BaseTestCase):
             self.assertTrue(np.array_equal(rtr.iloc[0]["features"], np.array([0,1])))
 
 
+
+@pt.testing.transformer_test_class
+def test_apply_doc_features():
+    return pt.apply.doc_features(lambda row: np.array([0,1]))
+
+
+@pt.testing.transformer_test_class
+def test_apply_doc_score():
+    return pt.apply.doc_score(lambda row: 5)
