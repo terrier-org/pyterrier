@@ -39,6 +39,14 @@ Tf and PL2 models::
     pl2 = pt.terrier.Retriever(index, wmodel="PL2")
     pipeline = bm25 >> (tf ** pl2)
 
+.. schematic::
+    index = pt.Artifact.from_hf('pyterrier/vaswani.terrier')
+    bm25 = index.retriever("BM25")
+    tf = index.retriever("Tf")
+    pl2 = index.retriever("PL2")
+    pipeline = bm25 >> (tf ** pl2)
+    pipeline
+
 The output of the bm25 ranker would look like:
 
 ====  ==========  ========  ============
@@ -76,22 +84,33 @@ An equivalent pipeline to the example above would be::
     #pipeline = bm25 >> (tf ** pl2)
     pipeline = pyterrier.terrier.FeaturesRetriever(index, wmodel="BM25", features=["WMODEL:Tf", "WMODEL:PL2"])
 
+.. schematic::
+    index = pt.Artifact.from_hf('pyterrier/vaswani.terrier')
+    pt.terrier.FeaturesRetriever(index.index_obj(), wmodel="BM25", features=["WMODEL:Tf", "WMODEL:PL2"])
 
 Apply Functions for Custom Features
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you have a way to calculate one or multiple ranking features at once, you can use pt.apply functions to create
-your feature sets.  See :ref:`pyterrier.apply` for more examples. In particular, use `pt.apply.doc_score` for 
+your feature sets.  See :ref:`pyterrier.apply` for more examples. In particular, use ``pt.apply.doc_score()`` for 
 calculating a single feature based on a function. Transformers created by pt.apply can be combined using 
 the `**` operator. 
 
 For instance, consider you have two functions that each return one score that are to be used as
-features. We can instantiate these functions as Transformers using `pt.apply.doc_score()` invocations. Such custom 
-features can both be combined into a LTR pipeline using the `**` operator::
+features. We can instantiate these functions as Transformers using ``pt.apply.doc_score()``. Such custom 
+features can both be combined into a LTR pipeline using the ``**`` operator::
 
     featureA = pt.apply.doc_score(lambda row: 5)
     featureB = pt.apply.doc_score(lambda row: 2)
     pipeline2f = bm25 >> (featureA ** featureB)
+
+.. schematic::
+    index = pt.Artifact.from_hf('pyterrier/vaswani.terrier')
+    bm25 = index.bm25()
+    featureA = pt.apply.doc_score(lambda row: 5)
+    featureB = pt.apply.doc_score(lambda row: 2)
+    pipeline2f = bm25 >> (featureA ** featureB)
+    pipeline2f
     
 The output of ``pipeline2f`` would be as follows:
 
@@ -104,11 +123,19 @@ The output of ``pipeline2f`` would be as follows:
 Of course, our example lambda functions return static scores for each document rather than computing meaningful features,
 for instance making a lookup based on ``row["docid"]`` or other attributes of each ``row``. 
 
-If we want to calculate more features at once, then we can go faster by using `pt.apply.doc_features`:: 
+If we want to calculate *more than one* feature at once, then we can go faster by using ``pt.apply.doc_features()``:: 
 
-    two_features = pt.apply.doc_features(lambda row: np.array([0,1])) # use doc_features when calculating multiple features
+    two_features = pt.apply.doc_features(lambda row: np.array([0,1])) # use doc_features ONLY when calculating multiple features
     one_feature = pt.apply.doc_score(lambda row: 5)                   # use doc_score when calculating a single feature
     pipeline3f = bm25 >> (two_features ** one_feature)
+
+.. schematic::
+    index = pt.Artifact.from_hf('pyterrier/vaswani.terrier')
+    bm25 = index.bm25()
+    two_features = pt.apply.doc_features(lambda row: np.array([0,1]))
+    one_feature = pt.apply.doc_score(lambda row: 5)
+    pipeline3f = bm25 >> (two_features ** one_feature)
+    pipeline3f
 
 The output of ``pipeline3f`` would be as follows:
 
@@ -127,9 +154,21 @@ Learning
 
 The resulting transformer implements Estimator, in other words it has a `fit()` method, that can be trained using
 training topics and qrels, as well as (optionally) validation topics and qrels. See also :ref:`pt.transformer.estimator`.
+At inference time, the Estimator can be applied to new topics, and it will use the learned model to re-rank the candidate documents
+based on the features calculated in the previous phase. The resulting pipeline is shown below:
 
-SKLearn
-~~~~~~~
+.. schematic::
+    index = pt.Artifact.from_hf('pyterrier/vaswani.terrier')
+    pipeline2f = pt.terrier.FeaturesRetriever(index.index_obj(), wmodel="BM25", features=["WMODEL:Tf", "WMODEL:PL2"])
+    from sklearn.ensemble import RandomForestRegressor
+    rf = RandomForestRegressor(n_estimators=400)
+    rf_pipe = pipeline2f >> pt.ltr.apply_learned_model(rf)
+    rf_pipe
+
+A number of learning algorithms are supported, namely from scikit-learn, XGBoost, LightGBM and FastRank - see below for details.
+
+scikit-learn
+~~~~~~~~~~~~
 
 A sklearn regressor can be passed directly to `pt.ltr.apply_learned_model()`::
 
