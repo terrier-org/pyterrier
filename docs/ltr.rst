@@ -130,9 +130,10 @@ If we want to calculate *more than one* feature at once, then we can go faster b
     pipeline3f = bm25 >> (two_features ** one_feature)
 
 .. schematic::
+    import numpy as np
     index = pt.Artifact.from_hf('pyterrier/vaswani.terrier')
     bm25 = index.bm25()
-    two_features = pt.apply.doc_features(lambda row: np.array([0,1]))
+    two_features = pt.apply.doc_features(lambda row: [0, 1]) # np.array doesn't work in the lambda for some reason?
     one_feature = pt.apply.doc_score(lambda row: 5)
     pipeline3f = bm25 >> (two_features ** one_feature)
     pipeline3f
