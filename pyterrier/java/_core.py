@@ -92,7 +92,7 @@ def _mapentry_getitem(self, i):
 class Java24Init(JavaInitializer):
     """Responsible for hacking around JDK safety checks from JDK 24 onwards"""
     def priority(self) -> int:
-        return -99 # run this after CoreJavaInit
+        return -9 # run this after TerrierJavaInit
     
     def pre_init(self, jnius_config):
         from warnings import warn
@@ -103,7 +103,7 @@ class Java24Init(JavaInitializer):
                 jnius_config.add_options("--enable-native-access=ALL-UNNAMED")
                 warn("Added --enable-native-access=ALL-UNNAMED")
             else:
-                warn("Found JAVA_HOME of %s but couldnt detect version" % java_home)
+                warn("Found JAVA_HOME of %s but couldnt detect version >=24" % java_home)
         else: 
             warn ("no JAVA_HOME set")
 
@@ -117,6 +117,7 @@ class Java24Init(JavaInitializer):
             hadoop_comparator_class.UNSAFE_COMPARER_NAME = 'org.apache.hadoop.io.FastByteComparisons$LexicographicalComparerHolder$PureJavaComparer'
             hadoop_comparator_class.BEST_COMPARER = hadoop_comparator_class.getBestComparer()
             warn("BEST_COMPARER set")
+            print("BEST_COMPARER" + str( hadoop_comparator_class.BEST_COMPARER.getClass()) )
         else: 
             warn("java.version is " + pt.java.J.System.getProperty("java.version"))
 
