@@ -96,30 +96,24 @@ class Java24Init(JavaInitializer):
     
     def pre_init(self, jnius_config):
         from warnings import warn
-        # detect JDK 24 onwards
+        # detect JDK 24 onwards - this is a best attempt - at best, the user will see a warning.
+        # the plan is to use https://github.com/kivy/pyjnius/pull/780 to ask the JVM for its version
+        # before starting the JVM. 
         if "JAVA_HOME" in os.environ:
             java_home = os.environ["JAVA_HOME"]
             if any([f"{ver}." in java_home for ver in [24,25,26,28,29]]):
                 jnius_config.add_options("--enable-native-access=ALL-UNNAMED")
-                warn("Added --enable-native-access=ALL-UNNAMED")
-            else:
-                warn("Found JAVA_HOME of %s but couldnt detect version >=24" % java_home)
-        else: 
-            warn ("no JAVA_HOME set")
 
     @required_raise
     def post_init(self, jnius):
         from packaging.version import Version
-        from warnings import warn
         if Version(pt.java.J.System.getProperty("java.version")) >= Version("24"):
             # hadoop will fallback to pureJava for sparc architecture - lets pretend we are for just a minute.
             arch = pt.java.J.System.getProperty("os.arch")
             pt.java.J.System.setProperty("os.arch", "sparc")
-            hadoop_comparator_class = pt.java.autoclass("org.apache.hadoop.io.FastByteComparisons$LexicographicalComparerHolder")
-            print("BEST_COMPARER" + str( hadoop_comparator_class.BEST_COMPARER.getClass()))
+            # force initialisation of FastByteComparisons using the sparc arch
+            pt.java.autoclass("org.apache.hadoop.io.FastByteComparisons$LexicographicalComparerHolder")
             pt.java.J.System.setProperty("os.arch", arch)
-        else: 
-            warn("java.version is " + pt.java.J.System.getProperty("java.version"))
 
 def _is_binary(f):
     import io
