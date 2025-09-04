@@ -99,8 +99,10 @@ class Java24Init(JavaInitializer):
 
     @required_raise
     def post_init(self, jnius):
-        hadoop_comparator_class = pt.java.autoclass("org.apache.hadoop.io.FastByteComparisons$LexicographicalComparerHolder")
-        hadoop_comparator_class.UNSAFE_COMPARER_NAME = 'org.apache.hadoop.io.FastByteComparisons$LexicographicalComparerHolder$PureJavaComparer'
+        from packaging.version import Version
+        if Version(pt.java.J.System.getProperty("java.version")) >= Version("24"):
+            hadoop_comparator_class = pt.java.autoclass("org.apache.hadoop.io.FastByteComparisons$LexicographicalComparerHolder")
+            hadoop_comparator_class.UNSAFE_COMPARER_NAME = 'org.apache.hadoop.io.FastByteComparisons$LexicographicalComparerHolder$PureJavaComparer'
 
 def _is_binary(f):
     import io
