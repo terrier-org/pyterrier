@@ -201,7 +201,7 @@ A typical passage-based retrieval pipeline might look like this::
     passage_pipeline = (
         bm25 % 100 >> 
         pt.text.get_text(pt.get_dataset('irds:vaswani'), "text") >> 
-        pt.text.sliding(length=100, stride=50, text_attr='text') >> 
+        pt.text.sliding(length=100, stride=50, text_attr='text', prepend_attr=None) >> 
         MonoT5ReRanker() >> 
         pt.text.max_passage()
     )
@@ -215,7 +215,7 @@ A typical passage-based retrieval pipeline might look like this::
     passage_pipeline = (
         bm25 % 100 >> 
         pt.text.get_text(pt.get_dataset('irds:vaswani'), "text") >> 
-        pt.text.sliding(length=100, stride=50) >> 
+        pt.text.sliding(length=100, stride=50, text_attr='text', prepend_attr=None) >> 
         MonoT5ReRanker() >> 
         pt.text.max_passage()
     )
