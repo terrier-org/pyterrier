@@ -95,18 +95,26 @@ class Java24Init(JavaInitializer):
         return -99 # run this after CoreJavaInit
     
     def pre_init(self, jnius_config):
+        from warnings import warn
         # detect JDK 24 onwards
         if "JAVA_HOME" in os.environ:
             java_home = os.environ["JAVA_HOME"]
             if any([f"{ver}." in java_home for ver in [24,25,26,28,29]]):
                 jnius_config.add_options("--enable-native-access=ALL-UNNAMED")
+            else:
+                warn("Found JAVA_HOME of %s but couldnt detect version" % java_home)
+        else: 
+            warn ("no JAVA_HOME set")
 
     @required_raise
     def post_init(self, jnius):
         from packaging.version import Version
+        from warnings import warn
         if Version(pt.java.J.System.getProperty("java.version")) >= Version("24"):
             hadoop_comparator_class = pt.java.autoclass("org.apache.hadoop.io.FastByteComparisons$LexicographicalComparerHolder")
             hadoop_comparator_class.UNSAFE_COMPARER_NAME = 'org.apache.hadoop.io.FastByteComparisons$LexicographicalComparerHolder$PureJavaComparer'
+        else: 
+            warn("java.version is " + pt.java.J.System.getProperty("java.version"))
 
 def _is_binary(f):
     import io
