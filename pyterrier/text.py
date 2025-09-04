@@ -128,13 +128,13 @@ def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='ti
     A useful transformer for splitting long documents into smaller passages within a pipeline. This applies a *sliding* window over the
     text, where each passage is the give number of tokens long. Passages can overlap, if the stride is set smaller than the length. In
     applying this transformer, docnos are altered by adding '%p' and a passage number. The original scores for each document can be recovered
-    by aggregation functions, such as `max_passage()`.
+    by aggregation functions, such as ``max_passage()``.
 
     For the puposes of obtaining passages of a given length, the tokenisation can be controlled. By default, tokenisation takes place by splitting
     on space, i.e. based on the Python regular expression ``re.compile(r'\s+')``. However, more fine-grained tokenisation can applied by passing 
     an object matching the HuggingFace Transformers `Tokenizer API <https://huggingface.co/docs/transformers/main/en/main_classes/tokenizer#transformers.PreTrainedTokenizer>`_ 
-    as the `tokenizer` kwarg argument. In short, the `tokenizer` object must have a `.tokenize(str) -> list[str]` method and 
-    `.convert_tokens_to_string(list[str]) -> str` for detokenisation.
+    as the `tokenizer` kwarg argument. In short, the `tokenizer` object must have a ``.tokenize(str) -> list[str]`` method and 
+    ``.convert_tokens_to_string(list[str]) -> str`` for detokenisation.
     
     :param text_attr: what is the name of the dataframe attribute containing the main text of the document to be split into passages.
         Default is 'body'.
@@ -142,7 +142,7 @@ def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='ti
     :param stride: how many tokens to advance each passage by. Default is 75.
     :param join: how to join the tokens of the passage together. Default is ' '.
     :param prepend_attr: whether another document attribute, such as the title of the document, to each passage, following [Dai2019]. Defaults to 'title'.
-    :param tokenizer: which model to use for tokenizing. The object must have a `.tokenize(str) -> list[str]` method for tokenization and `.convert_tokens_to_string(list[str]) -> str` for detokenization.
+    :param tokenizer: which model to use for tokenizing. The object must have a ``.tokenize(str) -> list[str]`` method for tokenization and ``.convert_tokens_to_string(list[str]) -> str`` for detokenization.
             Default is None. Tokenisation is perfomed by splitting on one-or-more spaces, i.e. based on the Python regular expression ``re.compile(r'\s+')``
     :param kwargs: other arguments to pass through to the SlidingWindowPassager.
     :return: a transformer that splits the documents into passages.
