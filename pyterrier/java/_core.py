@@ -89,6 +89,18 @@ def _mapentry_getitem(self, i):
         return self.getValue()
     raise IndexError()
 
+class Java24Init(JavaInitializer):
+    """Responsible for hacking around JDK safety checks from JDK 24 onwards"""
+    def priority(self) -> int:
+        return -99 # run this after CoreJavaInit
+    
+    def pre_init(self, jnius_config):
+        jnius_config.add_options("--enable-native-access=ALL-UNNAMED")
+
+    @required_raise
+    def post_init(self, jnius):
+        hadoop_comparator_class = pt.java.autoclass("org.apache.hadoop.io.FastByteComparisons$LexicographicalComparerHolder")
+        hadoop_comparator_class.UNSAFE_COMPARER_NAME = 'org.apache.hadoop.io.FastByteComparisons$LexicographicalComparerHolder$PureJavaComparer'
 
 def _is_binary(f):
     import io
