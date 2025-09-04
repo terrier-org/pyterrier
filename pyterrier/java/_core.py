@@ -92,7 +92,7 @@ def _mapentry_getitem(self, i):
 class Java24Init(JavaInitializer):
     """Responsible for hacking around JDK safety checks from JDK 24 onwards"""
     def priority(self) -> int:
-        return -9 # run this after TerrierJavaInit
+        return -99 # run this before TerrierJavaInit
     
     def pre_init(self, jnius_config):
         from warnings import warn
@@ -112,12 +112,12 @@ class Java24Init(JavaInitializer):
         from packaging.version import Version
         from warnings import warn
         if Version(pt.java.J.System.getProperty("java.version")) >= Version("24"):
-            # monkey-patch the hadoop class to use the pure Java that is safe under JDK 24
+            # hadoop will fallback to pureJava for sparc architecture - lets pretend we are for just a minute.
+            arch = pt.java.J.System.getProperty("os.arch")
+            pt.java.J.System.setProperty("os.arch", "sparc")
             hadoop_comparator_class = pt.java.autoclass("org.apache.hadoop.io.FastByteComparisons$LexicographicalComparerHolder")
-            hadoop_comparator_class.UNSAFE_COMPARER_NAME = 'org.apache.hadoop.io.FastByteComparisons$LexicographicalComparerHolder$PureJavaComparer'
-            hadoop_comparator_class.BEST_COMPARER = hadoop_comparator_class.getBestComparer()
-            warn("BEST_COMPARER set")
-            print("BEST_COMPARER" + str( hadoop_comparator_class.BEST_COMPARER.getClass()) )
+            print("BEST_COMPARER" + str( hadoop_comparator_class.BEST_COMPARER.getClass()))
+            pt.java.J.System.setProperty("os.arch", arch)
         else: 
             warn("java.version is " + pt.java.J.System.getProperty("java.version"))
 
