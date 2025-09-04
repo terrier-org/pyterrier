@@ -4,6 +4,7 @@ import re
 import pandas as pd
 from typing import Any, List, Union, Literal, Protocol, runtime_checkable
 from warnings import warn
+import types
 import pyterrier as pt
 
 @runtime_checkable
@@ -300,7 +301,9 @@ def snippets(
         newdf = psgres.groupby(['qid', 'olddocno'])[text_attr].agg(joinstr.join).reset_index().rename(columns={text_attr : summary_attr, 'olddocno' : 'docno'})
         
         return docres.merge(newdf, on=['qid', 'docno'], how='left')
-    return pt.apply.generic(_qbsjoin)   
+    rtr = pt.apply.generic(_qbsjoin, required_columns=['qid', 'query', 'docno', text_attr])
+    rtr.subtransformers = types.MethodType(lambda self: {'tsp' : tsp}, rtr)
+    return rtr
 
 
 class DePassager(pt.Transformer):
