@@ -99,6 +99,7 @@ class Java24Init(JavaInitializer):
         # detect JDK 24 onwards - this is a best attempt - at best, the user will see a warning.
         # the plan is to use https://github.com/kivy/pyjnius/pull/780 to ask the JVM for its version
         # before starting the JVM. 
+        # We /could/ safely add this option from at least JDK 21 onwards. JDK 11 doesnt recognise it.
         if "JAVA_HOME" in os.environ:
             java_home = os.environ["JAVA_HOME"]
             if any([f"{ver}." in java_home for ver in [24,25,26,28,29]]):
@@ -108,7 +109,7 @@ class Java24Init(JavaInitializer):
     def post_init(self, jnius):
         from packaging.version import Version
         if Version(pt.java.J.System.getProperty("java.version")) >= Version("24"):
-            # hadoop will fallback to pureJava for sparc architecture - lets pretend we are for just a minute.
+            # Hadoop will fallback to pureJava for sparc architecture - lets pretend we are for just a minute.
             arch = pt.java.J.System.getProperty("os.arch")
             pt.java.J.System.setProperty("os.arch", "sparc")
             # force initialisation of FastByteComparisons using the sparc arch
