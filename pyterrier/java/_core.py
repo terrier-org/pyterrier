@@ -95,7 +95,6 @@ class Java24Init(JavaInitializer):
         return -99 # run this before TerrierJavaInit
     
     def pre_init(self, jnius_config):
-        from warnings import warn
         # detect JDK 24 onwards - this is a best attempt - at best, the user will see a warning.
         # the plan is to use https://github.com/kivy/pyjnius/pull/780 to ask the JVM for its version
         # before starting the JVM. 
