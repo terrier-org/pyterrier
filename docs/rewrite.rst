@@ -9,13 +9,25 @@ Firstly, we differentiate between two forms of query rewriting:
 - `Q -> Q`: this rewrites the query, for instance by adding/removing extra query terms. Examples might 
   be a WordNet- or Word2Vec-based QE; The input dataframes contain only `["qid", "docno"]` columns. The 
   output dataframes contain `["qid", "query", "query_0"]` columns, where `"query"` contains the reformulated
-  query, and `"query_0"` contains the previous formulation of the query.
+  query, and `"query_0"` contains the previous formulation of the query. An example is the sequential dependence
+  model, discussed below.
 
-- `R -> Q`: these class of transformers rewrite a query by making use of an associated set of documents.
-  This is typically exemplifed by pseudo-relevance feedback. Similarly the output dataframes contain 
-  `["qid", "query", "query_0"]` columns.
+.. schematic::
 
-The previous formulation of the query can be restored using `pt.rewrite.reset()`, discussed below.
+    pt.rewrite.SequentialDependence()
+
+- `R -> Q`: these class of transformers rewrite a query by making use of an associated set of documents, in a formulation
+  typically referred to as pseudo-relevance feedback. Similarly the output dataframes contain 
+  `["qid", "query", "query_0"]` columns. This is typically used in a pipeline such as ``Retriever >> Rewriter >> Retriever``, 
+  as shown below. Examples of include RM3, Bo1 and KL QE, discussed below.
+
+.. schematic::
+
+    index = pt.Artifact.from_hf("pyterrier/vaswani.terrier")
+    dph = index.dph()
+    dph >> pt.rewrite.RM3(index.index_obj()) >> dph
+
+If needed, the previous formulation of the query can be restored using ``pt.rewrite.reset()``, discussed below.
 
 SequentialDependence
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -119,6 +131,18 @@ previous query reformulation can be obtained by inclusion of a reset transformer
 
 .. autofunction:: pyterrier.rewrite.reset()
 
+This is useful if, for instance, you want to use a PRF pipeline to retrieve more relevant documents, but then want to
+revert to the original query formulation for a final ranking step such as MonoT5. For example::
+
+    dph >> pt.rewrite.RM3(index) >> dph >> pt.rewrite.reset()  >> pt.text.get_text(pt.get_dataset(...)) >> MonoT5ReRanker(...)
+
+.. schematic::
+
+    from pyterrier_t5 import MonoT5ReRanker
+    index = pt.Artifact.from_hf("pyterrier/vaswani.terrier")
+    dph = index.dph()
+    monoT5 = MonoT5ReRanker()
+    dph >> pt.rewrite.RM3(index.index_obj()) >> dph >> pt.rewrite.reset() >> pt.text.get_text(pt.get_dataset('irds:vaswani')) >> monoT5
 
 Tokenising the Query
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -131,7 +155,7 @@ In this case, a custom tokeniser can be applied as part of the retrieval pipelin
 Stashing the Documents
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Sometimes you want to apply a query rewriting function as a re-ranker, but your rewriting function uses a different document ranking.
+Very rarely..., you might want to apply a query rewriting function as a re-ranker, but your rewriting function uses a different document ranking.
 In this case, you can use `pt.rewrite.stash_results()` to stash the retrieved documents for each query, so they can be recovered and 
 re-ranked later using your rewritten query formulation.
 
