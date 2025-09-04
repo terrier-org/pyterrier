@@ -37,6 +37,12 @@ For instance, to create a re-ranking pipeline that re-scores the top 100 BM25 do
     pl2 = pt.terrier.Retriever(index, wmodel="PL2")
     pipeline = (bm25 % 100) >> pl2
 
+.. schematic::
+    :input_columns: qid,query
+
+    index = pt.terrier.TerrierIndex.from_hf('pyterrier/vaswani.terrier')
+    index.bm25() % 100 >> index.retriever("pl2")
+
 Retriever
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
