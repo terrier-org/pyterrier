@@ -302,7 +302,7 @@ def snippets(
         
         return docres.merge(newdf, on=['qid', 'docno'], how='left')
     rtr = pt.apply.generic(_qbsjoin, required_columns=['qid', 'query', 'docno', text_attr])
-    rtr.subtransformers = types.MethodType(lambda self: {'tsp' : tsp}, rtr)
+    rtr.subtransformers = types.MethodType(lambda self: {'tsp' : tsp}, rtr) # type: ignore[attr-defined]
     return rtr
 
 
