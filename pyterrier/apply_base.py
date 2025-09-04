@@ -375,6 +375,9 @@ class ApplyDocFeatureTransformer(pt.Transformer):
     def __repr__(self):
         return "pt.apply.doc_features()"
     
+    def transform_output(self, cols: List[str]) -> List[str]:
+        return cols + ["features"]
+
     def transform_iter(self, inp: pt.model.IterDict) -> pt.model.IterDict:
         if self.required_columns is not None:
             inp = pt.utils.peekable(inp)

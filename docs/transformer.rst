@@ -110,18 +110,18 @@ This base class exposes a ``fit()`` method that can be used for transformers tha
 .. autoclass:: pyterrier.Estimator
     :members:
 
-The ComposedPipeline implements ``fit()``, which applies the interimediate transformers on the specified training (and validation) topics, and places
+The Compose operator (``>>``) implements ``fit()``, which applies the intermediate transformers on the specified training (and validation) topics, and places
 the output into the ``fit()`` method of the final transformer.
 
 Indexer
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This base  class exposes a ``index()`` method that can be used for transformers that create an index.
+This base class exposes a ``index()`` method that can be used for transformers that create an index.
 
 .. autoclass:: pyterrier.Indexer
     :members:
 
-The ComposedPipeline also implements ``index()``, which applies the interimediate transformers on the specified documents to be indexed, and places
+The Compose operator (``>>``) also implements ``index()``, which applies the intermediate transformers on the specified documents to be indexed, and places
 the output into the ``index()`` method of the final transformer.
 
 Internal transformers
@@ -189,7 +189,7 @@ Here are some hints for writing Transformers:
  - Except for an indexer, you should implement a ``transform()`` and/or ``transform_iter()`` method.
  - If your approach ranks results, use ``pt.model.add_ranks()`` to add the rank column. (``pt.apply.doc_score`` will call add_ranks automatically). 
  - If your approach can be trained, your transformer should extend Estimator, and implement the ``fit()`` method.
- - If your approach is an indexer, your transformer should extend Indexer and implement ``index()`` method.
+ - If your approach is an indexer, your transformer should extend Indexer and implement ``index()`` method, as well as the ``index_inputs()`` method that describes the expected input columns.
 
 Optimisation of Transfomer Pipelines
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

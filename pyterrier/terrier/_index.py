@@ -12,6 +12,7 @@ class TerrierModel(Enum):
     """
     bm25 = 'bm25'
     dph = 'dph'
+    pl2 = 'pl2'
 
 
 ######################################
@@ -199,10 +200,13 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
 _WMODEL_MAP: Dict[TerrierModel, str] = {
     TerrierModel.bm25: 'BM25',
     TerrierModel.dph: 'DPH',
+    TerrierModel.pl2: 'PL2',
 }
-def _map_wmodel(model):
-    return _WMODEL_MAP[model]
 
+def _map_wmodel(model: Union[TerrierModel, str]) -> str:
+    if isinstance(model, str):
+        return model
+    return _WMODEL_MAP[model]
 
 _CONTROL_MAP: Dict[str, str] = {
     'bm25.k1': 'bm25.k_1',

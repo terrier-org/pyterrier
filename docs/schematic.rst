@@ -151,7 +151,7 @@ which conditionally applies its ``retriever`` based on whether the query is in t
 .. schematic::
     import pyterrier_caching
     retr = pt.Artifact.from_hf('pyterrier/vaswani.terrier').bm25()
-    pyterrier_caching.RetrieverCache(retriever=retr)
+    pyterrier_caching.RetrieverCache("/tmp/cache", retriever=retr)
 
 This format is in all cases where a transformer has subtransformers (which is why it is the default). However, it may not
 be the most visually descriptive for all cases, which is why ``"linked"`` and ``"combine"`` modes are also available.

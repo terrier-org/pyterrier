@@ -28,14 +28,18 @@ Apply one transformation followed by another::
 
     #rewrites topics to include #1 etc
     sdm = pt.rewrite.SDM()
-    br = pt.terrier.Retriever(index, "DPH")
+    dph = pt.terrier.Retriever(index, "DPH")
 
-    res = br.transform( sdm.transform(topics))
+    res = dph.transform( sdm.transform(topics))
 
 We use `>>` as a shorthand for then (also called compose)::
 
-    res = (sdm >> br).transform(topics)
+    res = (sdm >> dph).transform(topics)
 
+.. schematic::
+    
+    index = pt.Artifact.from_hf("pyterrier/vaswani.terrier")
+    pt.rewrite.SDM() >> index.dph() 
 
 **Example:**
 
@@ -71,6 +75,11 @@ NB: Then can also be used for retrieval and re-ranking pipelines, such as::
     pipeline = pt.terrier.Retriever(index, "DPH") >> pt.terrier.Retriever(index, "BM25")
 
 
+.. schematic ::
+
+    index = pt.Artifact.from_hf("pyterrier/vaswani.terrier")
+    index.dph() >> index.bm25() 
+
 Linear Combine and Scalar Factor (`+`, `*`)
 -------------------------------------------
 
@@ -79,22 +88,26 @@ different retrieval systems to be linearly combined (with weights).
 
 Instead of the following Python::
 
-    br_DPH = pt.terrier.Retriever(index, "DPH")
-    br_BM25 = pt.terrier.Retriever(index, "BM25")
+    DPH = pt.terrier.Retriever(index, "DPH")
+    BM25 = pt.terrier.Retriever(index, "BM25")
 
-    res1 = br_DPH.transform(topics)
-    res2 = br_BM25.transform(topics)
+    res1 = DPH.transform(topics)
+    res2 = BM25.transform(topics)
     res = res1.merge(res2, on=["qid", "docno"])
     res["score"] = 2 * res["score_x"] + res["score_y"]
 
 We use binary `+` and `*` operators. This is natural, as it is intuitive to combine weighted retrieval functions using `+` and `*` ::
 
-    br_DPH = pt.terrier.Retriever(index, "DPH")
-    br_BM25 = pt.terrier.Retriever(index, "BM25")
-    res = (2* br_DPH + br_BM25).transform(topics)
+    DPH = pt.terrier.Retriever(index, "DPH")
+    BM25 = pt.terrier.Retriever(index, "BM25")
+    res = (2* DPH + BM25).transform(topics)
 
+.. schematic ::
 
-If the DPH and BM25 transformers would respectively return:
+    index = pt.Artifact.from_hf("pyterrier/vaswani.terrier")
+    2 * index.dph() + index.bm25() 
+
+If the DPH and BM25 transformers respectively returned:
 
 === ===== ===== ====
 qid docno score rank
@@ -110,7 +123,7 @@ q1  d10   4     0
 q1  d01   3     1
 === ===== ===== ====
 
-then the application of the transformer represented by the expression `(2* br_DPH + br_BM25)` would be:
+then the application of the transformer represented by the expression `(2* DPH + BM25)` would be:
 
 === ===== ===== =====
 qid docno score rank
@@ -125,8 +138,8 @@ NB: Any documents not present in one  of the constituent rankings will contribut
 **Precedence and Associativity**
 
 The `+` and `*` operators retain their classical precendence among Pythons operators. This means that the intended semantics
-of an expression of linear combinations and scalar factors are clear - indeed, `*` binds higher than `+`, so `2* br_DPH + br_BM25`
-is interpreted as `(2* br_DPH) + br_BM25`.
+of an expression of linear combinations and scalar factors are clear - indeed, `*` binds higher than `+`, so `2* DPH + BM25`
+is interpreted as `(2* DPH) + BM25`.
 
 Set Intersection and Union (`&`, `|`)
 --------------------------------------------
@@ -135,11 +148,21 @@ The set that only includes documents that occur in the intersection (`&`)
 and union (`|`) of both retrieval sets. Scores and ranks are not returned - hence,
 the rankings documents would normally be re-scored::
 
-    BM25_br = pt.terrier.Retriever(index, "BM25")
-    PL2_br = pt.terrier.Retriever(index, "PL2")
+    BM25 = pt.terrier.Retriever(index, "BM25")
+    PL2 = pt.terrier.Retriever(index, "PL2")
 
-    res_intersection = (BM25_br & PL2_br).transform(topics)
-    res_union = (BM25_br | PL2_br).transform(topics)
+    res_intersection = (BM25 & PL2).transform(topics)
+    res_union = (BM25 | PL2).transform(topics)
+
+.. schematic ::
+
+    index = pt.Artifact.from_hf("pyterrier/vaswani.terrier")
+    (index.bm25() & index.retriever("PL2"))
+
+.. schematic ::
+
+    index = pt.Artifact.from_hf("pyterrier/vaswani.terrier")
+    (index.bm25() | index.retriever("PL2"))
 
 **Examples:**
 
@@ -187,6 +210,11 @@ Rank Cutoff (`%`)
 The `%` operator is called rank cutoff, and limits the number of results for each query::
 
     pipe1 = pt.terrier.Retriever(index, "BM25") % 2
+
+.. schematic ::
+
+    index = pt.Artifact.from_hf("pyterrier/vaswani.terrier")
+    index.bm25() % 2 
 
 **Example:**
 
@@ -275,14 +303,14 @@ Here we take one system, e.g. DPH, to get an initial candidate set, then add mor
 
 The Python would have looked like::
 
-    sample_br = BatchRetrieve(index, "DPH")
-    BM25F_br = BatchRetrieve(index, "BM25F")
-    PL2F_br = BatchRetrieve(index, "PL2F")
+    DPH_candidates = pt.terrier.Retriever(index, "DPH")
+    BM25F = pt.terrier.Retriever(index, "BM25F")
+    PL2F = pt.terrier.Retriever(index, "PL2F")
 
-    sampleRes = sample_br.transform(topics)
-    # assumes sampleRes contains the queries
-    BM25F_res = BM25F_br.transform(sampleRes)
-    PL2F_res = PL2F_br.transform(sampleRes)
+    candRes = DPH_candidates.transform(topics)
+    # assumes candRes contains the query columns
+    BM25F_res = BM25F.transform(candRes) # rerankers adds BM25F score
+    PL2F_res = PL2F.transform(candRes)  # rerankers adds PL2F score
 
     final_res = BM25F_res.join(PL2F_res, on=["qid", "docno"])
     final_res["features"] = np.stack(final_res["features_x"], final_res["features_y"])
@@ -290,14 +318,19 @@ The Python would have looked like::
 
 Instead, we use `**` to denote feature union::
 
-    sample_br = BatchRetrieve(index, "DPH")
-    BM25F_br = BatchRetrieve(index, "BM25F")
-    PL2F_br = BatchRetrieve(index, "PL2F")
+    DPH_candidates = pt.terrier.Retriever(index, "DPH")
+    BM25F = pt.terrier.Retriever(index, "BM25F")
+    PL2F = pt.terrier.Retriever(index, "PL2F")
 
     # ** is the feature union operator. It requires a candidate document set as input 
-    (BM25F_br ** PL2F_br)).transform(sample_br.transform(topics))
+    (BM25F ** PL2F)).transform(DPH_candidates.transform(topics))
     # or combined with the then operator, >>
-    (sample_br >> (BM25F_br ** PL2F_br)).transform(topics)
+    (DPH_candidates >> (BM25F ** PL2F)).transform(topics)
+
+.. schematic ::
+
+    index = pt.Artifact.from_hf("pyterrier/vaswani.terrier")
+    index.dph() >> ( index.retriever("BM25F") ** index.retriever("PL2F") )
 
 NB: Feature union expects the documents being returned by each side of the union to be identical.
 It will produce a warning if they are not identical. Documents not returned will obtain a score of 0
@@ -305,7 +338,7 @@ for that feature.
 
 **Example:**
 
-For example, consider that sample_br returns a ranking as follows:
+For example, consider that DPH_candidates returns a ranking as follows:
 
 === ===== ===== ====
 qid docno score rank
@@ -328,9 +361,9 @@ More examples of feature union can be found in the learning-to-rank documentatio
 
 Feature union is associative, so in the following examples, `x1`, `x2` and `x3` have identical semantics::
 
-    x1 = sample_br >> ( BM25F_br ** PL2F_br ** urllen)
-    x2 =  sample_br >> ( (BM25F_br ** PL2F_br) ** urllen)
-    x3 =  sample_br >> ( BM25F_br ** (PL2F_br ** urllen))
+    x1 = DPH_candidates >> ( BM25F ** PL2F ** urllen)
+    x2 =  DPH_candidates >> ( (BM25F ** PL2F) ** urllen)
+    x3 =  DPH_candidates >> ( BM25F ** (PL2F ** urllen))
 
 Pipelines `x1`, `x2` and `x3` are all pipelines that create **identical** document rankings with three features, 
 in the precise order BM25F, PL2F and urllength. 
@@ -340,9 +373,9 @@ expressed in parentheses. In this way the semantics of pipelines `a`, `b` and `c
 are not identical, and indeed, `a` is parsed like `b`, while `c` is almost always the desired outcome::
 
     # a is parsed in the same way as b, when the likely desired parse was c
-    a = sample_br >> BM25F_br ** PL2F_br
-    b = (sample_br >> BM25F_br) ** PL2F_br)
-    c = sample_br >> ( BM25F_br ** PL2F_br)
+    a = DPH_candidates >> BM25F ** PL2F
+    b = (DPH_candidates >> BM25F) ** PL2F)
+    c = DPH_candidates >> ( BM25F ** PL2F)
     
 
 Caching Transformers

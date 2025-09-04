@@ -55,7 +55,7 @@ class SetUnion(Transformer):
         self.left = left
         self.right = right
 
-    schematic = {'label': 'SetUnion |'}
+    schematic = {'label': 'SetUnion |', 'inner_pipelines_mode': 'linked'}
 
     def transform(self, topics):
         res1 = self.left.transform(topics)
@@ -84,7 +84,7 @@ class SetIntersection(Transformer):
         self.left = left
         self.right = right
 
-    schematic = {'label': 'SetIntersection &'}
+    schematic = {'label': 'SetIntersection &', 'inner_pipelines_mode': 'linked'}
 
     def transform(self, topics):
         res1 = self.left.transform(topics)
@@ -115,7 +115,7 @@ class Sum(Transformer):
         self.left = left
         self.right = right
 
-    schematic = {'label': 'Sum +'}
+    schematic = {'label': 'Sum +', 'inner_pipelines_mode': 'linked'}
 
     def transform(self, topics_and_res):
         res1 = self.left.transform(topics_and_res)
