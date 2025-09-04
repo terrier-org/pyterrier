@@ -16,7 +16,8 @@ def _apply_default_schematic(schematic: Dict[str, Any], transformer: pt.Transfor
         label = transformer.__class__.__name__
         if label.endswith('Transformer'):
             schematic['label'] = label[:-len('Transformer')]
-        schematic['label'] = label
+        else:
+            schematic['label'] = label
 
     if 'class_name' not in schematic:
         name = f'{transformer.__class__.__module__}.{transformer.__class__.__name__}'
@@ -56,8 +57,8 @@ def _apply_default_schematic(schematic: Dict[str, Any], transformer: pt.Transfor
         except pt.inspect.InspectError:
             subtransformers = {}
         if subtransformers:
-            subtransformer_inputs = input_columns or _INFER
-            if schematic.get('inner_pipelines', 'unlinked') == 'unlinked':
+            subtransformer_inputs = schematic['input_columns'] or _INFER
+            if schematic.get('inner_pipelines_mode', 'unlinked') == 'unlinked':
                 subtransformer_inputs = _INFER
             pipelines = []
             pipeline_labels = []
