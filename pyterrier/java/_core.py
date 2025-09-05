@@ -106,8 +106,12 @@ class Java24Init(JavaInitializer):
 
     @required_raise
     def post_init(self, jnius):
-        from packaging.version import Version
-        if Version(pt.java.J.System.getProperty("java.version")) >= Version("24"):
+        from packaging.version import Version, parse
+        import re
+        java_version = pt.java.J.System.getProperty("java.version")
+        # RTD has an annoying -internal in their Java version
+        java_version = re.sub(r'[-_].*$', '', java_version)
+        if parse(java_version) >= Version("24"):
             # Hadoop will fallback to pureJava for sparc architecture - lets pretend we are for just a minute.
             arch = pt.java.J.System.getProperty("os.arch")
             pt.java.J.System.setProperty("os.arch", "sparc")
