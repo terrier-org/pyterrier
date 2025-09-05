@@ -512,7 +512,9 @@ def Experiment(
     :param precompute_prefix: If set to True, then pt.Experiment will look for a common prefix on all input pipelines, and execute that common prefix pipeline only once. 
         This functionality assumes that the intermidiate results of the common prefix can fit in memory. Set to False by default.
     :param verbose: If True, a tqdm progress bar is shown as systems (or systems*batches if batch_size is set) are executed. Default=False.
-    :param validate: If True, each transformer is validated against the topics dataframe, to ensure that it produces the expected columns. Default=True.
+    :param validate: If set to value other than 'ignore', each transformer is validated against the topics dataframe, to ensure that it produces the expected output columns.
+        ``pt.inspect.transformer_outputs()`` is used to determine the output columns. If 'warn', then transformers whose output columns don't match the columns required 
+        by the specified evaluation measures will product warnings; If 'error', then an error is produced. If a transformer cannot be inspected, a warning is produced.
 
     :return: A Dataframe with each retrieval system with each metric evaluated.
     """
@@ -782,11 +784,13 @@ def _validate(
             try:
                 found_cols = pt.inspect.transformer_outputs(system, input_columns=topics.columns.tolist()) or [] # or [] will never be called, but is needed to make mypy happy
             except pt.inspect.InspectError as ie: # when we cant tell
-                warn("%s failed to validate: %s - if your pipeline works, set validate='ignore' to remove this warning, or add transform_output method to the transformers in this pipeline to clarify how it works" % (friendly_name, str(ie)))
+                warn(
+                    "%s failed to validate: %s - if your pipeline works, set validate='ignore' to remove this warning, or add transform_output method to the transformers in this pipeline to clarify how it works" % (friendly_name, str(ie)))
                 continue
             except pt.validate.InputValidationError as ie: # (when input validation fails)
                 if validate == 'warn':
-                    warn("%s failed to validate: %s" % (friendly_name, str(ie)))
+                    warn(
+                        "%s failed to validate: %s" % (friendly_name, str(ie)))
                     continue
                 elif validate == 'error':
                     raise ValueError("%s failed to validate: %s" % (friendly_name, str(ie))) from ie
@@ -797,7 +801,8 @@ def _validate(
             message = "Transformer %s (%s) at position %i does not produce all required columns %s, found only %s" % (
                 name, str(system), i, str(list(required_cols)), str(found_cols))
             if validate == 'warn':
-                warn(message)
+                warn(
+                    message)
             elif validate == 'error':
                 raise ValueError(message)
 
