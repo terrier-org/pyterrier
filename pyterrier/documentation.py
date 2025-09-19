@@ -42,7 +42,7 @@ def objects_inv() -> dict:
     if not objects_inv_path.exists() or _is_old(objects_inv_path, objects_inv_url):
         if not objects_inv_path.parent.exists():
             objects_inv_path.parent.mkdir(parents=True, exist_ok=True)
-        pt.io.download(objects_inv_url, str(objects_inv_path), verbose=False)
+        pt.io.download(objects_inv_url, str(objects_inv_path), verbose=False, headers={"User-Agent": "curl/7.81.0"})
     # parse the objects.inv file
     with objects_inv_path.open('rb') as f:
         for _ in range(4):
