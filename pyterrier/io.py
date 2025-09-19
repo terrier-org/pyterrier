@@ -441,10 +441,10 @@ def finalized_directory(path: str) -> Generator[str, None, None]:
     os.replace(path_tmp, path)
 
 
-def download(url: str, path: str, *, expected_sha256: Optional[str] = None, verbose: bool = True) -> None:
+def download(url: str, path: str, *, expected_sha256: Optional[str] = None, verbose: bool = True, headers={}) -> None:
     """Downloads a file from a URL to a local path."""
     with finalized_open(path, 'b') as fout, \
-         download_stream(url, expected_sha256=expected_sha256, verbose=verbose) as fin:
+         download_stream(url, expected_sha256=expected_sha256, verbose=verbose, headers = headers) as fin:
         while chunk := fin.read1():
             fout.write(chunk)
 
