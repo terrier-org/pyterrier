@@ -255,8 +255,6 @@ class RemoteDataset(Dataset):
             assert "/" not in intarfile
             assert ".tar" in tarname or ".tgz" in tarname or ".zip" in tarname
             localtarfile, _ = self._get_one_file("tars", tarname)
-            tarobj = tarfile.open(localtarfile, "r")
-            tarobj.extract(intarfile, path=self.corpus_home)
             extractor = zipfile.ZipFile if ".zip" in tarname else tarfile.open
             with extractor(localtarfile, "r") as tarobj:
                 tarobj.extract(intarfile, path=self.corpus_home)
