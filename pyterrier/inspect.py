@@ -298,7 +298,7 @@ class TransformerAttribute:
     init_parameter_kind: Optional[inspect._ParameterKind]
 
 
-def transformer_attributes(transformer: pt.Transformer) -> List[TransformerAttribute]:
+def transformer_attributes(transformer: pt.Transformer, strict=True) -> List[TransformerAttribute]:
     """Infers a list of attributes of the transformer.
 
     Here, an attribute is defined as any attribute of the transformer that is explicity set by the ``__init__`` method,
@@ -331,7 +331,10 @@ def transformer_attributes(transformer: pt.Transformer) -> List[TransformerAttri
         elif hasattr(transformer, p.name):
             val = getattr(transformer, p.name)
         else:
-            raise InspectError(f"Cannot identify attribute {p.name} in transformer {transformer}. Ensure that the attribute is set in the __init__ method.")
+            if strict:
+                raise InspectError(f"Cannot identify attribute {p.name} in transformer {transformer}. Ensure that the attribute is set in the __init__ method.")
+            else:
+                val = ... # could not identify the attribute
         result.append(TransformerAttribute(
             name=p.name,
             value=val,
@@ -415,7 +418,7 @@ def subtransformers(transformer: pt.Transformer) -> Dict[str, Union[pt.Transform
     if isinstance(transformer, HasSubtransformers):
         return transformer.subtransformers()
     result: Dict[str, Union[pt.Transformer, List[pt.Transformer]]] = {}
-    for attr in transformer_attributes(transformer):
+    for attr in transformer_attributes(transformer, strict=False):
         if isinstance(attr.value, pt.Transformer) and not isinstance(attr.value, pt.Artifact):
             result[attr.name] = attr.value
         elif isinstance(attr.value, (list, tuple)) and all(isinstance(v, pt.Transformer) and not isinstance(v, pt.Artifact) for v in attr.value):
