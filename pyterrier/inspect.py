@@ -312,6 +312,7 @@ def transformer_attributes(transformer: pt.Transformer, strict=True) -> List[Tra
 
     Args:
         transformer: The transformer to inspect.
+        strict: If True, raises an error if an attribute cannot be identified from the transformer. If False, the attribute's value is set to ``...`` in these cases.
 
     Returns:
         A list of :class:`~pyterrier.inspect.TransformerAttribute` objects representing the attributes of the transformer.
