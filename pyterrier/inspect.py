@@ -282,7 +282,7 @@ class TransformerAttribute:
     def __init__(
         self,
         name: str,
-        value: Any,
+        value: Any = MISSING,
         init_default_value: Any = inspect.Parameter.empty,
         init_parameter_kind: Optional[inspect._ParameterKind] = None,
     ):
@@ -297,22 +297,24 @@ class TransformerAttribute:
     init_default_value: Any
     init_parameter_kind: Optional[inspect._ParameterKind]
 
+    MISSING = object()
 
-def transformer_attributes(transformer: pt.Transformer, strict=True) -> List[TransformerAttribute]:
+
+def transformer_attributes(transformer: pt.Transformer, *, strict: bool = True) -> List[TransformerAttribute]:
     """Infers a list of attributes of the transformer.
 
-    Here, an attribute is defined as any attribute of the transformer that is explicity set by the ``__init__`` method,
+    Here, an attribute is defined as any attribute of the transformer that is explicitly set by the ``__init__`` method,
     either under the same name (e.g., ``self.foo = foo``) or as a private attribute (e.g., ``self._foo = foo``).
 
-    This definition allow for a set of attributes that should describe the state of a transformer. These attributes can
+    This definition allows for a set of attributes that should describe the state of a transformer. These attributes can
     be used to reconstruct the transformer from its attributes, e.g., by calling :meth:`~pyterrier.inspect.transformer_apply_attributes`.
 
-    To handle edge cases (e.g., where the ``__init__`` paraemters do not match the attribute names), you can implement
+    To handle edge cases (e.g., where the ``__init__`` parameters do not match the attribute names), you can implement
     the :class:`~pyterrier.inspect.HasAttributes` protocol.
 
     Args:
         transformer: The transformer to inspect.
-        strict: If True, raises an error if an attribute cannot be identified from the transformer. If False, the attribute's value is set to ``...`` in these cases.
+        strict: If True, raises an error if an attribute cannot be identified from the transformer. If False, the attribute's value is set to ``TransformerAttribute.MISSING`` in these cases.
 
     Returns:
         A list of :class:`~pyterrier.inspect.TransformerAttribute` objects representing the attributes of the transformer.
@@ -335,7 +337,7 @@ def transformer_attributes(transformer: pt.Transformer, strict=True) -> List[Tra
             if strict:
                 raise InspectError(f"Cannot identify attribute {p.name} in transformer {transformer}. Ensure that the attribute is set in the __init__ method.")
             else:
-                val = ... # could not identify the attribute
+                val = TransformerAttribute.MISSING # could not identify the attribute
         result.append(TransformerAttribute(
             name=p.name,
             value=val,
@@ -377,6 +379,9 @@ def transformer_apply_attributes(transformer: pt.Transformer, **kwargs: Any) -> 
             attr.value = kwargs.pop(attr.name)
     if any(kwargs):
         raise InspectError(f"Unknown attributes {list(kwargs.keys())} for transformer {transformer}")
+    missing_attributes = [attr.name for attr in attributes if attr.value is TransformerAttribute.MISSING]
+    if missing_attributes:
+        raise InspectError(f"Attributes {missing_attributes} for transformer {transformer} are missing.")
     init_args = []
     init_kwargs = {}
     for attr in attributes:
