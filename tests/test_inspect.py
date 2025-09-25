@@ -366,7 +366,7 @@ class TestInspect(BaseTestCase):
         attrs = pt.inspect.transformer_attributes(A(1), strict=False)
         self.assertEqual(1, len(attrs))
         self.assertEqual('x', attrs[0].name)
-        self.assertEqual(..., attrs[0].value)
+        self.assertEqual(pt.inspect.TransformerAttribute.MISSING, attrs[0].value)
 
         self.assertEqual(0, len(pt.inspect.subtransformers(A(1))))
 
