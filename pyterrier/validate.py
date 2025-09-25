@@ -250,7 +250,7 @@ class _ValidationContextManager:
             return False # the captured exception takes priority
 
         if self.attempts > 0 and self.attempts == len(self.errors):
-            message = "DataFrame does not match required columns for this transformer."
+            message = "DataFrame(columns=%s) does not match required columns for this transformer." % str(self.inp_columns)
             if self.warn:
                 warnings.warn(f"{message} {self.errors}", InputValidationWarning)
             else:
