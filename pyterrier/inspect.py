@@ -282,7 +282,7 @@ class TransformerAttribute:
     def __init__(
         self,
         name: str,
-        value: Any = MISSING,
+        value: Any,
         init_default_value: Any = inspect.Parameter.empty,
         init_parameter_kind: Optional[inspect._ParameterKind] = None,
     ):
