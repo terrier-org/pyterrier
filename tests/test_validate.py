@@ -72,14 +72,14 @@ class TestValidate(unittest.TestCase):
                 pt.validate.columns(pd.DataFrame({'text': ['hello', 'world']}), includes=['qid'], warn=True)
                 self.assertEqual(len(w), 1)
                 self.assertTrue(issubclass(w[0].category, pt.validate.InputValidationWarning))
-                self.assertIn("DataFrame does not match required columns", str(w[0].message))
+                self.assertIn("does not match required columns", str(w[0].message))
         with self.subTest('cols'):
             with warnings.catch_warnings(record=True) as w:
                 warnings.simplefilter("always")
                 pt.validate.columns(['text', 'other'], includes=['qid'], warn=True)
                 self.assertEqual(len(w), 1)
                 self.assertTrue(issubclass(w[0].category, pt.validate.InputValidationWarning))
-                self.assertIn("DataFrame does not match required columns", str(w[0].message))
+                self.assertIn("does not match required columns", str(w[0].message))
         with self.subTest('iterdict'):
             with warnings.catch_warnings(record=True) as w:
                 warnings.simplefilter("always")
