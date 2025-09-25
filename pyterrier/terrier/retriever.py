@@ -763,10 +763,18 @@ class FeaturesRetriever(Retriever):
         if not isinstance(queries, pd.DataFrame):
             raise ValueError(".transform() should be passed a dataframe. Use .search() to execute a single query; Use .transform_iter() for iter-dicts")
 
+        # use pt.validate - this makes inspection of input columns better
+        with pt.validate.any(queries) as v:
+            v.columns(includes=['qid', 'query', 'docid'], mode='rerank') # docid-based results frame
+            v.query_frame(extra_columns=['query_toks'], mode='retrieve_toks')
+            v.query_frame(extra_columns=['query'], mode='retrieve')
+            v.result_frame(extra_columns=['query'], mode='rerank')
+
         docno_provided = "docno" in queries.columns
         docid_provided = "docid" in queries.columns
         scores_provided = "score" in queries.columns
-        if docno_provided or docid_provided:
+        if v.mode == 'rerank':
+            assert docno_provided or docid_provided, "For reranking, either docno or docid must be provided"
             #re-ranking mode
             assert pt.terrier.check_version(5.3)
             input_results = queries
@@ -780,6 +788,7 @@ class FeaturesRetriever(Retriever):
             if not scores_provided and self.wmodel is None:
                 raise ValueError("We're in re-ranking mode, but input does not have scores, and wmodel is None")
         else:
+            assert v.mode == 'retrieve' or v.mode == 'retrieve_toks'
             assert not scores_provided
 
             if self.wmodel is None:
@@ -790,7 +799,10 @@ class FeaturesRetriever(Retriever):
             queries['qid'] = queries['qid'].astype(str)
 
         newscores=[]
-        for row in pt.tqdm(queries.itertuples(), desc=str(self), total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
+        iter = queries.itertuples()
+        if self.verbose and len(queries):
+            iter = pt.tqdm(iter, desc=str(self), total=queries.shape[0], unit="q")
+        for row in iter:
             qid = str(row.qid)
             query_toks_present = 'query_toks' in row._fields
             if query_toks_present:
