@@ -349,6 +349,27 @@ class TestInspect(BaseTestCase):
         with self.assertRaises(pt.inspect.InspectError):
             pt.inspect.transformer_outputs(br0 >> pt.apply.generic(_rename_context), ["qid", "query"])
 
+    def test_subtransformers_bad_attr_inspect(self):
+
+        # this class does not set self.x in __init__  
+        class A(pt.Transformer):
+            def __init__(self, x):
+                # x is ignored
+                super().__init__()
+
+            def transform(self, inp):
+                return None
+        
+        with self.assertRaises(pt.inspect.InspectError):
+            print(pt.inspect.transformer_attributes(A(1)))
+
+        attrs = pt.inspect.transformer_attributes(A(1), strict=False)
+        self.assertEqual(1, len(attrs))
+        self.assertEqual('x', attrs[0].name)
+        self.assertEqual(pt.inspect.TransformerAttribute.MISSING, attrs[0].value)
+
+        self.assertEqual(0, len(pt.inspect.subtransformers(A(1))))
+
     def test_transformer_type(self):
         class A(pt.Transformer):
             def transform(self, inp):
