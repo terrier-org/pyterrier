@@ -385,11 +385,19 @@ class Retriever(pt.Transformer):
         if not isinstance(queries, pd.DataFrame):
             raise ValueError(".transform() should be passed a dataframe. Use .search() to execute a single query; Use .transform_iter() for iter-dicts")
         
+        # use pt.validate - this makes inspection of input columns better
+        with pt.validate.any(queries) as v:
+            v.columns(includes=['qid', 'query', 'docid'], mode='rerank') # docid-based results frame
+            v.query_frame(extra_columns=['query'], mode='retrieve')
+            v.query_frame(extra_columns=['query_toks'], mode='retrieve_toks')
+            v.result_frame(extra_columns=['query'], mode='rerank')
+            
         docno_provided = "docno" in queries.columns
         docid_provided = "docid" in queries.columns
         scores_provided = "score" in queries.columns
         input_results = None
-        if docno_provided or docid_provided:
+        if v.mode == 'rerank':
+            assert docno_provided or docid_provided, "For reranking, either docno or docid must be provided"
             assert pt.terrier.check_version(5.3)
             input_results = queries
 
@@ -419,11 +427,11 @@ class Retriever(pt.Transformer):
                 # create a future for each query, and submit to Terrier
                 future_results = {
                     executor.submit(_one_row, row, input_results, docno_provided=docno_provided, docid_provided=docid_provided, scores_provided=scores_provided) : row.qid 
-                    for row in queries.itertuples()}                
+                    for row in queries.itertuples()}
                 
                 # as these futures complete, wait and add their results
                 iter = concurrent.futures.as_completed(future_results)
-                if self.verbose:
+                if self.verbose and len(queries):
                     iter = pt.tqdm(iter, desc=str(self), total=queries.shape[0], unit="q")
                 
                 for future in iter:
@@ -431,7 +439,7 @@ class Retriever(pt.Transformer):
                     results.extend(res)
         else:
             iter = queries.itertuples()
-            if self.verbose:
+            if self.verbose and len(queries):
                 iter = pt.tqdm(iter, desc=str(self), total=queries.shape[0], unit="q")
             for row in iter:
                 res = self._retrieve_one(row, input_results, docno_provided=docno_provided, docid_provided=docid_provided, scores_provided=scores_provided)
