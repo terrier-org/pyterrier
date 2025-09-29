@@ -11,7 +11,7 @@ import pyterrier as pt
 
 MAVEN_BASE_URL = "https://repo1.maven.org/maven2/"
 JITPACK_BASE_URL = "https://jitpack.io/"
-
+USER_AGENT = "curl/7.81.0"
 
 class OnlineMode(Enum):
     ONLINE = 'ONLINE'
@@ -109,7 +109,7 @@ def get_package_jar(orgName, packageName, version, file_path=None, artifact="jar
         mvnUrl = MAVEN_BASE_URL + filelocation
 
     try:
-        pt.io.download(mvnUrl, target_file, verbose=True)
+        pt.io.download(mvnUrl, target_file, verbose=True, headers={"User-Agent": USER_AGENT})
     except requests.exceptions.ConnectionError as he:
         if mode == OnlineMode.UNSET:
             offline() # now we're in offline mode
@@ -143,9 +143,9 @@ def latest_version_num(orgName, packageName):
 
     url_str = MAVEN_BASE_URL + orgName + "/" + packageName + "/maven-metadata.xml"
     try:
-        with urllib.request.urlopen(url_str) as url:
+        with urllib.request.urlopen(urllib.request.Request( url_str, headers={"User-Agent": USER_AGENT})) as url:
             xml_str = url.read()
-    except urllib.error.URLError:
+    except urllib.error.URLError as ue:
         if mode == OnlineMode.UNSET:
             offline()
             # no internet connection, use the latest version found locally.
@@ -153,7 +153,7 @@ def latest_version_num(orgName, packageName):
             if version is None:
                 raise # version not found, re-raise the URLError error
             else:
-                warn(f'Attempted to get latest version of {packageName} from maven, but was offline. Using latest cached version: {version}')
+                warn(f'Attempted to get latest version of {packageName} from maven, but was offline ({ue.url} {ue.code} {ue.reason}). Using latest cached version: {version}')
                 return version
         else: # mode == OnlineMode.ONLINE
             raise
