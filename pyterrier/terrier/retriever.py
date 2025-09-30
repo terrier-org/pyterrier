@@ -387,8 +387,8 @@ class Retriever(pt.Transformer):
         
         # use pt.validate - this makes inspection of input columns better
         with pt.validate.any(queries) as v:
+            v.columns(includes=['qid', 'query'], excludes=['docid', 'docno'], mode='retrieve') # query based frame without docno or docid
             v.columns(includes=['qid', 'query', 'docid'], mode='rerank') # docid-based results frame
-            v.query_frame(extra_columns=['query'], mode='retrieve')
             v.query_frame(extra_columns=['query_toks'], mode='retrieve_toks')
             v.result_frame(extra_columns=['query'], mode='rerank')
             

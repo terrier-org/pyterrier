@@ -31,10 +31,17 @@ class TestInspect(BaseTestCase):
         textl = pt.text.get_text(pt.get_dataset('irds:vaswani'), "text")
 
         inputs = pt.inspect.transformer_inputs(retr)
-        self.assertEqual([['qid', 'query', 'docid'], ['qid', 'query'], ['qid', 'query_toks'], ['qid', 'docno', 'query'], ], inputs)
+        self.assertEqual(['qid', 'query'], inputs[0])
+        self.assertIn(['qid', 'query', 'docid'], inputs)
+        self.assertIn(['qid', 'docno', 'query'], inputs)
+        self.assertIn(['qid', 'query_toks'], inputs)
+
         # with a text loader:
         inputs = pt.inspect.transformer_inputs(retr >> textl)
-        self.assertEqual([['qid', 'query', 'docid'], ['qid', 'query'], ['qid', 'query_toks'], ['qid', 'docno', 'query']], inputs)
+        self.assertEqual(['qid', 'query'], inputs[0])
+        self.assertIn(['qid', 'query', 'docid'], inputs)
+        self.assertIn(['qid', 'docno', 'query'], inputs)
+        self.assertIn(['qid', 'query_toks'], inputs)
 
         # as a retriever
         rank_cols = pt.inspect.transformer_outputs(retr, ["qid", "query"])
