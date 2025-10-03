@@ -41,7 +41,7 @@ class TestText(BaseTestCase):
         self.assertEqual(1, dfOut.iloc[0]["rank"])
 
     def test_snippets(self):
-        br = pt.terrier.Retriever.from_dataset("vaswani", "terrier_stemmed") >> pt.text.get_text(pt.get_dataset('irds:vaswani'), "text")
+        br = pt.terrier.Retriever(self.here + "/fixtures/index/data.properties") >> pt.text.get_text(pt.get_dataset('irds:vaswani'), "text")
         #br = pt.terrier.Retriever.from_dataset("vaswani", "terrier_stemmed_text", metadata=["docno", "text"])
         psg_scorer = ( 
             pt.text.sliding(text_attr='text', length=25, stride=12, prepend_attr=None) 
