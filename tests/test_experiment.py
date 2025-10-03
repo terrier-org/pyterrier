@@ -10,8 +10,19 @@ import pytest
 
 class TestExperiment(TempDirTestCase):
 
+    def __init__(self, *args, **kwargs):
+        super(TempDirTestCase, self).__init__(*args, **kwargs)
+        self.index = None
+
+    def _vaswani_index(self):
+        if self.index is not None:
+            return self.index
+        indexloc = self.here + "/fixtures/index/data.properties"
+        self.index = pt.IndexFactory.of(indexloc)
+        return self.index
+
     def test_precomp_common(self):
-        bm25 = pt.terrier.Retriever.from_dataset('vaswani', 'terrier_stemmed', wmodel='BM25')
+        bm25 = pt.terrier.Retriever(self._vaswani_index(), wmodel='BM25')
         pipeA = bm25 %3
         pipeB = bm25 %10
         import pyterrier.pipelines
@@ -29,7 +40,7 @@ class TestExperiment(TempDirTestCase):
         self.assertEqual(10, suffices[1].k)
     
     def test_precompute_experiment(self):
-        bm25 = pt.terrier.Retriever.from_dataset('vaswani', 'terrier_stemmed', wmodel='BM25')
+        bm25 = pt.terrier.Retriever(self._vaswani_index(), wmodel='BM25')
         pipeB = bm25 %10
         df1 = pt.Experiment([bm25, pipeB], pt.get_dataset('vaswani').get_topics().head(10), pt.get_dataset('vaswani').get_qrels(), eval_metrics=['map'])
         df2 = pt.Experiment([bm25, pipeB], pt.get_dataset('vaswani').get_topics().head(10), pt.get_dataset('vaswani').get_qrels(), eval_metrics=['map'], precompute_prefix=True)
@@ -81,8 +92,7 @@ class TestExperiment(TempDirTestCase):
         self.assertEqual(1, df[(df.measure == "P(rel=2)@1") & (df.qid == "q2")].value.iloc[0])
 
     def test_differing_queries(self):
-        dataset = pt.get_dataset("vaswani")
-        bm25 = pt.terrier.Retriever(dataset.get_index(), wmodel="BM25")
+        bm25 = pt.terrier.Retriever(self._vaswani_index(), wmodel='BM25')
         qrels = pd.DataFrame({
             'qid':   ["1",     "1",    "2"],
             'docno': ["10703", "1056", "9374"],
@@ -146,8 +156,8 @@ class TestExperiment(TempDirTestCase):
 
     def test_wrong(self):
         brs = [
-            pt.terrier.Retriever(pt.datasets.get_dataset("vaswani").get_index(), wmodel="DPH"), 
-            pt.terrier.Retriever(pt.datasets.get_dataset("vaswani").get_index(), wmodel="BM25")
+            pt.terrier.Retriever(self._vaswani_index(), wmodel='DPH'),
+            pt.terrier.Retriever(self._vaswani_index(), wmodel='BM25')
         ]
         topics = pt.datasets.get_dataset("vaswani").get_topics().head(10)
         qrels =  pt.datasets.get_dataset("vaswani").get_qrels()
@@ -199,7 +209,7 @@ class TestExperiment(TempDirTestCase):
 
         
     def test_mrt(self):
-        index = pt.datasets.get_dataset("vaswani").get_index()
+        index = self._vaswani_index()
         brs = [
             pt.terrier.Retriever(index, wmodel="DPH"), 
             pt.terrier.Retriever(index, wmodel="BM25")
@@ -231,7 +241,7 @@ class TestExperiment(TempDirTestCase):
                       save_format=pickle)
 
     def test_save(self):
-        index = pt.datasets.get_dataset("vaswani").get_index()
+        index = self._vaswani_index()
         brs = [
             pt.terrier.Retriever(index, wmodel="DPH"), 
             pt.terrier.Retriever(index, wmodel="BM25")
@@ -283,9 +293,10 @@ class TestExperiment(TempDirTestCase):
 
     def test_various_metrics(self):
         topics = pt.datasets.get_dataset("vaswani").get_topics().head(10)
+        index = self._vaswani_index()
         res = [
-            pt.terrier.Retriever(pt.datasets.get_dataset("vaswani").get_index(), wmodel="DPH")(topics), 
-            pt.terrier.Retriever(pt.datasets.get_dataset("vaswani").get_index(), wmodel="BM25")(topics)
+            pt.terrier.Retriever(index, wmodel="DPH")(topics), 
+            pt.terrier.Retriever(index, wmodel="BM25")(topics)
         ]
         
         qrels =  pt.datasets.get_dataset("vaswani").get_qrels()
@@ -338,7 +349,7 @@ class TestExperiment(TempDirTestCase):
 
     def test_one_row(self):
         vaswani = pt.datasets.get_dataset("vaswani")
-        br = pt.terrier.Retriever(vaswani.get_index())
+        br = pt.terrier.Retriever(self._vaswani_index(), wmodel='BM25')
         rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg", "num_q"])
         self.assertEqual(10, rtr.iloc[0]["num_q"])
         
@@ -347,7 +358,7 @@ class TestExperiment(TempDirTestCase):
     def test_one_row_round(self):
         import pyterrier as pt
         vaswani = pt.datasets.get_dataset("vaswani")
-        br = pt.terrier.Retriever(vaswani.get_index())
+        br = pt.terrier.Retriever(self._vaswani_index(), wmodel='DPH')
         rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg", "num_q", pt.measures.NDCG@5], round=2)
         self.assertEqual(str(rtr.iloc[0]["map"]), "0.31")
         self.assertEqual(str(rtr.iloc[0]["nDCG@5"]), "0.46")
@@ -357,7 +368,7 @@ class TestExperiment(TempDirTestCase):
 
     def test_batching(self):
         vaswani = pt.datasets.get_dataset("vaswani")
-        br = pt.terrier.Retriever(vaswani.get_index())
+        br = pt.terrier.Retriever(self._vaswani_index(), wmodel='BM25')
         rtr1 = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg", "num_q", "mrt"])
         rtr2 = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg", "num_q", "mrt"], batch_size=2)
         self.assertTrue("mrt" in rtr1.columns)
@@ -372,7 +383,7 @@ class TestExperiment(TempDirTestCase):
 
     def test_perquery(self):
         vaswani = pt.datasets.get_dataset("vaswani")
-        br = pt.terrier.Retriever(vaswani.get_index())
+        br = pt.terrier.Retriever(self._vaswani_index(), wmodel='BM25')
         rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"], perquery=True)
         print(rtr)
 
@@ -381,21 +392,21 @@ class TestExperiment(TempDirTestCase):
 
     def test_perquery_round(self):
         vaswani = pt.datasets.get_dataset("vaswani")
-        br = pt.terrier.Retriever(vaswani.get_index())
+        br = pt.terrier.Retriever(self._vaswani_index(), wmodel='DPH')
         rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"], perquery=True, round=2)
         self.assertEqual(str(rtr.iloc[0]["value"]), "0.36")
 
     def test_bad_measure(self):
         vaswani = pt.datasets.get_dataset("vaswani")
-        br = pt.terrier.Retriever(vaswani.get_index())
+        br = pt.terrier.Retriever(self._vaswani_index(), wmodel='BM25')
         with self.assertRaises(KeyError):
             pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), [map])
 
     def test_baseline_and_tests(self):
         dataset = pt.get_dataset("vaswani")
         numt=10
-        res1 = pt.terrier.Retriever(dataset.get_index(), wmodel="BM25")(dataset.get_topics().head(numt))
-        res2 = pt.terrier.Retriever(dataset.get_index(), wmodel="DPH")(dataset.get_topics().head(numt))
+        res1 = pt.terrier.Retriever(self._vaswani_index(), wmodel="BM25")(dataset.get_topics().head(numt))
+        res2 = pt.terrier.Retriever(self._vaswani_index(), wmodel="DPH")(dataset.get_topics().head(numt))
 
         # t-test
         with warnings.catch_warnings():
@@ -446,8 +457,8 @@ class TestExperiment(TempDirTestCase):
 
     def test_baseline_correction_userdefined_test(self):
         dataset = pt.get_dataset("vaswani")
-        res1 = pt.terrier.Retriever(dataset.get_index(), wmodel="BM25")(dataset.get_topics().head(10))
-        res2 = pt.terrier.Retriever(dataset.get_index(), wmodel="DPH")(dataset.get_topics().head(10))
+        res1 = pt.terrier.Retriever(self._vaswani_index(), wmodel="BM25")(dataset.get_topics().head(10))
+        res2 = pt.terrier.Retriever(self._vaswani_index(), wmodel="DPH")(dataset.get_topics().head(10))
         # TOST will omit warnings here, due to low numbers of topics
         import statsmodels.stats.weightstats
         fn = lambda X,Y: (0, statsmodels.stats.weightstats.ttost_ind(X, Y, -0.01, 0.01)[0])
@@ -466,8 +477,8 @@ class TestExperiment(TempDirTestCase):
 
     def test_baseline_corrected(self):
         dataset = pt.get_dataset("vaswani")
-        res1 = pt.terrier.Retriever(dataset.get_index(), wmodel="BM25")(dataset.get_topics().head(10))
-        res2 = pt.terrier.Retriever(dataset.get_index(), wmodel="DPH")(dataset.get_topics().head(10))
+        res1 = pt.terrier.Retriever(self._vaswani_index(), wmodel="BM25")(dataset.get_topics().head(10))
+        res2 = pt.terrier.Retriever(self._vaswani_index(), wmodel="DPH")(dataset.get_topics().head(10))
         baseline = 0
         for corr in ['hs', 'bonferroni', 'hommel']:
             df = pt.Experiment(
