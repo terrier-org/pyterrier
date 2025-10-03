@@ -296,6 +296,8 @@ def snippets(
             docres[summary_attr]  = ""
             return docres
 
+        # dont assign new columns to an existing df
+        psgres = psgres.copy()
         psgres[["olddocno", "pid"]] = psgres.docno.str.split("%p", expand=True)
 
         newdf = psgres.groupby(['qid', 'olddocno'])[text_attr].agg(joinstr.join).reset_index().rename(columns={text_attr : summary_attr, 'olddocno' : 'docno'})
