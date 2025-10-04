@@ -518,8 +518,8 @@ def get_dataset(name: str, **configure_kwargs) -> Dataset:
         raise TypeError(f'Unsupported keyword arguments passed to get_dataset: {get_dataset}')
 
     # Temporary handling of topic tokenization
-    if not hasattr(result.get_topics, '_has_add_tokenize_query_arg_applied'):
-        result.get_topics = add_tokenize_query_arg(result.get_topics)
+    # if not hasattr(result.get_topics, '_has_add_tokenize_query_arg_applied'):
+    #    result.get_topics = add_tokenize_query_arg(result.get_topics)
     return result
 
 

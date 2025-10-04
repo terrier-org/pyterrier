@@ -1,6 +1,7 @@
 from typing import Union, Optional, Callable, List, Any
 import pandas as pd
 import numpy as np
+import re
 from warnings import warn
 from pyterrier.datasets import Dataset
 from pyterrier.model import FIRST_RANK
@@ -13,7 +14,30 @@ from pyterrier.terrier.stemmer import TerrierStemmer
 from pyterrier.terrier.stopwords import TerrierStopwords
 from pyterrier.terrier.tokeniser import TerrierTokeniser
 
+def _query_needs_tokenised(query: str) -> bool:
+    # detects if we need to tokenise the query
+    if _matchop(query):
+        return False
+    
+    if "applypipeline" in query:
+        return False
+    
+    # does it contains in terrier language 
+    termweightsre = re.compile(r'\^\d+(\.\d+)?')
+    if termweightsre.match(query):
+        return False
+
+    # we dont include : (or ^) in this list
+    bad_chars = [",", ".", ";", "!", "?", "(", ")", "[", "]", "{", "}", "<", ">", "\"", 
+                 "'", "`", "~", "@", "#", "$", "%", "&", "*", "-", "+", "=", "|", "\\", "/"]
+
+    if any(c in query for c in bad_chars):
+        return True
+    
+    return False
+
 _matchops = ["#combine", "#uw", "#1", "#tag", "#prefix", "#band", "#base64", "#syn"]
+
 def _matchop(query):
     for m in _matchops:
         if m in query:
@@ -294,6 +318,8 @@ class Retriever(pt.Transformer):
             srq = self.manager.newSearchRequest(qid)
         else:
             query = row.query
+            if _query_needs_tokenised(query):
+                query = ' '.join(pt.terrier.tokeniser.EnglishTokeniser.tokenise(query)) # TODO make this configurable
             if len(query) == 0:
                 warn(
                     "Skipping empty query for qid %s" % qid)
