@@ -4,6 +4,8 @@ import unittest
 import os
 import shutil
 import tempfile
+
+from pyterrier.terrier.stemmer import TerrierStemmer
 from .base import TempDirTestCase
 
 class TestTRECIndexer(TempDirTestCase):
@@ -25,6 +27,16 @@ class TestTRECIndexer(TempDirTestCase):
         index = pt.IndexFactory.of(indexRef)
         self.assertEqual(11429, index.getCollectionStatistics().getNumberOfDocuments())
         self.assertTrue(os.path.isfile(self.test_dir + '/data.direct.bf'))
+
+    def test_TREC_indexing(self):
+        print("Writing index to " + self.test_dir)
+        indexer = pt.TRECCollectionIndexer(self.test_dir, stemmer=TerrierStemmer.weakporter)
+        indexer.index(pt.io.find_files(self.here + "/fixtures/vaswani_npl/corpus/"))
+        index = pt.IndexFactory.of(self.test_dir)
+        self.assertEqual(11429, index.getCollectionStatistics().getNumberOfDocuments())
+        from jnius import cast as cst
+        pindex = cst("org.terrier.structures.PropertiesIndex", index)
+        self.assertTrue("WeakPorter" in pindex.getIndexProperty("termpipelines", "notfound"))
 
     def test_TREC_indexing_revmeta(self):
         print("Writing index to " + self.test_dir)
