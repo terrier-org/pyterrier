@@ -35,6 +35,7 @@ class TerrierTokeniser(Enum):
             return 'IdentityTokeniser'
         if isinstance(this, str):
             return this
+        raise ValueError(f'Unknown/unsupported tokeniser: {this}')
 
 class BaseTokeniser():
     LOWERCASE = True
@@ -127,4 +128,3 @@ class EnglishTokeniser(BaseTokeniser):
             if 0 < len(s) <= BaseTokeniser.MAX_TERM_LENGTH:
                 result.append(s)
         return result
-        raise ValueError(f'Unsupported tokeniser: {this}')
