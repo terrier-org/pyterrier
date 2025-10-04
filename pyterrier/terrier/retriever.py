@@ -383,7 +383,7 @@ class Retriever(pt.Transformer):
         """
         results=[]
         if not isinstance(queries, pd.DataFrame):
-            raise ValueError(".transform() should be passed a dataframe. Use .search() to execute a single query; Use .transform_iter() for iter-dicts")
+            raise ValueError(".transform() should be passed a DataFrame (found %s). Use .search() to execute a single query; Use .transform_iter() for iter-dicts" % str(type(queries)))
         
         # use pt.validate - this makes inspection of input columns better
         with pt.validate.any(queries) as v:
