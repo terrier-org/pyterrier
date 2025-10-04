@@ -60,7 +60,7 @@ class TestBatchRetrieve(BaseTestCase):
         indexloc = self.here + "/fixtures/index/data.properties"
         
         retr = pt.terrier.Retriever(indexloc)
-        query_terrier = 'applytermpipeline:off chemic^2 reaction^0.5'
+        query_terrier = 'applypipeline:off chemic^2 reaction^0.5'
         result_terrier = retr.search(query_terrier)
 
         query_matchop = '#combine:0=2:1=0.5(chemic reaction)'
