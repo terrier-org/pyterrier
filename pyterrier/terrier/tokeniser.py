@@ -57,7 +57,7 @@ class UTFTokeniser(BaseTokeniser):
         # or if it is longer than a specified length
         counter = 0
         counterdigit = 0
-        ch = -1
+        ch = None
         for chNew in s:
             if chNew.isdigit():
                 counterdigit += 1
@@ -104,7 +104,7 @@ class EnglishTokeniser(BaseTokeniser):
         s = s.strip()
         counter = 0
         counterdigit = 0
-        ch = -1
+        ch = None
         for c in s:
             chNew = ord(c)
             if 48 <= chNew <= 57:  # 0 to 9
