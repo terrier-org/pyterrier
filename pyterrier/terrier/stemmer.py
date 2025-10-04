@@ -27,6 +27,7 @@ class TerrierStemmer(Enum):
     hungarian = 'hungarian' #: Snowball Hungarian stemmer
     norwegian = 'norwegian' #: Snowball Norwegian stemmer
     portugese = 'portugese' #: Snowball Portuguese stemmer
+    spanish = 'spanish' #: Snowball Spanish stemmer
     swedish = 'swedish' #: Snowball Swedish stemmer
     turkish = 'turkish' #: Snowball Turkish stemmer
 
@@ -59,6 +60,8 @@ class TerrierStemmer(Enum):
             return 'NorwegianSnowballStemmer'
         if this == TerrierStemmer.portugese:
             return 'PortugueseSnowballStemmer'
+        if this == TerrierStemmer.spanish:
+            return 'SpanishSnowballStemmer'
         if this == TerrierStemmer.swedish:
             return 'SwedishSnowballStemmer'
         if this == TerrierStemmer.turkish:
