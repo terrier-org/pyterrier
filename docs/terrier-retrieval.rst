@@ -203,12 +203,27 @@ By default, PyTerrier is configured for indexing and retrieval in English. See
 (`colab <https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/non_en_retrieval.ipynb>`_)
 for details on how to configure PyTerrier in other languages.
 
-Custom Weighting Models
+Advanced and Custom Weighting Models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Normally, weighting models are specified as a string class names. Terrier then loads the Java class of that name (it will search
 the `org.terrier.matching.models package <http://terrier.org/docs/current/javadoc/org/terrier/matching/models/package-summary.html>`_ 
 unless the class name is fully qualified (e.g. `"com.example.MyTF"`).
+
+The available models can be found in the Terrier `weighting models javadoc <http://terrier.org/docs/current/javadoc/org/terrier/matching/models/package-summary.html>`_.
+Some interesting models include:
+ - BM25 - the classic Okapi BM25 model
+ - PL2 - a Divergence from Randomness model
+ - TF_IDF - the classic vector space model
+ - DLH13 - a DFR model that is similar to BM25, but with fewer parameters
+ - DPH - a DFR model that does not require any tuning
+ - Hiemstra_LM, Dirichlet_LM - language models with different smoothing methods
+ - DFRWeightingModel - a meta-model allowing to generate arbitrary DFR weighting models, e.g. `"DFRWeightingModel(PL2, L, 2)"`.
+
+For using on indices with multiple fields, Terrier provides some advanced field-based models as well as meta-models that can be used to wrap other weighting models:
+ - PL2F - a field-based variant of PL2
+ - BM25F - a field-based variant of BM25
+ - PerFieldNormWeightingModel - a meta-model that allows you to specify construct an arbitrary field-based model, e.g. `"PerFieldNormWeightingModel(BM, Normalisation2)"`. 
 
 If you have your own Java weighting model instance (which extends the 
 `WeightingModel abstract class <http://terrier.org/docs/current/javadoc/org/terrier/matching/models/WeightingModel.html>`_, 
