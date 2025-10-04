@@ -454,7 +454,8 @@ class SlidingWindowPassager(pt.Transformer):
             return pd.DataFrame(columns=['qid', 'query', 'docno', self.text_attr, 'score', 'rank'])
     
         with pt.tqdm('passsaging', total=len(df), desc='passaging', leave=False) as pbar:
-            for index, row in df.iterrows():
+            for row in df.itertuples(index=False):
+                row = row._asdict()
                 pbar.update(1)
                 qid = row['qid']
                 if currentQid is None or currentQid != qid:
@@ -481,7 +482,8 @@ class SlidingWindowPassager(pt.Transformer):
                         newRow['docno'] = row['docno'] + "%p" + str(i)
                         newRow[self.text_attr] = self.detokenize(passage)
                         if self.prepend_title:
-                            newRow.drop(labels=[self.title_attr], inplace=True)
+                            #newRow.drop(labels=[self.title_attr], inplace=True)
+                            del newRow[self.title_attr]
                             newRow[self.text_attr] = str(row[self.title_attr]) + self.join + newRow[self.text_attr]
                         for col in copy_columns:
                             newRow[col] = row[col]
