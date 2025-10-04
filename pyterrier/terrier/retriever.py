@@ -885,6 +885,8 @@ class FeaturesRetriever(Retriever):
                 srq = self.manager.newSearchRequest(qid)
             else:
                 query = row.query
+                if _query_needs_tokenised(query):
+                    query = ' '.join(pt.terrier.tokeniser.EnglishTokeniser.tokenise(query)) # TODO make this configurable
                 if len(query) == 0:
                     warn(
                         "Skipping empty query for qid %s" % qid)
