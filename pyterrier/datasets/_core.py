@@ -447,12 +447,11 @@ def add_tokenize_query_arg(fn):
     _wrapper._has_add_tokenize_query_arg_applied = True
     return _wrapper
 
-
-@pt.java.required
 def _pt_tokeniser():
-    tokeniser = pt.terrier.J.Tokenizer.getTokeniser()
+    from ..terrier.tokeniser import EnglishTokeniser
+    tokeniser = EnglishTokeniser.tokenise
     def pt_tokenise(text):
-        return ' '.join(tokeniser.getTokens(text))
+        return ' '.join(tokeniser(text))
     return pt_tokenise
 
 
