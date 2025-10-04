@@ -57,9 +57,16 @@ class TestBatchRetrieve(BaseTestCase):
         self.assertEqual(10, len(result))
 
     def test_br_query_toks(self):
+        from pandas.testing import assert_frame_equal
         indexloc = self.here + "/fixtures/index/data.properties"
         
         retr = pt.terrier.Retriever(indexloc)
+
+        # check that terrier doesnt error about queries with punctation
+        res1 = retr.search("What are chemical reactions?")
+        res2 = retr.search("chemical reactions") # 'what' and 'are' are stopwords
+        assert_frame_equal(res1[["qid", "docno", "score", "rank"]], res2[["qid", "docno", "score", "rank"]])
+
         query_terrier = 'applypipeline:off chemic^2 reaction^0.5'
         result_terrier = retr.search(query_terrier)
 
@@ -71,7 +78,6 @@ class TestBatchRetrieve(BaseTestCase):
         
         self.assertEqual(len(result_terrier), len(result_matchop))
         self.assertEqual(len(result_terrier), len(result_toks))
-        from pandas.testing import assert_frame_equal
         assert_frame_equal(result_terrier[["qid", "docno", "score", "rank"]], result_matchop[["qid", "docno", "score", "rank"]])
         assert_frame_equal(result_terrier[["qid", "docno", "score", "rank"]], result_toks[["qid", "docno", "score", "rank"]])
 
