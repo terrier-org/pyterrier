@@ -9,6 +9,10 @@ from concurrent.futures import ThreadPoolExecutor
 import pyterrier as pt
 from typing import Dict
 
+from pyterrier.terrier.stemmer import TerrierStemmer
+from pyterrier.terrier.stopwords import TerrierStopwords
+from pyterrier.terrier.tokeniser import TerrierTokeniser
+
 _matchops = ["#combine", "#uw", "#1", "#tag", "#prefix", "#band", "#base64", "#syn"]
 def _matchop(query):
     for m in _matchops:
@@ -543,7 +547,16 @@ class TextIndexProcessor(pt.Transformer):
         for instance query expansion based on text.
     '''
 
-    def __init__(self, innerclass, takes="queries", returns="docs", body_attr="body", background_index=None, verbose=False, **kwargs):
+    def __init__(self, innerclass, 
+                 takes="queries", 
+                 returns="docs", 
+                 body_attr="body", 
+                 background_index=None, 
+                 stemmer : Union[None, str, TerrierStemmer] = TerrierStemmer.porter,
+                 stopwords : Union[None, TerrierStopwords, List[str]] = TerrierStopwords.terrier,
+                 tokeniser : Union[str,TerrierTokeniser] = TerrierTokeniser.english,
+                 verbose=False, 
+                 **kwargs):
         #super().__init__(**kwargs)
         self.innerclass = innerclass
         self.takes = takes
@@ -554,6 +567,9 @@ class TextIndexProcessor(pt.Transformer):
             self.background_indexref = _parse_index_like(background_index)
         else:
             self.background_indexref = None
+        self.stemmer = stemmer
+        self.stopwords = stopwords
+        self.tokeniser = tokeniser
         self.kwargs = kwargs
         self.verbose = verbose
 
@@ -563,7 +579,15 @@ class TextIndexProcessor(pt.Transformer):
         from pyterrier.terrier.index import IndexingType, _IterDictIndexer_nofifo
         pt.validate.result_frame(topics_and_res, extra_columns=[self.body_attr, 'query'])
         documents = topics_and_res[["docno", self.body_attr]].drop_duplicates(subset="docno").rename(columns={self.body_attr:'text'})
-        indexref = _IterDictIndexer_nofifo(None, type=IndexingType.MEMORY, verbose=self.verbose).index(documents.to_dict(orient='records'))
+        indexref = _IterDictIndexer_nofifo(
+            None, 
+            type=IndexingType.MEMORY, 
+            verbose=self.verbose, 
+            stemmer = self.stemmer, 
+            stopwords = self.stopwords,
+            tokeniser = self.tokeniser
+            ).index(documents.to_dict(orient='records'))
+        
         docno2docid = { docno:id for id, docno in enumerate(documents["docno"]) }
         index_docs = IndexFactory.of(indexref)
         docno2docid = {}
@@ -591,6 +615,29 @@ class TextIndexProcessor(pt.Transformer):
             # add the docid to the dataframe
             input["docid"] = input.apply(lambda row: docno2docid[row["docno"]], axis=1, result_type='reduce')
 
+        if self.innerclass == Retriever:
+            # build up a termpipeline based on the stemmer and stopwords settings
+            tp = []
+            stops, _ = TerrierStopwords._to_obj(self.stopwords or 'none')
+            if stops == TerrierStopwords.terrier:
+                tp.append("Stopwords")
+            elif stops == TerrierStopwords.none:
+                pass # noop
+            else:
+                # sadly PyTerrierCustomStopwordList only support instantiation from ApplicationSetup or Index properties, not controls
+                raise KeyError("Only TerrierStopwords.terrier and TerrierStopwords.none are supported for stopwords in TextIndexProcessor, found %s" % str(stops))       
+            stemmer = TerrierStemmer._to_obj(self.stemmer or 'none')
+            if stemmer is not TerrierStemmer.none:
+                tp.append(TerrierStemmer._to_class(stemmer))
+
+            if 'controls' not in self.kwargs:
+                self.kwargs['controls'] = {}
+            if not len(tp):
+                tp = ["NoOp"] # an empty termpipeline will be detected as missing by ApplyTermPipeline in Terrier
+            self.kwargs['controls']['termpipelines'] = ",".join(tp)
+        else:
+            # if not Retriever, we dont know how to set the termpipeline
+            pass
 
         # and then just instantiate BR using the our new index 
         # we take all other arguments as arguments for BR
