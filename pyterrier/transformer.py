@@ -68,7 +68,7 @@ class Transformer:
         as a feature in for learning-to-rank::
 
             bm25 = pt.terrier.Retriever(index, wmodel="BM25")
-            two_feat_pipe = bm25 >> pt.Transformer.identify() ** pt.terrier.Retriever(index, wmodel="PL2")
+            two_feat_pipe = bm25 >> pt.Transformer.identity() ** pt.terrier.Retriever(index, wmodel="PL2")
         
         This will return a pipeline that produces a score column (BM25), but also has a features column containing
         BM25 and PL2 scores.
