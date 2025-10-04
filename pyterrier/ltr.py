@@ -2,7 +2,8 @@ import pyterrier as pt
 from . import Transformer, Estimator
 from .model import add_ranks
 from typing import Sequence, Union, Tuple
-import numpy as np, pandas as pd
+import numpy as np
+import pandas as pd
 
 FeatureList = Union[Sequence[int], int]
 
@@ -14,6 +15,9 @@ class AblateFeatures(Transformer):
         self.null = 0
         
     def transform(self, topics_and_res):
+        pt.validate.result_frame(topics_and_res, extra_columns=["features"])
+        if len(topics_and_res) == 0:
+            return topics_and_res
         
         def _reset(row):
             fvalues = row["features"].copy() 
@@ -21,7 +25,6 @@ class AblateFeatures(Transformer):
                 fvalues[findex] = self.null
             return fvalues
         
-        assert "features" in topics_and_res.columns
         topics_and_res = topics_and_res.copy()
         topics_and_res["features"] = topics_and_res.apply(_reset, axis=1)
         return topics_and_res
@@ -34,7 +37,11 @@ class KeepFeatures(Transformer):
         
     def transform(self, topics_and_res):
         
-        assert "features" in topics_and_res.columns
+        pt.validate.result_frame(topics_and_res, extra_columns=["features"])
+
+        if len(topics_and_res) == 0:
+            return topics_and_res
+        
         topics_and_res = topics_and_res.copy()
         topics_and_res["features"] = topics_and_res.apply(lambda row: row["features"][self.fids], axis=1)
         return topics_and_res
@@ -63,10 +70,9 @@ class RegressionTransformer(Estimator):
         Args:
             topicsTrain(DataFrame): A dataframe with the topics to train the model
         """
+        pt.validate.result_frame(topics_and_results_Train, extra_columns=["features"])
         if len(topics_and_results_Train) == 0:
             raise ValueError("No topics to fit to")
-        if 'features' not in topics_and_results_Train.columns:
-            raise ValueError("No features column retrieved")
         train_DF = topics_and_results_Train.merge(qrelsTrain, on=['qid', 'docno'], how='left').fillna(0)
         kwargs = self.fit_kwargs
         self.learner.fit(np.stack(train_DF["features"].values), train_DF["label"].values, **kwargs)
@@ -80,19 +86,34 @@ class RegressionTransformer(Estimator):
         Args:
             topicsTest(DataFrame): A dataframe with the test topics.
         """
+        pt.validate.result_frame(test_DF, extra_columns=["features"])
         test_DF = test_DF.copy()
 
         # check for change in number of features
         found_numf = test_DF.iloc[0].features.shape[0]
         if self.num_f is not None:
             if found_numf != self.num_f:
-                raise ValueError("Expected %d features, but found %d features" % (self.num_f, found_numf))
+                raise ValueError("Was trained using %d features, but found %d features for inference. This typically occurs because you have changed the pipeline between training and inference." % (self.num_f, found_numf))
         if hasattr(self.learner, 'feature_importances_'):
             if len(self.learner.feature_importances_) != found_numf:
-                raise ValueError("Expected %d features, but found %d features" % (len(self.learner.feature_importances_), found_numf))
+                raise ValueError("Model %s expected %d features, but found %d features for inference. This typically occurs because you are reusing the learned model between different LTR pipelines." % (str(self.learner), len(self.learner.feature_importances_), found_numf))
 
         test_DF["score"] = self.learner.predict(np.stack(test_DF["features"].values))
         return add_ranks(test_DF)
+    
+    def transform_outputs(self, inp_cols):
+        """
+        Returns the output columns of the transformer.
+        
+        Args:
+            inp_cols: The input columns to the transformer.
+        """
+        out = inp_cols.copy()
+        if "score" not in out:
+            out.append("score")
+        if "rank" not in out:
+            out.append("rank")
+        return out
 
 class LTRTransformer(RegressionTransformer):
     """
@@ -122,10 +143,8 @@ class LTRTransformer(RegressionTransformer):
         if topics_and_results_Valid is None or len(topics_and_results_Valid) == 0:
             raise ValueError("No validation results to fit to")
 
-        if 'features' not in topics_and_results_Train.columns:
-            raise ValueError("No features column retrieved in training")
-        if 'features' not in topics_and_results_Valid.columns:
-            raise ValueError("No features column retrieved in validation")
+        pt.validate.result_frame(topics_and_results_Train, extra_columns=["features"])
+        pt.validate.result_frame(topics_and_results_Valid, extra_columns=["features"])
 
         tr_res = topics_and_results_Train.merge(qrelsTrain, on=['qid', 'docno'], how='left').fillna(0)
         va_res = topics_and_results_Valid.merge(qrelsValid, on=['qid', 'docno'], how='left').fillna(0)
@@ -165,7 +184,7 @@ class FastRankEstimator(Estimator):
         
         from collections import defaultdict
         from itertools import count
-        from fastrank import CDataset
+        from fastrank import CDataset # type: ignore
         qid_map = defaultdict(count().__next__)
         features = np.stack(test_DF["features"].values).astype('float32')
         qids = test_DF["qid"].apply(lambda qid : qid_map[qid]).values
@@ -177,11 +196,11 @@ class FastRankEstimator(Estimator):
         return dataset
 
     def fit(self, topics_and_results_Train, qrelsTrain, topics_and_results_Valid=None, qrelsValid=None):
+
+        pt.validate.result_frame(topics_and_results_Train, extra_columns=["features"])
+
         if topics_and_results_Train is None or len(topics_and_results_Train) == 0:
             raise ValueError("No training results to fit to")
-
-        if 'features' not in topics_and_results_Train.columns:
-            raise ValueError("No features column retrieved in training")
 
         tr_res = topics_and_results_Train.merge(qrelsTrain, on=['qid', 'docno'], how='left').fillna(0)
         dataset = self._make_dataset(tr_res, add_labels=True)
@@ -192,9 +211,9 @@ class FastRankEstimator(Estimator):
         """
         Predicts the scores for the given topics.
 
-        Args:
-            topicsTest(DataFrame): A dataframe with the test topics.
+        :param topics_and_docs_Test: A dataframe with the test topics.
         """
+        pt.validate.result_frame(topics_and_docs_Test, extra_columns=["features"])
         if self.model is None:
             raise ValueError("fit() must be called first")
         test_DF = topics_and_docs_Test.copy()
@@ -203,15 +222,29 @@ class FastRankEstimator(Estimator):
         # check for change in number of features
         found_numf = dataset.num_features()
         if self.num_f is not None and found_numf != self.num_f:
-            raise ValueError("Expected %d features, but found %d features" % (self.num_f, found_numf))
+            raise ValueError("FastRankEstimator expected %d features, but found %d features. This typically occurs because you have changed the pipeline between training and inference." % (self.num_f, found_numf))
         if hasattr(self.learner, 'feature_importances_'):
             if len(self.learner.feature_importances_) != found_numf:
-                raise ValueError("Expected %d features, but found %d features" % (len(self.learner.feature_importances_), found_numf))
+                raise ValueError("FastRank model %s expected %d features, but found %d features" % (str(self.learner), len(self.learner.feature_importances_), found_numf))
         
         rtr = dataset.predict_scores(self.model)
         scores = [rtr[i] for i in range(len(rtr))]
         test_DF["score"] = scores
         return add_ranks(test_DF)
+    
+    def transform_outputs(self, inp_cols):
+        """
+        Returns the output columns of the transformer.
+        
+        Args:
+            inp_cols: The input columns to the transformer.
+        """
+        out = inp_cols.copy()
+        if "score" not in out:
+            out.append("score")
+        if "rank" not in out:
+            out.append("rank")
+        return out
 
 def ablate_features(fids : FeatureList) -> Transformer:
     """
@@ -219,8 +252,7 @@ def ablate_features(fids : FeatureList) -> Transformer:
         performing feature ablation studies, whereby a feature is removed from the pipeline
         before learning. 
 
-        Args: 
-            fids: one or a list of integers corresponding to features indices to be removed
+        :param fids: one or a list of integers corresponding to features indices to be removed
     """
     return AblateFeatures(fids)
 
@@ -230,8 +262,7 @@ def keep_features(fids : FeatureList) -> Transformer:
         performing feature ablation studies, whereby only some features are kept 
         (and other removed) from a pipeline before learning occurs. 
 
-        Args: 
-            fids: one or a list of integers corresponding to the features indice to be kept
+        :param fids: one or a list of integers corresponding to the features indice to be kept
     """
     return KeepFeatures(fids)
 
@@ -240,8 +271,7 @@ def feature_to_score(fid : int) -> Transformer:
         Applies a specified feature for ranking. Useful for evaluating which of a number of 
         pre-computed features are useful for ranking. 
 
-        Args: 
-            fid: a single feature id that should be kept
+        :param fid: a single feature id that should be kept
     """
     return pt.apply.doc_score(lambda row : row["features"][fid])
 
@@ -256,9 +286,8 @@ def apply_learned_model(learner, form : str = 'regression', **kwargs) -> Transfo
 
         xgBoost and LightGBM are also supported through the use of `type='ltr'` kwarg.
 
-        Args: 
-            learner: an sklearn-compatible estimator
-            form(str): either 'regression', 'ltr' or 'fastrank'        
+        :param learner: an sklearn-compatible estimator
+        :param form: either 'regression', 'ltr' or 'fastrank'        
     """
     if form == 'ltr':
         return LTRTransformer(learner, **kwargs)

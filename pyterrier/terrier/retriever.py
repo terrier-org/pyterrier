@@ -1,15 +1,17 @@
-from typing import Union
+from typing import Union, Optional, Callable, List, Any
 import pandas as pd
 import numpy as np
-from deprecated import deprecated
 from warnings import warn
 from pyterrier.datasets import Dataset
-from pyterrier.transformer import Symbol
-from pyterrier.model import coerce_queries_dataframe, FIRST_RANK
+from pyterrier.model import FIRST_RANK
 import concurrent
 from concurrent.futures import ThreadPoolExecutor
 import pyterrier as pt
 from typing import Dict
+
+from pyterrier.terrier.stemmer import TerrierStemmer
+from pyterrier.terrier.stopwords import TerrierStopwords
+from pyterrier.terrier.tokeniser import TerrierTokeniser
 
 _matchops = ["#combine", "#uw", "#1", "#tag", "#prefix", "#band", "#base64", "#syn"]
 def _matchop(query):
@@ -61,7 +63,7 @@ def _function2wmodel(function):
     wmodel = pt.java.autoclass("org.terrier.python.CallableWeightingModel")( callback )
     return callback, wmodel
 
-def _mergeDicts(defaults, settings):
+def _mergeDicts(defaults : Dict[str,str], settings : Optional[Dict[str,str]] = None) -> Dict[str,str]:
     KV = defaults.copy()
     if settings is not None and len(settings) > 0:
         KV.update(settings)
@@ -89,19 +91,9 @@ def _parse_index_like(index_location):
         or an pyterrier.index.TerrierIndexer object'''
     )
 
-class RetrieverBase(pt.Transformer, Symbol):
-    """
-    A base class for retrieval
-
-    Attributes:
-        verbose(bool): If True transform method will display progress
-    """
-    def __init__(self, verbose=0, **kwargs):
-        super().__init__(kwargs)
-        self.verbose = verbose
-          
+  
 @pt.java.required
-class Retriever(RetrieverBase):
+class Retriever(pt.Transformer):
     """
     Use this class for retrieval by Terrier
     """
@@ -124,12 +116,16 @@ class Retriever(RetrieverBase):
 
     @staticmethod
     def from_dataset(dataset : Union[str,Dataset], 
-            variant : str = None, 
+            variant : Optional[str] = None, 
             version='latest',            
             **kwargs):
         """
-        Instantiates a Retriever object from a pre-built index access via a dataset.
+        Static method that instantiates a Retriever object from a pre-built index access via a dataset.
         Pre-built indices are ofen provided via the `Terrier Data Repository <http://data.terrier.org/>`_.
+
+        :param dataset: The name of the dataset, or a Dataset object that contains the index
+        :param variant: The variant of the index to use. If None, the default index will be used.
+        :param version: The version of the dataset to use. If None, the latest version will be used.
 
         Examples::
 
@@ -171,28 +167,37 @@ class Retriever(RetrieverBase):
         "termpipelines": "Stopwords,PorterStemmer"
     }
 
-    def __init__(self, index_location, controls=None, properties=None, metadata=["docno"],  num_results=None, wmodel=None, threads=1, **kwargs):
+    def __init__(self, 
+                 index_location : Union[str,Any], 
+                 controls : Optional[Dict[str,str]] = None, 
+                 properties : Optional[Dict[str,str]]= None, 
+                 metadata : List[str] = ["docno"], 
+                 num_results : Optional[int] = None, 
+                 wmodel : Optional[Union[str, Callable]] = None, 
+                 threads : int = 1, 
+                 verbose : bool = False):
         """
             Init method
 
-            Args:
-                index_location: An index-like object - An Index, an IndexRef, or a String that can be resolved to an IndexRef
-                controls(dict): A dictionary with the control names and values
-                properties(dict): A dictionary with the property keys and values
-                verbose(bool): If True transform method will display progress
-                num_results(int): Number of results to retrieve. 
-                metadata(list): What metadata to retrieve
+            :param index_location: An index-like object - An Index, an IndexRef, or a String that can be resolved to an IndexRef
+            :param controls: A dictionary with the control names and values
+            :param properties: A dictionary with the property keys and values
+            :param verbose: If True transform method will display progress
+            :param num_results: Number of results to retrieve. 
+            :param metadata: What metadata to retrieve. Default is ["docno"]. 
         """
-        super().__init__(kwargs)
         self.indexref = _parse_index_like(index_location)
         self.properties = _mergeDicts(Retriever.default_properties, properties)
         self.concurrentIL = pt.java.autoclass("org.terrier.structures.ConcurrentIndexLoader")
         if pt.terrier.check_version(5.5) and "SimpleDecorateProcess" not in self.properties["querying.processes"]:
             self.properties["querying.processes"] += ",decorate:SimpleDecorateProcess"
+            controls = controls or {}
+            controls["decorate_batch"] = "on"
         self.metadata = metadata
         self.threads = threads
         self.RequestContextMatching = pt.java.autoclass("org.terrier.python.RequestContextMatching")
         self.search_context = {}
+        self.verbose = verbose
 
         for key, value in self.properties.items():
             pt.terrier.J.ApplicationSetup.setProperty(str(key), str(value))
@@ -215,13 +220,15 @@ class Retriever(RetrieverBase):
                 raise ValueError("Unknown parameter type passed for wmodel argument: %s" % str(wmodel))
                   
         if self.threads > 1:
-            warn("Multi-threaded retrieval is experimental, YMMV.")
+            warn(
+                "Multi-threaded retrieval is experimental, YMMV.")
             assert pt.terrier.check_version(5.5), "Terrier 5.5 is required for multi-threaded retrieval"
 
             # we need to see if our indexref is concurrent. if not, we upgrade it using ConcurrentIndexLoader
             # this will upgrade the underlying index too.
             if not self.concurrentIL.isConcurrent(self.indexref):
-                warn("Upgrading indexref %s to be concurrent" % self.indexref.toString())
+                warn(
+                    "Upgrading indexref %s to be concurrent" % self.indexref.toString())
                 self.indexref = self.concurrentIL.makeConcurrent(self.indexref)
 
         if num_results is not None:
@@ -281,14 +288,15 @@ class Retriever(RetrieverBase):
         qid = str(row.qid)
 
         # row is a namedtuple, whose fields are exposed in _fields
-        query_toks_present : bool = 'query_toks' in row._fields
+        query_toks_present = 'query_toks' in row._fields
         if query_toks_present:
             query = '' # Clear the query so it doesn't match the "applypipeline:off" or "_matchop" condictions below... The query_toks query is converted below.
             srq = self.manager.newSearchRequest(qid)
         else:
             query = row.query
             if len(query) == 0:
-                warn("Skipping empty query for qid %s" % qid)
+                warn(
+                    "Skipping empty query for qid %s" % qid)
                 return []
             srq = self.manager.newSearchRequest(qid, query)
 
@@ -312,7 +320,8 @@ class Retriever(RetrieverBase):
 
         if query_toks_present:
             if len(row.query_toks) == 0:
-                warn("Skipping empty query_toks for qid %s" % qid)
+                warn(
+                    "Skipping empty query_toks for qid %s" % qid)
                 return []
             srq.setControl("terrierql", "off")
             srq.setControl("parsecontrols", "off")
@@ -371,23 +380,28 @@ class Retriever(RetrieverBase):
         """
         Performs the retrieval
 
-        Args:
-            queries: String for a single query, list of queries, or a pandas.Dataframe with columns=['qid', 'query']. For re-ranking,
+        :param queries: a pandas.Dataframe with columns=['qid', 'query']. For re-ranking,
                 the DataFrame may also have a 'docid' and or 'docno' column.
 
-        Returns:
-            pandas.Dataframe with columns=['qid', 'docno', 'rank', 'score']
+        :return: pandas.Dataframe with columns=['qid', 'docno', 'rank', 'score']
         """
         results=[]
         if not isinstance(queries, pd.DataFrame):
-            warn(".transform() should be passed a dataframe. Use .search() to execute a single query.", FutureWarning, 2)
-            queries = coerce_queries_dataframe(queries)
+            raise ValueError(".transform() should be passed a DataFrame (found %s). Use .search() to execute a single query; Use .transform_iter() for iter-dicts" % str(type(queries)))
         
+        # use pt.validate - this makes inspection of input columns better
+        with pt.validate.any(queries) as v:
+            v.columns(includes=['qid', 'query'], excludes=['docid', 'docno'], mode='retrieve') # query based frame without docno or docid
+            v.columns(includes=['qid', 'query', 'docid'], mode='rerank') # docid-based results frame
+            v.query_frame(extra_columns=['query_toks'], mode='retrieve_toks')
+            v.result_frame(extra_columns=['query'], mode='rerank')
+            
         docno_provided = "docno" in queries.columns
         docid_provided = "docid" in queries.columns
         scores_provided = "score" in queries.columns
         input_results = None
-        if docno_provided or docid_provided:
+        if v.mode == 'rerank':
+            assert docno_provided or docid_provided, "For reranking, either docno or docid must be provided"
             assert pt.terrier.check_version(5.3)
             input_results = queries
 
@@ -417,11 +431,11 @@ class Retriever(RetrieverBase):
                 # create a future for each query, and submit to Terrier
                 future_results = {
                     executor.submit(_one_row, row, input_results, docno_provided=docno_provided, docid_provided=docid_provided, scores_provided=scores_provided) : row.qid 
-                    for row in queries.itertuples()}                
+                    for row in queries.itertuples()}
                 
                 # as these futures complete, wait and add their results
                 iter = concurrent.futures.as_completed(future_results)
-                if self.verbose:
+                if self.verbose and len(queries):
                     iter = pt.tqdm(iter, desc=str(self), total=queries.shape[0], unit="q")
                 
                 for future in iter:
@@ -429,7 +443,7 @@ class Retriever(RetrieverBase):
                     results.extend(res)
         else:
             iter = queries.itertuples()
-            if self.verbose:
+            if self.verbose and len(queries):
                 iter = pt.tqdm(iter, desc=str(self), total=queries.shape[0], unit="q")
             for row in iter:
                 res = self._retrieve_one(row, input_results, docno_provided=docno_provided, docid_provided=docid_provided, scores_provided=scores_provided)
@@ -458,6 +472,71 @@ class Retriever(RetrieverBase):
     def setControl(self, control, value):
         self.controls[str(control)] = str(value)
 
+    def schematic(self, *, input_columns = None): 
+        return {'label': self.controls['wmodel']}
+
+    def fuse_rank_cutoff(self, k: int) -> Optional[pt.Transformer]:
+        """
+        Support fusing with RankCutoffTransformer.
+        """
+        if float(self.controls.get('end', float('inf'))) < k:
+            return self # the applied rank cutoff is greater than the one already applied
+        if self.controls.get('context_wmodel') == 'on':
+            return None # we don't store the original wmodel value so we can't reconstruct
+        # apply the new k as num_results
+        return pt.inspect.transformer_apply_attributes(self, num_results=k)
+
+    def fuse_feature_union(self, other: pt.Transformer, is_left: bool) -> Optional[pt.Transformer]:
+        if isinstance(other, Retriever) and \
+           self.indexref == other.indexref and \
+           self.controls.get('context_wmodel') != 'on' and \
+           other.controls.get('context_wmodel') != 'on':
+            features = ["WMODEL:" + self.controls['wmodel'], "WMODEL:" + other.controls['wmodel']] if is_left else ["WMODEL:" + other.controls['wmodel'], "WMODEL:" + self.controls['wmodel']]
+            controls = dict(self.controls)
+            del controls['wmodel']
+            return FeaturesRetriever(self.indexref, features, controls=controls, properties=self.properties,
+                metadata=self.metadata, threads=self.threads, verbose=self.verbose)
+        return None
+
+    def attributes(self):
+        if 'wmodel' in self.controls:
+            wmodel = self.controls['wmodel']
+        elif self.controls.get('context_wmodel') == 'on':
+            wmodel = self.search_context['context_wmodel']
+        return [
+            pt.inspect.TransformerAttribute('index_location', self.indexref),
+            pt.inspect.TransformerAttribute('num_results', int(self.controls.get('end', '999')) + 1),
+            pt.inspect.TransformerAttribute('metadata', self.metadata),
+            pt.inspect.TransformerAttribute('wmodel', wmodel),
+            pt.inspect.TransformerAttribute('threads', self.threads),
+            pt.inspect.TransformerAttribute('verbose', self.verbose),
+        ] + [
+            pt.inspect.TransformerAttribute(key, value)
+            for key, value in self.controls.items()
+            if key not in ('end', 'wmodel')
+        ] + [
+            pt.inspect.TransformerAttribute(key, value)
+            for key, value in self.properties.items()
+        ]
+
+    def apply_attributes(self, **kwargs):
+        for attr in self.attributes():
+            if attr.name not in kwargs:
+                kwargs[attr.name] = attr.value
+        kwargs['controls'] = {}
+        kwargs['properties'] = {}
+        for key, value in list(kwargs.items()):
+            if key in ('index_location', 'controls', 'properties', 'metadata', 'num_results', 'wmodel', 'threads', 'verbose'):
+                pass
+            elif key in self.properties:
+                kwargs['properties'][key] = value
+                del kwargs[key]
+            else:
+                kwargs['controls'][key] = value
+                del kwargs[key]
+        return Retriever(**kwargs)
+
+
 @pt.java.required
 class TextIndexProcessor(pt.Transformer):
     '''
@@ -468,16 +547,29 @@ class TextIndexProcessor(pt.Transformer):
         for instance query expansion based on text.
     '''
 
-    def __init__(self, innerclass, takes="queries", returns="docs", body_attr="body", background_index=None, verbose=False, **kwargs):
+    def __init__(self, innerclass, 
+                 takes="queries", 
+                 returns="docs", 
+                 body_attr="body", 
+                 background_index=None, 
+                 stemmer : Union[None, str, TerrierStemmer] = TerrierStemmer.porter,
+                 stopwords : Union[None, TerrierStopwords, List[str]] = TerrierStopwords.terrier,
+                 tokeniser : Union[str,TerrierTokeniser] = TerrierTokeniser.english,
+                 verbose=False, 
+                 **kwargs):
         #super().__init__(**kwargs)
         self.innerclass = innerclass
         self.takes = takes
         self.returns = returns
+        assert isinstance(body_attr, str)
         self.body_attr = body_attr
         if background_index is not None:
             self.background_indexref = _parse_index_like(background_index)
         else:
             self.background_indexref = None
+        self.stemmer = stemmer
+        self.stopwords = stopwords
+        self.tokeniser = tokeniser
         self.kwargs = kwargs
         self.verbose = verbose
 
@@ -485,8 +577,17 @@ class TextIndexProcessor(pt.Transformer):
         # we use _IterDictIndexer_nofifo, as _IterDictIndexer_fifo (which is default on unix) doesnt support IndexingType.MEMORY as a destination
         from pyterrier.terrier import IndexFactory
         from pyterrier.terrier.index import IndexingType, _IterDictIndexer_nofifo
+        pt.validate.result_frame(topics_and_res, extra_columns=[self.body_attr, 'query'])
         documents = topics_and_res[["docno", self.body_attr]].drop_duplicates(subset="docno").rename(columns={self.body_attr:'text'})
-        indexref = _IterDictIndexer_nofifo(None, type=IndexingType.MEMORY, verbose=self.verbose).index(documents.to_dict(orient='records'))
+        indexref = _IterDictIndexer_nofifo(
+            None, 
+            type=IndexingType.MEMORY, 
+            verbose=self.verbose, 
+            stemmer = self.stemmer, 
+            stopwords = self.stopwords,
+            tokeniser = self.tokeniser
+            ).index(documents.to_dict(orient='records'))
+        
         docno2docid = { docno:id for id, docno in enumerate(documents["docno"]) }
         index_docs = IndexFactory.of(indexref)
         docno2docid = {}
@@ -514,6 +615,29 @@ class TextIndexProcessor(pt.Transformer):
             # add the docid to the dataframe
             input["docid"] = input.apply(lambda row: docno2docid[row["docno"]], axis=1, result_type='reduce')
 
+        if self.innerclass == Retriever:
+            # build up a termpipeline based on the stemmer and stopwords settings
+            tp = []
+            stops, _ = TerrierStopwords._to_obj(self.stopwords or 'none')
+            if stops == TerrierStopwords.terrier:
+                tp.append("Stopwords")
+            elif stops == TerrierStopwords.none:
+                pass # noop
+            else:
+                # sadly PyTerrierCustomStopwordList only support instantiation from ApplicationSetup or Index properties, not controls
+                raise KeyError("Only TerrierStopwords.terrier and TerrierStopwords.none are supported for stopwords in TextIndexProcessor, found %s" % str(stops))       
+            stemmer = TerrierStemmer._to_obj(self.stemmer or 'none')
+            if stemmer is not TerrierStemmer.none:
+                tp.append(TerrierStemmer._to_class(stemmer))
+
+            if 'controls' not in self.kwargs:
+                self.kwargs['controls'] = {}
+            if not len(tp):
+                tp = ["NoOp"] # an empty termpipeline will be detected as missing by ApplyTermPipeline in Terrier
+            self.kwargs['controls']['termpipelines'] = ",".join(tp)
+        else:
+            # if not Retriever, we dont know how to set the termpipeline
+            pass
 
         # and then just instantiate BR using the our new index 
         # we take all other arguments as arguments for BR
@@ -544,14 +668,13 @@ class TextScorer(TextIndexProcessor):
         A re-ranker class, which takes the queries and the contents of documents, indexes the contents of the documents using a MemoryIndex, and performs ranking of those documents with respect to the queries.
         Unknown kwargs are passed to Retriever.
 
-        Arguments:
-            takes(str): configuration - what is needed as input: `"queries"`, or `"docs"`. Default is `"docs"` since v0.8.
-            returns(str): configuration - what is needed as output: `"queries"`, or `"docs"`. Default is `"docs"`.
-            body_attr(str): what dataframe input column contains the text of the document. Default is `"body"`.
-            wmodel(str): name of the weighting model to use for scoring.
-            background_index(index_like): An optional background index to use for term and collection statistics. If a weighting
-                model such as BM25 or TF_IDF or PL2 is used without setting the background_index, the background statistics
-                will be calculated from the dataframe, which is ususally not the desired behaviour.
+        :param takes: configuration - what is needed as input: `"queries"`, or `"docs"`. Default is `"docs"` since v0.8.
+        :param returns: configuration - what is needed as output: `"queries"`, or `"docs"`. Default is `"docs"`.
+        :param body_attr: what dataframe input column contains the text of the document. Default is `"body"`.
+        :param wmodel: name of the weighting model to use for scoring.
+        :param background_index: An optional background index to use for term and collection statistics. If a weighting
+            model such as BM25 or TF_IDF or PL2 is used without setting the background_index, the background statistics
+            will be calculated from the dataframe, which is ususally not the desired behaviour.
 
         Example::
 
@@ -594,17 +717,22 @@ class FeaturesRetriever(Retriever):
     #: FBR_default_properties(dict): stores the default properties
     FBR_default_properties = Retriever.default_properties.copy()
 
-    def __init__(self, index_location, features, controls=None, properties=None, threads=1, **kwargs):
+    def __init__(self, 
+                 index_location : Union[str,Any], 
+                 features : List[str], 
+                 controls : Optional[Dict[str,str]] = None, 
+                 properties : Optional[Dict[str,str]] = None, 
+                 threads : int = 1, 
+                 **kwargs):
         """
             Init method
 
-            Args:
-                index_location: An index-like object - An Index, an IndexRef, or a String that can be resolved to an IndexRef
-                features(list): List of features to use
-                controls(dict): A dictionary with the control names and values
-                properties(dict): A dictionary with the property keys and values
-                verbose(bool): If True transform method will display progress
-                num_results(int): Number of results to retrieve. 
+            :param index_location: An index-like object - An Index, an IndexRef, or a String that can be resolved to an IndexRef
+            :param features: List of features to use
+            :param controls: A dictionary with the control names and values
+            :param properties: A dictionary with the property keys and values
+            :param verbose: If True transform method will display progress
+            :param num_results: Number of results to retrieve. 
         """
         controls = _mergeDicts(FeaturesRetriever.FBR_default_controls, controls)
         properties = _mergeDicts(FeaturesRetriever.FBR_default_properties, properties)
@@ -613,7 +741,7 @@ class FeaturesRetriever(Retriever):
 
         # record the weighting model
         self.wmodel = None
-        if "wmodel" in kwargs:
+        if "wmodel" in kwargs and kwargs['wmodel'] is not None:
             assert isinstance(kwargs["wmodel"], str), "Non-string weighting models not yet supported by FBR"
             self.wmodel = kwargs["wmodel"]
         if "wmodel" in controls:
@@ -627,6 +755,8 @@ class FeaturesRetriever(Retriever):
             raise ValueError("Multi-threaded retrieval not yet supported by FeaturesRetriever")
         
         super().__init__(index_location, controls, properties, **kwargs)
+        if self.wmodel is None and 'wmodel' in self.controls:
+            del self.controls['wmodel'] # Retriever sets a default controls['wmodel'], we only want this
 
     def __reduce__(self):
         return (
@@ -634,6 +764,11 @@ class FeaturesRetriever(Retriever):
             (self.indexref, self.features),
             self.__getstate__()
         )
+    
+    def schematic(self, *, input_columns = None): 
+        if self.wmodel is None:
+            return {'label': "FeaturesRetriever: %df" % len(self.features)}
+        return {'label': "FeaturesRetriever: %s + %df" % (self.wmodel, len(self.features))}
 
     def __getstate__(self): 
         return  {
@@ -657,7 +792,7 @@ class FeaturesRetriever(Retriever):
 
     @staticmethod 
     def from_dataset(dataset : Union[str,Dataset], 
-            variant : str = None, 
+            variant : Optional[str] = None, 
             version='latest',            
             **kwargs):
         return pt.datasets.transformer_from_dataset(dataset, variant=variant, version=version, clz=FeaturesRetriever, **kwargs)
@@ -666,22 +801,27 @@ class FeaturesRetriever(Retriever):
         """
         Performs the retrieval with multiple features
 
-        Args:
-            queries: A pandas.Dataframe with columns=['qid', 'query']. For re-ranking,
+        :param queries: A pandas.Dataframe with columns=['qid', 'query']. For re-ranking,
                 the DataFrame may also have a 'docid' and or 'docno' column.
 
-        Returns:
-            pandas.DataFrame with columns=['qid', 'docno', 'score', 'features']
+        :return: a pandas.DataFrame with columns=['qid', 'docno', 'score', 'rank, 'features']
         """
         results = []
         if not isinstance(queries, pd.DataFrame):
-            warn(".transform() should be passed a dataframe. Use .search() to execute a single query.", FutureWarning, 2)
-            queries = coerce_queries_dataframe(queries)
+            raise ValueError(".transform() should be passed a dataframe. Use .search() to execute a single query; Use .transform_iter() for iter-dicts")
+
+        # use pt.validate - this makes inspection of input columns better
+        with pt.validate.any(queries) as v:
+            v.columns(includes=['qid', 'query', 'docid'], mode='rerank') # docid-based results frame
+            v.query_frame(extra_columns=['query_toks'], mode='retrieve_toks')
+            v.query_frame(extra_columns=['query'], mode='retrieve')
+            v.result_frame(extra_columns=['query'], mode='rerank')
 
         docno_provided = "docno" in queries.columns
         docid_provided = "docid" in queries.columns
         scores_provided = "score" in queries.columns
-        if docno_provided or docid_provided:
+        if v.mode == 'rerank':
+            assert docno_provided or docid_provided, "For reranking, either docno or docid must be provided"
             #re-ranking mode
             assert pt.terrier.check_version(5.3)
             input_results = queries
@@ -695,6 +835,7 @@ class FeaturesRetriever(Retriever):
             if not scores_provided and self.wmodel is None:
                 raise ValueError("We're in re-ranking mode, but input does not have scores, and wmodel is None")
         else:
+            assert v.mode == 'retrieve' or v.mode == 'retrieve_toks'
             assert not scores_provided
 
             if self.wmodel is None:
@@ -705,9 +846,12 @@ class FeaturesRetriever(Retriever):
             queries['qid'] = queries['qid'].astype(str)
 
         newscores=[]
-        for row in pt.tqdm(queries.itertuples(), desc=str(self), total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
+        iter = queries.itertuples()
+        if self.verbose and len(queries):
+            iter = pt.tqdm(iter, desc=str(self), total=queries.shape[0], unit="q")
+        for row in iter:
             qid = str(row.qid)
-            query_toks_present : bool = 'query_toks' in row._fields
+            query_toks_present = 'query_toks' in row._fields
             if query_toks_present:
                 # Even though it might look like we should parse the query toks here, we don't want the resulting query to be caught by the conditions
                 # that come before the "if query_toks_present" check. So we set it to an empty string and handle the parsing below.
@@ -716,7 +860,8 @@ class FeaturesRetriever(Retriever):
             else:
                 query = row.query
                 if len(query) == 0:
-                    warn("Skipping empty query for qid %s" % qid)
+                    warn(
+                        "Skipping empty query for qid %s" % qid)
                     continue
                 srq = self.manager.newSearchRequest(qid, query)
 
@@ -737,7 +882,8 @@ class FeaturesRetriever(Retriever):
 
             if query_toks_present:
                 if len(row.query_toks) == 0:
-                    warn("Skipping empty query_toks for qid %s" % qid)
+                    warn(
+                        "Skipping empty query_toks for qid %s" % qid)
                     return []
                 srq.setControl("terrierql", "off")
                 srq.setControl("parsecontrols", "off")
@@ -803,72 +949,50 @@ class FeaturesRetriever(Retriever):
             return "TerrierFeatRetr(" + str(len(self.features)) + " features)"
         return "TerrierFeatRetr(" + self.controls["wmodel"] + " and " + str(len(self.features)) + " features)"
 
-rewrites_setup = False
+    def fuse_left(self, left: pt.Transformer) -> Optional[pt.Transformer]:
+        # Can merge Retriever >> FeaturesRetriever into a single FeaturesRetriever that also retrieves
+        # if the indexref matches and the current FeaturesRetriever isn't already reranking.
+        if isinstance(left, Retriever) and \
+           self.indexref == left.indexref and \
+           left.controls.get('context_wmodel') != 'on' and \
+           self.wmodel is None:
+            return FeaturesRetriever(
+                self.indexref,
+                self.features,
+                controls=self.controls,
+                properties=self.properties,
+                threads=self.threads,
+                wmodel=left.controls['wmodel'],
+            )
+        return None
 
-def setup_rewrites():
-    from pyterrier.transformer import rewrite_rules
-    from pyterrier.ops import FeatureUnionPipeline, ComposedPipeline
-    from matchpy import ReplacementRule, Wildcard, Pattern, CustomConstraint
-    #three arbitrary "things".
-    x = Wildcard.dot('x')
-    xs = Wildcard.plus('xs')
-    y = Wildcard.dot('y')
-    z = Wildcard.dot('z')
-    # two different match retrives
-    _br1 = Wildcard.symbol('_br1', Retriever)
-    _br2 = Wildcard.symbol('_br2', Retriever)
-    _fbr = Wildcard.symbol('_fbr', FeaturesRetriever)
-    
-    # batch retrieves for the same index
-    BR_index_matches = CustomConstraint(lambda _br1, _br2: _br1.indexref == _br2.indexref)
-    BR_FBR_index_matches = CustomConstraint(lambda _br1, _fbr: _br1.indexref == _fbr.indexref)
-    
-    # rewrite nested binary feature unions into one single polyadic feature union
-    rewrite_rules.append(ReplacementRule(
-        Pattern(FeatureUnionPipeline(x, FeatureUnionPipeline(y,z)) ),
-        lambda x, y, z: FeatureUnionPipeline(x,y,z)
-    ))
-    rewrite_rules.append(ReplacementRule(
-        Pattern(FeatureUnionPipeline(FeatureUnionPipeline(x,y), z) ),
-        lambda x, y, z: FeatureUnionPipeline(x,y,z)
-    ))
-    rewrite_rules.append(ReplacementRule(
-        Pattern(FeatureUnionPipeline(FeatureUnionPipeline(x,y), xs) ),
-        lambda x, y, xs: FeatureUnionPipeline(*[x,y]+list(xs))
-    ))
+    def fuse_rank_cutoff(self, k: int) -> Optional[pt.Transformer]:
+        """
+        Support fusing with RankCutoffTransformer.
+        """
+        if float(self.controls.get('end', float('inf'))) < k:
+            return self # the applied rank cutoff is greater than the one already applied
+        if self.wmodel is None:
+            return None # not a retriever
+        # apply the new k as num_results
+        return FeaturesRetriever(self.indexref, self.features, controls=self.controls, properties=self.properties,
+            threads=self.threads, wmodel=self.wmodel, verbose=self.verbose, num_results=k)
 
-    # rewrite nested binary compose into one single polyadic compose
-    rewrite_rules.append(ReplacementRule(
-        Pattern(ComposedPipeline(x, ComposedPipeline(y,z)) ),
-        lambda x, y, z: ComposedPipeline(x,y,z)
-    ))
-    rewrite_rules.append(ReplacementRule(
-        Pattern(ComposedPipeline(ComposedPipeline(x,y), z) ),
-        lambda x, y, z: ComposedPipeline(x,y,z)
-    ))
-    rewrite_rules.append(ReplacementRule(
-        Pattern(ComposedPipeline(ComposedPipeline(x,y), xs) ),
-        lambda x, y, xs: ComposedPipeline(*[x,y]+list(xs))
-    ))
+    def fuse_feature_union(self, other: pt.Transformer, is_left: bool) -> Optional[pt.Transformer]:
+        if isinstance(other, FeaturesRetriever) and \
+           self.indexref == other.indexref and \
+           self.wmodel is None and \
+           other.wmodel is None:
+            features = self.features + other.features if is_left else other.features + self.features
+            return FeaturesRetriever(self.indexref, features, controls=self.controls, properties=self.properties,
+                threads=self.threads, wmodel=self.wmodel, verbose=self.verbose)
 
-    # rewrite batch a feature union of BRs into an FBR
-    rewrite_rules.append(ReplacementRule(
-        Pattern(FeatureUnionPipeline(_br1, _br2), BR_index_matches),
-        lambda _br1, _br2: FeaturesRetriever(_br1.indexref, ["WMODEL:" + _br1.controls["wmodel"], "WMODEL:" + _br2.controls["wmodel"]])
-    ))
-
-    def push_fbr_earlier(_br1, _fbr):
-        #TODO copy more attributes
-        _fbr.wmodel = _br1.controls["wmodel"]
-        return _fbr
-
-    # rewrite a BR followed by a FBR into a FBR
-    rewrite_rules.append(ReplacementRule(
-        Pattern(ComposedPipeline(_br1, _fbr), BR_FBR_index_matches),
-        push_fbr_earlier
-    ))
-
-    global rewrites_setup
-    rewrites_setup = True
-
-setup_rewrites()
+        if isinstance(other, Retriever) and \
+           self.indexref == other.indexref and \
+           self.wmodel is None  and \
+           other.controls.get('context_wmodel') != 'on':
+            features = self.features + ["WMODEL:" + other.controls['wmodel']] if is_left else ["WMODEL:" + other.controls['wmodel']] + self.features
+            return FeaturesRetriever(self.indexref, features, controls=self.controls, properties=self.properties,
+                threads=self.threads, wmodel=self.wmodel, verbose=self.verbose)
+        
+        return None

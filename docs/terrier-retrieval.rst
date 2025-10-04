@@ -16,16 +16,32 @@ Typical usage::
     pt.Experiment([tf_idf, bm25, pl2], topic, qrels, eval_metrics=["map"])
 
 As Retriever is a retrieval transformation, it takes as input dataframes with columns `["qid", "query"]`,
-and returns dataframes with columns `["qid", "query", "docno", "score", "rank"]`.
+and returns dataframes with columns `["qid", "query", "docno", "score", "rank"]`:
+
+.. schematic::
+    :input_columns: qid,query
+
+    pt.terrier.TerrierIndex.from_hf('pyterrier/vaswani.terrier').bm25()
 
 However, Retriever can also act as a re-ranker. In this scenario, it takes as input dataframes with 
-columns `["qid", "query", "docno"]`, and returns dataframes with columns `["qid", "query", "docno", "score", "rank"]`.
+columns `["qid", "query", "docno"]`, and returns dataframes with columns `["qid", "query", "docno", "score", "rank"]`:
+
+.. schematic::
+    :input_columns: qid,query,docno
+
+    pt.terrier.TerrierIndex.from_hf('pyterrier/vaswani.terrier').bm25()
 
 For instance, to create a re-ranking pipeline that re-scores the top 100 BM25 documents using PL2::
 
     bm25 = pt.terrier.Retriever(index, wmodel="BM25")
     pl2 = pt.terrier.Retriever(index, wmodel="PL2")
     pipeline = (bm25 % 100) >> pl2
+
+.. schematic::
+    :input_columns: qid,query
+
+    index = pt.terrier.TerrierIndex.from_hf('pyterrier/vaswani.terrier')
+    index.bm25() % 100 >> index.retriever("pl2")
 
 Retriever
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -44,44 +60,44 @@ standard `["qid", "query"]` dataframe columns.
 
 Two alternative query formats are also supported:
 
- - MatchOp - this is a `lower-level query language <https://github.com/terrier-org/terrier-core/blob/5.x/doc/querylanguage.md#matching-op-query-language>`_ supported by Terrier, which is Indri-like in nature, and supports operators like ``#1()``. (exact phrase and ``#combine()`` (weighting). MatchOp queries stored in the `"query"` column. 
+- MatchOp - this is a `lower-level query language <https://github.com/terrier-org/terrier-core/blob/5.x/doc/querylanguage.md#matching-op-query-language>`_ supported by Terrier, which is Indri-like in nature, and supports operators like ``#1()``. (exact phrase and ``#combine()`` (weighting). MatchOp queries stored in the `"query"` column. 
 
- - pre-tokenised queries - in this format, query terms are provided, with weights, in a dictionary. Query terms are assumed to be already stemmed. This
- format is useful for techniques that weight query terms, such as for Learned Sparse Retrieval (e.g. see `pyterrier_splade <https://github.com/cmacdonald/pyt_splade>`_).
+- pre-tokenised queries - in this format, query terms are provided, with weights, in a dictionary. Query terms are assumed to be already stemmed. This
+  format is useful for techniques that weight query terms, such as for Learned Sparse Retrieval (e.g. see `pyterrier_splade <https://github.com/cmacdonald/pyt_splade>`_).
 
 The following query dataframes are therefore equivalent:
 
- - Raw query:
+- Raw query:
 
-    =====  =============================
-    qid    query         
-    =====  =============================
-        1  chemical chemical reactions
-    =====  =============================
+=====  =============================
+qid    query         
+=====  =============================
+    1  chemical chemical reactions
+=====  =============================
 
- - Using Terrier's QL to express weights on query terms:
+- Using Terrier's QL to express weights on query terms:
 
-    =====  =============================
-    qid    query         
-    =====  =============================
-        1  chemical^2 reactions
-    =====  =============================
+=====  =============================
+qid    query         
+=====  =============================
+    1  chemical^2 reactions
+=====  =============================
 
- - Using Terrier's MatchOpQL to express weights on stemmed and tokenised query terms:
+- Using Terrier's MatchOpQL to express weights on stemmed and tokenised query terms:
 
-    =====  ======================================
-    qid    query         
-    =====  ======================================
-        1  #combine:0=2:1=1(chemic reaction)
-    =====  ======================================
+=====  ======================================
+qid    query         
+=====  ======================================
+    1  #combine:0=2:1=1(chemic reaction)
+=====  ======================================
 
- - Use the query_toks column (the query column is ignored):
+- Use the query_toks column (the query column is ignored):
 
-    =====  ====================================== =============================
-    qid    query_toks                             query         
-    =====  ====================================== =============================
-        1  {'chemic' : 2.0, 'reaction' : 1}       chemical chemical reactions
-    =====  ====================================== =============================
+=====  ====================================== =============================
+qid    query_toks                             query         
+=====  ====================================== =============================
+    1  {'chemic' : 2.0, 'reaction' : 1}       chemical chemical reactions
+=====  ====================================== =============================
 
 
 
@@ -98,18 +114,22 @@ Properties are global configuration and were traditionally configured by editing
 we specify both when we construct the Retriever object:
 
 Common controls:
- - `"wmodel"` - the name of the weighting model. (This can also be specified using the wmodel kwarg).
-   Valid values are the Java class name of any Terrier weighting model. Terrier provides many,
-   such as `"BM25"`, `"PL2"`. A list can be found in the Terrier `weighting models javadoc <http://terrier.org/docs/current/javadoc/org/terrier/matching/models/package-summary.html>`_.
- - `"qe"` - whether to run the Divergence from Randomness query expansion.
- - `"qemodel"` - which Divergence from Randomness query expansion model. Default is `"Bo1"`.
-   A list can be found the Terrier `query expansion models javadoc <http://terrier.org/docs/current/javadoc/org/terrier/matching/models/queryexpansion/package-summary.html>`_.
+
+- `"wmodel"` - the name of the weighting model. (This can also be specified using the wmodel kwarg).
+  Valid values are the Java class name of any Terrier weighting model. Terrier provides many,
+  such as `"BM25"`, `"PL2"`. A list can be found in the Terrier `weighting models javadoc <http://terrier.org/docs/current/javadoc/org/terrier/matching/models/package-summary.html>`_.
+
+- `"qe"` - whether to run the Divergence from Randomness query expansion.
+
+- `"qemodel"` - which Divergence from Randomness query expansion model. Default is `"Bo1"`.
+  A list can be found the Terrier `query expansion models javadoc <http://terrier.org/docs/current/javadoc/org/terrier/matching/models/queryexpansion/package-summary.html>`_.
  
 Common properties:
- - `"termpipelines"` - the default Terrier term pipeline configuration is `"Stopwords,PorterStemmer"`.
-   If you have created an index with a different configuration, you will need to set the  `"termpipelines"`
-   property for *each* Retriever constructed. NB: These are now configurable using ``stemming=`` and
-   ``stopwords=`` kwargs.
+
+- `"termpipelines"` - the default Terrier term pipeline configuration is `"Stopwords,PorterStemmer"`.
+  If you have created an index with a different configuration, you will need to set the  `"termpipelines"`
+  property for *each* Retriever constructed. NB: These are now configurable using ``stemming=`` and
+  ``stopwords=`` kwargs.
 
 **Examples**::
 
@@ -132,9 +152,9 @@ Index-Like Objects
 
 When working with Terrier indices, Retriever allows can make use of:
 
- - a string representing an index, such as "/path/to/data.properties"
- - a Terrier `IndexRef <http://terrier.org/docs/current/javadoc/org/terrier/querying/IndexRef.html>`_ object, constructed from a string, but which may also hold a reference to the existing index.
- - a Terrier `Index <http://terrier.org/docs/current/javadoc/org/terrier/structures/Index.html>`_ object - the actual loaded index.
+- a string representing an index, such as "/path/to/data.properties"
+- a Terrier `IndexRef <http://terrier.org/docs/current/javadoc/org/terrier/querying/IndexRef.html>`_ object, constructed from a string, but which may also hold a reference to the existing index.
+- a Terrier `Index <http://terrier.org/docs/current/javadoc/org/terrier/structures/Index.html>`_ object - the actual loaded index.
 
 In general, there is a significant cost to loading an Index, as data structures may have to be loaded from disk.
 Where possible, for faster reuse, load the actual Index.
@@ -205,10 +225,10 @@ used by Terrier for scoring. In this example, we create a Terrier Retriever inst
 
 All functions passed must accept 4 arguments, as follows:
 
- - keyFrequency(float): the weight of the term in the query, usually 1 except during PRF.
- - posting(`Posting <http://terrier.org/docs/current/javadoc/org/terrier/structures/postings/Posting.html>`_): access to the information about the occurrence of the term in the current document (frequency, document length etc).
- - entryStats(`EntryStatistics <http://terrier.org/docs/current/javadoc/org/terrier/structures/EntryStatistics.html>`_): access to the information about the occurrence of the term in the whole index (document frequency, etc.).
- - collStats(`CollectionStatistics <http://terrier.org/docs/current/javadoc/org/terrier/structures/CollectionStatistics.html>`_): access to the information about the index as a whole (number of documents, etc).
+- keyFrequency(float): the weight of the term in the query, usually 1 except during PRF.
+- posting(`Posting <http://terrier.org/docs/current/javadoc/org/terrier/structures/postings/Posting.html>`_): access to the information about the occurrence of the term in the current document (frequency, document length etc).
+- entryStats(`EntryStatistics <http://terrier.org/docs/current/javadoc/org/terrier/structures/EntryStatistics.html>`_): access to the information about the occurrence of the term in the whole index (document frequency, etc.).
+- collStats(`CollectionStatistics <http://terrier.org/docs/current/javadoc/org/terrier/structures/CollectionStatistics.html>`_): access to the information about the index as a whole (number of documents, etc).
 
 Note that due to the overheads of continually traversing the JNI boundary, using a Python function for scoring has a marked efficiency overhead. This is probably too slow for retrieval using most indices of any significant size,
 but allows simple explanation of weighting models and exploratory weighting model development.

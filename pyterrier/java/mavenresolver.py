@@ -4,14 +4,14 @@ from packaging.version import Version
 from pathlib import Path
 from enum import Enum
 from warnings import warn
-import wget
+import requests
 import os
 import re
 import pyterrier as pt
 
 MAVEN_BASE_URL = "https://repo1.maven.org/maven2/"
 JITPACK_BASE_URL = "https://jitpack.io/"
-
+USER_AGENT = "curl/7.81.0"
 
 class OnlineMode(Enum):
     ONLINE = 'ONLINE'
@@ -84,7 +84,7 @@ def get_package_jar(orgName, packageName, version, file_path=None, artifact="jar
         if not force_download:
             return target_file
         else:
-            # ensure that wget doesnt put the file in a different name
+            # ensure that we put the file in a different name
             os.rename(target_file, f'{target_file}.bak')
 
     # check local Maven repo, and use that if it exists
@@ -96,7 +96,7 @@ def get_package_jar(orgName, packageName, version, file_path=None, artifact="jar
         return mvnLocalLocation
 
     if mode == OnlineMode.OFFLINE:
-        raise ValueError(f'{filename} not found')
+        raise ValueError(f'Offline mode, and {filename} not found')
 
     if force_download:
         print("Downloading "+ packageName + " " + version + " " + artifact  + " to " + file_path + "...")
@@ -109,8 +109,8 @@ def get_package_jar(orgName, packageName, version, file_path=None, artifact="jar
         mvnUrl = MAVEN_BASE_URL + filelocation
 
     try:
-        wget.download(mvnUrl, file_path)
-    except (urllib.error.HTTPError, urllib.error.URLError) as he:
+        pt.io.download(mvnUrl, target_file, verbose=True, headers={"User-Agent": USER_AGENT})
+    except requests.exceptions.ConnectionError as he:
         if mode == OnlineMode.UNSET:
             offline() # now we're in offline mode
         if file_exists:
@@ -143,9 +143,9 @@ def latest_version_num(orgName, packageName):
 
     url_str = MAVEN_BASE_URL + orgName + "/" + packageName + "/maven-metadata.xml"
     try:
-        with urllib.request.urlopen(url_str) as url:
+        with urllib.request.urlopen(urllib.request.Request( url_str, headers={"User-Agent": USER_AGENT})) as url:
             xml_str = url.read()
-    except urllib.error.URLError:
+    except urllib.error.URLError as ue:
         if mode == OnlineMode.UNSET:
             offline()
             # no internet connection, use the latest version found locally.
@@ -153,7 +153,7 @@ def latest_version_num(orgName, packageName):
             if version is None:
                 raise # version not found, re-raise the URLError error
             else:
-                warn(f'Attempted to get latest version of {packageName} from maven, but was offline. Using latest cached version: {version}')
+                warn(f'Attempted to get latest version of {packageName} from maven, but was offline ({url_str} {ue.code} {ue.reason}). Using latest cached version: {version}')
                 return version
         else: # mode == OnlineMode.ONLINE
             raise

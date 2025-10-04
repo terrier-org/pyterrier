@@ -1,0 +1,44 @@
+name: Documentation
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  sphinx:
+    runs-on: 'ubuntu-latest'
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Setup java
+      uses: actions/setup-java@v4
+      with:
+        java-version: 21
+        distribution: 'zulu'
+
+    - name: Cache Dependencies
+      if: matrix.os != 'self-hosted'
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.pythonLocation }}
+        key: docs-${{ hashFiles('requirements.txt') }}-${{ hashFiles('docs/requirements.txt') }}-${{ hashFiles('docs/extensions.txt') }}
+
+    - name: Install Dependencies
+      run: |
+        pip install . -r docs/requirements.txt -r docs/extensions.txt
+
+    - name: Sphinx
+      run: |
+        cd docs ; QUICK=1 make html
+
+    - name: Upload Documentation
+      uses: actions/upload-artifact@v4
+      with:
+        path: docs/_build/html/

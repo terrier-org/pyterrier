@@ -5,7 +5,7 @@
 
 # PyTerrier
 
-A Python API for Terrier - v.0.11
+A Python API for Terrier - v.0.13
 
 # Installation
 
@@ -36,7 +36,7 @@ See the [indexing documentation](https://pyterrier.readthedocs.io/en/latest/terr
 topics = pt.io.read_topics(topicsFile)
 qrels = pt.io.read_qrels(qrelsFile)
 BM25_r = pt.terrier.Retriever(index, wmodel="BM25")
-res = BM25_br.transform(topics)
+res = BM25_r.transform(topics)
 pt.Evaluate(res, qrels, metrics = ['map'])
 ```
 
@@ -49,39 +49,41 @@ PyTerrier provides an [Experiment](https://pyterrier.readthedocs.io/en/latest/ex
 pt.Experiment([BM25_r, PL2_r], topics, qrels, ["map", "ndcg"])
 ```
 
-There is a worked example in the [experiment notebook](examples/notebooks/experiment.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/experiment.ipynb)
+There is a worked example in the [example experiment notebook](examples/notebooks/experiment.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/experiment.ipynb). Or try out an experiment with [MonoT5 on MSMARCO](examples/experiments/msmarco_BM25_MonoT5.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/msmarco_BM25_MonoT5.ipynb).
 
 # Pipelines
 
 PyTerrier makes it easy to develop complex retrieval pipelines using Python operators such as `>>` to chain different retrieval components. Each retrieval approach is a [transformer](https://pyterrier.readthedocs.io/en/latest/transformer.html), having one key method, `transform()`, which takes a single Pandas dataframe as input, and returns another dataframe. Two examples might encapsulate applying the sequential dependence model, or a query expansion process:
 ```python
 sdm_bm25 = pt.rewrite.SDM() >> pt.terrier.Retriever(indexref, wmodel="BM25")
-bo1_qe = BM25_br >> pt.rewrite.Bo1QueryExpansion() >> BM25_br
+bo1_qe = BM25_r >> pt.rewrite.Bo1QueryExpansion() >> BM25_r
 ```
 
 There is documentation on [transformer operators](https://pyterrier.readthedocs.io/en/latest/operators.html) as well as [example pipelines](https://pyterrier.readthedocs.io/en/latest/pipeline_examples.html) show other common use cases. For more information, see the [PyTerrier data model](https://pyterrier.readthedocs.io/en/latest/datamodel.html).
 
 # Neural Reranking and Dense Retrieval
 
-PyTerrier has additional plugins for BERT (through OpenNIR), T5, ColBERT, ANCE, DeepCT and doc2query.
-
- - OpenNIR: [[Github](https://github.com/Georgetown-IR-Lab/OpenNIR)] [[Documentation](https://opennir.net/)]
- - PyTerrier_ANCE: [[Github](https://github.com/terrierteam/pyterrier_ance)] - dense retrieval
- - PyTerrier_ColBERT: [[Github](https://github.com/terrierteam/pyterrier_colbert)] - dense retrieval and/or neural reranking
+PyTerrier has additional plugins for BERT (through OpenNIR), T5, ColBERT, doc2query and many more...
+ - Pyterrier_DR: [[Github](https://github.com/terrierteam/pyterrier_colbert)] - single-representation dense retrieval
+ - PyTerrier_ColBERT: [[Github](https://github.com/terrierteam/pyterrier_colbert)] - mulitple-representation dense retrieval and/or neural reranking
  - PyTerrier_PISA: [[Github](https://github.com/terrierteam/pyterrier_pisa)] - fast in-memory indexing and retrieval using [PISA](https://github.com/pisa-engine/pisa)
  - PyTerrier_T5: [[Github](https://github.com/terrierteam/pyterrier_t5)] - neural reranking: monoT5, duoT5
  - PyTerrier_GenRank [[Github](https://github.com/emory-irlab/pyterrier_genrank)] - generative listwise reranking: RankVicuna, RankZephyr
  - PyTerrier_doc2query: [[Github](https://github.com/terrierteam/pyterrier_doc2query)] - neural augmented indexing
  - PyTerrier_SPLADE: [[Github](https://github.com/cmacdonald/pyt_splade)] - neural augmented indexing
- - PyTerrier_DeepCT: [[Github](https://github.com/terrierteam/pyterrier_deepct)] - neural augmented indexing
 
-You can see examples of how to use these, including notebooks that run on Google Colab, in the contents of our [ECIR 2021 tutorial](https://github.com/terrier-org/ecir2021tutorial).
+Older plugins include:
+ - PyTerrier_ANCE: [[Github](https://github.com/terrierteam/pyterrier_ance)] - dense retrieval
+ - PyTerrier_DeepCT: [[Github](https://github.com/terrierteam/pyterrier_deepct)] - neural augmented indexing
+ - OpenNIR: [[Github](https://github.com/Georgetown-IR-Lab/OpenNIR)] [[Documentation](https://opennir.net/)]
+
+You can see examples of how to use these, including notebooks that run on Google Colab, in the contents of our [Search Solutions 2022 tutorial](https://github.com/terrier-org/searchsolutions2022-tutorial).
 
 # Learning to Rank
 
 Complex learning to rank pipelines, including for learning-to-rank, can be constructed using PyTerrier's operator language. For example, to combine two features and make them available for learning, we can use the `**` operator.
 ```python
-two_features = BM25_br >> ( 
+two_features = BM25_r >> ( 
   pt.terrier.Retriever(indexref, wmodel="DirichletLM") ** 
   pt.terrier.Retriever(indexref, wmodel="PL2") 
 )
@@ -96,7 +98,7 @@ PyTerrier allows simple access to standard information retrieval test collection
 ```python
 topics = pt.get_dataset("trec-robust-2004").get_topics()
 qrels = pt.get_dataset("trec-robust-2004").get_qrels()
-pt.Experiment([BM25_br, PL2_br], topics, qrels, eval_metrics)
+pt.Experiment([BM25_r, PL2_r], topics, qrels, eval_metrics)
 ```
 
 You can index datasets that include a corpus using IterDictIndexer and get_corpus_iter:

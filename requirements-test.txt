@@ -1,7 +1,10 @@
 xgboost
-ray
 fastrank>=0.7.0
 torch
 lz4
 transformers
 scikit-learn
+ruff
+mypy==1.14.1
+magic-wormhole
+pytest

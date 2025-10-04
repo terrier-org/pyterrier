@@ -39,12 +39,14 @@ class TestDatasets(BaseTestCase):
                 topics = ds.get_topics()
                 qrels = ds.get_qrels("adhoc")
                 
-                #check that the qrels match the topics.
+                # check that the qrels match the topics.
                 join = topics.merge(qrels, on=["qid"])
                 self.assertTrue(len(join) > 0)
         except requests.exceptions.ConnectionError:
             self.skipTest("NIST not reachable")
         except urllib.error.URLError:
+            self.skipTest("NIST not reachable")
+        except requests.exceptions.HTTPError:
             self.skipTest("NIST not reachable")
     
     def test_vaswani_corpus_iter(self):

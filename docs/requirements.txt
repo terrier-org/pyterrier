@@ -1,5 +1,8 @@
 myst_parser
-sphinx_rtd_theme
+furo
 sphinx-autodoc-typehints
 tabulate
 sphinx-tabs
+enum-tools[sphinx]
+bibtexparser~=1.0
+pylatexenc

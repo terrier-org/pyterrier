@@ -3,6 +3,7 @@ import os
 import tempfile
 import shutil
 import pyterrier as pt
+import pytest
 
 class BaseTestCase(unittest.TestCase):
     def __init__(self, *args, **kwargs):
@@ -12,7 +13,7 @@ class BaseTestCase(unittest.TestCase):
             terrier_version = os.environ.get("TERRIER_VERSION", None)
             terrier_helper_version = os.environ.get("TERRIER_HELPER_VERSION", None)
 
-            # display for debugging what is being used
+            # display for debugging what is being used - the env-vars are picked up in pt/terrier/java.py
             if terrier_version is not None:
                 print("Testing with Terrier version " + terrier_version)
             if terrier_helper_version is not None:
@@ -37,5 +38,11 @@ class TempDirTestCase(BaseTestCase):
         except:
             pass
 
-    
+
+def ensure_deprecated(func):
+    def wrapper(*args):
+        with pytest.deprecated_call():
+            return func(*args)
+    return wrapper
+
 parallel_test = unittest.skipIf(os.environ.get("PARALLEL_TESTING") is None, "Parallel test disabled, enable with PARALLEL_TESTING=1")

@@ -1,82 +1,13 @@
+import os
 import inspect
 import sys
-from typing import Callable, Tuple, List, Callable
+from typing import Tuple, List, Callable, Set, Sequence, Union, Iterator, Iterable, Any
+from contextlib import contextmanager
 import platform
 from functools import wraps
 from importlib.metadata import EntryPoint
 from importlib.metadata import entry_points as eps
-import pandas as pd
-from collections import defaultdict
-from deprecated import deprecated
 import pyterrier as pt
-
-
-@deprecated(version="0.9")
-def convert_qrels_to_dict(df):
-    """
-    Convert a qrels dataframe to dictionary for use in pytrec_eval
-
-    Args:
-        df(pandas.Dataframe): The dataframe to convert
-
-    Returns:
-        dict: {qid:{docno:label,},}
-    """
-    run_dict_pytrec_eval = defaultdict(dict)
-    for row in df.itertuples():
-        run_dict_pytrec_eval[row.qid][row.docno] = int(row.label)
-    return(run_dict_pytrec_eval)
-
-
-@deprecated(version="0.9")
-def convert_qrels_to_dataframe(qrels_dict) -> pd.DataFrame:
-    """
-    Convert a qrels dictionary to a dataframe
-
-    Args:
-        qrels_dict(Dict[str, Dict[str, int]]): {qid:{docno:label,},}
-
-    Returns:
-        pd.DataFrame: columns=['qid', 'docno', 'label']
-    """
-    result = {'qid': [], 'docno': [], 'label': []}
-    for qid in qrels_dict:
-        for docno, label in qrels_dict[qid]:
-            result['qid'].append(qid)
-            result['docno'].append(docno)
-            result['label'].append(label)
-
-    return pd.DataFrame(result)
-
-
-@deprecated(version="0.9")
-def convert_res_to_dict(df):
-    """
-    Convert a result dataframe to dictionary for use in pytrec_eval
-
-    Args:
-        df(pandas.Dataframe): The dataframe to convert
-
-    Returns:
-        dict: {qid:{docno:score,},}
-    """
-    run_dict_pytrec_eval = defaultdict(dict)
-    for row in df.itertuples():
-        run_dict_pytrec_eval[row.qid][row.docno] = float(row.score)
-    return(run_dict_pytrec_eval)
-
-
-@deprecated(version="0.9", reason="Use pt.Evaluate instead")
-def evaluate(res : pd.DataFrame, qrels : pd.DataFrame, metrics=['map', 'ndcg'], perquery=False):
-    from .pipelines import Evaluate
-    return Evaluate(res, qrels, metrics=metrics, perquery=perquery)
-
-
-@deprecated(version="0.9")
-def mean_of_measures(result, measures=None, num_q = None):
-    from .pipelines import _mean_of_measures
-    return _mean_of_measures(result, measures=measures, num_q=num_q)
-
 
 def once() -> Callable:
     """
@@ -106,10 +37,11 @@ def entry_points(group: str) -> Tuple[EntryPoint, ...]:
 
     See <https://docs.python.org/3/library/importlib.metadata.html#entry-points> for more details.
     """
+    orig_res: Sequence[EntryPoint]
     try:
-        orig_res = tuple(eps(group=group))
+        orig_res = tuple(eps(group=group)) # type: ignore # support EntryPoints.get() API on different python versions
     except TypeError:
-        orig_res = tuple(eps().get(group, tuple()))
+        orig_res = tuple(eps().get(group, tuple())) # type: ignore # support EntryPoints.get() API on different python versions
 
     names = set()
     res = []
@@ -169,14 +101,14 @@ def get_class_methods(cls) -> List[Tuple[str, Callable]]:
     Returns methods defined directly by the provided class. This will ignore inherited methods unless they are
     overridden by this class.
     """
-    all_attrs = inspect.getmembers(cls, predicate=inspect.isfunction)
+    all_attrs: Sequence[Tuple[str, Callable]] = inspect.getmembers(cls, predicate=inspect.isfunction)
 
-    base_attrs = set()
+    base_attrs : Set[str] = set()
     for base in cls.__bases__:
         base_attrs.update(name for name, _ in inspect.getmembers(base, predicate=inspect.isfunction))
     
     # Filter out methods that are in base classes and not overridden in the subclass
-    class_methods = []
+    class_methods : List[Tuple[str, Callable]] = []
     for name, func in all_attrs:
         if name not in base_attrs or func.__qualname__.split('.')[0] == cls.__name__:
             # bind classmethod and staticmethod functions to this class
@@ -207,3 +139,74 @@ def pre_invocation_decorator(decorator):
                 return fn(*args, **kwargs)
             return _wrapper
     return _decorator_wrapper
+
+
+def byte_count_to_human_readable(byte_count: float) -> str:
+    """Converts a byte count to a human-readable string."""
+    units = ['B', 'KB', 'MB', 'GB', 'TB']
+    while byte_count > 1024 and len(units) > 1:
+        byte_count /= 1024
+        units = units[1:]
+    if units[0] == 'B':
+        return f'{byte_count:.0f} {units[0]}'
+    return f'{byte_count:.1f} {units[0]}'
+
+
+@contextmanager
+def temp_env(key: str, value: str):
+    old_value = os.environ.get(key, None)
+    try:
+        os.environ[key] = value
+        yield
+    finally:
+        if old_value is None:
+            del os.environ[key]
+        else:
+            os.environ[key] = old_value
+
+
+class GeneratorLen(object):
+    def __init__(self, gen, length):
+        self.gen = gen
+        self.length = length
+
+    def __len__(self): 
+        return self.length
+
+    def __iter__(self):
+        return self.gen
+
+
+_NO_BUFFER = object()
+
+
+class PeekableIter:
+    """An iterator that allows peeking at the next element."""
+    def __init__(self, base: Union[Iterator, Iterable]):
+        """Create a PeekableIter from an iterator or iterable."""
+        self.base = iter(base)
+        self._buffer = _NO_BUFFER
+
+    def __getattr__(self, attr: str):
+        return getattr(self.base, attr)
+
+    def __next__(self):
+        if self._buffer != _NO_BUFFER:
+            n = self._buffer
+            self._buffer = _NO_BUFFER
+            return n
+        return next(self.base)
+
+    def __iter__(self):
+        return self
+
+    def peek(self) -> Any:
+        """Return the next element without consuming it."""
+        if self._buffer == _NO_BUFFER:
+            self._buffer = next(self.base)
+        return self._buffer
+
+
+def peekable(it: Union[Iterator, Iterable]) -> PeekableIter:
+    """Create a PeekableIter from an iterator or iterable."""
+    return PeekableIter(it)

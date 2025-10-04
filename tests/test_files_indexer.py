@@ -15,6 +15,14 @@ class TestFilesIndexer(TempDirTestCase):
         index = pt.IndexFactory.of(indexref)
         self.assertEqual(2, index.getCollectionStatistics().getNumberOfDocuments())
 
+    def test_2_docs_custom__stops(self):
+        files = pt.io.find_files(os.path.join(self.here, "fixtures", "sample_docs"))
+        indexer = pt.FilesIndexer(self.test_dir, stopwords=['empty'])
+        indexref = indexer.index(files)
+        index = pt.IndexFactory.of(indexref)
+        self.assertEqual(2, index.getCollectionStatistics().getNumberOfDocuments())
+        self.assertFalse("empty" in index.getLexicon())
+
     def test_2_docs_title_body_meta(self):
         sample_dir = os.path.join(self.here, "fixtures", "sample_docs")
         files = pt.io.find_files(sample_dir)

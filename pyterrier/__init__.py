@@ -1,35 +1,44 @@
-__version__ = "0.11.0"
+__version__ = '0.13.1'
+# NB: version number must be the first line and must use single quotes for the sed expression in .github/workflows/publish-to-pypi.yml
 
+from typing import Any
 from deprecated import deprecated
 
-from pyterrier import utils
+from pyterrier import model, utils, validate, testing
 from pyterrier.transformer import Transformer, Estimator, Indexer
+from pyterrier._ops import RankCutoff, Compose
+from pyterrier._artifact import Artifact
 
 from pyterrier import java
 
 from pyterrier import terrier
 from pyterrier.terrier import BatchRetrieve, TerrierRetrieve, FeaturesBatchRetrieve, IndexFactory, run, rewrite, index, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, IndexingType, TerrierStemmer, TerrierStopwords, TerrierTokeniser
 
-from pyterrier import cache
 from pyterrier import debug
+from pyterrier import documentation
 from pyterrier import io
+from pyterrier import inspect
 from pyterrier import measures
-from pyterrier import model
 from pyterrier import new
 from pyterrier import ltr
-from pyterrier import parallel
 from pyterrier import pipelines
 from pyterrier import text
 from pyterrier import transformer
+from pyterrier import schematic
 from pyterrier import datasets
 from pyterrier.datasets import get_dataset, find_datasets, list_datasets
 from pyterrier.pipelines import Experiment, GridScan, GridSearch, KFoldGridSearch, Evaluate
+from pyterrier import apply as _apply_base
 
 # old name
 Utils = utils
 
 # will be set in terrier.terrier.java once java is loaded
 IndexRef = None
+
+# these will be set once _() runs, but we need to define them here to get type checking to work properly
+tqdm: Any
+apply: _apply_base._apply
 
 
 # deprecated functions explored to the main namespace, which will be removed in a future version
@@ -48,10 +57,11 @@ cast = deprecated(version='0.11.0', reason="use pt.java.cast(...) instead")(java
 
 
 __all__ = [
-    'java', 'terrier', 'cache', 'debug', 'io', 'measures', 'model', 'new', 'ltr', 'parallel', 'pipelines',
-    'text', 'transformer', 'datasets', 'get_dataset', 'find_datasets', 'list_datasets', 'Experiment', 'GridScan',
+    'java', 'terrier', 'debug', 'documentation', 'io', 'inspect', 'measures', 'model', 'new', 'ltr', 'pipelines', 'schematic',
+    'text', 'transformer', 'datasets', 'validate', 'testing', 'get_dataset', 'find_datasets', 'list_datasets', 'Experiment', 'GridScan',
     'GridSearch', 'KFoldGridSearch', 'Evaluate',
-    'utils', 'Utils', 'Transformer', 'Estimator', 'Indexer',
+    'utils', 'Utils', 'Transformer', 'Estimator', 'Indexer', 'Artifact',
+    'RankCutoff', 'Compose',
     'BatchRetrieve', 'TerrierRetrieve', 'FeaturesBatchRetrieve', 'IndexFactory',
     'run', 'rewrite', 'index', 'FilesIndexer', 'TRECCollectionIndexer', 'DFIndexer', 'DFIndexUtils', 'IterDictIndexer',
     'IndexingType', 'TerrierStemmer', 'TerrierStopwords', 'TerrierTokeniser',

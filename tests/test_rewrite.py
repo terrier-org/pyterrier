@@ -5,7 +5,6 @@ import os
 import shutil
 import tempfile
 import pyterrier.transformer as ptt;
-from matchpy import *
 from .base import TempDirTestCase
 
 def normalize_term_weights(term_weights, digits=7):
@@ -383,6 +382,15 @@ class TestRewrite(TempDirTestCase):
         self.assertEqual('#base64(ZsO4cg==)', pt.rewrite.tokenise('identity', matchop=True).search("før").iloc[0].query)
         self.assertEqual('a b', pt.rewrite.tokenise(lambda q : q.split('/')).search("a/b").iloc[0].query)
 
+    def test_tokenise_hgf(self):
+        try:
+            from transformers import AutoTokenizer
+        except:
+            self.skipTest()
+        tok = AutoTokenizer.from_pretrained("bert-base-uncased")
+        query_toks = pt.rewrite.tokenise(tok.tokenize, matchop=True)
+        self.assertEqual('a b', query_toks.search("a b").iloc[0].query)
+
     def test_qe(self):
         if not pt.terrier.check_version("5.3"):
             self.skipTest("Requires Terrier 5.3")
@@ -423,6 +431,22 @@ class TestRewrite(TempDirTestCase):
             map_qe = pt.Evaluate(br_qe.transform(t), qrels, metrics=["map"])["map"]
 
             self.assertAlmostEqual(map_qe, map_pipe, places=4)
+
+            pipe_opt = pipe.compile()
+            self.assertEqual("2", pipe_opt[0].controls["end"]) # has fb_docs 3 been proparaged back to the first retriever
+            self.assertNotIn("end", pipe_opt[-1].controls) # ensure last retriever is unchanged
+            pd.testing.assert_frame_equal(all_qe_res.head(5), pipe_opt(t).head(5))
+
+
+@pt.testing.transformer_test_class
+def test_sdm():
+    return pt.rewrite.SDM()
+
+
+@pt.testing.transformer_test_class
+def test_rm3():
+    index = pt.terrier.TerrierIndex.load(os.path.dirname(os.path.realpath(__file__)) + '/fixtures/index/')
+    return pt.rewrite.RM3(index.index_ref())
 
 
 if __name__ == "__main__":

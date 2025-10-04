@@ -1,6 +1,6 @@
 import pandas as pd
 from warnings import warn
-from typing import List,Union
+from typing import List, Union, Callable
 from types import FunctionType
 import pyterrier as pt
 from pyterrier.terrier.index import TerrierTokeniser
@@ -39,8 +39,8 @@ def tokenise(tokeniser : Union[str,TerrierTokeniser,FunctionType] = 'english', m
         retr_pipe = query_toks >> br
     
     """
-    _query_fn = None
-    if isinstance(tokeniser, FunctionType):
+    _query_fn: Callable[[str], List[str]]
+    if callable(tokeniser):
         _query_fn = tokeniser
     else:
         tokeniser = TerrierTokeniser._to_obj(tokeniser)
@@ -58,7 +58,7 @@ def tokenise(tokeniser : Union[str,TerrierTokeniser,FunctionType] = 'english', m
     def _join_str_matchop(input : List[str]):
         assert not isinstance(input, str), "Expected a list of strings"
         return ' '.join(map(pt.terrier.Retriever.matchop, input))
-    
+
     if matchop:
         return pt.apply.query(lambda r: _join_str_matchop(_query_fn(r.query)))
     return pt.apply.query(lambda r: _join_str(_query_fn(r.query)))
@@ -100,6 +100,8 @@ class SDM(pt.Transformer):
         self.remove_stopwords = remove_stopwords
         assert pt.terrier.check_version("5.3")
         self.ApplyTermPipeline_stopsonly = pt.terrier.J.ApplyTermPipeline('Stopwords')
+
+    schematic = {'label': 'SDM'}
 
     def __repr__(self):
         return "SDM()"
@@ -187,6 +189,9 @@ class QueryExpansion(pt.Transformer):
         self.manager = pt.terrier.J.ManagerFactory._from_(self.indexref)
         self.requires_scores = requires_scores
 
+    def compile(self) -> pt.Transformer:
+        return pt.RankCutoff(self.fb_docs) >> self
+
     def __reduce__(self):
         return (
             self.__class__,
@@ -251,9 +256,11 @@ class QueryExpansion(pt.Transformer):
                 scores.append(docscore)
             if skipped > 0:
                 if skipped == len(docnos):
-                    warn("*ALL* %d feedback docnos for qid %s could not be found in the index" % (skipped, qid))
+                    warn(
+                        "*ALL* %d feedback docnos for qid %s could not be found in the index" % (skipped, qid))
                 else:
-                    warn("%d feedback docnos for qid %s could not be found in the index" % (skipped, qid))
+                    warn(
+                        "%d feedback docnos for qid %s could not be found in the index" % (skipped, qid))
         else:
             raise ValueError("Input resultset has neither docid nor docno")
         return pt.terrier.J.QueryResultSet(docids, scores, occurrences)
@@ -271,6 +278,9 @@ class QueryExpansion(pt.Transformer):
         rq.setControl("qe_fb_terms", str(self.fb_terms))
 
     def transform(self, topics_and_res):
+        with pt.validate.any(topics_and_res) as v:
+            v.columns(includes=['qid', 'docno', 'query'])
+            v.columns(includes=['qid', 'docid', 'query'])
 
         results = []
 
@@ -294,7 +304,7 @@ class QueryExpansion(pt.Transformer):
             # how to make sure this happens/doesnt happen when appropriate.
             self.applytp.process(None, rq)
             # to ensure weights are identical to Terrier
-            rq.getMatchingQueryTerms().normaliseTermWeights();
+            rq.getMatchingQueryTerms().normaliseTermWeights()
             self.qe.expandQuery(rq.getMatchingQueryTerms(), rq)
 
             # this control for Terrier stops it re-stemming the expanded terms
@@ -473,7 +483,6 @@ class _ResetResults(pt.Transformer):
     def transform(self, topics_with_saved_docs : pd.DataFrame) -> pd.DataFrame:
         if "stashed_results_0" not in topics_with_saved_docs.columns:
             raise ValueError("Cannot apply pt.rewrite.reset_results() without pt.rewrite.stash_results() - column stashed_results_0 not found")
-        query_cols = pt.model.query_columns(topics_with_saved_docs)
         rtr = []
         for row in topics_with_saved_docs.itertuples():
             docsdf = pd.DataFrame.from_records(row.stashed_results_0)

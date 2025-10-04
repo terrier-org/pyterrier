@@ -59,17 +59,15 @@ class IndexFactory:
             }
 
         pindex = pt.java.cast("org.terrier.structures.IndexOnDisk", index)
-        load_profile = pindex.getIndexLoadingProfileAsRetrieval()
         dirty_structures = set()
         for s in structures:
             if not pindex.hasIndexStructure(s):
                 continue
             clz = pindex.getIndexProperty(f"index.{s}.class", "notfound")
-            if not clz in REWRITES[s]:
+            if clz not in REWRITES[s]:
                 raise ValueError(f"Cannot load structure {s} into memory, underlying class {clz} is not supported")
 
             # we only reload an index structure if a property has changed
-            dirty = False
             for k, v in REWRITES[s][clz].items():
                 if pindex.getIndexProperty(k, "notset") != v:
                     pindex.setIndexProperty(k, v)
@@ -100,9 +98,9 @@ class IndexFactory:
         """
         Loads an index. Returns a Terrier `Index <http://terrier.org/docs/current/javadoc/org/terrier/structures/Index.html>`_ object.
 
-        Args:
-            indexlike(str or IndexRef): Where is the index located
-            memory(bool or List[str]): If the index should be loaded into memory. Use `True` for all structures, or a list of structure names.
+        :param indexlike: The location of the index. This can be a string, or an `IndexRef <http://terrier.org/docs/current/javadoc/org/terrier/structures/IndexRef.html>`__ object.
+        :param memory: If the index should be loaded into memory. Use `True` for all structures, or a list of structure names.
+        :return: A Terrier `Index <http://terrier.org/docs/current/javadoc/org/terrier/structures/Index.html>`_ object.
         """
         load_profile = pt.terrier.J.IndexOnDisk.getIndexLoadingProfileAsRetrieval()
 

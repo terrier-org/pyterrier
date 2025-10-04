@@ -1,5 +1,5 @@
 
-from typing import Sequence, Union
+from typing import Sequence, Union, Optional, cast, Iterable
 import pandas as pd
 from .model import add_ranks
 
@@ -9,7 +9,7 @@ def empty_Q() -> pd.DataFrame:
     """
     return pd.DataFrame(columns=["qid", "query"])
 
-def queries(queries : Union[str, Sequence[str]], qid : Union[str, Sequence[str]] = None, **others) -> pd.DataFrame:
+def queries(queries : Union[str, Sequence[str]], qid : Optional[Union[str, Iterable[str]]] = None, **others) -> pd.DataFrame:
     """
         Creates a new queries dataframe. Will return a dataframe with the columns `["qid", "query"]`. 
         Any further lists in others will also be added.
@@ -34,13 +34,13 @@ def queries(queries : Union[str, Sequence[str]], qid : Union[str, Sequence[str]]
             one_query = pt.new.queries(["query text A", "query text B"], ["1", "2"], categories=["catA", "catB"])
   
     """
-    if type(queries) == str:
+    if isinstance(queries, str):
         if qid is None:
             qid = "1"
-        assert type(qid) == str
+        assert isinstance(qid, str)
         return pd.DataFrame({"qid" : [qid], "query" : [queries], **others})
     if qid is None:
-        qid = map(str, range(1, len(queries)+1))
+        qid = cast(Iterable[str], map(str, range(1, len(queries)+1))) # noqa: PT100 (this is typing.cast, not jinus.cast)
     return pd.DataFrame({"qid" : qid, "query" : queries, **others})
 
 Q = queries
@@ -53,8 +53,8 @@ def empty_R() -> pd.DataFrame:
 
 def ranked_documents(
         scores : Sequence[Sequence[float]], 
-        qid : Sequence[str] = None, 
-        docno=None, 
+        qid : Optional[Sequence[str]] = None, 
+        docno : Optional[Sequence[Sequence[str]]] = None, 
         **others) -> pd.DataFrame:
     """
         Creates a new ranked documents dataframe. Will return a dataframe with the columns `["qid", "docno", "score", "rank"]`. 
@@ -88,11 +88,10 @@ def ranked_documents(
 
     """
     from itertools import chain
-    import numpy as np
     if len(scores) == 0:
         return empty_R()
     rtr = None
-    if type(scores[0]) == list:
+    if isinstance(scores[0], list):
         # multiple queries
         if qid is None:
             qid = list(map(str, range(1, len(scores)+1)))
@@ -105,7 +104,6 @@ def ranked_documents(
         else:
             assert len(docno) == len(scores)
         
-        from itertools import chain
         rtr = pd.DataFrame(list(chain.from_iterable(scores)), columns=["score"]) 
         
         rtr["docno"] = list(chain.from_iterable(docno))

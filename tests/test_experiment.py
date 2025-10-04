@@ -10,6 +10,45 @@ import pytest
 
 class TestExperiment(TempDirTestCase):
 
+    def __init__(self, *args, **kwargs):
+        super(TempDirTestCase, self).__init__(*args, **kwargs)
+        self.index = None
+
+    def _vaswani_index(self):
+        if self.index is not None:
+            return self.index
+        indexloc = self.here + "/fixtures/index/data.properties"
+        self.index = pt.IndexFactory.of(indexloc)
+        return self.index
+
+    def test_precomp_common(self):
+        bm25 = pt.terrier.Retriever(self._vaswani_index(), wmodel='BM25')
+        pipeA = bm25 %3
+        pipeB = bm25 %10
+        import pyterrier.pipelines
+        common, suffices = pyterrier.pipelines._identifyCommon([pipeA, pipeB])
+        self.assertEqual(bm25, common)
+        self.assertIsInstance(suffices[0], pt.RankCutoff)
+        self.assertEqual(3, suffices[0].k)
+        self.assertIsInstance(suffices[1], pt.RankCutoff)
+        self.assertEqual(10, suffices[1].k)
+
+        common, suffices = pyterrier.pipelines._identifyCommon([bm25, pipeB])
+        self.assertEqual(bm25, common)
+        self.assertIsInstance(suffices[0], pt.transformer.IdentityTransformer)
+        self.assertIsInstance(suffices[1], pt.RankCutoff)
+        self.assertEqual(10, suffices[1].k)
+    
+    def test_precompute_experiment(self):
+        bm25 = pt.terrier.Retriever(self._vaswani_index(), wmodel='BM25')
+        pipeB = bm25 %10
+        df1 = pt.Experiment([bm25, pipeB], pt.get_dataset('vaswani').get_topics().head(10), pt.get_dataset('vaswani').get_qrels(), eval_metrics=['map'])
+        df2 = pt.Experiment([bm25, pipeB], pt.get_dataset('vaswani').get_topics().head(10), pt.get_dataset('vaswani').get_qrels(), eval_metrics=['map'], precompute_prefix=True)
+        pd.testing.assert_frame_equal(df1, df2)
+
+        df3 = pt.Experiment([bm25, pipeB], pt.get_dataset('vaswani').get_topics().head(10), pt.get_dataset('vaswani').get_qrels(), eval_metrics=['map'], precompute_prefix=True, batch_size=4)
+        pd.testing.assert_frame_equal(df1, df3)
+
     def test_irm_APrel2(self):
         topics = pd.DataFrame([["q1", "q1"], ["q2", "q1"] ], columns=["qid", "query"])
         res1 = pd.DataFrame([["q1", "d1", 1.0], ["q2", "d1", 2.0] ], columns=["qid", "docno", "score"])
@@ -53,8 +92,7 @@ class TestExperiment(TempDirTestCase):
         self.assertEqual(1, df[(df.measure == "P(rel=2)@1") & (df.qid == "q2")].value.iloc[0])
 
     def test_differing_queries(self):
-        dataset = pt.get_dataset("vaswani")
-        bm25 = pt.terrier.Retriever(dataset.get_index(), wmodel="BM25")
+        bm25 = pt.terrier.Retriever(self._vaswani_index(), wmodel='BM25')
         qrels = pd.DataFrame({
             'qid':   ["1",     "1",    "2"],
             'docno': ["10703", "1056", "9374"],
@@ -118,17 +156,60 @@ class TestExperiment(TempDirTestCase):
 
     def test_wrong(self):
         brs = [
-            pt.terrier.Retriever(pt.datasets.get_dataset("vaswani").get_index(), wmodel="DPH"), 
-            pt.terrier.Retriever(pt.datasets.get_dataset("vaswani").get_index(), wmodel="BM25")
+            pt.terrier.Retriever(self._vaswani_index(), wmodel='DPH'),
+            pt.terrier.Retriever(self._vaswani_index(), wmodel='BM25')
         ]
         topics = pt.datasets.get_dataset("vaswani").get_topics().head(10)
         qrels =  pt.datasets.get_dataset("vaswani").get_qrels()
         with self.assertRaises(TypeError):
             pt.Experiment(brs, topics, qrels, eval_metrics=["map"], filter_qrels=True)
         
+    def test_expected_columns(self):
+        br0 = pt.Transformer.from_df(pd.DataFrame([{'qid' : '1', 'query' : 'hello'}]), uniform=True)
+        br1 = pt.Transformer.from_df(pd.DataFrame([{'qid' : '1', 'query' : 'hello', "context" : "here"}]), uniform=True)
 
+        topics = pt.datasets.get_dataset("vaswani").get_topics().head(10)
+        qrels =  pt.datasets.get_dataset("vaswani").get_qrels()
+        # check that we have the expected columns
+        with self.assertRaises(ValueError) as ve:
+            pt.Experiment([br1], topics, qrels, eval_metrics=["map"], validate='error')
+            self.assertIn("Transformer", str(ve.exception))
+            self.assertIn("does not produce all required columns", str(ve.exception))
+
+        # lets make a custom measure that requires the 'context' column
+        import ir_measures
+        custom_measure = ir_measures.define_byquery(lambda qrels, run: len(run.iloc[0]["context"]), run_inputs=['context'], name='context_length')
+        with self.assertRaises(ValueError) as ve:
+            pt.Experiment([br0], topics, qrels, eval_metrics=[custom_measure], validate='error')
+            self.assertIn("Transformer", str(ve.exception))
+            self.assertIn("does not produce all required columns", str(ve.exception))
+        eval = pt.Experiment([br1], topics, qrels, eval_metrics=[custom_measure], validate='error')
+        self.assertIn("context_length", eval.columns)
+        self.assertEqual(eval.iloc[0]["context_length"], 0.4)  # "here" has length 4, divide by 10 topics in the qrels.
+
+        # check that we can detect a renaming of a column that is missing
+        # this should fail, as the 'context' column is not present in the output of the br0 transformer
+        with self.assertRaises(ValueError) as ve:
+            pt.Experiment([br0 >> pt.apply.rename({'context' : 'prompt'})], topics, qrels, eval_metrics=[custom_measure], validate='error')
+
+        # this one doesnt set expected columns, and doesnt support the empty df trick.
+        def _rename_context(df):
+            if len(df) == 0:
+                raise ValueError("Empty DataFrame")
+            return df.rename(columns={'context' : 'prompt'})
+        with self.assertRaises(KeyError) as ke:
+            with warnings.catch_warnings(record=True) as w:
+            # this should give a warning, as the 'context' column is not present in the output of the br0 transformer, but we cant validate the rename
+            # the experiment will then fail with a KeyError, as the 'context' column is not present in the output of the br0 transformer
+                pt.Experiment([br0 >> pt.apply.generic(_rename_context)], topics, qrels, eval_metrics=[custom_measure], validate='error')
+                # context is not present in the output of the br0 transformer, so we should get a KeyError
+                self.assertIn("context", str(ke.exception))
+                # but we coudlnt validate the rename, so we should get a warning, even if validate='error'
+                self.assertIn("at position 0 failed to validate: Cannot determine output", str(w))
+
+        
     def test_mrt(self):
-        index = pt.datasets.get_dataset("vaswani").get_index()
+        index = self._vaswani_index()
         brs = [
             pt.terrier.Retriever(index, wmodel="DPH"), 
             pt.terrier.Retriever(index, wmodel="BM25")
@@ -141,33 +222,60 @@ class TestExperiment(TempDirTestCase):
         pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], highlight="color")
         pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], baseline=0, highlight="color")
 
+    def test_save_invalid_format(self):
+        topics = pt.datasets.get_dataset("vaswani").get_topics().head(10)
+        qrels =  pt.datasets.get_dataset("vaswani").get_qrels()
+        t = pt.Transformer.from_df(pd.DataFrame([{'qid' : topics.iloc[0].qid, 'query' : 'hello', "context" : "here"}]))
+        with self.assertRaises(TypeError) as te:
+            pt.Experiment([t], topics, qrels, ['map'], save_dir=self.test_dir, names=['t'])
+            self.assertIn("missing ['docno', 'score', 'rank']" in te.msg)
+        # save_format with pickle should work - we need a dummy measure though.
+        dummy_measure = ir_measures.define_byquery(lambda a,b: 0)
+        import pickle
+        pt.Experiment([t], 
+                      topics, 
+                      qrels, 
+                      [dummy_measure], 
+                      save_dir=self.test_dir, 
+                      names=['t'], 
+                      save_format=pickle)
+
     def test_save(self):
-        index = pt.datasets.get_dataset("vaswani").get_index()
+        index = self._vaswani_index()
         brs = [
             pt.terrier.Retriever(index, wmodel="DPH"), 
             pt.terrier.Retriever(index, wmodel="BM25")
         ]
         topics = pt.datasets.get_dataset("vaswani").get_topics().head(10)
         qrels =  pt.datasets.get_dataset("vaswani").get_qrels()
-        df1 = pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], save_dir=self.test_dir)
-        # check save_dir files are there
-        self.assertTrue(os.path.exists(os.path.join(self.test_dir, "TerrierRetr(DPH).res.gz")))
-        self.assertTrue(os.path.exists(os.path.join(self.test_dir, "TerrierRetr(BM25).res.gz")))
 
-        # check for warning
-        with pytest.warns(UserWarning):
-            # reuse only kicks in when save_mode is set.
-            df2 = pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], save_dir=self.test_dir)
+        import pickle
+        for name, format, ext in [
+                ('trec', 'trec', 'res.gz'),
+                ('pkl_manual', pickle, 'mod'),
+                ('pandas', (pd.read_csv, pd.DataFrame.to_csv), 'custom')
+            ]: 
+            with self.subTest(name):
+                df1 = pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], save_dir=self.test_dir, save_format=format)
+                print("\n". join(os.listdir(self.test_dir)))
+                # check save_dir files are there
+                self.assertTrue(os.path.exists(os.path.join(self.test_dir, "TerrierRetr(DPH)." + ext)), os.path.join(self.test_dir, "TerrierRetr(DPH)." + ext) + " not found")
+                self.assertTrue(os.path.exists(os.path.join(self.test_dir, "TerrierRetr(BM25)." + ext)), os.path.join(self.test_dir, "TerrierRetr(BM25)." + ext) + " not found")
 
-        # check for error when save_mode='error'
-        with self.assertRaises(ValueError):
-            # reuse only kicks in when save_mode is set.
-            df2 = pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], save_dir=self.test_dir, save_mode='error')
+                # check for warning
+                with pytest.warns(UserWarning):
+                    # reuse only kicks in when save_mode is set.
+                    df2 = pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], save_dir=self.test_dir, save_format=format)
 
-        # allow it to reuse
-        df2 = pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], save_dir=self.test_dir, save_mode='reuse')
-        # a successful experiment using save_dir should be faster
-        self.assertTrue(df2.iloc[0]["mrt"] < df1.iloc[0]["mrt"])
+                # check for error when save_mode='error'
+                with self.assertRaises(ValueError):
+                    # reuse only kicks in when save_mode is set.
+                    df2 = pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], save_dir=self.test_dir, save_mode='error', save_format=format)
+
+                # allow it to reuse
+                df2 = pt.Experiment(brs, topics, qrels, eval_metrics=["map", "mrt"], save_dir=self.test_dir, save_mode='reuse', save_format=format)
+                # a successful experiment using save_dir should be faster
+                self.assertTrue(df2.iloc[0]["mrt"] < df1.iloc[0]["mrt"])
         
     def test_empty(self):
         df1 = pt.new.ranked_documents([[1]]).head(0)
@@ -185,9 +293,10 @@ class TestExperiment(TempDirTestCase):
 
     def test_various_metrics(self):
         topics = pt.datasets.get_dataset("vaswani").get_topics().head(10)
+        index = self._vaswani_index()
         res = [
-            pt.terrier.Retriever(pt.datasets.get_dataset("vaswani").get_index(), wmodel="DPH")(topics), 
-            pt.terrier.Retriever(pt.datasets.get_dataset("vaswani").get_index(), wmodel="BM25")(topics)
+            pt.terrier.Retriever(index, wmodel="DPH")(topics), 
+            pt.terrier.Retriever(index, wmodel="BM25")(topics)
         ]
         
         qrels =  pt.datasets.get_dataset("vaswani").get_qrels()
@@ -240,22 +349,16 @@ class TestExperiment(TempDirTestCase):
 
     def test_one_row(self):
         vaswani = pt.datasets.get_dataset("vaswani")
-        br = pt.terrier.Retriever(vaswani.get_index())
+        br = pt.terrier.Retriever(self._vaswani_index(), wmodel='BM25')
         rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg", "num_q"])
         self.assertEqual(10, rtr.iloc[0]["num_q"])
         
         rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"], dataframe=False)
-        
-        with warnings.catch_warnings(record=True) as w:
-            rtr = pt.Experiment(vaswani.get_topics().head(10), [br], ["map", "ndcg"], vaswani.get_qrels(), dataframe=False)
-            assert len(w) == 1
-            assert issubclass(w[-1].category, DeprecationWarning)
-            assert "Signature" in str(w[-1].message)
 
     def test_one_row_round(self):
         import pyterrier as pt
         vaswani = pt.datasets.get_dataset("vaswani")
-        br = pt.terrier.Retriever(vaswani.get_index())
+        br = pt.terrier.Retriever(self._vaswani_index(), wmodel='DPH')
         rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg", "num_q", pt.measures.NDCG@5], round=2)
         self.assertEqual(str(rtr.iloc[0]["map"]), "0.31")
         self.assertEqual(str(rtr.iloc[0]["nDCG@5"]), "0.46")
@@ -265,7 +368,7 @@ class TestExperiment(TempDirTestCase):
 
     def test_batching(self):
         vaswani = pt.datasets.get_dataset("vaswani")
-        br = pt.terrier.Retriever(vaswani.get_index())
+        br = pt.terrier.Retriever(self._vaswani_index(), wmodel='BM25')
         rtr1 = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg", "num_q", "mrt"])
         rtr2 = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg", "num_q", "mrt"], batch_size=2)
         self.assertTrue("mrt" in rtr1.columns)
@@ -280,7 +383,7 @@ class TestExperiment(TempDirTestCase):
 
     def test_perquery(self):
         vaswani = pt.datasets.get_dataset("vaswani")
-        br = pt.terrier.Retriever(vaswani.get_index())
+        br = pt.terrier.Retriever(self._vaswani_index(), wmodel='BM25')
         rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"], perquery=True)
         print(rtr)
 
@@ -289,21 +392,21 @@ class TestExperiment(TempDirTestCase):
 
     def test_perquery_round(self):
         vaswani = pt.datasets.get_dataset("vaswani")
-        br = pt.terrier.Retriever(vaswani.get_index())
+        br = pt.terrier.Retriever(self._vaswani_index(), wmodel='DPH')
         rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"], perquery=True, round=2)
         self.assertEqual(str(rtr.iloc[0]["value"]), "0.36")
 
     def test_bad_measure(self):
         vaswani = pt.datasets.get_dataset("vaswani")
-        br = pt.terrier.Retriever(vaswani.get_index())
+        br = pt.terrier.Retriever(self._vaswani_index(), wmodel='BM25')
         with self.assertRaises(KeyError):
             pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), [map])
 
     def test_baseline_and_tests(self):
         dataset = pt.get_dataset("vaswani")
         numt=10
-        res1 = pt.terrier.Retriever(dataset.get_index(), wmodel="BM25")(dataset.get_topics().head(numt))
-        res2 = pt.terrier.Retriever(dataset.get_index(), wmodel="DPH")(dataset.get_topics().head(numt))
+        res1 = pt.terrier.Retriever(self._vaswani_index(), wmodel="BM25")(dataset.get_topics().head(numt))
+        res2 = pt.terrier.Retriever(self._vaswani_index(), wmodel="DPH")(dataset.get_topics().head(numt))
 
         # t-test
         with warnings.catch_warnings():
@@ -354,8 +457,8 @@ class TestExperiment(TempDirTestCase):
 
     def test_baseline_correction_userdefined_test(self):
         dataset = pt.get_dataset("vaswani")
-        res1 = pt.terrier.Retriever(dataset.get_index(), wmodel="BM25")(dataset.get_topics().head(10))
-        res2 = pt.terrier.Retriever(dataset.get_index(), wmodel="DPH")(dataset.get_topics().head(10))
+        res1 = pt.terrier.Retriever(self._vaswani_index(), wmodel="BM25")(dataset.get_topics().head(10))
+        res2 = pt.terrier.Retriever(self._vaswani_index(), wmodel="DPH")(dataset.get_topics().head(10))
         # TOST will omit warnings here, due to low numbers of topics
         import statsmodels.stats.weightstats
         fn = lambda X,Y: (0, statsmodels.stats.weightstats.ttost_ind(X, Y, -0.01, 0.01)[0])
@@ -374,8 +477,8 @@ class TestExperiment(TempDirTestCase):
 
     def test_baseline_corrected(self):
         dataset = pt.get_dataset("vaswani")
-        res1 = pt.terrier.Retriever(dataset.get_index(), wmodel="BM25")(dataset.get_topics().head(10))
-        res2 = pt.terrier.Retriever(dataset.get_index(), wmodel="DPH")(dataset.get_topics().head(10))
+        res1 = pt.terrier.Retriever(self._vaswani_index(), wmodel="BM25")(dataset.get_topics().head(10))
+        res2 = pt.terrier.Retriever(self._vaswani_index(), wmodel="DPH")(dataset.get_topics().head(10))
         baseline = 0
         for corr in ['hs', 'bonferroni', 'hommel']:
             df = pt.Experiment(

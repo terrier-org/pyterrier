@@ -4,16 +4,22 @@ Running Experiments
 PyTerrier aims to make it easy to conduct an information retrieval experiment, namely, to run a transformer 
 pipeline over a set of queries, and evaluating the outcome using standard information retrieval evaluation 
 metrics based on known relevant documents (obtained from a set relevance assessments, also known as *qrels*).
-The evaluation metrics are calculated by the `pytrec_eval <https://github.com/cvangysel/pytrec_eval>`_ library,
-a Python wrapper around the widely-used `trec_eval evaluation tool <https://github.com/usnistgov/trec_eval>`_.
 
-The main way to achieve this is using `pt.Experiment()`.
+
+NB: For calculating evaluation metrics, we use `ir_measures <https://github.com/terrierteam/ir_measures>`_ library,
+which includes implementations of many standard metrics. By default, to calculate more measures, ir_measures uses our fork of 
+the `pytrec_eval <https://github.com/cvangysel/pytrec_eval>`_ library, which itself is a Python wrapper around 
+the widely-used `trec_eval evaluation tool <https://github.com/usnistgov/trec_eval>`_.
+
+The main way to achieve this is using ``pt.Experiment()``. If you have an existing results dataframe, you can use
+``pt.Evaluate()``.
 
 API
 ========
 
 .. autofunction:: pyterrier.Experiment()
 
+.. autofunction:: pyterrier.Evaluate()
 
 Examples
 ========
@@ -238,18 +244,18 @@ Available Evaluation Measures
 All `trec_eval <https://github.com/usnistgov/trec_eval>`_ evaluation measure are available. 
 Often used measures, including the name that must be used, are:
 
- - Mean Average Precision (`map`).
- - Mean Reciprocal Rank (`recip_rank`).
- - Normalized Discounted Cumulative Gain (`ndcg`), or calculated at a given rank cutoff (e.g. `ndcg_cut_5`).
- - Number of queries (`num_q`) - not averaged.
- - Number of retrieved documents (`num_ret`) - not averaged.
- - Number of relevant documents (`num_rel`) - not averaged.
- - Number of relevant documents retrieved (`num_rel_ret`) - not averaged.
- - Interpolated recall precision curves (`iprec_at_recall`). This is family of measures, so requesting `iprec_at_recall` will output measurements for `IPrec@0.00`, `IPrec@0.10`, etc.
- - Precision at rank cutoff (e.g. `P_5`).
- - Recall (`recall`) will generate recall at different cutoffs, such as `recall_5`, etc.).
- - Mean response time (`mrt`) will report the average number of milliseconds to conduct a query (this is calculated by `pt.Experiment()` directly, not pytrec_eval).
- - trec_eval measure *families* such as `official`, `set` and `all_trec` will be expanded. These result in many measures being returned. For instance, asking for `official` results in the following (very wide) output reporting the usual default metrics of trec_eval:
+- Mean Average Precision (`map`).
+- Mean Reciprocal Rank (`recip_rank`).
+- Normalized Discounted Cumulative Gain (`ndcg`), or calculated at a given rank cutoff (e.g. `ndcg_cut_5`).
+- Number of queries (`num_q`) - not averaged.
+- Number of retrieved documents (`num_ret`) - not averaged.
+- Number of relevant documents (`num_rel`) - not averaged.
+- Number of relevant documents retrieved (`num_rel_ret`) - not averaged.
+- Interpolated recall precision curves (`iprec_at_recall`). This is family of measures, so requesting `iprec_at_recall` will output measurements for `IPrec@0.00`, `IPrec@0.10`, etc.
+- Precision at rank cutoff (e.g. `P_5`).
+- Recall (`recall`) will generate recall at different cutoffs, such as `recall_5`, etc.).
+- Mean response time (`mrt`) will report the average number of milliseconds to conduct a query (this is calculated by ``pt.Experiment()`` directly, not pytrec_eval).
+- trec_eval measure *families* such as `official`, `set` and `all_trec` will be expanded. These result in many measures being returned. For instance, asking for `official` results in the following (very wide) output reporting the usual default metrics of trec_eval:
 
 .. include:: ./_includes/experiment-official.rst
 
@@ -286,7 +292,6 @@ More specifically, lets consider the TREC Deep Learning track passage ranking ta
 
 The available evaluation measure objects are listed below.
 
-
 .. autofunction:: pyterrier.measures.P
 
 .. autofunction:: pyterrier.measures.R
@@ -317,3 +322,43 @@ The available evaluation measure objects are listed below.
 
 .. autofunction:: pyterrier.measures.infAP
 
+Validation of Transformers
+==========================
+
+When formulating pipelines for a ``pt.Experiment()``, its possible to formulate invalid pipelines, e.g. a transformer that does not produce the expected columns, or a transformer that does not accept the input columns of the previous transformer. 
+To mitigate this, ``pt.Experiment()`` will validate the transformers in the pipeline, and raise an error if the pipeline is invalid.
+
+This validation is controlled by the `validate=` kwarg, which can take the following values:
+- ``"warn"`` (default): If the pipeline is invalid, a warning is issued, but the experiment proceeds. Pipelines that do not validate will still run, but may produce unexpected results.
+- ``"error"``: If the pipeline is invalid, an error is raised, and the experiment does not proceed. If a pipeline is not validated, the user is informed such that the experiment fails-fast.
+- ``"ignore"``: No validation is performed, and the experiment proceeds. This is useful for pipelines that are known to be valid, but cannot be validated due to transformer objects that cannot be inspected to determing their input and output columns.
+
+Validation uses ``pt.inspect.transformer_outputs()`` to determine the output columns of each transformer in the pipeline, and whether they match the expected input columns of the next transformer, and that the overall result of the pipeline has the expected columns for the evaluation measures requested. 
+Most transformers can be validated automatically, particularly if they respond correctly to an empty DataFrame input. Other transformers may require a `transform_output` method to be implemented, which returns the expected output columns of the transformer.
+
+If a pipeline fails validation, the user is informed of the problem, and, if `validate="error"` is set, the experiment does not proceed.
+On the other hand, if a pipeline cannot be validated (because a transformer cannot be inspected), a warning is issued, and the experiment proceeds.
+
+Precomputation of Common Pipeline Prefixes
+==========================================
+
+Often we wish to evaluate multiple pipelines that have exactly the same initial stages. ``pt.Experiment`` exposes a `precompute_prefix` kwarg, will precompute the results of the common initial stages, and then use these results to call the subsequent remainder of each pipelines.
+
+Consider the following example::
+
+    from pyterrier_t5 import MonoT5ReRanker
+    bm25 = pt.terrier.Retriever.from_dataset('vaswani', 'terrier_stemmed_text', wmodel='BM25', num_results=100)
+    monoT5 = MonoT5ReRanker()
+
+    monoT5 = bm25 >> monoT5
+    pt.Experiment(
+        [bm25, monoT5], 
+        pt.get_dataset('vaswani').get_topics(), 
+        pt.get_dataset('vaswani').get_qrels(), 
+        eval_metrics=['map'], 
+        precompute_prefix=True
+    )
+
+Normally, BM25 retriever would be invoked twice during this experiment - once for each pipeline, resulting in a slower executation time compared to an imperative workflow (get BM25 results, evaluate, apply monoT5, evaluate). By setting `precompute_prefix=True`, ``pt.Experiment`` will execute the `bm25` transformer only once on the input topics, and then reuse those results as input to monoT5.
+
+NB: This is experimental functionality, but should initial usage be successful, it may be turned on by default in future versions of PyTerrier.

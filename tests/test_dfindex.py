@@ -1,15 +1,13 @@
 import pyterrier as pt
 
 import unittest
-import tempfile
-import shutil
 import os
+from .base import TempDirTestCase, ensure_deprecated
 
-from .base import TempDirTestCase
 
 class TestDFIndexer(TempDirTestCase):
 
-
+    @ensure_deprecated
     def _create_index(self, type, dfText, dfMeta):
         print("Writing index type "+str(type)+" to " + self.test_dir)
         pd_indexer = pt.DFIndexer(self.test_dir, type=type)
@@ -112,6 +110,7 @@ class TestDFIndexer(TempDirTestCase):
         self.assertIsNotNone(jIter1.next())
         self.assertFalse(jIter1.hasNext())
 
+    @ensure_deprecated
     def test_badinvocation(self):
         import pandas as pd
         df_docids = pd.DataFrame([['d1', 'this is a doc']], columns=['body', 'doc_id'])
@@ -126,6 +125,16 @@ class TestDFIndexer(TempDirTestCase):
         # this should pass - it picks up the metadata name from the series name
         ref = pt.DFIndexer(self.test_dir).index(df_docids["body"], df_docnos['docno'])
 
+    def test_stopwords(self):
+        import pandas as pd
+        df = pd.DataFrame([{'docno': 'd1', 'text' : 'greatest hits'}])
+        indexer = pt.DFIndexer(self.test_dir, stopwords=['hits'])
+        indexref = indexer.index(df["text"], df["docno"])
+        index = pt.IndexFactory.of(indexref)
+        self.assertIsNotNone(index)
+        self.assertEqual(1, index.getCollectionStatistics().getNumberOfDocuments())
+        self.assertTrue("hits" not in index.getLexicon())
+    
     def test_createindex1_two_metadata(self):
         from pyterrier.terrier.index import IndexingType
         self._make_check_index(1, IndexingType.CLASSIC, include_urls=True)

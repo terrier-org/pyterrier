@@ -6,16 +6,28 @@ search ranking. PyTerrier supplies a number of query rewriting transformers desi
 
 Firstly, we differentiate between two forms of query rewriting:
 
- - `Q -> Q`: this rewrites the query, for instance by adding/removing extra query terms. Examples might 
-   be a WordNet- or Word2Vec-based QE; The input dataframes contain only `["qid", "docno"]` columns. The 
-   output dataframes contain `["qid", "query", "query_0"]` columns, where `"query"` contains the reformulated
-   query, and `"query_0"` contains the previous formulation of the query.
+- `Q -> Q`: this rewrites the query, for instance by adding/removing extra query terms. Examples might 
+  be a WordNet- or Word2Vec-based QE; The input dataframes contain only `["qid", "docno"]` columns. The 
+  output dataframes contain `["qid", "query", "query_0"]` columns, where `"query"` contains the reformulated
+  query, and `"query_0"` contains the previous formulation of the query. An example is the sequential dependence
+  model, discussed below.
 
- - `R -> Q`: these class of transformers rewrite a query by making use of an associated set of documents.
-   This is typically exemplifed by pseudo-relevance feedback. Similarly the output dataframes contain 
-   `["qid", "query", "query_0"]` columns.
+.. schematic::
 
-The previous formulation of the query can be restored using `pt.rewrite.reset()`, discussed below.
+    pt.rewrite.SequentialDependence()
+
+- `R -> Q`: these class of transformers rewrite a query by making use of an associated set of documents, in a formulation
+  typically referred to as pseudo-relevance feedback. Similarly the output dataframes contain 
+  `["qid", "query", "query_0"]` columns. This is typically used in a pipeline such as ``Retriever >> Rewriter >> Retriever``, 
+  as shown below. Examples of include RM3, Bo1 and KL QE, discussed below.
+
+.. schematic::
+
+    index = pt.Artifact.from_hf("pyterrier/vaswani.terrier")
+    dph = index.dph()
+    dph >> pt.rewrite.RM3(index.index_obj()) >> dph
+
+If needed, the previous formulation of the query can be restored using ``pt.rewrite.reset()``, discussed below.
 
 SequentialDependence
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -24,9 +36,9 @@ This class implements Metzler and Croft's sequential dependence model, designed 
 documents where the query terms occur in close proximity. Application of this transformer rewrites 
 each input query such that:
 
- - pairs of adjacent query terms are added as `#1` and `#uw8` complex query terms, with a low weight.
- - the full query is added as `#uw12` complex query term, with a low weight.
- - all terms are weighted by a proximity model, either Dirichlet LM or pBiL2.
+- pairs of adjacent query terms are added as `#1` and `#uw8` complex query terms, with a low weight.
+- the full query is added as `#uw12` complex query term, with a low weight.
+- all terms are weighted by a proximity model, either Dirichlet LM or pBiL2.
 
 For example, the query `pyterrier IR platform` would become `pyterrier IR platform #1(pyterrier IR) #1(IR platform) #uw8(pyterrier IR) #uw8(IR platform) #uw12(pyterrier IR platform)`.
 NB: Acutally, we have simplified the rewritten query - in practice, we also (a) set the weight of the proximity terms to be low using a `#combine()`
@@ -43,9 +55,8 @@ Example::
     dph = pt.terrier.Retriever(index, wmodel="DPH")
     pipeline = sdm >> dph
 
-References:
- - A Markov Random Field Model for Term Dependencies. Donald Metzler and W. Bruce Croft. In Proceedings of SIGIR 2005. 
- - Incorporating Term Dependency in the DFR Framework. Jie Peng, Craig Macdonald, Ben He, Vassilis Plachouras, Iadh Ounis. In Proceedings of SIGIR 2007. July 2007. Amsterdam, the Netherlands. 2007.
+.. cite.dblp:: conf/sigir/MetzlerC05
+.. cite.dblp:: conf/sigir/PengMHPO07
 
 Bo1QueryExpansion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -81,12 +92,11 @@ which will result in identical retrieval effectiveness::
 
 However, using `pt.rewrite.Bo1QueryExpansion` is preferable as:
 
- - the semantics of retrieve >> rewrite >> retrieve are clearly visible.
- - the complex control configuration of Terrier need not be learned. 
- - the rewritten query is visible outside, and not hidden inside Terrier.
+- the semantics of retrieve >> rewrite >> retrieve are clearly visible.
+- the complex control configuration of Terrier need not be learned. 
+- the rewritten query is visible outside, and not hidden inside Terrier.
 
-References:
- - Amati, Giambattista (2003) Probability models for information retrieval based on divergence from randomness. PhD thesis, University of Glasgow.
+.. cite.dblp:: phd/ethos/Amati03
 
 KLQueryExpansion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -96,8 +106,7 @@ Similar to Bo1, this class deploys a Divergence from Randomess query expansion m
 .. autoclass:: pyterrier.rewrite.KLQueryExpansion
     :members: transform 
 
-References:
- - Amati, Giambattista (2003) Probability models for information retrieval based on divergence from randomness. PhD thesis, University of Glasgow.
+.. cite.dblp:: phd/ethos/Amati03
 
 
 RM3
@@ -106,8 +115,7 @@ RM3
 .. autoclass:: pyterrier.rewrite.RM3
     :members: transform 
 
-References:
- - Nasreen Abdul-Jaleel, James Allan, W Bruce Croft, Fernando Diaz, Leah Larkey, Xiaoyan Li, Mark D Smucker, and Courtney Wade. UMass at TREC 2004: Novelty and HARD. In Proceedings of TREC 2004.
+.. cite.dblp:: conf/trec/JaleelACDLLSW04
 
 Combining Query Formulations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -123,6 +131,18 @@ previous query reformulation can be obtained by inclusion of a reset transformer
 
 .. autofunction:: pyterrier.rewrite.reset()
 
+This is useful if, for instance, you want to use a PRF pipeline to retrieve more relevant documents, but then want to
+revert to the original query formulation for a final ranking step such as MonoT5. For example::
+
+    dph >> pt.rewrite.RM3(index) >> dph >> pt.rewrite.reset()  >> pt.text.get_text(pt.get_dataset(...)) >> MonoT5ReRanker(...)
+
+.. schematic::
+
+    from pyterrier_t5 import MonoT5ReRanker
+    index = pt.Artifact.from_hf("pyterrier/vaswani.terrier")
+    dph = index.dph()
+    monoT5 = MonoT5ReRanker()
+    dph >> pt.rewrite.RM3(index.index_obj()) >> dph >> pt.rewrite.reset() >> pt.text.get_text(pt.get_dataset('irds:vaswani')) >> monoT5
 
 Tokenising the Query
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -135,7 +155,7 @@ In this case, a custom tokeniser can be applied as part of the retrieval pipelin
 Stashing the Documents
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Sometimes you want to apply a query rewriting function as a re-ranker, but your rewriting function uses a different document ranking.
+Very rarely..., you might want to apply a query rewriting function as a re-ranker, but your rewriting function uses a different document ranking.
 In this case, you can use `pt.rewrite.stash_results()` to stash the retrieved documents for each query, so they can be recovered and 
 re-ranked later using your rewritten query formulation.
 

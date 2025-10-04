@@ -20,18 +20,23 @@ jobs:
 
     - uses: actions/checkout@v4
 
-    - name: Set up Python 3.8
+    - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: 3.8
+        python-version: 3.9
 
-    - name: Build a test source tarball
+    - name: Install build tool
+      run: pip install build
+
+    - name: Amend version for test release
       if: github.event.inputs.releasetype == 'test'
-      run: PYTERRIER_VERSION_SUFFIX=".`date +%s`" python setup.py sdist
+      run: |
+        export PYTERRIER_VERSION_SUFFIX=".`date +%s`"
+        sed -Ei "1 s/'\$/$PYTERRIER_VERSION_SUFFIX'/g" pyterrier/__init__.py
+        head -n 1 pyterrier/__init__.py
 
-    - name: Build a release source tarball
-      if: github.event.inputs.releasetype == 'release'
-      run: python setup.py sdist
+    - name: Build source tarball
+      run: python -m build
   
     - name: Publish distribution 📦 to Test PyPI
       if: github.event.inputs.releasetype == 'test'

@@ -15,14 +15,14 @@ class TerrierTokeniser(Enum):
     identity = 'identity' #: Performs no tokenisation - strings are kept as is. 
 
     @staticmethod
-    def _to_obj(this):
+    def _to_obj(this) -> 'TerrierTokeniser':
         try:
             return TerrierTokeniser(this)
         except ValueError:
             return this
 
     @staticmethod
-    def _to_class(this):
+    def _to_class(this) -> str:
         if this == TerrierTokeniser.whitespace:
             return 'WhitespaceTokeniser'
         if this == TerrierTokeniser.english:
@@ -127,3 +127,4 @@ class EnglishTokeniser(BaseTokeniser):
             if 0 < len(s) <= BaseTokeniser.MAX_TERM_LENGTH:
                 result.append(s)
         return result
+        raise ValueError(f'Unsupported tokeniser: {this}')

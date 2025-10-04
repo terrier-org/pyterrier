@@ -1,7 +1,8 @@
 import sys
 import warnings
 from functools import wraps
-from typing import Dict, Any, Tuple, Callable, Optional, Union
+import typing
+from typing import Dict, Any, Tuple, Callable, Optional, Union, TypeVar
 from copy import deepcopy
 import pyterrier as pt
 
@@ -19,8 +20,10 @@ _configs = {}
 # already started).
 # ----------------------------------------------------------
 
+T = TypeVar("T", bound=Callable[..., Any])
+
 @pt.utils.pre_invocation_decorator
-def required(fn: Callable):
+def required(fn: T) -> None:
     """
     Requires the Java Virtual Machine to be started. If the JVM has not yet been started, it runs pt.java.init().
 
@@ -31,37 +34,28 @@ def required(fn: Callable):
         trigger = fn.__qualname__ if hasattr(fn, '__qualname__') else fn.__name__
         _init(trigger=trigger)
 
-
-def required_raise(fn: Optional[Callable] = None) -> Union[Callable, bool]:
+def required_raise(fn: T) -> T:
     """
     Similar to `pt.java.required`, but raises an error if called before pt.java.init().
     """
-    if fn is None:
-        return required_raise(pt.utils.noop)()
-
     @wraps(fn)
     def _wrapper(*args, **kwargs):
         if not started():
             raise RuntimeError(f'You need to call pt.java.init() required before you can call {fn}')
         return fn(*args, **kwargs)
-    return _wrapper
+    return typing.cast(T, _wrapper) # noqa: PT100 (this is typing.cast, not jinus.cast)
 
 
-def before_init(fn: Optional[Callable] = None) -> Union[Callable, bool]:
+def before_init(fn: T) -> T:
     """
     If the JVM has already started, an error is raised.
-
-    Can be used as either a standalone function or a function decorator.
     """
-    if fn is None:
-        return before_init(pt.utils.noop)()
-
     @wraps(fn)
     def _wrapper(*args, **kwargs):
         if started():
             raise RuntimeError(f'You can only call {fn} before either you start using java or call pt.java.init()')
         return fn(*args, **kwargs)
-    return _wrapper
+    return typing.cast(T, _wrapper) # noqa: PT100 (this is typing.cast, not jinus.cast)
 
 
 # ----------------------------------------------------------
@@ -318,7 +312,8 @@ def parallel_init(started: bool, configs: Dict[str, Dict[str, Any]]) -> None:
             _configs = configs
             _init(trigger='parallel_init')
         else:
-            warnings.warn("Avoiding reinit of PyTerrier")
+            warnings.warn(
+                "Avoiding reinit of PyTerrier")
 
 
 def parallel_init_args() -> Tuple[bool, Dict[str, Dict[str, Any]]]:
@@ -380,20 +375,20 @@ def register_config(name, config: Dict[str, Any]):
 # Java Classes
 # ----------------------------------------------------------
 # This class enables the lazy loading of java classes. It
-# helps avoid needing a ton of autclass() statements to
+# helps avoid needing a ton of autoclass() statements to
 # pre-load Java classes.
 # ----------------------------------------------------------
 
 class JavaClasses:
     def __init__(self, **mapping: Union[str, Callable[[], str]]):
         self._mapping = mapping
-        self._cache = {}
+        self._cache : Dict[str, Callable]= {}
 
     def __dir__(self):
         return list(self._mapping.keys())
 
     @required_raise
-    def __getattr__(self, key):
+    def __getattr__(self, key: str) -> Any:
         if key not in self._mapping:
             return AttributeError(f'{self} has no attribute {key!r}')
         if key not in self._cache:

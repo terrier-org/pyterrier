@@ -60,14 +60,31 @@ Examples::
     dataset = pt.get_dataset('irds:vaswani')
     pipe3 = pt.terrier.Retriever(index) >> pt.text.get_text(dataset, "text")
 
-
 .. autofunction:: pyterrier.text.get_text()
 
+.. schematic::
+    :input_columns: qid,query,docno,text
+
+    pt.text.get_text(pt.get_dataset('irds:vaswani'))
 
 Scoring query/text similarity
 ==============================
 
 .. autofunction:: pyterrier.text.scorer()
+
+One pipeline could be retrieve documents, get their text, and then re-score them using a text-based scorer such as
+`BM25 <https://en.wikipedia.org/wiki/Okapi_BM25>`_ or even MonoT5 from `pyterrier_t5`.
+
+.. schematic::
+    :input_columns: qid,query
+
+    pt.terrier.TerrierIndex.from_hf('pyterrier/vaswani.terrier').bm25() >> pt.text.get_text(pt.get_dataset('irds:vaswani')) >> pt.text.scorer(body_attr="text")
+
+.. schematic::
+    :input_columns: qid,query
+
+    from pyterrier_t5 import MonoT5ReRanker
+    pt.terrier.TerrierIndex.from_hf('pyterrier/vaswani.terrier').bm25() % 100 >> pt.text.get_text(pt.get_dataset('irds:vaswani')) >> MonoT5ReRanker()
 
 Other text scorers are available in the form of neural re-rankers - separate to PyTerrier, see :ref:`neural`.
 
@@ -173,6 +190,53 @@ Finally, the output of the `kmaxavg_passage(2)` transformer would be:
 |  q1   | d1      +  0     + 1.0    +
 +-------+---------+--------+--------+
 
+Example Pipelines
+~~~~~~~~~~~~~~~~~
+
+A typical passage-based retrieval pipeline might look like this::
+
+    from pyterrier_t5 import MonoT5ReRanker
+    index = pt.terrier.TerrierIndex.from_hf('pyterrier/vaswani.terrier')
+    bm25 = index.bm25()
+    passage_pipeline = (
+        bm25 % 100 >> 
+        pt.text.get_text(pt.get_dataset('irds:vaswani'), "text") >> 
+        pt.text.sliding(length=100, stride=50, text_attr='text', prepend_attr=None) >> 
+        MonoT5ReRanker() >> 
+        pt.text.max_passage()
+    )
+
+.. schematic::
+    :input_columns: qid,query
+
+    from pyterrier_t5 import MonoT5ReRanker
+    index = pt.terrier.TerrierIndex.from_hf('pyterrier/vaswani.terrier')
+    bm25 = index.bm25()
+    passage_pipeline = (
+        bm25 % 100 >> 
+        pt.text.get_text(pt.get_dataset('irds:vaswani'), "text") >> 
+        pt.text.sliding(length=100, stride=50, text_attr='text', prepend_attr=None) >> 
+        MonoT5ReRanker() >> 
+        pt.text.max_passage()
+    )
+    passage_pipeline
+
+So while the index retrievers documents, MonoT5 is applied to passages, and then the passage scores are aggregated back to document scores using ``pt.text.max_passage()``.
+
+Alternatively you can apply passing at indexing time, and then use passage-level retrieval followed by aggregation::
+
+    from pyterrier_t5 import MonoT5ReRanker
+    indexer = pt.text.sliding() >> pt.IterDictIndexer("./index")
+    indexer.index(document_corpus)
+    passage_index = pt.terrier.TerrierIndex("./index")
+    passage_pipeline = (
+        index.bm25() % 100 >> 
+        MonoT5ReRanker() >> 
+        pt.text.max_passage()
+    )
+
+where ``passage_pipeline`` returns documents rather than passages. Experiments on TREC Robust 2004 have shown that passage indexing and retrieval does not benefit 
+effectiveness compared to document-level indexing and retrieval, when using a strong re-ranker such as MonoT5 .. cite.dblp:`journals/tweb/WangMTO23`.
 
 Query-biased Summarisation (Snippets)
 =====================================
@@ -216,5 +280,5 @@ You can `browse the whole notebook <https://github.com/terrier-org/pyterrier/blo
 References
 ==========
 
- - [Chen2020] ICIP at TREC-2020 Deep Learning Track, X. Chen et al. Procedings of TREC 2020.
- - [Dai2019] Deeper Text Understanding for IR with Contextual Neural Language Modeling. Z. Dai & J. Callan. Proceedings of SIGIR 2019.
+.. cite.dblp:: conf/trec/ChenHSCH020
+.. cite.dblp:: conf/sigir/DaiC19

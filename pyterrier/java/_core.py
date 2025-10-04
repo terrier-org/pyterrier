@@ -1,4 +1,5 @@
 import os
+import sys
 from pyterrier.java import required_raise, required, before_init, started, mavenresolver, JavaClasses, JavaInitializer, register_config
 from typing import Optional
 import pyterrier as pt
@@ -11,6 +12,24 @@ _stderr_ref = None
 # ----------------------------------------------------------
 # Java Initialization
 # ----------------------------------------------------------
+
+def _get_notebook() -> Optional[str]:
+    try:
+        import IPython # type: ignore
+    except Exception:
+        return None
+
+    # Try to get IPython and return None if not found.
+    ipython = IPython.get_ipython()
+    if not ipython:
+        return None
+    locals = IPython.get_ipython().user_ns
+
+    if "__vsc_ipynb_file__" in locals:
+        return locals["__vsc_ipynb_file__"]
+    if "__session__" in locals:
+        return locals["__session__"]
+    return None
 
 class CoreJavaInit(JavaInitializer):
     def priority(self) -> int:
@@ -34,6 +53,14 @@ class CoreJavaInit(JavaInitializer):
 
         for jar in pt.java.configure['jars']:
             jnius_config.add_classpath(jar)
+
+        # set the property that makes a process name visible in jps
+        process_name : str =  _get_notebook()
+        if process_name is None:
+            process_name = "python[pyterrier]:" + (sys.argv[0] if sys.argv[0] else '<interactive>')
+        else:
+            process_name = "jupyter[pyterrier]:" + process_name
+        jnius_config.add_options("-Dsun.java.command=%s" % process_name)
 
     @required_raise
     def post_init(self, jnius):
@@ -62,6 +89,35 @@ def _mapentry_getitem(self, i):
         return self.getValue()
     raise IndexError()
 
+class Java24Init(JavaInitializer):
+    """Responsible for hacking around JDK safety checks from JDK 24 onwards"""
+    def priority(self) -> int:
+        return -99 # run this before TerrierJavaInit
+    
+    def pre_init(self, jnius_config):
+        # detect JDK 24 onwards - this is a best attempt - at best, the user will see a warning.
+        # the plan is to use https://github.com/kivy/pyjnius/pull/780 to ask the JVM for its version
+        # before starting the JVM. 
+        # We /could/ safely add this option from at least JDK 21 onwards. JDK 11 doesnt recognise it.
+        if "JAVA_HOME" in os.environ:
+            java_home = os.environ["JAVA_HOME"]
+            if any([f"{ver}." in java_home for ver in [24,25,26,28,29]]):
+                jnius_config.add_options("--enable-native-access=ALL-UNNAMED")
+
+    @required_raise
+    def post_init(self, jnius):
+        from packaging.version import Version, parse
+        import re
+        java_version = pt.java.J.System.getProperty("java.version")
+        # RTD has an annoying -internal in their Java version
+        java_version = re.sub(r'[-_].*$', '', java_version)
+        if parse(java_version) >= Version("24"):
+            # Hadoop will fallback to pureJava for sparc architecture - lets pretend we are for just a minute.
+            arch = pt.java.J.System.getProperty("os.arch")
+            pt.java.J.System.setProperty("os.arch", "sparc")
+            # force initialisation of FastByteComparisons using the sparc arch
+            pt.java.autoclass("org.apache.hadoop.io.FastByteComparisons$LexicographicalComparerHolder")
+            pt.java.J.System.setProperty("os.arch", arch)
 
 def _is_binary(f):
     import io
@@ -153,7 +209,7 @@ def add_jar(jar_path):
 
 
 @before_init
-def add_package(org_name: str = None, package_name: str = None, version: str = None, file_type='jar'):
+def add_package(org_name : str, package_name : str, version : Optional[str] = None, file_type : str = 'jar'):
     if version is None or version == 'snapshot':
         version = mavenresolver.latest_version_num(org_name, package_name)
     file_name = mavenresolver.get_package_jar(org_name, package_name, version, artifact=file_type)

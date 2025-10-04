@@ -1,9 +1,7 @@
 import os
-import sys
 import json
-from pathlib import Path
 from packaging.version import Version
-from typing import Optional, Union, List, Callable, Dict, Any
+from typing import Optional, Union, List, Dict, Any
 import pyterrier as pt
 
 TERRIER_PKG = "org.terrier"
@@ -90,6 +88,7 @@ class TerrierJavaInit(pt.java.JavaInitializer):
         }
 
         jnius.protocol_map["org.terrier.querying.IndexRef"] = {
+            '__eq__' : lambda self, other: self.equals(other),
             '__reduce__' : _index_ref_reduce,
             '__getstate__' : lambda self : None,
             'text_loader': pt.terrier.terrier_text_loader,
@@ -176,7 +175,7 @@ class TerrierJavaInit(pt.java.JavaInitializer):
             def next(self):
                 try:
                     doc_dict = next(self.pyiterator)
-                except StopIteration as se:
+                except StopIteration:
                     self.hasnext = False
                     # terrier will ignore a null return from an iterator
                     return None
@@ -436,10 +435,6 @@ def _index_corpusiter(self, return_toks=True):
             yield {k : item[keys_offset[k]] for k in keys_offset}
 
     def _index_corpusiter_direct_pretok(self):
-        MIN_PYTHON = (3, 8)
-        if sys.version_info < MIN_PYTHON:
-            raise NotImplementedError("Sorry, Python 3.8+ is required for this functionality")
-
         meta_inputstream = self.getIndexStructureInputStream("meta")
         keys = self.getMetaIndex().getKeys()
         keys_offset = { k: offset for offset, k in enumerate(keys) }

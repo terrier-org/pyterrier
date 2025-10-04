@@ -2,12 +2,37 @@ import pandas as pd
 import numpy as np
 import unittest
 import pyterrier as pt
+from pyterrier.terrier.stemmer import TerrierStemmer
 from .base import TempDirTestCase
 import tempfile
 import shutil
 import os
 
 class TestScoring(TempDirTestCase):
+
+    def test_scoring_tp(self):
+        from pyterrier.terrier.retriever import TextScorer
+        ts = TextScorer(wmodel="BM25", body_attr='text', background_index=pt.IndexFactory.of(self.here + "/fixtures/index"))
+        score = ts([{'qid' : 'q1', 'query' : 'chemical reactions', 'docno' : 'd1', 'text' : 'professor proton mixed the chemicals'}])[0]['score']
+        self.assertTrue(score != 0)
+
+    def test_scoring_notp(self):
+        from pyterrier.terrier.retriever import TextScorer
+        ts = TextScorer(wmodel="Tf", body_attr='text', stemmer=None, stopwords=None)
+        score = ts([{'qid' : 'q1', 'query' : 'chemical reactions', 'docno' : 'd1', 'text' : 'professor proton mixed the chemicals'}])[0]['score']
+        self.assertEqual(score, 0.)
+        score = ts([{'qid' : 'q1', 'query' : 'chemicals reaction', 'docno' : 'd1', 'text' : 'professor proton mixed the chemicals'}])[0]['score']
+        self.assertEqual(score, 1.)
+
+    def test_scoring_spanishtp(self):
+        from pyterrier.terrier.retriever import TextScorer
+        ts = TextScorer(wmodel="Tf", body_attr='text', stemmer='SpanishSnowballStemmer', stopwords=None)
+        score = ts([{'qid' : 'q1', 'query' : 'checar', 'docno' : 'd1', 'text' : 'checa'}])[0]['score']
+        self.assertEqual(score, 1.)
+
+        ts = TextScorer(wmodel="Tf", body_attr='text', stemmer=TerrierStemmer.spanish, stopwords=None)
+        score = ts([{'qid' : 'q1', 'query' : 'checar', 'docno' : 'd1', 'text' : 'checa'}])[0]['score']
+        self.assertEqual(score, 1.)
 
     def test_scoring_text(self):
         pt.java.set_log_level("DEBUG")
