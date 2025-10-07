@@ -448,8 +448,7 @@ def add_tokenize_query_arg(fn):
     return _wrapper
 
 def _pt_tokeniser():
-    from ..terrier.tokeniser import EnglishTokeniser
-    tokeniser = EnglishTokeniser.tokenise
+    tokeniser = pt.terrier.tokenizer.EnglishTokeniser.tokenise
     def pt_tokenise(text):
         return ' '.join(tokeniser(text))
     return pt_tokenise
