@@ -1,3 +1,4 @@
+from collections import namedtuple
 from deprecated import deprecated
 from warnings import warn
 import os
@@ -21,17 +22,12 @@ VALIDATE_TYPE = Literal['warn', 'error', 'ignore']
 SYSTEM_OR_RESULTS_TYPE = Union[Transformer, pd.DataFrame]
 SAVEFORMAT_TYPE = Union[Literal['trec'], types.ModuleType, Tuple[Callable[[IO], pd.DataFrame], Callable[[pd.DataFrame, IO], None]]]
 
-class _PrettyTuple(tuple):
-
-    def __new__ (cls, a, b):
-        return super(_PrettyTuple, cls).__new__(cls, tuple(b))
-
-    def __init__(self, a, b):
-        self.a=a
-        self.b=b
+class EvaluationDataTuple(namedtuple('EvaluationDataTuple', ['averages', 'perquery'])):
+    averages : pd.DataFrame
+    perquery : pd.DataFrame
 
     def _repr_html_(self, *a, **kw):
-        return self.a._repr_html_(*a, *kw) + self.b._repr_html_(*a, *kw)
+        return self.averages._repr_html_(*a, *kw) + self.perquery._repr_html_(*a, *kw)
 
 def _bold_cols(data : pd.Series, col_type):
     if data.name not in col_type:
@@ -824,7 +820,9 @@ def Experiment(
             df = df.style.apply(_bold_cols, axis=0, col_type=highlight_cols) # type: ignore
 
         if perquery == 'both':
-            return _PrettyTuple(df, perquery_df)
+            df.style.set_caption("Averages")
+            perquery_df.style.set_caption("Per Query")
+            return EvaluationDataTuple(df, perquery_df)
         return df 
     return evalDict
 
