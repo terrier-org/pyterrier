@@ -3,7 +3,7 @@ import pandas as pd
 from collections import namedtuple
 from . import MEASURES_TYPE
 from ir_measures import Measure
-from typing import Sequence, Tuple, Dict, Union, List, Optional
+from typing import Sequence, Tuple, Dict, Union, List, Optional, overload
 
 class EvaluationDataTuple(namedtuple('EvaluationDataTuple', ['averages', 'perquery'])):
     averages : pd.DataFrame
@@ -110,8 +110,10 @@ class RenderFromPerQuery():
         self.correction_alpha = correction_alpha
         self.round = round
         self.precompute_time = precompute_time
-        self.systemEvalDictsPerQ = {}
-        self.mrts = {}
+        # sysid -> qid -> measure -> value
+        self.systemEvalDictsPerQ : Dict[int,Dict[str,Dict[str,float]]] = {}
+        # sysid -> mrt
+        self.mrts : Dict[int,float] = {}
 
     def add_metrics(self, sysid : int, evalRows : Dict[str, Dict[str, float]], mrt : float):
         if sysid >= len(self.systems):
@@ -214,7 +216,12 @@ class RenderFromPerQuery():
             value = builtins.round(value, round[measure])
         return value
     
-    def perquery(self, dataframe = True) -> Union[Dict[str,int], pd.DataFrame]:
+    @overload
+    def perquery(self, dataframe: bool = True) -> pd.DataFrame: ...
+    @overload
+    def perquery(self, dataframe: bool = False) -> Dict[int,Dict[str, Dict[str,float]]]: ...
+
+    def perquery(self, dataframe = True) -> Union[Dict[int,Dict[str, Dict[str,float]]], pd.DataFrame]:
         """
         Return per-query results.
         DF has columns ``["name", "qid", "measure", "value"]``.

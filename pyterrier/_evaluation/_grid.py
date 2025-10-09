@@ -1,8 +1,11 @@
 from pyterrier import Transformer
 from typing import Dict, List, Literal, Optional, Tuple, Union, overload
+from ._execution import _run_and_evaluate
 from ._utils import _restore_state, _save_state
 from . import MEASURE_TYPE, MEASURES_TYPE
 from ir_measures import Measure
+import pandas as pd
+import pyterrier as pt
 
 TRANSFORMER_PARAMETER_VALUE_TYPE = Union[str,float,int,str]
 GRID_SCAN_PARAM_SETTING = Tuple[
@@ -20,9 +23,6 @@ GRID_SEARCH_RETURN_TYPE_BOTH = Tuple[
     float, 
     List[GRID_SCAN_PARAM_SETTING]
 ]
-import pandas as pd
-
-
 
 
 @overload

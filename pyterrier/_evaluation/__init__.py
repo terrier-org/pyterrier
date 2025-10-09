@@ -16,11 +16,9 @@ SAVEFORMAT_TYPE = Union[Literal['trec'], types.ModuleType, Tuple[Callable[[IO], 
 NUMERIC_TYPE = Union[float,int,complex]
 TEST_FN_TYPE = Callable[ [Sequence[NUMERIC_TYPE],Sequence[NUMERIC_TYPE]], Tuple[Any,NUMERIC_TYPE] ]
 
-from ._experiment import Experiment
-from ._execution import _run_and_evaluate
-
-from ._experiment import Experiment
-from ._grid import GridScan, GridSearch, KFoldGridSearch
+# we need types before imports relying on those types
+from ._experiment import Experiment #noqa: E402
+from ._grid import GridScan, GridSearch, KFoldGridSearch #noqa: E402
 
 def Evaluate(res : pd.DataFrame, qrels : pd.DataFrame, metrics : MEASURES_TYPE= ['map', 'ndcg'], perquery : bool = False) -> Dict:
     """
@@ -37,7 +35,8 @@ def Evaluate(res : pd.DataFrame, qrels : pd.DataFrame, metrics : MEASURES_TYPE= 
     """
     if len(res) == 0:
         raise ValueError("No results for evaluation")
-
+    
+    from ._execution import _run_and_evaluate
     _, rtr = _run_and_evaluate(res, None, qrels, metrics, perquery=perquery)
     return rtr
 
