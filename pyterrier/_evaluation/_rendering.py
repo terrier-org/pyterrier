@@ -126,7 +126,7 @@ class RenderFromPerQuery():
     @overload
     def averages(self, dataframe : Literal[False], highlight : Optional[str] = None, mrt_needed : bool = False) -> Dict[str,Any]: ...
 
-    def averages(self, dataframe : bool = True, highlight : Optional[str] = None, mrt_needed : bool = False) -> Union[Dict[str,Any], pd.DataFrame]:
+    def averages(self, dataframe : Union[Literal[True], Literal[False]] = True, highlight : Optional[str] = None, mrt_needed : bool = False) -> Union[Dict[str,Any], pd.DataFrame]:
 
         assert len(self.systemEvalDictsPerQ) == len(self.systems), "evaluation has not finished"
         baseline = self.baseline
@@ -226,7 +226,7 @@ class RenderFromPerQuery():
     @overload
     def perquery(self, dataframe: Literal[False]) -> Dict[int,Dict[str, Dict[str,float]]]: ...
 
-    def perquery(self, dataframe = True) -> Union[Dict[int,Dict[str, Dict[str,float]]], pd.DataFrame]:
+    def perquery(self, dataframe : Union[Literal[True], Literal[False]] = True) -> Union[Dict[int,Dict[str, Dict[str,float]]], pd.DataFrame]:
         """
         Return per-query results.
         DF has columns ``["name", "qid", "measure", "value"]``.
