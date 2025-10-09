@@ -20,20 +20,32 @@ class TestExperiment(TempDirTestCase):
         indexloc = self.here + "/fixtures/index/data.properties"
         self.index = pt.IndexFactory.of(indexloc)
         return self.index
+    
+    def test_experiment_render(self):
+        from pyterrier._evaluation._rendering import RenderFromPerQuery
+        r = RenderFromPerQuery(['bm25'])
+        r.add_metrics(0, {'q1': {'AP' : 1.0}, 'q2': {'AP' : 0.8}}, 1000)
+        df = r.perquery()
+        self.assertEqual(2, len(df))
+        self.assertEqual(1.8, df['value'].sum())
+        df = r.averages()
+        self.assertEqual(1, len(df))
+        self.assertEqual(0.9, df['AP'].iloc[0])
+
 
     def test_precomp_common(self):
         bm25 = pt.terrier.Retriever(self._vaswani_index(), wmodel='BM25')
         pipeA = bm25 %3
         pipeB = bm25 %10
-        import pyterrier.pipelines
-        common, suffices = pyterrier.pipelines._identifyCommon([pipeA, pipeB])
+        import pyterrier._evaluation._execution
+        common, suffices = pyterrier._evaluation._execution._identifyCommon([pipeA, pipeB])
         self.assertEqual(bm25, common)
         self.assertIsInstance(suffices[0], pt.RankCutoff)
         self.assertEqual(3, suffices[0].k)
         self.assertIsInstance(suffices[1], pt.RankCutoff)
         self.assertEqual(10, suffices[1].k)
 
-        common, suffices = pyterrier.pipelines._identifyCommon([bm25, pipeB])
+        common, suffices = pyterrier._evaluation._execution._identifyCommon([bm25, pipeB])
         self.assertEqual(bm25, common)
         self.assertIsInstance(suffices[0], pt.transformer.IdentityTransformer)
         self.assertIsInstance(suffices[1], pt.RankCutoff)
@@ -385,10 +397,23 @@ class TestExperiment(TempDirTestCase):
         vaswani = pt.datasets.get_dataset("vaswani")
         br = pt.terrier.Retriever(self._vaswani_index(), wmodel='BM25')
         rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"], perquery=True)
-        print(rtr)
+        self.assertIsInstance(rtr, pd.DataFrame)
+
+        rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"], perquery='both')
+        self.assertIsInstance(rtr, tuple)
+        self.assertIn('_repr_html_', dir(rtr))
+        self.assertIsInstance(rtr[0], pd.DataFrame)
+        self.assertIsInstance(rtr[1], pd.DataFrame)
 
         rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"], perquery=True, dataframe=False)
+        self.assertFalse(isinstance(rtr, pd.DataFrame))
+
+        rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"], perquery='both', dataframe=False)
+        self.assertIsInstance(rtr, tuple)
         print(rtr)
+        self.assertFalse('_repr_html_' in dir(rtr))
+        self.assertFalse(isinstance(rtr[0], pd.DataFrame))
+        self.assertFalse(isinstance(rtr[1], pd.DataFrame))
 
     def test_perquery_round(self):
         vaswani = pt.datasets.get_dataset("vaswani")
