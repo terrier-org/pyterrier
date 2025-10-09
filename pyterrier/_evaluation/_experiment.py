@@ -128,7 +128,7 @@ def Experiment(
         eval_metrics : MEASURES_TYPE,
         names : Optional[Sequence[str]] = None,
         perquery : Union[bool, Literal['both']] = False,
-        dataframe : bool = True,
+        dataframe : Union[Literal[False], Literal[True]] = True,
         batch_size : Optional[int] = None,
         filter_by_qrels : bool = False,
         filter_by_topics : bool = True,
