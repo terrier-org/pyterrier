@@ -190,7 +190,7 @@ class RenderFromPerQuery():
         # its easier to build the dataframe, then apply the correction
         df = pd.DataFrame(evalsRows, columns=["name"] + actual_metric_names)
         
-        # multiple testing correction. This adds two new columns for each measure experience statistical significance testing        
+        # multiple testing correction. This adds two new columns for each measure experiencing statistical significance testing        
         if self.baseline is not None and self.correction is not None:
             import statsmodels.stats.multitest # type: ignore
             for pcol in p_col_names:
