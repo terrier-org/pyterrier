@@ -1,13 +1,10 @@
 import os
-import numpy as np
 import pandas as pd
-import sys
-from typing import Union, Dict, List, Tuple, Sequence, Any, Literal, Optional, overload
+from typing import Union, Dict, Tuple, Sequence, Literal, Optional, overload
 import types
-from warnings import warn
 
 from ._execution import _run_and_evaluate, _precomputation
-from ._rendering import EvaluationDataTuple, _bold_cols, _color_cols, _mean_of_measures
+from ._rendering import EvaluationDataTuple, RenderFromPerQuery
 from ._validation import _validate
 from . import SYSTEM_OR_RESULTS_TYPE, MEASURES_TYPE, TEST_FN_TYPE, SAVEFORMAT_TYPE, SAVEMODE_TYPE, VALIDATE_TYPE
 import pyterrier as pt
@@ -174,14 +171,6 @@ def Experiment(
     if correction is not None and baseline is None:
         raise ValueError("Requested multiple testing correction, but no baseline was specified.")
 
-    def _apply_round(measure, value):
-        import builtins
-        if round is not None and isinstance(round, int):
-            value = builtins.round(value, round)
-        if round is not None and isinstance(round, dict) and measure in round:
-            value = builtins.round(value, round[measure])
-        return value
-
     # drop queries not appear in the qrels
     if filter_by_qrels:
         # the commented variant would drop queries not having any RELEVANT labels
@@ -227,10 +216,6 @@ def Experiment(
 
     all_topic_qids = topics["qid"].values
 
-    evalsRows=[]
-    evalDict={}
-    evalDictsPerQ=[]
-    actual_metric_names=[]
     mrt_needed = False
     if "mrt" in eval_metrics:
         mrt_needed = True
@@ -257,9 +242,16 @@ def Experiment(
         # round number of batches up for each system
         tqdm_args['total'] = math.ceil((len(topics) / batch_size)) * len(retr_systems)
 
+    renderer = RenderFromPerQuery(names, 
+                                  baseline=baseline, 
+                                  test_fn=test_fn, 
+                                  correction=correction, 
+                                  correction_alpha=correction_alpha, 
+                                  round=round, 
+                                  precompute_time=precompute_time)
     with pt.tqdm(**tqdm_args) as pbar:
         # run and evaluate each system
-        for name, system in zip(names, execution_retr_systems):
+        for sysid, (name, system) in enumerate(zip(names, execution_retr_systems)):
             save_file = None
             if save_dir is not None:
                 if save_format == 'trec':
@@ -274,117 +266,24 @@ def Experiment(
 
             time, evalMeasuresDict = _run_and_evaluate(
                 system, execution_topics, qrels, eval_metrics, 
-                perquery=perquery or baseline is not None, 
+                perquery=True, 
                 batch_size=batch_size, 
                 backfill_qids=all_topic_qids if perquery else None,
                 save_file=save_file,
                 save_mode=save_mode,
                 save_format=save_format,
                 pbar=pbar)
+            renderer.add_metrics(sysid, evalMeasuresDict, time)
 
-            if baseline is not None:
-                evalDictsPerQ.append(evalMeasuresDict)
-                evalMeasuresDict = _mean_of_measures(evalMeasuresDict)
-
-            if perquery:
-                for qid in evalMeasuresDict:
-                    for measurename in evalMeasuresDict[qid]:
-                        evalsRows.append([
-                            name, 
-                            qid, 
-                            measurename, 
-                            _apply_round(
-                                measurename, 
-                                evalMeasuresDict[qid][measurename]
-                            ) 
-                        ])
-                evalDict[name] = evalMeasuresDict
-            
-            if perquery in (False, "both"):
-                if mrt_needed:
-                    time += precompute_time
-                    evalMeasuresDict["mrt"] = time / float(len(all_topic_qids))
-                actual_metric_names = list(evalMeasuresDict.keys())
-                # gather mean values, applying rounding if necessary
-                evalMeasures=[ _apply_round(m, evalMeasuresDict[m]) for m in actual_metric_names]
-
-                evalsRows.append([name]+evalMeasures)
-                evalDict[name] = evalMeasures
+    if not perquery:
+        return renderer.averages(dataframe=dataframe, highlight=highlight, mrt_needed=mrt_needed)
     
-
-    if dataframe:
-        perquery_df = None
-        if perquery in (True, "both"):
-            perquery_df = pd.DataFrame(evalsRows, columns=["name", "qid", "measure", "value"]).sort_values(['name', 'qid'])
-            if round is not None and isinstance(round, int):
-                perquery_df["value"] = perquery_df["value"].round(round)
-            if perquery == True:
-                return perquery_df
-
-        highlight_cols = { m : "+"  for m in actual_metric_names }
-        if mrt_needed:
-            highlight_cols["mrt"] = "-"
-
-        p_col_names : List[str] = []
-        if baseline is not None:
-            assert len(evalDictsPerQ) == len(retr_systems)
-            baselinePerQuery={}
-            per_q_metrics = actual_metric_names.copy()
-            if mrt_needed:
-                per_q_metrics.remove("mrt")
-
-            for m in per_q_metrics:
-                baselinePerQuery[m] = np.array([ evalDictsPerQ[baseline][q][m] for q in evalDictsPerQ[baseline] ])
-
-            for i in range(0, len(retr_systems)):
-                additionals: List[Optional[Union[float, int, complex]]] = []
-                if i == baseline:
-                    additionals = [None] * (3*len(per_q_metrics))
-                else:
-                    for m in per_q_metrics:
-                        # we iterate through queries based on the baseline, in case run has different order
-                        perQuery = np.array( [ evalDictsPerQ[i][q][m] for q in evalDictsPerQ[baseline] ])
-                        delta_plus = (perQuery > baselinePerQuery[m]).sum()
-                        delta_minus = (perQuery < baselinePerQuery[m]).sum()
-                        p = test_fn(perQuery, baselinePerQuery[m])[1] # type: ignore[arg-type]
-                        additionals.extend([delta_plus, delta_minus, p])
-                evalsRows[i].extend(additionals)
-            delta_names=[]
-            for m in per_q_metrics:
-                delta_names.append("%s +" % m)
-                highlight_cols["%s +" % m] = "+"
-                delta_names.append("%s -" % m)
-                highlight_cols["%s -" % m] = "-"
-                pcol = "%s p-value" % m
-                delta_names.append(pcol)
-                p_col_names.append(pcol)
-            actual_metric_names.extend(delta_names)
-
-        df = pd.DataFrame(evalsRows, columns=["name"] + actual_metric_names)
-
-        # multiple testing correction. This adds two new columns for each measure experience statistical significance testing        
-        if baseline is not None and correction is not None:
-            import statsmodels.stats.multitest # type: ignore
-            for pcol in p_col_names:
-                pcol_reject = pcol.replace("p-value", "reject")
-                pcol_corrected = pcol + " corrected"                
-                reject, corrected, _, _ = statsmodels.stats.multitest.multipletests(df[pcol].drop(df.index[baseline]), alpha=correction_alpha, method=correction)
-                insert_pos : int = df.columns.get_loc(pcol)
-                # add reject/corrected values for the baseline
-                reject = np.insert(reject, baseline, False)
-                corrected = np.insert(corrected, baseline, np.nan)
-                # add extra columns, put place directly after the p-value column
-                df.insert(insert_pos+1, pcol_reject, reject)
-                df.insert(insert_pos+2, pcol_corrected, corrected)
-        
-        if highlight == "color" or highlight == "colour" :
-            df = df.style.apply(_color_cols, axis=0, col_type=highlight_cols) # type: ignore
-        elif highlight == "bold":
-            df = df.style.apply(_bold_cols, axis=0, col_type=highlight_cols) # type: ignore
-
-        if perquery == 'both':
-            df.style.set_caption("Averages")
-            perquery_df.style.set_caption("Per Query")
-            return EvaluationDataTuple(df, perquery_df)
-        return df 
-    return evalDict
+    perquery_results = renderer.perquery(dataframe=dataframe)
+    if perquery == 'both':
+        average_results = renderer.averages(dataframe=dataframe, highlight=highlight)
+        if dataframe:
+            average_results.style.set_caption("Averages")
+            perquery_results.style.set_caption("Per Query")
+            return EvaluationDataTuple(average_results, perquery_results)
+        return (average_results, perquery_results)
+    return perquery_results
