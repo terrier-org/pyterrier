@@ -240,7 +240,7 @@ def _run_and_evaluate(
     return (runtime, evalMeasuresDict)
 
 
-def _identifyCommon(pipes : List[Union[pt.Transformer, pd.DataFrame]]) -> Tuple[Optional[pt.Transformer], List[pt.Transformer]]:
+def _identifyCommon(pipes : List[Union[pt.Transformer, pd.DataFrame]]) -> Tuple[Optional[pt.Transformer], List[Union[pt.Transformer,pd.DataFrame]]]:
     # constructs a common prefix pipeline across a list of pipelines, along with various suffices. 
     # pt.Transformer.identity() is used for a no-op suffix
 
