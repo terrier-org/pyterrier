@@ -25,15 +25,15 @@ class TestExperiment(TempDirTestCase):
         bm25 = pt.terrier.Retriever(self._vaswani_index(), wmodel='BM25')
         pipeA = bm25 %3
         pipeB = bm25 %10
-        import pyterrier.pipelines
-        common, suffices = pyterrier.pipelines._identifyCommon([pipeA, pipeB])
+        import pyterrier.evaluation._execution
+        common, suffices = pyterrier.evaluation._execution._identifyCommon([pipeA, pipeB])
         self.assertEqual(bm25, common)
         self.assertIsInstance(suffices[0], pt.RankCutoff)
         self.assertEqual(3, suffices[0].k)
         self.assertIsInstance(suffices[1], pt.RankCutoff)
         self.assertEqual(10, suffices[1].k)
 
-        common, suffices = pyterrier.pipelines._identifyCommon([bm25, pipeB])
+        common, suffices = pyterrier.evaluation._execution._identifyCommon([bm25, pipeB])
         self.assertEqual(bm25, common)
         self.assertIsInstance(suffices[0], pt.transformer.IdentityTransformer)
         self.assertIsInstance(suffices[1], pt.RankCutoff)

@@ -13,6 +13,7 @@ from pyterrier import java
 
 from pyterrier import terrier
 from pyterrier.terrier import BatchRetrieve, TerrierRetrieve, FeaturesBatchRetrieve, IndexFactory, run, rewrite, index, FilesIndexer, TRECCollectionIndexer, DFIndexer, DFIndexUtils, IterDictIndexer, IndexingType, TerrierStemmer, TerrierStopwords, TerrierTokeniser
+from pyterrier.evaluation import Experiment, GridScan, GridSearch, Evaluate, KFoldGridSearch
 
 from pyterrier import debug
 from pyterrier import documentation
@@ -27,7 +28,6 @@ from pyterrier import transformer
 from pyterrier import schematic
 from pyterrier import datasets
 from pyterrier.datasets import get_dataset, find_datasets, list_datasets
-from pyterrier.pipelines import Experiment, GridScan, GridSearch, KFoldGridSearch, Evaluate
 from pyterrier import apply as _apply_base
 
 # old name

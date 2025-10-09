@@ -88,7 +88,7 @@ class TestGrid(BaseTestCase):
     def test_gridsearch(self):
         dataset = pt.get_dataset("vaswani")
         pipe = pt.terrier.Retriever(dataset.get_index(), wmodel="PL2", controls={'c' : 1})
-        rtr = pt.pipelines.GridSearch(
+        rtr = pt.GridSearch(
             pipe, 
             {pipe : {'c' : [0.1, 1, 5, 10, 20, 100]}}, 
             dataset.get_topics().head(5),
