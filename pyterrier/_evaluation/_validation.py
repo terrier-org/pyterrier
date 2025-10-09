@@ -1,5 +1,5 @@
 import pyterrier as pt
-from pyterrier.evaluation._rendering import _convert_measures
+from pyterrier._evaluation._rendering import _convert_measures
 from . import MEASURES_TYPE, SYSTEM_OR_RESULTS_TYPE, VALIDATE_TYPE
 
 
