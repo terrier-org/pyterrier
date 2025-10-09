@@ -342,10 +342,10 @@ def Experiment(
         average_results = renderer.averages(dataframe=dataframe, highlight=highlight)
 
         if dataframe:
-            from typing import cast
-            average_results_df = cast(pd.DataFrame, average_results)
-            perquery_results_df = cast(pd.DataFrame, perquery_results)
-            
+            from typing import cast as tcast
+            average_results_df = tcast(pd.DataFrame, average_results)
+            perquery_results_df = tcast(pd.DataFrame, perquery_results)
+
             average_results_df.style.set_caption("Averages")
             perquery_results_df.style.set_caption("Per Query")
             return EvaluationDataTuple(average_results, perquery_results)
