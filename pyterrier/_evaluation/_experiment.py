@@ -105,7 +105,7 @@ def Experiment(
         during a run.
     :param filter_by_qrels: If True, will drop topics from the topics dataframe that have qids not appearing in the qrels dataframe. 
     :param filter_by_topics: If True, will drop topics from the qrels dataframe that have qids not appearing in the topics dataframe. 
-    :param perquery: If True return each metric for each query, else return mean metrics across all queries. Default=False.
+    :param perquery: If True return each metric for each query, if False, will return mean metrics across all queries. If both, will return both averages and perquery results in a tuple. Default=False.
     :param save_dir: If set to the name of a directory, the results of each transformer will be saved in TREC-formatted results file, whose 
         filename is based on the systems names (as specified by ``names`` kwarg). If the file exists and ``save_mode`` is set to "reuse", then the file
         will be used for evaluation rather than the transformer. Default is None, such that saving and loading from files is disabled.
@@ -138,7 +138,7 @@ def Experiment(
         ``pt.inspect.transformer_outputs()`` is used to determine the output columns. If 'warn', then transformers whose output columns don't match the columns required 
         by the specified evaluation measures will product warnings; If 'error', then an error is produced. If a transformer cannot be inspected, a warning is produced.
 
-    :return: A Dataframe with each retrieval system with each metric evaluated.
+    :return: A Dataframe/dict with each retrieval system with each metric evaluated, or alternatively a tuple with averages and perquery results. 
     """
     
     if not isinstance(retr_systems, list):
