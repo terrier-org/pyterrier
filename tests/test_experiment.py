@@ -385,10 +385,16 @@ class TestExperiment(TempDirTestCase):
         vaswani = pt.datasets.get_dataset("vaswani")
         br = pt.terrier.Retriever(self._vaswani_index(), wmodel='BM25')
         rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"], perquery=True)
-        print(rtr)
+        self.assertIsInstance(rtr, pd.DataFrame)
+
+        rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"], perquery='both')
+        self.assertIsInstance(rtr, tuple)
+        self.assertIn('_repr_html_', dir(rtr))
+        self.assertIsInstance(rtr[0], pd.DataFrame)
+        self.assertIsInstance(rtr[1], pd.DataFrame)
 
         rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"], perquery=True, dataframe=False)
-        print(rtr)
+        self.assertIsNotInstance(rtr, pd.DataFrame)
 
     def test_perquery_round(self):
         vaswani = pt.datasets.get_dataset("vaswani")

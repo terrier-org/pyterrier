@@ -21,6 +21,18 @@ VALIDATE_TYPE = Literal['warn', 'error', 'ignore']
 SYSTEM_OR_RESULTS_TYPE = Union[Transformer, pd.DataFrame]
 SAVEFORMAT_TYPE = Union[Literal['trec'], types.ModuleType, Tuple[Callable[[IO], pd.DataFrame], Callable[[pd.DataFrame, IO], None]]]
 
+class _PrettyTuple(tuple):
+
+    def __new__ (cls, a, b):
+        return super(_PrettyTuple, cls).__new__(cls, tuple(b))
+
+    def __init__(self, a, b):
+        self.a=a
+        self.b=b
+
+    def _repr_html_(self, *a, **kw):
+        return self.a._repr_html_(*a, *kw) + self.b._repr_html_(*a, *kw)
+
 def _bold_cols(data : pd.Series, col_type):
     if data.name not in col_type:
         return [''] * len(data)
@@ -442,13 +454,67 @@ def _run_and_evaluate(
 NUMERIC_TYPE = Union[float,int,complex]
 TEST_FN_TYPE = Callable[ [Sequence[NUMERIC_TYPE],Sequence[NUMERIC_TYPE]], Tuple[Any,NUMERIC_TYPE] ]
 
+@overload
 def Experiment(
         retr_systems : Sequence[SYSTEM_OR_RESULTS_TYPE],
         topics : pd.DataFrame,
         qrels : pd.DataFrame,
         eval_metrics : MEASURES_TYPE,
         names : Optional[Sequence[str]] = None,
-        perquery : bool = False,
+        perquery : Union[bool, Literal['both']] = False,
+        dataframe : bool = True,
+        batch_size : Optional[int] = None,
+        filter_by_qrels : bool = False,
+        filter_by_topics : bool = True,
+        baseline : Optional[int] = None,
+        test : Union[str,TEST_FN_TYPE] = "t",
+        correction : Optional[str] = None,
+        correction_alpha : float = 0.05,
+        highlight : Optional[str] = None,
+        round : Optional[Union[int,Dict[str,int]]] = None,
+        verbose : bool = False,
+        validate : VALIDATE_TYPE = 'warn',
+        save_dir : Optional[str] = None,
+        save_mode : SAVEMODE_TYPE = 'warn',
+        save_format : SAVEFORMAT_TYPE = 'trec',
+        precompute_prefix : bool = False,
+        **kwargs) -> pd.DataFrame:
+    ...
+
+@overload
+def Experiment(
+        retr_systems : Sequence[SYSTEM_OR_RESULTS_TYPE],
+        topics : pd.DataFrame,
+        qrels : pd.DataFrame,
+        eval_metrics : MEASURES_TYPE,
+        names : Optional[Sequence[str]] = None,
+        perquery : Union[bool, Literal['both']] = 'both',
+        dataframe : bool = True,
+        batch_size : Optional[int] = None,
+        filter_by_qrels : bool = False,
+        filter_by_topics : bool = True,
+        baseline : Optional[int] = None,
+        test : Union[str,TEST_FN_TYPE] = "t",
+        correction : Optional[str] = None,
+        correction_alpha : float = 0.05,
+        highlight : Optional[str] = None,
+        round : Optional[Union[int,Dict[str,int]]] = None,
+        verbose : bool = False,
+        validate : VALIDATE_TYPE = 'warn',
+        save_dir : Optional[str] = None,
+        save_mode : SAVEMODE_TYPE = 'warn',
+        save_format : SAVEFORMAT_TYPE = 'trec',
+        precompute_prefix : bool = False,
+        **kwargs) -> Tuple[pd.DataFrame,pd.DataFrame]:
+    ...
+
+def Experiment(
+        retr_systems : Sequence[SYSTEM_OR_RESULTS_TYPE],
+        topics : pd.DataFrame,
+        qrels : pd.DataFrame,
+        eval_metrics : MEASURES_TYPE,
+        names : Optional[Sequence[str]] = None,
+        perquery : Union[bool, Literal['both']] = False,
         dataframe : bool = True,
         batch_size : Optional[int] = None,
         filter_by_qrels : bool = False,
@@ -688,11 +754,13 @@ def Experiment(
     
 
     if dataframe:
-        if perquery:
-            df = pd.DataFrame(evalsRows, columns=["name", "qid", "measure", "value"]).sort_values(['name', 'qid'])
+        perquery_df = None
+        if perquery == True or perquery == 'both':
+            perquery_df = pd.DataFrame(evalsRows, columns=["name", "qid", "measure", "value"]).sort_values(['name', 'qid'])
             if round is not None and isinstance(round, int):
-                df["value"] = df["value"].round(round)
-            return df
+                perquery_df["value"] = perquery_df["value"].round(round)
+            if perquery == True:
+                return perquery_df
 
         highlight_cols = { m : "+"  for m in actual_metric_names }
         if mrt_needed:
@@ -754,7 +822,9 @@ def Experiment(
             df = df.style.apply(_color_cols, axis=0, col_type=highlight_cols) # type: ignore
         elif highlight == "bold":
             df = df.style.apply(_bold_cols, axis=0, col_type=highlight_cols) # type: ignore
-            
+
+        if perquery == 'both':
+            return _PrettyTuple(df, perquery_df)
         return df 
     return evalDict
 
