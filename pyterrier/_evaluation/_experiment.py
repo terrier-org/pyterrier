@@ -338,7 +338,6 @@ def Experiment(
     
     perquery_results = renderer.perquery(dataframe=dataframe)
     if perquery == 'both':
-        from typing import reveal_type
         average_results = renderer.averages(dataframe=dataframe, highlight=highlight)
 
         if dataframe:
