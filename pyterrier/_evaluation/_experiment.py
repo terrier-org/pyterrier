@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from typing import Union, Dict, Tuple, Sequence, Literal, Optional, overload
+from typing import Union, Dict, Tuple, Sequence, Literal, Optional, overload, Any
 import types
 
 from ._execution import _run_and_evaluate, _precomputation
@@ -9,6 +9,7 @@ from ._validation import _validate
 from . import SYSTEM_OR_RESULTS_TYPE, MEASURES_TYPE, TEST_FN_TYPE, SAVEFORMAT_TYPE, SAVEMODE_TYPE, VALIDATE_TYPE
 import pyterrier as pt
 
+# perquery: bool, dataframe:true
 @overload
 def Experiment(
         retr_systems : Sequence[SYSTEM_OR_RESULTS_TYPE],
@@ -16,8 +17,8 @@ def Experiment(
         qrels : pd.DataFrame,
         eval_metrics : MEASURES_TYPE,
         names : Optional[Sequence[str]] = None,
-        perquery : Union[bool, Literal['both']] = False,
-        dataframe : bool = True,
+        perquery : Union[Literal[False],Literal[True]] = False,
+        dataframe : Literal[True] = True,
         batch_size : Optional[int] = None,
         filter_by_qrels : bool = False,
         filter_by_topics : bool = True,
@@ -36,6 +37,7 @@ def Experiment(
         **kwargs) -> pd.DataFrame:
     ...
 
+# perquery: bool, dataframe:False
 @overload
 def Experiment(
         retr_systems : Sequence[SYSTEM_OR_RESULTS_TYPE],
@@ -43,8 +45,36 @@ def Experiment(
         qrels : pd.DataFrame,
         eval_metrics : MEASURES_TYPE,
         names : Optional[Sequence[str]] = None,
-        perquery : Union[bool, Literal['both']] = 'both',
-        dataframe : bool = True,
+        perquery : Union[Literal[False],Literal[True]] = False,
+        dataframe : Literal[False] = False,
+        batch_size : Optional[int] = None,
+        filter_by_qrels : bool = False,
+        filter_by_topics : bool = True,
+        baseline : Optional[int] = None,
+        test : Union[str,TEST_FN_TYPE] = "t",
+        correction : Optional[str] = None,
+        correction_alpha : float = 0.05,
+        highlight : Optional[str] = None,
+        round : Optional[Union[int,Dict[str,int]]] = None,
+        verbose : bool = False,
+        validate : VALIDATE_TYPE = 'warn',
+        save_dir : Optional[str] = None,
+        save_mode : SAVEMODE_TYPE = 'warn',
+        save_format : SAVEFORMAT_TYPE = 'trec',
+        precompute_prefix : bool = False,
+        **kwargs) -> Dict[str,Any]:
+    ...
+
+# perquery: 'both', dataframe:True
+@overload
+def Experiment(
+        retr_systems : Sequence[SYSTEM_OR_RESULTS_TYPE],
+        topics : pd.DataFrame,
+        qrels : pd.DataFrame,
+        eval_metrics : MEASURES_TYPE,
+        names : Optional[Sequence[str]] = None,
+        perquery : Literal['both'] = 'both',
+        dataframe : Literal[True] = True,
         batch_size : Optional[int] = None,
         filter_by_qrels : bool = False,
         filter_by_topics : bool = True,
@@ -61,6 +91,34 @@ def Experiment(
         save_format : SAVEFORMAT_TYPE = 'trec',
         precompute_prefix : bool = False,
         **kwargs) -> Tuple[pd.DataFrame,pd.DataFrame]:
+    ...
+
+# perquery: 'both', dataframe:False
+@overload
+def Experiment(
+        retr_systems : Sequence[SYSTEM_OR_RESULTS_TYPE],
+        topics : pd.DataFrame,
+        qrels : pd.DataFrame,
+        eval_metrics : MEASURES_TYPE,
+        names : Optional[Sequence[str]] = None,
+        perquery : Literal['both'] = 'both',
+        dataframe : Literal[False] = False,
+        batch_size : Optional[int] = None,
+        filter_by_qrels : bool = False,
+        filter_by_topics : bool = True,
+        baseline : Optional[int] = None,
+        test : Union[str,TEST_FN_TYPE] = "t",
+        correction : Optional[str] = None,
+        correction_alpha : float = 0.05,
+        highlight : Optional[str] = None,
+        round : Optional[Union[int,Dict[str,int]]] = None,
+        verbose : bool = False,
+        validate : VALIDATE_TYPE = 'warn',
+        save_dir : Optional[str] = None,
+        save_mode : SAVEMODE_TYPE = 'warn',
+        save_format : SAVEFORMAT_TYPE = 'trec',
+        precompute_prefix : bool = False,
+        **kwargs) -> Tuple[Dict[str,Any], Dict[str,Any]]:
     ...
 
 def Experiment(

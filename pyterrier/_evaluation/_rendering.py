@@ -3,7 +3,7 @@ import pandas as pd
 from collections import namedtuple
 from . import MEASURES_TYPE
 from ir_measures import Measure
-from typing import Sequence, Tuple, Dict, Union, List, Optional, overload
+from typing import Sequence, Tuple, Dict, Union, List, Optional, overload, Literal, Any
 
 class EvaluationDataTuple(namedtuple('EvaluationDataTuple', ['averages', 'perquery'])):
     averages : pd.DataFrame
@@ -120,8 +120,13 @@ class RenderFromPerQuery():
             raise KeyError()
         self.systemEvalDictsPerQ[sysid] = evalRows
         self.mrts[sysid] = mrt
+    
+    @overload
+    def averages(self, dataframe : Literal[True] = True, highlight : Optional[str] = None, mrt_needed : bool = False) -> pd.DataFrame: ...
+    @overload
+    def averages(self, dataframe : Literal[False], highlight : Optional[str] = None, mrt_needed : bool = False) -> Dict[str,Any]: ...
 
-    def averages(self, dataframe = True, highlight = None, mrt_needed = False) -> Union[Dict[str,int], pd.DataFrame]:
+    def averages(self, dataframe : bool = True, highlight : Optional[str] = None, mrt_needed : bool = False) -> Union[Dict[str,Any], pd.DataFrame]:
 
         assert len(self.systemEvalDictsPerQ) == len(self.systems), "evaluation has not finished"
         baseline = self.baseline
@@ -217,9 +222,9 @@ class RenderFromPerQuery():
         return value
     
     @overload
-    def perquery(self, dataframe: bool = True) -> pd.DataFrame: ...
+    def perquery(self, dataframe: Literal[True] = True) -> pd.DataFrame: ...
     @overload
-    def perquery(self, dataframe: bool = False) -> Dict[int,Dict[str, Dict[str,float]]]: ...
+    def perquery(self, dataframe: Literal[False]) -> Dict[int,Dict[str, Dict[str,float]]]: ...
 
     def perquery(self, dataframe = True) -> Union[Dict[int,Dict[str, Dict[str,float]]], pd.DataFrame]:
         """
