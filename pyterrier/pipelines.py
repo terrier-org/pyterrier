@@ -737,7 +737,8 @@ def Experiment(
                             ) 
                         ])
                 evalDict[name] = evalMeasuresDict
-            else:
+            
+            if perquery in (False, "both"):
                 if mrt_needed:
                     time += precompute_time
                     evalMeasuresDict["mrt"] = time / float(len(all_topic_qids))
@@ -751,7 +752,7 @@ def Experiment(
 
     if dataframe:
         perquery_df = None
-        if perquery == True or perquery == 'both':
+        if perquery in (True, "both"):
             perquery_df = pd.DataFrame(evalsRows, columns=["name", "qid", "measure", "value"]).sort_values(['name', 'qid'])
             if round is not None and isinstance(round, int):
                 perquery_df["value"] = perquery_df["value"].round(round)
