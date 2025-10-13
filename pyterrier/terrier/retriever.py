@@ -27,8 +27,8 @@ def _query_needs_tokenised(query: str) -> bool:
     if termweightsre.match(query):
         return False
 
-    # we dont include : (or ^) in this list
-    bad_chars = [",", ".", ";", "!", "?", "(", ")", "[", "]", "{", "}", "<", ">", "\"", 
+    # we dont include : in this list, as it denotes a control key:value pair in TerrierQL
+    bad_chars = [",", ".", ";", "!", "?", "(", ")", "[", "]", "{", "}", "<", ">", "\"", "^", 
                  "'", "`", "~", "@", "#", "$", "%", "&", "*", "-", "+", "=", "|", "\\", "/"]
 
     if any(c in query for c in bad_chars):
@@ -198,6 +198,7 @@ class Retriever(pt.Transformer):
                  metadata : List[str] = ["docno"], 
                  num_results : Optional[int] = None, 
                  wmodel : Optional[Union[str, Callable]] = None, 
+                 tokeniser : Union[str,TerrierTokeniser] = TerrierTokeniser.english,
                  threads : int = 1, 
                  verbose : bool = False):
         """
@@ -222,6 +223,7 @@ class Retriever(pt.Transformer):
         self.RequestContextMatching = pt.java.autoclass("org.terrier.python.RequestContextMatching")
         self.search_context = {}
         self.verbose = verbose
+        self.tokeniser = TerrierTokeniser.java_tokeniser(TerrierTokeniser._to_obj(tokeniser))
 
         for key, value in self.properties.items():
             pt.terrier.J.ApplicationSetup.setProperty(str(key), str(value))
@@ -319,7 +321,7 @@ class Retriever(pt.Transformer):
         else:
             query = row.query
             if _query_needs_tokenised(query):
-                query = ' '.join(pt.terrier.tokeniser.EnglishTokeniser.tokenise(query)) # TODO make this configurable
+                query = ' '.join(self.tokeniser.getTokens(query))
             if len(query) == 0:
                 warn(
                     "Skipping empty query for qid %s" % qid)
@@ -886,7 +888,7 @@ class FeaturesRetriever(Retriever):
             else:
                 query = row.query
                 if _query_needs_tokenised(query):
-                    query = ' '.join(pt.terrier.tokeniser.EnglishTokeniser.tokenise(query)) # TODO make this configurable
+                    query = ' '.join(self.tokeniser.getTokens(query))
                 if len(query) == 0:
                     warn(
                         "Skipping empty query for qid %s" % qid)
