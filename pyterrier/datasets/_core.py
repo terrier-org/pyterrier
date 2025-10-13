@@ -437,9 +437,9 @@ class HasConfigure(Protocol):
 
 def add_tokenize_query_arg(fn):
     @functools.wraps(fn)
-    def _wrapper(variant: Optional[str] = None, tokenise_query: bool = True):
+    def _wrapper(variant: Optional[str] = None, tokenise_query: Optional[bool] = None):
         topics = fn(variant)
-        if topics is not None and tokenise_query and 'query' in topics:
+        if topics is not None and tokenise_query is not None and 'query' in topics:
             raise ValueError("get_topics(tokenise_query:bool) has been removed. All datasets queries are now untokenised by default, and terrier.Retriever will handle them as needed.")
         return topics
     return _wrapper
