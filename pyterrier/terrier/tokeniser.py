@@ -39,7 +39,7 @@ class TerrierTokeniser(Enum):
         raise ValueError(f'Unknown/unsupported tokeniser: {this}')
     
     @staticmethod
-    @pt.java.required()
+    @pt.java.required
     def java_tokeniser(this):
         clz = TerrierTokeniser._to_class(this)
         if "." not in clz:
