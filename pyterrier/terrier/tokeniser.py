@@ -1,7 +1,4 @@
-import re
 from enum import Enum
-from typing import List
-import unicodedata
 import pyterrier as pt
 
 class TerrierTokeniser(Enum):
