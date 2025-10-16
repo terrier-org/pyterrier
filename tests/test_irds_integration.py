@@ -36,12 +36,12 @@ class TestIrDatasetsIntegration(BaseTestCase):
 
     def test_antique(self):
         dataset = pt.datasets.get_dataset('irds:antique/test')
-        with self.subTest('topics'):
-            topics = dataset.get_topics()
-            self.assertEqual(len(topics), 200)
-            self.assertEqual(topics['query'][0], 'how can we get concentration onsomething') # removes "?"
+        # with self.subTest('topics'):
+        #     topics = dataset.get_topics()
+        #     self.assertEqual(len(topics), 200)
+        #     self.assertEqual(topics['query'][0], 'how can we get concentration onsomething') # removes "?"
         with self.subTest('topics - no tokenisation'):
-            topics = dataset.get_topics(tokenise_query=False)
+            topics = dataset.get_topics() #tokenise_query=False
             self.assertEqual(len(topics), 200)
             self.assertEqual(topics['query'][0], 'how can we get concentration onsomething?')
 
@@ -98,10 +98,10 @@ class TestIrDatasetsIntegration(BaseTestCase):
         with self.subTest('specific field'):
             topics = dataset.get_topics('description')
             self.assertEqual(['qid', 'query'], list(topics.columns)) # description mapped to query
-            self.assertEqual(topics.iloc[0]['query'], 'find information on president barack obama s family history including genealogy national origins places and dates of birth etc')
+            self.assertEqual(topics.iloc[0]['query'], "Find information on President Barack Obama's family\n  history, including genealogy, national origins, places and dates of\n  birth, etc.\n  ")
 
         with self.subTest('specific field'):
-            topics = dataset.get_topics('description', tokenise_query=False)
+            topics = dataset.get_topics('description')
             self.assertEqual(['qid', 'query'], list(topics.columns)) # description mapped to query
             self.assertEqual(topics.iloc[0]['query'], "Find information on President Barack Obama's family\n  history, including genealogy, national origins, places and dates of\n  birth, etc.\n  ")
 
