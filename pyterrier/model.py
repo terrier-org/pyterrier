@@ -380,84 +380,100 @@ def column_info(column: str) -> Optional[dict]:
     """Returns a dictionary with information about the specified column name."""
     if column == 'qid':
         return {
+            'title': 'qid',
             'phrase': 'Query ID',
             'short_desc': 'ID of query in frame',
             'type': str,
         }
     if column == 'docno':
         return {
+            'title': 'docno',
             'phrase': 'External Document ID',
             'short_desc': 'String ID of document in collection',
             'type': str,
         }
     if column == 'docid':
         return {
+            'title': 'docid',
             'phrase': 'Internal Document ID',
             'short_desc': 'Integer ID of document in a specific index',
             'type': int,
         }
     if column == 'score':
         return {
+            'title': 'score',
             'short_desc': 'Ranking score of document to query (higher=better)',
             'type': float,
         }
     if column == 'rank':
         return {
+            'title': 'rank',
             'short_desc': 'Ranking order of document to query (lower=better)',
             'type': int,
         }
     if column == 'query':
         return {
+            'title': 'query',
             'short_desc': 'Query text',
             'type': str,
         }
     if re.match(r'^query_[0-9]+$', column):
         return {
+            'title': str(column),
             'short_desc': 'Stashed query text',
             'type': str,
         }
     if column == 'text':
         return {
+            'title': "text",
             'short_desc': 'Document text',
             'type': str,
         }
     if column == 'title':
         return {
+            'title': "title",
             'short_desc': 'Document title',
             'type': str,
         }
     if column == 'qanswer':
         return {
+            'title': "qanswer",
             'short_desc': 'Answer to the query',
             'type': str,
         }
     if column == 'qcontext':
         return {
+            'title': "qcontext",
             'short_desc': 'Context to the query',
             'type': str,
         }
     if column == 'features':
         return {
+            'title': "features",
             'short_desc': 'Feature array for learning-to-rank',
             'type': np.array,
         }
     if column == 'query_vec':
         return {
+            'title': "query_vec",
             'short_desc': 'Dense query vector',
             'type': np.array,
         }
     if column == 'doc_vec':
         return {
+            'title': "doc_vec",
             'short_desc': 'Dense document vector',
             'type': np.array,
         }
     if column == 'query_toks':
         return {
+            'title': "query_toks",
             'short_desc': 'Sparse query vector',
             'type': dict,
         }
     if column == 'toks':
         return {
+            'title': "toks",
             'short_desc': 'Sparse document vector',
             'type': dict,
         }
