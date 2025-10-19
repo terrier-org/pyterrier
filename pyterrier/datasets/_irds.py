@@ -248,3 +248,8 @@ class IRDSTextLoader(pt.Transformer):
         inp = inp.drop(columns=self.fields, errors='ignore') # make sure we don't end up with duplicates
         inp = inp.reset_index(drop=True) # reset the index to default (matching metadata_frame)
         return pd.concat([inp, metadata_frame], axis='columns')
+
+    def fuse_rank_cutoff(self, k):
+        import pyterrier._ops
+        return pyterrier._ops.RankCutoff(k) >> self
+               
