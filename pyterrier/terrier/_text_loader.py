@@ -73,6 +73,8 @@ class TerrierTextLoader(pt.Transformer):
         inp = inp.reset_index(drop=True) # reset the index to default (matching metadata_frame)
         return pd.concat([inp, metadata_frame], axis='columns')
 
+    def fuse_rank_cutoff(self, k):
+        return pt.RankCutoff(k) >> self
 
 def terrier_text_loader(
     index,

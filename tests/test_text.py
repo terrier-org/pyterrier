@@ -71,6 +71,13 @@ class TestText(BaseTestCase):
             dfOut = textT.transform(dfinput)
             self.assertTrue(isinstance(dfOut, pd.DataFrame))
             self.assertTrue("docno" in dfOut.columns)
+
+            # verify that rankcutoff is moved earlier by compilation
+            pipe = textT%10
+            pipe_opt = pipe.compile()
+            self.assertEqual(textT, pipe_opt[1])
+            self.assertIsInstance(pipe_opt[0], pt._ops.RankCutoff)
+            self.assertEqual(10, pipe_opt[0].k)
         
     def test_fetch_text_docid(self):
         dfinput = pd.DataFrame([["q1", "a query", 1]], columns=["qid", "query", "docid"])
@@ -115,6 +122,13 @@ class TestText(BaseTestCase):
         self.assertTrue(isinstance(dfOut2, pd.DataFrame))
         self.assertTrue("text" in dfOut2.columns)
         self.assertEqual('object', dfOut2['docno'].dtype)
+
+        # verify that rankcutoff is moved earlier by compilation
+        pipe = textT%10
+        pipe_opt = pipe.compile()
+        self.assertEqual(textT, pipe_opt[1])
+        self.assertIsInstance(pipe_opt[0], pt._ops.RankCutoff)
+        self.assertEqual(10, pipe_opt[0].k)
 
     def test_passager_title(self):
         dfinput = pd.DataFrame([["q1", "a query", "doc1", "title", "body sentence"]], columns=["qid", "query", "docno", "title", "body"])
