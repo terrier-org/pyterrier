@@ -7,6 +7,7 @@ from pyterrier.terrier._index import TerrierIndex
 
 class TerrierTextLoader(pt.Transformer):
     """A transformer that loads textual metadata from a Terrier index into a DataFrame by docid or docno."""
+    schematic = {'label': 'TextLoader'}
     def __init__(
         self,
         index: TerrierIndex,
