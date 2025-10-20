@@ -250,6 +250,4 @@ class IRDSTextLoader(pt.Transformer):
         return pd.concat([inp, metadata_frame], axis='columns')
 
     def fuse_rank_cutoff(self, k):
-        import pyterrier._ops
-        return pyterrier._ops.RankCutoff(k) >> self
-               
+        return pt._ops.RankCutoff(k) >> self
