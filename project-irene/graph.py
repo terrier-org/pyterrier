@@ -1,14 +1,28 @@
-from typing import List, Optional, Callable
+from typing import List, Optional, Callable, Dict, Any
+import pyterrier as pt
+
+all_eval_results: Dict[int, Any] = {}
+
+def _eval_callback(res, eval_index: int, qrels, metrics: List[str]):
+    """Callback function for evaluating results using pyterrier.
+    
+    Args:
+        res: The result to evaluate
+        eval_index: Index to store the evaluation results
+        qrels: Query relevance judgments
+        metrics: List of evaluation metrics to compute
+    """
+    eval_out = pt.Evaluate(res, qrels, metrics)
+    all_eval_results[eval_index] = eval_out
 
 class Node:
-    def __init__(self, name, children: Optional[List['Node']] = None, evaluation_index: Optional[int] = None):
-        self.name = name
+    def __init__(self, me, children: Optional[List['Node']] = None, evaluation_index: Optional[int] = None):
+        self.me = me
         self.children = children if children is not None else []
         self.evaluation_index = evaluation_index
 
     def add_child(self, child_node: "Node"):
-        if not isinstance(child_node, Node):
-            raise TypeError(f"child_node must be a Node, got {type(child_node).__name__}")
+        assert isinstance(child_node, Node), f"child_node must be a Node, got {type(child_node).__name__}"
         self.children.append(child_node)
 
     # def get_children(self) -> Union[List["Node"], None]:
@@ -18,59 +32,60 @@ class Node:
         """Return the list of child Node objects."""
         return list(self.children)
 
-    def get_children_names(self) -> list:
-        """Return the list of child node names."""
-        return [child.name for child in self.children]
+    def get_children_me(self) -> list:
+        """Return the list of child node me values."""
+        return [child.me for child in self.children]
     
     
     def traverse(self, inp, callback: Optional[Callable] = None):
         res = self.me.transform(inp)
         if self.evaluation_index is not None:
-            if callback is None:
-                raise RuntimeError("evaluation_index is set but no callback was provided")
+            assert callback is not None, "evaluation_index is set but no callback was provided"
             callback(res, self.evaluation_index)
         for child in self.children:
             child.traverse(res, callback)
 
     def __repr__(self):
         children_repr = ', '.join(repr(child) for child in self.children)
-        return f"Node({self.name}, [{children_repr}])"
+        return f"Node({self.me}, [{children_repr}])"
 
 class DAG:
+    # anything with _me is the code replaced for name
     def get_root_nodes(self) -> list:
         """Return a list of root nodes (nodes with no parents)."""
         all_children = set()
         for node in self.nodes.values():
-            all_children.update(child.name for child in node.children)
-        return [node for node in self.nodes.values() if node.name not in all_children]
+            all_children.update(child.me for child in node.children)
+        return [node for node in self.nodes.values() if node.me not in all_children]
     def __init__(self):
         self.nodes = {}
 
-    def add_node(self, name):
-        if name not in self.nodes:
-            self.nodes[name] = Node(name)
-        return self.nodes[name]
+    def add_node(self, me):
+        if me not in self.nodes:
+            self.nodes[me] = Node(me)
+        return self.nodes[me]
 
-    def add_edge(self, parent_name, child_name):
-        parent = self.add_node(parent_name)
-        child = self.add_node(child_name)
+    def add_edge(self, parent, child_me):
+        parent = self.add_node(parent)
+        child = self.add_node(child_me)
         parent.add_child(child)
 
-    def get_children(self, parent_name: str) -> list:
-        """Return the child Node objects for the node named parent_name.
+    def get_children(self, parent: str) -> list:
+        """Return the child Node objects for the node with the given me value.
 
         Raises KeyError if the parent node does not exist.
         """
-        parent = self.nodes[parent_name]
+        parent = self.nodes[parent]
         return parent.get_children()
 
-    def get_children_names(self, parent_name: str) -> list:
-        """Return the child node names for the node named parent_name.
+    def get_children_me(self, parent: str) -> list:
+        # this is a get_children names method, need to come up with a better name
+        """Return the child node me values for the node with the given me value.
 
         Raises KeyError if the parent node does not exist.
         """
-        parent = self.nodes[parent_name]
-        return parent.get_children_names()
+        parent = self.nodes[parent]
+        return parent.get_children_me()
 
 
 
