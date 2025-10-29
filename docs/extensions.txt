@@ -18,4 +18,5 @@ pyterrier_pisa # PISA <https://github.com/terrierteam/pyterrier_pisa>
 pyterrier_rag # RAG <https://github.com/terrierteam/pyterrier_rag>
 # Sentence Transformers <https://github.com/soldni/pyterrier_sentence_transformers>
 # SPLADE <https://github.com/cmacdonald/pyt_splade>
+suiteeval # SuiteEval <https://github.com/parryparry/suiteeval>
 pyterrier_t5 # T5 <https://github.com/terrierteam/pyterrier_t5>
