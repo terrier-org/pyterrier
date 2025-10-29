@@ -1,9 +1,10 @@
 from typing import List, Optional, Callable, Dict, Any
+from timeit import default_timer as timer
 import pyterrier as pt
 
 all_eval_results: Dict[int, Any] = {}
 
-def _eval_callback(res, eval_index: int, qrels, metrics: List[str]):
+def _eval_callback(res, eval_index: int, qrels, metrics: List[str], cum_time: float = 0.0):
     """Callback function for evaluating results using pyterrier.
     
     Args:
@@ -11,9 +12,11 @@ def _eval_callback(res, eval_index: int, qrels, metrics: List[str]):
         eval_index: Index to store the evaluation results
         qrels: Query relevance judgments
         metrics: List of evaluation metrics to compute
+        cum_time: Cumulative transformation time in milliseconds
     """
     eval_out = pt.Evaluate(res, qrels, metrics)
     all_eval_results[eval_index] = eval_out
+    all_eval_results[eval_index]['cum_time'] = cum_time
 
 class Node:
     def __init__(self, me, children: Optional[List['Node']] = None, evaluation_index: Optional[int] = None):
@@ -37,13 +40,25 @@ class Node:
         return [child.me for child in self.children]
     
     
-    def traverse(self, inp, callback: Optional[Callable] = None):
+    def traverse(self, inp, callback: Optional[Callable] = None, cum_time: float = 0.0):
+        """Traverse the graph, applying transformations and tracking cumulative time.
+        
+        Args:
+            inp: Input data to transform
+            callback: Optional callback function for evaluation
+            cum_time: Cumulative transformation time in milliseconds (default 0.0)
+        """
+        starttime = timer()
         res = self.me.transform(inp)
+        endtime = timer()
+        transform_time = (endtime - starttime) * 1000.0  # Convert to milliseconds
+        total_time = cum_time + transform_time
+        
         if self.evaluation_index is not None:
             assert callback is not None, "evaluation_index is set but no callback was provided"
-            callback(res, self.evaluation_index)
+            callback(res, self.evaluation_index, total_time)
         for child in self.children:
-            child.traverse(res, callback)
+            child.traverse(res, callback, total_time)
 
     def __repr__(self):
         children_repr = ', '.join(repr(child) for child in self.children)
