@@ -1,6 +1,7 @@
 from typing import List, Optional, Callable, Dict, Any
 from timeit import default_timer as timer
 import pyterrier as pt
+import pandas as pd
 
 all_eval_results: Dict[int, Any] = {}
 
@@ -31,7 +32,7 @@ class Node:
     # def get_children(self) -> Union[List["Node"], None]:
     #     """Return the list of child Node objects or None if no children exist."""
     #     return list(self.children) if self.children else None
-    def get_children(self) -> list:
+    def get_children(self) -> list["Node"]:
         """Return the list of child Node objects."""
         return list(self.children)
 
@@ -40,7 +41,7 @@ class Node:
         return [child.me for child in self.children]
     
     
-    def traverse(self, inp, callback: Optional[Callable] = None, cum_time: float = 0.0):
+    def traverse(self, inp:pd.DataFrame, callback: Optional[Callable] = None, cum_time: float = 0.0):
         """Traverse the graph, applying transformations and tracking cumulative time.
         
         Args:
@@ -49,7 +50,7 @@ class Node:
             cum_time: Cumulative transformation time in milliseconds (default 0.0)
         """
         starttime = timer()
-        res = self.me.transform(inp)
+        res = self.visit(inp)
         endtime = timer()
         transform_time = (endtime - starttime) * 1000.0  # Convert to milliseconds
         total_time = cum_time + transform_time
@@ -59,6 +60,14 @@ class Node:
             callback(res, self.evaluation_index, total_time)
         for child in self.children:
             child.traverse(res, callback, total_time)
+    
+    def visit(self, inp: pd.DataFrame) -> pd.DataFrame:
+        """Visit the node and apply its transformation to the input data.
+        
+        Args:
+            inp: Input data to transform"""
+        
+        return self.me.transform(inp)
 
     def __repr__(self):
         children_repr = ', '.join(repr(child) for child in self.children)
@@ -114,4 +123,7 @@ dag.add_edge("C", "E")
 
 
 # Print the list of root nodes (disconnected components)
-print(dag.get_root_nodes())
+# print(dag.get_root_nodes())
+
+def build_tree(inpipes: list[str]) -> list[Node]:
+    return 

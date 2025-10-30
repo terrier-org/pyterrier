@@ -6,7 +6,7 @@ pipelines = ['AB','AC']
 # pipelines = []
 def compute_final_prefixes(pipelines):
     prefix_dict = defaultdict(list)
-    for pipeline in pipelines:
+    for pipeline in pipelines:  
         for i in range(1, len(pipeline)+1):
             prefix = pipeline[:i]
             prefix_dict[prefix].append(pipeline)
