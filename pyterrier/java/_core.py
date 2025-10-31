@@ -43,6 +43,7 @@ class ColabJavaInit(JavaInitializer):
         # detect java on the PATH
         if shutil.which("java") is not None:
             return
+        print("This Colab is missing Java - installing openjdk-11-jdk-headless, please wait")
         os.system("apt-get install openjdk-11-jdk-headless")
 
 class CoreJavaInit(JavaInitializer):
