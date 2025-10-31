@@ -4,7 +4,7 @@ from pyterrier.java import required_raise, required, before_init, started, maven
 from typing import Optional
 import pyterrier as pt
 
-
+_min_colab_jdk = "openjdk-11-jdk-headless"
 _stdout_ref = None
 _stderr_ref = None
 
@@ -38,20 +38,21 @@ class ColabJavaInit(JavaInitializer):
     def pre_init(self, jnius_config):
         import sys
         # detect colab
-        if not 'google.colab' in sys.modules:
+        if 'google.colab' not in sys.modules:
             return
         import shutil
         # detect java on the PATH
         if shutil.which("java") is not None:
             return
-        print("This Colab is missing Java - installing openjdk-11-jdk-headless, please wait")
-        import subprocess, os
+        print(f"This Colab is missing Java - installing {_min_colab_jdk}, please wait")
+        import subprocess
+        import os
 
         cmd = [
             "apt-get", 
             "install", 
             "-y", 
-            "openjdk-11-jdk-headless",
+            _min_colab_jdk,
             "--option=Dpkg::Progress-Fancy=1",
             "--option=APT::Color=1"
         ]
@@ -72,9 +73,9 @@ class ColabJavaInit(JavaInitializer):
         process.wait()
         # ✅ Check exit status
         if process.returncode == 0:
-            print("\n✅ apt-get install of openjdk-11-jdk-headless completed successfully.")
+            print(f"\n✅ apt-get install of {_min_colab_jdk} completed successfully.")
         else:
-            print(f"\n❌ apt-get install of openjdk-11-jdk-headless failed with exit code {process.returncode}.")
+            print(f"\n❌ apt-get install of {_min_colab_jdk} failed with exit code {process.returncode}.")
 
 class CoreJavaInit(JavaInitializer):
     def priority(self) -> int:
