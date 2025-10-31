@@ -70,6 +70,11 @@ class ColabJavaInit(JavaInitializer):
             sys.stdout.flush()
 
         process.wait()
+        # ✅ Check exit status
+        if process.returncode == 0:
+            print("\n✅ apt-get install of openjdk-11-jdk-headless completed successfully.")
+        else:
+            print(f"\n❌ apt-get install of openjdk-11-jdk-headless failed with exit code {process.returncode}.")
 
 class CoreJavaInit(JavaInitializer):
     def priority(self) -> int:
