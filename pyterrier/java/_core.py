@@ -36,17 +36,16 @@ class ColabJavaInit(JavaInitializer):
         return -101 # run this initializer before CoreJavaInit
     
     def pre_init(self, jnius_config):
+        import sys
         # detect colab
         if not 'google.colab' in sys.modules:
             return
-        import shutil, os
+        import shutil
         # detect java on the PATH
         if shutil.which("java") is not None:
             return
         print("This Colab is missing Java - installing openjdk-11-jdk-headless, please wait")
-        import subprocess
-        import sys
-        import os
+        import subprocess, os
 
         cmd = [
             "apt-get", 
