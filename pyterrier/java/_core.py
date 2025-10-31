@@ -4,7 +4,7 @@ from pyterrier.java import required_raise, required, before_init, started, maven
 from typing import Optional
 import pyterrier as pt
 
-
+_min_colab_jdk = "openjdk-11-jdk-headless"
 _stdout_ref = None
 _stderr_ref = None
 
@@ -30,6 +30,52 @@ def _get_notebook() -> Optional[str]:
     if "__session__" in locals:
         return locals["__session__"]
     return None
+
+class ColabJavaInit(JavaInitializer):
+    def priority(self) -> int:
+        return -101 # run this initializer before CoreJavaInit
+    
+    def pre_init(self, jnius_config):
+        import sys
+        # detect colab
+        if 'google.colab' not in sys.modules:
+            return
+        import shutil
+        # detect java on the PATH
+        if shutil.which("java") is not None:
+            return
+        print(f"This Colab is missing Java - installing {_min_colab_jdk}, please wait")
+        import subprocess
+        import os
+
+        cmd = [
+            "apt-get", 
+            "install", 
+            "-y", 
+            _min_colab_jdk,
+            "--option=Dpkg::Progress-Fancy=1",
+            "--option=APT::Color=1"
+        ]
+
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            env={**os.environ, "TERM": "xterm-color"}
+        )
+
+        for line in process.stdout:
+            sys.stdout.write(line)
+            sys.stdout.flush()
+
+        process.wait()
+        # ✅ Check exit status
+        if process.returncode == 0:
+            print(f"\n✅ apt-get install of {_min_colab_jdk} completed successfully.")
+        else:
+            print(f"\n❌ apt-get install of {_min_colab_jdk} failed with exit code {process.returncode}.")
 
 class CoreJavaInit(JavaInitializer):
     def priority(self) -> int:
