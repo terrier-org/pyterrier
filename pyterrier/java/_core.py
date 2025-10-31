@@ -44,7 +44,33 @@ class ColabJavaInit(JavaInitializer):
         if shutil.which("java") is not None:
             return
         print("This Colab is missing Java - installing openjdk-11-jdk-headless, please wait")
-        os.system("apt-get install openjdk-11-jdk-headless")
+        import subprocess
+        import sys
+        import os
+
+        cmd = [
+            "apt-get", 
+            "install", 
+            "-y", 
+            "openjdk-11-jdk-headless",
+            "--option=Dpkg::Progress-Fancy=1",
+            "--option=APT::Color=1"
+        ]
+
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            env={**os.environ, "TERM": "xterm-color"}
+        )
+
+        for line in process.stdout:
+            sys.stdout.write(line)
+            sys.stdout.flush()
+
+        process.wait()
 
 class CoreJavaInit(JavaInitializer):
     def priority(self) -> int:
