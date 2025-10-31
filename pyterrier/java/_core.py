@@ -31,6 +31,20 @@ def _get_notebook() -> Optional[str]:
         return locals["__session__"]
     return None
 
+class ColabJavaInit(JavaInitializer):
+    def priority(self) -> int:
+        return -101 # run this initializer before CoreJavaInit
+    
+    def pre_init(self, jnius_config):
+        # detect colab
+        if not 'google.colab' in sys.modules:
+            return
+        import shutil, os
+        # detect java on the PATH
+        if shutil.which("java") is not None:
+            return
+        os.system("apt-get install openjdk-11-jdk-headless")
+
 class CoreJavaInit(JavaInitializer):
     def priority(self) -> int:
         return -100 # run this initializer before anything else
