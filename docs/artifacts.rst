@@ -23,6 +23,7 @@ for sharing artifacts using a variety of services, such as HuggingFace Hub and Z
     can be represented as a file or directory stored on disk. These are most frequently built indexes,
     but can also be resources such as cached pipeline results.
 
+.. cite.dblp:: conf/sigir/MacAvaney25
 
 Sharing Artifacts using HuggingFace
 =================================================
@@ -170,10 +171,9 @@ which can be passed to :meth:`~pyterrier.Artifact.from_url`.
 Artifact Implementations
 =================================================
 
-Here's a list of existing :class:`~pyterrier.Artifact` implementations. (If you've added one,
-feel free to make a PR to this page to add it!)
+Here's a list of existing :class:`~pyterrier.Artifact` implementations.
 
-.. To add to this list, edit extras/generate_includes.py
+.. To add to this list, it should be registered as an entry point and the package should be in extensions.txt
 .. include:: ./_includes/artifact_list.rst
 
 
