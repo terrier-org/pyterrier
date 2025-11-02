@@ -1,4 +1,4 @@
-Artifacts
+Sharing Artifacts
 ------------------------------------------------
 
 PyTerrier's Artifact API provides a powerful way to share resources, such as indexes,
@@ -23,14 +23,16 @@ for sharing artifacts using a variety of services, such as HuggingFace Hub and Z
     can be represented as a file or directory stored on disk. These are most frequently built indexes,
     but can also be resources such as cached pipeline results.
 
+For an advanced guide about how to develop new artifact classes, refer to :doc:`this guide <extending/artifact_types>`.
+For background on the design of the system, refer to this paper:
+
 .. cite.dblp:: conf/sigir/MacAvaney25
 
 Sharing Artifacts using HuggingFace
 =================================================
 
 The `HuggingFace Hub <https://huggingface.co/docs/hub>`__ is a popular platform for sharing artifacts,
-like models, datasets, etc. You can also shar PyTerrier artifacts on HuggingFace Hub using the Artifact API
-with :meth:`~pyterrier.Artifact.from_hf` and :meth:`~pyterrier.Artifact.to_hf`.
+like models, datasets, etc. You can share PyTerrier artifacts on HuggingFace Hub using the Artifact API.
 
 **Loading from HuggingFace:** You can load artifacts from HuggingFace Hub using :meth:`~pyterrier.Artifact.from_hf`:
 
@@ -71,18 +73,16 @@ HuggingFace Hub limits the maximum size of individual files. This integration au
 artifact distribution packages into smaller files to adhere to this limit---you don't need to do anything
 special when pushing or loading.
 
-Artifacts uses the ``main`` branch by default. You can change this by speciying the ``branch=`` parameter of
-:meth:`~pyterrier.Artifact.to_hf` and :meth:`~pyterrier.Artifact.from_hf`, or with the following format:
-``username/repo@branch``.
+Artifacts uses the ``main`` branch by default. You can change this by speciying the ``branch=`` paramete,
+or with the following format: ``username/repo@branch``.
 
 
 Sharing Artifacts using Zenodo
 =================================================
 
 `Zenodo <https://zenodo.org/>`__ is a free repository for sharing research artifacts. The platform has a
-retention period `for at least the next 20 years <https://about.zenodo.org/policies/>`__. You can share
-PyTerrier artifacts on Zenodo using the Artifact API with :meth:`~pyterrier.Artifact.from_zenodo` and
-:meth:`~pyterrier.Artifact.to_zenodo`.
+retention period `of at least the next 20 years <https://about.zenodo.org/policies/>`__. You can share
+PyTerrier artifacts on Zenodo using the Artifact API.
 
 **Loading from Zenodo:** You can load artifacts from Zenodo using :meth:`~pyterrier.Artifact.from_zenodo` and the
 ID of the artifact (the number in the Zenodo URL).
@@ -176,25 +176,11 @@ Here's a list of existing :class:`~pyterrier.Artifact` implementations.
 .. To add to this list, it should be registered as an entry point and the package should be in extensions.txt
 .. include:: ./_includes/artifact_list.rst
 
-
-Advanced: Writing Your Own Artifact Class
-=================================================
-
-TODO: code, entry points
-
-
-Advanced: Writing Custom Artifact URL Schemes
-=================================================
-
-TODO
-
-
-Advanced: Full API Documentation
+Artifact API Documentation
 =================================================
 
 .. autoclass:: pyterrier.Artifact
     :members:
-
 
 ----
 

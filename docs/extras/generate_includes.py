@@ -167,5 +167,5 @@ def artifact_list_include():
    * - :class:`~{class}`
      - ``{type}``
      - ``{format}``
-     - Artifacts on: `HuggingFace <https://huggingface.co/datasets?other=pyterrier-artifact.{type}.{format}>`__
+     - Artifacts on: `HuggingFace <https://huggingface.co/datasets?other=pyterrier-artifact.{type}.{format}>`__ `Zenodo <https://zenodo.org/search?q=metadata.subjects.subject%3A%22pyterrier-artifact.{type}.{format}%22>`__
 '''.format(**rec))
