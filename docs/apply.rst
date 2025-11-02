@@ -1,6 +1,6 @@
 .. _pyterrier.apply:
 
-pyterrier.apply - Custom Transformers
+pt.apply - Custom Transformers
 -------------------------------------
 
 PyTerrier pipelines are easily extensible through the use of apply functions.
@@ -26,6 +26,10 @@ Objects that are passed to the function vary in terms of the type of the input d
 (queries or ranked documents), whether they represent one row (pd.Series or dictionary) or 
 many rows (pd.DataFrame or list of dictionaries), and also vary in terms of what should be 
 returned by the function.
+
+.. hint:: 
+    It is usually a good idea to validate the inputs to make sure they contain the values you expect.
+    See :ref:`pyterrier.validate` for more details.
 
 +-------+---------+-------------+------------------+---------------------------+-------------------------------------+-------------------------------------------+
 + Input | Output  | Cardinality | Example          | Example apply             | Function Input type                 | Function Return type                      |
@@ -53,6 +57,7 @@ PyTerrier transformers through the standard PyTerrier operators.
 
 If `verbose=True` is passed to any pyterrier apply method (except `generic()`), then a `TQDM <https://tqdm.github.io/>`_ 
 progress bar will be shown as the transformer is applied.
+
 
 Example
 =======

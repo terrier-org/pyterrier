@@ -1,8 +1,9 @@
+import re
 import math
 import itertools
 import numpy as np
 import pandas as pd
-from typing import Any, Dict, Iterable, List, Sequence, Optional
+from typing import Any, Dict, Iterable, List, Sequence, Set, Optional, Union, overload
 
 IterDictRecord = Dict[str, Any]
 IterDict = Iterable[IterDictRecord]
@@ -73,11 +74,12 @@ def query_columns(df : pd.DataFrame, qid=True) -> Sequence[str]:
         rtr.append("qid")
     if "query" in columns:
         rtr.append("query")
-    import re
-    query_col_re = re.compile('^query_[\\d]+')
     for c in columns:
-        if query_col_re.search(c):
+        if c.startswith("q") and c not in rtr:
+            if c == 'qid' and not qid:
+                continue
             rtr.append(c)
+    import re
     saved_docs_col_re = re.compile('^stashed_results_[\\d]+')
     for c in columns:
         if saved_docs_col_re.search(c):
@@ -274,3 +276,205 @@ def split_df(df : pd.DataFrame, N: Optional[int] = None, *, batch_size: Optional
     if len(this_group) > 0:
         rtr.append(pd.concat(this_group))
     return rtr
+
+
+_ir_measures_to_pyterrier = {
+    'query_id': 'qid',
+    'doc_id': 'docno',
+    'relevance': 'label',
+}
+
+@overload
+def from_ir_measures(inp: str) -> str: ...
+@overload
+def from_ir_measures(inp: Dict[str, Any]) -> Dict[str, Any]: ...
+@overload
+def from_ir_measures(inp: List[str]) -> List[str]: ...
+@overload
+def from_ir_measures(inp: Set[str]) -> List[str]: ...
+@overload
+def from_ir_measures(inp: pd.DataFrame) -> pd.DataFrame: ...
+def from_ir_measures(
+    inp: Union[str, pd.DataFrame, Dict[str, Any], List[str], Set[str]],
+) -> Union[str, pd.DataFrame, Dict[str, Any], List[str]]:
+    """This function maps ir-measues column names to PyTerrier column names.
+
+    It's useful when converting between PyTerrier and ir-measures data formats.
+
+    .. seealso::
+        :py:func:`pyterrier.model.to_ir_measures` for the reverse operation.
+    """
+    if isinstance(inp, str):
+        return _ir_measures_to_pyterrier.get(inp, inp) # rename values in mapping, keep others the same
+    elif isinstance(inp, pd.DataFrame):
+        return inp.rename(columns=_ir_measures_to_pyterrier)
+    elif isinstance(inp, dict):
+        return { _ir_measures_to_pyterrier.get(k, k): v for k, v in inp.items() }
+    else:
+        return [_ir_measures_to_pyterrier.get(x, x) for x in inp]
+
+
+_pyterrier_to_ir_measures = {
+    'qid': 'query_id',
+    'docno': 'doc_id',
+    'label': 'relevance',
+}
+
+@overload
+def to_ir_measures(inp: str) -> str: ...
+@overload
+def to_ir_measures(inp: Dict[str, Any]) -> Dict[str, Any]: ...
+@overload
+def to_ir_measures(inp: List[str]) -> List[str]: ...
+@overload
+def to_ir_measures(inp: pd.DataFrame) -> pd.DataFrame: ...
+def to_ir_measures(
+    inp: Union[str, pd.DataFrame, Dict[str, Any], List[str]],
+) -> Union[str, pd.DataFrame, Dict[str, Any], List[str]]:
+    """This function maps PyTerrier column names to ir-measures column names.
+
+    It's useful when converting between PyTerrier and ir-measures data formats.
+
+    .. seealso::
+        :py:func:`pyterrier.model.from_ir_measures` for the reverse operation.
+    """
+    if isinstance(inp, str):
+        return _pyterrier_to_ir_measures.get(inp, inp) # rename values in mapping, keep others the same
+    elif isinstance(inp, pd.DataFrame):
+        return inp.rename(columns=_pyterrier_to_ir_measures)
+    elif isinstance(inp, dict):
+        return { _pyterrier_to_ir_measures.get(k, k): v for k, v in inp.items() }
+    return [_pyterrier_to_ir_measures.get(x, x) for x in inp]
+
+
+def frame_info(columns : List[str]) -> Optional[Dict[str, str]]:
+    """Returns a dict containing a short label and a short description for given set of columns."""
+    if 'qid' in columns and 'docno' in columns and 'features' in columns:
+        return {
+            "label": 'R_f',
+            "title": 'Result Frame with Features',
+        }
+    elif 'qid' in columns and 'docno' in columns:
+        return {
+            "label": 'R',
+            "title": 'Result Frame',
+        }
+    elif 'qanswer' in columns:
+        return {
+            "label": 'A',
+            "title": 'Query Answer Frame',
+        }
+    elif 'qid' in columns:
+        return {
+            "label": 'Q',
+            "title": 'Query Frame',
+        }
+    elif 'docno' in columns:
+        return {
+            "label": 'D',
+            "title": 'Document Frame',
+        }
+    return None
+
+def column_info(column: str) -> Optional[dict]:
+    """Returns a dictionary with information about the specified column name."""
+    if column == 'qid':
+        return {
+            'title': 'qid',
+            'phrase': 'Query ID',
+            'short_desc': 'ID of query in frame',
+            'type': str,
+        }
+    if column == 'docno':
+        return {
+            'title': 'docno',
+            'phrase': 'External Document ID',
+            'short_desc': 'String ID of document in collection',
+            'type': str,
+        }
+    if column == 'docid':
+        return {
+            'title': 'docid',
+            'phrase': 'Internal Document ID',
+            'short_desc': 'Integer ID of document in a specific index',
+            'type': int,
+        }
+    if column == 'score':
+        return {
+            'title': 'score',
+            'short_desc': 'Ranking score of document to query (higher=better)',
+            'type': float,
+        }
+    if column == 'rank':
+        return {
+            'title': 'rank',
+            'short_desc': 'Ranking order of document to query (lower=better)',
+            'type': int,
+        }
+    if column == 'query':
+        return {
+            'title': 'query',
+            'short_desc': 'Query text',
+            'type': str,
+        }
+    if re.match(r'^query_[0-9]+$', column):
+        return {
+            'title': str(column),
+            'short_desc': 'Stashed query text',
+            'type': str,
+        }
+    if column == 'text':
+        return {
+            'title': "text",
+            'short_desc': 'Document text',
+            'type': str,
+        }
+    if column == 'title':
+        return {
+            'title': "title",
+            'short_desc': 'Document title',
+            'type': str,
+        }
+    if column == 'qanswer':
+        return {
+            'title': "qanswer",
+            'short_desc': 'Answer to the query',
+            'type': str,
+        }
+    if column == 'qcontext':
+        return {
+            'title': "qcontext",
+            'short_desc': 'Context to the query',
+            'type': str,
+        }
+    if column == 'features':
+        return {
+            'title': "features",
+            'short_desc': 'Feature array for learning-to-rank',
+            'type': np.array,
+        }
+    if column == 'query_vec':
+        return {
+            'title': "query_vec",
+            'short_desc': 'Dense query vector',
+            'type': np.array,
+        }
+    if column == 'doc_vec':
+        return {
+            'title': "doc_vec",
+            'short_desc': 'Dense document vector',
+            'type': np.array,
+        }
+    if column == 'query_toks':
+        return {
+            'title': "query_toks",
+            'short_desc': 'Sparse query vector',
+            'type': dict,
+        }
+    if column == 'toks':
+        return {
+            'title': "toks",
+            'short_desc': 'Sparse document vector',
+            'type': dict,
+        }
+    return None

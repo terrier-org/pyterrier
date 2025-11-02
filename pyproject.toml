@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "python-terrier"
 description="PyTerrier"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 authors = [
   {name = "Craig Macdonald", email = "craig.macdonald@glasgow.ac.uk"},
 ]
@@ -40,6 +40,7 @@ CI = "https://github.com/terrier-org/pyterrier/actions"
 
 [project.entry-points."pyterrier.java.init"]
 "pyterrier.java" = "pyterrier.java:CoreJavaInit"
+"pyterrier.java.24" = "pyterrier.java:Java24Init"
 "pyterrier.terrier.java" = "pyterrier.terrier.java:TerrierJavaInit"
 
 [project.entry-points."pyterrier.artifact"]

@@ -1,8 +1,9 @@
+import os
+import warnings
+import traceback
 import types
-from warnings import warn
 import pandas as pd
-from deprecated import deprecated
-from typing import Iterator, List, Union, Tuple, Protocol, runtime_checkable, Optional
+from typing import Iterator, List, Union, Tuple, Protocol, runtime_checkable, Optional, Any
 import pyterrier as pt
 
 LAMBDA = lambda:0  # noqa: E731 LAMBDA is used for the is_lambda method below, so the type is important
@@ -25,16 +26,11 @@ def get_transformer(v, stacklevel=1):
     if is_transformer(v):
         return v
     if is_lambda(v):
-        warn('Coercion of a lambda into a transformer is deprecated; use a pt.apply instead', stacklevel=stacklevel, category=DeprecationWarning)
-        from .apply_base import ApplyGenericTransformer
-        return ApplyGenericTransformer(v)
+        raise ValueError('Coercion of a lambda into a transformer is no longer supported; use a pt.apply instead')
     if is_function(v):
-        from .apply_base import ApplyGenericTransformer
-        warn('Coercion of a function (called "%s") into a transformer is deprecated; use a pt.apply instead' % v.__name__, stacklevel=stacklevel, category=DeprecationWarning)
-        return ApplyGenericTransformer(v)
+        raise ValueError('Coercion of a function (called "%s") into a transformer is no longer supported; use a pt.apply instead' % v.__name__)
     if isinstance(v, pd.DataFrame):
-        warn('Coercion of a dataframe into a transformer is deprecated; use a pt.Transformer.from_df() instead', stacklevel=stacklevel, category=DeprecationWarning)
-        return SourceTransformer(v)
+        raise ValueError('Coercion of a dataframe into a transformer is no longer supported; use a pt.Transformer.from_df() instead')
     raise ValueError("Passed parameter %s of type %s cannot be coerced into a transformer" % (str(v), type(v)))
 
 
@@ -52,7 +48,16 @@ class Transformer:
     def __new__(cls, *args, **kwargs):
         if cls.transform == Transformer.transform and cls.transform_iter == Transformer.transform_iter:
             raise NotImplementedError("You need to implement either .transform() or .transform_iter() in %s" % str(cls))
-        return super().__new__(cls)
+        
+        instance = super().__new__(cls)
+        if cls.transform == Transformer.transform and cls.transform_iter != Transformer.transform_iter:
+            # User implemented transform_iter on this transformer but not transform.
+            # transform_iter is not inspectable, so place a transform_outputs method on the instance if not exists
+            if not hasattr(instance, 'transform_outputs'):
+                def _transform_outputs(self, inp_cols):
+                    raise pt.inspect.InspectError("This transformer is not inspectable - you can override/implement the transform_outputs method to make it inspectable")
+                instance.transform_outputs = types.MethodType(_transform_outputs, instance)
+        return instance
 
     @staticmethod
     def identity() -> 'Transformer':
@@ -63,7 +68,7 @@ class Transformer:
         as a feature in for learning-to-rank::
 
             bm25 = pt.terrier.Retriever(index, wmodel="BM25")
-            two_feat_pipe = bm25 >> pt.Transformer.identify() ** pt.terrier.Retriever(index, wmodel="PL2")
+            two_feat_pipe = bm25 >> pt.Transformer.identity() ** pt.terrier.Retriever(index, wmodel="PL2")
         
         This will return a pipeline that produces a score column (BM25), but also has a features column containing
         BM25 and PL2 scores.
@@ -72,14 +77,14 @@ class Transformer:
         return IdentityTransformer()
 
     @staticmethod
-    def from_df(input : pd.DataFrame, uniform=False) -> 'Transformer':
+    def from_df(input : pd.DataFrame, uniform : bool = False) -> 'Transformer':
         """
         Instantiates a transformer from an input dataframe. Some rows from the input dataframe are returned
         in response to a query on the :meth:`transform` method. Depending on the value `uniform`, the dataframe
         passed as an argument to :meth:`transform` can affect this selection.
-        Arguments:
-                input(DataFrame): a dataframe to store and return, based on setting of `uniform`.
-                uniform(bool): If True, input will be returned in its entirety each time, else rows from input that match the qid values from the argument dataframe.
+
+        :param input: a dataframe to store and return, based on setting of `uniform`.
+        :param uniform: If True, input will be returned in its entirety each time, else rows from input that match the qid values from the argument dataframe.
         
         """
         if uniform:
@@ -99,12 +104,8 @@ class Transformer:
                 When :meth:`transform` is not implemented, the default implementation runs :meth:`transform_iter` and
                 converts the output to a ``DataFrame``.
 
-            Arguments:
-                inp(``pd.DataFrame``): The input to the transformer (e.g., queries, documents, results, etc.)
-
-            Returns:
-                The output of the transformer (e.g., result of retrieval, re-writing, re-ranking, etc.)
-
+            :param inp: The input to the transformer (e.g., queries, documents, results, etc.)
+            :return: The output of the transformer (e.g., result of retrieval, re-writing, re-ranking, etc.)
             :rtype: ``pd.DataFrame``
         """
         # We should have no recursive transform <-> transform_iter problem, due to the __new__ check.
@@ -127,12 +128,8 @@ class Transformer:
                 When :meth:`transform_iter` is not implemented, the default implementation runs :meth:`transform` and
                 converts the output to an iterable.
 
-            Arguments:
-                inp(``Iterable[Dict]``): The input to the transformer (e.g., queries, documents, results, etc.)
-
-            Returns:
-                The output of the transformer (e.g., result of retrieval, re-writing, re-ranking, etc.)
-
+            :param inp(``Iterable[Dict]``): The input to the transformer (e.g., queries, documents, results, etc.)
+            :return: The output of the transformer (e.g., result of retrieval, re-writing, re-ranking, etc.)
             :rtype: ``Iterable[Dict]``
         """
         # We should have no recursive transform <-> transform_iter problem, due to the __new__ check.
@@ -147,14 +144,9 @@ class Transformer:
             - Otherwise, invokes :meth:`transform_iter` and returns a generic iterable (returning whatever type is
               returned from :meth:`transform_iter()`.)
 
-            Arguments:
-                inp(``pd.DataFrame``, ``Iterable[Dict]``, ``List[Dict]``): The input to the transformer (e.g., queries,
-                    documents, results, etc.)
-
-            Returns:
-                The output of the transformer (e.g., result of retrieval, re-writing, re-ranking, etc.) as the same
+            :param inp: The input to the transformer (e.g., queries, documents, results, etc.)
+            :return: The output of the transformer (e.g., result of retrieval, re-writing, re-ranking, etc.) as the same
                 type as the input.
-
             :rtype: ``pd.DataFrame``, ``Iterable[Dict]``, ``List[Dict]``
         """
         if isinstance(inp, pd.DataFrame):
@@ -170,9 +162,8 @@ class Transformer:
             The input dataframe is grouped into batches of batch_size queries, and a generator
             returned, such that :meth:`transform` is only executed for a smaller batch at a time. 
 
-            Arguments:
-                input(DataFrame): a dataframe to process
-                batch_size(int): how many input instances to execute in each batch. Defaults to 1.
+            :param input: a dataframe to process
+            :param batch_size: how many input instances to execute in each batch. Defaults to 1.
             
         """
         docno_provided = "docno" in input.columns
@@ -204,14 +195,14 @@ class Transformer:
     def search(self, query : str, qid : str = "1", sort : bool = True) -> pd.DataFrame:
         """
             Method for executing a transformer (pipeline) for a single query. 
-            Returns a dataframe with the results for the specified query. This
-            is a utility method, and most uses are expected to use the :meth:`transform`
-            method passing a dataframe.
 
-            Arguments:
-                query(str): String form of the query to run
-                qid(str): the query id to associate to this request. defaults to 1.
-                sort(bool): ensures the results are sorted by descending rank (defaults to True)
+            :param query: String form of the query to run
+            :param qid: the query id to associate to this request. defaults to 1.
+            :param sort: ensures the results are sorted by descending rank (defaults to True)
+
+            :return: Returns a dataframe with the results for the specified query. This
+                is a utility method, and most uses are expected to use the :meth:`transform`
+                method passing a dataframe.
 
             Example::
 
@@ -236,21 +227,24 @@ class Transformer:
 
         For instance, a pipeline of transformers can be optimised by fusing adjacent transformers.
 
-        Returns:
-            A new transformer that is equivalent to this transformer, but optimised.
+        :return: A new transformer that is equivalent to this transformer, but optimised.
         """
         return self # by default, nothing to compile
 
-    def parallel(self, N : int, backend='joblib') -> 'Transformer':
+    def parallel(self, N : int, backend : str='joblib') -> 'Transformer':
         """
         Returns a parallelised version of this transformer. The underlying transformer must be "picklable". For more information, see
         :ref:`parallel` documentation.
 
-        Args:
-            N(int): how many processes/machines to parallelise this transformer over. 
-            backend(str): which multiprocessing backend to use. Only two backends are supported, 'joblib' and 'ray'. Defaults to 'joblib'.
+        :param N: how many processes/machines to parallelise this transformer over.
+        :param backend: which multiprocessing backend to use. Only two backends are supported, 'joblib' and 'ray'. Defaults to 'joblib'.
         """
-        from .parallel import PoolParallelTransformer
+        from warnings import warn
+        warn(".parallel() is experimental")
+        try:
+            from pyterrier_alpha.parallel import PoolParallelTransformer # type: ignore
+        except ImportError as ie:
+            raise ImportError("pyterrier-alpha[parallel] must be installed for .parallel()") from ie
         return PoolParallelTransformer(self, N, backend)
 
     # Get and set specific parameter value by parameter's name
@@ -259,8 +253,7 @@ class Transformer:
             Gets the current value of a particular key of the transformer's configuration state.
             By default, this examines the attributes of the transformer object, using ``hasattr()`` and ``setattr()``.
 
-            Arguments:
-                name: name of parameter
+            :param name: name of parameter
         """
         if hasattr(self, name):
             return getattr(self, name)
@@ -273,9 +266,8 @@ class Transformer:
             Adjusts this transformer's configuration state, by setting the value for specific parameter.
             By default, this examines the attributes of the transformer object, using ``hasattr()`` and ``setattr()``.
 
-            Arguments:
-                name: name of parameter
-                value: current value of parameter
+            :param name: name of parameter
+            :param value: current value of parameter
 
         """
         if hasattr(self, name):
@@ -327,18 +319,24 @@ class Transformer:
         from ._ops import Concatenate
         return Concatenate(self, right)
 
-    @deprecated(version="0.11.1", reason="Use pyterrier-caching for more fine-grained caching, e.g. RetrieverCache or ScorerCache")
     def __invert__(self : 'Transformer') -> 'Transformer':
-        from .cache import ChestCacheTransformer
-        return ChestCacheTransformer(self)
+        raise NotImplementedError("Use pyterrier-caching for more fine-grained caching, e.g. RetrieverCache or ScorerCache")
 
     def __hash__(self):
         return hash(repr(self))
 
-class TransformerBase(Transformer):
-    @deprecated(version="0.9", reason="Use pt.Transformer instead of TransformerBase")
-    def __init__(self, *args, **kwargs):
-        super(Transformer, self).__init__(*args, **kwargs)
+    def _repr_html_(self):
+        if os.environ.get('PYTERRIER_DISABLE_NOTEBOOK_SCHEMATIC', '0') == '1':
+            return None
+        try:
+            return pt.schematic.draw(self, outer_class='repr_html')
+        except Exception as e:
+            # This handles cases where there's a problem generating the schematic.
+            # signal to ipython not to display HTML representation (falls back on __repr__)
+            tb = traceback.format_exc()
+            warnings.warn(f"Failed to render transformer as HTML: {e}\n\n{tb}", stacklevel=2)
+            return None 
+
 
 class Indexer(Transformer):
     def __new__(cls, *args, **kwargs):
@@ -355,13 +353,23 @@ class Indexer(Transformer):
             # one, which invokes transform_iter automatically.
             instance.transform = types.MethodType(Transformer.transform, instance)
         return instance
+    
+    def index_inputs(self) -> Optional[List[List[str]]]:
+        """
+            Returns a list of column configurations that index() is expects. 
+            This default implementation returns None, and should be 
+            overridden by subclasses to allow accurate inspections and schematic visualisations.
+        """
+        return None
 
-    def index(self, iter : pt.model.IterDict, **kwargs):
+    def index(self, iter : pt.model.IterDict, **kwargs) -> Any:
         """
             Takes an iterable of dictionaries ("iterdict"), and consumes them. The index method may return
             an instance of the index or retriever. This method is typically used to implement indexers that
             consume a corpus (or to consume the output of previous pipeline components that have
             transformer the documents being consumed).
+
+            :param iter: An iterable of dictionaries, each representing a document.
         """
         pass
 
@@ -371,11 +379,6 @@ class Indexer(Transformer):
     def transform_iter(self, inp: pt.model.IterDict) -> pt.model.IterDict:
         raise NotImplementedError('You called `transform_iter()` on an indexer. Did you mean to call `index()`?')
 
-class IterDictIndexerBase(Indexer):
-    @deprecated(version="0.9", reason="Use pt.Indexer instead of IterDictIndexerBase")
-    def __init__(self, *args, **kwargs):
-        super(Indexer, self).__init__(*args, **kwargs)
-
 class Estimator(Transformer):
     """
         This is a base class for things that can be fitted.
@@ -384,18 +387,12 @@ class Estimator(Transformer):
         """
             Method for training the transformer.
 
-            Arguments:
-                topics_or_res_tr(DataFrame): training topics (usually with documents)
-                qrels_tr(DataFrame): training qrels
-                topics_or_res_va(DataFrame): validation topics (usually with documents)
-                qrels_va(DataFrame): validation qrels
+            :param topics_or_res_tr: training topics (usually with documents)
+            :param qrels_tr: training qrels
+            :param topics_or_res_va: validation topics (usually with documents)
+            :param qrels_va: validation qrels
         """
         pass
-
-class EstimatorBase(Estimator):
-    @deprecated(version="0.9", reason="Use pt.Estimator instead of EstimatorBase")
-    def __init__(self, *args, **kwargs):
-        super(Estimator, self).__init__(*args, **kwargs)
 
 class IdentityTransformer(Transformer):
     """
@@ -447,6 +444,9 @@ class UniformTransformer(Transformer):
 
     def __repr__(self):
         return 'UniformTransformer()'
+    
+    def transform_outputs(self, input_columns: List[str]) -> List[str]:
+        return self.rtr.columns.tolist()
 
 @runtime_checkable
 class SupportsFuseRankCutoff(Protocol):
@@ -460,8 +460,7 @@ class SupportsFuseRankCutoff(Protocol):
 
         If the fusion is not possible, `None` should be returned.
 
-        Arguments:
-            k(int): The rank cutoff requested
+        :param k: The rank cutoff requested
         """
 
 
@@ -473,9 +472,8 @@ class SupportsFuseFeatureUnion(Protocol):
         This method should return a new transformer that is equivalent to performing self ** other, or `None`
         if the fusion is not possible.
 
-        Arguments:
-                other(Transformer): transformer to the left or right.
-                is_left(bool): is True if self's features are to the left of other's. Otherwise, self's features are to the right.
+        :param other: transformer to the left or right.
+        :param is_left: is True if self's features are to the left of other's. Otherwise, self's features are to the right.
         """
 
 
@@ -494,12 +492,10 @@ class SupportsFuseLeft(Protocol):
         A fused transformer should be more efficient than the unfused version. For instance, a retriever
         followed by a rank cutoff can be fused to perform the rank cutoff during retrieval.
 
-        Arguments:
-            left(Transformer): transformer to the left.
+        :param left: transformer to the left.
 
-        Returns:
-            A new transformer that is the result of merging this transformer with the left transformer,
-            or none if a merge is not possible.
+        :return: A new transformer that is the result of merging this transformer with the left transformer,
+            or None if a merge is not possible.
         """
 
 
@@ -518,12 +514,10 @@ class SupportsFuseRight(Protocol):
         A fused transformer should be more efficient than the unfused version. For instance, a retriever
         followed by a rank cutoff can be fused to perform the rank cutoff during retrieval.
 
-        Arguments:
-            right(Transformer): transformer to the right in a composed pipeline.
+        :param right: transformer to the right in a composed pipeline.
 
-        Returns:
-            A new transformer that is the result of merging this transformer with the right transformer,
-            or none if a merge is not possible.
+        :return: A new transformer that is the result of merging this transformer with the right transformer,
+            or None if a merge is not possible.
         """
 
 

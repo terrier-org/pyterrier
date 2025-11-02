@@ -19,6 +19,7 @@ This page summarises the available notebooks for PyTerrier.
 
 |    Notebook      |   On Colab?     | Description                      |   
 | ---------------- | --------------- | -------------------------------- |
+| [msmarco_BM25_MonoT5.ipynb](experiments/msmarco_BM25_MonoT5.ipynb)   |                 | Demonstration of [MonoT5](http://github.com/terrierteam/pyterrier_t5) on MSMARCO passage |
 | [Robust04.ipynb](experiments/Robust04.ipynb)   |                 | Demonstration of [query expansion](https://pyterrier.readthedocs.io/en/latest/rewrite.html) effectiveness on TREC Robust04 |
 | [uogTrBaseDPH.ipynb](https://github.com/cmacdonald/pyterrier-msmarco-document-leaderboard-runs/blob/master/uogTrBaseDPH.ipynb)  |  |   DPH run submitted to MSMARCO  Document Ranking Task leaderboard  |
 | [uogTrBaseDPHQ.ipynb](https://github.com/cmacdonald/pyterrier-msmarco-document-leaderboard-runs/blob/master/uogTrBaseDPHQ.ipynb)  |  |   DPH + Bo1 query expansion run submitted to MSMARCO  Document Ranking Task leaderboard  |

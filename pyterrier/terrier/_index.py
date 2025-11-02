@@ -12,6 +12,7 @@ class TerrierModel(Enum):
     """
     bm25 = 'bm25'
     dph = 'dph'
+    pl2 = 'pl2'
 
 
 ######################################
@@ -196,15 +197,18 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
         raise RuntimeError(f'Could not coerce {index_like!r} into a TerrierIndex')
 
 
-_WMODEL_MAP = {
+_WMODEL_MAP: Dict[TerrierModel, str] = {
     TerrierModel.bm25: 'BM25',
     TerrierModel.dph: 'DPH',
+    TerrierModel.pl2: 'PL2',
 }
-def _map_wmodel(model):
+
+def _map_wmodel(model: Union[TerrierModel, str]) -> str:
+    if isinstance(model, str):
+        return model
     return _WMODEL_MAP[model]
 
-
-_CONTROL_MAP = {
+_CONTROL_MAP: Dict[str, str] = {
     'bm25.k1': 'bm25.k_1',
     'bm25.b': 'bm25.b',
 }
@@ -216,10 +220,7 @@ def _map_controls(model_args):
     }
 
 
-_PROPERTY_MAP = {
-    'bm25.k1': 'bm25.k_1',
-    'bm25.b': 'bm25.b',
-}
+_PROPERTY_MAP: Dict[str, str] = {}
 def _map_properties(model_args):
     return {
         _PROPERTY_MAP[k]: v

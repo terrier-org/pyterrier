@@ -283,8 +283,13 @@ class TestBatchRetrieve(BaseTestCase):
         
         for name, retr in [ ("TerrierRetrieve", pt.TerrierRetrieve), ("BatchRetrieve", pt.BatchRetrieve) ]:
             do_test(name, retr)
-            
-            
+
+
+class TestTerrierRetrieverBasic(pt.testing.TransformerTestCase):
+    @staticmethod
+    def get_transformer():
+        index = pt.terrier.TerrierIndex.load(os.path.dirname(os.path.realpath(__file__)) + '/fixtures/index/')
+        return index.bm25()
 
 
 if __name__ == "__main__":

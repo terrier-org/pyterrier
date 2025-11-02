@@ -25,7 +25,6 @@ Welcome to PyTerrier's documentation!
    text
    neural
    terrier-index-api
-   parallel
    tuning
    experiments/Robust04
    extending/index
@@ -38,6 +37,8 @@ Welcome to PyTerrier's documentation!
    apply
    new
    debug
+   inspect
+   schematic
 
 .. include:: ./_includes/ext_toc.rst
 

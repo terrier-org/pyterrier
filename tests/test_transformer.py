@@ -24,17 +24,9 @@ class TestTransformer(BaseTestCase):
         class MyTransformer1a(pt.Transformer):
             def transform_iter(self, df):
                 pass
-        class MyTransformer2(pt.transformer.TransformerBase):
-            def transform(self, df):
-                pass
         class MyTransformer3(pt.Indexer):
             pass # indexers dont need a transform
-        class MyTransformer3a(pt.transformer.IterDictIndexerBase):
-            pass # indexers dont need a transform
-        class MyTransformer4a(pt.Estimator):
-            def transform(self, df):
-                pass
-        class MyTransformer4(pt.transformer.EstimatorBase):
+        class MyTransformer4(pt.Estimator):
             def transform(self, df):
                 pass
 
@@ -42,11 +34,13 @@ class TestTransformer(BaseTestCase):
             IncompleteTransformer()
 
         # check normal API
-        for T in [MyTransformer1, MyTransformer1a, MyTransformer3, MyTransformer4a]:
+        for T in [MyTransformer1, MyTransformer1a, MyTransformer3, MyTransformer4]:
             self.assertTrue(pt.transformer.is_transformer(T()))
 
-        # check deprecated API
-        for T in [MyTransformer2, MyTransformer3a, MyTransformer4]:
-            with warns(DeprecationWarning, match='instead of'):
-                instance = T()
-            self.assertTrue(pt.transformer.is_transformer(instance))
+        # check for inspectability
+        iter_notinspectable = MyTransformer1a()
+        self.assertTrue(hasattr(iter_notinspectable, 'transform_outputs'))
+        with self.assertRaises(pt.inspect.InspectError):
+            iter_notinspectable.transform_outputs(['a'])
+
+        self.assertFalse(hasattr(MyTransformer1(), 'transform_outputs'))

@@ -1,84 +1,13 @@
 import os
 import inspect
 import sys
-from typing import Callable, Tuple, List, Dict, Set, Sequence
+from typing import Tuple, List, Callable, Set, Sequence, Union, Iterator, Iterable, Any
 from contextlib import contextmanager
 import platform
 from functools import wraps
 from importlib.metadata import EntryPoint
 from importlib.metadata import entry_points as eps
-import pandas as pd
-from collections import defaultdict
-from deprecated import deprecated
 import pyterrier as pt
-
-
-@deprecated(version="0.9")
-def convert_qrels_to_dict(df):
-    """
-    Convert a qrels dataframe to dictionary for use in pytrec_eval
-
-    Args:
-        df(pandas.Dataframe): The dataframe to convert
-
-    Returns:
-        dict: {qid:{docno:label,},}
-    """
-    run_dict_pytrec_eval = defaultdict(dict)
-    for row in df.itertuples():
-        run_dict_pytrec_eval[row.qid][row.docno] = int(row.label)
-    return(run_dict_pytrec_eval)
-
-
-@deprecated(version="0.9")
-def convert_qrels_to_dataframe(qrels_dict) -> pd.DataFrame:
-    """
-    Convert a qrels dictionary to a dataframe
-
-    Args:
-        qrels_dict(Dict[str, Dict[str, int]]): {qid:{docno:label,},}
-
-    Returns:
-        pd.DataFrame: columns=['qid', 'docno', 'label']
-    """
-    result : Dict[str,List[str]] = {'qid': [], 'docno': [], 'label': []}
-    for qid in qrels_dict:
-        for docno, label in qrels_dict[qid]:
-            result['qid'].append(qid)
-            result['docno'].append(docno)
-            result['label'].append(label)
-
-    return pd.DataFrame(result)
-
-
-@deprecated(version="0.9")
-def convert_res_to_dict(df):
-    """
-    Convert a result dataframe to dictionary for use in pytrec_eval
-
-    Args:
-        df(pandas.Dataframe): The dataframe to convert
-
-    Returns:
-        dict: {qid:{docno:score,},}
-    """
-    run_dict_pytrec_eval = defaultdict(dict)
-    for row in df.itertuples():
-        run_dict_pytrec_eval[row.qid][row.docno] = float(row.score)
-    return(run_dict_pytrec_eval)
-
-
-@deprecated(version="0.9", reason="Use pt.Evaluate instead")
-def evaluate(res : pd.DataFrame, qrels : pd.DataFrame, metrics=['map', 'ndcg'], perquery=False):
-    from .pipelines import Evaluate
-    return Evaluate(res, qrels, metrics=metrics, perquery=perquery)
-
-
-@deprecated(version="0.9")
-def mean_of_measures(result, measures=None, num_q = None):
-    from .pipelines import _mean_of_measures
-    return _mean_of_measures(result, measures=measures, num_q=num_q)
-
 
 def once() -> Callable:
     """
@@ -246,3 +175,38 @@ class GeneratorLen(object):
 
     def __iter__(self):
         return self.gen
+
+
+_NO_BUFFER = object()
+
+
+class PeekableIter:
+    """An iterator that allows peeking at the next element."""
+    def __init__(self, base: Union[Iterator, Iterable]):
+        """Create a PeekableIter from an iterator or iterable."""
+        self.base = iter(base)
+        self._buffer = _NO_BUFFER
+
+    def __getattr__(self, attr: str):
+        return getattr(self.base, attr)
+
+    def __next__(self):
+        if self._buffer != _NO_BUFFER:
+            n = self._buffer
+            self._buffer = _NO_BUFFER
+            return n
+        return next(self.base)
+
+    def __iter__(self):
+        return self
+
+    def peek(self) -> Any:
+        """Return the next element without consuming it."""
+        if self._buffer == _NO_BUFFER:
+            self._buffer = next(self.base)
+        return self._buffer
+
+
+def peekable(it: Union[Iterator, Iterable]) -> PeekableIter:
+    """Create a PeekableIter from an iterator or iterable."""
+    return PeekableIter(it)

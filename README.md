@@ -49,7 +49,7 @@ PyTerrier provides an [Experiment](https://pyterrier.readthedocs.io/en/latest/ex
 pt.Experiment([BM25_r, PL2_r], topics, qrels, ["map", "ndcg"])
 ```
 
-There is a worked example in the [experiment notebook](examples/notebooks/experiment.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/experiment.ipynb)
+There is a worked example in the [example experiment notebook](examples/notebooks/experiment.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/experiment.ipynb). Or try out an experiment with [MonoT5 on MSMARCO](examples/experiments/msmarco_BM25_MonoT5.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/msmarco_BM25_MonoT5.ipynb).
 
 # Pipelines
 

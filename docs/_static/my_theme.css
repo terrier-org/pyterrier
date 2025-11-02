@@ -98,6 +98,7 @@ h2 code.literal {
 
 .toc-tree code.literal {
     background: inherit;
+    padding: 0;
 }
 
 article img {

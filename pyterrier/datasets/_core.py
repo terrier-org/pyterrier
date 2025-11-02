@@ -21,7 +21,9 @@ DATASET_MAP: Dict[str, Any] = {}
 
 
 class Dataset:
-    """Represents a dataset (test collection) for indexing and/or retrieval. A common use case is for an Experiment::
+    """Represents a dataset (test collection) for indexing and/or retrieval.
+
+    A common use case is for an Experiment::
 
         dataset = pt.get_dataset("trec-robust-2004")
         pt.Experiment([br1, br2], dataset.get_topics(), dataset.get_qrels(), eval_metrics=["map", "recip_rank"])
@@ -251,11 +253,8 @@ class RemoteDataset(Dataset):
         if "#" in actualURL and not os.path.exists(local):
             tarname, intarfile = actualURL.split("#")
             assert "/" not in intarfile
-            assert ".tar" in tarname or ".tgz" in tarname
             assert ".tar" in tarname or ".tgz" in tarname or ".zip" in tarname
             localtarfile, _ = self._get_one_file("tars", tarname)
-            tarobj = tarfile.open(localtarfile, "r")
-            tarobj.extract(intarfile, path=self.corpus_home)
             extractor = zipfile.ZipFile if ".zip" in tarname else tarfile.open
             with extractor(localtarfile, "r") as tarobj:
                 tarobj.extract(intarfile, path=self.corpus_home)
@@ -421,8 +420,6 @@ class RemoteDataset(Dataset):
         return None
 
     def get_index(self, variant=None, **kwargs):
-        if self.name == "50pct" and variant is None:
-            variant="ex1"
         thedir = self._get_all_files("index", variant=variant, **kwargs)
         return thedir
 

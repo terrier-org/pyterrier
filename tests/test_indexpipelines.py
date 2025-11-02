@@ -18,18 +18,17 @@ class TestIndexPipelines(TempDirTestCase):
         indexer = pt.IterDictIndexer(self.test_dir)
         pipeline = slider >> indexer
         dataset = pt.get_dataset("irds:vaswani")
-        #print(next(dataset.get_corpus_iter().gen))
-        indexref = pipeline.index(dataset.get_corpus_iter())
+        count = 200
+        indexref = pipeline.index(dataset.get_corpus_iter(count=count))
         self.assertIsNotNone(indexref)
         index = pt.IndexFactory.of(indexref)
-        self.assertEqual( index.getCollectionStatistics().getNumberOfDocuments(),  2 * len(dataset.get_corpus_iter()))
+        self.assertEqual( index.getCollectionStatistics().getNumberOfDocuments(),  2 * count)
 
     def test_sliding_title_two(self):
         corpus = [{"docno" : "d1", "text" : "A B C", "title" : "this is a title"}]
         slider = pt.text.sliding("text", 2, 1, prepend_attr="title")
         indexer = pt.IterDictIndexer(self.test_dir)
         pipeline = slider >> indexer
-        dataset = pt.get_dataset("irds:vaswani")
         indexref = pipeline.index(corpus)
         self.assertIsNotNone(indexref)
         index = pt.IndexFactory.of(indexref)
@@ -41,7 +40,6 @@ class TestIndexPipelines(TempDirTestCase):
         slider = pt.text.sliding("text", 2, 1, prepend_attr="title")
         indexer = pt.IterDictIndexer(self.test_dir)
         pipeline = slider >> indexer
-        dataset = pt.get_dataset("irds:vaswani")
         indexref = pipeline.index(corpus)
         self.assertIsNotNone(indexref)
         index = pt.IndexFactory.of(indexref)
@@ -54,7 +52,8 @@ class TestIndexPipelines(TempDirTestCase):
         indexer = pt.IterDictIndexer(self.test_dir)
         pipeline = slider >> indexer
         dataset = pt.get_dataset("irds:vaswani")
-        indexref = pipeline.index(dataset.get_corpus_iter())
+        count = 200
+        indexref = pipeline.index(dataset.get_corpus_iter(count=count))
         self.assertIsNotNone(indexref)
         index = pt.IndexFactory.of(indexref)
-        self.assertTrue( index.getCollectionStatistics().getNumberOfDocuments() > len(dataset.get_corpus_iter()))
+        self.assertTrue( index.getCollectionStatistics().getNumberOfDocuments() > count)
