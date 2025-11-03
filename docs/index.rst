@@ -28,6 +28,7 @@ Welcome to PyTerrier's documentation!
    tuning
    experiments/Robust04
    extending/index
+   troubleshooting/index
 
 .. toctree::
    :maxdepth: 1
