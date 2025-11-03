@@ -28,6 +28,14 @@ For background on the design of the system, refer to this paper:
 
 .. cite.dblp:: conf/sigir/MacAvaney25
 
+Artifact Implementations
+=================================================
+
+Here's a list of supported :class:`~pyterrier.Artifact` implementations:
+
+.. To add to this list, it should be registered as an entry point and the package should be in extensions.txt
+.. include:: ./_includes/artifact_list.rst
+
 Sharing Artifacts using HuggingFace
 =================================================
 
@@ -166,15 +174,6 @@ the pckage using :meth:`~pyterrier.Artifact.build_package` and then upload the f
 
 To load an artifact that is shared this way, you just need the URL of the artifact distribution package file,
 which can be passed to :meth:`~pyterrier.Artifact.from_url`.
-
-
-Artifact Implementations
-=================================================
-
-Here's a list of existing :class:`~pyterrier.Artifact` implementations.
-
-.. To add to this list, it should be registered as an entry point and the package should be in extensions.txt
-.. include:: ./_includes/artifact_list.rst
 
 Artifact API Documentation
 =================================================

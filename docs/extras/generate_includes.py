@@ -146,26 +146,25 @@ def artifact_list_include():
     for ep in pt.utils.entry_points('pyterrier.artifact'):
         table.append({
             'class' : ep.value.replace(':', '.'),
-            # 'package' : ep.dist.project_name,
-            # 'package_url' : ep.dist.home_page or ep.dist.project_name,
+            'package': ep.value.replace(':', '.').split('.')[0],
             'type' : ep.name.split('.')[0],
             'format' : ep.name.split('.')[1],
         })
-    table = sorted(table, key=lambda x: (x['type'] not in ('sparse_index', 'dense_index'), x['type'], x['format']))
+    table = sorted(table, key=lambda x: (x['package'] != 'pyterrier', 'index' not in x['type'], x['type'], x['format']))
     with open("_includes/artifact_list.rst", "wt") as f:
         f.write('''
 .. list-table::
    :header-rows: 1
 
    * - Class
-     - Type
-     - Format
-     - Links
+     - Package
+     - Type/Format
+     - Artifacts on...
 ''')
         for rec in table:
             f.write('''
    * - :class:`~{class}`
-     - ``{type}``
-     - ``{format}``
-     - Artifacts on: `HuggingFace <https://huggingface.co/datasets?other=pyterrier-artifact.{type}.{format}>`__ `Zenodo <https://zenodo.org/search?q=metadata.subjects.subject%3A%22pyterrier-artifact.{type}.{format}%22>`__
+     - ``{package}``
+     - ``{type}/{format}``
+     - `HuggingFace <https://huggingface.co/datasets?other=pyterrier-artifact.{type}.{format}>`__ `Zenodo <https://zenodo.org/search?q=metadata.subjects.subject%3A%22pyterrier-artifact.{type}.{format}%22>`__
 '''.format(**rec))

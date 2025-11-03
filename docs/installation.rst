@@ -32,9 +32,7 @@ Installing PyTerrier is easy - it can be installed from the command-line using `
             pip install --upgrade git+https://github.com/terrier-org/pyterrier.git#egg=python-terrier
 
 
-.. admonition:: Problems Installing?
-
-   Check out the :doc:`installation troubleshooting guide <troubleshooting/installation>`.
+**Problems Installing?** Check out the :doc:`installation troubleshooting guide <troubleshooting/installation>`.
 
 Runing PyTerrier
 ================
@@ -49,6 +47,4 @@ can run::
 
     pt.java.init()
 
-.. admonition:: Problems with Java?
-
-   Check out the :doc:`Java troubleshooting guide <troubleshooting/java>`.
+**Problems with Java?** Check out the :doc:`Java troubleshooting guide <troubleshooting/java>`.
