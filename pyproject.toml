@@ -40,6 +40,8 @@ CI = "https://github.com/terrier-org/pyterrier/actions"
 
 [project.entry-points."pyterrier.java.init"]
 "pyterrier.java" = "pyterrier.java:CoreJavaInit"
+"pyterrier.java.24" = "pyterrier.java:Java24Init"
+"pyterrier.java.colab" = "pyterrier.java:ColabJavaInit"
 "pyterrier.terrier.java" = "pyterrier.terrier.java:TerrierJavaInit"
 
 [project.entry-points."pyterrier.artifact"]
