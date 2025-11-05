@@ -95,7 +95,7 @@ the `**` operator.
 
 For instance, consider you have two functions that each return one score that are to be used as
 features. We can instantiate these functions as Transformers using ``pt.apply.doc_score()``. Such custom 
-features can both be combined into a LTR pipeline using the ``**`` operator::
+features can both be combined into a LTR pipeline using the ``**`` operator:
 
 .. schematic::
     :show_code:
