@@ -32,20 +32,17 @@ Feature Union (`**`)
 
 PyTerrier's main way to faciliate calculating and intgrating extra features is through the `**` operator. Consider an example where
 the candidate set should be identified using the BM25 weighting model, and then additional features computed using the
-Tf and PL2 models::
-
-    bm25 = pt.terrier.Retriever(index, wmodel="BM25")
-    tf = pt.terrier.Retriever(index, wmodel="Tf")
-    pl2 = pt.terrier.Retriever(index, wmodel="PL2")
-    pipeline = bm25 >> (tf ** pl2)
+Tf and PL2 models:
 
 .. schematic::
+    :show_code:
+
     index = pt.Artifact.from_hf('pyterrier/vaswani.terrier')
+    # FOLD
     bm25 = index.retriever("BM25")
     tf = index.retriever("Tf")
     pl2 = index.retriever("PL2")
     pipeline = bm25 >> (tf ** pl2)
-    pipeline
 
 The output of the bm25 ranker would look like:
 
@@ -98,21 +95,19 @@ the `**` operator.
 
 For instance, consider you have two functions that each return one score that are to be used as
 features. We can instantiate these functions as Transformers using ``pt.apply.doc_score()``. Such custom 
-features can both be combined into a LTR pipeline using the ``**`` operator::
-
-    featureA = pt.apply.doc_score(lambda row: 5)
-    featureB = pt.apply.doc_score(lambda row: 2)
-    pipeline2f = bm25 >> (featureA ** featureB)
+features can both be combined into a LTR pipeline using the ``**`` operator:
 
 .. schematic::
+    :show_code:
+
     index = pt.Artifact.from_hf('pyterrier/vaswani.terrier')
     bm25 = index.bm25()
+    # FOLD
     featureA = pt.apply.doc_score(lambda row: 5)
     featureB = pt.apply.doc_score(lambda row: 2)
-    pipeline2f = bm25 >> (featureA ** featureB)
-    pipeline2f
+    pipeline = bm25 >> (featureA ** featureB)
     
-The output of ``pipeline2f`` would be as follows:
+The output of ``pipeline`` would be as follows:
 
 ====  ==========  ========  ============  =========================
   ..  qid          docno        score              features

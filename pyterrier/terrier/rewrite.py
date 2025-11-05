@@ -64,6 +64,11 @@ def tokenise(tokeniser : Union[str,TerrierTokeniser,FunctionType] = 'english', m
     return pt.apply.query(lambda r: _join_str(_query_fn(r.query)))
 
 
+class ResetQuery(pt.Transformer):
+    def transform(self, inp):
+        return pt.model.pop_queries(inp)
+
+
 def reset() -> pt.Transformer:
     """
         Undoes a previous query rewriting operation. This results in the query formulation stored in the `"query_0"`
@@ -80,7 +85,7 @@ def reset() -> pt.Transformer:
             fullranker = firststage >> pt.rewrite.reset() >> secondstage
 
     """
-    return pt.apply.generic(lambda topics: pt.model.pop_queries(topics))
+    return ResetQuery()
 
 @pt.java.required
 class SDM(pt.Transformer):
@@ -337,6 +342,7 @@ class Bo1QueryExpansion(DFRQueryExpansion):
          - fb_terms(int): number of feedback terms. Defaults to 10
          - fb_docs(int): number of feedback documents. Defaults to 3  
     '''
+    schematic = {'label': 'Bo1'}
 
     def __init__(self, *args, **kwargs):
         """
@@ -358,6 +364,8 @@ class KLQueryExpansion(DFRQueryExpansion):
          - fb_terms(int): number of feedback terms. Defaults to 10
          - fb_docs(int): number of feedback documents. Defaults to 3  
     '''
+    schematic = {'label': 'KL'}
+
     def __init__(self, *args, **kwargs):
         """
         Args:

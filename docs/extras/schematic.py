@@ -1,7 +1,7 @@
 import ast
 import pyterrier as pt
 from docutils import nodes
-from docutils.parsers.rst import Directive
+from docutils.parsers.rst import Directive, directives
 
 
 def run_and_return_last(code: str, globals_dict=None, locals_dict=None, source=None, lineno=None):
@@ -42,7 +42,7 @@ def run_and_return_last(code: str, globals_dict=None, locals_dict=None, source=N
 class SchematicDirective(Directive):
     required_arguments = 0
     has_content = True
-    option_spec = {'input_columns': str}
+    option_spec = {'input_columns': str, 'show_code': directives.flag}
 
     def run(self):
         # File name of the current .rst document
@@ -52,7 +52,13 @@ class SchematicDirective(Directive):
         lineno = self.state_machine.abs_line_number()  # Directive base class stores this
 
         code = "\n".join(self.content)
-        result = run_and_return_last(code, {'pt': pt}, {}, source=source, lineno=lineno)
+        local_dict = {}
+        result = run_and_return_last(code, {'pt': pt}, local_dict, source=source, lineno=lineno)
+        if result is None:
+            for local_var in ['pipeline', 'transformer']:
+                if local_var in local_dict:
+                    result = local_dict[local_var]
+                    break
         if not isinstance(result, (dict, pt.Transformer)):
             return [self.state_machine.reporter.error(f"Expected dict or Transformer, got {result!r} (type: {type(result)})", line=self.lineno)]
         # parse any input columns supplied in the directive 
@@ -61,7 +67,19 @@ class SchematicDirective(Directive):
             input_columns = [x.strip() for x in input_columns.split(',')]
 
         html = pt.schematic.draw(result, input_columns=input_columns)
-        return [nodes.raw('', html, format='html')]
+
+        result = [nodes.raw('', html, format='html')]
+
+        if 'show_code' in self.options:
+            # prepend a .. code-block:: python
+            # To hide parts of the code that are not important, users can include "# FOLD". Only the content after the fold is shown.
+            code_to_present = code.split('# FOLD')[-1].strip()
+            literal = nodes.literal_block(code_to_present, code_to_present)
+            literal['language'] = 'python'
+            literal['highlight_args'] = {}
+            result = [literal] + result
+
+        return result
 
 
 def setup(app):
