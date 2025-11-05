@@ -42,7 +42,7 @@ def run_and_return_last(code: str, globals_dict=None, locals_dict=None, source=N
 class SchematicDirective(Directive):
     required_arguments = 0
     has_content = True
-    option_spec = {'input_columns': str}
+    option_spec = {'input_columns': str, 'show_code': bool}
 
     def run(self):
         # File name of the current .rst document
@@ -61,7 +61,17 @@ class SchematicDirective(Directive):
             input_columns = [x.strip() for x in input_columns.split(',')]
 
         html = pt.schematic.draw(result, input_columns=input_columns)
-        return [nodes.raw('', html, format='html')]
+
+        result = [nodes.raw('', html, format='html')]
+
+        if self.options.get('show_code') != False:
+            # prepend a .. code-block:: python
+            literal = nodes.literal_block(code, code)
+            literal['language'] = 'python'
+            literal['highlight_args'] = {}
+            result = [literal] + result
+
+        return result
 
 
 def setup(app):
