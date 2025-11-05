@@ -342,7 +342,7 @@ class Bo1QueryExpansion(DFRQueryExpansion):
          - fb_terms(int): number of feedback terms. Defaults to 10
          - fb_docs(int): number of feedback documents. Defaults to 3  
     '''
-    schematic = {'label': 'BO1'}
+    schematic = {'label': 'Bo1'}
 
     def __init__(self, *args, **kwargs):
         """

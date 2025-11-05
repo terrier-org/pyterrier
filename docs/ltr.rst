@@ -107,7 +107,7 @@ features can both be combined into a LTR pipeline using the ``**`` operator:
     featureB = pt.apply.doc_score(lambda row: 2)
     pipeline = bm25 >> (featureA ** featureB)
     
-The output of ``pipeline2f`` would be as follows:
+The output of ``pipeline`` would be as follows:
 
 ====  ==========  ========  ============  =========================
   ..  qid          docno        score              features
