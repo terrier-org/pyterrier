@@ -2,7 +2,7 @@ from typing import Any, List, Tuple, Union, Optional, Callable, TypeVar, Generic
 from time import perf_counter as timer
 import pandas as pd
 
-
+# just checking
 class RadixNode:
     def __init__(self):
         self.children = {}  # edge_label -> RadixNode
