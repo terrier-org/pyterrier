@@ -6,31 +6,38 @@ import pyterrier as pt
 
 
 class TerrierModel(Enum):
-    """A built-in Terrier weighting (scoring) model.
-
-    This is a beta feature and is not yet fully-featured or fully-tested.
-    """
+    """A built-in Terrier weighting (scoring) model."""
     bm25 = 'bm25'
     dph = 'dph'
     pl2 = 'pl2'
+    tf = 'tf'
+    tf_idf = 'tf_idf'
 
 
-######################################
-# This is a work-in-progress Artifact-compatible wrapper for a Terrier Index. It doesn't support most
-# features yet, but does allow for uploading/downloading Terrier indexes from HuggingFace, etc.
-######################################
 class TerrierIndex(pt.Artifact, pt.Indexer):
-    """A Terrier index.
+    """Represents a Terrier index.
 
-    This is a beta feature and is not yet fully-featured or fully-tested.
+    A Terrier index is a sparse inverted index structure that supports a variety of operations. It can be used to
+    create transformers that perform retrieval, re-ranking, pseudo-relevance feedback, and other operations.
     """
 
     ARTIFACT_TYPE = 'sparse_index'
     ARTIFACT_FORMAT = 'terrier'
     ARTIFACT_PACKAGE_HINT = 'python-terrier'
 
-    def __init__(self, path, *, memory=False, _index_ref=None, _index_obj=None):
-        """Initialises a TerrierIndex for the given path."""
+    def __init__(
+        self,
+        path: Union[str, Path],
+        *,
+        memory: bool = False,
+        _index_ref: object = None, 
+        _index_obj: object = None
+    ):
+        """
+        Args:
+            path: The path to the index on disk.
+            memory: Whether to load the index fully into memory.
+        """
         super().__init__(path)
         if _index_ref is not None:
             assert path is pt.Artifact.NO_PATH and _index_obj is None
@@ -60,8 +67,28 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
             threads: The number of threads to use during retrieval.
             verbose: Whether to progress information during retrieval
 
-        Returns:
-            A retriever transformer for this index.
+        Example Pipeline:
+
+        .. schematic::
+            :show_code:
+
+            index = pt.terrier.TerrierIndex.example()
+            # FOLD
+            index.retriever('BM25', num_results=10)
+
+        Terrier retrievers can also perform re-ranking when they receive a result frame as input:
+
+        .. schematic::
+            :show_code:
+            :input_columns: qid,query,docno
+
+            index = pt.terrier.TerrierIndex.example()
+            # FOLD
+            # As a re-ranker
+            index.retriever('BM25', num_results=10)
+
+        .. seealso::
+            There are shorthand methods for creating common retrievers: :meth:`bm25`, :meth:`dph`.
         """
         if include_fields is None:
             include_fields = ['docno']
@@ -98,6 +125,17 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
             include_fields: The metadata fields to return for each search result.
             threads: The number of threads to use during retrieval.
             verbose: Whether to progress information during retrieval
+
+        Example Pipeline:
+
+        .. schematic::
+            :show_code:
+
+            index = pt.terrier.TerrierIndex.example()
+            # FOLD
+            index.bm25()
+
+        .. cite.dblp:: conf/trec/RobertsonWB98
         """
         return self.retriever(
             TerrierModel.bm25,
@@ -123,6 +161,17 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
             include_fields: The metadata fields to return for each search result.
             threads: The number of threads to use during retrieval.
             verbose: Whether to progress information during retrieval
+
+        Example Pipeline:
+
+        .. schematic::
+            :show_code:
+
+            index = pt.terrier.TerrierIndex.example()
+            # FOLD
+            index.dph()
+
+        .. cite.dblp:: conf/ecir/Amati06
         """
         return self.retriever(
             TerrierModel.dph,
@@ -132,18 +181,244 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
             verbose=verbose,
         )
 
-    def text_loader(self,
-        fields: Union[List[str], str, Literal['*']] = '*',
+    def pl2(
+        self,
         *,
-        verbose=False
-    ):
-        """Creates a text loader transformer for this index.
+        c: float = 1.0,
+        num_results: int = 1000,
+        include_fields: Optional[List[str]] = None,
+        threads: int = 1,
+        verbose: bool = False,
+    ) -> pt.Transformer:
+        """Creates a PL2 retriever for this index.
 
         Args:
-            fields: The fields to load from the index. If '*', all fields will be loaded.
-            verbose: Whether to print progress information.
+            c: PL2's ``c`` parameter, which controls the length normalization.
+            num_results: The maximum number of results to return per query.
+            include_fields: The metadata fields to return for each search result.
+            threads: The number of threads to use during retrieval.
+            verbose: Whether to progress information during retrieval
+
+        Example Pipeline:
+
+        .. schematic::
+            :show_code:
+
+            index = pt.terrier.TerrierIndex.example()
+            # FOLD
+            index.pl2()
+
+        .. cite.dblp:: journals/tois/AmatiR02
+        """
+        return self.retriever(
+            TerrierModel.pl2,
+            {'dfr.c': c},
+            num_results=num_results,
+            include_fields=include_fields,
+            threads=threads,
+            verbose=verbose,
+        )
+
+    def tf(
+        self,
+        *,
+        num_results: int = 1000,
+        include_fields: Optional[List[str]] = None,
+        threads: int = 1,
+        verbose: bool = False,
+    ) -> pt.Transformer:
+        """Creates a raw Term Frequency (TF) retriever for this index.
+
+        This is typically useful for retrieving from learned sparse models.
+
+        Args:
+            num_results: The maximum number of results to return per query.
+            include_fields: The metadata fields to return for each search result.
+            threads: The number of threads to use during retrieval.
+            verbose: Whether to progress information during retrieval
+
+        Example Pipeline:
+
+        .. schematic::
+            :show_code:
+
+            index = pt.terrier.TerrierIndex.example()
+            # FOLD
+            index.tf()
+        """
+        return self.retriever(
+            TerrierModel.tf,
+            num_results=num_results,
+            include_fields=include_fields,
+            threads=threads,
+            verbose=verbose,
+        )
+
+    def tf_idf(
+        self,
+        *,
+        k1: float = 1.2,
+        b: float = 0.75,
+        num_results: int = 1000,
+        include_fields: Optional[List[str]] = None,
+        threads: int = 1,
+        verbose: bool = False,
+    ) -> pt.Transformer:
+        """Creates a TF-IDF retriever for this index.
+
+        This retriever uses the Robertson formulation of TF and the Sparck Jones formulation of IDF.
+
+        Args:
+            k1: TF-IDF's ``k1`` parameter, which controls TF saturation.
+            b: TF-IDF's ``b`` parameter, which controls the length penalty.
+            num_results: The maximum number of results to return per query.
+            include_fields: The metadata fields to return for each search result.
+            threads: The number of threads to use during retrieval.
+            verbose: Whether to progress information during retrieval
+
+        Example Pipeline:
+
+        .. schematic::
+            :show_code:
+
+            index = pt.terrier.TerrierIndex.example()
+            # FOLD
+            index.tf_idf()
+
+        .. cite.dblp:: conf/trec/RobertsonWB98
+        .. cite.dblp:: journals/jd/Jones04
+        """
+        return self.retriever(
+            TerrierModel.tf_idf,
+            {'tf_idf.k_1': k1, 'tf_idf.b': b},
+            num_results=num_results,
+            include_fields=include_fields,
+            threads=threads,
+            verbose=verbose,
+        )
+
+    def rm3(
+        self,
+        *,
+        fb_terms: int = 10,
+        fb_docs: int = 3,
+        fb_lambda: float = 0.6,
+    ) -> pt.Transformer:
+        """Creates an RM3 pseudo-relevance feedback transformer for this index.
+
+        Args:
+            fb_terms: The number of feedback terms to use.
+            fb_docs: The number of feedback documents to use.
+            fb_lambda: The interpolation weight between the original query and the feedback model.
+
+        Example Pipeline:
+
+        .. schematic::
+            :show_code:
+
+            index = pt.terrier.TerrierIndex.example()
+            # FOLD
+            index.bm25() >> index.rm3() >> index.bm25() >> pt.rewrite.reset()
+
+        .. note::
+            ``pt.rewrite.reset()`` is needed after the feedback step to reset the query to its original form.
+
+        .. cite.dblp:: conf/trec/JaleelACDLLSW04
+        """
+        return pt.terrier.rewrite.RM3(
+            self.index_obj(),
+            fb_terms=fb_terms,
+            fb_docs=fb_docs,
+            fb_lambda=fb_lambda,
+        )
+
+    def bo1(
+        self,
+        *,
+        fb_terms: int = 10,
+        fb_docs: int = 3,
+    ) -> pt.Transformer:
+        """Creates a Bo1 pseudo-relevance feedback transformer for this index.
+
+        Args:
+            fb_terms: The number of feedback terms to use.
+            fb_docs: The number of feedback documents to use.
+
+        Example Pipeline:
+
+        .. schematic::
+            :show_code:
+
+            index = pt.terrier.TerrierIndex.example()
+            # FOLD
+            index.bm25() >> index.bo1() >> index.bm25() >> pt.rewrite.reset()
+
+        .. note::
+            ``pt.rewrite.reset()`` is needed after the feedback step to reset the query to its original form.
+
+        .. cite.dblp:: phd/ethos/Amati03
+        """
+        return pt.terrier.rewrite.Bo1QueryExpansion(
+            self.index_obj(),
+            fb_terms=fb_terms,
+            fb_docs=fb_docs,
+        )
+
+    def kl(
+        self,
+        *,
+        fb_terms: int = 10,
+        fb_docs: int = 3,
+    ) -> pt.Transformer:
+        """Creates a KL-Divergence pseudo-relevance feedback transformer for this index.
+
+        Args:
+            fb_terms: The number of feedback terms to use.
+            fb_docs: The number of feedback documents to use.
+
+        Example Pipeline:
+
+        .. schematic::
+            :show_code:
+
+            index = pt.terrier.TerrierIndex.example()
+            # FOLD
+            index.bm25() >> index.kl() >> index.bm25() >> pt.rewrite.reset()
+
+        .. note::
+            ``pt.rewrite.reset()`` is needed after the feedback step to reset the query to its original form.
+
+        .. cite.dblp:: phd/ethos/Amati03
+        """
+        return pt.terrier.rewrite.KLQueryExpansion(
+            self.index_obj(),
+            fb_terms=fb_terms,
+            fb_docs=fb_docs,
+        )
+
+    def text_loader(
+        self,
+        fields: Union[List[str], str, Literal['*']] = '*',
+        *,
+        verbose=False,
+    ) -> pt.Transformer:
+        """Creates a transformer that loads stored text content from this index.
+
+        Args:
+            fields: The metadata fields to load for each document. If ``"*"``, loads all available fields.
+
+        Example Pipeline:
+
+        .. schematic::
+            :show_code:
+
+            index = pt.terrier.TerrierIndex.example()
+            # FOLD
+            index.text_loader()
+
         """
         return pt.terrier.TerrierTextLoader(self, fields, verbose=verbose)
+
 
     def __repr__(self):
         return f'TerrierIndex({str(self.path)!r})'
@@ -180,11 +455,10 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
     def coerce(cls, index_like: Union[str, Path, 'TerrierIndex']) -> 'TerrierIndex':
         """Attempts to build a :class:`TerrierIndex` from the given object.
         
-        ``index_like`` can be either: (bulleted list below):
-        - ``str`` or ``Path``: loads the index at the provided path
-        - ``pyterrier.terrier.J.IndexRef``: TODO: How to handle?
-        - ``pyterrier.terrier.J.Index``: TODO: How to handle?
-        - ``TerrierIndex``: returns itself
+        ``index_like`` can be either:
+          - ``str`` or ``Path``: loads the index at the provided path
+          - ``pt.terrier.J.IndexRef`` or ``pt.terrier.J.Index``: creates a TerrierIndex from the Java object
+          - ``pt.terrier.TerrierIndex``: returns itself
         """
         if isinstance(index_like, TerrierIndex):
             return index_like
@@ -196,11 +470,18 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
             return TerrierIndex(pt.Artifact.NO_PATH, _index_obj=index_like)
         raise RuntimeError(f'Could not coerce {index_like!r} into a TerrierIndex')
 
+    @staticmethod
+    def example() -> 'TerrierIndex':
+        """Returns an example Terrier index."""
+        return TerrierIndex.from_hf('pyterrier/sample.terrier')
+
 
 _WMODEL_MAP: Dict[TerrierModel, str] = {
     TerrierModel.bm25: 'BM25',
     TerrierModel.dph: 'DPH',
     TerrierModel.pl2: 'PL2',
+    TerrierModel.tf: 'Tf',
+    TerrierModel.tf_idf: 'TF_IDF',
 }
 
 def _map_wmodel(model: Union[TerrierModel, str]) -> str:
@@ -211,6 +492,9 @@ def _map_wmodel(model: Union[TerrierModel, str]) -> str:
 _CONTROL_MAP: Dict[str, str] = {
     'bm25.k1': 'bm25.k_1',
     'bm25.b': 'bm25.b',
+    'dfr.c': 'dfr.c',
+    'tf_idf.k_1': 'tf_idf.k_1',
+    'tf_idf.b': 'tf_idf.b',
 }
 def _map_controls(model_args):
     return {
