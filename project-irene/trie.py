@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple, Union, Optional, Callable
+from typing import Any, List, Tuple, Union, Optional, Callable, TypeVar, Generic, Protocol
 from time import perf_counter as timer
 import pandas as pd
 
@@ -8,13 +8,11 @@ class RadixNode:
         self.children = {}  # edge_label -> RadixNode
         self.is_end_of_word = False
         self.value: Any = None  # payload stored at terminal nodes (e.g., transformer later)
-        # evaluation order index for terminal nodes (None until set via insert_all)
-        self.eval_index: "Optional[int]" = None
     # need to come back to self.value
+        self.eval_index: Optional[int] = None  # index of evaluation step if terminal
 
     def traverse(self, inp: pd.DataFrame, callback: Optional[Callable] = None, cum_time: float = 0.0):
         """Traverse node and its descendants, applying transformations and tracking cumulative time.
-
 
         When `self.eval_index` is set (not None) the `callback` will be invoked as
             callback(result, self.eval_index, total_time)
@@ -46,25 +44,33 @@ class RadixNode:
             inp: Input data to transform"""
         
         return self.value.transform(inp)
+    
+    # def get_children(self) -> List[Tuple[K, 'RadixNode[K]']]:
+    #     """
+    #     Returns:
+    #         List of tuples containing edge labels and corresponding child RadixNode instances.
+    #     """
+    #     return list(self.children.items())
 class RadixTree:
     def __init__(self):
         self.root = RadixNode()
+        self.eval_index = 0  # Counter for assigning eval_index to terminal nodes
 
-    def insert(self, word: str, value: Any = None, eval_index: "Optional[int]" = None):
+    def insert(self, word: str, value: Any = None):
         """Insert a word into the radix tree, optionally attaching a payload.
 
         Args:
             word: The full key/path to insert.
             value: Optional payload to store at the terminal node. If None, defaults to `word`.
         """
-        if not word:
-            raise ValueError(f"empty or falsy key not allowed: {word!r}")
         node = self.root
         remaining = word
+        print(node.children)
         while remaining:
             # Find a child edge that shares a prefix with remaining
             found = False
             for edge_label, child in list(node.children.items()):
+                print("edge_label:", edge_label, "remaining:", remaining)
                 # Find longest common prefix between edge_label and remaining
                 common_len = 0
                 for i in range(min(len(edge_label), len(remaining))):
@@ -80,9 +86,9 @@ class RadixTree:
                         # Exact match - word already exists or is being re-inserted
                         child.is_end_of_word = True
                         child.value = word if value is None else value
-                        # set eval_index on terminal node if provided
-                        if eval_index is not None:
-                            child.eval_index = eval_index
+                        if child.eval_index is None:  # Only assign if not already set
+                            child.eval_index = self.eval_index
+                            self.eval_index += 1
                         return
                     elif common_len == len(edge_label):
                         # Full edge matches, continue down this path
@@ -92,14 +98,15 @@ class RadixTree:
                         # Need to split the edge (common_len < len(edge_label))
                         # Create new intermediate node
                         new_node = RadixNode()
-
+                        
                         # Old edge becomes: common_prefix -> new_node -> rest_of_edge -> old_child
                         rest_of_edge = edge_label[common_len:]
                         new_node.children[rest_of_edge] = child
+                        print(new_node.children)
                         # Update parent to point to new_node with common prefix
                         del node.children[edge_label]
                         node.children[edge_label[:common_len]] = new_node
-
+                        
                         # Continue with remaining part
                         remaining = remaining[common_len:]
                         node = new_node
@@ -111,16 +118,37 @@ class RadixTree:
                 new_child = RadixNode()
                 new_child.is_end_of_word = True
                 new_child.value = word if value is None else value
-                if eval_index is not None:
-                    new_child.eval_index = eval_index
+                new_child.eval_index = self.eval_index
+                self.eval_index += 1
                 node.children[remaining] = new_child
                 return
         
         # If we've consumed all of remaining, mark current node as end
         node.is_end_of_word = True
         node.value = word if value is None else value
-        if node.is_end_of_word and eval_index is not None:
-            node.eval_index = eval_index
+        if node.eval_index is None:  # Only assign if not already set
+            node.eval_index = self.eval_index
+            self.eval_index += 1
+
+
+    def search(self, word):
+        """Check if a word exists in the radix tree."""
+        node = self.root
+        remaining = word
+        
+        while remaining:
+            found = False
+            for edge_label, child in node.children.items():
+                if remaining.startswith(edge_label):
+                    remaining = remaining[len(edge_label):]
+                    node = child
+                    found = True
+                    break
+            
+            if not found:
+                return False
+        
+        return node.is_end_of_word
 
     # def pretty_print(self):
     #     """Print the radix tree structure with indentation.
@@ -135,28 +163,6 @@ class RadixTree:
     #             dfs(child, depth + 1)
 
     #     dfs(self.root, 0)
-
-    def describe_tree_structure(self):
-        """Return a structured representation of the radix tree for debugging."""
-        def dfs(node: RadixNode, prefix: str):
-            children_repr = []
-            for edge_label, child in sorted(node.children.items()):
-                full_label = edge_label
-                sub_repr = dfs(child, full_label)
-                child_repr = sub_repr if sub_repr else {}
-                children_repr.append([
-                    f"{full_label}",
-                    child.eval_index if child.is_end_of_word else None,
-                    child_repr
-                ])
-            return children_repr
-
-        return dfs(self.root, "")  
-
-
-    # -----------------------------
-    # Bulk operations and utilities
-    # -----------------------------
     def insert_all(self, items: Union[List[str], List[Tuple[str, Any]]]):
         """Insert multiple entries.
 
@@ -165,23 +171,66 @@ class RadixTree:
         """
         if not items:
             return
-        for i, item in enumerate(items):
-            if isinstance(item, tuple) and len(item) == 2:
-                key, val = item  # type: ignore[misc]
-                self.insert(str(key), val, eval_index=i)
-            else:
-                self.insert(str(item), item, eval_index=i)
+        first = items[0]
+        print("first:", first)
+        if isinstance(first, tuple) and len(first) == 2:
+            for key, val in items:  # type: ignore[misc]
+                self.insert(str(key), val)
+        else:
+            for key in items:  # type: ignore[assignment]
+                self.insert(str(key), key)
+
+    
+    def describe_tree_structure(self):
+        """Return a structured representation of the radix tree for debugging.
+        
+        Returns a list of [edge_label, eval_index, children] for each top-level child.
+        - eval_index is None for non-terminal nodes, or the index for terminal nodes
+        - children is {} for leaf nodes, or a list of [edge_label, eval_index, children] for internal nodes
+        """
+        def dfs(node):
+            children_repr = []
+            for edge_label, child in sorted(node.children.items(), key=lambda x: str(x[0])):
+                child_struct = dfs(child)
+                children_repr.append([
+                    edge_label,
+                    child.eval_index if child.is_end_of_word else None,
+                    child_struct if child_struct else {}
+                ])
+            return children_repr
+
+        # Build the top-level structure from root's children
+        result = []
+        for edge_label, child in sorted(self.root.children.items(), key=lambda x: str(x[0])):
+            child_struct = dfs(child)
+            result.append([
+                edge_label,
+                child.eval_index if child.is_end_of_word else None,
+                child_struct if child_struct else {}
+            ])
+        return result  
+
 
 # Example usage
 radix_tree = RadixTree()
+# radix_tree.insert("ueue")
+# radix_tree.insert("eue")
+# radix_tree.insert("ue")
+# radix_tree.insert("e")
+radix_tree.insert_all(['ABCD', 'ABE', 'D'])
 
+# print("Search 'ABC':", radix_tree.search("ABC"))
+# print("Search 'ABD':", radix_tree.search("ABD"))
+# print("Search 'AB':", radix_tree.search("AB"))
+# print("Starts with 'AB':", radix_tree.starts_with("AB"))
 
-radix_tree.insert_all(["AB", "ABC", "D"])
-# radix_tree.insert_all(['AB','ABCD'])
+# Test find_lcp_node
+# node, lcp, remaining = radix_tree.find_lcp_node("ABD")
+# print(f"\nFor 'ABD': LCP='{lcp}', remaining='{remaining}', is_end={node.is_end_of_word}")
 
-# # Print the radix tree structure
-# print("\nRadix tree structure:")
-# radix_tree.pretty_print()
+# node, lcp, remaining = radix_tree.find_lcp_node("ABE")
+# print(f"For 'ABE': LCP='{lcp}', remaining='{remaining}', is_end={node.is_end_of_word}")
 
-structure = radix_tree.describe_tree_structure()
-print(structure)
+# Print the radix tree structure
+print("\nRadix tree structure:")
+print(radix_tree.describe_tree_structure())
