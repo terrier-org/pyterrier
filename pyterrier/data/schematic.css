@@ -112,7 +112,7 @@
 }
 
 #ID .pts-hline {
-    width: 64px;
+    width: 56px;
     border-bottom: 2px solid var(--pts-fg);
     align-self: center;
     position: relative;
@@ -154,8 +154,8 @@
 
 #ID .pts-df {
     display: inline-block;
-    width: 28px;
-    height: 28px;
+    width: 27px;
+    height: 27px;
     font-size: 14px;
     color: var(--pts-fg);
     border: 3px double var(--pts-fg);
@@ -175,7 +175,7 @@
 #ID .pts-hline > .pts-df {
     position: absolute;
     top: -14px;
-    left: 18px;
+    left: 12px;
 }
 #ID .pts-arr-input > .pts-df {
     left: -28px;
