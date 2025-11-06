@@ -6,10 +6,15 @@ import pyterrier as pt
 
 
 class TerrierModel(Enum):
-    """A built-in Terrier weighting (scoring) model."""
+    """A built-in Terrier weighting (scoring) model.
+
+    This enum is primarily used with :meth:`TerrierIndex.retriever` to specify the weighting model to use.
+    """
     bm25 = 'bm25'
     dph = 'dph'
     pl2 = 'pl2'
+    dirichlet_lm = 'dirichlet_lm' # dirichletlm.mu=2500
+    hiemstra_lm = 'hiemstra_lm' # hiemstra_lm.lambda=0.15
     tf = 'tf'
     tf_idf = 'tf_idf'
 
@@ -46,6 +51,11 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
             assert path is pt.Artifact.NO_PATH and _index_ref is None
         self._index_obj = _index_obj
         self.memory = memory
+
+
+    # ----------------------------------------------------
+    # Retrieval
+    # ----------------------------------------------------
 
     def retriever(
         self,
@@ -219,6 +229,82 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
             verbose=verbose,
         )
 
+    def dirichlet_lm(
+        self,
+        *,
+        mu: float = 2500.0,
+        num_results: int = 1000,
+        include_fields: Optional[List[str]] = None,
+        threads: int = 1,
+        verbose: bool = False,
+    ) -> pt.Transformer:
+        """Creates a Dirichlet Language Model retriever for this index.
+
+        Args:
+            mu: Dirichlet LM's ``mu`` parameter, which controls the strength of the prior.
+            num_results: The maximum number of results to return per query.
+            include_fields: The metadata fields to return for each search result.
+            threads: The number of threads to use during retrieval.
+            verbose: Whether to progress information during retrieval
+
+        Example Pipeline:
+
+        .. schematic::
+            :show_code:
+
+            index = pt.terrier.TerrierIndex.example()
+            # FOLD
+            index.dirichlet_lm()
+
+        .. cite.dblp:: journals/tois/ZhaiL04
+        """
+        return self.retriever(
+            TerrierModel.dirichlet_lm,
+            {'dirichletlm.mu': mu},
+            num_results=num_results,
+            include_fields=include_fields,
+            threads=threads,
+            verbose=verbose,
+        )
+
+    def hiemstra_lm(
+        self,
+        *,
+        Lambda: float = 0.15,
+        num_results: int = 1000,
+        include_fields: Optional[List[str]] = None,
+        threads: int = 1,
+        verbose: bool = False,
+    ) -> pt.Transformer:
+        """Creates a Hiemstra Language Model retriever for this index.
+
+        Args:
+            Lambda: Hiemstra LM's ``lambda`` parameter, which controls the interpolation weight.
+            num_results: The maximum number of results to return per query.
+            include_fields: The metadata fields to return for each search result.
+            threads: The number of threads to use during retrieval.
+            verbose: Whether to progress information during retrieval
+
+        Example Pipeline:
+
+        .. schematic::
+            :show_code:
+
+            index = pt.terrier.TerrierIndex.example()
+            # FOLD
+            index.hiemstra_lm()
+
+        .. cite.dblp:: phd/basesearch/Hiemstra01
+        """
+        return self.retriever(
+            TerrierModel.hiemstra_lm,
+            {'hiemstra_lm.lambda': Lambda},
+            num_results=num_results,
+            include_fields=include_fields,
+            threads=threads,
+            verbose=verbose,
+        )
+
     def tf(
         self,
         *,
@@ -296,6 +382,11 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
             threads=threads,
             verbose=verbose,
         )
+
+
+    # ----------------------------------------------------
+    # Query Expansion
+    # ----------------------------------------------------
 
     def rm3(
         self,
@@ -396,6 +487,11 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
             fb_docs=fb_docs,
         )
 
+
+    # ----------------------------------------------------
+    # Loading
+    # ----------------------------------------------------
+
     def text_loader(
         self,
         fields: Union[List[str], str, Literal['*']] = '*',
@@ -420,6 +516,71 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
         return pt.terrier.TerrierTextLoader(self, fields, verbose=verbose)
 
 
+    # ----------------------------------------------------
+    # Indexing
+    # ----------------------------------------------------
+
+    def indexer(
+        self,
+        *,
+        meta: Dict = {'docno': 20},
+        text_attrs: List[str] = ['text'],
+        tokeniser: Union[str, 'pt.terrier.TerrierTokeniser'] = 'english',
+        stemmer: Union[None, str, 'pt.terrier.TerrierStemmer'] = 'porter',
+        stopwords: Union[None, 'pt.terrier.TerrierStopwords', List[str]] = 'terrier',
+        store_separate_fields: bool = False,
+        store_blocks: bool = False,
+        threads: int = 1,
+    ) -> pt.Indexer:
+        """Returns an indexer that is used to build this index.
+
+        Args:
+            meta: The fields to store as metadata for each document. The keys are the metadata field names, and the values are the maximum lengths for each field.
+            text_attrs: The text fields to index as text for each document.
+            tokeniser: The tokeniser to use.
+            stemmer: The stemmer to apply to each token.
+            stopwords: The set of words to remove as stopwords.
+            store_separate_fields: Whether to store each text attribute as a separate field in the index. This allows for fielded retrieval, but increases index size.
+            store_blocks: Whether to store block information (i.e., positions) in the index. This allows for positional queries, but increases index size and retrieval time.
+            threads: The number of threads to use during indexing.
+
+        Example Pipeline:
+
+        .. schematic::
+            :show_code:
+
+            index = pt.terrier.TerrierIndex('my_index.terrier')
+            index.indexer()
+        """
+        return pt.terrier.IterDictIndexer(
+            os.path.realpath(str(self.path)),
+            meta=meta,
+            text_attrs=text_attrs,
+            tokeniser=tokeniser,
+            stemmer=stemmer,
+            stopwords=stopwords,
+            fields=store_separate_fields,
+            blocks=store_blocks,
+            threads=threads,
+        )
+
+    def index(self, it: pt.model.IterDict, **kwargs: Any) -> 'TerrierIndex':
+        """Indexes the given input data, creating the index if it does not yet exist, or raising an error if it does.
+
+        This method is shorthand for ``self.indexer().index(iter)``.
+
+        Args:
+            it: The documents to index as an iterable of dicts.
+        """
+        assert len(kwargs) == 0, f"unknown keyword argument(s) given: {kwargs}"
+        self.indexer().index(it)
+        return self
+
+
+    # ----------------------------------------------------
+    # Miscellaneous
+    # ----------------------------------------------------
+
     def __repr__(self):
         return f'TerrierIndex({str(self.path)!r})'
 
@@ -435,16 +596,6 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
         if self._index_obj is None:
             self._index_obj = pt.terrier.IndexFactory.of(self.index_ref(), memory=self.memory)
         return self._index_obj
-
-    def indexer(self, *, meta: Dict = {'docno': 20}) -> pt.Indexer:
-        """Returns an indexer object for this index."""
-        return pt.terrier.IterDictIndexer(os.path.realpath(str(self.path)), meta=meta)
-
-    def index(self, iter: pt.model.IterDict, **kwargs: Any) -> 'TerrierIndex':
-        """Indexes the given input data, creating the index if it does not yet exist, or raising an error if it does."""
-        assert len(kwargs) == 0, f"unknown keyword argument(s) given: {kwargs}"
-        self.indexer().index(iter)
-        return self
 
     def built(self):
         """Returns whether the index has been built (or is a built in-memory index)."""
@@ -480,6 +631,8 @@ _WMODEL_MAP: Dict[TerrierModel, str] = {
     TerrierModel.bm25: 'BM25',
     TerrierModel.dph: 'DPH',
     TerrierModel.pl2: 'PL2',
+    TerrierModel.dirichlet_lm: 'DirichletLM',
+    TerrierModel.hiemstra_lm: 'Hiemstra_LM',
     TerrierModel.tf: 'Tf',
     TerrierModel.tf_idf: 'TF_IDF',
 }
@@ -495,6 +648,8 @@ _CONTROL_MAP: Dict[str, str] = {
     'dfr.c': 'dfr.c',
     'tf_idf.k_1': 'tf_idf.k_1',
     'tf_idf.b': 'tf_idf.b',
+    'dirichletlm.mu': 'dirichletlm.mu',
+    'hiemstra_lm.lambda': 'hiemstra_lm.lambda',
 }
 def _map_controls(model_args):
     return {

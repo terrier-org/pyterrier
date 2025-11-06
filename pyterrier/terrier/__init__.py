@@ -77,6 +77,6 @@ __all__ = [
     'IndexFactory', 'set_property', 'set_properties', 'run', 
     'TerrierTextLoader', 'terrier_text_loader',
 
-    # Beta High-level API
+    # High-level API
     'TerrierIndex', 'TerrierModel',
 ]

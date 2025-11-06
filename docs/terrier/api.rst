@@ -18,6 +18,8 @@ most use cases.
    .. automethod:: bm25
    .. automethod:: dph
    .. automethod:: pl2
+   .. automethod:: dirichlet_lm
+   .. automethod:: hiemstra_lm
    .. automethod:: tf
    .. automethod:: tf_idf
 
@@ -35,8 +37,8 @@ most use cases.
    Indexing
    ------------------------------------------
    
-   .. automethod:: index
    .. automethod:: indexer
+   .. automethod:: index
 
    Miscellaneous
    ------------------------------------------
@@ -56,11 +58,44 @@ most use cases.
          - Peer-to-peer: :meth:`~pyterrier.Artifact.from_p2p` and :meth:`~pyterrier.Artifact.to_p2p`
          - URLs: :meth:`~pyterrier.Artifact.from_url`
 
+.. autoenum:: pyterrier.terrier.TerrierModel
+.. autoenum:: pyterrier.terrier.TerrierTokeniser
+.. autoenum:: pyterrier.terrier.TerrierStemmer
+   :members:
+.. autoenum:: pyterrier.terrier.TerrierStopwords
+   :members:
+
 
 Mid-Level API
 ----------------------------------------
 
 The Mid-Level API provides more control over Terrier functionality.
+
+Indexing
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: pyterrier.terrier.IterDictIndexer
+   :members: index
+
+.. autoclass:: pyterrier.terrier.TRECCollectionIndexer
+   :members: index
+
+.. autoclass:: pyterrier.terrier.FilesIndexer
+   :members: index
+
+.. autoclass:: pyterrier.terrier.IndexingType
+
+.. autofunction:: pyterrier.terrier.treccollection2textgen
+
+Retrieval & Scoring
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: pyterrier.terrier.Retriever
+    :members: transform
+
+.. autoclass:: pyterrier.terrier.TextScorer
+    :members: transform
+
 
 Low-Level (Java) API
 -----------------------------------------
