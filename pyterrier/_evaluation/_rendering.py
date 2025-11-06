@@ -51,28 +51,28 @@ def _color_cols(data : pd.Series, col_type,
 def _mean_of_measures(result, measures=None, num_q = None):
     if len(result) == 0:
         raise ValueError("No measures received - perhaps qrels and topics had no results in common")
-    measures_sum = {}
-    mean_dict = {}
+
     if measures is None:
         measures = list(next(iter(result.values())).keys())
     measures_remove = ["runid"]
     for m in measures_remove:
         if m in measures:
             measures.remove(m)
-    measures_no_mean = set(["num_q", "num_rel", "num_ret", "num_rel_ret", "NumQ", "NumRel", "NumRet", "NumRelRet"])
+
+    _, measure2str = _convert_measures(measures)
+    str2measure = {v:k for k,v in measure2str.items()}
+    aggregators = {k: v.aggregator() for k, v in str2measure.items()}
+
     for val in result.values():
         for measure in measures:
             measure_val = val[measure]
-            measures_sum[measure] = measures_sum.get(measure, 0.0) + measure_val
-    if num_q is None:
-        num_q = len(result.values())
-    for measure, value in measures_sum.items():
-        mean_dict[measure] = value / (1 if measure in measures_no_mean else num_q)
-    return mean_dict
+            aggregators[measure].add(measure_val)
+
+    return {m: agg.result() for m, agg in aggregators.items()}
 
 
 def _convert_measures(metrics : MEASURES_TYPE) -> Tuple[Sequence[Measure], Dict[Measure,str]]:
-    from ir_measures import parse_trec_measure
+    from ir_measures import parse_trec_measure, parse_measure
     rtr = []
     rev_mapping = {}
     for m in metrics:
@@ -80,7 +80,10 @@ def _convert_measures(metrics : MEASURES_TYPE) -> Tuple[Sequence[Measure], Dict[
             rtr.append(m)
             continue
         elif isinstance(m, str):
-            measures = parse_trec_measure(m)
+            try:
+                measures = parse_trec_measure(m)
+            except ValueError:
+                measures = [parse_measure(m)]
             if len(measures) == 1:
                 metric = measures[0]
                 rtr.append(metric)
@@ -102,8 +105,9 @@ class RenderFromPerQuery():
     Responsible for calculating means of measures, applying significance testing, rounding and constructing dataframes
     """
 
-    def __init__(self, systems, baseline=None, test_fn=None, correction=None, correction_alpha : float = 0.05, round=None, precompute_time=0):
+    def __init__(self, systems, measures, baseline=None, test_fn=None, correction=None, correction_alpha : float = 0.05, round=None, precompute_time=0):
         self.systems = systems
+        self.measures = measures
         self.baseline = baseline
         self.test_fn = test_fn
         self.correction = correction

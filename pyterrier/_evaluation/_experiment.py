@@ -301,6 +301,7 @@ def Experiment(
         tqdm_args['total'] = math.ceil((len(topics) / batch_size)) * len(retr_systems)
 
     renderer = RenderFromPerQuery(names, 
+                                  eval_metrics,
                                   baseline=baseline, 
                                   test_fn=test_fn, 
                                   correction=correction, 
