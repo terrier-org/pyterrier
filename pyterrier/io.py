@@ -358,6 +358,55 @@ def _read_topics_trecxml(filename : str, tags : List[str] = ["query", "question"
         topics.append((str(qid), query.strip()))
     return pd.DataFrame(topics, columns=["qid", "query"])
 
+def _read_topics_singleline(filepath, contains_qid=True, tokenise=False) -> pd.DataFrame:
+    if tokenise:
+        return _read_topics_singleline_tokenise(filepath, tokenise=True)
+    qid_counter = 0
+    
+    def _open(filepath):
+        if filepath.startswith('http://') or filepath.startswith('https://'):
+            return pt.io.download_stream(filepath)
+        return pt.io.autoopen(filepath, 'rt')
+    print("using native python singleline topic reader")
+    with _open(filepath) as f:
+        rows = []
+        for line in f:
+            line = line.strip()
+            if line.startswith("#"):
+                continue
+            if len(line) == 0:
+                continue
+            if contains_qid:
+                m = re.match(r'^(\S+)[\s:]+(.*)$', line)
+                if m:
+                    qid = m.group(1)
+                    query = m.group(2)
+            else:
+                qid_counter += 1
+                qid = str(qid_counter)
+            rows.append([qid, query])
+        return pd.DataFrame(rows, columns=["qid", "query"])
+
+@pt.java.required
+def _read_topics_singleline_tokenise(filepath, tokenise=True) -> pd.DataFrame:
+    """
+    Parse a file containing topics, one per line. This function uses Terrier, so supports reading direct from URLs.
+
+    Args:
+        file_path(str): The path to the topics file
+        tokenise(bool): whether the query should be tokenised, using Terrier's standard Tokeniser.
+            If you are using matchop formatted topics, this should be set to False.
+
+    Returns:
+        pandas.Dataframe with columns=['qid','query']
+    """
+    rows = []
+    assert pt.terrier.check_version("5.3")
+    slqIter = pt.java.autoclass("org.terrier.applications.batchquerying.SingleLineTRECQuery")(filepath, tokenise)
+    for q in slqIter:
+        rows.append([slqIter.getQueryId(), q])
+    return pd.DataFrame(rows, columns=["qid", "query"])   
+
 @pt.java.required
 def _read_topics_singleline(filepath, tokenise=False) -> pd.DataFrame:
     """
