@@ -389,7 +389,7 @@ def _read_topics_singleline(filepath, contains_qid=True, tokenise=False) -> pd.D
             if len(line) == 0:
                 continue
             if contains_qid:
-                m = re.match(r'^(\S+)[\s:]+(.*)$', line)
+                m = re.match(r'^([^:\s]+)[\s:]+(.*)$', line)
                 if m:
                     qid = m.group(1)
                     query = m.group(2)
