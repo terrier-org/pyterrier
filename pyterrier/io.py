@@ -379,7 +379,7 @@ def _read_topics_singleline(filepath, contains_qid=True, tokenise=False) -> pd.D
         if filepath.startswith('http://') or filepath.startswith('https://'):
             return pt.io.download_stream(filepath)
         return pt.io.autoopen(filepath, 'rt')
-    print("using native python singleline topic reader")
+    
     with _open(filepath) as f:
         rows = []
         for line in f:
