@@ -310,8 +310,9 @@ def read_topics(filename : str, format :Literal['trec', 'trecxml', 'singleline']
     return SUPPORTED_TOPICS_FORMATS[format](filename, **kwargs)
 
 @pt.java.required
-def _read_topics_trec(file_path, doc_tag="TOP", id_tag="NUM", whitelist=["TITLE"], blacklist=["DESC","NARR"]) -> pd.DataFrame:
+def _read_topics_trec(file_path, doc_tag="TOP", id_tag="NUM", whitelist=["TITLE"], blacklist=["DESC","NARR"], tokenise=True) -> pd.DataFrame:
     assert pt.terrier.check_version("5.3")
+    assert tokenise, "Tokenisation is always performed for TREC SGML-formatted topics; set tokenise=True, or try using irds to obtain topics"
     trecquerysource = pt.java.autoclass('org.terrier.applications.batchquerying.TRECQuery')
     tqs = trecquerysource(
         [file_path], doc_tag, id_tag, whitelist, blacklist,
@@ -327,7 +328,7 @@ def _read_topics_trec(file_path, doc_tag="TOP", id_tag="NUM", whitelist=["TITLE"
 
 @typing.no_type_check
 @pt.java.required
-def _read_topics_trecxml(filename : str, tags : List[str] = ["query", "question", "narrative"], tokenise=True) -> pd.DataFrame:
+def _read_topics_trecxml(filename : str, tags : List[str] = ["query", "question", "narrative"], tokenise=False) -> pd.DataFrame:
     """
     Parse a file containing topics in TREC-like XML format
 
@@ -358,7 +359,7 @@ def _read_topics_trecxml(filename : str, tags : List[str] = ["query", "question"
     return pd.DataFrame(topics, columns=["qid", "query"])
 
 @pt.java.required
-def _read_topics_singleline(filepath, tokenise=True) -> pd.DataFrame:
+def _read_topics_singleline(filepath, tokenise=False) -> pd.DataFrame:
     """
     Parse a file containing topics, one per line. This function uses Terrier, so supports reading direct from URLs.
 
