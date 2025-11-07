@@ -36,10 +36,6 @@ class TestIrDatasetsIntegration(BaseTestCase):
 
     def test_antique(self):
         dataset = pt.datasets.get_dataset('irds:antique/test')
-        # with self.subTest('topics'):
-        #     topics = dataset.get_topics()
-        #     self.assertEqual(len(topics), 200)
-        #     self.assertEqual(topics['query'][0], 'how can we get concentration onsomething') # removes "?"
         with self.subTest('topics - no tokenisation'):
             topics = dataset.get_topics() #tokenise_query=False
             self.assertEqual(len(topics), 200)
