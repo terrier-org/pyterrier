@@ -170,7 +170,7 @@ Sharing Artifacts with Other Services
 =================================================
 
 You can share an artifact anywhere that you can host the artifact distribution package file. You can construct
-the pckage using :meth:`~pyterrier.Artifact.build_package` and then upload the file to your desired service.
+the package using :meth:`~pyterrier.Artifact.build_package` and then upload the file to your desired service.
 
 To load an artifact that is shared this way, you just need the URL of the artifact distribution package file,
 which can be passed to :meth:`~pyterrier.Artifact.from_url`.
