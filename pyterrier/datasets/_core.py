@@ -505,8 +505,8 @@ def get_dataset(name: str, **configure_kwargs) -> Dataset:
     elif configure_kwargs:
         raise TypeError(f'Unsupported keyword arguments passed to get_dataset: {get_dataset}')
     
-    # TODO: Sean what to put here? 
-    # Temporary handling of topic tokenization
+    # Temporary handling of topic tokenization ... we should remove this at some point, but let's keep it now so it provides a clearer reason
+    # to uswers why it now breaks.
     if not hasattr(result.get_topics, '_has_add_tokenize_query_arg_applied'):
         result.get_topics = add_tokenize_query_arg(result.get_topics)    
     return result
