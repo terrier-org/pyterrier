@@ -84,7 +84,7 @@ def set_tqdm(type=None):
             type = 'notebook'
         else:
             type = 'tqdm'
-    print(type)
+
     if type == 'tqdm':
         from tqdm import tqdm as bartype
         pt.tqdm = bartype
