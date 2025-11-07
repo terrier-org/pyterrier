@@ -578,24 +578,116 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
 
 
     # ----------------------------------------------------
-    # Miscellaneous
+    # Index Data
     # ----------------------------------------------------
 
-    def __repr__(self):
-        return f'TerrierIndex({str(self.path)!r})'
 
     @pt.java.required
     def index_ref(self):
-        """Returns the internal Java index reference object for this index."""
+        """The internal Java index reference object for this index.
+
+        Returns:
+            A Java `IndexRef <http://terrier.org/docs/current/javadoc/org/terrier/structures/IndexRef.html>`_ object for this index.
+        """
         if self._index_ref is None:
             self._index_ref = pt.terrier.J.IndexRef.of(os.path.realpath(str(self.path)))
         return self._index_ref
 
     def index_obj(self):
-        """Returns the internal Java index object for this index."""
+        """The internal Java index object for this index.
+
+        Returns:
+            A Java `Index <http://terrier.org/docs/current/javadoc/org/terrier/structures/Index.html>`_ object for this index.
+        """
         if self._index_obj is None:
             self._index_obj = pt.terrier.IndexFactory.of(self.index_ref(), memory=self.memory)
         return self._index_obj
+
+    def collection_statistics(self):
+        """Returns the collection statistics for this index.
+
+        Example:
+
+        .. code-block:: python
+            :caption: Show collection statistics for a Terrier index.
+
+            >>> stats = index.collection_statistics()
+            >>> print(stats)
+            Number of documents: 11429
+            Number of terms: 7756
+            Number of postings: 224573
+            Number of fields: 0
+            Number of tokens: 271581
+            Field names: []
+            Positions:   false
+
+        In this example, the index has 11429 documents, which contained 271581 word occurrences. 7756 unique words were identified. The total number of postings in the inverted index is 224573.
+        This index did not record fields during indexing (which can be useful for models such as BM25F). Similarly, positions, which are used for phrasal queries or proximity models were not recorded.
+
+        Returns:
+            A Java `CollectionStatistics <http://terrier.org/docs/current/javadoc/org/terrier/structures/CollectionStatistics.html>`_ object for this index.
+        """
+        return self.index_obj().getCollectionStatistics()
+
+    def lexicon(self):
+        """The lexicon for this index.
+
+        Note that the terms in the lexicon include all pre-processing, such as stemming. For example, the term 'chemical' would be
+        stored as 'chemic' when using the default Porter stemmer.
+
+        Returns:
+            A Java `Lexicon <http://terrier.org/docs/current/javadoc/org/terrier/structures/Lexicon.html>`_ object for this index.
+        """
+        return self.index_obj().getLexicon()
+
+    def inverted_index(self):
+        """The inverted posting index for this index.
+
+        Returns:
+            A Java `PostingIndex <http://terrier.org/docs/current/javadoc/org/terrier/structures/PostingIndex.html>`_ object for this index's inverted index.
+        """
+        return self.index_obj().getInvertedIndex()
+
+    def document_index(self):
+        """The document index for this index.
+
+        Returns:
+            A Java `DocumentIndex <http://terrier.org/docs/current/javadoc/org/terrier/structures/DocumentIndex.html>`_ object for this index.
+        """
+        return self.index_obj().getDocumentIndex()
+
+    def meta_index(self):
+        """The meta index for this index.
+
+        Example:
+
+        .. code-block:: python
+            :caption: Show metadata fields in a Terrier index.
+
+            >>> print(index.meta_index().getKeys())
+            ['docno', 'text']
+
+        In this example, the index contains two metadata fields: ``docno``, which contains the document identifiers, and ``text``, which contains the raw text of each document.
+
+        Returns:
+            A Java `MetaIndex <http://terrier.org/docs/current/javadoc/org/terrier/structures/MetaIndex.html>`_ object for this index.
+        """
+        return self.index_obj().getMetaIndex()
+
+    def direct_index(self):
+        """The direct (forward) index for this index.
+
+        Returns:
+            A Java `PostingIndex <http://terrier.org/docs/current/javadoc/org/terrier/structures/PostingIndex.html>`_ object for this index's direct index.
+        """
+        return self.index_obj().getDirectIndex()
+
+    # ----------------------------------------------------
+    # Miscellaneous
+    # ----------------------------------------------------
+
+    def __repr__(self):
+        return f'TerrierIndex({str(self.path)!r})'
 
     def built(self):
         """Returns whether the index has been built (or is a built in-memory index)."""
@@ -605,11 +697,11 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
     @pt.java.required
     def coerce(cls, index_like: Union[str, Path, 'TerrierIndex']) -> 'TerrierIndex':
         """Attempts to build a :class:`TerrierIndex` from the given object.
-        
-        ``index_like`` can be either:
-          - ``str`` or ``Path``: loads the index at the provided path
-          - ``pt.terrier.J.IndexRef`` or ``pt.terrier.J.Index``: creates a TerrierIndex from the Java object
-          - ``pt.terrier.TerrierIndex``: returns itself
+
+        Args:
+            index_like (object): The object to coerce into a TerrierIndex. If a ``str`` or ``Path``, it loads the index at the provided path. If
+                a ``pt.terrier.J.IndexRef`` or ``pt.terrier.J.Index``, it creates a TerrierIndex from the Java object. If a ``pt.terrier.TerrierIndex``,
+                it returns itself.
         """
         if isinstance(index_like, TerrierIndex):
             return index_like
@@ -625,6 +717,18 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
     def example() -> 'TerrierIndex':
         """Returns an example Terrier index."""
         return TerrierIndex.from_hf('pyterrier/sample.terrier')
+
+    def get_corpus_iter(self, return_toks: bool = True) -> pt.model.IterDict:
+        """Returns an iterable over the documents in this index's corpus.
+
+        Args:
+            return_toks: Whether to return tokenised text (list of strings) or raw text (string).
+
+        A corpus iter from a Terrier index can be used for various purposes, including:
+          - indexing the pre-tokenised Terrier index directly in another indexing pipeline
+          - extracting document metadata for ingestion into another indexing pipeline
+        """
+        return self.index_obj.get_corpus_iter(return_toks=return_toks)
 
 
 _WMODEL_MAP: Dict[TerrierModel, str] = {

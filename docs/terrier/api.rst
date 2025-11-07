@@ -40,12 +40,23 @@ most use cases.
    .. automethod:: indexer
    .. automethod:: index
 
+   Index Data
+   ------------------------------------------
+
+   .. automethod:: collection_statistics
+   .. automethod:: lexicon
+   .. automethod:: inverted_index
+   .. automethod:: document_index
+   .. automethod:: meta_index
+   .. automethod:: direct_index
+   .. automethod:: index_ref
+   .. automethod:: index_obj
+
    Miscellaneous
    ------------------------------------------
    
    .. automethod:: built
-   .. automethod:: index_ref
-   .. automethod:: index_obj
+   .. automethod:: get_corpus_iter
    .. automethod:: coerce
 
    Sharing
@@ -53,10 +64,11 @@ most use cases.
 
    .. seealso::
        You can share Terrier indices using the Artifacts API:
-         - HuggingFace: :meth:`~pyterrier.Artifact.from_hf` and :meth:`~pyterrier.Artifact.to_hf`
-         - Zenodo: :meth:`~pyterrier.Artifact.from_zenodo` and :meth:`~pyterrier.Artifact.to_zenodo`
-         - Peer-to-peer: :meth:`~pyterrier.Artifact.from_p2p` and :meth:`~pyterrier.Artifact.to_p2p`
-         - URLs: :meth:`~pyterrier.Artifact.from_url`
+
+       - HuggingFace: :meth:`~pyterrier.Artifact.from_hf` and :meth:`~pyterrier.Artifact.to_hf`
+       - Zenodo: :meth:`~pyterrier.Artifact.from_zenodo` and :meth:`~pyterrier.Artifact.to_zenodo`
+       - Peer-to-peer: :meth:`~pyterrier.Artifact.from_p2p` and :meth:`~pyterrier.Artifact.to_p2p`
+       - URLs: :meth:`~pyterrier.Artifact.from_url`
 
 .. autoenum:: pyterrier.terrier.TerrierModel
 .. autoenum:: pyterrier.terrier.TerrierTokeniser
@@ -93,9 +105,38 @@ Retrieval & Scoring
 .. autoclass:: pyterrier.terrier.Retriever
     :members: transform
 
+.. autoclass:: pyterrier.terrier.FeaturesRetriever
+    :members: transform
+
 .. autoclass:: pyterrier.terrier.TextScorer
     :members: transform
 
+Query Expansion
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: pyterrier.terrier.rewrite.SDM
+   :members: transform
+
+.. autoclass:: pyterrier.terrier.rewrite.RM3
+   :members: transform
+
+.. autoclass:: pyterrier.terrier.rewrite.Bo1QueryExpansion
+   :members: transform
+
+.. autoclass:: pyterrier.terrier.rewrite.KLQueryExpansion
+   :members: transform
+
+.. autofunction:: pyterrier.terrier.rewrite.reset
+.. autofunction:: pyterrier.terrier.rewrite.tokenise
+.. autofunction:: pyterrier.terrier.rewrite.stash_results
+.. autofunction:: pyterrier.terrier.rewrite.reset_results
+.. autofunction:: pyterrier.terrier.rewrite.linear
+
+Loading
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: pyterrier.terrier.TerrierTextLoader
+    :members: transform
 
 Low-Level (Java) API
 -----------------------------------------
@@ -103,6 +144,9 @@ Low-Level (Java) API
 Some functions return Java object wrappers (e.g., :meth:`TerrierIndex.index_obj() <pyterrier.terrier.TerrierIndex.index_obj>`)
 that provide direct low-level API access to Terrier classes. You can find documentation for it in the
 `Terrier Documentation <http://terrier.org/docs/current/javadoc/>`__.
+
+.. autoclass:: pyterrier.terrier.IndexFactory
+    :members: of
 
 .. tip::
 

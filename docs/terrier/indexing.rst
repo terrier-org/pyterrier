@@ -249,3 +249,37 @@ Terrier Indexing
 ..     tok = AutoTokenizer.from_pretrained("bert-base-uncased")
 ..     query_toks = pt.rewrite.tokenise(tok.tokenize, matchop=True)
 ..     retr_pipe = query_toks >> br
+
+
+What's in a Terrier index?
+===================================
+
+A Terrier index contains several data structures. These structures provide low-level API access to the indexed data. The data structures are:
+
+**Collection Statistics**
+    :meth:`TerrierIndex.collection_statistics() <pyterrier.terrier.TerrierIndex.collection_statistics>` provides
+    global statistics of the index, such as the number of documents, number of terms, etc.
+
+**Lexicon**
+    :meth:`TerrierIndex.lexicon() <pyterrier.terrier.TerrierIndex.lexicon>` provides an entry
+    for each unique term in the index, which contains the corresponding statistics of each term (frequency etc), and a
+    pointer to the inverted index posting list for that term.
+
+**Inverted Index**
+    :meth:`TerrierIndex.inverted_index() <pyterrier.terrier.TerrierIndex.inverted_index>` provides access to
+    the posting list for each term, which records the documents that a given term appears in, and with what frequency
+    for each document.
+
+**Document Index**
+    :meth:`TerrierIndex.document_index() <pyterrier.terrier.TerrierIndex.document_index>` provides access to
+    the length of the document (and other field lengths).
+
+**Meta Index**
+    :meth:`TerrierIndex.meta_index() <pyterrier.terrier.TerrierIndex.meta_index>` provides access to
+    document metadata, such as the ``docno``, and optionally the raw text and the URL of each document.
+
+**Direct Index** (*Forward Index*)
+    :meth:`TerrierIndex.direct_index() <pyterrier.terrier.TerrierIndex.direct_index>` provides a posting list for
+    each document, detailing which terms occur in that document and with which frequency. The presence of the
+    direct index depends on the IndexingType that has been applied - single-pass and some memory indices do not
+    provide a direct index.

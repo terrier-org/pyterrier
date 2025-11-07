@@ -1,4 +1,4 @@
-Query Rewriting & Expansion
+Terrier Query Rewriting & Expansion
 ---------------------------
 
 Query rewriting refers to changing the formulation of the query in order to improve the effectiveness of the

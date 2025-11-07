@@ -27,8 +27,8 @@ generate_includes.setup()
 if not "QUICK" in os.environ:
     generate_includes.dataset_include()
     generate_includes.experiment_includes()
-generate_includes.artifact_list_include()
-generate_extensions.generate_extensions()
+    generate_extensions.generate_extensions()
+    generate_includes.artifact_list_include()
 
 # -- Project information -----------------------------------------------------
 import datetime
@@ -67,6 +67,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx_tabs.tabs',
     'enum_tools.autoenum',
+    'extras.related',
 ]
 
 

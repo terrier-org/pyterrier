@@ -8,10 +8,7 @@ Welcome to PyTerrier's documentation!
    installation
    datasets
    Terrier <terrier/index>
-   terrier-indexing   
-   terrier-retrieval
    experiments
-   rewrite
    ltr
    artifacts
 
