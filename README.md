@@ -5,20 +5,16 @@
 
 # PyTerrier
 
-A Python API for Terrier - v.0.13
+A Python API for Terrier - v1.0.
 
 # Installation
 
 The easiest way to get started with PyTerrier is to use one of our Colab notebooks - look for the ![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg) badges below.
 
-### Linux or Google Colab or Windows
+### Linux or Google Colab or Windows or macOS
 1. `pip install python-terrier`
-2. You may need to set JAVA_HOME environment variable if Pyjnius cannot find your Java installation.
+2. You may need to set JAVA_HOME environment variable if Pyjnius cannot find your Java installation. On Colab, we install Java automatically.
 
-### macOS
-
-1. You need to hava Java installed. Pyjnius/PyTerrier will pick up the location automatically.
-2. `pip install python-terrier`
 
 # Indexing
 
@@ -154,12 +150,13 @@ By downloading and using PyTerrier, you agree to cite at the undernoted paper de
 
 # Credits
 
- - Alex Tsolov, University of Glasgow
  - Craig Macdonald, University of Glasgow
+ - Sean MacAvaney, University of Glasgow
  - Nicola Tonellotto, University of Pisa
+ - Alex Tsolov, University of Glasgow
  - Arthur Câmara, TU Delft
  - Alberto Ueda, Federal University of Minas Gerais
- - Sean MacAvaney, Georgetown University/University of Glasgow
+ - Sean MacAvaney, University of Glasgow
  - Chentao Xu, University of Glasgow
  - Sarawoot Kongyoung, University of Glasgow
  - Zhan Su, Copenhagen University
