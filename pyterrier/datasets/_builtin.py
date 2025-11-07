@@ -518,5 +518,5 @@ class BuiltinDatasetProvider(pt.datasets.DatasetProvider):
     def get_dataset(self, name: str) -> pt.datasets.Dataset:
         return DATASET_MAP[name]
 
-    def list_datasets(self) -> Iterable[str]:
+    def list_dataset_names(self) -> Iterable[str]:
         return list(DATASET_MAP.keys())

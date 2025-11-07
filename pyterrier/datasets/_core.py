@@ -531,7 +531,7 @@ def datasets() -> List[str]:
     for provider_name in sorted(_loaded_providers.keys()):
         provider = _loaded_providers[provider_name]
         for name in provider.list_dataset_names():
-            if provider_name != '':
+            if provider_name != '' and provider_name != 'builtin':
                 name = f'{provider_name}:{name}'
             result.append(name)
     return result
