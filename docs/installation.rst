@@ -29,12 +29,12 @@ Installing PyTerrier is easy - it can be installed from the command-line using `
 
         .. code-block:: bash
 
-            pip install --upgrade git+https://github.com/terrier-org/pyterrier.git#egg=python-terrier
+            pip install --upgrade git+https://github.com/terrier-org/pyterrier.git
 
 
 **Problems Installing?** Check out the :doc:`installation troubleshooting guide <troubleshooting/installation>`.
 
-Runing PyTerrier
+Running PyTerrier
 ================
 
 Once installed, you can get going with PyTerrier just by importing it. It's common to alias it as ``pt`` when importing::
@@ -46,5 +46,7 @@ Java is required for some functionality in PyTerrier. If you want to check to ma
 can run::
 
     pt.java.init()
+
+Note that it is not longer required to run ``pt.init()`` before using PyTerrier.
 
 **Problems with Java?** Check out the :doc:`Java troubleshooting guide <troubleshooting/java>`.
