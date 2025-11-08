@@ -6,3 +6,4 @@ sphinx-tabs
 enum-tools[sphinx]
 bibtexparser~=1.0
 pylatexenc
+sphinx-togglebutton

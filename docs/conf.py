@@ -68,6 +68,8 @@ extensions = [
     'sphinx_tabs.tabs',
     'enum_tools.autoenum',
     'extras.related',
+    'extras.codeblock_footnotes',
+    'sphinx_togglebutton',
 ]
 
 

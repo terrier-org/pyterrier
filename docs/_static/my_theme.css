@@ -167,3 +167,44 @@ body {
 .sidebar-tree {
     margin-bottom: 24px;
 }
+
+button.toggle-button.toggle-button-hidden::before {
+    vertical-align: 6px;
+    cursor: pointer;
+}
+
+.admonition.toggle-hidden .admonition-title ~ * {
+    display: none;
+}
+
+button.toggle-button {
+    top: 6px;
+}
+
+.code-footnotes {
+    color: var(--color-foreground-secondary);
+    counter-reset: item;
+    list-style: none;
+    padding-left: 0;
+    font-size: 0.8rem;
+    margin-top: -0.7rem;
+    margin-left: 4px;
+    margin-right: 4px;
+    margin-bottom: 1rem;
+}
+
+.code-footnotes > li {
+    counter-increment: item;
+    margin: 0.25em 0;
+    padding-left: 22px;
+    position: relative;
+}
+
+.code-footnotes > li::before {
+    content: "[" counter(item) "] ";
+    position: absolute;
+    top: 3px;
+    left: 0;
+    font-family: "SFMono-Regular", Menlo, Consolas, Monaco, Liberation Mono, Lucida Console, monospace;
+    font-size: 0.64rem;
+}
