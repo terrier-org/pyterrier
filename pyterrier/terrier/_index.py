@@ -42,6 +42,8 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
         Args:
             path: The path to the index on disk.
             memory: Whether to load the index fully into memory.
+            _index_ref: **For internal use only.** The Java IndexRef object for this index.
+            _index_obj: **For internal use only.** The Java Index object for this index.
         """
         super().__init__(path)
         if _index_ref is not None:

@@ -13,7 +13,7 @@ PyTerrier is designed to be extensible. This section describes how to extend PyT
 
    packages
    transformers
-   artifact_types
+   artifacts
    datasets
    indexer_retrieval
    validate

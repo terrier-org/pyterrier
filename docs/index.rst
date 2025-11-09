@@ -10,7 +10,7 @@ Welcome to PyTerrier's documentation!
    Terrier <terrier/index>
    experiments
    ltr
-   artifacts
+   Artifacts <artifacts/index>
 
 .. toctree::
    :maxdepth: 1

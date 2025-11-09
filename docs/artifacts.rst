@@ -7,11 +7,8 @@ green (i.e., sustainable) research. [#]_
 
 Shared artifacts are also ready-to-use in your experiments through objects that expose various
 retrieval functionality through :doc:`Transformers <transformer>`. For instance, once you load a
-``TerrierIndex`` artifact, you can use its ``bm25()`` method to build a transformer that retrieves
-from the index using BM25.
-
-The API is provided by the :class:`~pyterrier.Artifact` classs, which includes methods
-for sharing artifacts using a variety of services, such as HuggingFace Hub and Zenodo.
+:class:`~pyterrier.terrier.TerrierIndex` artifact, you can use its :meth:`~pyterrier.terrier.TerrierIndex.bm25`
+method to build a transformer that retrieves from the index using BM25.
 
 .. note::
     **What is an Artifact?** "Artifact" often refers to a broad range of items. For
