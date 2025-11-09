@@ -17,3 +17,4 @@ statsmodels # used for multiple testing correction
 # others
 dill # used for serialisation that is better than pickle, e.g. passing wmodel functions to terrier.Retriever
 lz4 # used for compression
+beautifulsoup4 # used for parsing SGML formatted TREC topics
