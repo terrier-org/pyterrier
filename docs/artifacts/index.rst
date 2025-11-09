@@ -11,6 +11,7 @@ method to build a transformer that retrieves from the index using BM25.
 
 .. toctree::
    :maxdepth: 1
+   :caption: Contents
 
    How-To Guides <how-to>
    Listing <listing>

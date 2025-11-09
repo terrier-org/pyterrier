@@ -22,7 +22,6 @@ Welcome to PyTerrier's documentation!
    pipeline_examples.md
    text
    neural
-   terrier-index-api
    tuning
    experiments/Robust04
    extending/index

@@ -123,7 +123,7 @@ steps in the pipeline. Here is an example using `Spacy <https://spacy.io/>`__ fo
 
 .. _terrier:how-to:loop-docs:
 
-How can I loop over all documents in an index?
+How do I loop over all documents in an index?
 -----------------------------------------------------------------------------
 
 .. related:: pyterrier.terrier.TerrierIndex.get_corpus_iter
@@ -139,11 +139,12 @@ How can I loop over all documents in an index?
         print(doc)
         # do something with doc
 
+
 -----------------------------------------------------------------------------
 
 .. _terrier:how-to:access-lexicon:
 
-How can I access the terms in an index?
+How do I access the terms in an index?
 -----------------------------------------------------------------------------
 
 .. related:: pyterrier.terrier.TerrierIndex.lexicon
@@ -161,3 +162,95 @@ How can I access the terms in an index?
         print(entry.getDocumentFrequency()) # :footnote: Lexicon provides low-level API access through Java bindings. ``getDocumentFrequency()`` is defined in the Java `LexiconEntry <http://terrier.org/docs/current/javadoc/org/terrier/structures/LexiconEntry.html>`__ class.
     
     print("frequency for 'chemic':", lexicon["chemic"].getDocumentFrequency()) # :footnote: You can also access statistics for a specific term
+
+`LexiconEntry <http://terrier.org/docs/current/javadoc/org/terrier/structures/LexiconEntry.html>`_ objects provide various
+statistics about terms in the index, including the number of documents the term occurrs in (``getDocumentFrequency()``) and
+the total number of times the term occurrs in the collection (``getFrequency()``), and more. You can use these to compute
+various statistics about terms in the index, such as the example code to compute the (un-smoothed) probability of a term
+occurring in the collection below:
+
+.. code-block:: python
+    :caption: Computing term probabilities from a Terrier Lexicon
+
+    term = 'chemic'
+    lexicon = index.lexicon()
+    collection_stats = index.collection_statistics()
+    if term in lexicon:
+        prob = lexicon[term].getFrequency() / collection_stats.getNumberOfTokens()
+    else:
+        prob = 0.0
+
+
+-----------------------------------------------------------------------------
+
+.. _terrier:how-to:traverse-postings:
+
+How do I manually traverse the postings of an index?
+-----------------------------------------------------------------------------
+
+.. related:: pyterrier.terrier.TerrierIndex.inverted_index
+
+.. code-block:: python
+    :caption: Traversing postings lists in a Terrier index
+
+    term = 'chemic'
+    meta = index.meta_index()
+    inv = index.inverted_index()
+    lexicon = index.lexicon()
+
+    for posting in inv.getPostings(lexicon[term]): # :footnote: Look up the posting list using the pointer from the lexicon entry
+        docno = meta.getItem("docno", posting.getId()) # :footnote: Here we load the ``docno`` (document identifier) from the meta index
+        print(f"{docno} has a frequency of {posting.getFrequency()}")
+
+
+-----------------------------------------------------------------------------
+
+.. _terrier:how-to:direct-index:
+
+How do I look up the terms that occurr in a document?
+-----------------------------------------------------------------------------
+
+.. related:: pyterrier.terrier.TerrierIndex.direct_index
+
+.. code-block:: python
+    :caption: Accessing terms in a document from a Terrier index
+
+    docid = 10 # :footnote: Document IDs are zero-based, so this will return the 11th document in the index
+    di = index.direct_index()
+    doi = index.document_index()
+    lexicon = index.lexicon()
+
+    for posting in di.getPostings(doi.getDocumentEntry(docid)):
+        termid = posting.getId()
+        lee = lexicon.getLexiconEntry(termid)
+        print(f"{lee.getKey()} with frequency {posting.getFrequency()}")
+
+
+
+-----------------------------------------------------------------------------
+
+.. _terrier:how-to:manual-wmodel:
+
+How do I manually compute the scores for a weighting model?
+-----------------------------------------------------------------------------
+
+.. code-block:: python
+    :caption: Manually computing weighting model scores using Terrier
+
+    term = "chemic"
+    inv = index.inverted_index()
+    meta = index.meta_index()
+    lex = index.lexicon()
+    le = lex.getLexiconEntry(term)
+    wmodel = pt.autoclass("org.terrier.matching.models.PL2")() # :footnote: Here we use the Java class name for the PL2 weighting model. You can replace this with any other Terrier weighting model class.
+    wmodel.setCollectionStatistics(index.collection_statistics()) # :footnote: Using the weighting model requires some setup before it can be used
+    wmodel.setEntryStatistics(le);
+    wmodel.setKeyFrequency(1)
+    wmodel.prepare()
+    for posting in inv.getPostings(le):
+        docno = meta.getItem("docno", posting.getId())
+        score = wmodel.score(posting)
+        print(f"{docno} with score {score:0.4f}")
+
+Note that this is less efficient than using the built-in retriever transformers such as
+:meth:`~pyterrier.terrier.TerrierIndex.bm25` or :meth:`~pyterrier.terrier.TerrierIndex.pl2`.

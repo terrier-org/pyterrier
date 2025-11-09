@@ -9,6 +9,7 @@ This section of the documentation describes how to use the Terrier integration i
 
 .. toctree::
    :maxdepth: 1
+   :caption: Contents
 
    Quick Start <quick-start>
    Indexing <indexing>
