@@ -35,7 +35,7 @@ Installing PyTerrier is easy - it can be installed from the command-line using `
 **Problems Installing?** Check out the :doc:`installation troubleshooting guide <troubleshooting/installation>`.
 
 Running PyTerrier
-================
+=================
 
 Once installed, you can get going with PyTerrier just by importing it. It's common to alias it as ``pt`` when importing::
 

@@ -1,5 +1,5 @@
 Terrier Query Rewriting & Expansion
----------------------------
+------------------------------------------
 
 Query rewriting refers to changing the formulation of the query in order to improve the effectiveness of the
 search ranking. PyTerrier supplies a number of query rewriting transformers designed to work with Retriever.
@@ -23,7 +23,7 @@ Firstly, we differentiate between two forms of query rewriting:
 
 .. schematic::
 
-    index = pt.Artifact.from_hf("pyterrier/vaswani.terrier")
+    index = pt.terrier.TerrierIndex.example()
     dph = index.dph()
     dph >> pt.rewrite.RM3(index.index_obj()) >> dph
 
@@ -139,7 +139,7 @@ revert to the original query formulation for a final ranking step such as MonoT5
 .. schematic::
 
     from pyterrier_t5 import MonoT5ReRanker
-    index = pt.Artifact.from_hf("pyterrier/vaswani.terrier")
+    index = pt.terrier.TerrierIndex.example()
     dph = index.dph()
     monoT5 = MonoT5ReRanker()
     dph >> pt.rewrite.RM3(index.index_obj()) >> dph >> pt.rewrite.reset() >> pt.text.get_text(pt.get_dataset('irds:vaswani')) >> monoT5

@@ -78,13 +78,13 @@ One pipeline could be retrieve documents, get their text, and then re-score them
 .. schematic::
     :input_columns: qid,query
 
-    pt.terrier.TerrierIndex.from_hf('pyterrier/vaswani.terrier').bm25() >> pt.text.get_text(pt.get_dataset('irds:vaswani')) >> pt.text.scorer(body_attr="text")
+    pt.terrier.TerrierIndex.example().bm25() >> pt.text.get_text(pt.get_dataset('irds:vaswani')) >> pt.text.scorer(body_attr="text")
 
 .. schematic::
     :input_columns: qid,query
 
     from pyterrier_t5 import MonoT5ReRanker
-    pt.terrier.TerrierIndex.from_hf('pyterrier/vaswani.terrier').bm25() % 100 >> pt.text.get_text(pt.get_dataset('irds:vaswani')) >> MonoT5ReRanker()
+    pt.terrier.TerrierIndex.example().bm25() % 100 >> pt.text.get_text(pt.get_dataset('irds:vaswani')) >> MonoT5ReRanker()
 
 Other text scorers are available in the form of neural re-rankers - separate to PyTerrier, see :ref:`neural`.
 

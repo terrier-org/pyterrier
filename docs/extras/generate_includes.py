@@ -156,15 +156,13 @@ def artifact_list_include():
 .. list-table::
    :header-rows: 1
 
-   * - Class
-     - Package
+   * - Class (Package)
      - Type/Format
      - Artifacts on...
 ''')
         for rec in table:
             f.write('''
-   * - :class:`~{class}`
-     - ``{package}``
+   * - :class:`~{class}` (``{package}``)
      - ``{type}/{format}``
-     - `HuggingFace <https://huggingface.co/datasets?other=pyterrier-artifact.{type}.{format}>`__ `Zenodo <https://zenodo.org/search?q=metadata.subjects.subject%3A%22pyterrier-artifact.{type}.{format}%22>`__
+     - `HuggingFace <https://huggingface.co/datasets?other=pyterrier-artifact.{type}.{format}>`__ | `Zenodo <https://zenodo.org/search?q=metadata.subjects.subject%3A%22pyterrier-artifact.{type}.{format}%22>`__
 '''.format(**rec))
