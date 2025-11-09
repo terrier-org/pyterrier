@@ -566,16 +566,16 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
             threads=threads,
         )
 
-    def index(self, it: pt.model.IterDict, **kwargs: Any):
+    def index(self, iter: pt.model.IterDict, **kwargs: Any):
         """Indexes the given input data, creating the index if it does not yet exist, or raising an error if it does.
 
         This method is shorthand for ``self.indexer().index(iter)``.
 
         Args:
-            it: The documents to index as an iterable of dicts.
+            iter: The documents to index as an iterable of dicts.
         """
         assert len(kwargs) == 0, f"unknown keyword argument(s) given: {kwargs}"
-        self.indexer().index(it)
+        self.indexer().index(iter)
         return self
 
 
