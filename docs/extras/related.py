@@ -104,6 +104,7 @@ def process_related_items(app, doctree, docname):
                 # Create a seealso admonition
                 seealso = nodes.admonition()
                 seealso['classes'].append('seealso')
+                seealso['classes'].append('related')
                 
                 # Add title
                 title = nodes.title()

@@ -254,7 +254,15 @@ Terrier Indexing
 What's in a Terrier index?
 ===================================
 
-A Terrier index contains several data structures. These structures provide low-level API access to the indexed data. The data structures are:
+.. related:: pyterrier.terrier.TerrierIndex.collection_statistics
+.. related:: pyterrier.terrier.TerrierIndex.lexicon
+.. related:: pyterrier.terrier.TerrierIndex.inverted_index
+.. related:: pyterrier.terrier.TerrierIndex.document_index
+.. related:: pyterrier.terrier.TerrierIndex.meta_index
+.. related:: pyterrier.terrier.TerrierIndex.direct_index
+
+A Terrier index contains several data structures. These structures provide low-level API access to the indexed data.
+The data structures that can be present in a Terrier index are:
 
 **Collection Statistics**
     :meth:`TerrierIndex.collection_statistics() <pyterrier.terrier.TerrierIndex.collection_statistics>` provides

@@ -4,8 +4,6 @@ Terrier Quick Start Tutorial
 .. related:: pyterrier.terrier.TerrierIndex.bm25
 
 Terrier is an open-source search engine that allows for efficient indexing and retrieval of documents.
-This tutorial will guide you through the process of indexing a small collection of web documents using Terrier,
-retrieving documents using the BM25 retrieval model, and refining the results using query expansion techniques.
 
 In this tutorial, you will:
 
@@ -64,7 +62,8 @@ We will start by building an index of the collection. This constructs data struc
 efficient retrieval of documents based on their content.
 
 To index a collection using Terrier, you first need to create a :class:`~pyterrier.terrier.TerrierIndex` object.
-Since Terrier indexes are stored on disk, you need to provide a path where the index will be stored.
+Since Terrier indexes are stored on disk, you need to provide a path where the index will be stored when constructing it.
+To add documents to the index, you can call ``index()``, passing in the corpus.
 
 .. code-block:: python
     :caption: Creating a Terrier index

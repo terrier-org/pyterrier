@@ -6,6 +6,11 @@ h2 {
     font-size: 1.75em;
 }
 
+ol, ul {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
 .code-block-caption {
     background-color: #ddd;
     border-top-left-radius: 12px;
@@ -207,4 +212,8 @@ button.toggle-button {
     left: 0;
     font-family: "SFMono-Regular", Menlo, Consolas, Monaco, Liberation Mono, Lucida Console, monospace;
     font-size: 0.64rem;
+}
+
+.related > p {
+    margin: 0.1rem 0;
 }

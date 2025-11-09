@@ -145,11 +145,11 @@ Some functions return Java object wrappers (e.g., :meth:`TerrierIndex.index_obj(
 that provide direct low-level API access to Terrier classes. You can find documentation for it in the
 `Terrier Documentation <http://terrier.org/docs/current/javadoc/>`__.
 
-.. autoclass:: pyterrier.terrier.IndexFactory
-    :members: of
-
 .. tip::
 
    Pyjnius Java object wrappers show which class they wrap in their string representation. For instance,
    ``str(index.index_obj()) = "<org.terrier.structures.Index at 0x10cd8ba60 ...>"``, showing that it
    wraps an instance of ``org.terrier.structures.Index``.
+
+.. autoclass:: pyterrier.terrier.IndexFactory
+    :members: of

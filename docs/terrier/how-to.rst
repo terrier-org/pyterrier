@@ -1,11 +1,15 @@
 Terrier How-To Guides
 ============================================================
 
+This page provides a set of how-to guides for common tasks when using Terrier with PyTerrier.
+
+-----------------------------------------------------------------------------
+
+.. _terrier:how-to:index-standard:
 
 How do I index a standard corpus?
 ------------------------------------------------------------
 
-.. _terrier:how-to:index-standard:
 .. related:: pyterrier.terrier.TerrierIndex.index
 
 .. code-block:: python
@@ -17,10 +21,13 @@ How do I index a standard corpus?
     my_index.index(dataset.get_corpus_iter()) # :footnote: This performs indexing with default settings. If you need more control over the indexing settings, see :meth:`~pyterrier.terrier.TerrierIndex.indexer` and :class:`~pyterrier.terrier.IterDictIndexer` for advanced options.
 
 
+-----------------------------------------------------------------------------
+
+.. _terrier:how-to:index-custom:
+
 How do I index a custom collection?
 ------------------------------------------------------------
 
-.. _terrier:how-to:index-custom:
 .. related:: pyterrier.terrier.TerrierIndex.indexer
 
 .. code-block:: python
@@ -37,10 +44,13 @@ How do I index a custom collection?
     indexer.index(my_collection)
 
 
-How do I index and retrieve languages other than English?
 -----------------------------------------------------------------------------
 
 .. _terrier:how-to:langs:
+
+How do I index and retrieve languages other than English?
+-----------------------------------------------------------------------------
+
 .. related:: pyterrier.terrier.TerrierTokeniser
 .. related:: pyterrier.terrier.TerrierStopwords
 .. related:: pyterrier.terrier.TerrierStemmer
@@ -109,6 +119,10 @@ steps in the pipeline. Here is an example using `Spacy <https://spacy.io/>`__ fo
     retriever_pipeline.search('dokumentu')
 
 
+-----------------------------------------------------------------------------
+
+.. _terrier:how-to:loop-docs:
+
 How can I loop over all documents in an index?
 -----------------------------------------------------------------------------
 
@@ -125,6 +139,9 @@ How can I loop over all documents in an index?
         print(doc)
         # do something with doc
 
+-----------------------------------------------------------------------------
+
+.. _terrier:how-to:access-lexicon:
 
 How can I access the terms in an index?
 -----------------------------------------------------------------------------
