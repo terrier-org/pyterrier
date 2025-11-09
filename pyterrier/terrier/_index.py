@@ -529,7 +529,7 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
         text_attrs: List[str] = ['text'],
         tokeniser: Union[str, 'pt.terrier.TerrierTokeniser'] = 'english',
         stemmer: Union[None, str, 'pt.terrier.TerrierStemmer'] = 'porter',
-        stopwords: Union[None, 'pt.terrier.TerrierStopwords', List[str]] = 'terrier',
+        stopwords: Union[None, 'pt.terrier.TerrierStopwords', str, List[str]] = 'terrier',
         store_separate_fields: bool = False,
         store_blocks: bool = False,
         threads: int = 1,
@@ -566,7 +566,7 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
             threads=threads,
         )
 
-    def index(self, it: pt.model.IterDict, **kwargs: Any) -> 'TerrierIndex':
+    def index(self, it: pt.model.IterDict, **kwargs: Any):
         """Indexes the given input data, creating the index if it does not yet exist, or raising an error if it does.
 
         This method is shorthand for ``self.indexer().index(iter)``.
@@ -716,7 +716,7 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
         raise RuntimeError(f'Could not coerce {index_like!r} into a TerrierIndex')
 
     @staticmethod
-    def example() -> 'TerrierIndex':
+    def example():
         """Returns an example Terrier index."""
         return TerrierIndex.from_hf('pyterrier/sample.terrier')
 
@@ -730,7 +730,7 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
           - indexing the pre-tokenised Terrier index directly in another indexing pipeline
           - extracting document metadata for ingestion into another indexing pipeline
         """
-        return self.index_obj.get_corpus_iter(return_toks=return_toks)
+        return self.index_obj().get_corpus_iter(return_toks=return_toks)
 
 
 _WMODEL_MAP: Dict[TerrierModel, str] = {
