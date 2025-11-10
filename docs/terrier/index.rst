@@ -13,7 +13,7 @@ This section of the documentation describes how to use the Terrier integration i
 
    Quick Start <quick-start>
    Indexing <indexing>
-   Retrieval <retrieval>
+   Retrieval and Re-Ranking <retrieval>
    Query Expansion <rewrite>
    How-To Guides <how-to>
    API Reference <api>

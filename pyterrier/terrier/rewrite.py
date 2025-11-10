@@ -96,6 +96,8 @@ class SDM(pt.Transformer):
 
         This transformer changes the query. It must be followed by a Terrier Retrieve() transformer.
         The original query is saved in the `"query_0"` column, which can be restored using `pt.rewrite.reset()`.
+
+        .. cite.dblp:: conf/sigir/MetzlerC05
     '''
 
     def __init__(self, verbose = 0, remove_stopwords = True, prox_model = None, **kwargs):
@@ -341,6 +343,8 @@ class Bo1QueryExpansion(DFRQueryExpansion):
         Instance Attributes:
          - fb_terms(int): number of feedback terms. Defaults to 10
          - fb_docs(int): number of feedback documents. Defaults to 3  
+
+        .. cite.dblp::     journals/tois/AmatiR02
     '''
     schematic = {'label': 'Bo1'}
 
@@ -398,6 +402,8 @@ class RM3(QueryExpansion):
                         dataset.get_qrels(),
                         ["map"]
                         )
+
+        .. cite.dblp::     conf/trec/JaleelACDLLSW04
  
     '''
     def __init__(self, *args, fb_terms=10, fb_docs=3, fb_lambda=0.6, **kwargs):

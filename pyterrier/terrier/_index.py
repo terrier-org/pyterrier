@@ -566,16 +566,73 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
             threads=threads,
         )
 
+    def toks_indexer(
+        self,
+        *,
+        meta: Dict = {'docno': 20},
+        threads: int = 1,
+    ) -> pt.Indexer:
+        """Returns an indexer that indexes pre-tokenised documents into this index.
+
+        Args:
+            meta: The fields to store as metadata for each document. The keys are the metadata field names, and the values are the maximum lengths for each field.
+            threads: The number of threads to use during indexing.
+
+        Example Pipeline:
+
+        .. schematic::
+            :show_code:
+
+            index = pt.terrier.TerrierIndex('my_index.terrier')
+            index.toks_indexer()
+        """
+        return pt.terrier.IterDictIndexer(
+            os.path.realpath(str(self.path)),
+            tokeniser=pt.terrier.TerrierTokeniser.whitespace,
+            stemmer=pt.terrier.TerrierStemmer.none,
+            stopwords=pt.terrier.TerrierStopwords.none,
+            meta=meta,
+            pretokenised=True,
+            threads=threads,
+        )
+
     def index(self, iter: pt.model.IterDict, **kwargs: Any):
         """Indexes the given input data, creating the index if it does not yet exist, or raising an error if it does.
 
-        This method is shorthand for ``self.indexer().index(iter)``.
+        This method inspects the first document in the to try to infer reasonable settings for indexing:
+
+        - If a ``toks`` column is present, it is assumed to contain pre-tokenized text, and uses :meth:`toks_indexer`. Otherwise, all ``str`` columns (except ``docno``) are indexed as raw text using :meth:`indexer`.
+        - Text fields are stored as metadata.
+        - The maximum metadata lengths are predicted based on the lengths present in the first document.
 
         Args:
             iter: The documents to index as an iterable of dicts.
+            kwargs: Ignored
         """
         assert len(kwargs) == 0, f"unknown keyword argument(s) given: {kwargs}"
-        self.indexer().index(iter)
+        assert not self.built(), "an index is already built at this path"
+
+        # TODO: I think we should consider moving some of this logic into IterDictIndexer. It would be really nice to have less configuration to do when indexing.
+        iter = pt.utils.peekable(iter)
+        first_doc = iter.peek()
+        assert 'docno' in first_doc, "input documents must contain a 'docno' field"
+
+        pred_docno_max_length = max(len(first_doc['docno']) * 10, 20) # can we be smarter about this? Perhaps we should sample the first k documents?
+        meta = {'docno': pred_docno_max_length}
+
+        text_fields = [k for k, v in sorted(first_doc.items()) if isinstance(v, str) and k != 'docno']
+        meta.update({
+            field: max(len(first_doc[field]) * 10, 100) # can we be smarter about this? Perhaps we should sample the first k documents?
+            for field in text_fields
+        })
+
+        if 'toks' in first_doc:
+            indexer = self.toks_indexer(meta=meta)
+        else:
+            assert len(text_fields) >= 1, f"no str or toks fields found in document. Fields: { {k: type(v) for k, v in first_doc.items()} }"
+            indexer = self.indexer(text_attrs=text_fields, meta=meta)
+
+        indexer.index(iter)
         return self
 
 

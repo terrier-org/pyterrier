@@ -37,8 +37,9 @@ most use cases.
    Indexing
    ------------------------------------------
    
-   .. automethod:: indexer
    .. automethod:: index
+   .. automethod:: indexer
+   .. automethod:: toks_indexer
 
    Index Data
    ------------------------------------------
@@ -95,7 +96,7 @@ Indexing
 .. autoclass:: pyterrier.terrier.FilesIndexer
    :members: index
 
-.. autoclass:: pyterrier.terrier.IndexingType
+.. autoenum:: pyterrier.terrier.IndexingType
 
 .. autofunction:: pyterrier.terrier.treccollection2textgen
 
@@ -153,3 +154,4 @@ that provide direct low-level API access to Terrier classes. You can find docume
 
 .. autoclass:: pyterrier.terrier.IndexFactory
     :members: of
+

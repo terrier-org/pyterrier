@@ -106,6 +106,10 @@ h2 code.literal {
     padding: 0;
 }
 
+.toc-tree li.scroll-current > .reference {
+    font-weight: initial;
+}
+
 article img {
     display: block;
     margin: 12px auto;
