@@ -102,14 +102,9 @@ def _init(trigger=None):
     # java/jnius is now optional, should check here that it's installed. E.g.,
     from importlib.util import find_spec
     if find_spec('jnius_config') is None:
-        if trigger:
-            raise ImportError(f'python-terrier[java] not installed; cannot run pt.java.init(), triggered by {trigger}. Run `pip install python-terrier[java]` to install it.')
-        else:
-            warnings.warn('python-terrier[java] not installed; no need to run pt.java.init()')
-        return
-
+        raise ImportError(f'pyterrier[java] not installed; cannot run pt.java.init(), triggered by {trigger}. Run `pip install pyterrier[java]` to install it.')
+        
     # TODO: what about errors during init? What happens to _started? Etc.
-
     initializers = []
     for entry_point in pt.utils.entry_points('pyterrier.java.init'):
         initalizer = entry_point.load()()
