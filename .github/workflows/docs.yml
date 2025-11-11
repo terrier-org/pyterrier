@@ -45,4 +45,4 @@ jobs:
 
     - name: linkcheck
       run: |
-        QUICK=1 cd docs ; make linkcheck O=--quiet
+        QUICK=1 cd docs ; make linkcheck
