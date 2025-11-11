@@ -24,15 +24,16 @@ jobs:
         distribution: 'zulu'
 
     - name: Cache Dependencies
-      if: matrix.os != 'self-hosted'
       uses: actions/cache@v4
       with:
         path: ${{ env.pythonLocation }}
         key: docs-${{ hashFiles('requirements.txt') }}-${{ hashFiles('docs/requirements.txt') }}-${{ hashFiles('docs/extensions.txt') }}
+        restore-keys: |
+          docs-
 
     - name: Install Dependencies
       run: |
-        pip install . -r docs/requirements.txt -r docs/extensions.txt
+        pip install --upgrade . -r docs/requirements.txt -r docs/extensions.txt
 
     - name: html
       run: |
