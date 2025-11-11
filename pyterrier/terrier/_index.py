@@ -646,7 +646,7 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
         """The internal Java index reference object for this index.
 
         Returns:
-            A Java `IndexRef <http://terrier.org/docs/current/javadoc/org/terrier/structures/IndexRef.html>`_ object for this index.
+            A Java `IndexRef <http://terrier.org/docs/current/javadoc/org/terrier/querying/IndexRef.html>`_ object for this index.
         """
         if self._index_ref is None:
             self._index_ref = pt.terrier.J.IndexRef.of(os.path.realpath(str(self.path)))

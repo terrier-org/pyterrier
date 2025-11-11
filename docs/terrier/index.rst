@@ -1,7 +1,7 @@
 Terrier Integration
 ===============================================
 
-`Terrier <https://terrier.org/>`__ (PyTerrier's namesake) is an open-source search engine developed at the University of Glasgow.
+`Terrier <http://terrier.org/>`__ (PyTerrier's namesake) is an open-source search engine developed at the University of Glasgow.
 It provides core :doc:`inverted indexing <indexing>` and :doc:`retrieval <retrieval>` functionality, and supports a wide range
 of built-in retrieval models and :doc:`query expansion <rewrite>` techniques.
 

@@ -231,4 +231,4 @@ redirects = {
 
 linkcheck_anchors = False
 linkcheck_timeout = 10
-linkcheck_ignore = [r'https://dl.acm.org/.*'] # ACM DL blocks
+linkcheck_ignore = [r'https://dl.acm.org/.*', r'https://www.java.com/.*'] # these domains block linkcheck
