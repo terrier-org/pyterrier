@@ -98,7 +98,7 @@ class IndexFactory:
         """
         Loads an index. Returns a Terrier `Index <http://terrier.org/docs/current/javadoc/org/terrier/structures/Index.html>`_ object.
 
-        :param indexlike: The location of the index. This can be a string, or an `IndexRef <http://terrier.org/docs/current/javadoc/org/terrier/structures/IndexRef.html>`__ object.
+        :param indexlike: The location of the index. This can be a string, or an `IndexRef <http://terrier.org/docs/current/javadoc/org/terrier/querying/IndexRef.html>`__ object.
         :param memory: If the index should be loaded into memory. Use `True` for all structures, or a list of structure names.
         :return: A Terrier `Index <http://terrier.org/docs/current/javadoc/org/terrier/structures/Index.html>`_ object.
         """
