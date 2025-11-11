@@ -275,7 +275,7 @@ Here we demonstrate the use of `pt.apply.doc_score( , batch_size=128)` to allow 
         names=["BM25", "BM25 >> BiEncoder", "BM25 >> CrossEncoder"]
     )
 
-You can `browse the whole notebook <https://github.com/terrier-org/pyterrier/blob/master/examples/notebooks/sentence_transformers.ipynb>`_ or `try it yourself it on Colab <https://colab.research.google.com/terrier-org/pyterrier/blob/master/examples/notebooks/sentence_transformers.ipynb>`_
+You can `browse the whole notebook <https://github.com/terrier-org/pyterrier/blob/master/examples/notebooks/sentence_transformers.ipynb>`_ or `try it yourself it on Colab <https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/sentence_transformers.ipynb>`_
 
 References
 ==========

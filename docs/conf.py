@@ -230,9 +230,5 @@ redirects = {
 }
 
 linkcheck_anchors = False
-linkcheck_timeout = 5
-linkcheck_request_headers = {
-    "*": {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
-    }
-}
+linkcheck_timeout = 10
+linkcheck_ignore = [r'https://dl.acm.org/.*'] # ACM DL blocks

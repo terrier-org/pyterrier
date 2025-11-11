@@ -34,7 +34,7 @@ jobs:
       run: |
         pip install . -r docs/requirements.txt -r docs/extensions.txt
 
-    - name: Sphinx
+    - name: html
       run: |
         cd docs ; make html
 
@@ -42,3 +42,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         path: docs/_build/html/
+
+    - name: linkcheck
+      run: |
+        QUICK=1 cd docs ; make linkcheck
