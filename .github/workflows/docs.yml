@@ -38,11 +38,11 @@ jobs:
       run: |
         cd docs ; make html
 
-    - name: linkcheck
-      run: |
-        QUICK=1 cd docs ; make linkcheck
-
     - name: Upload Documentation
       uses: actions/upload-artifact@v4
       with:
         path: docs/_build/html/
+
+    - name: linkcheck
+      run: |
+        QUICK=1 cd docs ; make linkcheck O=--quiet
