@@ -70,6 +70,7 @@ extensions = [
     'extras.related',
     'extras.codeblock_footnotes',
     'sphinx_togglebutton',
+    'sphinx_reredirects',
 ]
 
 
@@ -220,3 +221,18 @@ texinfo_documents = [
 
 extensions += ["myst_parser"]
 source_suffix = ['.rst', '.md']
+
+redirects = {
+    "terrier-indexing": "terrier/indexing.html",
+    "terrier-retrieval": "terrier/retrieval.html",
+    "rewrite": "terrier/rewrite.html",
+    "terrier-index-api": "terrier/how-to.html", # Most of the content moved here
+}
+
+linkcheck_anchors = False
+linkcheck_timeout = 5
+linkcheck_request_headers = {
+    "*": {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
+    }
+}

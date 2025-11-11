@@ -103,7 +103,7 @@ After running this, a draft upload is created.
 
 **Extras**
 
-* Browse all PyTerrier artifacts on Zenodo via the `pyterrier-artifact <https://zenodo.org/search?q=metadata.subjects.subject%3A"pyterrier-artifact">`__ tag.
+* Browse all PyTerrier artifacts on Zenodo via the `pyterrier-artifact <https://zenodo.org/search?q=metadata.subjects.subject%3A%22pyterrier-artifact%22>`__ tag.
 * Load from a URL using: ``pt.Artifact.from_url('zenodo:artifact-id')``.
 
 
