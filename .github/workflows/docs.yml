@@ -24,21 +24,26 @@ jobs:
         distribution: 'zulu'
 
     - name: Cache Dependencies
-      if: matrix.os != 'self-hosted'
       uses: actions/cache@v4
       with:
         path: ${{ env.pythonLocation }}
         key: docs-${{ hashFiles('requirements.txt') }}-${{ hashFiles('docs/requirements.txt') }}-${{ hashFiles('docs/extensions.txt') }}
+        restore-keys: |
+          docs-
 
     - name: Install Dependencies
       run: |
-        pip install . -r docs/requirements.txt -r docs/extensions.txt
+        pip install --upgrade . -r docs/requirements.txt -r docs/extensions.txt
 
-    - name: Sphinx
+    - name: html
       run: |
-        cd docs ; QUICK=1 make html
+        cd docs ; make html
 
     - name: Upload Documentation
       uses: actions/upload-artifact@v4
       with:
         path: docs/_build/html/
+
+    - name: linkcheck
+      run: |
+        QUICK=1 cd docs ; make linkcheck
