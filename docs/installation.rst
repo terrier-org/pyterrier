@@ -21,7 +21,16 @@ Installing PyTerrier is easy - it can be installed from the command-line using `
 
         .. code-block:: bash
 
-            pip install python-terrier
+            pip install pyterrier[all]
+
+        NB: If you dont require the full Terrier retriever functionality, you can install a smaller version of PyTerrier without all
+        the dependencies by running:   
+
+        .. code-block:: bash
+
+            pip install pyterrier
+
+        NBB: You can still use the older pypi name of ``python-terrier`` if you wish.
 
     .. tab:: From GitHub
 
