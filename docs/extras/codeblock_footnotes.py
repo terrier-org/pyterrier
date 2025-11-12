@@ -20,7 +20,7 @@ class CodeBlockFootnotes(CodeBlock):
         
         def replace_footnote(match):
             footnote_text = match.group(1).strip()
-            footnote_num = len(footnotes)
+            footnote_num = len(footnotes) + 1
             if ':nocomment:' in footnote_text:
                 footnote_text = footnote_text.replace(':nocomment:', '').strip()
                 comment = ''

@@ -221,3 +221,7 @@ button.toggle-button {
 .related > p {
     margin: 0.1rem 0;
 }
+
+.sidebar-brand-text {
+    display: none;
+}

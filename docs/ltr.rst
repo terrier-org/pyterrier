@@ -66,20 +66,22 @@ the `"features"` column, as follows:
 
 
 
-FeaturesRetriever
+Including Features during Retrieval
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. related:: pyterrier.terrier.FeaturesRetriever
+
 When executing the pipeline above, the re-ranking of the documents again can be slow, as each separate Retriever
-object has to re-access the inverted index. For this reason, PyTerrier provides a class called FeaturesRetriever,
-which allows multiple query dependent features to be calculated at once, by virtue of Terrier's Fat framework.
+object has to re-access the inverted index. For this reason, the Terrier engine provides a class called :class:`~pyterrier.terrier.FeaturesRetriever`,
+which allows multiple query dependent features to be calculated at once, by virtue of Terrier's ``Fat`` framework.
 
-.. autoclass:: pyterrier.terrier.FeaturesRetriever
-    :members: transform 
+Therefore, these two pipelines are equivalent:
 
-An equivalent pipeline to the example above would be::
+.. code-block:: python
+    :caption: Example of FeaturesRetriever
 
-    #pipeline = bm25 >> (tf ** pl2)
-    pipeline = pyterrier.terrier.FeaturesRetriever(index, wmodel="BM25", features=["WMODEL:Tf", "WMODEL:PL2"])
+    pipeline1 = bm25 >> (tf ** pl2) # :footnote: ``pipeline1`` uses separate retrievers to compute each feature.
+    pipeline2 = pt.terrier.FeaturesRetriever(index, wmodel="BM25", features=["WMODEL:Tf", "WMODEL:PL2"]) # :footnote: ``pipeline2`` uses a single retriever that computes all features at once.
 
 .. schematic::
     index = pt.terrier.TerrierIndex.example()

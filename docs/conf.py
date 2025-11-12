@@ -41,7 +41,7 @@ author = 'Contributors to PyTerrier'
 # The short X.Y version
 version = ''
 # The full version, including alpha/beta/rc tags
-release = pt.__version__
+release = ''
 
 html_title = f'{project} {release}'
 html_short_title = project
@@ -71,6 +71,7 @@ extensions = [
     'extras.codeblock_footnotes',
     'sphinx_togglebutton',
     'sphinx_reredirects',
+    "sphinx_design",
 ]
 
 
