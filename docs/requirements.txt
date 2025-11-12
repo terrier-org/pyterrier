@@ -8,3 +8,4 @@ bibtexparser~=1.0
 pylatexenc
 sphinx-togglebutton
 sphinx-reredirects
+sphinx-design
