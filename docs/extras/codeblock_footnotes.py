@@ -20,10 +20,14 @@ class CodeBlockFootnotes(CodeBlock):
         
         def replace_footnote(match):
             footnote_text = match.group(1).strip()
-            footnotes.append(footnote_text)
             footnote_num = len(footnotes)
-            # Replace the footnote with a numbered reference
-            return f'# [{footnote_num}]'
+            if ':nocomment:' in footnote_text:
+                footnote_text = footnote_text.replace(':nocomment:', '').strip()
+                comment = ''
+            else:
+                comment = f'# [{footnote_num}]'
+            footnotes.append(footnote_text)
+            return comment
         
         # Replace footnotes in code with numbered references
         modified_code = re.sub(footnote_pattern, replace_footnote, code)

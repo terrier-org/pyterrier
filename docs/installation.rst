@@ -1,7 +1,7 @@
-Installing and Configuring
+Installation
 --------------------------
-PyTerrier is a declarative platform for information retrieval experiemnts in Python. It uses the Java-based 
-`Terrier information retrieval platform <http://terrier.org>`_ internally to support indexing and retrieval operations.
+PyTerrier is a declarative platform for building information retrieval pipelines and conducting
+experiemnts in Python.
 
 Pre-requisites
 ==============
@@ -21,16 +21,13 @@ Installing PyTerrier is easy - it can be installed from the command-line using `
 
         .. code-block:: bash
 
-            pip install pyterrier[all]
+            pip install 'pyterrier[all]' # :footnote: :nocomment: ``python-terrier`` is a shortcut for ``pyterrier[all]``
 
-        NB: If you dont require the full Terrier retriever functionality, you can install a smaller version of PyTerrier without all
-        the dependencies by running:   
+        If you want a minimal installation without optional dependencies, you can install just the core package:
 
         .. code-block:: bash
 
             pip install pyterrier
-
-        NBB: You can still use the older pypi name of ``python-terrier`` if you wish.
 
     .. tab:: From GitHub
 
@@ -46,16 +43,22 @@ Installing PyTerrier is easy - it can be installed from the command-line using `
 Running PyTerrier
 =================
 
-Once installed, you can get going with PyTerrier just by importing it. It's common to alias it as ``pt`` when importing::
+Once installed, you can get going with PyTerrier just by importing it. It's common to alias it as ``pt``:
+
+.. code-block:: python
 
     import pyterrier as pt
 
+.. admonition:: Optional: Check Java Installation
+    :class: note, dropdown
 
-Java is required for some functionality in PyTerrier. If you want to check to make sure Java is installed and configured properly, you
-can run::
+    Java is required for some functionality in PyTerrier. If you want to check to make sure Java is installed and configured properly, you
+    can run:
 
-    pt.java.init()
+    .. code-block:: python
 
-Note that it is not longer required to run ``pt.init()`` before using PyTerrier.
+        pt.java.init()
 
-**Problems with Java?** Check out the :doc:`Java troubleshooting guide <troubleshooting/java>`.
+    Note that it was previously required to run ``init()`` before using PyTerrier. This is no longer required.
+
+    **Problems with Java?** Check out the :doc:`Java troubleshooting guide <troubleshooting/java>`.
