@@ -7,6 +7,6 @@ dependencies:
   - python=3.10
   - pip
   - pip:
-    -  ../
+    -  ../[all]
     - -r ./requirements.txt
     - -r ./extensions.txt
