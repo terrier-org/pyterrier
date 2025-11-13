@@ -36,7 +36,8 @@ def generate_extensions():
 
             try:
                 metadata = importlib.metadata.metadata(pkg)
-            except importlib.metadata.PackageNotFoundError:
+                docs = importlib.resources.files(pkg).joinpath('pt_docs')
+            except (importlib.metadata.PackageNotFoundError, ModuleNotFoundError):
                 if not url:
                     print(f'Skipping {line!r} -- package not installed and no fallback URL provided (format: "# package_name <url>"). You may want to run pip -r extensions.txt for a complete documentation build.')
                 else:
@@ -45,7 +46,6 @@ def generate_extensions():
                 continue
 
             pkg_name = metadata['name']
-            docs = importlib.resources.files(pkg).joinpath('pt_docs')
             if docs.is_dir():
                 # Documentation included in the package, copy it over
                 paths = [(docs, Path(f'ext/{pkg_name}'))]

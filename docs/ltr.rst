@@ -37,7 +37,7 @@ Tf and PL2 models:
 .. schematic::
     :show_code:
 
-    index = pt.Artifact.from_hf('pyterrier/vaswani.terrier')
+    index = pt.terrier.TerrierIndex.example()
     # FOLD
     bm25 = index.retriever("BM25")
     tf = index.retriever("Tf")
@@ -66,23 +66,25 @@ the `"features"` column, as follows:
 
 
 
-FeaturesRetriever
+Including Features during Retrieval
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. related:: pyterrier.terrier.FeaturesRetriever
+
 When executing the pipeline above, the re-ranking of the documents again can be slow, as each separate Retriever
-object has to re-access the inverted index. For this reason, PyTerrier provides a class called FeaturesRetriever,
-which allows multiple query dependent features to be calculated at once, by virtue of Terrier's Fat framework.
+object has to re-access the inverted index. For this reason, the Terrier engine provides a class called :class:`~pyterrier.terrier.FeaturesRetriever`,
+which allows multiple query dependent features to be calculated at once, by virtue of Terrier's ``Fat`` framework.
 
-.. autoclass:: pyterrier.terrier.FeaturesRetriever
-    :members: transform 
+Therefore, these two pipelines are equivalent:
 
-An equivalent pipeline to the example above would be::
+.. code-block:: python
+    :caption: Example of FeaturesRetriever
 
-    #pipeline = bm25 >> (tf ** pl2)
-    pipeline = pyterrier.terrier.FeaturesRetriever(index, wmodel="BM25", features=["WMODEL:Tf", "WMODEL:PL2"])
+    pipeline1 = bm25 >> (tf ** pl2) # :footnote: ``pipeline1`` uses separate retrievers to compute each feature.
+    pipeline2 = pt.terrier.FeaturesRetriever(index, wmodel="BM25", features=["WMODEL:Tf", "WMODEL:PL2"]) # :footnote: ``pipeline2`` uses a single retriever that computes all features at once.
 
 .. schematic::
-    index = pt.Artifact.from_hf('pyterrier/vaswani.terrier')
+    index = pt.terrier.TerrierIndex.example()
     pt.terrier.FeaturesRetriever(index.index_obj(), wmodel="BM25", features=["WMODEL:Tf", "WMODEL:PL2"])
 
 Apply Functions for Custom Features
@@ -100,7 +102,7 @@ features can both be combined into a LTR pipeline using the ``**`` operator:
 .. schematic::
     :show_code:
 
-    index = pt.Artifact.from_hf('pyterrier/vaswani.terrier')
+    index = pt.terrier.TerrierIndex.example()
     bm25 = index.bm25()
     # FOLD
     featureA = pt.apply.doc_score(lambda row: 5)
@@ -126,7 +128,7 @@ If we want to calculate *more than one* feature at once, then we can go faster b
 
 .. schematic::
     import numpy as np
-    index = pt.Artifact.from_hf('pyterrier/vaswani.terrier')
+    index = pt.terrier.TerrierIndex.example()
     bm25 = index.bm25()
     two_features = pt.apply.doc_features(lambda row: [0, 1]) # np.array doesn't work in the lambda for some reason?
     one_feature = pt.apply.doc_score(lambda row: 5)
@@ -154,7 +156,7 @@ At inference time, the Estimator can be applied to new topics, and it will use t
 based on the features calculated in the previous phase. The resulting pipeline is shown below:
 
 .. schematic::
-    index = pt.Artifact.from_hf('pyterrier/vaswani.terrier')
+    index = pt.terrier.TerrierIndex.example()
     pipeline2f = pt.terrier.FeaturesRetriever(index.index_obj(), wmodel="BM25", features=["WMODEL:Tf", "WMODEL:PL2"])
     from sklearn.ensemble import RandomForestRegressor
     rf = RandomForestRegressor(n_estimators=400)

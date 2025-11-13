@@ -23,11 +23,12 @@ import textwrap
 
 from extras import generate_includes
 from extras import generate_extensions
+generate_includes.setup()
 if not "QUICK" in os.environ:
-    generate_includes.setup()
     generate_includes.dataset_include()
     generate_includes.experiment_includes()
-generate_extensions.generate_extensions()
+    generate_extensions.generate_extensions()
+    generate_includes.artifact_list_include()
 
 # -- Project information -----------------------------------------------------
 import datetime
@@ -40,7 +41,7 @@ author = 'Contributors to PyTerrier'
 # The short X.Y version
 version = ''
 # The full version, including alpha/beta/rc tags
-release = pt.__version__
+release = ''
 
 html_title = f'{project} {release}'
 html_short_title = project
@@ -66,6 +67,11 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx_tabs.tabs',
     'enum_tools.autoenum',
+    'extras.related',
+    'extras.codeblock_footnotes',
+    'sphinx_togglebutton',
+    'sphinx_reredirects',
+    "sphinx_design",
 ]
 
 
@@ -96,7 +102,7 @@ language = 'en'
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path .
-exclude_patterns = ['README.md', '_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ['README.md', '_build', '_includes', 'Thumbs.db', '.DS_Store']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
@@ -217,6 +223,13 @@ texinfo_documents = [
 extensions += ["myst_parser"]
 source_suffix = ['.rst', '.md']
 
+redirects = {
+    "terrier-indexing": "terrier/indexing.html",
+    "terrier-retrieval": "terrier/retrieval.html",
+    "rewrite": "terrier/rewrite.html",
+    "terrier-index-api": "terrier/how-to.html", # Most of the content moved here
+}
+
 linkcheck_anchors = False
 linkcheck_timeout = 10
-linkcheck_ignore = [r'https://dl.acm.org/.*'] # ACM DL blocks
+linkcheck_ignore = [r'https://.*acm.org/.*', r'https://www.java.com/.*'] # these domains block linkcheck

@@ -1,54 +1,61 @@
-Terrier Retrieval
------------------
+Terrier Retrieval and Re-Ranking
+--------------------------------
 
-terrier.Retriever is one of the most commonly used PyTerrier objects. It represents a retrieval transformation, 
-in which queries are mapped to retrieved documents. Retriever uses a pre-existing Terrier index data
-structure, typically saved on disk.
+This section describes how to perform retrieval using Terrier.
 
+Retrieval Basics
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Typical usage::
+.. related:: pyterrier.terrier.Retriever
+.. related:: pyterrier.terrier.TerrierIndex.bm25
+.. related:: pyterrier.terrier.TerrierIndex.pl2
 
-    index = pt.IndexFactory.of("/path/to/data.properties")
-    tf_idf = pt.terrier.Retriever(index, wmodel="TF_IDF")
-    bm25 = pt.terrier.Retriever(index, wmodel="BM25")
-    pl2 = pt.terrier.Retriever(index, wmodel="PL2")
+:class:`pt.terrier.Retriever <pyterrier.terrier.Retriever>` is one of the most commonly used PyTerrier transformers.
+It represents a retrieval transformation, in which queries are executed over a Terrier index, returning their
+retrieved documents. Retriever uses a pre-existing Terrier index data structure, typically saved on disk.
 
-    pt.Experiment([tf_idf, bm25, pl2], topic, qrels, eval_metrics=["map"])
+You can construct a :class:`~pyterrier.terrier.Retriever` directly. However, :class:`~pyterrier.terrier.TerrierIndex` 
+provides convenience methods to create ``Retriever`` instnances, such as :meth:`~pyterrier.terrier.TerrierIndex.bm25`,
+:meth:`~pyterrier.terrier.TerrierIndex.pl2`, and :meth:`~pyterrier.terrier.TerrierIndex.tf_idf`.
 
-As Retriever is a retrieval transformation, it takes as input dataframes with columns `["qid", "query"]`,
-and returns dataframes with columns `["qid", "query", "docno", "score", "rank"]`:
+.. tabs::
+    .. tab:: Using ``TerrierIndex``
+        .. code-block:: python
+
+            index = pt.terrier.TerrierIndex("/path/to/index")
+            retriever = index.bm25()
+    .. tab:: Constructing Directly
+        .. code-block:: python
+
+            index = pt.IndexFactory.of("/path/to/index")
+            retriever = pt.terrier.Retriever(index, wmodel="BM25")
+
+Retriever is a retrieval transformation, meaning that it takes as input dataframes with columns ``["qid", "query"]``,
+and returns dataframes with columns ``["qid", "query", "docno", "score", "rank"]``:
 
 .. schematic::
     :input_columns: qid,query
 
-    pt.terrier.TerrierIndex.from_hf('pyterrier/vaswani.terrier').bm25()
+    pt.terrier.TerrierIndex.example().bm25()
 
-However, Retriever can also act as a re-ranker. In this scenario, it takes as input dataframes with 
-columns `["qid", "query", "docno"]`, and returns dataframes with columns `["qid", "query", "docno", "score", "rank"]`:
+Retriever can also act as a re-ranker. In this scenario, it takes as input dataframes with columns ``["qid", "query", "docno"]``,
+and returns dataframes with columns ``["qid", "query", "docno", "score", "rank"]``:
 
 .. schematic::
     :input_columns: qid,query,docno
 
-    pt.terrier.TerrierIndex.from_hf('pyterrier/vaswani.terrier').bm25()
+    pt.terrier.TerrierIndex.example().bm25()
 
-For instance, to create a re-ranking pipeline that re-scores the top 100 BM25 documents using PL2::
-
-    bm25 = pt.terrier.Retriever(index, wmodel="BM25")
-    pl2 = pt.terrier.Retriever(index, wmodel="PL2")
-    pipeline = (bm25 % 100) >> pl2
+For instance, if you first want to retrieve the top 100 results with BM25, then re-rank those results using PL2, you can 
+construct the following pipeline:
 
 .. schematic::
     :input_columns: qid,query
+    :show_code:
 
-    index = pt.terrier.TerrierIndex.from_hf('pyterrier/vaswani.terrier')
-    index.bm25() % 100 >> index.retriever("pl2")
-
-Retriever
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autoclass:: pyterrier.terrier.Retriever
-    :members: transform, from_dataset
-
+    index = pt.terrier.TerrierIndex.example()
+    # FOLD
+    index.bm25() % 100 >> index.pl2()
 
 
 Query Formats for Terrier retrievers
@@ -56,7 +63,7 @@ Query Formats for Terrier retrievers
 
 By default Terrier assumes that queries can be parsed by its `standard query parser <https://github.com/terrier-org/terrier-core/blob/5.x/doc/querylanguage.md#user-query-language>`_,
 which is standard search-engine like query language. Queries provided by Dataset objects are assumed to be in this format, using the 
-standard `["qid", "query"]` dataframe columns. 
+standard ``["qid", "query"]`` dataframe columns. 
 
 Two alternative query formats are also supported:
 
@@ -100,52 +107,17 @@ qid    query_toks                             query
 =====  ====================================== =============================
 
 
-
-Terrier Configuration
+Scoring documents without an index
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When using PyTerrier, we have to be aware of the underlying Terrier configuration, 
-namely *properties* and *controls*. We aim to surface the most common configuration options 
-through the Python API, but occasionally its necessary to resort to properties or controls
-directly. 
+.. related:: pyterrier.terrier.TextScorer
 
-Properties are global configuration and were traditionally configured by editing a 
-`terrier.properties` file; In contrast, controls are per-query configuration. In PyTerrier, 
-we specify both when we construct the Retriever object:
+Sometimes we want to apply Terrier to compute the score of document for a given query when we do not yet 
+have the documents indexed. :class:`~pyterrier.terrier.TextScorer` allows you do do just this. It creates a temporary
+index on-the-fly  for text of the documents, and scores the provided documents.
 
-Common controls:
-
-- `"wmodel"` - the name of the weighting model. (This can also be specified using the wmodel kwarg).
-  Valid values are the Java class name of any Terrier weighting model. Terrier provides many,
-  such as `"BM25"`, `"PL2"`. A list can be found in the Terrier `weighting models javadoc <http://terrier.org/docs/current/javadoc/org/terrier/matching/models/package-summary.html>`_.
-
-- `"qe"` - whether to run the Divergence from Randomness query expansion.
-
-- `"qemodel"` - which Divergence from Randomness query expansion model. Default is `"Bo1"`.
-  A list can be found the Terrier `query expansion models javadoc <http://terrier.org/docs/current/javadoc/org/terrier/matching/models/queryexpansion/package-summary.html>`_.
- 
-Common properties:
-
-- `"termpipelines"` - the default Terrier term pipeline configuration is `"Stopwords,PorterStemmer"`.
-  If you have created an index with a different configuration, you will need to set the  `"termpipelines"`
-  property for *each* Retriever constructed. NB: These are now configurable using ``stemming=`` and
-  ``stopwords=`` kwargs.
-
-**Examples**::
-
-    # these two Retriever instances are identical, using the same weighting model
-    bm25a = pt.terrier.Retriever(index, wmodel="BM25")
-    bm25b = pt.terrier.Retriever(index, controls={"wmodel":"BM25"})
-
-    # this one also applies query expansion inside Terrier
-    bm25_qe = pt.terrier.Retriever(index, wmodel="BM25", controls={"qe":"on", "qemodel" : "Bo1"})
-
-    # when we introduce an unstemmed Retriever, we ensure to explicitly set the termpipelines
-    # for the other Retriever as well
-    bm25s_unstemmed = pt.terrier.Retriever(indexUS, wmodel="BM25", properties={"termpipelines" : ""})
-    bm25s_stemmed = pt.terrier.Retriever(indexSS, wmodel="BM25", properties={"termpipelines" : "Stopwords,PorterStemmer"})
-    
-
+Optionally, an index-like object can be specified as the ``background_index`` argument, which will be used for
+the collection statistics (e.g. term frequencies, document lengths etc.)
 
 Index-Like Objects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -183,27 +155,7 @@ You can use the IndexFactory to specify that the index data structures to be loa
     bm25_fast = pt.terrier.Retriever(inmem_inverted_index, wmodel="BM25")
 
 
-TextScorer
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Sometimes we want to apply Terrier to compute the score of document for a given query when we do not yet 
-have the documents indexed. TextScorer allows a neat-workaround, in that an index is created on-the-fly 
-for the documents, and these are then scored.
-
-Optionally, an index-like object can be specified as the `background_index` kwarg, which will be used for
-the collection statistics (e.g. term frequencies, document lengths etc. 
-
-.. autoclass:: pyterrier.terrier.TextScorer
-
-Non-English Retrieval
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-By default, PyTerrier is configured for indexing and retrieval in English. See
-`our notebook <https://github.com/terrier-org/pyterrier/blob/master/examples/notebooks/non_en_retrieval.ipynb>`_
-(`colab <https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/non_en_retrieval.ipynb>`_)
-for details on how to configure PyTerrier in other languages.
-
-Advanced and Custom Weighting Models
+Advanced: Custom Weighting Models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Normally, weighting models are specified as a string class names. Terrier then loads the Java class of that name (it will search
@@ -212,18 +164,20 @@ unless the class name is fully qualified (e.g. `"com.example.MyTF"`).
 
 The available models can be found in the Terrier `weighting models javadoc <http://terrier.org/docs/current/javadoc/org/terrier/matching/models/package-summary.html>`_.
 Some interesting models include:
- - BM25 - the classic Okapi BM25 model
- - PL2 - a Divergence from Randomness model
- - TF_IDF - the classic vector space model
- - DLH13 - a DFR model that is similar to BM25, but with fewer parameters
- - DPH - a DFR model that does not require any tuning
- - Hiemstra_LM, Dirichlet_LM - language models with different smoothing methods
- - DFRWeightingModel - a meta-model allowing to generate arbitrary DFR weighting models, e.g. `"DFRWeightingModel(PL2, L, 2)"`.
+
+- BM25 - the classic Okapi BM25 model
+- PL2 - a Divergence from Randomness model
+- TF_IDF - the classic vector space model
+- DLH13 - a DFR model that is similar to BM25, but with fewer parameters
+- DPH - a DFR model that does not require any tuning
+- Hiemstra_LM, Dirichlet_LM - language models with different smoothing methods
+- DFRWeightingModel - a meta-model allowing to generate arbitrary DFR weighting models, e.g. `"DFRWeightingModel(PL2, L, 2)"`.
 
 For using on indices with multiple fields, Terrier provides some advanced field-based models as well as meta-models that can be used to wrap other weighting models:
- - PL2F - a field-based variant of PL2
- - BM25F - a field-based variant of BM25
- - PerFieldNormWeightingModel - a meta-model that allows you to specify construct an arbitrary field-based model, e.g. `"PerFieldNormWeightingModel(BM, Normalisation2)"`. 
+
+- PL2F - a field-based variant of PL2
+- BM25F - a field-based variant of BM25
+- PerFieldNormWeightingModel - a meta-model that allows you to specify construct an arbitrary field-based model, e.g. `"PerFieldNormWeightingModel(BM, Normalisation2)"`. 
 
 If you have your own Java weighting model instance (which extends the 
 `WeightingModel abstract class <http://terrier.org/docs/current/javadoc/org/terrier/matching/models/WeightingModel.html>`_, 
@@ -247,3 +201,49 @@ All functions passed must accept 4 arguments, as follows:
 
 Note that due to the overheads of continually traversing the JNI boundary, using a Python function for scoring has a marked efficiency overhead. This is probably too slow for retrieval using most indices of any significant size,
 but allows simple explanation of weighting models and exploratory weighting model development.
+
+
+Advanced: Fine-Grained Terrier Configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Internally, Terrier manages query execution through a set of configuration options, known as *properties* and *controls*.
+Most options are made available through the Python API, but for some advanced use cases it is necessary to modify these
+values directly. You can apply both controls and properties for a Retriever by passing dictionaries as the ``controls``
+and ``properties`` keyword arguments.
+
+.. note::
+    **"Controls" vs "Properties"?**
+
+    A control is a per-query configuration option, whereas a property is a global configuration option.
+
+Common controls:
+
+- `"wmodel"` - the name of the weighting model. (This can also be specified using the wmodel kwarg).
+  Valid values are the Java class name of any Terrier weighting model. Terrier provides many,
+  such as `"BM25"`, `"PL2"`. A list can be found in the Terrier `weighting models javadoc <http://terrier.org/docs/current/javadoc/org/terrier/matching/models/package-summary.html>`_.
+
+- `"qe"` - whether to run the Divergence from Randomness query expansion.
+
+- `"qemodel"` - which Divergence from Randomness query expansion model. Default is `"Bo1"`.
+  A list can be found the Terrier `query expansion models javadoc <http://terrier.org/docs/current/javadoc/org/terrier/matching/models/queryexpansion/package-summary.html>`_.
+ 
+Common properties:
+
+- `"termpipelines"` - the default Terrier term pipeline configuration is `"Stopwords,PorterStemmer"`.
+  If you have created an index with a different configuration, you will need to set the  `"termpipelines"`
+  property for *each* Retriever constructed. NB: These are now configurable using ``stemming=`` and
+  ``stopwords=`` kwargs.
+
+**Examples**::
+
+    # these two Retriever instances are identical, using the same weighting model
+    bm25a = pt.terrier.Retriever(index, wmodel="BM25")
+    bm25b = pt.terrier.Retriever(index, controls={"wmodel":"BM25"})
+
+    # this one also applies query expansion inside Terrier
+    bm25_qe = pt.terrier.Retriever(index, wmodel="BM25", controls={"qe":"on", "qemodel" : "Bo1"})
+
+    # when we introduce an unstemmed Retriever, we ensure to explicitly set the termpipelines
+    # for the other Retriever as well
+    bm25s_unstemmed = pt.terrier.Retriever(indexUS, wmodel="BM25", properties={"termpipelines" : ""})
+    bm25s_stemmed = pt.terrier.Retriever(indexSS, wmodel="BM25", properties={"termpipelines" : "Stopwords,PorterStemmer"})

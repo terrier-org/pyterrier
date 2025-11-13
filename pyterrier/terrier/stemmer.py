@@ -6,16 +6,12 @@ _stemmer_cache = {}
 
 
 class TerrierStemmer(Enum):
-    """
-        This enum provides an API for the stemmers available in Terrier. The stemming configuration is saved in the index
-        and loaded at retrieval time. `Snowball <https://snowballstem.org/>`_ stemmers for various languages 
-        `are available in Terrier <http://terrier.org/docs/current/javadoc/org/terrier/terms/package-summary.html>`_.
+    """A built-in Terrier stemmer.
 
-        It can also be used to access the stemmer::
+    The stemming configuration is saved in the index and loaded at retrieval time. `Snowball <https://snowballstem.org/>`_
+    stemmers for various languages  `are available in Terrier <http://terrier.org/docs/current/javadoc/org/terrier/terms/package-summary.html>`_.
 
-            stemmer = pt.TerrierStemmer.porter
-            stemmed_word = stemmer.stem('abandoned')
-
+    This enum is primarily used with :class:`~pyterrier.terrier.TerrierIndexer.indexer`.
     """
     none = 'none' #: Apply no stemming
     porter = 'porter' #: Apply Porter's English stemmer
@@ -72,6 +68,13 @@ class TerrierStemmer(Enum):
 
     @pt.java.required
     def stem(self, tok):
+        """Stem a single token using this stemmer.
+
+        .. code-block:: python
+
+            stemmer = pt.TerrierStemmer.porter
+            stemmed_word = stemmer.stem('abandoned')
+        """
         if self not in _stemmer_cache:
             clz_name = self._to_class(self)
             if clz_name is None:

@@ -2,8 +2,9 @@ from enum import Enum
 import pyterrier as pt
 
 class TerrierTokeniser(Enum):
-    """
-        This enum provides an API for the tokeniser configuration used during indexing with Terrier.
+    """A built-in Terrier tokeniser.
+
+    This enum is primarily used with :class:`~pyterrier.terrier.TerrierIndexer.indexer`.
     """
 
     whitespace = 'whitespace' #: Tokenise on whitespace only
