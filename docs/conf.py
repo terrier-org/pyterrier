@@ -216,3 +216,7 @@ texinfo_documents = [
 
 extensions += ["myst_parser"]
 source_suffix = ['.rst', '.md']
+
+linkcheck_anchors = False
+linkcheck_timeout = 10
+linkcheck_ignore = [r'https://dl.acm.org/.*'] # ACM DL blocks

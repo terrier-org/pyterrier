@@ -43,7 +43,7 @@ def _datarepo_index(self, component, variant=None, version='latest', **kwargs):
         if line.startswith("#"):
             continue
         try:
-            (length, filename) = re.split(r"\s+", line.strip(), 2)
+            (length, filename) = re.split(r"\s+", line.strip(), maxsplit=2)
             rtr.append((filename, urlprefix+filename, int(length)))
         except Exception as e:
             raise ValueError(f"Could not parse {url} line {linenum} '{line}'") from e

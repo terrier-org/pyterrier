@@ -435,27 +435,14 @@ class HasConfigure(Protocol):
     def _configure(self, **kwargs):
         pass
 
-# This is a temporary decorator to give the option of whether or not to tokenize the queries.
 def add_tokenize_query_arg(fn):
     @functools.wraps(fn)
-    def _wrapper(variant: Optional[str] = None, tokenise_query: bool = True):
+    def _wrapper(variant: Optional[str] = None, tokenise_query: Optional[bool] = None):
         topics = fn(variant)
-        if topics is not None and tokenise_query and 'query' in topics:
-            tokeniser = _pt_tokeniser()
-            topics['query'] = topics['query'].apply(tokeniser)
+        if topics is not None and tokenise_query is not None and 'query' in topics:
+            raise ValueError("get_topics(tokenise_query:bool) has been removed. All datasets queries are now untokenised by default, and terrier.Retriever will handle them as needed.")
         return topics
-    _wrapper._has_add_tokenize_query_arg_applied = True
     return _wrapper
-
-
-@pt.java.required
-def _pt_tokeniser():
-    tokeniser = pt.terrier.J.Tokenizer.getTokeniser()
-    def pt_tokenise(text):
-        return ' '.join(tokeniser.getTokens(text))
-    return pt_tokenise
-
-
 _loaded_providers = {}
 
 
@@ -517,10 +504,11 @@ def get_dataset(name: str, **configure_kwargs) -> Dataset:
         result._configure(**configure_kwargs)
     elif configure_kwargs:
         raise TypeError(f'Unsupported keyword arguments passed to get_dataset: {get_dataset}')
-
-    # Temporary handling of topic tokenization
+    
+    # Temporary handling of topic tokenization ... we should remove this at some point, but let's keep it now so it provides a clearer reason
+    # to uswers why it now breaks.
     if not hasattr(result.get_topics, '_has_add_tokenize_query_arg_applied'):
-        result.get_topics = add_tokenize_query_arg(result.get_topics)
+        result.get_topics = add_tokenize_query_arg(result.get_topics)    
     return result
 
 

@@ -26,6 +26,14 @@ dynamic = ["version", "dependencies"]
 version = {attr = "pyterrier.__version__"}
 dependencies = {file = ["requirements.txt"]}
 
+[project.optional-dependencies]
+java = [
+  'pyjnius>=1.4.2', # used by pt.java to execute Java code, such as Terrier
+]
+all = [
+  'pyjnius>=1.4.2', # used by pt.java to execute Java code, such as Terrier
+]
+
 [tool.setuptools.packages.find]
 exclude = ["tests"]
 

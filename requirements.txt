@@ -6,7 +6,6 @@ tqdm
 # used by datasets, pt.io.download
 requests
 ir_datasets>=0.3.2
-pyjnius>=1.4.2 # used by pt.java to execute Java code, such as Terrier
 deprecated # used for marking APIs as deprecated
 scipy # used for significance testing
 # evaluation related:
@@ -17,3 +16,4 @@ statsmodels # used for multiple testing correction
 # others
 dill # used for serialisation that is better than pickle, e.g. passing wmodel functions to terrier.Retriever
 lz4 # used for compression
+beautifulsoup4 # used for parsing SGML formatted TREC topics
