@@ -52,7 +52,7 @@ to get the TREC Genomics 2004 dataset. A full catalogue of ir_datasets is availa
 The easiest way to get started with PyTerrier is to use one of our Colab notebooks - look for the ![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg) badges below.
 
 ### Linux or Google Colab or Windows or macOS
-1. `pip install pyterrier[all]`
+1. `pip install 'pyterrier[all]'`
 2. You may need to set JAVA_HOME environment variable if Pyjnius cannot find your Java installation. On Colab, we install Java automatically.
 
 # PyTerrier Extensions
