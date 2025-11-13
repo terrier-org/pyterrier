@@ -19,6 +19,7 @@ This page summarises the available notebooks for PyTerrier.
 
 |    Notebook      |   On Colab?     | Description                      |   
 | ---------------- | --------------- | -------------------------------- |
+| [msmarco_BM25_MonoT5.ipynb](experiments/msmarco_BM25_MonoT5.ipynb)   |                 | Demonstration of [MonoT5](http://github.com/terrierteam/pyterrier_t5) on MSMARCO passage |
 | [Robust04.ipynb](experiments/Robust04.ipynb)   |                 | Demonstration of [query expansion](https://pyterrier.readthedocs.io/en/latest/rewrite.html) effectiveness on TREC Robust04 |
 | [uogTrBaseDPH.ipynb](https://github.com/cmacdonald/pyterrier-msmarco-document-leaderboard-runs/blob/master/uogTrBaseDPH.ipynb)  |  |   DPH run submitted to MSMARCO  Document Ranking Task leaderboard  |
 | [uogTrBaseDPHQ.ipynb](https://github.com/cmacdonald/pyterrier-msmarco-document-leaderboard-runs/blob/master/uogTrBaseDPHQ.ipynb)  |  |   DPH + Bo1 query expansion run submitted to MSMARCO  Document Ranking Task leaderboard  |
@@ -29,7 +30,7 @@ This page summarises the available notebooks for PyTerrier.
 | ---------------- | --------------- | -------------------------------- | ---------- |
 | [wow20205-msmarco-v1.ipynb](experiments/wow20205-msmarco-v1.ipynb) <br> [wow20205-msmarco-v2.ipynb](experiments/wow20205-msmarco-v2.ipynb) | | Demonstration of precomputation & caching | [WOWS 2025 paper](tbc) |
 | [pt_indexed_epic.ipynb](https://github.com/Georgetown-IR-Lab/OpenNIR/blob/master/examples/pt_indexed_epic.ipynb)  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Georgetown-IR-Lab/OpenNIR/blob/master/examples/pt_indexed_epic.ipynb) | Demonstration of pre-computing EPIC vectors and using them for second-stage scoring using PyTerrier on the TREC COVID benchmark | [OpenNIR repository](https://github.com/Georgetown-IR-Lab/OpenNIR)
-| [sentence_transformers.ipynb](https://github.com/terrier-org/pyterrier/blob/master/examples/notebooks/sentence_transformers.ipynb)  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/terrier-org/pyterrier/blob/master/examples/notebooks/sentence_transformers.ipynb) | Demonstration of using pt.apply functions for performing neural reranking with [SentenceTransformers](https://sbert.net/) | [pt.text documentation]([https://github.com/Georgetown-IR-Lab/OpenNIR](https://pyterrier.readthedocs.io/en/latest/text.html#examples-of-sentence-transformers))
+| [sentence_transformers.ipynb](https://github.com/terrier-org/pyterrier/blob/master/examples/notebooks/sentence_transformers.ipynb)  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/sentence_transformers.ipynb) | Demonstration of using pt.apply functions for performing neural reranking with [SentenceTransformers](https://sbert.net/) | [pt.text documentation]([https://github.com/Georgetown-IR-Lab/OpenNIR](https://pyterrier.readthedocs.io/en/latest/text.html#examples-of-sentence-transformers))
 
 
 ## PyTerrier Dense Retrieval

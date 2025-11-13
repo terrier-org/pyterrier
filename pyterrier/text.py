@@ -4,6 +4,7 @@ import re
 import pandas as pd
 from typing import Any, List, Union, Literal, Protocol, runtime_checkable
 from warnings import warn
+import types
 import pyterrier as pt
 
 @runtime_checkable
@@ -127,13 +128,13 @@ def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='ti
     A useful transformer for splitting long documents into smaller passages within a pipeline. This applies a *sliding* window over the
     text, where each passage is the give number of tokens long. Passages can overlap, if the stride is set smaller than the length. In
     applying this transformer, docnos are altered by adding '%p' and a passage number. The original scores for each document can be recovered
-    by aggregation functions, such as `max_passage()`.
+    by aggregation functions, such as ``max_passage()``.
 
     For the puposes of obtaining passages of a given length, the tokenisation can be controlled. By default, tokenisation takes place by splitting
     on space, i.e. based on the Python regular expression ``re.compile(r'\s+')``. However, more fine-grained tokenisation can applied by passing 
     an object matching the HuggingFace Transformers `Tokenizer API <https://huggingface.co/docs/transformers/main/en/main_classes/tokenizer#transformers.PreTrainedTokenizer>`_ 
-    as the `tokenizer` kwarg argument. In short, the `tokenizer` object must have a `.tokenize(str) -> list[str]` method and 
-    `.convert_tokens_to_string(list[str]) -> str` for detokenisation.
+    as the `tokenizer` kwarg argument. In short, the `tokenizer` object must have a ``.tokenize(str) -> list[str]`` method and 
+    ``.convert_tokens_to_string(list[str]) -> str`` for detokenisation.
     
     :param text_attr: what is the name of the dataframe attribute containing the main text of the document to be split into passages.
         Default is 'body'.
@@ -141,7 +142,7 @@ def sliding( text_attr='body', length=150, stride=75, join=' ', prepend_attr='ti
     :param stride: how many tokens to advance each passage by. Default is 75.
     :param join: how to join the tokens of the passage together. Default is ' '.
     :param prepend_attr: whether another document attribute, such as the title of the document, to each passage, following [Dai2019]. Defaults to 'title'.
-    :param tokenizer: which model to use for tokenizing. The object must have a `.tokenize(str) -> list[str]` method for tokenization and `.convert_tokens_to_string(list[str]) -> str` for detokenization.
+    :param tokenizer: which model to use for tokenizing. The object must have a ``.tokenize(str) -> list[str]`` method for tokenization and ``.convert_tokens_to_string(list[str]) -> str`` for detokenization.
             Default is None. Tokenisation is perfomed by splitting on one-or-more spaces, i.e. based on the Python regular expression ``re.compile(r'\s+')``
     :param kwargs: other arguments to pass through to the SlidingWindowPassager.
     :return: a transformer that splits the documents into passages.
@@ -295,12 +296,16 @@ def snippets(
             docres[summary_attr]  = ""
             return docres
 
+        # dont assign new columns to an existing df
+        psgres = psgres.copy()
         psgres[["olddocno", "pid"]] = psgres.docno.str.split("%p", expand=True)
 
         newdf = psgres.groupby(['qid', 'olddocno'])[text_attr].agg(joinstr.join).reset_index().rename(columns={text_attr : summary_attr, 'olddocno' : 'docno'})
         
         return docres.merge(newdf, on=['qid', 'docno'], how='left')
-    return pt.apply.generic(_qbsjoin)   
+    rtr = pt.apply.generic(_qbsjoin, required_columns=['qid', 'query', 'docno', text_attr])
+    rtr.subtransformers = types.MethodType(lambda self: {'tsp' : tsp}, rtr) # type: ignore[attr-defined]
+    return rtr
 
 
 class DePassager(pt.Transformer):
@@ -310,8 +315,9 @@ class DePassager(pt.Transformer):
         self.agg = agg
 
     def transform(self, topics_and_res):
+        pt.validate.columns(topics_and_res, includes=['qid', 'docno'] + (['score'] if self.agg != 'first' else []))
         topics_and_res = topics_and_res.copy()
-        topics_and_res[["olddocno", "pid"]] = topics_and_res.docno.str.split("%p", expand=True)
+        topics_and_res[["olddocno", "pid"]] = topics_and_res.docno.str.split("%p", expand=True) if len(topics_and_res) > 0 else pd.DataFrame(columns=["olddocno", "pid"])
         if self.agg == 'max':
             groups = topics_and_res.groupby(['qid', 'olddocno'])
             group_max_idx = groups['score'].idxmax()
@@ -345,7 +351,8 @@ class DePassager(pt.Transformer):
 
 class KMaxAvgPassage(DePassager):
     """
-        See ICIP at TREC-2020 Deep Learning Track, X.Chen et al. Proc. TREC 2020.
+        .. cite.dblp:: conf/trec/ChenHSCH020
+
         Usage:
             X >> SlidingWindowPassager() >>  Y >>  KMaxAvgPassage(2)
         where X is some kind of model for obtaining the text of documents and Y is a text scorer, such as BERT or ColBERT
@@ -372,6 +379,7 @@ class MeanPassage(DePassager):
 
 
 class SlidingWindowPassager(pt.Transformer):
+    schematic = {'label': 'SlidingWindow'}
 
     def __init__(self, text_attr='body', title_attr='title', passage_length=150, passage_stride=75, join=' ', prepend_title=True, tokenizer=None, **kwargs):
         super().__init__(**kwargs)
@@ -391,17 +399,11 @@ class SlidingWindowPassager(pt.Transformer):
             self.tokenize = re.compile(r"\s+").split
             self.detokenize = ' '.join
 
-    def _check_columns(self, topics_and_res):
-        if self.text_attr not in topics_and_res.columns:
-            raise KeyError("%s is a required input column, but not found in input dataframe. Found %s" % (self.text_attr, str(list(topics_and_res.columns))))
-        if self.prepend_title and self.title_attr not in topics_and_res.columns:
-            raise KeyError("%s is a required input column, but not found in input dataframe. Set prepend_title=False to disable its use. Found %s" % (self.title_attr, str(list(topics_and_res.columns))))
-        if "docno" not in topics_and_res.columns:
-            raise KeyError("%s is a required input column, but not found in input dataframe. Found %s" % ("docno", str(list(topics_and_res.columns))))
-
     def transform(self, topics_and_res):
-        # validate input columns
-        self._check_columns(topics_and_res)
+        with pt.validate.any(topics_and_res) as v:
+            cols = [self.text_attr] + ([self.title_attr] if self.prepend_title else [])
+            v.result_frame(cols)
+            v.document_frame(cols)
         print("calling sliding on df of %d rows" % len(topics_and_res))
 
         # now apply the passaging
@@ -410,6 +412,9 @@ class SlidingWindowPassager(pt.Transformer):
         return self.applyPassaging_no_qid(topics_and_res)
 
     def applyPassaging_no_qid(self, df):
+        result_columns = list(df.columns)
+        if self.prepend_title:
+            result_columns = [c for c in result_columns if c != self.title_attr]
         rows=[]
         for row in df.itertuples():
             row = row._asdict()
@@ -432,7 +437,7 @@ class SlidingWindowPassager(pt.Transformer):
                         del(newRow[self.title_attr])
                     rows.append(newRow)
                     passageCount+=1
-        return pd.DataFrame(rows)
+        return pd.DataFrame(rows, columns=result_columns)
 
 
     def applyPassaging(self, df, labels=True):
@@ -449,7 +454,8 @@ class SlidingWindowPassager(pt.Transformer):
             return pd.DataFrame(columns=['qid', 'query', 'docno', self.text_attr, 'score', 'rank'])
     
         with pt.tqdm('passsaging', total=len(df), desc='passaging', leave=False) as pbar:
-            for index, row in df.iterrows():
+            for row in df.itertuples(index=False):
+                row = row._asdict()
                 pbar.update(1)
                 qid = row['qid']
                 if currentQid is None or currentQid != qid:
@@ -476,7 +482,8 @@ class SlidingWindowPassager(pt.Transformer):
                         newRow['docno'] = row['docno'] + "%p" + str(i)
                         newRow[self.text_attr] = self.detokenize(passage)
                         if self.prepend_title:
-                            newRow.drop(labels=[self.title_attr], inplace=True)
+                            #newRow.drop(labels=[self.title_attr], inplace=True)
+                            del newRow[self.title_attr]
                             newRow[self.text_attr] = str(row[self.title_attr]) + self.join + newRow[self.text_attr]
                         for col in copy_columns:
                             newRow[col] = row[col]

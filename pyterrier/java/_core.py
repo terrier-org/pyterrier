@@ -4,7 +4,7 @@ from pyterrier.java import required_raise, required, before_init, started, maven
 from typing import Optional
 import pyterrier as pt
 
-
+_min_colab_jdk = "openjdk-11-jdk-headless"
 _stdout_ref = None
 _stderr_ref = None
 
@@ -30,6 +30,52 @@ def _get_notebook() -> Optional[str]:
     if "__session__" in locals:
         return locals["__session__"]
     return None
+
+class ColabJavaInit(JavaInitializer):
+    def priority(self) -> int:
+        return -101 # run this initializer before CoreJavaInit
+    
+    def pre_init(self, jnius_config):
+        import sys
+        # detect colab
+        if 'google.colab' not in sys.modules:
+            return
+        import shutil
+        # detect java on the PATH
+        if shutil.which("java") is not None:
+            return
+        print(f"This Colab is missing Java - installing {_min_colab_jdk}, please wait")
+        import subprocess
+        import os
+
+        cmd = [
+            "apt-get", 
+            "install", 
+            "-y", 
+            _min_colab_jdk,
+            "--option=Dpkg::Progress-Fancy=1",
+            "--option=APT::Color=1"
+        ]
+
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            env={**os.environ, "TERM": "xterm-color"}
+        )
+
+        for line in process.stdout:
+            sys.stdout.write(line)
+            sys.stdout.flush()
+
+        process.wait()
+        # ✅ Check exit status
+        if process.returncode == 0:
+            print(f"\n✅ apt-get install of {_min_colab_jdk} completed successfully.")
+        else:
+            print(f"\n❌ apt-get install of {_min_colab_jdk} failed with exit code {process.returncode}.")
 
 class CoreJavaInit(JavaInitializer):
     def priority(self) -> int:
@@ -89,6 +135,35 @@ def _mapentry_getitem(self, i):
         return self.getValue()
     raise IndexError()
 
+class Java24Init(JavaInitializer):
+    """Responsible for hacking around JDK safety checks from JDK 24 onwards"""
+    def priority(self) -> int:
+        return -99 # run this before TerrierJavaInit
+    
+    def pre_init(self, jnius_config):
+        # detect JDK 24 onwards - this is a best attempt - at best, the user will see a warning.
+        # the plan is to use https://github.com/kivy/pyjnius/pull/780 to ask the JVM for its version
+        # before starting the JVM. 
+        # We /could/ safely add this option from at least JDK 21 onwards. JDK 11 doesnt recognise it.
+        if "JAVA_HOME" in os.environ:
+            java_home = os.environ["JAVA_HOME"]
+            if any([f"{ver}." in java_home for ver in [24,25,26,28,29]]):
+                jnius_config.add_options("--enable-native-access=ALL-UNNAMED")
+
+    @required_raise
+    def post_init(self, jnius):
+        from packaging.version import Version, parse
+        import re
+        java_version = pt.java.J.System.getProperty("java.version")
+        # RTD has an annoying -internal in their Java version
+        java_version = re.sub(r'[-_].*$', '', java_version)
+        if parse(java_version) >= Version("24"):
+            # Hadoop will fallback to pureJava for sparc architecture - lets pretend we are for just a minute.
+            arch = pt.java.J.System.getProperty("os.arch")
+            pt.java.J.System.setProperty("os.arch", "sparc")
+            # force initialisation of FastByteComparisons using the sparc arch
+            pt.java.autoclass("org.apache.hadoop.io.FastByteComparisons$LexicographicalComparerHolder")
+            pt.java.J.System.setProperty("os.arch", arch)
 
 def _is_binary(f):
     import io

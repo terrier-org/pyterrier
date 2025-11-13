@@ -186,6 +186,7 @@ class IRDSDataset(pt.datasets.Dataset):
 
 class IRDSTextLoader(pt.Transformer):
     """A transformer that loads text fields from an ir_datasets dataset into a DataFrame by docno."""
+    schematic = {'label': 'TextLoader'}
     def __init__(
         self,
         dataset: IRDSDataset,
@@ -247,3 +248,6 @@ class IRDSTextLoader(pt.Transformer):
         inp = inp.drop(columns=self.fields, errors='ignore') # make sure we don't end up with duplicates
         inp = inp.reset_index(drop=True) # reset the index to default (matching metadata_frame)
         return pd.concat([inp, metadata_frame], axis='columns')
+
+    def fuse_rank_cutoff(self, k):
+        return pt.RankCutoff(k) >> self

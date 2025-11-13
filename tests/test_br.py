@@ -57,10 +57,17 @@ class TestBatchRetrieve(BaseTestCase):
         self.assertEqual(10, len(result))
 
     def test_br_query_toks(self):
+        from pandas.testing import assert_frame_equal
         indexloc = self.here + "/fixtures/index/data.properties"
         
         retr = pt.terrier.Retriever(indexloc)
-        query_terrier = 'applytermpipeline:off chemic^2 reaction^0.5'
+
+        # check that terrier doesnt error about queries with punctation
+        res1 = retr.search("What are chemical reactions?")
+        res2 = retr.search("chemical reactions") # 'what' and 'are' are stopwords
+        assert_frame_equal(res1[["qid", "docno", "score", "rank"]], res2[["qid", "docno", "score", "rank"]])
+
+        query_terrier = 'applypipeline:off chemic^2 reaction^0.5'
         result_terrier = retr.search(query_terrier)
 
         query_matchop = '#combine:0=2:1=0.5(chemic reaction)'
@@ -71,7 +78,6 @@ class TestBatchRetrieve(BaseTestCase):
         
         self.assertEqual(len(result_terrier), len(result_matchop))
         self.assertEqual(len(result_terrier), len(result_toks))
-        from pandas.testing import assert_frame_equal
         assert_frame_equal(result_terrier[["qid", "docno", "score", "rank"]], result_matchop[["qid", "docno", "score", "rank"]])
         assert_frame_equal(result_terrier[["qid", "docno", "score", "rank"]], result_toks[["qid", "docno", "score", "rank"]])
 
@@ -283,8 +289,13 @@ class TestBatchRetrieve(BaseTestCase):
         
         for name, retr in [ ("TerrierRetrieve", pt.TerrierRetrieve), ("BatchRetrieve", pt.BatchRetrieve) ]:
             do_test(name, retr)
-            
-            
+
+
+class TestTerrierRetrieverBasic(pt.testing.TransformerTestCase):
+    @staticmethod
+    def get_transformer():
+        index = pt.terrier.TerrierIndex.load(os.path.dirname(os.path.realpath(__file__)) + '/fixtures/index/')
+        return index.bm25()
 
 
 if __name__ == "__main__":

@@ -41,7 +41,7 @@ class TestText(BaseTestCase):
         self.assertEqual(1, dfOut.iloc[0]["rank"])
 
     def test_snippets(self):
-        br = pt.terrier.Retriever.from_dataset("vaswani", "terrier_stemmed") >> pt.text.get_text(pt.get_dataset('irds:vaswani'), "text")
+        br = pt.terrier.Retriever(self.here + "/fixtures/index/data.properties") >> pt.text.get_text(pt.get_dataset('irds:vaswani'), "text")
         #br = pt.terrier.Retriever.from_dataset("vaswani", "terrier_stemmed_text", metadata=["docno", "text"])
         psg_scorer = ( 
             pt.text.sliding(text_attr='text', length=25, stride=12, prepend_attr=None) 
@@ -71,6 +71,13 @@ class TestText(BaseTestCase):
             dfOut = textT.transform(dfinput)
             self.assertTrue(isinstance(dfOut, pd.DataFrame))
             self.assertTrue("docno" in dfOut.columns)
+
+            # verify that rankcutoff is moved earlier by compilation
+            pipe = textT%10
+            pipe_opt = pipe.compile()
+            self.assertEqual(textT, pipe_opt[1])
+            self.assertIsInstance(pipe_opt[0], pt._ops.RankCutoff)
+            self.assertEqual(10, pipe_opt[0].k)
         
     def test_fetch_text_docid(self):
         dfinput = pd.DataFrame([["q1", "a query", 1]], columns=["qid", "query", "docid"])
@@ -115,6 +122,13 @@ class TestText(BaseTestCase):
         self.assertTrue(isinstance(dfOut2, pd.DataFrame))
         self.assertTrue("text" in dfOut2.columns)
         self.assertEqual('object', dfOut2['docno'].dtype)
+
+        # verify that rankcutoff is moved earlier by compilation
+        pipe = textT%10
+        pipe_opt = pipe.compile()
+        self.assertEqual(textT, pipe_opt[1])
+        self.assertIsInstance(pipe_opt[0], pt._ops.RankCutoff)
+        self.assertEqual(10, pipe_opt[0].k)
 
     def test_passager_title(self):
         dfinput = pd.DataFrame([["q1", "a query", "doc1", "title", "body sentence"]], columns=["qid", "query", "docno", "title", "body"])
@@ -230,4 +244,11 @@ class TestText(BaseTestCase):
         dfmeanK3 = pt.text.kmaxavg_passage(3)(dfscores)
         self.assertEqual(1, len(dfmeanK3))
         self.assertEqual(2, dfmeanK3["score"][0])
-        
+
+@pt.testing.transformer_test_class
+def test_text_sliding():
+    return pt.text.sliding()
+
+@pt.testing.transformer_test_class
+def test_max_passage():
+    return pt.text.max_passage()

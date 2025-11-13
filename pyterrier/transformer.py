@@ -1,6 +1,8 @@
+import os
+import warnings
+import traceback
 import types
 import pandas as pd
-from deprecated import deprecated
 from typing import Iterator, List, Union, Tuple, Protocol, runtime_checkable, Optional, Any
 import pyterrier as pt
 
@@ -46,7 +48,16 @@ class Transformer:
     def __new__(cls, *args, **kwargs):
         if cls.transform == Transformer.transform and cls.transform_iter == Transformer.transform_iter:
             raise NotImplementedError("You need to implement either .transform() or .transform_iter() in %s" % str(cls))
-        return super().__new__(cls)
+        
+        instance = super().__new__(cls)
+        if cls.transform == Transformer.transform and cls.transform_iter != Transformer.transform_iter:
+            # User implemented transform_iter on this transformer but not transform.
+            # transform_iter is not inspectable, so place a transform_outputs method on the instance if not exists
+            if not hasattr(instance, 'transform_outputs'):
+                def _transform_outputs(self, inp_cols):
+                    raise pt.inspect.InspectError("This transformer is not inspectable - you can override/implement the transform_outputs method to make it inspectable")
+                instance.transform_outputs = types.MethodType(_transform_outputs, instance)
+        return instance
 
     @staticmethod
     def identity() -> 'Transformer':
@@ -57,7 +68,7 @@ class Transformer:
         as a feature in for learning-to-rank::
 
             bm25 = pt.terrier.Retriever(index, wmodel="BM25")
-            two_feat_pipe = bm25 >> pt.Transformer.identify() ** pt.terrier.Retriever(index, wmodel="PL2")
+            two_feat_pipe = bm25 >> pt.Transformer.identity() ** pt.terrier.Retriever(index, wmodel="PL2")
         
         This will return a pipeline that produces a score column (BM25), but also has a features column containing
         BM25 and PL2 scores.
@@ -228,7 +239,12 @@ class Transformer:
         :param N: how many processes/machines to parallelise this transformer over.
         :param backend: which multiprocessing backend to use. Only two backends are supported, 'joblib' and 'ray'. Defaults to 'joblib'.
         """
-        from .parallel import PoolParallelTransformer
+        from warnings import warn
+        warn(".parallel() is experimental")
+        try:
+            from pyterrier_alpha.parallel import PoolParallelTransformer # type: ignore
+        except ImportError as ie:
+            raise ImportError("pyterrier-alpha[parallel] must be installed for .parallel()") from ie
         return PoolParallelTransformer(self, N, backend)
 
     # Get and set specific parameter value by parameter's name
@@ -303,13 +319,24 @@ class Transformer:
         from ._ops import Concatenate
         return Concatenate(self, right)
 
-    @deprecated(version="0.11.1", reason="Use pyterrier-caching for more fine-grained caching, e.g. RetrieverCache or ScorerCache")
     def __invert__(self : 'Transformer') -> 'Transformer':
-        from .cache import ChestCacheTransformer
-        return ChestCacheTransformer(self)
+        raise NotImplementedError("Use pyterrier-caching for more fine-grained caching, e.g. RetrieverCache or ScorerCache")
 
     def __hash__(self):
         return hash(repr(self))
+
+    def _repr_html_(self):
+        if os.environ.get('PYTERRIER_DISABLE_NOTEBOOK_SCHEMATIC', '0') == '1':
+            return None
+        try:
+            return pt.schematic.draw(self, outer_class='repr_html')
+        except Exception as e:
+            # This handles cases where there's a problem generating the schematic.
+            # signal to ipython not to display HTML representation (falls back on __repr__)
+            tb = traceback.format_exc()
+            warnings.warn(f"Failed to render transformer as HTML: {e}\n\n{tb}", stacklevel=2)
+            return None 
+
 
 class Indexer(Transformer):
     def __new__(cls, *args, **kwargs):
@@ -326,6 +353,14 @@ class Indexer(Transformer):
             # one, which invokes transform_iter automatically.
             instance.transform = types.MethodType(Transformer.transform, instance)
         return instance
+    
+    def index_inputs(self) -> Optional[List[List[str]]]:
+        """
+            Returns a list of column configurations that index() is expects. 
+            This default implementation returns None, and should be 
+            overridden by subclasses to allow accurate inspections and schematic visualisations.
+        """
+        return None
 
     def index(self, iter : pt.model.IterDict, **kwargs) -> Any:
         """
@@ -409,6 +444,9 @@ class UniformTransformer(Transformer):
 
     def __repr__(self):
         return 'UniformTransformer()'
+    
+    def transform_outputs(self, input_columns: List[str]) -> List[str]:
+        return self.rtr.columns.tolist()
 
 @runtime_checkable
 class SupportsFuseRankCutoff(Protocol):

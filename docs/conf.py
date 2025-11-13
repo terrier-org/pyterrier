@@ -57,6 +57,7 @@ html_short_title = project
 # ones.
 extensions = [
     'extras.cite',
+    'extras.schematic',
     'sphinx.ext.autodoc',
     'sphinx_autodoc_typehints',
     'sphinx.ext.coverage',
@@ -95,7 +96,7 @@ language = 'en'
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path .
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ['README.md', '_build', 'Thumbs.db', '.DS_Store']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
@@ -107,6 +108,15 @@ pygments_style = 'sphinx'
 # a list of builtin themes.
 #
 html_theme = 'furo'
+
+# Avoid showing over-qualified name in the sidebar, reducing redundancy and avoiding wrapping in many cases.
+# I.e., instead of:
+#   MyClass
+#     MyClass.my_method()
+# It will show:
+#    MyClass
+#      my_method()
+toc_object_entries_show_parents = 'hide'
 
 # increasing sphinx width
 # https://stackoverflow.com/a/43186995
@@ -206,3 +216,7 @@ texinfo_documents = [
 
 extensions += ["myst_parser"]
 source_suffix = ['.rst', '.md']
+
+linkcheck_anchors = False
+linkcheck_timeout = 10
+linkcheck_ignore = [r'https://dl.acm.org/.*'] # ACM DL blocks

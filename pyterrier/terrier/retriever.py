@@ -1,6 +1,7 @@
 from typing import Union, Optional, Callable, List, Any
 import pandas as pd
 import numpy as np
+import re
 from warnings import warn
 from pyterrier.datasets import Dataset
 from pyterrier.model import FIRST_RANK
@@ -9,7 +10,34 @@ from concurrent.futures import ThreadPoolExecutor
 import pyterrier as pt
 from typing import Dict
 
+from pyterrier.terrier.stemmer import TerrierStemmer
+from pyterrier.terrier.stopwords import TerrierStopwords
+from pyterrier.terrier.tokeniser import TerrierTokeniser
+
+def _query_needs_tokenised(query: str) -> bool:
+    # detects if we need to tokenise the query
+    if _matchop(query):
+        return False
+    
+    if "applypipeline" in query:
+        return False
+    
+    # does it contains in terrier language 
+    termweightsre = re.compile(r'\^\d+(\.\d+)?')
+    if termweightsre.match(query):
+        return False
+
+    # we dont include : in this list, as it denotes a control key:value pair in TerrierQL
+    bad_chars = [",", ".", ";", "!", "?", "(", ")", "[", "]", "{", "}", "<", ">", "\"", "^", 
+                 "'", "`", "~", "@", "#", "$", "%", "&", "*", "-", "+", "=", "|", "\\", "/"]
+
+    if any(c in query for c in bad_chars):
+        return True
+    
+    return False
+
 _matchops = ["#combine", "#uw", "#1", "#tag", "#prefix", "#band", "#base64", "#syn"]
+
 def _matchop(query):
     for m in _matchops:
         if m in query:
@@ -170,6 +198,7 @@ class Retriever(pt.Transformer):
                  metadata : List[str] = ["docno"], 
                  num_results : Optional[int] = None, 
                  wmodel : Optional[Union[str, Callable]] = None, 
+                 tokeniser : Union[str,TerrierTokeniser] = TerrierTokeniser.english,
                  threads : int = 1, 
                  verbose : bool = False):
         """
@@ -194,6 +223,7 @@ class Retriever(pt.Transformer):
         self.RequestContextMatching = pt.java.autoclass("org.terrier.python.RequestContextMatching")
         self.search_context = {}
         self.verbose = verbose
+        self.tokeniser = TerrierTokeniser.java_tokeniser(TerrierTokeniser._to_obj(tokeniser))
 
         for key, value in self.properties.items():
             pt.terrier.J.ApplicationSetup.setProperty(str(key), str(value))
@@ -290,6 +320,8 @@ class Retriever(pt.Transformer):
             srq = self.manager.newSearchRequest(qid)
         else:
             query = row.query
+            if _query_needs_tokenised(query):
+                query = ' '.join(self.tokeniser.getTokens(query))
             if len(query) == 0:
                 warn(
                     "Skipping empty query for qid %s" % qid)
@@ -383,13 +415,21 @@ class Retriever(pt.Transformer):
         """
         results=[]
         if not isinstance(queries, pd.DataFrame):
-            raise ValueError(".transform() should be passed a dataframe. Use .search() to execute a single query; Use .transform_iter() for iter-dicts")
+            raise ValueError(".transform() should be passed a DataFrame (found %s). Use .search() to execute a single query; Use .transform_iter() for iter-dicts" % str(type(queries)))
         
+        # use pt.validate - this makes inspection of input columns better
+        with pt.validate.any(queries) as v:
+            v.columns(includes=['qid', 'query'], excludes=['docid', 'docno'], mode='retrieve') # query based frame without docno or docid
+            v.columns(includes=['qid', 'query', 'docid'], mode='rerank') # docid-based results frame
+            v.query_frame(extra_columns=['query_toks'], mode='retrieve_toks')
+            v.result_frame(extra_columns=['query'], mode='rerank')
+            
         docno_provided = "docno" in queries.columns
         docid_provided = "docid" in queries.columns
         scores_provided = "score" in queries.columns
         input_results = None
-        if docno_provided or docid_provided:
+        if v.mode == 'rerank':
+            assert docno_provided or docid_provided, "For reranking, either docno or docid must be provided"
             assert pt.terrier.check_version(5.3)
             input_results = queries
 
@@ -419,11 +459,11 @@ class Retriever(pt.Transformer):
                 # create a future for each query, and submit to Terrier
                 future_results = {
                     executor.submit(_one_row, row, input_results, docno_provided=docno_provided, docid_provided=docid_provided, scores_provided=scores_provided) : row.qid 
-                    for row in queries.itertuples()}                
+                    for row in queries.itertuples()}
                 
                 # as these futures complete, wait and add their results
                 iter = concurrent.futures.as_completed(future_results)
-                if self.verbose:
+                if self.verbose and len(queries):
                     iter = pt.tqdm(iter, desc=str(self), total=queries.shape[0], unit="q")
                 
                 for future in iter:
@@ -431,7 +471,7 @@ class Retriever(pt.Transformer):
                     results.extend(res)
         else:
             iter = queries.itertuples()
-            if self.verbose:
+            if self.verbose and len(queries):
                 iter = pt.tqdm(iter, desc=str(self), total=queries.shape[0], unit="q")
             for row in iter:
                 res = self._retrieve_one(row, input_results, docno_provided=docno_provided, docid_provided=docid_provided, scores_provided=scores_provided)
@@ -460,6 +500,9 @@ class Retriever(pt.Transformer):
     def setControl(self, control, value):
         self.controls[str(control)] = str(value)
 
+    def schematic(self, *, input_columns = None): 
+        return {'label': self.controls['wmodel']}
+
     def fuse_rank_cutoff(self, k: int) -> Optional[pt.Transformer]:
         """
         Support fusing with RankCutoffTransformer.
@@ -469,8 +512,7 @@ class Retriever(pt.Transformer):
         if self.controls.get('context_wmodel') == 'on':
             return None # we don't store the original wmodel value so we can't reconstruct
         # apply the new k as num_results
-        return Retriever(self.indexref, controls=self.controls, properties=self.properties, metadata=self.metadata,
-            num_results=k, wmodel=self.controls["wmodel"], threads=self.threads, verbose=self.verbose)
+        return pt.inspect.transformer_apply_attributes(self, num_results=k)
 
     def fuse_feature_union(self, other: pt.Transformer, is_left: bool) -> Optional[pt.Transformer]:
         if isinstance(other, Retriever) and \
@@ -484,6 +526,44 @@ class Retriever(pt.Transformer):
                 metadata=self.metadata, threads=self.threads, verbose=self.verbose)
         return None
 
+    def attributes(self):
+        if 'wmodel' in self.controls:
+            wmodel = self.controls['wmodel']
+        elif self.controls.get('context_wmodel') == 'on':
+            wmodel = self.search_context['context_wmodel']
+        return [
+            pt.inspect.TransformerAttribute('index_location', self.indexref),
+            pt.inspect.TransformerAttribute('num_results', int(self.controls.get('end', '999')) + 1),
+            pt.inspect.TransformerAttribute('metadata', self.metadata),
+            pt.inspect.TransformerAttribute('wmodel', wmodel),
+            pt.inspect.TransformerAttribute('threads', self.threads),
+            pt.inspect.TransformerAttribute('verbose', self.verbose),
+        ] + [
+            pt.inspect.TransformerAttribute(key, value)
+            for key, value in self.controls.items()
+            if key not in ('end', 'wmodel')
+        ] + [
+            pt.inspect.TransformerAttribute(key, value)
+            for key, value in self.properties.items()
+        ]
+
+    def apply_attributes(self, **kwargs):
+        for attr in self.attributes():
+            if attr.name not in kwargs:
+                kwargs[attr.name] = attr.value
+        kwargs['controls'] = {}
+        kwargs['properties'] = {}
+        for key, value in list(kwargs.items()):
+            if key in ('index_location', 'controls', 'properties', 'metadata', 'num_results', 'wmodel', 'threads', 'verbose'):
+                pass
+            elif key in self.properties:
+                kwargs['properties'][key] = value
+                del kwargs[key]
+            else:
+                kwargs['controls'][key] = value
+                del kwargs[key]
+        return Retriever(**kwargs)
+
 
 @pt.java.required
 class TextIndexProcessor(pt.Transformer):
@@ -495,16 +575,29 @@ class TextIndexProcessor(pt.Transformer):
         for instance query expansion based on text.
     '''
 
-    def __init__(self, innerclass, takes="queries", returns="docs", body_attr="body", background_index=None, verbose=False, **kwargs):
+    def __init__(self, innerclass, 
+                 takes="queries", 
+                 returns="docs", 
+                 body_attr="body", 
+                 background_index=None, 
+                 stemmer : Union[None, str, TerrierStemmer] = TerrierStemmer.porter,
+                 stopwords : Union[None, TerrierStopwords, List[str]] = TerrierStopwords.terrier,
+                 tokeniser : Union[str,TerrierTokeniser] = TerrierTokeniser.english,
+                 verbose=False, 
+                 **kwargs):
         #super().__init__(**kwargs)
         self.innerclass = innerclass
         self.takes = takes
         self.returns = returns
+        assert isinstance(body_attr, str)
         self.body_attr = body_attr
         if background_index is not None:
             self.background_indexref = _parse_index_like(background_index)
         else:
             self.background_indexref = None
+        self.stemmer = stemmer
+        self.stopwords = stopwords
+        self.tokeniser = tokeniser
         self.kwargs = kwargs
         self.verbose = verbose
 
@@ -512,8 +605,17 @@ class TextIndexProcessor(pt.Transformer):
         # we use _IterDictIndexer_nofifo, as _IterDictIndexer_fifo (which is default on unix) doesnt support IndexingType.MEMORY as a destination
         from pyterrier.terrier import IndexFactory
         from pyterrier.terrier.index import IndexingType, _IterDictIndexer_nofifo
+        pt.validate.result_frame(topics_and_res, extra_columns=[self.body_attr, 'query'])
         documents = topics_and_res[["docno", self.body_attr]].drop_duplicates(subset="docno").rename(columns={self.body_attr:'text'})
-        indexref = _IterDictIndexer_nofifo(None, type=IndexingType.MEMORY, verbose=self.verbose).index(documents.to_dict(orient='records'))
+        indexref = _IterDictIndexer_nofifo(
+            None, 
+            type=IndexingType.MEMORY, 
+            verbose=self.verbose, 
+            stemmer = self.stemmer, 
+            stopwords = self.stopwords,
+            tokeniser = self.tokeniser
+            ).index(documents.to_dict(orient='records'))
+        
         docno2docid = { docno:id for id, docno in enumerate(documents["docno"]) }
         index_docs = IndexFactory.of(indexref)
         docno2docid = {}
@@ -541,6 +643,29 @@ class TextIndexProcessor(pt.Transformer):
             # add the docid to the dataframe
             input["docid"] = input.apply(lambda row: docno2docid[row["docno"]], axis=1, result_type='reduce')
 
+        if self.innerclass == Retriever:
+            # build up a termpipeline based on the stemmer and stopwords settings
+            tp = []
+            stops, _ = TerrierStopwords._to_obj(self.stopwords or 'none')
+            if stops == TerrierStopwords.terrier:
+                tp.append("Stopwords")
+            elif stops == TerrierStopwords.none:
+                pass # noop
+            else:
+                # sadly PyTerrierCustomStopwordList only support instantiation from ApplicationSetup or Index properties, not controls
+                raise KeyError("Only TerrierStopwords.terrier and TerrierStopwords.none are supported for stopwords in TextIndexProcessor, found %s" % str(stops))       
+            stemmer = TerrierStemmer._to_obj(self.stemmer or 'none')
+            if stemmer is not TerrierStemmer.none:
+                tp.append(TerrierStemmer._to_class(stemmer))
+
+            if 'controls' not in self.kwargs:
+                self.kwargs['controls'] = {}
+            if not len(tp):
+                tp = ["NoOp"] # an empty termpipeline will be detected as missing by ApplyTermPipeline in Terrier
+            self.kwargs['controls']['termpipelines'] = ",".join(tp)
+        else:
+            # if not Retriever, we dont know how to set the termpipeline
+            pass
 
         # and then just instantiate BR using the our new index 
         # we take all other arguments as arguments for BR
@@ -667,6 +792,11 @@ class FeaturesRetriever(Retriever):
             (self.indexref, self.features),
             self.__getstate__()
         )
+    
+    def schematic(self, *, input_columns = None): 
+        if self.wmodel is None:
+            return {'label': "FeaturesRetriever: %df" % len(self.features)}
+        return {'label': "FeaturesRetriever: %s + %df" % (self.wmodel, len(self.features))}
 
     def __getstate__(self): 
         return  {
@@ -708,10 +838,18 @@ class FeaturesRetriever(Retriever):
         if not isinstance(queries, pd.DataFrame):
             raise ValueError(".transform() should be passed a dataframe. Use .search() to execute a single query; Use .transform_iter() for iter-dicts")
 
+        # use pt.validate - this makes inspection of input columns better
+        with pt.validate.any(queries) as v:
+            v.columns(includes=['qid', 'query', 'docid'], mode='rerank') # docid-based results frame
+            v.query_frame(extra_columns=['query_toks'], mode='retrieve_toks')
+            v.query_frame(extra_columns=['query'], mode='retrieve')
+            v.result_frame(extra_columns=['query'], mode='rerank')
+
         docno_provided = "docno" in queries.columns
         docid_provided = "docid" in queries.columns
         scores_provided = "score" in queries.columns
-        if docno_provided or docid_provided:
+        if v.mode == 'rerank':
+            assert docno_provided or docid_provided, "For reranking, either docno or docid must be provided"
             #re-ranking mode
             assert pt.terrier.check_version(5.3)
             input_results = queries
@@ -725,6 +863,7 @@ class FeaturesRetriever(Retriever):
             if not scores_provided and self.wmodel is None:
                 raise ValueError("We're in re-ranking mode, but input does not have scores, and wmodel is None")
         else:
+            assert v.mode == 'retrieve' or v.mode == 'retrieve_toks'
             assert not scores_provided
 
             if self.wmodel is None:
@@ -735,7 +874,10 @@ class FeaturesRetriever(Retriever):
             queries['qid'] = queries['qid'].astype(str)
 
         newscores=[]
-        for row in pt.tqdm(queries.itertuples(), desc=str(self), total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
+        iter = queries.itertuples()
+        if self.verbose and len(queries):
+            iter = pt.tqdm(iter, desc=str(self), total=queries.shape[0], unit="q")
+        for row in iter:
             qid = str(row.qid)
             query_toks_present = 'query_toks' in row._fields
             if query_toks_present:
@@ -745,6 +887,8 @@ class FeaturesRetriever(Retriever):
                 srq = self.manager.newSearchRequest(qid)
             else:
                 query = row.query
+                if _query_needs_tokenised(query):
+                    query = ' '.join(self.tokeniser.getTokens(query))
                 if len(query) == 0:
                     warn(
                         "Skipping empty query for qid %s" % qid)
