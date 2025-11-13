@@ -531,7 +531,7 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
         stemmer: Union[None, str, 'pt.terrier.TerrierStemmer'] = 'porter',
         stopwords: Union[None, 'pt.terrier.TerrierStopwords', str, List[str]] = 'terrier',
         store_separate_fields: bool = False,
-        store_blocks: bool = False,
+        store_positions: bool = False,
         threads: int = 1,
     ) -> pt.Indexer:
         """Returns an indexer that is used to build this index.
@@ -543,7 +543,7 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
             stemmer: The stemmer to apply to each token.
             stopwords: The set of words to remove as stopwords.
             store_separate_fields: Whether to store each text attribute as a separate field in the index. This allows for fielded retrieval, but increases index size.
-            store_blocks: Whether to store block information (i.e., positions) in the index. This allows for positional queries, but increases index size and retrieval time.
+            store_positions: Whether to store position information (i.e., blocks) in the index. This allows for positional queries, but increases index size and retrieval time.
             threads: The number of threads to use during indexing.
 
         Example Pipeline:
@@ -562,7 +562,7 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
             stemmer=stemmer,
             stopwords=stopwords,
             fields=store_separate_fields,
-            blocks=store_blocks,
+            blocks=store_positions,
             threads=threads,
         )
 

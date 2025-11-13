@@ -147,35 +147,38 @@ revert to the original query formulation for a final ranking step such as MonoT5
 Tokenising the Query
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. related:: pyterrier.terrier.rewrite.tokenise
+
 Sometimes your query can include symbols that aren't compatible with how your retriever parses the query.
-In this case, a custom tokeniser can be applied as part of the retrieval pipeline. 
+In this case, a custom tokeniser can be applied as part of the retrieval pipeline. using :meth:`pt.terrier.rewrite.tokenise <pyterrier.terrier.rewrite.tokenise>`.
 
-.. autofunction:: pyterrier.rewrite.tokenise()
-
-Stashing the Documents
+Advanced: Stashing the Documents
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Very rarely..., you might want to apply a query rewriting function as a re-ranker, but your rewriting function uses a different document ranking.
-In this case, you can use `pt.rewrite.stash_results()` to stash the retrieved documents for each query, so they can be recovered and 
-re-ranked later using your rewritten query formulation.
+.. related:: pyterrier.terrier.rewrite.stash_results
+.. related:: pyterrier.terrier.rewrite.reset_results
 
-.. autofunction:: pyterrier.rewrite.stash_results()
-
-.. autofunction:: pyterrier.rewrite.reset_results()
+Very rarely, you might want to apply a query rewriting function as a re-ranker, but your rewriting function uses a different document ranking.
+In this case, you can use :meth:`~pyterrier.terrier.rewrite.stash_results` to stash the retrieved documents for each query, so they can be recovered and 
+re-ranked later using your rewritten query formulation. :meth:`~pyterrier.terrier.rewrite.reset_results` can then be used later to restore the stashed documents.
 
 Example: Query Expansion as a re-ranker
 
-Some papers `advocate <https://dl.acm.org/doi/10.1145/2808194.2809491>`_ for the use of query expansion (PRF) as a re-ranker. 
-This can be attained in PyTerrier through use of `stash_results()` and `reset_results()`::
+.. cite.dblp::     conf/ictir/Diaz15
+
+Some papers advocate for the use of query expansion (PRF) as a re-ranker. 
+This can be attained in PyTerrier through use of ``stash_results()`` and ``reset_results()``:
+
+.. code-block:: python
 
     # index: the corpus you are ranking
-
-    dph = pt.terrier.Retriever(index)
-    Pipe = dph 
-        >> pt.rewrite.stash_results(clear=False)
-        >> pt.rewrite.RM3(index)
-        >> pt.rewrite.reset_results()
-        >> dph
+    pipeline = (
+        index.dph()
+        >> pt.terrier.rewrite.stash_results(clear=False)
+        >> index.rm3()
+        >> pt.terrier.rewrite.reset_results()
+        >> index.dph()
+    )
 
 
 Summary of dataframe types:
@@ -197,22 +200,25 @@ Summary of dataframe types:
 Indeed, as we need RM3 to have the initial ranking of documents as input, we use `clear=False` as the kwarg
 to stash_results().
 
-Example: Collection Enrichment as a re-ranker::
+Example: Collection Enrichment as a re-ranker:
+
+.. code-block:: python
 
     # index: the corpus you are ranking
     # wiki_index: index of Wikipedia, used for enrichment
 
-    dph = pt.terrier.Retriever(index)
-    Pipe = dph 
-        >> pt.rewrite.stash_results()          
-        >> pt.terrier.Retriever(wiki_index)
-        >> pt.rewrite.RM3(wiki_index)
-        >> pt.rewrite.reset_results()
-        >> dph
+    pipeline = (
+        index.dph()
+        >> pt.terrier.rewrite.stash_results()          
+        >> wiki_index.dph()
+        >> wiki_index.rm3()
+        >> pt.terrier.rewrite.reset_results()
+        >> index.dph()
+    )
 
 In general, collection enrichment describes conducting a PRF query expansion process on an external corpus (often Wikipedia), 
 before applying the reformulated query to the main corpus. Collection enrichment can be used for improving a first pass 
-retrieval (`pt.terrier.Retriever(wiki_index) >> pt.rewrite.RM3(wiki_index) >> pt.terrier.Retriever(main_index)`). Instead, the particular 
+retrieval (``wiki_index.dph() >> wiki_index.rm3() >> main_index.dph()``). Instead, the particular 
 example shown above applies collection enrichment as a re-ranker.
 
 
@@ -235,4 +241,4 @@ Summary of dataframe types:
 +--------------+-----------------------+-------------------------------------------+
 
 In this example, we have a Retriever instance executed on the wiki_index before RM3, so we clear the
-document ranking columns when using `stash_results()`.
+document ranking columns when using ``stash_results()``.
