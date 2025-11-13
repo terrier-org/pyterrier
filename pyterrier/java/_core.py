@@ -13,23 +13,7 @@ _stderr_ref = None
 # Java Initialization
 # ----------------------------------------------------------
 
-def _get_notebook() -> Optional[str]:
-    try:
-        import IPython # type: ignore
-    except Exception:
-        return None
 
-    # Try to get IPython and return None if not found.
-    ipython = IPython.get_ipython()
-    if not ipython:
-        return None
-    locals = IPython.get_ipython().user_ns
-
-    if "__vsc_ipynb_file__" in locals:
-        return locals["__vsc_ipynb_file__"]
-    if "__session__" in locals:
-        return locals["__session__"]
-    return None
 
 class ColabJavaInit(JavaInitializer):
     def priority(self) -> int:
@@ -101,7 +85,7 @@ class CoreJavaInit(JavaInitializer):
             jnius_config.add_classpath(jar)
 
         # set the property that makes a process name visible in jps
-        process_name : str =  _get_notebook()
+        process_name : str =  pt.utils._get_notebook()
         if process_name is None:
             process_name = "python[pyterrier]:" + (sys.argv[0] if sys.argv[0] else '<interactive>')
         else:

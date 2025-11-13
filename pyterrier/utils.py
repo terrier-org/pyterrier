@@ -1,7 +1,7 @@
 import os
 import inspect
 import sys
-from typing import Tuple, List, Callable, Set, Sequence, Union, Iterator, Iterable, Any
+from typing import Tuple, List, Callable, Set, Sequence, Union, Iterator, Iterable, Any, Optional
 from contextlib import contextmanager
 import platform
 from functools import wraps
@@ -76,12 +76,15 @@ def set_tqdm(type=None):
          - `'notebook'`: corresponds to a notebook progress bar, ala `from tqdm.notebook import tqdm`
          - `'auto'`: allows tqdm to decide on the progress bar type, ala `from tqdm.auto import tqdm`. Note that this works fine on Google Colab, but not on Jupyter unless the `ipywidgets have been installed <https://ipywidgets.readthedocs.io/en/stable/user_install.html>`_.
     """
+    import importlib
     if type is None:
         if 'google.colab' in sys.modules:
             type = 'notebook'
+        elif _get_notebook() is not None and importlib.util.find_spec('ipywidgets') is not None:
+            type = 'notebook'
         else:
             type = 'tqdm'
-    
+
     if type == 'tqdm':
         from tqdm import tqdm as bartype
         pt.tqdm = bartype
@@ -210,3 +213,24 @@ class PeekableIter:
 def peekable(it: Union[Iterator, Iterable]) -> PeekableIter:
     """Create a PeekableIter from an iterator or iterable."""
     return PeekableIter(it)
+
+def _get_notebook() -> Optional[str]:
+    """
+    Returns the process name if running in a notebook, else None.
+    """
+    try:
+        import IPython # type: ignore
+    except Exception:
+        return None
+
+    # Try to get IPython and return None if not found.
+    ipython = IPython.get_ipython()
+    if not ipython:
+        return None
+    locals = IPython.get_ipython().user_ns
+
+    if "__vsc_ipynb_file__" in locals:
+        return locals["__vsc_ipynb_file__"]
+    if "__session__" in locals:
+        return locals["__session__"]
+    return None
