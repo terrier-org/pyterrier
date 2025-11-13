@@ -70,13 +70,15 @@ dph = pt.terrier.Retriever(indexref, wmodel="DPH")
 linear = bm25 + 2* dph
 ```
 
-However, if the score distributions are not similar, finding a good weight can be tricky. Normalisation of retrieval scores can be advantagous in this case. We provide PerQueryMaxMinScoreTransformer() to make easy normalisation.
+However, if the score distributions are not similar, finding a good weight can be tricky. Normalisation of retrieval scores can be advantagous in this case. PyTerrier-Alpha provide PerQueryMaxMinScore() to make the normalisation easy.
 
 ```python
-bm25 = pt.terrier.Retriever(indexref, wmodel="BM25") >> pt.pipelines.PerQueryMaxMinScoreTransformer()
-dph = pt.terrier.Retriever(indexref, wmodel="DPH" >> pt.pipelines.PerQueryMaxMinScoreTransformer()
+import pyterrier_alpha as pta
+bm25 = pt.terrier.Retriever(indexref, wmodel="BM25") >> pta.fusion.PerQueryMaxMinScore()
+dph = pt.terrier.Retriever(indexref, wmodel="DPH" >> pta.fusion.PerQueryMaxMinScore()
 linear = 0.75 * bm25 + 0.25 * dph
 ```
+
 
 
 ## Learning to Rank

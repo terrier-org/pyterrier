@@ -1,4 +1,4 @@
-
+import numpy as np
 import pandas as pd
 import pyterrier as pt
 import os
@@ -53,6 +53,10 @@ class TestApply(BaseTestCase):
             rtr = pd.DataFrame(list(rtr)) if not isinstance(rtr, pd.DataFrame) else rtr  # recover DF for easier testing
             self.assertTrue("Bla2" in rtr.columns)
             self.assertFalse("Bla" in rtr.columns)
+
+        # test inspection
+        self.assertEqual([["Bla"]], list(pt.inspect.transformer_inputs(p)))
+        self.assertEqual(["qid", "query", "Bla2"], pt.inspect.transformer_outputs(p, ["qid", "query", "Bla"]))
         
         testDF2 = pd.DataFrame([["q1", "the bear and the wolf", 1]], columns=["qid", "query", "Bla2"])
         for input in [testDF2, testDF2.to_dict(orient='records')]:
@@ -73,7 +77,7 @@ class TestApply(BaseTestCase):
         self.assertEqual(rtr.iloc[0]["query_0"], origquery)
 
         testDF2 = pd.DataFrame([["q1"]], columns=["qid"])
-        rtrDR2 = pt.apply.query(lambda row : row["qid"] )(testDF2)
+        rtrDR2 = pt.apply.query(lambda row : row["qid"], required_columns=['qid'])(testDF2)
         self.assertEqual(rtrDR2.iloc[0]["query"], "q1")
 
     def test_query_apply_error(self):
@@ -259,3 +263,12 @@ class TestApply(BaseTestCase):
             self.assertTrue(np.array_equal(rtr.iloc[0]["features"], np.array([0,1])))
 
 
+
+@pt.testing.transformer_test_class
+def test_apply_doc_features():
+    return pt.apply.doc_features(lambda row: np.array([0,1]))
+
+
+@pt.testing.transformer_test_class
+def test_apply_doc_score():
+    return pt.apply.doc_score(lambda row: 5)

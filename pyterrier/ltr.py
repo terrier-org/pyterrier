@@ -15,6 +15,9 @@ class AblateFeatures(Transformer):
         self.null = 0
         
     def transform(self, topics_and_res):
+        pt.validate.result_frame(topics_and_res, extra_columns=["features"])
+        if len(topics_and_res) == 0:
+            return topics_and_res
         
         def _reset(row):
             fvalues = row["features"].copy() 
@@ -22,7 +25,6 @@ class AblateFeatures(Transformer):
                 fvalues[findex] = self.null
             return fvalues
         
-        assert "features" in topics_and_res.columns
         topics_and_res = topics_and_res.copy()
         topics_and_res["features"] = topics_and_res.apply(_reset, axis=1)
         return topics_and_res
@@ -35,7 +37,11 @@ class KeepFeatures(Transformer):
         
     def transform(self, topics_and_res):
         
-        assert "features" in topics_and_res.columns
+        pt.validate.result_frame(topics_and_res, extra_columns=["features"])
+
+        if len(topics_and_res) == 0:
+            return topics_and_res
+        
         topics_and_res = topics_and_res.copy()
         topics_and_res["features"] = topics_and_res.apply(lambda row: row["features"][self.fids], axis=1)
         return topics_and_res
@@ -64,10 +70,9 @@ class RegressionTransformer(Estimator):
         Args:
             topicsTrain(DataFrame): A dataframe with the topics to train the model
         """
+        pt.validate.result_frame(topics_and_results_Train, extra_columns=["features"])
         if len(topics_and_results_Train) == 0:
             raise ValueError("No topics to fit to")
-        if 'features' not in topics_and_results_Train.columns:
-            raise ValueError("No features column retrieved")
         train_DF = topics_and_results_Train.merge(qrelsTrain, on=['qid', 'docno'], how='left').fillna(0)
         kwargs = self.fit_kwargs
         self.learner.fit(np.stack(train_DF["features"].values), train_DF["label"].values, **kwargs)
@@ -81,6 +86,7 @@ class RegressionTransformer(Estimator):
         Args:
             topicsTest(DataFrame): A dataframe with the test topics.
         """
+        pt.validate.result_frame(test_DF, extra_columns=["features"])
         test_DF = test_DF.copy()
 
         # check for change in number of features
@@ -94,6 +100,20 @@ class RegressionTransformer(Estimator):
 
         test_DF["score"] = self.learner.predict(np.stack(test_DF["features"].values))
         return add_ranks(test_DF)
+    
+    def transform_outputs(self, inp_cols):
+        """
+        Returns the output columns of the transformer.
+        
+        Args:
+            inp_cols: The input columns to the transformer.
+        """
+        out = inp_cols.copy()
+        if "score" not in out:
+            out.append("score")
+        if "rank" not in out:
+            out.append("rank")
+        return out
 
 class LTRTransformer(RegressionTransformer):
     """
@@ -123,10 +143,8 @@ class LTRTransformer(RegressionTransformer):
         if topics_and_results_Valid is None or len(topics_and_results_Valid) == 0:
             raise ValueError("No validation results to fit to")
 
-        if 'features' not in topics_and_results_Train.columns:
-            raise ValueError("No features column retrieved in training")
-        if 'features' not in topics_and_results_Valid.columns:
-            raise ValueError("No features column retrieved in validation")
+        pt.validate.result_frame(topics_and_results_Train, extra_columns=["features"])
+        pt.validate.result_frame(topics_and_results_Valid, extra_columns=["features"])
 
         tr_res = topics_and_results_Train.merge(qrelsTrain, on=['qid', 'docno'], how='left').fillna(0)
         va_res = topics_and_results_Valid.merge(qrelsValid, on=['qid', 'docno'], how='left').fillna(0)
@@ -178,11 +196,11 @@ class FastRankEstimator(Estimator):
         return dataset
 
     def fit(self, topics_and_results_Train, qrelsTrain, topics_and_results_Valid=None, qrelsValid=None):
+
+        pt.validate.result_frame(topics_and_results_Train, extra_columns=["features"])
+
         if topics_and_results_Train is None or len(topics_and_results_Train) == 0:
             raise ValueError("No training results to fit to")
-
-        if 'features' not in topics_and_results_Train.columns:
-            raise ValueError("No features column retrieved in training")
 
         tr_res = topics_and_results_Train.merge(qrelsTrain, on=['qid', 'docno'], how='left').fillna(0)
         dataset = self._make_dataset(tr_res, add_labels=True)
@@ -195,6 +213,7 @@ class FastRankEstimator(Estimator):
 
         :param topics_and_docs_Test: A dataframe with the test topics.
         """
+        pt.validate.result_frame(topics_and_docs_Test, extra_columns=["features"])
         if self.model is None:
             raise ValueError("fit() must be called first")
         test_DF = topics_and_docs_Test.copy()
@@ -212,6 +231,20 @@ class FastRankEstimator(Estimator):
         scores = [rtr[i] for i in range(len(rtr))]
         test_DF["score"] = scores
         return add_ranks(test_DF)
+    
+    def transform_outputs(self, inp_cols):
+        """
+        Returns the output columns of the transformer.
+        
+        Args:
+            inp_cols: The input columns to the transformer.
+        """
+        out = inp_cols.copy()
+        if "score" not in out:
+            out.append("score")
+        if "rank" not in out:
+            out.append("rank")
+        return out
 
 def ablate_features(fids : FeatureList) -> Transformer:
     """

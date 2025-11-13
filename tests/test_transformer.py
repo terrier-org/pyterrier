@@ -36,3 +36,11 @@ class TestTransformer(BaseTestCase):
         # check normal API
         for T in [MyTransformer1, MyTransformer1a, MyTransformer3, MyTransformer4]:
             self.assertTrue(pt.transformer.is_transformer(T()))
+
+        # check for inspectability
+        iter_notinspectable = MyTransformer1a()
+        self.assertTrue(hasattr(iter_notinspectable, 'transform_outputs'))
+        with self.assertRaises(pt.inspect.InspectError):
+            iter_notinspectable.transform_outputs(['a'])
+
+        self.assertFalse(hasattr(MyTransformer1(), 'transform_outputs'))

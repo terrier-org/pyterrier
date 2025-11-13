@@ -1,5 +1,5 @@
 from enum import Enum
-
+import pyterrier as pt
 
 class TerrierTokeniser(Enum):
     """
@@ -33,4 +33,12 @@ class TerrierTokeniser(Enum):
             return 'IdentityTokeniser'
         if isinstance(this, str):
             return this
-        raise ValueError(f'Unsupported tokeniser: {this}')
+        raise ValueError(f'Unknown/unsupported tokeniser: {this}')
+    
+    @staticmethod
+    @pt.java.required
+    def java_tokeniser(this):
+        clz = TerrierTokeniser._to_class(this)
+        if "." not in clz:
+            clz = "org.terrier.indexing.tokenisation." + clz
+        return pt.java.autoclass(clz)()

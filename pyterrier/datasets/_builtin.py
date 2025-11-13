@@ -43,7 +43,7 @@ def _datarepo_index(self, component, variant=None, version='latest', **kwargs):
         if line.startswith("#"):
             continue
         try:
-            (length, filename) = re.split(r"\s+", line.strip(), 2)
+            (length, filename) = re.split(r"\s+", line.strip(), maxsplit=2)
             rtr.append((filename, urlprefix+filename, int(length)))
         except Exception as e:
             raise ValueError(f"Could not parse {url} line {linenum} '{line}'") from e
@@ -301,23 +301,6 @@ TREC_WT_2004_FILES = {
     "info_url" : "https://trec.nist.gov/data/t13.web.html",
 }
 
-FIFTY_PCT_INDEX_BASE = "http://www.dcs.gla.ac.uk/~craigm/IR_HM/"
-FIFTY_PCT_FILES = {
-    "index": {
-        "ex2" : [(filename, FIFTY_PCT_INDEX_BASE + "index/" + filename) for filename in ["data.meta-0.fsomapfile"] + STANDARD_TERRIER_INDEX_FILES],
-        "ex3" : [(filename, FIFTY_PCT_INDEX_BASE + "ex3/" + filename) for filename in ["data.meta-0.fsomapfile", "data-pagerank.oos"] + STANDARD_TERRIER_INDEX_FILES],   
-    },
-    "topics": { 
-            "training" : ("training.topics", FIFTY_PCT_INDEX_BASE + "topics/" + "training.topics", "trec"),
-            "validation" : ("validation.topics", FIFTY_PCT_INDEX_BASE + "topics/" + "validation.topics", "trec"),
-    },
-    "qrels": { 
-            "training" : ("training.qrels", FIFTY_PCT_INDEX_BASE + "topics/" + "training.qrels", "trec"),
-            "validation" : ("validation.qrels", FIFTY_PCT_INDEX_BASE + "topics/" + "validation.qrels", "trec"),
-    }    
-}
-
-
 
 # a function for the TREC Web track 2009 qrels, to make prels into qrels
 def prel2qrel(self, component, variant): 
@@ -495,8 +478,6 @@ VASWANI_FILES = {
 }
 
 DATASET_MAP : Dict[str, pt.datasets.Dataset] = {
-    # used for UGlasgow teaching
-    "50pct" : pt.datasets.RemoteDataset("50pct", FIFTY_PCT_FILES),
     # umass antique corpus - see http://ciir.cs.umass.edu/downloads/Antique/ 
     "antique" : pt.datasets.RemoteDataset("antique", ANTIQUE_FILES),
     # generated from http://ir.dcs.gla.ac.uk/resources/test_collections/npl/
@@ -537,5 +518,5 @@ class BuiltinDatasetProvider(pt.datasets.DatasetProvider):
     def get_dataset(self, name: str) -> pt.datasets.Dataset:
         return DATASET_MAP[name]
 
-    def list_datasets(self) -> Iterable[str]:
+    def list_dataset_names(self) -> Iterable[str]:
         return list(DATASET_MAP.keys())

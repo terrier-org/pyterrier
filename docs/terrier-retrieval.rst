@@ -16,16 +16,32 @@ Typical usage::
     pt.Experiment([tf_idf, bm25, pl2], topic, qrels, eval_metrics=["map"])
 
 As Retriever is a retrieval transformation, it takes as input dataframes with columns `["qid", "query"]`,
-and returns dataframes with columns `["qid", "query", "docno", "score", "rank"]`.
+and returns dataframes with columns `["qid", "query", "docno", "score", "rank"]`:
+
+.. schematic::
+    :input_columns: qid,query
+
+    pt.terrier.TerrierIndex.from_hf('pyterrier/vaswani.terrier').bm25()
 
 However, Retriever can also act as a re-ranker. In this scenario, it takes as input dataframes with 
-columns `["qid", "query", "docno"]`, and returns dataframes with columns `["qid", "query", "docno", "score", "rank"]`.
+columns `["qid", "query", "docno"]`, and returns dataframes with columns `["qid", "query", "docno", "score", "rank"]`:
+
+.. schematic::
+    :input_columns: qid,query,docno
+
+    pt.terrier.TerrierIndex.from_hf('pyterrier/vaswani.terrier').bm25()
 
 For instance, to create a re-ranking pipeline that re-scores the top 100 BM25 documents using PL2::
 
     bm25 = pt.terrier.Retriever(index, wmodel="BM25")
     pl2 = pt.terrier.Retriever(index, wmodel="PL2")
     pipeline = (bm25 % 100) >> pl2
+
+.. schematic::
+    :input_columns: qid,query
+
+    index = pt.terrier.TerrierIndex.from_hf('pyterrier/vaswani.terrier')
+    index.bm25() % 100 >> index.retriever("pl2")
 
 Retriever
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -187,12 +203,27 @@ By default, PyTerrier is configured for indexing and retrieval in English. See
 (`colab <https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/non_en_retrieval.ipynb>`_)
 for details on how to configure PyTerrier in other languages.
 
-Custom Weighting Models
+Advanced and Custom Weighting Models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Normally, weighting models are specified as a string class names. Terrier then loads the Java class of that name (it will search
 the `org.terrier.matching.models package <http://terrier.org/docs/current/javadoc/org/terrier/matching/models/package-summary.html>`_ 
 unless the class name is fully qualified (e.g. `"com.example.MyTF"`).
+
+The available models can be found in the Terrier `weighting models javadoc <http://terrier.org/docs/current/javadoc/org/terrier/matching/models/package-summary.html>`_.
+Some interesting models include:
+ - BM25 - the classic Okapi BM25 model
+ - PL2 - a Divergence from Randomness model
+ - TF_IDF - the classic vector space model
+ - DLH13 - a DFR model that is similar to BM25, but with fewer parameters
+ - DPH - a DFR model that does not require any tuning
+ - Hiemstra_LM, Dirichlet_LM - language models with different smoothing methods
+ - DFRWeightingModel - a meta-model allowing to generate arbitrary DFR weighting models, e.g. `"DFRWeightingModel(PL2, L, 2)"`.
+
+For using on indices with multiple fields, Terrier provides some advanced field-based models as well as meta-models that can be used to wrap other weighting models:
+ - PL2F - a field-based variant of PL2
+ - BM25F - a field-based variant of BM25
+ - PerFieldNormWeightingModel - a meta-model that allows you to specify construct an arbitrary field-based model, e.g. `"PerFieldNormWeightingModel(BM, Normalisation2)"`. 
 
 If you have your own Java weighting model instance (which extends the 
 `WeightingModel abstract class <http://terrier.org/docs/current/javadoc/org/terrier/matching/models/WeightingModel.html>`_, 

@@ -433,9 +433,21 @@ class TestRewrite(TempDirTestCase):
             self.assertAlmostEqual(map_qe, map_pipe, places=4)
 
             pipe_opt = pipe.compile()
-            self.assertEqual("2", pipe_opt[0].controls["end"]) # has fb_docs 3 been proparaged back to the first retriever
+            self.assertEqual("2", pipe_opt[0].controls["end"]) # has fb_docs 3 been propagated back to the first retriever
             self.assertNotIn("end", pipe_opt[-1].controls) # ensure last retriever is unchanged
             pd.testing.assert_frame_equal(all_qe_res.head(5), pipe_opt(t).head(5))
+
+
+@pt.testing.transformer_test_class
+def test_sdm():
+    return pt.rewrite.SDM()
+
+
+@pt.testing.transformer_test_class
+def test_rm3():
+    index = pt.terrier.TerrierIndex.load(os.path.dirname(os.path.realpath(__file__)) + '/fixtures/index/')
+    return pt.rewrite.RM3(index.index_ref())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -188,7 +188,7 @@ class Artifact:
         metadata = {}
 
         try:
-            metadata['type'], metadata['format'] = pt.inspect.artifact_type_format(self)
+            metadata['type'], metadata['format'] = pt.inspect.artifact_type_format(self) # type: ignore[misc]
         except TypeError:
             pass # couldn't identify type and format
 

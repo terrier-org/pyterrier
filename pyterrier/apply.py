@@ -1,9 +1,9 @@
 from functools import partial
-from typing import Callable, Any, Dict, Union, Optional, Sequence, Literal
+from typing import Callable, Any, Dict, Union, Optional, Sequence, Literal, List, cast
 import numpy.typing as npt
 import pandas as pd
 import pyterrier as pt
-from pyterrier.apply_base import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyIterForEachQuery, ApplyGenericTransformer, ApplyGenericIterTransformer, ApplyIndexer, DropColumnTransformer, ApplyByRowTransformer
+from pyterrier.apply_base import ApplyDocumentScoringTransformer, ApplyQueryTransformer, ApplyDocFeatureTransformer, ApplyForEachQuery, ApplyIterForEachQuery, ApplyGenericTransformer, ApplyGenericIterTransformer, ApplyIndexer, DropColumnTransformer, ApplyByRowTransformer, RenameColumnsTransformer
 
 def _bind(instance, func, as_name=None):
     """
@@ -17,7 +17,7 @@ def _bind(instance, func, as_name=None):
     setattr(instance, as_name, bound_method)
     return bound_method
 
-def query(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], str], *args, **kwargs) -> pt.Transformer:
+def query(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], str], *args, required_columns : Optional[List[str]] = ['qid', 'query'], **kwargs) -> pt.Transformer:
     """
         Create a transformer that takes as input a query, and applies a supplied function to compute a new query formulation.
 
@@ -30,6 +30,7 @@ def query(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], str], *args,
         be executed on the previous query formulation, a ``pt.rewrite.reset()`` transformer can be applied.  
 
         :param fn: the function to apply to each row. It must return a string containing the new query formulation.
+        :param required_columns: The list of columns that must be present in the input dataframe. Defaults to ['qid', 'query'].
         :param verbose: if set to True, a TQDM progress bar will be displayed
 
         Examples::
@@ -58,9 +59,9 @@ def query(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], str], *args,
             
 
     """
-    return ApplyQueryTransformer(fn, *args, **kwargs)
+    return ApplyQueryTransformer(fn, *args, required_columns=required_columns, **kwargs)
 
-def doc_score(fn : Union[Callable[[Union[pd.Series,pt.model.IterDictRecord]], float], Callable[[pd.DataFrame], Sequence[float]]], *args, batch_size=None, **kwargs) -> pt.Transformer:
+def doc_score(fn : Union[Callable[[Union[pd.Series,pt.model.IterDictRecord]], float], Callable[[pd.DataFrame], Sequence[float]]], *args, required_columns : Optional[List[str]] = ['qid', 'query', 'docno'], batch_size=None, **kwargs) -> pt.Transformer:
     """
         Create a transformer that takes as input a ranked documents dataframe, and applies a supplied function to compute a new score.
         Ranks are automatically computed. doc_score() can operate row-wise, or batch-wise, depending on whether batch_size is set.
@@ -70,6 +71,7 @@ def doc_score(fn : Union[Callable[[Union[pd.Series,pt.model.IterDictRecord]], fl
 
         :param fn: the function to apply to each row
         :param batch_size: How many documents to operate on at once (batch-wise). If None, operates row-wise
+        :param required_columns: If provided, should be a list of columns that must be present in the input dataframe. Defaults to ['qid', 'query', 'docno'].
         :param verbose: if set to True, a TQDM progress bar will be displayed
 
         Example (Row-wise)::
@@ -94,7 +96,7 @@ def doc_score(fn : Union[Callable[[Union[pd.Series,pt.model.IterDictRecord]], fl
     """
     return ApplyDocumentScoringTransformer(fn, *args, batch_size=batch_size, **kwargs)
 
-def doc_features(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], npt.NDArray[Any]], *args, **kwargs) -> pt.Transformer:
+def doc_features(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], npt.NDArray[Any]], *args, required_columns : Optional[List[str]] = ['qid', 'query', 'docno'], **kwargs) -> pt.Transformer:
     """
         Create a transformer that takes as input a ranked documents dataframe, and applies the supplied function to each document to compute feature scores. 
 
@@ -104,6 +106,7 @@ def doc_features(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], npt.N
         notation and not the ``row.key`` that is supported by a Series.
 
         :param fn: the function to apply to each row. It must return a 1D numpy array
+        :param required_columns: The list of columns that must be present in the input dataframe.
         :param verbose: if set to True, a TQDM progress bar will be displayed
         
         Example::
@@ -127,15 +130,16 @@ def doc_features(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], npt.N
             pipeline = bm25 >> ( some_features ** pt.apply.doc_score(one_feature) )
 
     """
-    return ApplyDocFeatureTransformer(fn, *args, **kwargs)
+    return ApplyDocFeatureTransformer(fn, *args, required_columns = required_columns, **kwargs)
 
-def indexer(fn : Callable[[pt.model.IterDict], Any], **kwargs) -> pt.Indexer:
+def indexer(fn : Callable[[pt.model.IterDict], Any], required_columns: Optional[List[str]] = None, **kwargs) -> pt.Indexer:
     """
         Create an instance of pt.Indexer using a function that takes as input an interable dictionary.
 
         The supplied function is called once. It may optionally return something (typically a reference to the "index").
 
         :param fn: the function that consumes documents as IterDicts.
+        :param required_columns: If provided, should be a list of columns that must be present in the input IterDicts.
 
         Example::
 
@@ -148,9 +152,9 @@ def indexer(fn : Callable[[pt.model.IterDict], Any], **kwargs) -> pt.Indexer:
             indexer = pt.apply.indexer(_counter)
             rtr = indexer.index([ {'docno' : 'd1'}, {'docno' : 'd2'}])
     """
-    return ApplyIndexer(fn, **kwargs)
+    return ApplyIndexer(fn, required_columns = required_columns, **kwargs)
 
-def rename(columns : Dict[str,str], *args, errors : Literal['raise', 'ignore']='raise', **kwargs) -> pt.Transformer:
+def rename(columns: Dict[str,str], *, errors: Literal['raise', 'ignore'] = 'raise') -> pt.Transformer:
     """
         Creates a transformer that renames columns in a dataframe. 
 
@@ -161,9 +165,15 @@ def rename(columns : Dict[str,str], *args, errors : Literal['raise', 'ignore']='
             
             pipe = pt.terrier.Retriever(index, metadata=["docno", "body"]) >> pt.apply.rename({'body':'text'})
     """
-    return ApplyGenericTransformer(lambda df: df.rename(columns=columns, errors=errors), *args, **kwargs)
+    return RenameColumnsTransformer(columns, errors=errors)
 
-def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.model.IterDict], pt.model.IterDict]], *args, batch_size=None, iter=False, **kwargs) -> pt.Transformer:
+def generic(
+        fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.model.IterDict], pt.model.IterDict]], 
+        *args, 
+        batch_size : Optional[int] = None, 
+        iter : bool = False, 
+        transform_outputs : Optional[Callable[[List[str]], List[str]]] = None, 
+        **kwargs) -> pt.Transformer:
     """
         Create a transformer that changes the input dataframe to another dataframe in an unspecified way.
 
@@ -173,8 +183,13 @@ def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.mode
 
         :param fn: the function to apply to each result set
         :param batch_size: whether to apply fn on batches of rows or all that are received
+        :param required_columns: If provided, should be a list of columns that must be present in the input dataframe.
         :param verbose: Whether to display a progress bar over batches (only used if batch_size is set, and iter is not set).
         :param iter: Whether to use the iter-dict API - if-so, then ``fn`` receives an iterable, and returns an iterable. 
+        :param transform_outputs: Used to support inspection. If provided, should be a function (e.g. lambda) that takes 
+            the input columns as an argument, and returns the list of columns that the transformer will output. 
+            This need only be set if you need inspectability and iter=True, or your transformer doesn't respond well to 
+            being inspected by empty dataframes.
 
         Example (dataframe)::
 
@@ -194,13 +209,27 @@ def generic(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.mode
             pipe2 = pt.terrier.Retriever(index) >> pt.apply.generic(lambda res: [row for row in res if row["rank"] < 2], iter=True)
 
     """
+    rtr : pt.Transformer
     if iter:
         if kwargs.get("add_ranks", False):
             raise ValueError("add_ranks=True not supported with iter=True")
-        return ApplyGenericIterTransformer(fn, *args, batch_size=batch_size, **kwargs)
-    return ApplyGenericTransformer(fn, *args, batch_size=batch_size, **kwargs)
+        fn = cast(Callable[[pt.model.IterDict], pt.model.IterDict], fn) # noqa: PT100 (this is typing.cast, not jinus.cast)
+        rtr = ApplyGenericIterTransformer(fn, *args, batch_size=batch_size, **kwargs)
+    else:
+        fn = cast(Callable[[pd.DataFrame], pd.DataFrame], fn) # noqa: PT100 (this is typing.cast, not jinus.cast)
+        rtr = ApplyGenericTransformer(fn, *args, batch_size=batch_size, **kwargs)
+    if transform_outputs is not None:
+        rtr.transform_outputs = transform_outputs # type: ignore[attr-defined]
+    return rtr
 
-def by_query(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.model.IterDict], pt.model.IterDict]], *args, batch_size=None, iter=False, verbose=False, **kwargs) -> pt.Transformer:
+def by_query(
+        fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.model.IterDict], pt.model.IterDict]], 
+        *args, 
+        batch_size : Optional[int] = None, 
+        iter : bool = False, 
+        verbose : bool = False,
+        transform_outputs : Optional[Callable[[List[str]], List[str]]] = None,  
+        **kwargs) -> pt.Transformer:
     """
         As `pt.apply.generic()` except that fn receives a dataframe (or iter-dict) for one query at at time, rather than all results at once.
         If batch_size is set, fn will receive no more than batch_size documents for any query. The verbose kwargs controls whether
@@ -208,14 +237,26 @@ def by_query(fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.mod
 
         :param fn: the function to apply to each row. Should return a generator
         :param batch_size: whether to apply fn on batches of rows or all that are received.
+        :param required_columns: If provided, should be a list of columns that must be present in the input dataframe.
         :param verbose: Whether to display a progress bar over batches (only used if batch_size is set, and iter is not set).
         :param iter: Whether to use the iter-dict API - if-so, then ``fn`` receives an iterable, and must return an iterable. 
+        :param transform_outputs: Used to support inspection. If provided, should be a function (e.g. lambda) that takes 
+            the input columns as an argument, and returns the list of columns that the transformer will output. 
+            This need only be set if you need inspectability and iter=True, or your transformer doesn't respond well to 
+            being inspected by empty dataframes.
     """
+    rtr : pt.Transformer
     if iter:
+        fn = cast(Callable[[pt.model.IterDict], pt.model.IterDict], fn) # noqa: PT100 (this is typing.cast, not jinus.cast)
         if kwargs.get("add_ranks", False):
             raise ValueError("add_ranks=True not supported with iter=True")
-        return ApplyIterForEachQuery(fn, *args, batch_size=batch_size, verbose=verbose, **kwargs)
-    return ApplyForEachQuery(fn, *args, batch_size=batch_size, verbose=verbose, **kwargs)
+        rtr = ApplyIterForEachQuery(fn, *args, batch_size=batch_size, verbose=verbose, **kwargs)
+    else:
+        fn = cast(Callable[[pd.DataFrame], pd.DataFrame], fn) # noqa: PT100 (this is typing.cast, not jinus.cast)
+        rtr = ApplyForEachQuery(fn, *args, batch_size=batch_size, verbose=verbose, **kwargs)
+    if transform_outputs is not None:
+        rtr.transform_outputs = transform_outputs # type: ignore[attr-defined]
+    return rtr
 
 class _apply:
 
@@ -237,10 +278,11 @@ def generic_apply(
     *,
     drop: bool = False,
     batch_size: Optional[int] = None,
+    required_columns: Optional[List[str]] = None,
     verbose=False
 ) -> pt.Transformer:
     if drop:
         assert fn is None, "cannot provide both fn and drop=True"
         return DropColumnTransformer(name)
 
-    return ApplyByRowTransformer(name, fn, batch_size=batch_size, verbose=verbose)
+    return ApplyByRowTransformer(name, fn, batch_size=batch_size, required_columns=required_columns, verbose=verbose)
