@@ -418,6 +418,8 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
 
         .. cite.dblp:: conf/trec/JaleelACDLLSW04
         """
+        assert self.built(), f"{self!r} not built"
+        assert self.index_obj().hasIndexStructure("direct"), f"{self!r} missing direct index"
         return pt.terrier.rewrite.RM3(
             self.index_obj(),
             fb_terms=fb_terms,
@@ -451,6 +453,8 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
 
         .. cite.dblp:: phd/ethos/Amati03
         """
+        assert self.built(), f"{self!r} not built"
+        assert self.index_obj().hasIndexStructure("direct"), f"{self!r} missing direct index"
         return pt.terrier.rewrite.Bo1QueryExpansion(
             self.index_obj(),
             fb_terms=fb_terms,
@@ -483,6 +487,8 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
 
         .. cite.dblp:: phd/ethos/Amati03
         """
+        assert self.built(), f"{self!r} not built"
+        assert self.index_obj().hasIndexStructure("direct"), f"{self!r} missing direct index"
         return pt.terrier.rewrite.KLQueryExpansion(
             self.index_obj(),
             fb_terms=fb_terms,
@@ -490,7 +496,14 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
         )
 
     def sdm(self):
-        """Creates a Sequential Dependence Model (SDM) query expansion transformer."""
+        """Creates a Sequential Dependence Model (SDM) query expansion transformer.
+
+        Requires an that the index was built with positional information.
+
+        .. cite.dblp:: conf/sigir/MetzlerC05
+        """
+        assert self.built(), f"{self!r} not built"
+        assert self.collection_statistics().hasPositions(), f"{self!r} missing positional information"
         return pt.terrier.rewrite.SDM()
 
 

@@ -60,7 +60,7 @@ Example:
 
 .. tip::
 
-    The SDM transformer technically does not depend on the index. It's :meth:`TerrierIndex.sdm() <pyterrier.terrier.TerrierIndex.sdm>` is available,
+    The SDM query transformation does not technically depend on the index. It's :meth:`TerrierIndex.sdm() <pyterrier.terrier.TerrierIndex.sdm>` is available,
     however, to first check that the index has the positional information necessary to perform SDM. This helps avoid
     errors that can crop up once executed.
 
