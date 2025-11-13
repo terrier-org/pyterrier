@@ -50,11 +50,8 @@ This transfomer is only compatible with Retriever, as Terrier supports the `#1` 
 
 Example:
 
-.. schematic::
-    :show_code:
+.. code-block:: python
 
-    index = pt.terrier.TerrierIndex.example()
-    # FOLD
     pipeline = index.sdm() >> index.dph()
 
 
