@@ -3,6 +3,7 @@ pyterrier_alpha # Alpha Features <https://github.com/seanmacavaney/pyterrier-alp
 pyterrier_anserini # Anserini <https://github.com/seanmacavaney/pyterrier-anserini>
 pyterrier_services # API Services <https://github.com/seanmacavaney/pyterrier-services>
 # AutoQrels <https://github.com/seanmacavaney/autoqrels>
+# BMP <https://github.com/pisa-engine/bmp>
 pyterrier_caching # Caching <https://github.com/seanmacavaney/pyterrier-caching>
 # ChatNoir <https://github.com/chatnoir-eu/chatnoir-pyterrier>
 pyterrier_ciff # CIFF <https://github.com/seanmacavaney/pyterrier-ciff>
@@ -15,7 +16,7 @@ pyterrier_doc2query # Doc2Query <https://github.com/terrierteam/pyterrier_doc2qu
 # GenRank <https://github.com/emory-irlab/pyterrier_genrank>
 # OpenNIR <https://opennir.net/>
 pyterrier_pisa # PISA <https://github.com/terrierteam/pyterrier_pisa>
-pyterrier_rag # RAG <https://github.com/terrierteam/pyterrier_rag>
+pyterrier_rag # RAG <https://github.com/terrierteam/pyterrier_rag>
 # Sentence Transformers <https://github.com/soldni/pyterrier_sentence_transformers>
 # SPLADE <https://github.com/cmacdonald/pyt_splade>
 suiteeval # SuiteEval <https://github.com/Parry-Parry/suiteeval>
