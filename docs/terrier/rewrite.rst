@@ -60,8 +60,8 @@ Example:
 
 .. tip::
 
-    The SDM transformer technically does not depend on the index. It's part of the ``TerrierIndex`` API, however, 
-    so that it can check that the index has the positional information necessary to perform SDM. This helps avoid
+    The SDM transformer technically does not depend on the index. It's :meth:`TerrierIndex.sdm() <pyterrier.terrier.TerrierIndex.sdm>` is available,
+    however, to first check that the index has the positional information necessary to perform SDM. This helps avoid
     errors that can crop up once executed.
 
 .. cite.dblp:: conf/sigir/MetzlerC05
@@ -129,24 +129,24 @@ RM3
 Resetting the Query Formulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The application of any query rewriting operation, including the apply transformer, `pt.apply.query()`, will return a dataframe
-that includes the *input* formulation of the query in the `query_0` column, and the new reformulation in the `query` column. The
-previous query reformulation can be obtained by inclusion of a reset transformer in the pipeline.
+.. related:: pyterrier.terrier.rewrite.reset
 
-.. autofunction:: pyterrier.rewrite.reset()
+The application of any query rewriting operation, including the apply transformer, ``pt.apply.query()``, will return a dataframe
+that includes the *input* formulation of the query in the `query_0` column, and the new reformulation in the `query` column. The
+previous query reformulation can be obtained by inclusion of a :func:`~pyterrier.terrier.rewrite.reset` transformer in the pipeline.
 
 This is useful if, for instance, you want to use a PRF pipeline to retrieve more relevant documents, but then want to
-revert to the original query formulation for a final ranking step such as MonoT5. For example::
-
-    dph >> pt.rewrite.RM3(index) >> dph >> pt.rewrite.reset()  >> pt.text.get_text(pt.get_dataset(...)) >> MonoT5ReRanker(...)
+revert to the original query formulation for a final ranking step such as MonoT5. For example:
 
 .. schematic::
+    :show_code:
 
     from pyterrier_t5 import MonoT5ReRanker
     index = pt.terrier.TerrierIndex.example()
     dph = index.dph()
     monoT5 = MonoT5ReRanker()
-    dph >> pt.rewrite.RM3(index.index_obj()) >> dph >> pt.rewrite.reset() >> pt.text.get_text(pt.get_dataset('irds:vaswani')) >> monoT5
+    # FOLD
+    pipeline = index.dph() >> index.rm3() >> index.dph() >> pt.rewrite.reset() >> pt.get_dataset('irds:vaswani').text_loader() >> monoT5
 
 Tokenising the Query
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -23,12 +23,13 @@ most use cases.
    .. automethod:: tf
    .. automethod:: tf_idf
 
-   Query Expansion
+   Query Expansion & Reformulation
    ------------------------------------------
 
    .. automethod:: rm3
    .. automethod:: bo1
    .. automethod:: kl
+   .. automethod:: sdm
 
    Loading
    ------------------------------------------
