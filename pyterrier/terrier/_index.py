@@ -387,7 +387,7 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
 
 
     # ----------------------------------------------------
-    # Query Expansion
+    # Query Expansion / Rewriting
     # ----------------------------------------------------
 
     def rm3(
@@ -488,6 +488,10 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
             fb_terms=fb_terms,
             fb_docs=fb_docs,
         )
+
+    def sdm(self):
+        """Creates a Sequential Dependence Model (SDM) query expansion transformer."""
+        return pt.terrier.rewrite.SDM()
 
 
     # ----------------------------------------------------

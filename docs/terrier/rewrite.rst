@@ -29,12 +29,14 @@ Firstly, we differentiate between two forms of query rewriting:
 
 If needed, the previous formulation of the query can be restored using ``pt.rewrite.reset()``, discussed below.
 
-SequentialDependence
+Sequential Dependence
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This class implements Metzler and Croft's sequential dependence model, designed to boost the scores of
-documents where the query terms occur in close proximity. Application of this transformer rewrites 
-each input query such that:
+.. related:: pyterrier.terrier.TerrierIndex.sdm
+
+:meth:`~pyterrier.terrier.TerrierIndex.sdm` provides the sequential dependence model of Metzler and Croft,
+designed to boost the scores of documents where the query terms occur in close proximity. Application of this
+transformer rewrites  each input query such that:
 
 - pairs of adjacent query terms are added as `#1` and `#uw8` complex query terms, with a low weight.
 - the full query is added as `#uw12` complex query term, with a low weight.
@@ -46,14 +48,21 @@ operator and (b) set a proximity term weighting model.
 
 This transfomer is only compatible with Retriever, as Terrier supports the `#1` and `#uwN` complex query terms operators. The Terrier index must have blocks (positional information) recorded in the index.
 
-.. autoclass:: pyterrier.rewrite.SequentialDependence
-    :members: transform
+Example:
 
-Example::
+.. schematic::
+    :show_code:
 
-    sdm = pt.rewrite.SequentialDependence()
-    dph = pt.terrier.Retriever(index, wmodel="DPH")
-    pipeline = sdm >> dph
+    index = pt.terrier.TerrierIndex.example()
+    # FOLD
+    pipeline = index.sdm() >> index.dph()
+
+
+.. tip::
+
+    The SDM transformer technically does not depend on the index. It's part of the ``TerrierIndex`` API, however, 
+    so that it can check that the index has the positional information necessary to perform SDM. This helps avoid
+    errors that can crop up once executed.
 
 .. cite.dblp:: conf/sigir/MetzlerC05
 .. cite.dblp:: conf/sigir/PengMHPO07
@@ -117,11 +126,6 @@ RM3
 
 .. cite.dblp:: conf/trec/JaleelACDLLSW04
 
-Combining Query Formulations
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autofunction:: pyterrier.rewrite.linear
-
 Resetting the Query Formulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -151,6 +155,15 @@ Tokenising the Query
 
 Sometimes your query can include symbols that aren't compatible with how your retriever parses the query.
 In this case, a custom tokeniser can be applied as part of the retrieval pipeline. using :meth:`pt.terrier.rewrite.tokenise <pyterrier.terrier.rewrite.tokenise>`.
+
+Advanced: Combining Query Formulations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. related:: pyterrier.terrier.rewrite.linear
+
+In some cases, you may want to combine multiple query formulations into a single query.
+This can be achieved using :meth:`~pyterrier.terrier.rewrite.linear`, which allows you to linearly combine multiple query columns
+into a single query column.
 
 Advanced: Stashing the Documents
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
