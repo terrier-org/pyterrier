@@ -317,7 +317,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
         if mode == 'outer':
             if schematic["transformers"][-1]["type"] == 'indexer':
                 result += '<div class="pts-hline pts-arr pts-arr-output"><svg xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round" class="pts-artifact-icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 6m-8 0a8 3 0 1 0 16 0a8 3 0 1 0 -16 0" /><path d="M4 6v6a8 3 0 0 0 16 0v-6" /><path d="M4 12v6a8 3 0 0 0 16 0v-6" /></svg></div>'
-                result += '<div class="pts-io-label">Output</div>'
+                result += '<div class="pts-io-label">Artifact</div>'
             else:
                 result += f'<div class="pts-hline pts-arr pts-arr-output">{_draw_df_html(schematic["output_columns"], schematic["transformers"][-1]["input_columns"])}</div>'
                 result += '<div class="pts-io-label">Output</div>'

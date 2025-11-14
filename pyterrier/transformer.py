@@ -326,6 +326,11 @@ class Transformer:
         return hash(repr(self))
 
     def _repr_html_(self):
+        if isinstance(self, pt.Artifact):
+            # Artifacts often are also Transformers that can perform/infer their primary functionality when used
+            # in pipelines. However, rendering schematics for them when not used as part of a pipeline usually does
+            # not make sense. So we do not render them here.
+            return None
         if os.environ.get('PYTERRIER_DISABLE_NOTEBOOK_SCHEMATIC', '0') == '1':
             return None
         try:
