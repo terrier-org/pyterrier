@@ -21,7 +21,7 @@ For example, build a re-ranking pipeline combining a Terrier BM25 retriever and 
 ```python
 import pyterrier as pt
 import pyterrier_t5
-bm25 = pt.terrier.TerrierIndex.from_hf("pyterrier/vaswani.terrier").bm25()
+bm25 = pt.terrier.TerrierIndex.from_hf("pyterrier/vaswani.terrier").bm25() % 100
 monot5 = bm25 >> pt.get.get_text(pt.get_dataset('irds:vaswani')) >> pyterrier_t5.MonoT5ReRanker()
 monot5.search("What are chemical reactions?")
 ```
