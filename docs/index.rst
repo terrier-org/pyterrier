@@ -1,6 +1,10 @@
 PyTerrier Documentation
 =====================================
 
+.. container:: tagline
+
+   🔍 Retrieve. 🧠 Rerank. 💬 Answer. ⚙️ Experiment.
+
 PyTerrier is a Python framework for Information Retrieval (IR) research and experimentation.
 
 .. grid:: 2

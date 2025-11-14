@@ -225,3 +225,7 @@ button.toggle-button {
 .sidebar-brand-text {
     display: none;
 }
+
+.tagline {
+    text-align: center;
+}
