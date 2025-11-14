@@ -9,8 +9,8 @@ from pyterrier.terrier.index import TerrierTokeniser
 def tokenise(tokeniser : Union[str,TerrierTokeniser,FunctionType] = 'english', matchop=False) -> pt.Transformer:
     """
 
-    Applies tokenisation to the query. By default, queries obtained from ``pt.get_dataset().get_topics()`` are
-    normally tokenised.
+    Applies tokenisation to the query. 
+    Until PyTerrier 1.0, queries obtained from ``pt.get_dataset().get_topics()`` were generally tokenised.
 
     Args:
         tokeniser(Union[str,TerrierTokeniser,FunctionType]): Defines what tokeniser should be used - either a Java tokeniser name in Terrier, a TerrierTokeniser instance, or a function that takes a str as input and returns a list of str.
@@ -100,13 +100,16 @@ class SDM(pt.Transformer):
         .. cite.dblp:: conf/sigir/MetzlerC05
     '''
 
-    def __init__(self, verbose = 0, remove_stopwords = True, prox_model = None, **kwargs):
+    def __init__(self, verbose = 0, remove_stopwords = True, prox_model = None, 
+                 tokeniser : Union[str,TerrierTokeniser] = TerrierTokeniser.english, 
+                 **kwargs):
         super().__init__(**kwargs)
         self.verbose = 0
         self.prox_model = prox_model
         self.remove_stopwords = remove_stopwords
         assert pt.terrier.check_version("5.3")
         self.ApplyTermPipeline_stopsonly = pt.terrier.J.ApplyTermPipeline('Stopwords')
+        self.tokeniser = TerrierTokeniser.java_tokeniser(TerrierTokeniser._to_obj(tokeniser))
 
     schematic = {'label': 'SDM'}
 
@@ -114,6 +117,7 @@ class SDM(pt.Transformer):
         return "SDM()"
 
     def transform(self, topics_and_res):
+        from .retriever import _query_needs_tokenised
         results = []
         queries = pt.model.ranked_documents_to_queries(topics_and_res)
 
@@ -123,6 +127,9 @@ class SDM(pt.Transformer):
         for row in pt.tqdm(queries.itertuples(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
             qid = row.qid
             query = row.query
+            if _query_needs_tokenised(query):
+                query = ' '.join(self.tokeniser.getTokens(query))
+
             # parse the querying into a MQT
             rq = pt.terrier.J.Request()
             rq.setQueryID(qid)
@@ -179,7 +186,16 @@ class QueryExpansion(pt.Transformer):
          
     '''
 
-    def __init__(self, index_like, fb_terms=10, fb_docs=3, qeclass="org.terrier.querying.QueryExpansion", verbose=0, properties={}, requires_scores=False, **kwargs):
+    def __init__(self, 
+                 index_like, 
+                 fb_terms=10, 
+                 fb_docs=3, 
+                 qeclass="org.terrier.querying.QueryExpansion", 
+                 verbose=0, 
+                 properties={}, 
+                 requires_scores=False, 
+                 tokeniser : Union[str,TerrierTokeniser] = TerrierTokeniser.english,
+                 **kwargs):
         super().__init__(**kwargs)
         self.verbose = verbose
         if isinstance(qeclass, str):
@@ -195,6 +211,7 @@ class QueryExpansion(pt.Transformer):
         self.fb_docs = fb_docs
         self.manager = pt.terrier.J.ManagerFactory._from_(self.indexref)
         self.requires_scores = requires_scores
+        self.tokeniser = TerrierTokeniser.java_tokeniser(TerrierTokeniser._to_obj(tokeniser))
 
     def compile(self) -> pt.Transformer:
         return pt.RankCutoff(self.fb_docs) >> self
@@ -288,7 +305,7 @@ class QueryExpansion(pt.Transformer):
         with pt.validate.any(topics_and_res) as v:
             v.columns(includes=['qid', 'docno', 'query'])
             v.columns(includes=['qid', 'docid', 'query'])
-
+        from .retriever import _query_needs_tokenised
         results = []
 
         queries = pt.model.ranked_documents_to_queries(topics_and_res)
@@ -297,6 +314,9 @@ class QueryExpansion(pt.Transformer):
         for row in pt.tqdm(queries.itertuples(), desc=self.name, total=queries.shape[0], unit="q") if self.verbose else queries.itertuples():
             qid = row.qid
             query = row.query
+            if _query_needs_tokenised(query):
+                query = ' '.join(self.tokeniser.getTokens(query))
+
             srq = self.manager.newSearchRequest(qid, query)
             rq = pt.java.cast("org.terrier.querying.Request", srq)
             self.qe.configureIndex(rq.getIndex())
@@ -337,7 +357,7 @@ class DFRQueryExpansion(QueryExpansion):
 class Bo1QueryExpansion(DFRQueryExpansion):
     '''
         Applies the Bo1 query expansion model from the Divergence from Randomness Framework, as provided by Terrier.
-        It must be followed by a Terrier Retrieve() transformer.
+        It must be followed by a terrier.Retriever() transformer.
         The original query is saved in the `"query_0"` column, which can be restored using `pt.rewrite.reset()`.
 
         Instance Attributes:
@@ -361,7 +381,7 @@ class Bo1QueryExpansion(DFRQueryExpansion):
 class KLQueryExpansion(DFRQueryExpansion):
     '''
         Applies the KL query expansion model from the Divergence from Randomness Framework, as provided by Terrier.
-        This transformer must be followed by a Terrier Retrieve() transformer.
+        This transformer must be followed by a terrier.Retriever() transformer.
         The original query is saved in the `"query_0"` column, which can be restored using `pt.rewrite.reset()`.
 
         Instance Attributes:
@@ -385,7 +405,7 @@ class RM3(QueryExpansion):
     '''
         Performs query expansion using RM3 relevance models.
 
-        This transformer must be followed by a Terrier Retrieve() transformer.
+        This transformer must be followed by a terrier.Retriever() transformer.
         The original query is saved in the `"query_0"` column, which can be restored using `pt.rewrite.reset()`.
 
         Instance Attributes:
