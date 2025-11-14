@@ -155,6 +155,7 @@ class TestRewrite(TempDirTestCase):
         self.assertIn("query_0", rtr.columns)
         self.assertIn("docno", rtr.columns)
         self.assertEqual(2, len(rtr))
+        sdm.search("hello/there")
 
 
     def _sdm(self, freq):
@@ -423,6 +424,8 @@ class TestRewrite(TempDirTestCase):
 
             # check the pipe doesnt cause an error
             str(pipe)
+
+            pipe.search("chemical/reactions")
 
             all_qe_res = pipe.transform(t)
             map_pipe = pt.Evaluate(all_qe_res, qrels, metrics=["map"])["map"]
