@@ -59,6 +59,8 @@ class CiteDirective(Directive):
 
         # in the future, could store citation information in self.state.document.settings.env
         # to generate a bibliography page.
+        if not hasattr(self.state.document.settings.env, 'bibliography'):
+            self.state.document.settings.env.bibliography = {}
         self.state.document.settings.env.bibliography.setdefault(node['id'], {
             'id': node['id'],
             'citation': node['citation'],
@@ -269,15 +271,25 @@ def collect_bibliiography(app):
     )]
 
 
-def setup_bibliiography_env(app, env, pages):
-    app.env.bibliography = {}
+def init_bib(app, env):
+    if not hasattr(env, 'bibliography'):
+        env.bibliography = {}
+    return []
+
+
+def merge_bib(app, env, docnames, other):
+    if not hasattr(env, 'bibliography'):
+        env.bibliography = {}
+    if hasattr(other, 'bibliography'):
+        env.bibliography.update(other.bibliography)
 
 
 def setup(app):
     app.add_node(CiteNode, html=(visit_cite_node_html, depart_cite_node_html))
     app.add_directive('cite', CiteDirective)
     app.add_directive('cite.dblp', CiteDblpDirective)
-    app.connect('env-before-read-docs', setup_bibliiography_env)
+    app.connect('env-get-updated', init_bib)
+    app.connect('env-merge-info', merge_bib)
     app.connect('html-collect-pages', collect_bibliiography)
     StandardDomain._virtual_doc_names['bibliography'] = ('bibliography', 'Bibliography')
     return {

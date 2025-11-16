@@ -25,10 +25,10 @@ from extras import generate_includes
 from extras import generate_extensions
 generate_includes.setup()
 if not "QUICK" in os.environ:
-    generate_includes.dataset_include()
     generate_includes.experiment_includes()
-    generate_extensions.generate_extensions()
-    generate_includes.artifact_list_include()
+generate_includes.dataset_include()
+generate_includes.artifact_list_include()
+generate_extensions.generate_extensions()
 
 # -- Project information -----------------------------------------------------
 import datetime
@@ -72,6 +72,7 @@ extensions = [
     'sphinx_togglebutton',
     'sphinx_reredirects',
     "sphinx_design",
+    'extras.how_to',
 ]
 
 
