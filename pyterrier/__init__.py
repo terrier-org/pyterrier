@@ -86,13 +86,15 @@ def _():
         raise RuntimeError("From PyTerrier 1.0, Python 3.9 minimum is required, you currently have %s" % platform.python_version())
     
     # check for both pyterrier and python-terrier installed
-    import pkg_resources
-    all_pkgs = {p.project_name:p.version for p in pkg_resources.working_set}
-    if 'python-terrier' in all_pkgs:
-        if Version(all_pkgs['python-terrier']) < Version('1.0'):
-            raise RuntimeError(f"Both 'pyterrier' and 'python-terrier' packages are installed with mismatched versions ({__version__} and {all_pkgs['python-terrier']}). "
+    import importlib.metadata
+    try:
+        old_pkg_version = importlib.metadata.distribution('python-terrier').version
+        if Version(old_pkg_version) < Version('1.0'):
+            raise RuntimeError(f"Both 'pyterrier' and 'python-terrier' packages are installed with mismatched versions ({__version__} and {old_pkg_version}). "
                                 "This may lead to unexpected behaviour. Remove python-terrier, or upgrade to python-terrier>=1.0'")
-
+    except importlib.metadata.PackageNotFoundError as pnfe:
+        pass
+    
     globs = globals()
 
     # Load the _apply object as pt.apply so that the dynamic __getattr__ methods work
