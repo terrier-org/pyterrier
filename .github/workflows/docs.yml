@@ -33,7 +33,7 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        pip install --upgrade . -r docs/requirements.txt -r docs/extensions.txt
+        pip install --upgrade '.[all]' 'python-terrier>=1.0' -r docs/requirements.txt -r docs/extensions.txt 
 
     - name: html
       run: |
