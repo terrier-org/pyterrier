@@ -92,7 +92,7 @@ def _():
         if Version(old_pkg_version) < Version('1.0'):
             raise RuntimeError(f"Both 'pyterrier' and 'python-terrier' packages are installed with mismatched versions ({__version__} and {old_pkg_version}). "
                                 "This may lead to unexpected behaviour. Remove python-terrier, or upgrade to python-terrier>=1.0'")
-    except importlib.metadata.PackageNotFoundError as pnfe:
+    except importlib.metadata.PackageNotFoundError:
         pass
     
     globs = globals()
