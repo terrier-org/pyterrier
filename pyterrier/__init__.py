@@ -90,7 +90,7 @@ def _():
     all_pkgs = {p.project_name:p.version for p in pkg_resources.working_set}
     if 'python-terrier' in all_pkgs:
         if Version(all_pkgs['python-terrier']) < Version('1.0'):
-            raise RuntimeError(f"Both 'pyterrier' and 'python-terrier' packages are installed with different versions ({__version__} and {all_pkgs['python-terrier']}). "
+            raise RuntimeError(f"Both 'pyterrier' and 'python-terrier' packages are installed with mismatched versions ({__version__} and {all_pkgs['python-terrier']}). "
                                 "This may lead to unexpected behaviour. Remove python-terrier, or upgrade to python-terrier>=1.0'")
 
     globs = globals()
