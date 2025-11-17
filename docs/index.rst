@@ -70,5 +70,6 @@ PyTerrier is a Python framework for Information Retrieval (IR) research and expe
    :maxdepth: 1
    :caption: Indices and tables
 
-   genindex
+   how-tos
    bibliography
+   genindex

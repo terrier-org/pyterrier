@@ -57,7 +57,7 @@ class RelatedDirective(SphinxDirective):
         while node:
             if isinstance(node, nodes.section):
                 # Get section ID
-                section_id = node.get('ids', [None])[0]
+                section_id = (node.get('ids') or [None])[0]
                 
                 # Get section title
                 title_node = node.next_node(nodes.title)
