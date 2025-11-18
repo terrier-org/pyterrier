@@ -8,3 +8,4 @@ These guides help you troubleshoot common issues with PyTerrier.
 
    installation
    java
+   inspection
