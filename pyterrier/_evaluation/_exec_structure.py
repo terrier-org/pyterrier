@@ -5,7 +5,7 @@ from . import MEASURES_TYPE
 
 from .. import Transformer
 
-from _execution import _precomputation, _run_and_evaluate, _ir_measures_to_dict
+from ._execution import _precomputation, _run_and_evaluate, _ir_measures_to_dict
 import ir_measures
 import pandas as pd
 import os
