@@ -3,7 +3,7 @@ import pandas as pd
 from typing import Union, Dict, Tuple, Sequence, Literal, Optional, overload, Any
 import types
 
-from ._execution import _run_and_evaluate, _precomputation
+from ._exec_structure import linear_execution, tree_execution
 from ._rendering import EvaluationDataTuple, RenderFromPerQuery
 from ._validation import _validate
 from . import SYSTEM_OR_RESULTS_TYPE, MEASURES_TYPE, TEST_FN_TYPE, SAVEFORMAT_TYPE, SAVEMODE_TYPE, VALIDATE_TYPE
@@ -144,6 +144,7 @@ def Experiment(
         save_mode : SAVEMODE_TYPE = 'warn',
         save_format : SAVEFORMAT_TYPE = 'trec',
         precompute_prefix : bool = False,
+        plan : Union[Literal['linear'], Literal['tree']] = 'linear',
         **kwargs):
     """
     Allows easy comparison of multiple retrieval transformer pipelines using a common set of topics, and
@@ -272,8 +273,6 @@ def Experiment(
         if len(set(names)) < len(names):
             raise ValueError("save_dir is set, but names are not unique. Use names= to set unique names")
 
-    all_topic_qids = topics["qid"].values
-
     mrt_needed = False
     if "mrt" in eval_metrics:
         mrt_needed = True
@@ -282,56 +281,20 @@ def Experiment(
 
     # validate the transformers produce the expected columns
     _validate(retr_systems, topics, eval_metrics, names, validate)
-
-    # split the transformers into a common prefix and individual suffixes, improved efficiency
-    precompute_time, execution_topics, execution_retr_systems = _precomputation(retr_systems, topics, precompute_prefix, verbose, batch_size)
-
-    # progress bar construction
-    tqdm_args={
-        'disable' : not verbose,
-        'unit' : 'system',
-        'total' : len(retr_systems),
-        'desc' : 'pt.Experiment'
-    }
-
-    if batch_size is not None:
-        import math
-        tqdm_args['unit'] = 'batches'
-        # round number of batches up for each system
-        tqdm_args['total'] = math.ceil((len(topics) / batch_size)) * len(retr_systems)
-
+    
     renderer = RenderFromPerQuery(names, 
                                   baseline=baseline, 
                                   test_fn=test_fn, 
                                   correction=correction, 
                                   correction_alpha=correction_alpha, 
                                   round=round, 
-                                  precompute_time=precompute_time)
-    with pt.tqdm(**tqdm_args) as pbar:
-        # run and evaluate each system
-        for sysid, (name, system) in enumerate(zip(names, execution_retr_systems)):
-            save_file = None
-            if save_dir is not None:
-                if save_format == 'trec':
-                    save_ext = 'res.gz'
-                elif isinstance(save_format, types.ModuleType):
-                    save_ext = 'mod'
-                elif isinstance(save_format, tuple):
-                    save_ext = 'custom'
-                else:
-                    raise ValueError("Unrecognised save_mode %s" % str(save_format)) 
-                save_file = os.path.join(save_dir, "%s.%s" % (name, save_ext))
+                                  precompute_time=0)
+    
+    if plan == 'tree':
+        tree_execution(renderer, retr_systems, topics, qrels, eval_metrics, names, precompute_prefix, verbose, save_dir, save_mode, save_format, batch_size, perquery)
+    else:
+        linear_execution(renderer, retr_systems, topics, qrels, eval_metrics, names, precompute_prefix, verbose, save_dir, save_mode, save_format, batch_size, perquery )
 
-            time, evalMeasuresDict = _run_and_evaluate(
-                system, execution_topics, qrels, eval_metrics, 
-                perquery=True, 
-                batch_size=batch_size, 
-                backfill_qids=all_topic_qids if perquery else None,
-                save_file=save_file,
-                save_mode=save_mode,
-                save_format=save_format,
-                pbar=pbar)
-            renderer.add_metrics(sysid, evalMeasuresDict, time)
 
     if not perquery:
         return renderer.averages(dataframe=dataframe, highlight=highlight, mrt_needed=mrt_needed)
@@ -350,3 +313,4 @@ def Experiment(
             return EvaluationDataTuple(average_results, perquery_results)
         return (average_results, perquery_results)
     return perquery_results
+

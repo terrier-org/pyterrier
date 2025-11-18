@@ -12,6 +12,7 @@ import tqdm as tqdm_module
 from ir_measures import Measure, Metric
 import os
 import sys
+from ._trie import RadixTree, decompose_pipelines
 import types
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 from warnings import warn
@@ -258,7 +259,6 @@ def _identifyCommon(pipes : List[Union[pt.Transformer, pd.DataFrame]]) -> Tuple[
             if not isinstance(p, pt.Transformer):
                 raise ValueError("pt.Experiment has systems that are not either DataFrames or Transformers")
             pipe_lists.append([p])
-
     common_prefix, suffices  = _common_prefix(pipe_lists)
 
     if len(common_prefix) == 0:
@@ -355,3 +355,4 @@ def _common_prefix(pipes: List[List[Transformer]]) -> Tuple[List[Transformer], L
             break
     suffixes = [p[len(common_prefix):] for p in pipes]
     return common_prefix, suffixes
+

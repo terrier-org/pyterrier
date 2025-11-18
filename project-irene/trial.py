@@ -62,6 +62,47 @@ class RadixNode:
         self.is_end_of_word = False
         self.value: Any = None  # payload stored at terminal nodes (e.g., transformer later)
     # need to come back to self.value
+
+    def traverse(self, inp: pd.DataFrame, callback: Optional[Callable] = None, cum_time: float = 0.0):
+        """Traverse node and its descendants, applying transformations and tracking cumulative time.
+
+        When `self.eval_index` is set (not None) the `callback` will be invoked as
+            callback(result, self.eval_index, total_time)
+
+        Args:
+            inp: input object (e.g., DataFrame) passed into transformers
+            callback: optional callable receiving (result, eval_index, total_time_ms)
+            cum_time: cumulative time (ms) carried from ancestors
+        """
+        start = timer()
+        res = self.visit(inp)
+        end = timer()
+
+        transform_time = (end - start) * 1000.0
+        total_time = cum_time + transform_time
+
+        if self.eval_index is not None:
+            assert callback is not None, "evaluation_index is set but no callback was provided"
+            callback(res, self.eval_index, total_time)
+
+        # Recurse into children
+        for child in self.children.values():
+            child.traverse(res, callback, total_time)
+    
+    def visit(self, inp: pd.DataFrame) -> pd.DataFrame:
+        """Visit the node and apply its transformation to the input data.
+
+        Args:
+            inp: Input data to transform"""
+        
+        return self.value.transform(inp)
+    
+    def get_children(self) -> List[Tuple[K, 'RadixNode[K]']]:
+        """
+        Returns:
+            List of tuples containing edge labels and corresponding child RadixNode instances.
+        """
+        return list(self.children.items())
 class RadixTree:
     def __init__(self):
         self.root = RadixNode()
@@ -201,6 +242,23 @@ class RadixTree:
 
         dfs(self.root, "")
         return out
+    
+    def describe_tree_structure(self):
+        """Return a structured representation of the radix tree for debugging."""
+        def dfs(node: RadixNode[K], prefix: str):
+            children_repr = []
+            for edge_label, child in sorted(node.children.items(), key=lambda x: str(x[0])):
+                full_label = str(edge_label)
+                sub_repr = dfs(child, full_label)
+                child_repr = sub_repr if sub_repr else {}
+                children_repr.append([
+                    f"{full_label}",
+                    child.eval_index if child.is_end_of_word else None,
+                    child_repr
+                ])
+            return children_repr
+
+        return dfs(self.root, "")  
 
     # def list_items(self) -> List[Tuple[str, Any]]:
     #     """Return all (key, value) pairs stored in the radix tree."""
