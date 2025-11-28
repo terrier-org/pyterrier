@@ -3,15 +3,28 @@ Troubleshooting Inspection and Verification
 
 Most existing pipelines will work out-of-the-box with inspection (pt.inspect) and pt.Experiment verification.
 
-However, if your pipeline uses custom components, you will 
+However, if your pipeline uses custom components, ``pt.Experiment`` may produce warnings.
 
+There are two possibilities:
+1. The pipeline components are inspectable, but the pipeline as whole does not pass validation.
+```
+/pyterrier/_evaluation/_validation.py:41: UserWarning: "Transformer XXX (AA) at position Z does not produce 
+all required columns ZZ, found only AA.
+```
+
+This suggests a mistake in your pipeline formulation - e.g. you are passing a Q dataframe of queries, when
+ranked results (R) are expected. Such pipelines will typically produce an error when the experiment is
+executed. 
+
+2. One of the pipeline components is not inspectable.
 ```
 /pyterrier/_evaluation/_validation.py:41: UserWarning: Transformer XXX ((AA >> BB)) at position Z failed to validate: 
 Cannot determine outputs for (AA >> BB) with inputs: ['qid', 'query'] - if your pipeline works, set validate='ignore' 
 to remove this warning, or add transform_output method to the transformers in this pipeline to clarify how it works
 ```
 
-As the warning suggests, you can either set `validate='ignore'` when calling ``pt.Experiment``::
+In both cases, if you are sure your pipeline works, as the warning suggests, you can set `validate='ignore'` 
+when calling ``pt.Experiment``::
     
     pt.Experiment([AA >> BB], 
         topics,
@@ -19,7 +32,7 @@ As the warning suggests, you can either set `validate='ignore'` when calling ``p
         metrics=["map", "ndcg"],
         validate='ignore')
 
-However, this may hide potential issues in your pipeline. It also means that your pipeline will not produce
+However, this can hide potential issues in your pipeline. It also means that your pipeline will not produce
 useful schematics.
 
 Visualizing the pipeline
@@ -32,11 +45,25 @@ You can do this by simply entering the pipeline alone in a notebook cell::
 
 This will produce a schematic of the pipeline, showing how data flows through it.
 
-<TODO ADD EXAMPLE FIGURE>
+.. image:: ../_static/pipelien-not-validating.png
+    :alt: Invalid pipeline schematic showing data flow between components
 
 By hovering your cursor over each component, you can see what inputs and outputs are expected.
+
+.. image:: ../_static/pipelien-not-validating-mouseover.png
+    :alt: Invalid pipeline schematic showing data flow between components
+
+Missing columns will be immediately viewable (its the `text` column in this case, usually resolvable
+by using a ``pt.text.get_text()`` transformer).
+
 For any transformer, inspection needs to be able to determine what inputs and output it expects.
-We discuss each of these below.
+If the transformer cannot be inspected, the schematic will show "?" for the dataframe type, and
+a mouseover will produce "Unknown/incompatible columns".
+
+.. image:: ../_static/pipelien-not-inspecting-mouseover.png
+    :alt: Pipeline that cannot be inspected.
+
+We discuss how inputs and output inspection works and how to fix your transformer.
 
 Determining inputs
 =====================
@@ -60,7 +87,8 @@ Hints:
         def transform_inputs(self) -> List[List[str]]:
             return [['qid', 'query']]
 
-    TOOD: add link to transform_inputs documentation
+    See also:
+     - :meth:`pyterrier.inspect.transformer_inputs`
 
     A transformer can respond to mulitple input configurations, as demonstrated in the ``List[List[str]]`` type.
     For example, a transformer that can be use on both queries and retrieved documents may have a transform_inputs
@@ -107,8 +135,9 @@ Hints:
             pt.validate.query_frame(input_columns, ['query'])
             return input_columns + ['docno', 'score', 'rank']
     
+3. For pt.apply-based transformers, use the transform_outputs= kwarg to allow overriding of the ``transform_outputs()``
 
-Due to risks and maintanence burden in ensuring that transform and transform_outputs behave identically, 
+Due to risks and maintanence burden in ensuring that ``transform()`` and ``transform_outputs()`` behave identically, 
 it is recommended to only implement transform_outputs when calling the transformer with an empty DataFrame 
 to inspect the behavior is undesireable, e.g., if calling the transformer is expensive, even for empty inputs,
 or in the case of iter-dict inputs.
