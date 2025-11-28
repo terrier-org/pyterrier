@@ -87,8 +87,8 @@ For example::
             pt.validate.query_frame(input_columns, ['query'])
             ... # rest of yor transformer implementation
 
-    See also:
-     - :ref:`pyterrier.validate`
+See also:
+    - :ref:`pyterrier.validate`
 
 2. If your transformer uses the iter-dict data types (e.g. ``transform_iter()``), then you will need to add a
 ``transform_inputs()`` method to your transformer that indicates what inputs it expects. For example::
