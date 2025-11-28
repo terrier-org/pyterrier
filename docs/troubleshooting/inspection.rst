@@ -7,21 +7,24 @@ However, if your pipeline uses custom components, ``pt.Experiment`` may produce 
 
 There are two possibilities:
 1. The pipeline components are inspectable, but the pipeline as whole does not pass validation.
-```
-/pyterrier/_evaluation/_validation.py:41: UserWarning: "Transformer XXX (AA) at position Z does not produce 
-all required columns ZZ, found only AA.
-```
+
+.. code-block:: none
+    /pyterrier/_evaluation/_validation.py:41: UserWarning: "Transformer XXX (AA) at position Z does not produce 
+    all required columns ZZ, found only AA.
+
 
 This suggests a mistake in your pipeline formulation - e.g. you are passing a Q dataframe of queries, when
 ranked results (R) are expected. Such pipelines will typically produce an error when the experiment is
 executed. 
 
 2. One of the pipeline components is not inspectable.
-```
-/pyterrier/_evaluation/_validation.py:41: UserWarning: Transformer XXX ((AA >> BB)) at position Z failed to validate: 
-Cannot determine outputs for (AA >> BB) with inputs: ['qid', 'query'] - if your pipeline works, set validate='ignore' 
-to remove this warning, or add transform_output method to the transformers in this pipeline to clarify how it works
-```
+
+.. code-block:: none
+
+    /pyterrier/_evaluation/_validation.py:41: UserWarning: Transformer XXX ((AA >> BB)) at position Z failed to validate: 
+    Cannot determine outputs for (AA >> BB) with inputs: ['qid', 'query'] - if your pipeline works, set validate='ignore' 
+    to remove this warning, or add transform_output method to the transformers in this pipeline to clarify how it works
+
 
 In both cases, if you are sure your pipeline works, as the warning suggests, you can set `validate='ignore'` 
 when calling ``pt.Experiment``::
@@ -45,12 +48,12 @@ You can do this by simply entering the pipeline alone in a notebook cell::
 
 This will produce a schematic of the pipeline, showing how data flows through it.
 
-.. image:: ../_static/pipelien-not-validating.png
-    :alt: Invalid pipeline schematic showing data flow between components
+.. image:: pipeline-not-validating.png
+    :alt: Invalid pipeline schematic
 
 By hovering your cursor over each component, you can see what inputs and outputs are expected.
 
-.. image:: ../_static/pipelien-not-validating-mouseover.png
+.. image:: pipeline-not-validating-mouseover.png
     :alt: Invalid pipeline schematic showing data flow between components
 
 Missing columns will be immediately viewable (its the `text` column in this case, usually resolvable
@@ -60,7 +63,7 @@ For any transformer, inspection needs to be able to determine what inputs and ou
 If the transformer cannot be inspected, the schematic will show "?" for the dataframe type, and
 a mouseover will produce "Unknown/incompatible columns".
 
-.. image:: ../_static/pipelien-not-inspecting-mouseover.png
+.. image:: pipeline-not-inspecting-mouseover.png
     :alt: Pipeline that cannot be inspected.
 
 We discuss how inputs and output inspection works and how to fix your transformer.
