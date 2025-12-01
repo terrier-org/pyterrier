@@ -66,7 +66,7 @@ def _validate(
             message += 'The following pipelines could not be validated (i.e., it is unclear what outputs they produce):'
             for p in validation_failed_pipelines:
                 message += f'\n - {p}'
-            message += "\nIf these pipelines work, set validate='ignore' to remove this warning, or add transform_output method to the transformers in this pipeline to clarify how it works\n\n"
+            message += "\nIf these pipelines work, set validate='ignore' to remove this warning, or make them inspectable to clarify how they work.\n\n"
 
         message += 'See https://pyterrier.readthedocs.io/en/latest/troubleshooting/inspection.html for more information.'
 

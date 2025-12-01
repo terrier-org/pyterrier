@@ -11,8 +11,11 @@ There are two possibilities:
 
 .. code-block:: none
 
-    /pyterrier/_evaluation/_validation.py:41: UserWarning: "Transformer XXX (AA) at position Z
-    does not produce all required columns ZZ, found only AA.
+    /pyterrier/_evaluation/_validation.py:41: UserWarning: "Experiment Pipeline Validation Report
+
+    The following pipelines failed validation (i.e., they are incompatible with one another or the provided topics):
+     - Pipeline #X: XXX
+
 
 This suggests a mistake in your pipeline formulation - e.g. you are passing a Q dataframe of queries, when
 ranked results (R) are expected. Such pipelines will typically produce an error when the experiment is
@@ -22,10 +25,11 @@ executed.
 
 .. code-block:: none
 
-    /pyterrier/_evaluation/_validation.py:41: UserWarning: Transformer XXX ((AA >> BB)) at 
-    position Z failed to validate: Cannot determine outputs for (AA >> BB) with inputs: 
-    ['qid', 'query'] - if your pipeline works, set validate='ignore'  to remove this warning,
-    or add transform_output method to the transformers in this pipeline to clarify how it works
+    /pyterrier/_evaluation/_validation.py:41: UserWarning: Experiment Pipeline Validation Report
+
+    The following pipelines could not be validated (i.e., it is unclear what outputs they produce):
+     - Pipeline #X: XXX
+    If these pipelines work, set validate='ignore' to remove this warning, or make them inspectable to clarify how they work.
 
 In both cases, if you are sure your pipeline works, as the warning suggests, you can set `validate='ignore'` 
 kwarg when calling ``pt.Experiment``::
