@@ -47,6 +47,8 @@ jobs:
       run: |
         pip install --upgrade '.[all]' 'python-terrier>=1.0' -r docs/requirements.txt -r docs/extensions.txt 
 
+    - run: df -h
+
     - name: html
       run: |
         cd docs ; make html
@@ -55,8 +57,6 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         path: docs/_build/html/
-
-    - run: df -h
 
     - name: linkcheck
       run: |
