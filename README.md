@@ -53,7 +53,7 @@ The easiest way to get started with PyTerrier is to use one of our Colab noteboo
 
 ### Linux or Google Colab or Windows or macOS
 1. `pip install 'pyterrier[all]'`
-2. You may need to set JAVA_HOME environment variable if Pyjnius cannot find your Java installation. On Colab, we install Java automatically.
+2. You may need to set JAVA_HOME environment variable if Pyjnius cannot find your Java installation.
 
 # PyTerrier Extensions
 
