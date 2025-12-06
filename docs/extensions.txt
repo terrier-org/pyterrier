@@ -3,7 +3,7 @@ pyterrier_alpha # Alpha Features <https://github.com/seanmacavaney/pyterrier-alp
 pyterrier_anserini # Anserini <https://github.com/seanmacavaney/pyterrier-anserini>
 pyterrier_services # API Services <https://github.com/seanmacavaney/pyterrier-services>
 # AutoQrels <https://github.com/seanmacavaney/autoqrels>
-# BMP <https://github.com/pisa-engine/bmp>
+bmp # BMP <https://github.com/pisa-engine/bmp>
 pyterrier_caching # Caching <https://github.com/seanmacavaney/pyterrier-caching>
 # ChatNoir <https://github.com/chatnoir-eu/chatnoir-pyterrier>
 pyterrier_ciff # CIFF <https://github.com/seanmacavaney/pyterrier-ciff>
