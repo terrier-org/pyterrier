@@ -319,7 +319,7 @@ def Experiment(
                 elif isinstance(save_format, tuple):
                     save_ext = 'custom'
                 else:
-                    raise ValueError("Unrecognised save_mode %s" % str(save_format)) 
+                    raise ValueError("Unrecognised save_format %s, expected 'trec', module or tuple." % str(save_format)) 
                 save_file = os.path.join(save_dir, "%s.%s" % (name, save_ext))
 
             time, evalMeasuresDict = _run_and_evaluate(
