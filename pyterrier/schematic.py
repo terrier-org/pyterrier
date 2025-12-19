@@ -167,7 +167,7 @@ def draw_html_schematic(schematic: dict, *, outer_class: Optional[str] = None) -
         <script>{js}</script>
     </div>
     <div id="id-{uid}-pts-rendering-issue">
-        Rendering isssue. Try running the cell again.
+        Rendering issue. Try running the cell again.
     </div>
     '''
 
