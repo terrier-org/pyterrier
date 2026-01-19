@@ -108,7 +108,7 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
             if 'docno' not in include_fields:
                 include_fields = ['docno'] + include_fields
         return pt.terrier.Retriever(
-            self.index_obj(),
+            self,
             controls=_map_controls(model_args),
             properties=_map_properties(model_args),
             metadata=include_fields,

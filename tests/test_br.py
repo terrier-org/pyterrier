@@ -119,6 +119,12 @@ class TestBatchRetrieve(BaseTestCase):
         retr = pt.terrier.Retriever(memindex)
         retr.search("chemical reactions")
 
+    def test_br_terrierindex(self):
+        indexloc = self.here + "/fixtures/index/"
+        index = pt.terrier.TerrierIndex(indexloc)
+        retr = pt.terrier.Retriever(index)
+        retr.search("chemical reactions")
+
     def test_br_empty(self):
         indexloc = self.here + "/fixtures/index/data.properties"
         
