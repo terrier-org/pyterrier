@@ -99,6 +99,8 @@ def _parse_index_like(index_location):
     JI = pt.java.autoclass('org.terrier.structures.Index')
     from pyterrier.terrier import TerrierIndexer
 
+    if isinstance(index_location, pt.terrier.TerrierIndex):
+        return index_location.index_ref()
     if isinstance(index_location, JIR):
         return index_location
     if isinstance(index_location, JI):
@@ -110,9 +112,9 @@ def _parse_index_like(index_location):
 
     raise ValueError(
         f'''index_location is current a {type(index_location)},
-        while it needs to be an Index, an IndexRef, a string that can be
+        while it needs to be a TerrierIndex, an Index, an IndexRef, a string that can be
         resolved to an index location (e.g. path/to/index/data.properties),
-        or an pyterrier.index.TerrierIndexer object'''
+        or a pyterrier.index.TerrierIndexer object'''
     )
 
   
