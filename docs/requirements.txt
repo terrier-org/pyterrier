@@ -1,6 +1,6 @@
 myst_parser
 furo
-sphinx-autodoc-typehints
+sphinx-autodoc-typehints<3.6
 tabulate
 sphinx-tabs
 enum-tools[sphinx]
