@@ -465,7 +465,7 @@ class DFIndexUtils:
                 if value is None:
                     value = ""
                 hashmap.put(column, value)
-            return TaggedDocument(StringReader(text_row), hashmap, tokeniser)
+            return TaggedDocument(StringReader(str(text_row)), hashmap, tokeniser)
             
         df = pd.DataFrame.from_dict(all_metadata, orient="columns")
         lengths = DFIndexUtils.get_column_lengths(df)
