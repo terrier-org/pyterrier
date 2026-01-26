@@ -14,8 +14,7 @@ class TestOperators(BaseTestCase):
 
         def rewrite(topics):
             topics = topics.copy()
-            for index, row in topics.iterrows():
-                row["query"] = row["query"] + " test"
+            topics["query"] = topics["query"].apply(lambda x: f"{x} test")
             return topics
         fn1 = lambda topics : rewrite(topics)
         import pyterrier.transformer as ptt
@@ -40,8 +39,7 @@ class TestOperators(BaseTestCase):
         
         def rewrite(topics):
             topics = topics.copy()
-            for index, row in topics.iterrows():
-                row["query"] = row["query"] + " test"
+            topics["query"] = topics["query"].apply(lambda x: f"{x} test")
             return topics
         fn1 = lambda topics : rewrite(topics)
         fn2 = lambda topics : rewrite(topics)
