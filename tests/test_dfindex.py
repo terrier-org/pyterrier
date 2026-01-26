@@ -62,7 +62,9 @@ class TestDFIndexer(TempDirTestCase):
         self.assertEqual(1, len(metalens))
         self.assertEqual(1, metalens["docno"])
         self.assertTrue(jIter1.hasNext())
-        self.assertIsNotNone(jIter1.next())
+        val = jIter1.next()
+        self.assertIsNotNone(val)
+        self.assertIsNone(val.getNextTerm())
         self.assertFalse(jIter1.hasNext())
 
         d2 = df.head(2)
@@ -71,9 +73,13 @@ class TestDFIndexer(TempDirTestCase):
         self.assertEqual(1, metalens["docno"])
         self.assertEqual(4, metalens["url"])
         self.assertTrue(jIter1.hasNext())
-        self.assertIsNotNone(jIter1.next())
+        val = jIter1.next() # index 0
+        self.assertIsNotNone(val)
+        self.assertIsNone(val.getNextTerm())
         self.assertTrue(jIter1.hasNext())
-        self.assertIsNotNone(jIter1.next())
+        val = jIter1.next() # index 1
+        self.assertIsNotNone(val)
+        self.assertEqual("the", val.getNextTerm())
         self.assertFalse(jIter1.hasNext())
 
     def test_checkjavaDocIteratr(self):

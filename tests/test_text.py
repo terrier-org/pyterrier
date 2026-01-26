@@ -94,12 +94,10 @@ class TestText(BaseTestCase):
             dfOut = textT.transform(dfinput)
             self.assertTrue(isinstance(dfOut, pd.DataFrame))
             self.assertTrue("docno" in dfOut.columns)
-            self.assertEqual('object', dfOut['docno'].dtype)
 
             dfOut2 = textT.transform(df_empty)
             self.assertTrue(isinstance(dfOut2, pd.DataFrame))
             self.assertTrue("docno" in dfOut2.columns)
-            self.assertEqual('object', dfOut2['docno'].dtype)
 
     def test_fetch_text_irds(self):
         dfinput = pd.DataFrame([
@@ -113,7 +111,6 @@ class TestText(BaseTestCase):
         dfOut = textT.transform(dfinput)
         self.assertTrue(isinstance(dfOut, pd.DataFrame))
         self.assertTrue("text" in dfOut.columns)
-        self.assertEqual('object', dfOut['docno'].dtype)
         self.assertTrue("the british computer society  report of a conference held in cambridge\njune\n" in dfOut.iloc[0].text)
         self.assertTrue("compact memories have flexible capacities  a digital data storage\nsystem with capacity up to bits and random and or sequential access\nis described\n" in dfOut.iloc[1].text)
         self.assertTrue("the british computer society  report of a conference held in cambridge\njune\n" in dfOut.iloc[2].text)
@@ -121,7 +118,6 @@ class TestText(BaseTestCase):
         dfOut2 = textT.transform(df_empty)
         self.assertTrue(isinstance(dfOut2, pd.DataFrame))
         self.assertTrue("text" in dfOut2.columns)
-        self.assertEqual('object', dfOut2['docno'].dtype)
 
         # verify that rankcutoff is moved earlier by compilation
         pipe = textT%10

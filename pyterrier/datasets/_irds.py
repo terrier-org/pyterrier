@@ -77,9 +77,9 @@ class IRDSDataset(pt.datasets.Dataset):
             # we'll end up with multiple "query" columns, which will cause problems
             # because many components are written assuming no columns have the same name.
             if variant != 'query' and 'query' in df.columns:
-                df.drop(columns=['query'], axis=1, inplace=True)
+                df.drop(columns=['query'], inplace=True)
             df.rename(columns={variant: "query"}, inplace=True) # user specified which version of the query they want
-            df.drop(columns=df.columns.difference(['qid','query']), axis=1, inplace=True)
+            df.drop(columns=df.columns.difference(['qid','query']), inplace=True)
         elif len(qcls._fields) == 2:
             # auto-rename single query field to "query" if there's only query_id and that field
             df.rename(columns={qcls._fields[1]: "query"}, inplace=True)
