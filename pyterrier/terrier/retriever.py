@@ -24,7 +24,7 @@ def _query_needs_tokenised(query: str) -> bool:
     
     # does it contains in terrier language 
     termweightsre = re.compile(r'\^\d+(\.\d+)?')
-    if termweightsre.match(query):
+    if termweightsre.search(query):
         return False
 
     # we dont include : in this list, as it denotes a control key:value pair in TerrierQL
