@@ -8,6 +8,9 @@ from pylatexenc.latex2text import LatexNodes2Text
 from docutils import nodes
 from docutils.parsers.rst import Directive
 from sphinx.domains.std import StandardDomain
+from sphinx.util import logging
+
+logger = logging.getLogger(__name__)
 
 latex_converter = LatexNodes2Text()
 
@@ -101,6 +104,7 @@ class CiteDblpDirective(CiteDirective):
         else:
             # Fetch BibTeX entry from DBLP
             try:
+                logger.info(f"Fetching BibTeX for DBLP ID '{dblp_id}' from DBLP...")
                 response = requests.get(f"https://dblp.org/rec/{dblp_id}.bib?param=0")
                 response.raise_for_status()
                 bibtex_entry_short = response.text
@@ -111,6 +115,7 @@ class CiteDblpDirective(CiteDirective):
                 save_dblp_cache()  # Persist the cache
             except requests.RequestException as e:
                 error_msg = f"Failed to fetch BibTeX for DBLP ID '{dblp_id}': {str(e)}"
+                logger.error(error_msg)
                 return [nodes.error(None, nodes.Text(error_msg))]
         self.bibtex_entry_short = bibtex_entry_short
         self.bibtex_entry_full = bibtex_entry_full
