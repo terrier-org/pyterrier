@@ -5,5 +5,8 @@ build:
   os: "ubuntu-22.04"
   tools:
     python: "mambaforge-22.9"
+  jobs:
+    post_create_environment:
+      - echo "export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH" >> $BASH_ENV
 conda:
   environment: docs/readthedocs-conda-environment.yml
