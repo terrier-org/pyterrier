@@ -6,7 +6,8 @@ build:
   tools:
     python: "mambaforge-22.9"
   jobs:
-    post_create_environment:
-      - echo "export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH" >> $BASH_ENV
+    pre_build:
+      - export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
+      - echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
 conda:
   environment: docs/readthedocs-conda-environment.yml
