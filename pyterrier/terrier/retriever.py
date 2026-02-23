@@ -534,7 +534,7 @@ class Retriever(pt.Transformer):
         elif self.controls.get('context_wmodel') == 'on':
             wmodel = self.search_context['context_wmodel']
         else:
-            wmodel = self.wmodel
+            wmodel = self.wmodel # This case should only apply when using a FeaturesRetriever
         return [
             pt.inspect.TransformerAttribute('index_location', self.indexref),
             pt.inspect.TransformerAttribute('num_results', int(self.controls.get('end', '999')) + 1),
