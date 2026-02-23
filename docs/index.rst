@@ -24,7 +24,7 @@ PyTerrier is a Python framework for Information Retrieval (IR) research and expe
 
    .. grid-item-card:: ⚙️ Retrieval Engines
 
-      It's not just :doc:`Terrier <terrier/index>` --- PyTerrier supports :doc:`PISA <ext/pyterrier_pisa/index>`, :doc:`Anserini <ext/pyterrier-anserini/index>`, :doc:`FAISS <ext/pyterrier-dr/index>`, BMP, :doc:`external search APIs <ext/pyterrier-services/index>`, and others.
+      It's not just :doc:`Terrier <terrier/index>` --- PyTerrier supports :doc:`PISA <ext/pyterrier_pisa/index>`, :doc:`Anserini <ext/pyterrier-anserini/index>`, :doc:`FAISS <ext/pyterrier-dr/index>`, :doc:`BMP <ext/bmp/index>`, :doc:`external search APIs <ext/pyterrier-services/index>`, and others.
 
 
 .. toctree::
