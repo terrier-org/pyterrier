@@ -71,6 +71,8 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
         pipe = firstpass >> pt.terrier.FeaturesRetriever(indexref, features=["WMODEL:DPH", "WMODEL:PL2"])
         input = pd.DataFrame([["1", "Stability"]], columns=['qid', 'query'])
 
+        pt.schematic.draw(pipe)
+
         result0 = firstpass(input)
         result0_map = { row.docno : row.score for row in result0.itertuples() }
 

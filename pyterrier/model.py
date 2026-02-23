@@ -359,6 +359,11 @@ def frame_info(columns : List[str]) -> Optional[Dict[str, str]]:
             "label": 'R',
             "title": 'Result Frame',
         }
+    elif 'qid' in columns and 'docid' in columns:
+        return {
+            "label": 'R',
+            "title": 'Result Frame',
+        }
     elif 'qanswer' in columns:
         return {
             "label": 'A',

@@ -533,6 +533,8 @@ class Retriever(pt.Transformer):
             wmodel = self.controls['wmodel']
         elif self.controls.get('context_wmodel') == 'on':
             wmodel = self.search_context['context_wmodel']
+        else:
+            wmodel = self.wmodel # This case should only apply when using a FeaturesRetriever
         return [
             pt.inspect.TransformerAttribute('index_location', self.indexref),
             pt.inspect.TransformerAttribute('num_results', int(self.controls.get('end', '999')) + 1),
@@ -842,7 +844,7 @@ class FeaturesRetriever(Retriever):
 
         # use pt.validate - this makes inspection of input columns better
         with pt.validate.any(queries) as v:
-            v.columns(includes=['qid', 'query', 'docid'], mode='rerank') # docid-based results frame
+            v.columns(includes=['qid', 'query', 'docid', 'score'], mode='rerank') # docid-based results frame, with scores (features column is added, so we need input scores)
             v.query_frame(extra_columns=['query_toks'], mode='retrieve_toks')
             v.query_frame(extra_columns=['query'], mode='retrieve')
             v.result_frame(extra_columns=['query'], mode='rerank')
