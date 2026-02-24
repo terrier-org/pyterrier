@@ -445,7 +445,7 @@ class Retriever(pt.Transformer):
         # reset index so row.Index matches integer position for DataFrameBuilder
         queries = queries.reset_index(drop=True)
 
-        dfb = pt.model.DataFrameBuilder(['docid'] + self.metadata + ['rank', 'score'])
+        dfb = pt.new.DataFrameBuilder(['docid'] + self.metadata + ['rank', 'score'])
 
         if self.threads > 1:
 
@@ -880,7 +880,7 @@ class FeaturesRetriever(Retriever):
         # reset index so row.Index matches integer position for DataFrameBuilder
         queries = queries.reset_index(drop=True)
 
-        dfb = pt.model.DataFrameBuilder(['docid', 'rank', 'features', 'score'] + self.metadata)
+        dfb = pt.new.DataFrameBuilder(['docid', 'rank', 'features', 'score'] + self.metadata)
 
         iter = queries.itertuples()
         if self.verbose and len(queries):

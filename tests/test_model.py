@@ -235,7 +235,7 @@ class TestModel(BaseTestCase):
 class TestDataFrameBuilder(BaseTestCase):
 
     def test_basic(self):
-        from pyterrier.model import DataFrameBuilder
+        from pyterrier.new import DataFrameBuilder
         builder = DataFrameBuilder(['docno', 'score'])
         builder.extend({'docno': ['d1', 'd2'], 'score': [1.0, 2.0]})
         df = builder.to_df()
@@ -245,7 +245,7 @@ class TestDataFrameBuilder(BaseTestCase):
         self.assertListEqual(list(df['score']), [1.0, 2.0])
 
     def test_merge_on_index(self):
-        from pyterrier.model import DataFrameBuilder
+        from pyterrier.new import DataFrameBuilder
         queries = pd.DataFrame({'qid': ['q1', 'q2'], 'query': ['hello', 'world']})
         builder = DataFrameBuilder(['docno', 'score'])
         # first query: 2 docs
@@ -261,14 +261,14 @@ class TestDataFrameBuilder(BaseTestCase):
         self.assertListEqual(list(df['qid']), ['q1', 'q1', 'q2'])
 
     def test_empty(self):
-        from pyterrier.model import DataFrameBuilder
+        from pyterrier.new import DataFrameBuilder
         builder = DataFrameBuilder(['docno', 'score'])
         df = builder.to_df()
         self.assertListEqual(list(df.columns), ['docno', 'score'])
         self.assertEqual(len(df), 0)
 
     def test_scalar_values(self):
-        from pyterrier.model import DataFrameBuilder
+        from pyterrier.new import DataFrameBuilder
         builder = DataFrameBuilder(['docno', 'score'])
         builder.extend({'docno': 'd1', 'score': 1.0})
         df = builder.to_df()
@@ -276,7 +276,7 @@ class TestDataFrameBuilder(BaseTestCase):
         self.assertEqual(df.iloc[0]['docno'], 'd1')
 
     def test_auto_index(self):
-        from pyterrier.model import DataFrameBuilder
+        from pyterrier.new import DataFrameBuilder
         queries = pd.DataFrame({'qid': ['q1', 'q2']})
         builder = DataFrameBuilder(['docno'])
         builder.extend({'docno': ['d1', 'd2']})  # auto _index = 0
