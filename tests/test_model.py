@@ -266,6 +266,18 @@ class TestDataFrameBuilder(BaseTestCase):
         df = builder.to_df()
         self.assertListEqual(list(df.columns), ['docno', 'score'])
         self.assertEqual(len(df), 0)
+        # empty builder should produce object dtype (not float64), matching pd.DataFrame([], columns=[...])
+        self.assertEqual(df['docno'].dtype, object)
+
+    def test_empty_with_merge_on_index(self):
+        from pyterrier.new import DataFrameBuilder
+        queries = pd.DataFrame({'qid': ['q1'], 'query': ['hello']})
+        builder = DataFrameBuilder(['docno', 'score'])
+        df = builder.to_df(merge_on_index=queries)
+        self.assertListEqual(list(df.columns), ['qid', 'query', 'docno', 'score'])
+        self.assertEqual(len(df), 0)
+        # columns from merge_on_index and builder should all be object dtype
+        self.assertEqual(df['docno'].dtype, object)
 
     def test_scalar_values(self):
         from pyterrier.new import DataFrameBuilder

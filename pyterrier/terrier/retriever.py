@@ -402,7 +402,7 @@ class Retriever(pt.Transformer):
             rtr['score'].append(item.getScore())
             rank += 1
 
-        return rtr
+        return rtr if rtr['docid'] else {}
 
 
     def transform(self, queries):
