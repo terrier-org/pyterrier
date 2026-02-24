@@ -1,4 +1,4 @@
-__version__ = '1.0.3'
+__version__ = '1.0.4'
 # NB: version number must be the first line and must use single quotes for the sed expression in .github/workflows/publish-to-pypi.yml
 
 from typing import Any
