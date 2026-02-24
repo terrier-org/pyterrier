@@ -60,6 +60,7 @@ PyTerrier is a Python framework for Information Retrieval (IR) research and expe
    io
    apply
    new
+   dataframe_builder
    debug
    inspect
    schematic
