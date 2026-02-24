@@ -91,6 +91,24 @@ class CiteDirective(Directive):
         return None
 
 
+_dblp_hosts = ['https://dblp.org', 'https://dblp.uni-trier.de']
+
+
+def _dblp_request(url: str):
+    hosts = list(_dblp_hosts)
+    for host in hosts:
+        try:
+            response = requests.get(host + url, timeout=10)
+            response.raise_for_status()
+            return response
+        except requests.RequestException as e:
+            logger.warning(f"Failed to fetch {host}{url}: {str(e)}")
+            # rotate _dblp_hosts to try the next host first next time
+            _dblp_hosts.append(_dblp_hosts.pop(0))
+            if host == hosts[-1]:
+                raise
+
+
 class CiteDblpDirective(CiteDirective):
     """Directive to fetch and display a citation from DBLP using a DBLP ID."""
     has_content = False
@@ -105,11 +123,9 @@ class CiteDblpDirective(CiteDirective):
             # Fetch BibTeX entry from DBLP
             try:
                 logger.info(f"Fetching BibTeX for DBLP ID '{dblp_id}' from DBLP...")
-                response = requests.get(f"https://dblp.org/rec/{dblp_id}.bib?param=0")
-                response.raise_for_status()
+                response = _dblp_request(f'/rec/{dblp_id}.bib?param=0')
                 bibtex_entry_short = response.text
-                response = requests.get(f"https://dblp.org/rec/{dblp_id}.bib?param=1")
-                response.raise_for_status()
+                response = _dblp_request(f'/rec/{dblp_id}.bib?param=1')
                 bibtex_entry_full = response.text
                 dblp_cache[dblp_id] = [bibtex_entry_short, bibtex_entry_full]  # Save to cache
                 save_dblp_cache()  # Persist the cache
