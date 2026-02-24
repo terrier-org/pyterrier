@@ -424,10 +424,18 @@ def subtransformers(transformer: pt.Transformer) -> Dict[str, Union[pt.Transform
     if isinstance(transformer, HasSubtransformers):
         return transformer.subtransformers()
     result: Dict[str, Union[pt.Transformer, List[pt.Transformer]]] = {}
+    def _inspectable_artifact(attr_value: Any) -> bool:
+        if isinstance(attr_value, pt.Artifact):
+            # if an artifact is marked with ARTIFACT_SCHEMATIC_SHOW_AS_TRANSFORMER = True, 
+            # we treat it as a transformer for the purposes of subtransformer inspection, 
+            # e.g., to show the subtransformer inside a cache (which is an artifact) in the schematic.
+            return getattr(attr_value, 'ARTIFACT_SCHEMATIC_SHOW_AS_TRANSFORMER', False)
+        return True
+
     for attr in transformer_attributes(transformer, strict=False):
-        if isinstance(attr.value, pt.Transformer) and not isinstance(attr.value, pt.Artifact):
+        if isinstance(attr.value, pt.Transformer) and _inspectable_artifact(attr.value):
             result[attr.name] = attr.value
-        elif isinstance(attr.value, (list, tuple)) and all(isinstance(v, pt.Transformer) and not isinstance(v, pt.Artifact) for v in attr.value):
+        elif isinstance(attr.value, (list, tuple)) and all(isinstance(v, pt.Transformer) and _inspectable_artifact(v) for v in attr.value):
             result[attr.name] = list(attr.value)
     return result
 
