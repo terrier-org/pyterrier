@@ -959,7 +959,7 @@ class FeaturesRetriever(Retriever):
             for i in range(fres.getResultSize()):
                 doc_features = np.array([ feature[i] for feature in feats_values])
                 meta=[ metadata_col[i] for metadata_col in metadata_list]
-                results.append( [qid, row.query, docids[i], rank, doc_features ] + meta )
+                results.append( [qid, row.query if 'query' in row._fields else '', docids[i], rank, doc_features ] + meta )
                 newscores.append(scores[i])
                 rank += 1
 
