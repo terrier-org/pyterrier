@@ -327,7 +327,7 @@ class Retriever(pt.Transformer):
             if len(query) == 0:
                 warn(
                     "Skipping empty query for qid %s" % qid)
-                return []
+                return {}
             srq = self.manager.newSearchRequest(qid, query)
 
         for control, value in self.controls.items():
@@ -352,7 +352,7 @@ class Retriever(pt.Transformer):
             if len(row.query_toks) == 0:
                 warn(
                     "Skipping empty query_toks for qid %s" % qid)
-                return []
+                return {}
             srq.setControl("terrierql", "off")
             srq.setControl("parsecontrols", "off")
             srq.setControl("parseql", "off")
@@ -392,18 +392,17 @@ class Retriever(pt.Transformer):
 
         if num_expected is not None:
             assert(num_expected == len(result))
-        
-        rtr_rows=[]
-        # prepare the dataframe for the results of the query
-        for item in result:
-            metadata_list = []
-            for meta_column in self.metadata:
-                metadata_list.append(item.getMetadata(meta_column))
-            res = [qid, item.getDocid()] + metadata_list + [rank, item.getScore()]
-            rank += 1
-            rtr_rows.append(res)
 
-        return rtr_rows
+        rtr = {'_index': row.Index, 'docid': [], **{m: [] for m in self.metadata}, 'rank': [], 'score': []}
+        for item in result:
+            rtr['docid'].append(item.getDocid())
+            for meta_column in self.metadata:
+                rtr[meta_column].append(item.getMetadata(meta_column))
+            rtr['rank'].append(rank)
+            rtr['score'].append(item.getScore())
+            rank += 1
+
+        return rtr if rtr['docid'] else {}
 
 
     def transform(self, queries):
@@ -415,7 +414,6 @@ class Retriever(pt.Transformer):
 
         :return: pandas.Dataframe with columns=['qid', 'docno', 'rank', 'score']
         """
-        results=[]
         if not isinstance(queries, pd.DataFrame):
             raise ValueError(".transform() should be passed a DataFrame (found %s). Use .search() to execute a single query; Use .transform_iter() for iter-dicts" % str(type(queries)))
         
@@ -444,6 +442,11 @@ class Retriever(pt.Transformer):
         if queries["qid"].dtype == np.int64:
             queries['qid'] = queries['qid'].astype(str)
 
+        # reset index so row.Index matches integer position for DataFrameBuilder
+        queries = queries.reset_index(drop=True)
+
+        dfb = pt.new.DataFrameBuilder(['docid'] + self.metadata + ['rank', 'score'])
+
         if self.threads > 1:
 
             if not self.concurrentIL.isConcurrent(self.indexref):
@@ -470,20 +473,18 @@ class Retriever(pt.Transformer):
                 
                 for future in iter:
                     res = future.result()
-                    results.extend(res)
+                    if res:
+                        dfb.extend(res)
         else:
             iter = queries.itertuples()
             if self.verbose and len(queries):
                 iter = pt.tqdm(iter, desc=str(self), total=queries.shape[0], unit="q")
             for row in iter:
                 res = self._retrieve_one(row, input_results, docno_provided=docno_provided, docid_provided=docid_provided, scores_provided=scores_provided)
-                results.extend(res)
+                if res:
+                    dfb.extend(res)
 
-        res_dt = pd.DataFrame(results, columns=['qid', 'docid' ] + self.metadata + ['rank', 'score'])
-        # ensure to return the query and any other input columns
-        input_cols = queries.columns[ (queries.columns == "qid") | (~queries.columns.isin(res_dt.columns))]
-        res_dt = res_dt.merge(queries[input_cols], on=["qid"])
-        return res_dt
+        return dfb.to_df(merge_on_index=queries)
         
     def __repr__(self):
         return "TerrierRetr(" + ",".join([
@@ -838,7 +839,6 @@ class FeaturesRetriever(Retriever):
 
         :return: a pandas.DataFrame with columns=['qid', 'docno', 'score', 'rank, 'features']
         """
-        results = []
         if not isinstance(queries, pd.DataFrame):
             raise ValueError(".transform() should be passed a dataframe. Use .search() to execute a single query; Use .transform_iter() for iter-dicts")
 
@@ -877,7 +877,11 @@ class FeaturesRetriever(Retriever):
         if queries["qid"].dtype == np.int64:
             queries['qid'] = queries['qid'].astype(str)
 
-        newscores=[]
+        # reset index so row.Index matches integer position for DataFrameBuilder
+        queries = queries.reset_index(drop=True)
+
+        dfb = pt.new.DataFrameBuilder(['docid', 'rank', 'features', 'score'] + self.metadata)
+
         iter = queries.itertuples()
         if self.verbose and len(queries):
             iter = pt.tqdm(iter, desc=str(self), total=queries.shape[0], unit="q")
@@ -951,24 +955,25 @@ class FeaturesRetriever(Retriever):
             fres = pt.java.cast('org.terrier.learning.FeaturedResultSet', srq.getResultSet())
             feat_names = fres.getFeatureNames()
 
-            docids=fres.getDocids()
-            scores= fres.getScores()
+            result_size = fres.getResultSize()
+            if result_size == 0:
+                continue
+
+            docids = fres.getDocids()
+            scores = fres.getScores()
             metadata_list = [fres.getMetaItems(meta_column) for meta_column in self.metadata]
             feats_values = [fres.getFeatureScores(feat) for feat in feat_names]
-            rank = FIRST_RANK
-            for i in range(fres.getResultSize()):
-                doc_features = np.array([ feature[i] for feature in feats_values])
-                meta=[ metadata_col[i] for metadata_col in metadata_list]
-                results.append( [qid, row.query if 'query' in row._fields else '', docids[i], rank, doc_features ] + meta )
-                newscores.append(scores[i])
-                rank += 1
+            features = np.array([[feat[i] for feat in feats_values] for i in range(result_size)])
+            dfb.extend({
+                '_index': row.Index,
+                'docid': [docids[i] for i in range(result_size)],
+                'rank': list(range(FIRST_RANK, FIRST_RANK + result_size)),
+                'features': features,
+                'score': [scores[i] for i in range(result_size)],
+                **{m: [metadata_list[j][i] for i in range(result_size)] for j, m in enumerate(self.metadata)},
+            })
 
-        res_dt = pd.DataFrame(results, columns=["qid", "query", "docid", "rank", "features"] + self.metadata)
-        res_dt["score"] = newscores
-        # ensure to return the query and any other input columns
-        input_cols = queries.columns[ (queries.columns == "qid") | (~queries.columns.isin(res_dt.columns))]
-        res_dt = res_dt.merge(queries[input_cols], on=["qid"])
-        return res_dt
+        return dfb.to_df(merge_on_index=queries)
 
     def __repr__(self):
         return "TerrierFeatRetr(" + ",".join([
