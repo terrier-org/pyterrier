@@ -147,7 +147,7 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
             # FOLD
             index.bm25()
 
-        .. cite.dblp:: conf/trec/RobertsonWB98
+        .. cite.dblp:: conf/trec/RobertsonWJHG94
         """
         return self.retriever(
             TerrierModel.bm25,
