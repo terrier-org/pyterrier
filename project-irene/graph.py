@@ -126,4 +126,6 @@ dag.add_edge("C", "E")
 # print(dag.get_root_nodes())
 
 def build_tree(inpipes: list[str]) -> list[Node]:
-    return 
+    return 2+3
+
+# test 
