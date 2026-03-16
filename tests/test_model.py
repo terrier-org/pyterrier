@@ -230,3 +230,68 @@ class TestModel(BaseTestCase):
         self.assertEqual(4, len(dfs[0]))
         self.assertEqual(2, len(dfs[1]))
         
+
+
+class TestDataFrameBuilder(BaseTestCase):
+
+    def test_basic(self):
+        from pyterrier.new import DataFrameBuilder
+        builder = DataFrameBuilder(['docno', 'score'])
+        builder.extend({'docno': ['d1', 'd2'], 'score': [1.0, 2.0]})
+        df = builder.to_df()
+        self.assertListEqual(list(df.columns), ['docno', 'score'])
+        self.assertEqual(len(df), 2)
+        self.assertListEqual(list(df['docno']), ['d1', 'd2'])
+        self.assertListEqual(list(df['score']), [1.0, 2.0])
+
+    def test_merge_on_index(self):
+        from pyterrier.new import DataFrameBuilder
+        queries = pd.DataFrame({'qid': ['q1', 'q2'], 'query': ['hello', 'world']})
+        builder = DataFrameBuilder(['docno', 'score'])
+        # first query: 2 docs
+        builder.extend({'_index': 0, 'docno': ['d1', 'd2'], 'score': [1.0, 2.0]})
+        # second query: 1 doc
+        builder.extend({'_index': 1, 'docno': ['d3'], 'score': [3.0]})
+        df = builder.to_df(merge_on_index=queries)
+        self.assertIn('qid', df.columns)
+        self.assertIn('query', df.columns)
+        self.assertIn('docno', df.columns)
+        self.assertIn('score', df.columns)
+        self.assertEqual(len(df), 3)
+        self.assertListEqual(list(df['qid']), ['q1', 'q1', 'q2'])
+
+    def test_empty(self):
+        from pyterrier.new import DataFrameBuilder
+        builder = DataFrameBuilder(['docno', 'score'])
+        df = builder.to_df()
+        self.assertListEqual(list(df.columns), ['docno', 'score'])
+        self.assertEqual(len(df), 0)
+        # empty builder should produce object dtype (not float64), matching pd.DataFrame([], columns=[...])
+        self.assertEqual(df['docno'].dtype, object)
+
+    def test_empty_with_merge_on_index(self):
+        from pyterrier.new import DataFrameBuilder
+        queries = pd.DataFrame({'qid': ['q1'], 'query': ['hello']})
+        builder = DataFrameBuilder(['docno', 'score'])
+        df = builder.to_df(merge_on_index=queries)
+        self.assertListEqual(list(df.columns), ['qid', 'query', 'docno', 'score'])
+        self.assertEqual(len(df), 0)
+        # columns from merge_on_index and builder should all be object dtype
+        self.assertEqual(df['docno'].dtype, object)
+
+    def test_scalar_values(self):
+        from pyterrier.new import DataFrameBuilder
+        builder = DataFrameBuilder(['docno', 'score'])
+        builder.extend({'docno': 'd1', 'score': 1.0})
+        df = builder.to_df()
+        self.assertEqual(len(df), 1)
+        self.assertEqual(df.iloc[0]['docno'], 'd1')
+
+    def test_auto_index(self):
+        from pyterrier.new import DataFrameBuilder
+        queries = pd.DataFrame({'qid': ['q1', 'q2']})
+        builder = DataFrameBuilder(['docno'])
+        builder.extend({'docno': ['d1', 'd2']})  # auto _index = 0
+        builder.extend({'docno': ['d3']})          # auto _index = 1
+        df = builder.to_df(merge_on_index=queries)
+        self.assertListEqual(list(df['qid']), ['q1', 'q1', 'q2'])
