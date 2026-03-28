@@ -143,8 +143,9 @@ def Experiment(
         save_dir : Optional[str] = None,
         save_mode : SAVEMODE_TYPE = 'warn',
         save_format : SAVEFORMAT_TYPE = 'trec',
-        precompute_prefix : bool = False,
+        precompute_prefix : bool = True,
         plan : Union[Literal['linear'], Literal['tree']] = 'linear',
+        render_html : bool = False,
         **kwargs):
     """
     Allows easy comparison of multiple retrieval transformer pipelines using a common set of topics, and
@@ -290,10 +291,16 @@ def Experiment(
                                   round=round, 
                                   precompute_time=0)
     
+    # Tree execution doesn't support save_dir yet - fallback to linear
+    # if plan == 'tree' and save_dir is not None:
+    #     plan = 'linear'
+    
     if plan == 'tree':
-        tree_execution(renderer, retr_systems, topics, qrels, eval_metrics, names, precompute_prefix, verbose, save_dir, save_mode, save_format, batch_size, perquery)
+        if save_dir is not None:
+            assert False
+        tree_execution(renderer, retr_systems, topics, qrels, eval_metrics, names, precompute_prefix, verbose, save_dir, save_mode, save_format, batch_size, perquery, render_html)
     else:
-        linear_execution(renderer, retr_systems, topics, qrels, eval_metrics, names, precompute_prefix, verbose, save_dir, save_mode, save_format, batch_size, perquery )
+        linear_execution(renderer, retr_systems, topics, qrels, eval_metrics, names, precompute_prefix, verbose, save_dir, save_mode, save_format, batch_size, perquery)
 
 
     if not perquery:
@@ -313,4 +320,3 @@ def Experiment(
             return EvaluationDataTuple(average_results, perquery_results)
         return (average_results, perquery_results)
     return perquery_results
-

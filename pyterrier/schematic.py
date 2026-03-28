@@ -1,3 +1,4 @@
+
 from copy import copy
 import html
 import uuid
@@ -7,11 +8,107 @@ from typing import Any, Dict, List, Optional, Protocol, Union, cast, runtime_che
 import numpy as np
 import pyterrier as pt
 import re
+from pyterrier._ops import Compose
+import pprint
+
+
+# def radix_tree_schematic(tree, input_columns=None):
+#     def format_transformers(edge_label) -> str:
+#             """Format a tuple of transformers as a readable string."""
+#             if isinstance(edge_label, tuple):
+#                 if len(edge_label) == 1:
+#                     return f"({str(edge_label[0])},)"
+#                 return "(" + ", ".join(str(t) for t in edge_label) + ")"
+#             return str(edge_label)
+    
+#     def node_to_schematic(edge_label, node):
+#         return {
+#             "type": "transformer",
+#             "label": format_transformers(edge_label),
+#             "evaluation_index": node.value,
+#             "status": node.execution_state,
+#             "children": [
+#                 node_to_schematic(child_label, child)
+#                 for child_label, child in node.children.items()
+#             ]
+#         }
+#     return {
+#         "type": "tree",
+#         "input_columns": input_columns,
+#         "nodes": [
+#             node_to_schematic(edge_label, child)
+#             for edge_label, child in tree.root.children.items()
+#         ]
+#     }
+
+def radix_tree_schematic(tree, input_columns=None):
+    """
+    Returns a schematic for a radix tree of pipelines.
+    Each node is represented as a dict with type 'node', children, evaluation_index, status, label, and 'me' (transformer schematic).
+    The tree is a dict with type 'tree', root, and input_columns.
+    """
+    def format_transformers(edge_label) -> str:
+        """Format a tuple or single transformer as a readable string."""
+        if isinstance(edge_label, (tuple, list)):
+            return ", ".join(str(t) for t in edge_label)
+        return str(edge_label)
+
+    def node_to_schematic(edge_label, node):
+        # Efficiently determine transformer for schematic
+        if isinstance(edge_label, (tuple, list)):
+            transformer = edge_label[0] if len(edge_label) == 1 else Compose(*list(edge_label))
+        else:
+            transformer = edge_label
+
+        children = [node_to_schematic(child_label, child) for child_label, child in node.children.items()]
+        self_schem = pt.schematic.transformer_schematic(transformer) if transformer is not None else {}
+        # print(self_schem)
+        if self_schem['type'] == 'pipeline':
+        
+            transformers = self_schem.get('transformers', [])
+            n = len(transformers)
+            has_children = bool(node.children)
+            for idx, t in enumerate(transformers):
+                t['node_id'] = f"{node.node_id}:{idx}"
+                t['is_last'] = (idx == n - 1) and not has_children
+            # for idx,i in enumerate(self_schem['transformers']):
+                
+                # i['node_id'] = f"{node.node_id}:{idx}"
+                # if idx == (len(self_schem['transformers']) -1):
+                #     i['is_last'] = True
+                # else:
+                #     i['is_last'] = False
+                
+        else:
+            self_schem['node_id'] = node.node_id
+            self_schem['is_last'] = bool(node.is_end_of_pipeline) and not bool(node.children)
+            # node.is_end_of_pipeline
+
+        node_dict = {
+            "type": "node",
+            "children": children,
+            # "evaluation_index": node.value,
+            # "status": node.execution_state,
+            # "label": format_transformers(edge_label),
+            "self": self_schem,
+            # "is_last": node.is_end_of_pipeline,
+        }
+        if children and node.value is None:
+            node_dict["mode"] = "branch"
+        return node_dict
+
+    nodes = [node_to_schematic(edge_label, child) for edge_label, child in tree.root.children.items()]
+    mode = "branch" if len(nodes) > 1 else "linear"
+    return {
+        "type": "tree",
+        "input_columns": input_columns,
+        "nodes": nodes,
+        "mode": mode
+    }
 
 def _apply_default_schematic(schematic: Dict[str, Any], transformer: pt.Transformer, *, input_columns: Optional[List[str]] = None):
     schematic.setdefault('type', 'indexer' if pt.inspect.transformer_type(transformer) == pt.inspect.TransformerType.indexer else 'transformer')
     assert schematic['type'] in ('transformer', 'indexer')
-
     if 'label' not in schematic:
         label = transformer.__class__.__name__
         if label.endswith('Transformer'):
@@ -155,10 +252,15 @@ def draw_html_schematic(schematic: dict, *, outer_class: Optional[str] = None) -
     """Draws a structured schematic as an HTML representation."""
     uid = str(uuid.uuid4())
     css, js = _get_schematic_css_js(f'id-{uid}')
+    if schematic.get('type') == 'tree':
+        # Use the custom tree/radix renderer for tree schematics
+        inner_html = draw_radix_html_schematic(schematic, outer_class='outer')
+    else:
+        inner_html = _draw_html_schematic(schematic)
     return f'''
     <div id="id-{uid}" class="{outer_class or ''}" style="display: none;">
         <style>{css}</style>
-        {_draw_html_schematic(schematic)}
+        {inner_html}
         <div class="pts-infobox">
             <div class="pts-infobox-title"></div>
             <div class="pts-infobox-body"></div>
@@ -170,6 +272,215 @@ def draw_html_schematic(schematic: dict, *, outer_class: Optional[str] = None) -
         Rendering isssue. Try running the cell again.
     </div>
     '''
+
+def render_transformer_infobox(record: Dict[str, Any]) :
+    uid = str(uuid.uuid4())
+    infobox = ''
+    infobox_attr = ''
+    error_cls = ''
+    if record.get('settings') or record.get('name') or record.get('input_validation_error'):
+        help_url = record.get('help_url') or ''
+        name = record.get('name') or ''
+        attrs = ''
+        error_info = ''
+        if record.get('input_validation_error'):
+            modes = record['input_validation_error'].modes
+            error_cls = 'pts-input-validation-error'
+            if len(modes) == 1:
+                # Normal case: there's just one mode
+                error_info = '<div class="pts-infobox-error">'
+                if len(modes[0].missing_columns) > 0:
+                    error_info += f'Missing input columns: {", ".join(["<b>" + html.escape(c) + "</b>" for c in modes[0].missing_columns])}. '
+                if len(modes[0].extra_columns) > 0:
+                    error_info += f'Unexpected input columns: {", ".join(["<b>" + html.escape(c) + "</b>" for c in modes[0].extra_columns])}. '
+                error_info += '</div>'
+            else:
+                error_info = '<div class="pts-infobox-error"><div>None of the supported input modes matched:</div><ul>'
+                for i, error_mode in enumerate(modes):
+                    error_info += f'<li>Mode {html.escape(error_mode.mode_name or str(i+1))}: '
+                    if len(error_mode.missing_columns) > 0:
+                        error_info += f'Missing input columns: {", ".join(["<b>" + html.escape(c) + "</b>" for c in error_mode.missing_columns])}. '
+                    if len(error_mode.extra_columns) > 0:
+                        error_info += f'Unexpected input columns: {", ".join(["<b>" + html.escape(c) + "</b>" for c in error_mode.extra_columns])}. '
+                    error_info += '</li>'
+                error_info += '</ul></div>'
+        if record['settings']:
+            attr_rows = []
+            for key, value in record['settings'].items():
+                attr_rows.append(f'<tr><th>{html.escape(key)}</th><td>{html.escape(str(value))}</td></tr>')
+            attrs = f'<table class="pts-df-columns">{"".join(attr_rows)}</table>'
+        infobox = f'''
+        <div class="pts-infobox-item" id="id-{uid}" data-title="Transformer">
+            <div style="font-family: monospace; padding: 3px 6px;">
+                {'<a href="' + html.escape(help_url) + '" target="_blank" onclick="window.event.stopPropagation();">' if help_url else ''}
+                    {html.escape(name)}
+                {'</a>' if help_url else ''}
+            </div>
+            {error_info}
+            {attrs}
+        </div>
+        '''
+    
+        infobox_attr = f'data-pts-infobox="id-{uid}"'
+    return infobox, infobox_attr, error_cls
+
+def draw_radix_html_schematic(radix_schematic, outer_class='outer') -> str:
+    def render_node(record, is_last):
+        node_id = record.get('node_id')#this is diff
+        dom_id = f"pts-node-{node_id}" if node_id is not None else '' #this is diff
+        infobox, infobox_attr, error_cls = render_transformer_infobox(record)
+        html_block = f'''
+        <div class="pts-transformer pts-pending {error_cls}" id="{dom_id}" data-node-id="{node_id}" {infobox_attr}>
+        {infobox}
+        <div class="pts-transformer-title">{html.escape(record["label"])}</div>
+        </div>
+        '''
+        output_columns = record.get("output_columns")
+        input_columns = record.get("input_columns")
+        if output_columns is not None:
+            if is_last:
+                html_block += f'<div class="pts-hline pts-arr pts-arr-output">{_draw_df_html(output_columns, input_columns)}</div>'
+                html_block += '<div class="pts-io-label">Output</div>'
+            else:
+                if outer_class == 'inner-pipeline':
+                    html_block += f'<div class="pts-hline pts-arr-inner">{_draw_df_html(output_columns, input_columns)}</div>'
+                else:
+                    html_block += f'<div class="pts-hline pts-arr pts-arr-inner">{_draw_df_html(output_columns, input_columns)}</div>'
+        return html_block
+    def render_branch_node():
+        result = '''<div class="pts-parallel-scaffold pts-inner">
+            <div class="pts-hline"></div>
+            <div class="pts-inner-schematic pts-inner-linked">
+            '''
+        return result
+    result = ''
+    mode = radix_schematic.get('mode','')
+    if radix_schematic['type'] == 'tree':        
+        num_nodes = len(radix_schematic['nodes'])
+        result = '<div class="pts-pipeline">'
+        clz = 'pts-arr' if mode == 'linear' else ''
+        if outer_class == 'outer':
+            result += '<div class="pts-io-label">Input</div>'
+            result += f'<div class="pts-hline {clz} pts-arr-input">{_draw_df_html(radix_schematic["input_columns"])}</div>'
+        if mode == 'branch':
+            # Branching: render vertical lines and each branch as a parallel scaffold
+            result += render_branch_node()
+            for  i, node in enumerate(radix_schematic['nodes']):
+                # Handle pipeline nodes in branch mode
+                is_last = (i == num_nodes - 1)
+                new = {}
+                record = node['self']
+                if node.get('mode','') == 'branch':
+                    result+= draw_radix_html_schematic(record, outer_class='inner')
+                    new['nodes'] = node['children']
+                    new['type'] = 'tree'
+                    new['mode'] = 'branch'
+                    result += draw_radix_html_schematic(new, outer_class='inner')
+                    result += '</div>'
+                    continue
+                
+                if record['type'] == 'pipeline':
+                    pipe_tree = {
+                        'type': 'pipeline',
+                        'evaluation_index': record.get('evaluation_index', []),
+                        'nodes':  [{'self': t, 'type' : 'node'} for t in record.get('transformers', [])],
+                        'mode': 'linear'
+                    }
+                    result += draw_radix_html_schematic(pipe_tree, outer_class='inner-pipeline')
+                else:
+                    result += draw_radix_html_schematic(record, outer_class='inner')
+                result += '</div>'
+            result += '</div></div>'
+
+        else:
+            # Linear or single node: render as before (no short hline after vline)
+            for i, node in enumerate(radix_schematic['nodes']):
+                new = {}
+                # pprint(node)
+                record = node['self']
+                if node.get('mode','') == 'branch':
+                    if record['type'] == 'pipeline':
+
+                        pipe_tree = {
+                            'type': 'tree',
+                            'input_columns': record.get('input_columns', []),
+                            'nodes': [{'self': t, 'type' : 'node'} for t in record.get('transformers', [])]
+                        }
+                        # outer_class can be anything except 'outer' 
+                        result += draw_radix_html_schematic(pipe_tree, outer_class='inner')
+                    else:
+                        result+= draw_radix_html_schematic(record, outer_class='')
+
+                    new['nodes'] = node['children']
+                    new['type'] = 'tree'
+                    new['mode'] = 'branch'
+                    # pprint(new)
+                    result += draw_radix_html_schematic(new, outer_class='inner')
+                    result += '</div>'
+                    continue
+
+                              
+                if record['type'] == 'pipeline':
+
+                    pipe_tree = {
+                        'type': 'tree',
+                        'input_columns': record.get('input_columns', []),
+                        'nodes': [{'self': t, 'type' : 'node'} for t in record.get('transformers', [])]
+                    }
+                    # outer_class can be anything except 'outer' 
+                    result += draw_radix_html_schematic(pipe_tree, outer_class='inner')
+                elif node.get('children', []) != []:
+                    result+= render_node(record, is_last = record['is_last'])
+                    new['nodes'] = node['children']
+                    new['type'] = 'tree'
+                    new['mode'] = 'linear'
+                    result += draw_radix_html_schematic(new, outer_class='inner')
+                    result += '</div>'
+                
+                else:
+                    result+= render_node(record, is_last = record['is_last'])
+        result += '</div>'
+        return result
+    elif radix_schematic['type'] == 'pipeline':
+        result += '<div class="pts-parallel-item"><div class="pts-vline"></div>'
+        result += '<div class="pts-pipeline">'
+        if 'transformers' in radix_schematic:
+            pipe_tree = {
+                        'type': 'tree',
+                        'input_columns': radix_schematic.get('input_columns', []),
+                        'nodes': [{'self': t, 'type' : 'node'} for t in radix_schematic.get('transformers', [])]
+                    }
+                    # outer_class can be anything except 'outer' 
+            result += '<div class="pts-hline pts-arr pts-arr-inner" style="width: 16px;"></div>'
+            result += draw_radix_html_schematic(pipe_tree, outer_class='inner')
+        else:
+            for transformer in radix_schematic['nodes']:
+                record = transformer['self']
+                result += draw_radix_html_schematic(record, outer_class='inner-pipeline')
+        result += '</div>'
+        return result
+
+
+    elif radix_schematic['type'] in ('node', 'transformer', 'indexer') :
+        transformer_result = ''
+        if outer_class == 'inner':
+            transformer_result += '<div class="pts-parallel-item"><div class="pts-vline"></div>'
+            transformer_result += '<div class="pts-pipeline">'
+            transformer_result += '<div class="pts-hline pts-arr pts-arr-inner" style="width: 16px;"></div>'
+            transformer_result += render_node(radix_schematic, is_last = radix_schematic['is_last']) # is_last = True
+            transformer_result += '</div>'
+            return transformer_result
+        
+        elif outer_class == 'inner-pipeline':
+            transformer_result += '<div class="pts-hline pts-arr pts-arr-inner" style="width: 16px;"></div>'
+            transformer_result += render_node(radix_schematic, radix_schematic['is_last'])
+            return transformer_result
+        
+        else:
+            return render_node(radix_schematic, radix_schematic['is_last'])
+    else:
+        raise ValueError(f"Unknown schematic type {radix_schematic['type']}")
+  
 
 
 def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
@@ -188,65 +499,25 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
         }, mode=mode)
     if schematic['type'] == 'pipeline':
         result = '<div class="pts-pipeline">'
+        # print(mode)
         if mode == 'outer':
-            clz = 'pts-arr' if schematic['transformers'][0].get('inner_pipelines_mode') != 'combine' else ''
+            # Only omit the arrow for 'combine' and 'branch' modes
+            ipm = schematic['transformers'][0].get('inner_pipelines_mode')
+            clz = 'pts-arr' if ipm != 'combine' or ipm != 'branch' else ''
             result += '<div class="pts-io-label">Input</div>'
             result += f'<div class="pts-hline {clz} pts-arr-input">{_draw_df_html(schematic["input_columns"])}</div>'
+        
         elif mode == 'inner_linked':
             result += '<div class="pts-hline pts-arr pts-arr-inner" style="width: 16px;"></div>'
         elif mode == 'inner_labeled':
             result += f'<div class="pts-hline pts-arr pts-arr-input">{_draw_df_html(schematic["input_columns"])}</div>'
         columns = schematic["input_columns"]
+        # print(columns)
         for i, record in enumerate(schematic['transformers']):
-            assert record['type'] == 'transformer' or record['type'] == 'indexer'
+            assert record['type'] == 'transformer' or record['type'] == 'indexer', record
             assert record['input_columns'] == columns
-            uid = str(uuid.uuid4())
-            infobox = ''
-            infobox_attr = ''
-            error_cls = ''
-            if record.get('settings') or record.get('name') or record.get('input_validation_error'):
-                help_url = record.get('help_url') or ''
-                name = record.get('name') or ''
-                attrs = ''
-                error_info = ''
-                if record.get('input_validation_error'):
-                    modes = record['input_validation_error'].modes
-                    error_cls = 'pts-input-validation-error'
-                    if len(modes) == 1:
-                        # Normal case: there's just one mode
-                        error_info = '<div class="pts-infobox-error">'
-                        if len(modes[0].missing_columns) > 0:
-                            error_info += f'Missing input columns: {", ".join(["<b>" + html.escape(c) + "</b>" for c in modes[0].missing_columns])}. '
-                        if len(modes[0].extra_columns) > 0:
-                            error_info += f'Unexpected input columns: {", ".join(["<b>" + html.escape(c) + "</b>" for c in modes[0].extra_columns])}. '
-                        error_info += '</div>'
-                    else:
-                        error_info = '<div class="pts-infobox-error"><div>None of the supported input modes matched:</div><ul>'
-                        for i, error_mode in enumerate(modes):
-                            error_info += f'<li>Mode {html.escape(error_mode.mode_name or str(i+1))}: '
-                            if len(error_mode.missing_columns) > 0:
-                                error_info += f'Missing input columns: {", ".join(["<b>" + html.escape(c) + "</b>" for c in error_mode.missing_columns])}. '
-                            if len(error_mode.extra_columns) > 0:
-                                error_info += f'Unexpected input columns: {", ".join(["<b>" + html.escape(c) + "</b>" for c in error_mode.extra_columns])}. '
-                            error_info += '</li>'
-                        error_info += '</ul></div>'
-                if record['settings']:
-                    attr_rows = []
-                    for key, value in record['settings'].items():
-                        attr_rows.append(f'<tr><th>{html.escape(key)}</th><td>{html.escape(str(value))}</td></tr>')
-                    attrs = f'<table class="pts-df-columns">{"".join(attr_rows)}</table>'
-                infobox = f'''
-                <div class="pts-infobox-item" id="id-{uid}" data-title="Transformer">
-                    <div style="font-family: monospace; padding: 3px 6px;">
-                        {'<a href="' + html.escape(help_url) + '" target="_blank" onclick="window.event.stopPropagation();">' if help_url else ''}
-                            {html.escape(name)}
-                        {'</a>' if help_url else ''}
-                    </div>
-                    {error_info}
-                    {attrs}
-                </div>
-                '''
-                infobox_attr = f'data-pts-infobox="id-{uid}"'
+            #calll the render function here
+            infobox, infobox_attr, error_cls = render_transformer_infobox(record)
             if 'inner_pipelines' in record:
                 if record['inner_pipelines_mode'] == 'linked':
                     pipelines = ''
@@ -272,6 +543,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
                             <div class="pts-inner-schematic pts-inner-linked">{pipelines}</div>
                             <div class="pts-hline pts-arr"></div>
                         </div>
+                        <!-- this is for the RRFusion part of the pipeline -->
                         <div class="pts-transformer {error_cls}" {infobox_attr}>
                             {infobox}
                             <div class="pts-transformer-title">{html.escape(record["label"])}</div>
@@ -314,7 +586,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
             if i != len(schematic['transformers']) - 1:
                 result += f'<div class="pts-hline pts-arr pts-arr-inner">{_draw_df_html(record["output_columns"], record["input_columns"])}</div>'
             columns = record['output_columns']
-        if mode == 'outer':
+        if mode == 'outer' or mode == 'outer-branch':
             if schematic["transformers"][-1]["type"] == 'indexer':
                 result += '<div class="pts-hline pts-arr pts-arr-output"><svg xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round" class="pts-artifact-icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 6m-8 0a8 3 0 1 0 16 0a8 3 0 1 0 -16 0" /><path d="M4 6v6a8 3 0 0 0 16 0v-6" /><path d="M4 12v6a8 3 0 0 0 16 0v-6" /></svg></div>'
                 result += '<div class="pts-io-label">Output</div>'
@@ -328,6 +600,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
         result += '</div>'
         return result
     raise ValueError(f"Unknown schematic type {schematic['type']}")
+
 
 
 def _draw_df_html(columns, prev_columns = None) -> str:

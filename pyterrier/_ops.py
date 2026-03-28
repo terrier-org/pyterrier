@@ -204,6 +204,14 @@ class RankCutoff(Transformer):
     def __repr__(self):
         return f'RankCutoff({self.k!r})'
     
+    def __eq__(self, other):
+        if not isinstance(other, RankCutoff):
+            return NotImplemented
+        return self.k == other.k
+
+    def __hash__(self):
+        return hash((RankCutoff, self.k))
+
     def schematic(self, *, input_columns = None): 
         return {'label': f'% {self.k}'}
 
