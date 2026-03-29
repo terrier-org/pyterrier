@@ -193,8 +193,8 @@ class DataFrameBuilder:
         if not any(len(v) > 0 for v in self._data.values()):
             columns = [c for c in self._data if c != '_index']
             if merge_on_index is not None:
-                merge_columns = list(merge_on_index.columns)
-                columns = merge_columns + [c for c in columns if c not in set(merge_columns)]
+                merge_columns = set(merge_on_index.columns)
+                columns = merge_columns + [c for c in columns if c not in merge_columns]
             return pd.DataFrame(columns=columns)
         result = pd.DataFrame({
             k: (np.concatenate(v)
