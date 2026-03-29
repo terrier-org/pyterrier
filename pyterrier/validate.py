@@ -53,7 +53,8 @@ def columns(
     *,
     includes: Optional[List[str]] = None,
     excludes: Optional[List[str]] = None,
-    warn: bool = False
+    warn: bool = False, 
+    context : Optional[pt.Transformer] = None
 ) -> None:
     """Check that the input frame has the expected columns.
 
@@ -62,6 +63,7 @@ def columns(
         includes: List of required columns
         excludes: List of forbidden columns
         warn: If True, raise warnings instead of exceptions for validation errors
+        context: The transformer context for error messages
 
     Raises:
         InputValidationError: If warn=False and validation fails
@@ -70,7 +72,7 @@ def columns(
     .. versionchanged:: 0.15.0
         Accept ``List[str]`` inp columns
     """
-    with any(inp, warn=warn) as v:
+    with any(inp, warn=warn, context=context) as v:
         v.columns(includes=includes, excludes=excludes)
 
 
@@ -203,8 +205,8 @@ def document_iter(inp: 'pt.utils.PeekableIter', extra_columns: Optional[List[str
         InputValidationError: If warn=False and validation fails
         InputValidationWarning: If warn=True and validation fails
     """
-    with any_iter(inp, warn=warn) as v:
-        v.document_iter(extra_columns, context=context)
+    with any_iter(inp, warn=warn, context=context) as v:
+        v.document_iter(extra_columns)
 
 
 def any(inp: Union[pd.DataFrame, List[str]], warn: bool = False, context : Optional[pt.Transformer] = None) -> '_ValidationContextManager':
@@ -261,7 +263,7 @@ class _ValidationContextManager:
             return False # the captured exception takes priority
 
         if self.attempts > 0 and self.attempts == len(self.errors):
-            context_str -= f" in transformer {str(self.context)}" if self.context is not None else ""
+            context_str = f" in transformer {str(self.context)}" if self.context is not None else ""
             message = "DataFrame(columns=%s) %s does not match required columns for this transformer." % (str(self.inp_columns), context_str)
             if self.warn:
                 warnings.warn(f"{message} {self.errors}", InputValidationWarning)
@@ -339,8 +341,8 @@ class _IterValidationContextManager:
             return False # the captured exception takes priority
 
         if self.attempts > 0 and self.attempts == len(self.errors):
-            context_str -= f"in transformer {str(self.context)}" if self.context is not None else "for this transformer"
-            message = "Input does not match required columns %." % context_str
+            context_str = f"in transformer {str(self.context)}" if self.context is not None else "for this transformer"
+            message = "Input does not match required columns %s." % context_str
             if self.warn:
                 warnings.warn(f"{message} {self.errors}", InputValidationWarning)
             else:
