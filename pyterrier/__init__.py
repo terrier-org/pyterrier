@@ -4,8 +4,9 @@ __version__ = '1.0.4'
 from typing import Any
 from deprecated import deprecated
 
-from pyterrier import model, utils, validate, testing
+from pyterrier import model, utils, testing
 from pyterrier.transformer import Transformer, Estimator, Indexer
+from pyterrier import validate
 from pyterrier._ops import RankCutoff, Compose
 from pyterrier._artifact import Artifact
 
