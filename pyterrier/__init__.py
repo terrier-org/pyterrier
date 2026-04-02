@@ -29,6 +29,7 @@ from pyterrier import schematic
 from pyterrier import datasets
 from pyterrier.datasets import get_dataset, find_datasets, list_datasets
 from pyterrier import apply as _apply_base
+from pyterrier import bm25s
 
 # old name
 Utils = utils
@@ -66,6 +67,7 @@ __all__ = [
     'run', 'rewrite', 'index', 'FilesIndexer', 'TRECCollectionIndexer', 'DFIndexer', 'DFIndexUtils', 'IterDictIndexer',
     'IndexingType', 'TerrierStemmer', 'TerrierStopwords', 'TerrierTokeniser',
     'IndexRef', 'ApplicationSetup', 'properties',
+    'bm25s',
 
     # Deprecated:
     'init', 'started', 'logging', 'version', 'check_version', 'extend_classpath', 'set_tqdm', 'set_property', 'set_properties',

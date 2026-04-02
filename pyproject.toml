@@ -54,6 +54,7 @@ CI = "https://github.com/terrier-org/pyterrier/actions"
 
 [project.entry-points."pyterrier.artifact"]
 "sparse_index.terrier" = "pyterrier.terrier:TerrierIndex"
+"sparse_index.bm25s" = "pyterrier.bm25s:BM25SIndex"
 
 [project.entry-points."pyterrier.artifact.metadata_adapter"]
 "terrier" = "pyterrier.terrier._metadata_adapter:terrier_artifact_metadata_adapter"
