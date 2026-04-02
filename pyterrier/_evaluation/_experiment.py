@@ -333,6 +333,13 @@ def Experiment(
                 pbar=pbar)
             renderer.add_metrics(sysid, evalMeasuresDict, time)
 
+    if save_dir is not None:
+        # always save aggregated and per-query results as CSV files regardless of perquery setting
+        renderer.averages(dataframe=True, mrt_needed=mrt_needed).to_csv(
+            os.path.join(save_dir, "aggregated.csv"), index=False)
+        renderer.perquery(dataframe=True).to_csv(
+            os.path.join(save_dir, "perquery.csv"), index=False)
+
     if not perquery:
         return renderer.averages(dataframe=dataframe, highlight=highlight, mrt_needed=mrt_needed)
     

@@ -289,6 +289,37 @@ class TestExperiment(TempDirTestCase):
                 # a successful experiment using save_dir should be faster
                 self.assertTrue(df2.iloc[0]["mrt"] < df1.iloc[0]["mrt"])
         
+    def test_save_csv(self):
+        index = self._vaswani_index()
+        brs = [
+            pt.terrier.Retriever(index, wmodel="DPH"),
+            pt.terrier.Retriever(index, wmodel="BM25")
+        ]
+        topics = pt.datasets.get_dataset("vaswani").get_topics().head(10)
+        qrels = pt.datasets.get_dataset("vaswani").get_qrels()
+
+        pt.Experiment(brs, topics, qrels, eval_metrics=["map"], save_dir=self.test_dir, names=["DPH", "BM25"])
+
+        aggregated_path = os.path.join(self.test_dir, "aggregated.csv")
+        perquery_path = os.path.join(self.test_dir, "perquery.csv")
+
+        self.assertTrue(os.path.exists(aggregated_path), "aggregated.csv not found")
+        self.assertTrue(os.path.exists(perquery_path), "perquery.csv not found")
+
+        agg_df = pd.read_csv(aggregated_path)
+        self.assertEqual(2, len(agg_df), "aggregated.csv should have one row per system")
+        self.assertIn("name", agg_df.columns)
+        self.assertIn("map", agg_df.columns)
+        self.assertEqual({"DPH", "BM25"}, set(agg_df["name"].tolist()))
+
+        pq_df = pd.read_csv(perquery_path)
+        self.assertIn("name", pq_df.columns)
+        self.assertIn("qid", pq_df.columns)
+        self.assertIn("measure", pq_df.columns)
+        self.assertIn("value", pq_df.columns)
+        # 2 systems × 10 topics × 1 measure = 20 rows
+        self.assertEqual(20, len(pq_df))
+
     def test_empty(self):
         df1 = pt.new.ranked_documents([[1]]).head(0)
         t1 = pt.Transformer.from_df(df1)
