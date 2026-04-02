@@ -295,3 +295,25 @@ class TestDataFrameBuilder(BaseTestCase):
         builder.extend({'docno': ['d3']})          # auto _index = 1
         df = builder.to_df(merge_on_index=queries)
         self.assertListEqual(list(df['qid']), ['q1', 'q1', 'q2'])
+
+    def test_string_scalar_broadcast(self):
+        # strings must be treated as scalars (not as sequences of characters)
+        # so a string value alongside a list should broadcast to the list length
+        from pyterrier.new import DataFrameBuilder
+        builder = DataFrameBuilder(['qid', 'docno', 'score'])
+        builder.extend({'qid': 'q1', 'docno': ['d1', 'd2', 'd3'], 'score': [1.0, 2.0, 3.0]})
+        df = builder.to_df()
+        self.assertEqual(len(df), 3)
+        # 'q1' should be broadcast to all 3 rows, not split into ['q', '1', ...]
+        self.assertListEqual(list(df['qid']), ['q1', 'q1', 'q1'])
+        self.assertListEqual(list(df['docno']), ['d1', 'd2', 'd3'])
+
+    def test_extend_empty(self):
+        # extend({}) must be a no-op — no rows added, no auto_index increment
+        from pyterrier.new import DataFrameBuilder
+        builder = DataFrameBuilder(['docno', 'score'])
+        builder.extend({})
+        builder.extend({'docno': ['d1'], 'score': [1.0]})
+        df = builder.to_df()
+        self.assertEqual(len(df), 1)
+        self.assertEqual(df.iloc[0]['docno'], 'd1')

@@ -157,7 +157,10 @@ class DataFrameBuilder:
         Args:
             values: a dictionary of values to add to the DataFrameBuilder. The keys must be the same as the columns
                 provided to the constructor, and the values must be either scalars, or lists (all of the same length).
+                Strings are always treated as scalars (not sequences of characters). An empty dict is a no-op.
         """
+        if not values:
+            return
         if '_index' not in values.keys():
             values['_index'] = self._auto_index
             self._auto_index += 1

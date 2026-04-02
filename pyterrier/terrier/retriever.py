@@ -393,6 +393,8 @@ class Retriever(pt.Transformer):
         if num_expected is not None:
             assert(num_expected == len(result))
 
+        # _index records which row in the input queries DataFrame this result batch belongs to,
+        # so DataFrameBuilder can align and merge query columns (qid, query, …) back into the results.
         rtr = {'_index': row.Index, 'docid': [], **{m: [] for m in self.metadata}, 'rank': [], 'score': []}
         for item in result:
             rtr['docid'].append(item.getDocid())
@@ -473,16 +475,14 @@ class Retriever(pt.Transformer):
                 
                 for future in iter:
                     res = future.result()
-                    if res:
-                        dfb.extend(res)
+                    dfb.extend(res)
         else:
             iter = queries.itertuples()
             if self.verbose and len(queries):
                 iter = pt.tqdm(iter, desc=str(self), total=queries.shape[0], unit="q")
             for row in iter:
                 res = self._retrieve_one(row, input_results, docno_provided=docno_provided, docid_provided=docid_provided, scores_provided=scores_provided)
-                if res:
-                    dfb.extend(res)
+                dfb.extend(res)
 
         return dfb.to_df(merge_on_index=queries)
         
