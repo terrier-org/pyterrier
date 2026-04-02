@@ -272,3 +272,99 @@ def test_apply_doc_features():
 @pt.testing.transformer_test_class
 def test_apply_doc_score():
     return pt.apply.doc_score(lambda row: 5)
+
+
+class TestApplySchematic(unittest.TestCase):
+
+    def _get_label(self, t):
+        from pyterrier.schematic import HasSchematic
+        self.assertIsInstance(t, HasSchematic)
+        return t.schematic(input_columns=None)['label']
+
+    def test_query_default_label(self):
+        t = pt.apply.query(lambda q: q['query'])
+        self.assertEqual(self._get_label(t), 'query')
+
+    def test_query_custom_label(self):
+        t = pt.apply.query(lambda q: q['query'], label='MyQueryRewriter')
+        self.assertEqual(self._get_label(t), 'MyQueryRewriter')
+
+    def test_doc_score_default_label(self):
+        t = pt.apply.doc_score(lambda row: row['score'])
+        self.assertEqual(self._get_label(t), 'doc_score')
+
+    def test_doc_score_custom_label(self):
+        t = pt.apply.doc_score(lambda row: row['score'], label='MyScoringFn')
+        self.assertEqual(self._get_label(t), 'MyScoringFn')
+
+    def test_doc_features_default_label(self):
+        t = pt.apply.doc_features(lambda row: np.array([1.0]))
+        self.assertEqual(self._get_label(t), 'doc_features')
+
+    def test_doc_features_custom_label(self):
+        t = pt.apply.doc_features(lambda row: np.array([1.0]), label='MyFeatureFn')
+        self.assertEqual(self._get_label(t), 'MyFeatureFn')
+
+    def test_generic_default_label(self):
+        t = pt.apply.generic(lambda df: df)
+        self.assertEqual(self._get_label(t), 'generic')
+
+    def test_generic_custom_label(self):
+        t = pt.apply.generic(lambda df: df, label='MyGenericFn')
+        self.assertEqual(self._get_label(t), 'MyGenericFn')
+
+    def test_generic_iter_default_label(self):
+        t = pt.apply.generic(lambda it: it, iter=True)
+        self.assertEqual(self._get_label(t), 'generic')
+
+    def test_generic_iter_custom_label(self):
+        t = pt.apply.generic(lambda it: it, iter=True, label='MyIterFn')
+        self.assertEqual(self._get_label(t), 'MyIterFn')
+
+    def test_by_query_default_label(self):
+        t = pt.apply.by_query(lambda df: df)
+        self.assertEqual(self._get_label(t), 'by_query')
+
+    def test_by_query_custom_label(self):
+        t = pt.apply.by_query(lambda df: df, label='MyByQueryFn')
+        self.assertEqual(self._get_label(t), 'MyByQueryFn')
+
+    def test_by_query_iter_default_label(self):
+        t = pt.apply.by_query(lambda it: it, iter=True)
+        self.assertEqual(self._get_label(t), 'by_query')
+
+    def test_by_query_iter_custom_label(self):
+        t = pt.apply.by_query(lambda it: it, iter=True, label='MyByQueryIterFn')
+        self.assertEqual(self._get_label(t), 'MyByQueryIterFn')
+
+    def test_rename_default_label(self):
+        t = pt.apply.rename({'a': 'b'})
+        self.assertEqual(self._get_label(t), 'rename')
+
+    def test_rename_custom_label(self):
+        t = pt.apply.rename({'a': 'b'}, label='MyRename')
+        self.assertEqual(self._get_label(t), 'MyRename')
+
+    def test_column_apply_default_label(self):
+        t = pt.apply.score(lambda row: 1.0)
+        self.assertEqual(self._get_label(t), 'apply.score')
+
+    def test_column_apply_custom_label(self):
+        t = pt.apply.score(lambda row: 1.0, label='MyColumnFn')
+        self.assertEqual(self._get_label(t), 'MyColumnFn')
+
+    def test_drop_default_label(self):
+        t = pt.apply.score(drop=True)
+        self.assertEqual(self._get_label(t), 'drop(score)')
+
+    def test_drop_custom_label(self):
+        t = pt.apply.score(drop=True, label='MyDropFn')
+        self.assertEqual(self._get_label(t), 'MyDropFn')
+
+    def test_indexer_default_label(self):
+        t = pt.apply.indexer(lambda it: None)
+        self.assertEqual(self._get_label(t), 'indexer')
+
+    def test_indexer_custom_label(self):
+        t = pt.apply.indexer(lambda it: None, label='MyIndexer')
+        self.assertEqual(self._get_label(t), 'MyIndexer')
