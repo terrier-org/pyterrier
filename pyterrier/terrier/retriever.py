@@ -98,12 +98,20 @@ def _parse_index_like(index_location):
     JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
     JI = pt.java.autoclass('org.terrier.structures.Index')
     from pyterrier.terrier import TerrierIndexer
-
     if isinstance(index_location, pt.terrier.TerrierIndex):
-        return index_location.index_ref()
+        from pyterrier.terrier.index_factory import IndexFactory
+        indexref = index_location.index_ref()
+        # if the index is local, load it and then replace the indexref
+        # with one that has a direct reference to the index, this will 
+        # prevent the index from being reloaded multiple times
+        if IndexFactory.isLocal(indexref):
+            indexref = index_location.index_obj().getIndexRef()
+            index_location._index_ref = indexref
+        return indexref
     if isinstance(index_location, JIR):
         return index_location
     if isinstance(index_location, JI):
+        # this new indexref will be a directindexref, so index will not be reloaded 
         return pt.java.cast('org.terrier.structures.Index', index_location).getIndexRef()
     if isinstance(index_location, str) or issubclass(type(index_location), TerrierIndexer):
         if issubclass(type(index_location), TerrierIndexer):
