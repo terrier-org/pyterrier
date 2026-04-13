@@ -128,16 +128,33 @@ class DataFrameBuilder:
 
     The dictionaries must have the same keys, and the values must be either scalars, or lists of the same length.
 
-    Example::
+    When iterating sequentially, you can omit ``_index`` and let the builder track it automatically —
+    each call to :meth:`~pyterrier.new.DataFrameBuilder.extend` increments an internal counter that
+    maps to the corresponding row in the input DataFrame passed to
+    :meth:`~pyterrier.new.DataFrameBuilder.to_df`:
+
+    Example (auto ``_index``, simpler)::
 
         builder = pt.new.DataFrameBuilder(['docno', 'score'])
-        for qid, results in retrieve_results():
-            builder.extend({
-                '_index': qid_index,
-                'docno': results['docno'],
-                'score': results['score'],
-            })
-        df = builder.to_df(merge_on_index=queries_df)
+        for row in queries.itertuples():
+            docnos, scores = retrieve(row.query)
+            builder.extend({'docno': docnos, 'score': scores})
+        df = builder.to_df(merge_on_index=queries)
+
+    When results may arrive **out of order** (e.g. with a thread pool), pass ``_index`` explicitly so
+    that each result batch is aligned to the correct input row.  This is also the pattern to use when
+    the integer index of the input row is already available at no extra cost:
+
+    Example (explicit ``_index``)::
+
+        builder = pt.new.DataFrameBuilder(['docno', 'score'])
+        for row in queries.itertuples():
+            docnos, scores = retrieve(row.query)
+            builder.extend({'_index': row.Index, 'docno': docnos, 'score': scores})
+        df = builder.to_df(merge_on_index=queries)
+
+    Both patterns produce identical results when iterating sequentially; the auto-index form is slightly
+    simpler to write, while the explicit form is required for concurrent/out-of-order processing.
     """
     def __init__(self, columns: List[str]):
         """Create a DataFrameBuilder with the given columns.
@@ -158,6 +175,12 @@ class DataFrameBuilder:
             values: a dictionary of values to add to the DataFrameBuilder. The keys must be the same as the columns
                 provided to the constructor, and the values must be either scalars, or lists (all of the same length).
                 Strings are always treated as scalars (not sequences of characters). An empty dict is a no-op.
+
+                The optional ``_index`` key identifies which row of the input DataFrame (passed later to
+                :meth:`~pyterrier.new.DataFrameBuilder.to_df`) this batch of results belongs to.  It must be an
+                integer position (i.e. ``row.Index`` from ``itertuples()``, *not* a label-based index).  When
+                ``_index`` is omitted, an internal counter is used and incremented automatically on every call,
+                which is correct for sequential iteration but **not** for out-of-order (concurrent) processing.
         """
         if not values:
             return
