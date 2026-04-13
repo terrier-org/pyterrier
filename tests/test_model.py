@@ -317,3 +317,53 @@ class TestDataFrameBuilder(BaseTestCase):
         df = builder.to_df()
         self.assertEqual(len(df), 1)
         self.assertEqual(df.iloc[0]['docno'], 'd1')
+
+    def test_merge_on_qid(self):
+        # merge_on_qid joins on the qid column instead of positional _index
+        from pyterrier.new import DataFrameBuilder
+        queries = pd.DataFrame({'qid': ['q1', 'q2'], 'query': ['hello', 'world']})
+        builder = DataFrameBuilder(['qid', 'docno', 'score'])
+        builder.extend({'qid': ['q1', 'q1'], 'docno': ['d1', 'd2'], 'score': [1.0, 2.0]})
+        builder.extend({'qid': ['q2'], 'docno': ['d3'], 'score': [3.0]})
+        df = builder.to_df(merge_on_qid=queries)
+        self.assertIn('qid', df.columns)
+        self.assertIn('query', df.columns)
+        self.assertIn('docno', df.columns)
+        self.assertIn('score', df.columns)
+        self.assertEqual(len(df), 3)
+        self.assertListEqual(sorted(df[df['qid'] == 'q1']['docno'].tolist()), ['d1', 'd2'])
+        self.assertListEqual(df[df['qid'] == 'q2']['docno'].tolist(), ['d3'])
+        # query column should be filled correctly from the queries DataFrame
+        self.assertTrue((df[df['qid'] == 'q1']['query'] == 'hello').all())
+        self.assertTrue((df[df['qid'] == 'q2']['query'] == 'world').all())
+
+    def test_merge_on_qid_column_order(self):
+        # qid columns from merge_on_qid DataFrame should come first
+        from pyterrier.new import DataFrameBuilder
+        queries = pd.DataFrame({'qid': ['q1'], 'query': ['hello']})
+        builder = DataFrameBuilder(['qid', 'docno'])
+        builder.extend({'qid': ['q1'], 'docno': ['d1']})
+        df = builder.to_df(merge_on_qid=queries)
+        # merge_on_qid columns (qid, query) should come before builder-only columns (docno)
+        self.assertEqual(list(df.columns[:2]), ['qid', 'query'])
+        self.assertIn('docno', df.columns)
+
+    def test_merge_on_qid_empty(self):
+        # empty builder with merge_on_qid should return correct columns with object dtype
+        from pyterrier.new import DataFrameBuilder
+        queries = pd.DataFrame({'qid': ['q1', 'q2'], 'query': ['hello', 'world']})
+        builder = DataFrameBuilder(['qid', 'docno', 'score'])
+        df = builder.to_df(merge_on_qid=queries)
+        self.assertEqual(len(df), 0)
+        self.assertIn('qid', df.columns)
+        self.assertIn('query', df.columns)
+        self.assertIn('docno', df.columns)
+
+    def test_merge_on_qid_mutually_exclusive(self):
+        # merge_on_index and merge_on_qid are mutually exclusive
+        from pyterrier.new import DataFrameBuilder
+        queries = pd.DataFrame({'qid': ['q1'], 'query': ['hello']})
+        builder = DataFrameBuilder(['qid', 'docno'])
+        builder.extend({'qid': ['q1'], 'docno': ['d1']})
+        with self.assertRaises(ValueError):
+            builder.to_df(merge_on_index=queries, merge_on_qid=queries)

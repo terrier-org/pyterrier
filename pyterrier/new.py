@@ -224,6 +224,9 @@ class DataFrameBuilder:
             if merge_on_index is not None:
                 merge_columns = set(merge_on_index.columns)
                 columns = list(merge_on_index.columns) + [c for c in columns if c not in merge_columns]
+            elif merge_on_qid is not None:
+                merge_columns = set(merge_on_qid.columns)
+                columns = list(merge_on_qid.columns) + [c for c in columns if c not in merge_columns]
             return pd.DataFrame(columns=columns)
         result = pd.DataFrame({
             k: (np.concatenate(v)
@@ -248,7 +251,7 @@ class DataFrameBuilder:
         elif merge_on_qid is not None:
             merge_columns = set(merge_on_qid.columns)
             result = merge_on_qid.merge(result, on='qid')
-            column_order = list(merge_on_index.columns) + [c for c in result.columns if c not in merge_columns]
+            column_order = list(merge_on_qid.columns) + [c for c in result.columns if c not in merge_columns]
             result = result[column_order]
 
         result = result.drop(columns=['_index'])
