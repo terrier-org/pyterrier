@@ -31,11 +31,11 @@ jobs:
       run: |
         brew install libomp
 
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     
     - name: Set up Python ${{ matrix.python-version }}
       if: matrix.os != 'self-hosted'
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
     
@@ -56,7 +56,7 @@ jobs:
     # follows https://medium.com/ai2-blog/python-caching-in-github-actions-e9452698e98d
     - name: Loading Python & dependencies from cache
       if: matrix.os != 'self-hosted'
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ${{ env.pythonLocation }}
         key: ${{ runner.os }}-${{ env.pythonLocation }}-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements-test.txt') }}
