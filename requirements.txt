@@ -1,6 +1,6 @@
 # core packages
 numpy
-pandas<3.0
+pandas
 more_itertools
 tqdm
 # used by datasets, pt.io.download

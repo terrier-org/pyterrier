@@ -458,7 +458,8 @@ class DFIndexUtils:
             raise ValueError('No docno column specified, while PyTerrier assumes a docno should exist. Found meta columns were %s' % str(list(all_metadata.keys())))
         # this method creates the documents as and when needed.
         def convertDoc(text_row, meta_column):
-            if text_row is None:
+            # pandas 3 series can be a float nan for None
+            if text_row is None or (isinstance(text_row, float) and math.isnan(text_row)):
                 text_row = ""
             hashmap = HashMap()
             for column, value in meta_column[1].items():
