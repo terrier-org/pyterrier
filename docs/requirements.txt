@@ -1,3 +1,5 @@
+#Sphinx 8 is needed until https://github.com/domdfcoding/enum_tools/issues/118 is fixed
+Sphinx<9
 myst_parser
 furo
 sphinx-autodoc-typehints<3.6
