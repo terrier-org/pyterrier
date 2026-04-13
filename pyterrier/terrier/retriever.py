@@ -428,7 +428,7 @@ class Retriever(pt.Transformer):
             raise ValueError(".transform() should be passed a DataFrame (found %s). Use .search() to execute a single query; Use .transform_iter() for iter-dicts" % str(type(queries)))
         
         # use pt.validate - this makes inspection of input columns better
-        with pt.validate.any(queries) as v:
+        with pt.validate.any(queries, context=self) as v:
             v.columns(includes=['qid', 'query'], excludes=['docid', 'docno'], mode='retrieve') # query based frame without docno or docid
             v.columns(includes=['qid', 'query', 'docid'], mode='rerank') # docid-based results frame
             v.query_frame(extra_columns=['query_toks'], mode='retrieve_toks')
@@ -617,7 +617,7 @@ class TextIndexProcessor(pt.Transformer):
         # we use _IterDictIndexer_nofifo, as _IterDictIndexer_fifo (which is default on unix) doesnt support IndexingType.MEMORY as a destination
         from pyterrier.terrier import IndexFactory
         from pyterrier.terrier.index import IndexingType, _IterDictIndexer_nofifo
-        pt.validate.result_frame(topics_and_res, extra_columns=[self.body_attr, 'query'])
+        pt.validate.result_frame(topics_and_res, extra_columns=[self.body_attr, 'query'], context=self)
         documents = topics_and_res[["docno", self.body_attr]].drop_duplicates(subset="docno").rename(columns={self.body_attr:'text'})
         indexref = _IterDictIndexer_nofifo(
             None, 
@@ -851,7 +851,7 @@ class FeaturesRetriever(Retriever):
             raise ValueError(".transform() should be passed a dataframe. Use .search() to execute a single query; Use .transform_iter() for iter-dicts")
 
         # use pt.validate - this makes inspection of input columns better
-        with pt.validate.any(queries) as v:
+        with pt.validate.any(queries, context=self) as v:
             v.columns(includes=['qid', 'query', 'docid', 'score'], mode='rerank') # docid-based results frame, with scores (features column is added, so we need input scores)
             v.query_frame(extra_columns=['query_toks'], mode='retrieve_toks')
             v.query_frame(extra_columns=['query'], mode='retrieve')

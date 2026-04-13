@@ -232,7 +232,7 @@ class FeatureUnion(NAryTransformerBase):
         ])
 
     def transform(self, inputRes):
-        pt.validate.result_frame(inputRes)
+        pt.validate.result_frame(inputRes, context=self)
 
         num_results = len(inputRes)
         import numpy as np

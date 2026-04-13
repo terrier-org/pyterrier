@@ -34,7 +34,7 @@ class DropColumnTransformer(pt.Transformer):
         Returns:
             The input DataFrame with the column dropped.
         """
-        pt.validate.columns(inp, includes=[self.col])
+        pt.validate.columns(inp, includes=[self.col], context=self)
         return inp.drop(columns=[self.col])
 
     def transform_iter(self, inp: pt.model.IterDict) -> pt.model.IterDict:
@@ -48,7 +48,7 @@ class DropColumnTransformer(pt.Transformer):
             The input with the column dropped.
         """
         inp = pt.utils.peekable(inp)
-        pt.validate.columns_iter(inp, includes=[self.col])
+        pt.validate.columns_iter(inp, includes=[self.col], context=self)
         for rec in inp:
             new_rec = rec.copy()
             new_rec.pop(self.col, None) # None ensures no error if key doesn't exist
@@ -87,7 +87,7 @@ class RenameColumnsTransformer(pt.Transformer):
             The input DataFrame with the column dropped.
         """
         if self.errors == 'raise':
-            pt.validate.columns(inp, includes=list(self.columns.keys()))
+            pt.validate.columns(inp, includes=list(self.columns.keys()), context=self)
         return inp.rename(columns=self.columns, errors=self.errors)
 
     def __repr__(self):
@@ -140,7 +140,7 @@ class ApplyByRowTransformer(pt.Transformer):
             The input DataFrame with the new values assign to ``col``
         """
         if self.required_columns is not None:
-            pt.validate.columns(inp, includes=self.required_columns)
+            pt.validate.columns(inp, includes=self.required_columns, context=self)
 
         if self.batch_size is None:
             return self._apply_df(inp)
@@ -208,7 +208,7 @@ class ApplyForEachQuery(pt.Transformer):
 
     def transform(self, res: pd.DataFrame) -> pd.DataFrame:
         if self.required_columns is not None:
-            pt.validate.columns(res, includes=self.required_columns)
+            pt.validate.columns(res, includes=self.required_columns, context=self)
 
         if len(res) == 0:
             return self.fn(res)
@@ -278,7 +278,7 @@ class ApplyIterForEachQuery(pt.Transformer):
     def transform_iter(self, inp: pt.model.IterDict) -> pt.model.IterDict:
         if self.required_columns is not None:
             inp = pt.utils.peekable(inp)
-            pt.validate.columns_iter(inp, includes=self.required_columns)
+            pt.validate.columns_iter(inp, includes=self.required_columns, context=self)
 
         if self.verbose:
             inp = pt.tqdm(inp, desc="pt.apply.by_query()")
@@ -361,7 +361,7 @@ class ApplyDocumentScoringTransformer(pt.Transformer):
 
     def transform(self, inp: pd.DataFrame) -> pd.DataFrame:
         if self.required_columns is not None:
-            pt.validate.columns(inp, includes=self.required_columns)
+            pt.validate.columns(inp, includes=self.required_columns, context=self)
 
         outputRes = inp.copy()
         if len(outputRes) == 0:
@@ -422,7 +422,7 @@ class ApplyDocFeatureTransformer(pt.Transformer):
     def transform_iter(self, inp: pt.model.IterDict) -> pt.model.IterDict:
         if self.required_columns is not None:
             inp = pt.utils.peekable(inp)
-            pt.validate.columns_iter(inp, includes=self.required_columns)
+            pt.validate.columns_iter(inp, includes=self.required_columns, context=self)
 
         # we assume that the function can take a dictionary as well as a pandas.Series. As long as [""] notation is used
         # to access fields, both should work
@@ -434,7 +434,7 @@ class ApplyDocFeatureTransformer(pt.Transformer):
 
     def transform(self, inp: pd.DataFrame) -> pd.DataFrame:
         if self.required_columns is not None:
-            pt.validate.columns(inp, includes=self.required_columns)
+            pt.validate.columns(inp, includes=self.required_columns, context=self)
 
         fn = self.fn
         outputRes = inp.copy()
@@ -493,7 +493,7 @@ class ApplyQueryTransformer(pt.Transformer):
     def transform_iter(self, inp: pt.model.IterDict) -> pt.model.IterDict:
         if self.required_columns is not None:
             inp = pt.utils.peekable(inp)
-            pt.validate.columns_iter(inp, includes=self.required_columns)
+            pt.validate.columns_iter(inp, includes=self.required_columns, context=self)
 
         # we assume that the function can take a dictionary as well as a pandas.Series. As long as [""] notation is used
         # to access fields, both should work
@@ -508,7 +508,7 @@ class ApplyQueryTransformer(pt.Transformer):
 
     def transform(self, inp: pd.DataFrame) -> pd.DataFrame:  
         if self.required_columns is not None:
-            pt.validate.columns(inp, includes=self.required_columns)
+            pt.validate.columns(inp, includes=self.required_columns, context=self)
 
         if "query" in inp.columns:
             # we only push if a query already exists
@@ -585,7 +585,7 @@ class ApplyGenericTransformer(pt.Transformer):
 
     def transform(self, inp: pd.DataFrame) -> pd.DataFrame:
         if self.required_columns is not None:
-            pt.validate.columns(inp, includes=self.required_columns)
+            pt.validate.columns(inp, includes=self.required_columns, context=self)
 
         # no batching
         if self.batch_size is None:
@@ -639,7 +639,7 @@ class ApplyGenericIterTransformer(pt.Transformer):
     def transform_iter(self, inp: pt.model.IterDict) -> pt.model.IterDict:
         if self.required_columns is not None:
             inp = pt.utils.peekable(inp)
-            pt.validate.columns_iter(inp, includes=self.required_columns)
+            pt.validate.columns_iter(inp, includes=self.required_columns, context=self)
 
         if self.batch_size is None:
             # no batching
