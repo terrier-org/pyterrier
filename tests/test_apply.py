@@ -272,3 +272,39 @@ def test_apply_doc_features():
 @pt.testing.transformer_test_class
 def test_apply_doc_score():
     return pt.apply.doc_score(lambda row: 5)
+
+
+class TestApplySchematic(unittest.TestCase):
+
+    def test_schematic_labels(self):
+        from pyterrier.schematic import HasSchematic
+
+        def get_label(t, expected_isinstance=True):
+            self.assertIsInstance(t, HasSchematic)
+            return t.schematic(input_columns=None)['label']
+
+        # Default labels
+        self.assertEqual(get_label(pt.apply.query(lambda q: q['query'])), 'query')
+        self.assertEqual(get_label(pt.apply.doc_score(lambda row: row['score'])), 'doc_score')
+        self.assertEqual(get_label(pt.apply.doc_features(lambda row: np.array([1.0]))), 'doc_features')
+        self.assertEqual(get_label(pt.apply.generic(lambda df: df)), 'generic')
+        self.assertEqual(get_label(pt.apply.generic(lambda it: it, iter=True)), 'generic')
+        self.assertEqual(get_label(pt.apply.by_query(lambda df: df)), 'by_query')
+        self.assertEqual(get_label(pt.apply.by_query(lambda it: it, iter=True)), 'by_query')
+        self.assertEqual(get_label(pt.apply.rename({'a': 'b'})), 'rename')
+        self.assertEqual(get_label(pt.apply.score(lambda row: 1.0)), 'apply.score')
+        self.assertEqual(get_label(pt.apply.score(drop=True)), 'drop(score)')
+        self.assertEqual(get_label(pt.apply.indexer(lambda it: None)), 'indexer')
+
+        # Custom labels
+        self.assertEqual(get_label(pt.apply.query(lambda q: q['query'], label='MyQueryRewriter')), 'MyQueryRewriter')
+        self.assertEqual(get_label(pt.apply.doc_score(lambda row: row['score'], label='MyScoringFn')), 'MyScoringFn')
+        self.assertEqual(get_label(pt.apply.doc_features(lambda row: np.array([1.0]), label='MyFeatureFn')), 'MyFeatureFn')
+        self.assertEqual(get_label(pt.apply.generic(lambda df: df, label='MyGenericFn')), 'MyGenericFn')
+        self.assertEqual(get_label(pt.apply.generic(lambda it: it, iter=True, label='MyIterFn')), 'MyIterFn')
+        self.assertEqual(get_label(pt.apply.by_query(lambda df: df, label='MyByQueryFn')), 'MyByQueryFn')
+        self.assertEqual(get_label(pt.apply.by_query(lambda it: it, iter=True, label='MyByQueryIterFn')), 'MyByQueryIterFn')
+        self.assertEqual(get_label(pt.apply.rename({'a': 'b'}, label='MyRename')), 'MyRename')
+        self.assertEqual(get_label(pt.apply.score(lambda row: 1.0, label='MyColumnFn')), 'MyColumnFn')
+        self.assertEqual(get_label(pt.apply.score(drop=True, label='MyDropFn')), 'MyDropFn')
+        self.assertEqual(get_label(pt.apply.indexer(lambda it: None, label='MyIndexer')), 'MyIndexer')
