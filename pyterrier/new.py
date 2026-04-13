@@ -205,12 +205,15 @@ class DataFrameBuilder:
             else:
                 self._data[k].append(v)
 
-    def to_df(self, merge_on_index: Optional[pd.DataFrame] = None) -> pd.DataFrame:
+    def to_df(self, merge_on_index: Optional[pd.DataFrame] = None, merge_on_qid: Optional[pd.DataFrame] = None) -> pd.DataFrame:
         """Convert the DataFrameBuilder to a DataFrame.
 
         Args:
             merge_on_index: an optional DataFrame to merge the resulting DataFrame on.
-                Columns from ``merge_on_index`` come first in the result.
+                Columns from ``merge_on_index`` come first in the result. The existing
+                results must have an _index column
+            merge_on_qid: an optional DataFrame to merge the resulting DataFrame on. The
+                qid columns are assumed to match.
 
         Returns:
             A DataFrame with the values added to the DataFrameBuilder.
@@ -230,6 +233,9 @@ class DataFrameBuilder:
             for k, v in self._data.items()
         })
         if merge_on_index is not None:
+            if merge_on_qid is not None:
+                raise ValueError("merge_on_index and merge_on_qid kwargs are mutually exclusive.")
+
             merge_on_index = merge_on_index.reset_index(drop=True)
             result = result.assign(**{
                 col: merge_on_index[col].iloc[result['_index']].values
@@ -239,5 +245,11 @@ class DataFrameBuilder:
             merge_columns = set(merge_on_index.columns)
             column_order = list(merge_on_index.columns) + [c for c in result.columns if c not in merge_columns]
             result = result[column_order]
+        elif merge_on_qid is not None:
+            merge_columns = set(merge_on_qid.columns)
+            result = merge_on_qid.merge(result, on='qid')
+            column_order = list(merge_on_index.columns) + [c for c in result.columns if c not in merge_columns]
+            result = result[column_order]
+
         result = result.drop(columns=['_index'])
         return result
