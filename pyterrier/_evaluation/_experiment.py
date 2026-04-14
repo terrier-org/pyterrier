@@ -335,10 +335,28 @@ def Experiment(
 
     if save_dir is not None:
         # always save aggregated and per-query results as CSV files regardless of perquery setting
-        renderer.averages(dataframe=True, mrt_needed=mrt_needed).to_csv(
-            os.path.join(save_dir, "aggregated.csv"), index=False)
-        renderer.perquery(dataframe=True).to_csv(
-            os.path.join(save_dir, "perquery.csv"), index=False)
+        current_names_set = set(names)
+        aggregated_path = os.path.join(save_dir, "aggregated.csv")
+        perquery_path = os.path.join(save_dir, "perquery.csv")
+
+        new_agg = renderer.averages(dataframe=True, mrt_needed=mrt_needed)
+        new_pq = renderer.perquery(dataframe=True)
+
+        # preserve rows for runs that exist in save_dir but are not part of the current experiment
+        if os.path.exists(aggregated_path):
+            old_agg = pd.read_csv(aggregated_path)
+            old_agg = old_agg[~old_agg["name"].isin(current_names_set)]
+            if not old_agg.empty:
+                new_agg = pd.concat([new_agg, old_agg], ignore_index=True)
+
+        if os.path.exists(perquery_path):
+            old_pq = pd.read_csv(perquery_path)
+            old_pq = old_pq[~old_pq["name"].isin(current_names_set)]
+            if not old_pq.empty:
+                new_pq = pd.concat([new_pq, old_pq], ignore_index=True)
+
+        new_agg.to_csv(aggregated_path, index=False)
+        new_pq.to_csv(perquery_path, index=False)
 
     if not perquery:
         return renderer.averages(dataframe=dataframe, highlight=highlight, mrt_needed=mrt_needed)

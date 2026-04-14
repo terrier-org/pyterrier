@@ -320,6 +320,27 @@ class TestExperiment(TempDirTestCase):
         # 2 systems × 10 topics × 1 measure = 20 rows
         self.assertEqual(20, len(pq_df))
 
+        # Run a second experiment with only PL2; DPH and BM25 rows from the first run must be preserved
+        pl2 = pt.terrier.Retriever(index, wmodel="PL2")
+        pt.Experiment([pl2], topics, qrels, eval_metrics=["map"], save_dir=self.test_dir, names=["PL2"])
+
+        agg_df2 = pd.read_csv(aggregated_path)
+        # all three systems should now appear
+        self.assertEqual(3, len(agg_df2), "aggregated.csv should retain rows from previous runs")
+        self.assertEqual({"DPH", "BM25", "PL2"}, set(agg_df2["name"].tolist()))
+
+        pq_df2 = pd.read_csv(perquery_path)
+        # 3 systems × 10 topics × 1 measure = 30 rows
+        self.assertEqual(30, len(pq_df2))
+        self.assertEqual({"DPH", "BM25", "PL2"}, set(pq_df2["name"].tolist()))
+
+        # Running BM25 again should update its row, not duplicate it
+        pt.Experiment([brs[1]], topics, qrels, eval_metrics=["map"], save_dir=self.test_dir, names=["BM25"], save_mode="overwrite")
+
+        agg_df3 = pd.read_csv(aggregated_path)
+        self.assertEqual(3, len(agg_df3), "re-running BM25 must not create duplicate rows")
+        self.assertEqual({"DPH", "BM25", "PL2"}, set(agg_df3["name"].tolist()))
+
     def test_empty(self):
         df1 = pt.new.ranked_documents([[1]]).head(0)
         t1 = pt.Transformer.from_df(df1)
