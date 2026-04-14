@@ -191,7 +191,7 @@ kwarg to ``"overwrite"``::
         save_mode="overwrite"
     )
 
-Saving Evaluation Results as CSV
+Saving Evaluation Results as CSVs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Whenever ``save_dir`` is set, ``pt.Experiment`` also writes two CSV summary files to that directory:
