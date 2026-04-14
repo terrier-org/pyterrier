@@ -191,6 +191,42 @@ kwarg to ``"overwrite"``::
         save_mode="overwrite"
     )
 
+Saving Evaluation Results as CSV
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Whenever ``save_dir`` is set, ``pt.Experiment`` also writes two CSV summary files to that directory:
+
+ - ``aggregated.csv`` — one row per system with a ``name`` column followed by one column per evaluation measure (mirrors the default ``pt.Experiment`` return value).
+ - ``perquery.csv`` — a long-format table with columns ``name``, ``qid``, ``measure``, and ``value``, giving per-query metric values for every system.
+
+These files are always written regardless of the value of the ``perquery`` kwarg.
+
+If either CSV file already exists (e.g. from a previous call that evaluated ``TF_IDF`` and ``BM25``), rows for systems that are *not* part of the current experiment are loaded from the existing file and merged into the new output. This means that results accumulate across separate experiment calls made to the same ``save_dir``, so no previously-evaluated system's data is lost when a subsequent experiment evaluates only a subset of systems::
+
+    # First run: evaluates TF_IDF and BM25; writes TF_IDF.res.gz, BM25.res.gz, aggregated.csv, perquery.csv
+    pt.Experiment(
+        [tfidf, bm25],
+        dataset.get_topics(),
+        dataset.get_qrels(),
+        eval_metrics=["map"],
+        names=["TF_IDF", "BM25"],
+        save_dir="./runs",
+    )
+
+    # Second run: evaluates PL2 only; TF_IDF and BM25 rows are preserved in the CSV files
+    pt.Experiment(
+        [pl2],
+        dataset.get_topics(),
+        dataset.get_qrels(),
+        eval_metrics=["map"],
+        names=["PL2"],
+        save_dir="./runs",
+    )
+    # ./runs/aggregated.csv now contains rows for TF_IDF, BM25, and PL2
+    # ./runs/perquery.csv   now contains per-query rows for all three systems
+
+Re-running an existing system replaces its rows rather than duplicating them, so the CSV files always contain exactly one row per unique system name in ``aggregated.csv`` (and one row per system/query/measure combination in ``perquery.csv``).
+
 Missing Topics and/or Qrels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

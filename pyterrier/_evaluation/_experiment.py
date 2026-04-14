@@ -167,6 +167,10 @@ def Experiment(
     :param save_dir: If set to the name of a directory, the results of each transformer will be saved in TREC-formatted results file, whose 
         filename is based on the systems names (as specified by ``names`` kwarg). If the file exists and ``save_mode`` is set to "reuse", then the file
         will be used for evaluation rather than the transformer. Default is None, such that saving and loading from files is disabled.
+        In addition, two CSV summary files are written to ``save_dir`` on every call: ``aggregated.csv`` (one row per system, one column per measure)
+        and ``perquery.csv`` (long-format table with columns ``name``, ``qid``, ``measure``, ``value``).
+        If either CSV already exists, rows for systems not in the current experiment are preserved, allowing results to accumulate
+        across multiple calls to ``pt.Experiment`` that each evaluate different subsets of systems.
     :param save_mode: Defines how existing files are used when ``save_dir`` is set. If set to "reuse", then files will be preferred
         over transformers for evaluation. If set to "overwrite", existing files will be replaced. If set to "warn" or "error", the presence of any 
         existing file will cause a warning or error, respectively. Default is "warn".
