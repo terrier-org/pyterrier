@@ -167,6 +167,10 @@ def Experiment(
     :param save_dir: If set to the name of a directory, the results of each transformer will be saved in TREC-formatted results file, whose 
         filename is based on the systems names (as specified by ``names`` kwarg). If the file exists and ``save_mode`` is set to "reuse", then the file
         will be used for evaluation rather than the transformer. Default is None, such that saving and loading from files is disabled.
+        In addition, two CSV summary files are written to ``save_dir`` on every call: ``aggregated.csv`` (one row per system, one column per measure)
+        and ``perquery.csv`` (long-format table with columns ``name``, ``qid``, ``measure``, ``value``).
+        If either CSV already exists, rows for systems not in the current experiment are preserved, allowing results to accumulate
+        across multiple calls to ``pt.Experiment`` that each evaluate different subsets of systems.
     :param save_mode: Defines how existing files are used when ``save_dir`` is set. If set to "reuse", then files will be preferred
         over transformers for evaluation. If set to "overwrite", existing files will be replaced. If set to "warn" or "error", the presence of any 
         existing file will cause a warning or error, respectively. Default is "warn".
@@ -332,6 +336,31 @@ def Experiment(
                 save_format=save_format,
                 pbar=pbar)
             renderer.add_metrics(sysid, evalMeasuresDict, time)
+
+    if save_dir is not None:
+        # always save aggregated and per-query results as CSV files regardless of perquery setting
+        current_names_set = set(names)
+        aggregated_path = os.path.join(save_dir, "aggregated.csv")
+        perquery_path = os.path.join(save_dir, "perquery.csv")
+
+        new_agg = renderer.averages(dataframe=True, mrt_needed=mrt_needed)
+        new_pq = renderer.perquery(dataframe=True)
+
+        # preserve rows for runs that exist in save_dir but are not part of the current experiment
+        if os.path.exists(aggregated_path):
+            old_agg = pd.read_csv(aggregated_path)
+            old_agg = old_agg[~old_agg["name"].isin(current_names_set)]
+            if not old_agg.empty:
+                new_agg = pd.concat([new_agg, old_agg], ignore_index=True)
+
+        if os.path.exists(perquery_path):
+            old_pq = pd.read_csv(perquery_path)
+            old_pq = old_pq[~old_pq["name"].isin(current_names_set)]
+            if not old_pq.empty:
+                new_pq = pd.concat([new_pq, old_pq], ignore_index=True)
+
+        new_agg.to_csv(aggregated_path, index=False)
+        new_pq.to_csv(perquery_path, index=False)
 
     if not perquery:
         return renderer.averages(dataframe=dataframe, highlight=highlight, mrt_needed=mrt_needed)
