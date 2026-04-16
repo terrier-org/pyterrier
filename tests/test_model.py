@@ -230,3 +230,140 @@ class TestModel(BaseTestCase):
         self.assertEqual(4, len(dfs[0]))
         self.assertEqual(2, len(dfs[1]))
         
+
+
+class TestDataFrameBuilder(BaseTestCase):
+
+    def test_basic(self):
+        from pyterrier.new import DataFrameBuilder
+        builder = DataFrameBuilder(['docno', 'score'])
+        builder.extend({'docno': ['d1', 'd2'], 'score': [1.0, 2.0]})
+        df = builder.to_df()
+        self.assertListEqual(list(df.columns), ['docno', 'score'])
+        self.assertEqual(len(df), 2)
+        self.assertListEqual(list(df['docno']), ['d1', 'd2'])
+        self.assertListEqual(list(df['score']), [1.0, 2.0])
+
+    def test_merge_on_index(self):
+        from pyterrier.new import DataFrameBuilder
+        queries = pd.DataFrame({'qid': ['q1', 'q2'], 'query': ['hello', 'world']})
+        builder = DataFrameBuilder(['docno', 'score'])
+        # first query: 2 docs
+        builder.extend({'_index': 0, 'docno': ['d1', 'd2'], 'score': [1.0, 2.0]})
+        # second query: 1 doc
+        builder.extend({'_index': 1, 'docno': ['d3'], 'score': [3.0]})
+        df = builder.to_df(merge_on_index=queries)
+        self.assertIn('qid', df.columns)
+        self.assertIn('query', df.columns)
+        self.assertIn('docno', df.columns)
+        self.assertIn('score', df.columns)
+        self.assertEqual(len(df), 3)
+        self.assertListEqual(list(df['qid']), ['q1', 'q1', 'q2'])
+
+    def test_empty(self):
+        from pyterrier.new import DataFrameBuilder
+        builder = DataFrameBuilder(['docno', 'score'])
+        df = builder.to_df()
+        self.assertListEqual(list(df.columns), ['docno', 'score'])
+        self.assertEqual(len(df), 0)
+        # empty builder should produce object dtype (not float64), matching pd.DataFrame([], columns=[...])
+        self.assertEqual(df['docno'].dtype, object)
+
+    def test_empty_with_merge_on_index(self):
+        from pyterrier.new import DataFrameBuilder
+        queries = pd.DataFrame({'qid': ['q1'], 'query': ['hello']})
+        builder = DataFrameBuilder(['docno', 'score'])
+        df = builder.to_df(merge_on_index=queries)
+        self.assertListEqual(list(df.columns), ['qid', 'query', 'docno', 'score'])
+        self.assertEqual(len(df), 0)
+        # columns from merge_on_index and builder should all be object dtype
+        self.assertEqual(df['docno'].dtype, object)
+
+    def test_scalar_values(self):
+        from pyterrier.new import DataFrameBuilder
+        builder = DataFrameBuilder(['docno', 'score'])
+        builder.extend({'docno': 'd1', 'score': 1.0})
+        df = builder.to_df()
+        self.assertEqual(len(df), 1)
+        self.assertEqual(df.iloc[0]['docno'], 'd1')
+
+    def test_auto_index(self):
+        from pyterrier.new import DataFrameBuilder
+        queries = pd.DataFrame({'qid': ['q1', 'q2']})
+        builder = DataFrameBuilder(['docno'])
+        builder.extend({'docno': ['d1', 'd2']})  # auto _index = 0
+        builder.extend({'docno': ['d3']})          # auto _index = 1
+        df = builder.to_df(merge_on_index=queries)
+        self.assertListEqual(list(df['qid']), ['q1', 'q1', 'q2'])
+
+    def test_string_scalar_broadcast(self):
+        # strings must be treated as scalars (not as sequences of characters)
+        # so a string value alongside a list should broadcast to the list length
+        from pyterrier.new import DataFrameBuilder
+        builder = DataFrameBuilder(['qid', 'docno', 'score'])
+        builder.extend({'qid': 'q1', 'docno': ['d1', 'd2', 'd3'], 'score': [1.0, 2.0, 3.0]})
+        df = builder.to_df()
+        self.assertEqual(len(df), 3)
+        # 'q1' should be broadcast to all 3 rows, not split into ['q', '1', ...]
+        self.assertListEqual(list(df['qid']), ['q1', 'q1', 'q1'])
+        self.assertListEqual(list(df['docno']), ['d1', 'd2', 'd3'])
+
+    def test_extend_empty(self):
+        # extend({}) must be a no-op — no rows added, no auto_index increment
+        from pyterrier.new import DataFrameBuilder
+        builder = DataFrameBuilder(['docno', 'score'])
+        builder.extend({})
+        builder.extend({'docno': ['d1'], 'score': [1.0]})
+        df = builder.to_df()
+        self.assertEqual(len(df), 1)
+        self.assertEqual(df.iloc[0]['docno'], 'd1')
+
+    def test_merge_on_qid(self):
+        # merge_on_qid joins on the qid column instead of positional _index
+        from pyterrier.new import DataFrameBuilder
+        queries = pd.DataFrame({'qid': ['q1', 'q2'], 'query': ['hello', 'world']})
+        builder = DataFrameBuilder(['qid', 'docno', 'score'])
+        builder.extend({'qid': ['q1', 'q1'], 'docno': ['d1', 'd2'], 'score': [1.0, 2.0]})
+        builder.extend({'qid': ['q2'], 'docno': ['d3'], 'score': [3.0]})
+        df = builder.to_df(merge_on_qid=queries)
+        self.assertIn('qid', df.columns)
+        self.assertIn('query', df.columns)
+        self.assertIn('docno', df.columns)
+        self.assertIn('score', df.columns)
+        self.assertEqual(len(df), 3)
+        self.assertListEqual(sorted(df[df['qid'] == 'q1']['docno'].tolist()), ['d1', 'd2'])
+        self.assertListEqual(df[df['qid'] == 'q2']['docno'].tolist(), ['d3'])
+        # query column should be filled correctly from the queries DataFrame
+        self.assertTrue((df[df['qid'] == 'q1']['query'] == 'hello').all())
+        self.assertTrue((df[df['qid'] == 'q2']['query'] == 'world').all())
+
+    def test_merge_on_qid_column_order(self):
+        # qid columns from merge_on_qid DataFrame should come first
+        from pyterrier.new import DataFrameBuilder
+        queries = pd.DataFrame({'qid': ['q1'], 'query': ['hello']})
+        builder = DataFrameBuilder(['qid', 'docno'])
+        builder.extend({'qid': ['q1'], 'docno': ['d1']})
+        df = builder.to_df(merge_on_qid=queries)
+        # merge_on_qid columns (qid, query) should come before builder-only columns (docno)
+        self.assertEqual(list(df.columns[:2]), ['qid', 'query'])
+        self.assertIn('docno', df.columns)
+
+    def test_merge_on_qid_empty(self):
+        # empty builder with merge_on_qid should return correct columns with object dtype
+        from pyterrier.new import DataFrameBuilder
+        queries = pd.DataFrame({'qid': ['q1', 'q2'], 'query': ['hello', 'world']})
+        builder = DataFrameBuilder(['qid', 'docno', 'score'])
+        df = builder.to_df(merge_on_qid=queries)
+        self.assertEqual(len(df), 0)
+        self.assertIn('qid', df.columns)
+        self.assertIn('query', df.columns)
+        self.assertIn('docno', df.columns)
+
+    def test_merge_on_qid_mutually_exclusive(self):
+        # merge_on_index and merge_on_qid are mutually exclusive
+        from pyterrier.new import DataFrameBuilder
+        queries = pd.DataFrame({'qid': ['q1'], 'query': ['hello']})
+        builder = DataFrameBuilder(['qid', 'docno'])
+        builder.extend({'qid': ['q1'], 'docno': ['d1']})
+        with self.assertRaises(ValueError):
+            builder.to_df(merge_on_index=queries, merge_on_qid=queries)
