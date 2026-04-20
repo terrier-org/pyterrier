@@ -236,32 +236,3 @@ def decompose_pipelines(pipes: List[Union[pd.DataFrame, pt.Transformer]]) -> Lis
                 raise ValueError("pt.Experiment has systems that are not either DataFrames or Transformers")
             pipe_lists.append([p])
     return pipe_lists
-    # return pipe_lists[0][:-1], [pl[-1] for pl in pipe_lists]
-
-
-# tree = RadixTree()
-
-# Test compression with transformer sequences
-# print("=== Testing Linear Chain Compression ===")
-
-# # Example sequences that should preserve branching but compress linear chains
-# test_sequences = [
-#     ('bm25', '%10', 'monoT5'),  # Should become: bm25 -> (%10 >> monoT5)
-#     ('bm25', '%100'),           # Should become: bm25 -> %100
-# ]
-
-# print("Inserting sequences:")
-# for i, seq in enumerate(test_sequences):
-#     tree.insert(seq)
-#     print(f"  {i+1}: {seq}")
-
-# print("\nBefore compression:")
-# print(tree.describe_tree_structure())
-
-# # Apply linear chain compression
-# tree.compress_linear_chains()
-
-# print("\nAfter compression:")
-# structure = tree.describe_tree_structure()
-# print(structure)
-
