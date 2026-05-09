@@ -21,7 +21,6 @@ def emit_js(node_id, state):
 class RadixNode(Generic[K, T]):
     def __init__(self):
         self.children: dict[K, 'RadixNode[K, T]'] = {}  # key -> RadixNode
-        self.is_end_of_pipeline: bool = False
         self.value: Optional[T] = None  # (e.g., sysid) -> evaluation_index
         self.execution_state: str = 'pending'  # 'pending', 'running', 'done'
         self.node_id = str(uuid.uuid4())
@@ -156,13 +155,11 @@ class RadixTree(Generic[K, T]):
             if not found:
                 # No matching edge, create new child with remaining string
                 new_child = RadixNode()
-                new_child.is_end_of_pipeline = True
                 new_child.value = value  
                 node.children[remaining] = new_child
                 return
         
         # If we've consumed all of remaining, mark current node as end
-        node.is_end_of_pipeline = True
         node.value = value  
 
 
