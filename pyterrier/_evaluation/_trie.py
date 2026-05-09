@@ -22,7 +22,7 @@ class RadixNode(Generic[K, T]):
     def __init__(self):
         self.children: dict[K, 'RadixNode[K, T]'] = {}  # key -> RadixNode
         self.is_end_of_pipeline: bool = False
-        self.value: Optional[T] = None  # (e.g., sysid)
+        self.value: Optional[T] = None  # (e.g., sysid) -> evaluation_index
         self.execution_state: str = 'pending'  # 'pending', 'running', 'done'
         self.node_id = str(uuid.uuid4())
 
@@ -93,15 +93,7 @@ class RadixNode(Generic[K, T]):
                 result = Compose(*transformers).transform(inp)
             end = timer()
             transform_time = (end - start) * 1000.0
-            print('Transformer time:', transform_time)
-            # result = inp
-            # for t in transformers:
-            #     start = timer()
-            #     result = t.transform(result)
-            #     end = timer()
-            #     transform_time = (end - start) * 1000.0
-            #     print(f"{t}: {transform_time} ms")
-                        
+            print('Transformer time:', transform_time)                        
             for i in range(len(transformers)):
                 new_id = f"{self.node_id}:{i}"
             # Mark as completed after execution
@@ -182,12 +174,11 @@ class RadixTree(Generic[K, T]):
         RED = '\033[91m'      # Pending (not yet executed)
         ORANGE = '\033[93m'   # Running (currently executing)
         GREEN = '\033[38;2;19;136;8m'    # Completed
-        RESET = '\033[0m'     # Reset color
+        RESET = '\033[0m'     
         
         lines = ["Root"]
         
         def format_transformers(edge_label: K) -> str:
-            """Format a tuple of transformers as a readable string."""
             if isinstance(edge_label, tuple):
                 if len(edge_label) == 1:
                     return f"{str(edge_label[0])}"
@@ -206,8 +197,8 @@ class RadixTree(Generic[K, T]):
                 return GREEN
             return ""
         
+        # Recursion to traverse the tree and build lines with connectors
         def traverse_node(node: RadixNode[K, T], prefix: str, is_last: bool):
-            """Recursively build tree representation."""
             children_list = sorted(node.children.items(), key=lambda x: str(x[0]))
             
             for i, (edge_label, child) in enumerate(children_list):

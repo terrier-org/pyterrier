@@ -12,47 +12,7 @@ from pyterrier._ops import Compose
 import pprint
 
 
-# def radix_tree_schematic(tree, input_columns=None):
-#     def format_transformers(edge_label) -> str:
-#             """Format a tuple of transformers as a readable string."""
-#             if isinstance(edge_label, tuple):
-#                 if len(edge_label) == 1:
-#                     return f"({str(edge_label[0])},)"
-#                 return "(" + ", ".join(str(t) for t in edge_label) + ")"
-#             return str(edge_label)
-    
-#     def node_to_schematic(edge_label, node):
-#         return {
-#             "type": "transformer",
-#             "label": format_transformers(edge_label),
-#             "evaluation_index": node.value,
-#             "status": node.execution_state,
-#             "children": [
-#                 node_to_schematic(child_label, child)
-#                 for child_label, child in node.children.items()
-#             ]
-#         }
-#     return {
-#         "type": "tree",
-#         "input_columns": input_columns,
-#         "nodes": [
-#             node_to_schematic(edge_label, child)
-#             for edge_label, child in tree.root.children.items()
-#         ]
-#     }
-
 def radix_tree_schematic(tree, input_columns=None):
-    """
-    Returns a schematic for a radix tree of pipelines.
-    Each node is represented as a dict with type 'node', children, evaluation_index, status, label, and 'me' (transformer schematic).
-    The tree is a dict with type 'tree', root, and input_columns.
-    """
-    def format_transformers(edge_label) -> str:
-        """Format a tuple or single transformer as a readable string."""
-        if isinstance(edge_label, (tuple, list)):
-            return ", ".join(str(t) for t in edge_label)
-        return str(edge_label)
-
     def node_to_schematic(edge_label, node):
         # Efficiently determine transformer for schematic
         if isinstance(edge_label, (tuple, list)):
@@ -62,7 +22,6 @@ def radix_tree_schematic(tree, input_columns=None):
 
         children = [node_to_schematic(child_label, child) for child_label, child in node.children.items()]
         self_schem = pt.schematic.transformer_schematic(transformer) if transformer is not None else {}
-        # print(self_schem)
         if self_schem['type'] == 'pipeline':
         
             transformers = self_schem.get('transformers', [])
@@ -71,18 +30,12 @@ def radix_tree_schematic(tree, input_columns=None):
             for idx, t in enumerate(transformers):
                 t['node_id'] = f"{node.node_id}:{idx}"
                 t['is_last'] = (idx == n - 1) and not has_children
-            # for idx,i in enumerate(self_schem['transformers']):
-                
-                # i['node_id'] = f"{node.node_id}:{idx}"
-                # if idx == (len(self_schem['transformers']) -1):
-                #     i['is_last'] = True
-                # else:
-                #     i['is_last'] = False
                 
         else:
             self_schem['node_id'] = node.node_id
-            self_schem['is_last'] = bool(node.is_end_of_pipeline) and not bool(node.children)
-            # node.is_end_of_pipeline
+            # node.value -> evaluation index, node.children -> whether it's a leaf node or not
+            self_schem['is_last'] = node.value is not None and not bool(node.children)
+            # self_schem['is_last'] = bool(node.is_end_of_pipeline) and not bool(node.children)
 
         node_dict = {
             "type": "node",
@@ -414,7 +367,6 @@ def draw_radix_html_schematic(radix_schematic, outer_class='outer') -> str:
                     new['nodes'] = node['children']
                     new['type'] = 'tree'
                     new['mode'] = 'branch'
-                    # pprint(new)
                     result += draw_radix_html_schematic(new, outer_class='inner')
                     result += '</div>'
                     continue
