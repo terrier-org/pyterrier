@@ -150,7 +150,7 @@ Example implementation
        
    # NB: You can merge these two classes into a single one. PyTerrier DR and PyTerrier PISA both use this scheme.
 
-Optionally, your MyIndex class can extend :doc:`pt.Artifact <../ext/pyterrier-alpha/artifact>`-
+Optionally, your MyIndex class can extend :class:`pt.Artifact <pyterrier.Artifact>`-
 this allows your index to be easily shared as an Artifact on Huggingface/Zenodo etc. 
 
 Other Examples:

@@ -8,6 +8,9 @@ from pylatexenc.latex2text import LatexNodes2Text
 from docutils import nodes
 from docutils.parsers.rst import Directive
 from sphinx.domains.std import StandardDomain
+from sphinx.util import logging
+
+logger = logging.getLogger(__name__)
 
 latex_converter = LatexNodes2Text()
 
@@ -59,6 +62,8 @@ class CiteDirective(Directive):
 
         # in the future, could store citation information in self.state.document.settings.env
         # to generate a bibliography page.
+        if not hasattr(self.state.document.settings.env, 'bibliography'):
+            self.state.document.settings.env.bibliography = {}
         self.state.document.settings.env.bibliography.setdefault(node['id'], {
             'id': node['id'],
             'citation': node['citation'],
@@ -86,6 +91,24 @@ class CiteDirective(Directive):
         return None
 
 
+_dblp_hosts = ['https://dblp.org', 'https://dblp.uni-trier.de']
+
+
+def _dblp_request(url: str):
+    hosts = list(_dblp_hosts)
+    for host in hosts:
+        try:
+            response = requests.get(host + url, timeout=10)
+            response.raise_for_status()
+            return response
+        except requests.RequestException as e:
+            logger.warning(f"Failed to fetch {host}{url}: {str(e)}")
+            # rotate _dblp_hosts to try the next host first next time
+            _dblp_hosts.append(_dblp_hosts.pop(0))
+            if host == hosts[-1]:
+                raise
+
+
 class CiteDblpDirective(CiteDirective):
     """Directive to fetch and display a citation from DBLP using a DBLP ID."""
     has_content = False
@@ -99,16 +122,16 @@ class CiteDblpDirective(CiteDirective):
         else:
             # Fetch BibTeX entry from DBLP
             try:
-                response = requests.get(f"https://dblp.org/rec/{dblp_id}.bib?param=0")
-                response.raise_for_status()
+                logger.info(f"Fetching BibTeX for DBLP ID '{dblp_id}' from DBLP...")
+                response = _dblp_request(f'/rec/{dblp_id}.bib?param=0')
                 bibtex_entry_short = response.text
-                response = requests.get(f"https://dblp.org/rec/{dblp_id}.bib?param=1")
-                response.raise_for_status()
+                response = _dblp_request(f'/rec/{dblp_id}.bib?param=1')
                 bibtex_entry_full = response.text
                 dblp_cache[dblp_id] = [bibtex_entry_short, bibtex_entry_full]  # Save to cache
                 save_dblp_cache()  # Persist the cache
             except requests.RequestException as e:
                 error_msg = f"Failed to fetch BibTeX for DBLP ID '{dblp_id}': {str(e)}"
+                logger.error(error_msg)
                 return [nodes.error(None, nodes.Text(error_msg))]
         self.bibtex_entry_short = bibtex_entry_short
         self.bibtex_entry_full = bibtex_entry_full
@@ -269,15 +292,25 @@ def collect_bibliiography(app):
     )]
 
 
-def setup_bibliiography_env(app, env, pages):
-    app.env.bibliography = {}
+def init_bib(app, env):
+    if not hasattr(env, 'bibliography'):
+        env.bibliography = {}
+    return []
+
+
+def merge_bib(app, env, docnames, other):
+    if not hasattr(env, 'bibliography'):
+        env.bibliography = {}
+    if hasattr(other, 'bibliography'):
+        env.bibliography.update(other.bibliography)
 
 
 def setup(app):
     app.add_node(CiteNode, html=(visit_cite_node_html, depart_cite_node_html))
     app.add_directive('cite', CiteDirective)
     app.add_directive('cite.dblp', CiteDblpDirective)
-    app.connect('env-before-read-docs', setup_bibliiography_env)
+    app.connect('env-get-updated', init_bib)
+    app.connect('env-merge-info', merge_bib)
     app.connect('html-collect-pages', collect_bibliiography)
     StandardDomain._virtual_doc_names['bibliography'] = ('bibliography', 'Bibliography')
     return {

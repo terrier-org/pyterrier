@@ -155,6 +155,7 @@ class TestRewrite(TempDirTestCase):
         self.assertIn("query_0", rtr.columns)
         self.assertIn("docno", rtr.columns)
         self.assertEqual(2, len(rtr))
+        sdm.search("hello/there")
 
 
     def _sdm(self, freq):
@@ -424,6 +425,8 @@ class TestRewrite(TempDirTestCase):
             # check the pipe doesnt cause an error
             str(pipe)
 
+            pipe.search("chemical/reactions")
+
             all_qe_res = pipe.transform(t)
             map_pipe = pt.Evaluate(all_qe_res, qrels, metrics=["map"])["map"]
 
@@ -433,7 +436,7 @@ class TestRewrite(TempDirTestCase):
             self.assertAlmostEqual(map_qe, map_pipe, places=4)
 
             pipe_opt = pipe.compile()
-            self.assertEqual("2", pipe_opt[0].controls["end"]) # has fb_docs 3 been proparaged back to the first retriever
+            self.assertEqual("2", pipe_opt[0].controls["end"]) # has fb_docs 3 been propagated back to the first retriever
             self.assertNotIn("end", pipe_opt[-1].controls) # ensure last retriever is unchanged
             pd.testing.assert_frame_equal(all_qe_res.head(5), pipe_opt(t).head(5))
 

@@ -1,0 +1,19 @@
+{% extends "page.html" %}
+
+{% block htmltitle -%}
+  <title>How-To Guides - {{ docstitle|striptags|e }}</title>
+{% endblock htmltitle -%}
+
+{% block content %}
+<h1 id="how-tos">How-To Guides</h1>
+
+{% for page in pages %}
+  <div><b>{{page.title}}</b></div>
+  <ul class="how-to-list">
+    {% for howto in page.how_tos %}
+      <li><a href="{{howto.url}}">{{howto.title}}</a></li>
+    {% endfor %}
+  </ul>
+{% endfor %}
+
+{% endblock %}

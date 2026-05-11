@@ -71,6 +71,8 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
         pipe = firstpass >> pt.terrier.FeaturesRetriever(indexref, features=["WMODEL:DPH", "WMODEL:PL2"])
         input = pd.DataFrame([["1", "Stability"]], columns=['qid', 'query'])
 
+        pt.schematic.draw(pipe)
+
         result0 = firstpass(input)
         result0_map = { row.docno : row.score for row in result0.itertuples() }
 
@@ -185,7 +187,7 @@ class TestFeaturesBatchRetrieve(BaseTestCase):
         indexloc = self.here + "/fixtures/index/data.properties"
         
         retr = pt.terrier.FeaturesRetriever(indexloc, ["WMODEL:PL2"], wmodel="DPH")
-        query_terrier = 'applytermpipeline:off chemic^2 reaction^0.5'
+        query_terrier = 'applypipeline:off chemic^2 reaction^0.5'
         result_terrier = retr.search(query_terrier)
 
         query_matchop = '#combine:0=2:1=0.5(chemic reaction)'

@@ -92,13 +92,29 @@ class IndexFactory:
         # dont allow the index properties to be rewritten
         pindex.dirtyProperties = False
         return index
+    
+    @staticmethod
+    def isLoaded(indexref) -> bool:
+        """
+        Returns true if the index is already loaded in memory, false otherwise.
+        Calls the underlying Terrier `IndexFactory.isLoaded() <http://terrier.org/docs/current/javadoc/org/terrier/structures/IndexFactory.html#isLoaded-org.terrier.querying.IndexRef->`_ method.
+        """
+        return pt.terrier.J.IndexFactory.isLoaded(indexref)
+    
+    @staticmethod
+    def isLocal(indexref) -> bool:
+        """
+        Returns true if the index is local, false otherwise.
+        Calls the underlying Terrier `IndexFactory.isLocal() <http://terrier.org/docs/current/javadoc/org/terrier/structures/IndexFactory.html#isLocal-org.terrier.querying.IndexRef->`_ method.
+        """
+        return pt.terrier.J.IndexFactory.isLocal(indexref)
 
     @staticmethod 
     def of(indexlike, memory : Union[bool, List[str]] = False):
         """
         Loads an index. Returns a Terrier `Index <http://terrier.org/docs/current/javadoc/org/terrier/structures/Index.html>`_ object.
 
-        :param indexlike: The location of the index. This can be a string, or an `IndexRef <http://terrier.org/docs/current/javadoc/org/terrier/structures/IndexRef.html>`__ object.
+        :param indexlike: The location of the index. This can be a string, or an `IndexRef <http://terrier.org/docs/current/javadoc/org/terrier/querying/IndexRef.html>`__ object.
         :param memory: If the index should be loaded into memory. Use `True` for all structures, or a list of structure names.
         :return: A Terrier `Index <http://terrier.org/docs/current/javadoc/org/terrier/structures/Index.html>`_ object.
         """

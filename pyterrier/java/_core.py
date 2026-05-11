@@ -4,7 +4,7 @@ from pyterrier.java import required_raise, required, before_init, started, maven
 from typing import Optional
 import pyterrier as pt
 
-
+_min_colab_jdk = "openjdk-11-jdk-headless"
 _stdout_ref = None
 _stderr_ref = None
 
@@ -13,23 +13,53 @@ _stderr_ref = None
 # Java Initialization
 # ----------------------------------------------------------
 
-def _get_notebook() -> Optional[str]:
-    try:
-        import IPython # type: ignore
-    except Exception:
-        return None
 
-    # Try to get IPython and return None if not found.
-    ipython = IPython.get_ipython()
-    if not ipython:
-        return None
-    locals = IPython.get_ipython().user_ns
 
-    if "__vsc_ipynb_file__" in locals:
-        return locals["__vsc_ipynb_file__"]
-    if "__session__" in locals:
-        return locals["__session__"]
-    return None
+class ColabJavaInit(JavaInitializer):
+    def priority(self) -> int:
+        return -101 # run this initializer before CoreJavaInit
+    
+    def pre_init(self, jnius_config):
+        import sys
+        # detect colab
+        if 'google.colab' not in sys.modules:
+            return
+        import shutil
+        # detect java on the PATH
+        if shutil.which("java") is not None:
+            return
+        print(f"This Colab is missing Java - installing {_min_colab_jdk}, please wait")
+        import subprocess
+        import os
+
+        cmd = [
+            "apt-get", 
+            "install", 
+            "-y", 
+            _min_colab_jdk,
+            "--option=Dpkg::Progress-Fancy=1",
+            "--option=APT::Color=1"
+        ]
+
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            env={**os.environ, "TERM": "xterm-color"}
+        )
+
+        for line in process.stdout:
+            sys.stdout.write(line)
+            sys.stdout.flush()
+
+        process.wait()
+        # ✅ Check exit status
+        if process.returncode == 0:
+            print(f"\n✅ apt-get install of {_min_colab_jdk} completed successfully.")
+        else:
+            print(f"\n❌ apt-get install of {_min_colab_jdk} failed with exit code {process.returncode}.")
 
 class CoreJavaInit(JavaInitializer):
     def priority(self) -> int:
@@ -55,7 +85,7 @@ class CoreJavaInit(JavaInitializer):
             jnius_config.add_classpath(jar)
 
         # set the property that makes a process name visible in jps
-        process_name : str =  _get_notebook()
+        process_name : str =  pt.utils._get_notebook()
         if process_name is None:
             process_name = "python[pyterrier]:" + (sys.argv[0] if sys.argv[0] else '<interactive>')
         else:

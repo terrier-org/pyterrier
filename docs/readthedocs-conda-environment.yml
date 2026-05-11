@@ -5,8 +5,11 @@ channels:
 dependencies:
   - openjdk
   - python=3.10
+  - libstdcxx-ng>=13
+  - libgcc-ng>=13
+  - icu<78
   - pip
   - pip:
-    -  ../
+    -  ../[all]
     - -r ./requirements.txt
     - -r ./extensions.txt

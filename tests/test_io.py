@@ -175,9 +175,9 @@ class TestUtils(TempDirTestCase):
             pt.io.read_results('test.res', dataset='vaswani'),
             pt.io.read_results('test.res', dataset=pt.get_dataset('vaswani')),
             pt.io.read_results('test.res', topics=pt.get_dataset('vaswani').get_topics()),]:
-            self.assertEqual(results.iloc[0].query, 'measurement of dielectric constant of liquids by the use of microwave techniques')
-            self.assertEqual(results.iloc[1].query, 'measurement of dielectric constant of liquids by the use of microwave techniques')
-            self.assertEqual(results.iloc[2].query, 'mathematical analysis and design details of waveguide fed microwave radiations')
+            self.assertEqual(results.iloc[0].query, 'MEASUREMENT OF DIELECTRIC CONSTANT OF LIQUIDS BY THE USE OF MICROWAVE TECHNIQUES')
+            self.assertEqual(results.iloc[1].query, 'MEASUREMENT OF DIELECTRIC CONSTANT OF LIQUIDS BY THE USE OF MICROWAVE TECHNIQUES')
+            self.assertEqual(results.iloc[2].query, 'MATHEMATICAL ANALYSIS AND DESIGN DETAILS OF WAVEGUIDE FED MICROWAVE RADIATIONS')
 
     def tearDown(self):
         for file in ['file.txt', 'file.tmp.txt', 'file.gz', 'file.tmp.gz', 'test.res']:

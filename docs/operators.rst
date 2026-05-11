@@ -38,7 +38,7 @@ We use `>>` as a shorthand for then (also called compose)::
 
 .. schematic::
     
-    index = pt.Artifact.from_hf("pyterrier/vaswani.terrier")
+    index = pt.terrier.TerrierIndex.example()
     pt.rewrite.SDM() >> index.dph() 
 
 **Example:**
@@ -77,7 +77,7 @@ NB: Then can also be used for retrieval and re-ranking pipelines, such as::
 
 .. schematic ::
 
-    index = pt.Artifact.from_hf("pyterrier/vaswani.terrier")
+    index = pt.terrier.TerrierIndex.example()
     index.dph() >> index.bm25() 
 
 Linear Combine and Scalar Factor (`+`, `*`)
@@ -104,7 +104,7 @@ We use binary `+` and `*` operators. This is natural, as it is intuitive to comb
 
 .. schematic ::
 
-    index = pt.Artifact.from_hf("pyterrier/vaswani.terrier")
+    index = pt.terrier.TerrierIndex.example()
     2 * index.dph() + index.bm25() 
 
 If the DPH and BM25 transformers respectively returned:
@@ -156,12 +156,12 @@ the rankings documents would normally be re-scored::
 
 .. schematic ::
 
-    index = pt.Artifact.from_hf("pyterrier/vaswani.terrier")
+    index = pt.terrier.TerrierIndex.example()
     (index.bm25() & index.retriever("PL2"))
 
 .. schematic ::
 
-    index = pt.Artifact.from_hf("pyterrier/vaswani.terrier")
+    index = pt.terrier.TerrierIndex.example()
     (index.bm25() | index.retriever("PL2"))
 
 **Examples:**
@@ -213,7 +213,7 @@ The `%` operator is called rank cutoff, and limits the number of results for eac
 
 .. schematic ::
 
-    index = pt.Artifact.from_hf("pyterrier/vaswani.terrier")
+    index = pt.terrier.TerrierIndex.example()
     index.bm25() % 2 
 
 **Example:**
@@ -329,7 +329,7 @@ Instead, we use `**` to denote feature union::
 
 .. schematic ::
 
-    index = pt.Artifact.from_hf("pyterrier/vaswani.terrier")
+    index = pt.terrier.TerrierIndex.example()
     index.dph() >> ( index.retriever("BM25F") ** index.retriever("PL2F") )
 
 NB: Feature union expects the documents being returned by each side of the union to be identical.

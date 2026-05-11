@@ -1,6 +1,7 @@
 from typing import Union, Optional, Callable, List, Any
 import pandas as pd
 import numpy as np
+import re
 from warnings import warn
 from pyterrier.datasets import Dataset
 from pyterrier.model import FIRST_RANK
@@ -13,7 +14,30 @@ from pyterrier.terrier.stemmer import TerrierStemmer
 from pyterrier.terrier.stopwords import TerrierStopwords
 from pyterrier.terrier.tokeniser import TerrierTokeniser
 
+def _query_needs_tokenised(query: str) -> bool:
+    # detects if we need to tokenise the query
+    if _matchop(query):
+        return False
+    
+    if "applypipeline" in query:
+        return False
+    
+    # does it contains in terrier language 
+    termweightsre = re.compile(r'\^\d+(\.\d+)?')
+    if termweightsre.search(query):
+        return False
+
+    # we dont include : in this list, as it denotes a control key:value pair in TerrierQL
+    bad_chars = [",", ".", ";", "!", "?", "(", ")", "[", "]", "{", "}", "<", ">", "\"", "^", 
+                 "'", "`", "~", "@", "#", "$", "%", "&", "*", "-", "+", "=", "|", "\\", "/"]
+
+    if any(c in query for c in bad_chars):
+        return True
+    
+    return False
+
 _matchops = ["#combine", "#uw", "#1", "#tag", "#prefix", "#band", "#base64", "#syn"]
+
 def _matchop(query):
     for m in _matchops:
         if m in query:
@@ -74,10 +98,20 @@ def _parse_index_like(index_location):
     JIR = pt.java.autoclass('org.terrier.querying.IndexRef')
     JI = pt.java.autoclass('org.terrier.structures.Index')
     from pyterrier.terrier import TerrierIndexer
-
+    if isinstance(index_location, pt.terrier.TerrierIndex):
+        from pyterrier.terrier.index_factory import IndexFactory
+        indexref = index_location.index_ref()
+        # if the index is local, load it and then replace the indexref
+        # with one that has a direct reference to the index, this will 
+        # prevent the index from being reloaded multiple times
+        if IndexFactory.isLocal(indexref):
+            indexref = index_location.index_obj().getIndexRef()
+            index_location._index_ref = indexref
+        return indexref
     if isinstance(index_location, JIR):
         return index_location
     if isinstance(index_location, JI):
+        # this new indexref will be a directindexref, so index will not be reloaded 
         return pt.java.cast('org.terrier.structures.Index', index_location).getIndexRef()
     if isinstance(index_location, str) or issubclass(type(index_location), TerrierIndexer):
         if issubclass(type(index_location), TerrierIndexer):
@@ -86,9 +120,9 @@ def _parse_index_like(index_location):
 
     raise ValueError(
         f'''index_location is current a {type(index_location)},
-        while it needs to be an Index, an IndexRef, a string that can be
+        while it needs to be a TerrierIndex, an Index, an IndexRef, a string that can be
         resolved to an index location (e.g. path/to/index/data.properties),
-        or an pyterrier.index.TerrierIndexer object'''
+        or a pyterrier.index.TerrierIndexer object'''
     )
 
   
@@ -174,6 +208,7 @@ class Retriever(pt.Transformer):
                  metadata : List[str] = ["docno"], 
                  num_results : Optional[int] = None, 
                  wmodel : Optional[Union[str, Callable]] = None, 
+                 tokeniser : Union[str,TerrierTokeniser] = TerrierTokeniser.english,
                  threads : int = 1, 
                  verbose : bool = False):
         """
@@ -198,6 +233,7 @@ class Retriever(pt.Transformer):
         self.RequestContextMatching = pt.java.autoclass("org.terrier.python.RequestContextMatching")
         self.search_context = {}
         self.verbose = verbose
+        self.tokeniser = TerrierTokeniser.java_tokeniser(TerrierTokeniser._to_obj(tokeniser))
 
         for key, value in self.properties.items():
             pt.terrier.J.ApplicationSetup.setProperty(str(key), str(value))
@@ -294,6 +330,8 @@ class Retriever(pt.Transformer):
             srq = self.manager.newSearchRequest(qid)
         else:
             query = row.query
+            if _query_needs_tokenised(query):
+                query = ' '.join(self.tokeniser.getTokens(query))
             if len(query) == 0:
                 warn(
                     "Skipping empty query for qid %s" % qid)
@@ -390,7 +428,7 @@ class Retriever(pt.Transformer):
             raise ValueError(".transform() should be passed a DataFrame (found %s). Use .search() to execute a single query; Use .transform_iter() for iter-dicts" % str(type(queries)))
         
         # use pt.validate - this makes inspection of input columns better
-        with pt.validate.any(queries) as v:
+        with pt.validate.any(queries, context=self) as v:
             v.columns(includes=['qid', 'query'], excludes=['docid', 'docno'], mode='retrieve') # query based frame without docno or docid
             v.columns(includes=['qid', 'query', 'docid'], mode='rerank') # docid-based results frame
             v.query_frame(extra_columns=['query_toks'], mode='retrieve_toks')
@@ -503,6 +541,8 @@ class Retriever(pt.Transformer):
             wmodel = self.controls['wmodel']
         elif self.controls.get('context_wmodel') == 'on':
             wmodel = self.search_context['context_wmodel']
+        else:
+            wmodel = self.wmodel # This case should only apply when using a FeaturesRetriever
         return [
             pt.inspect.TransformerAttribute('index_location', self.indexref),
             pt.inspect.TransformerAttribute('num_results', int(self.controls.get('end', '999')) + 1),
@@ -577,7 +617,7 @@ class TextIndexProcessor(pt.Transformer):
         # we use _IterDictIndexer_nofifo, as _IterDictIndexer_fifo (which is default on unix) doesnt support IndexingType.MEMORY as a destination
         from pyterrier.terrier import IndexFactory
         from pyterrier.terrier.index import IndexingType, _IterDictIndexer_nofifo
-        pt.validate.result_frame(topics_and_res, extra_columns=[self.body_attr, 'query'])
+        pt.validate.result_frame(topics_and_res, extra_columns=[self.body_attr, 'query'], context=self)
         documents = topics_and_res[["docno", self.body_attr]].drop_duplicates(subset="docno").rename(columns={self.body_attr:'text'})
         indexref = _IterDictIndexer_nofifo(
             None, 
@@ -811,8 +851,8 @@ class FeaturesRetriever(Retriever):
             raise ValueError(".transform() should be passed a dataframe. Use .search() to execute a single query; Use .transform_iter() for iter-dicts")
 
         # use pt.validate - this makes inspection of input columns better
-        with pt.validate.any(queries) as v:
-            v.columns(includes=['qid', 'query', 'docid'], mode='rerank') # docid-based results frame
+        with pt.validate.any(queries, context=self) as v:
+            v.columns(includes=['qid', 'query', 'docid', 'score'], mode='rerank') # docid-based results frame, with scores (features column is added, so we need input scores)
             v.query_frame(extra_columns=['query_toks'], mode='retrieve_toks')
             v.query_frame(extra_columns=['query'], mode='retrieve')
             v.result_frame(extra_columns=['query'], mode='rerank')
@@ -859,6 +899,8 @@ class FeaturesRetriever(Retriever):
                 srq = self.manager.newSearchRequest(qid)
             else:
                 query = row.query
+                if _query_needs_tokenised(query):
+                    query = ' '.join(self.tokeniser.getTokens(query))
                 if len(query) == 0:
                     warn(
                         "Skipping empty query for qid %s" % qid)
@@ -925,7 +967,7 @@ class FeaturesRetriever(Retriever):
             for i in range(fres.getResultSize()):
                 doc_features = np.array([ feature[i] for feature in feats_values])
                 meta=[ metadata_col[i] for metadata_col in metadata_list]
-                results.append( [qid, query, docids[i], rank, doc_features ] + meta )
+                results.append( [qid, row.query if 'query' in row._fields else '', docids[i], rank, doc_features ] + meta )
                 newscores.append(scores[i])
                 rank += 1
 

@@ -360,13 +360,15 @@ class TestExperiment(TempDirTestCase):
         self.assertEqual(measures.iloc[1]["map -"], 0)
 
     def test_one_row(self):
+        from pyterrier.measures import NumQ
         vaswani = pt.datasets.get_dataset("vaswani")
         br = pt.terrier.Retriever(self._vaswani_index(), wmodel='BM25')
         rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg", "num_q"])
         self.assertEqual(10, rtr.iloc[0]["num_q"])
-        
-        rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg"], dataframe=False)
 
+        rtr = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), [NumQ])
+        self.assertEqual(10, rtr.iloc[0]["NumQ"])
+        
     def test_one_row_round(self):
         import pyterrier as pt
         vaswani = pt.datasets.get_dataset("vaswani")

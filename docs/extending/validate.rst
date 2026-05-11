@@ -13,7 +13,7 @@ before you start using it. ``pt.validate`` provides functions for this.
     :caption: DataFrame input validation in a Transformer
 
     def MyTransformer(pt.Transformer):
-        def transform(self, inp: pd.DataFrame):
+        def transform(self, inp: pd.DataFrame) -> pd.DataFrame:
             # e.g., expects a query frame with query_vec
             pt.validate.query_frame(inp, extra_columns=['query_vec'])
             # raises an error if the specification doesn't match

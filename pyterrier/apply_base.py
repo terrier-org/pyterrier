@@ -10,14 +10,19 @@ class DropColumnTransformer(pt.Transformer):
     """
     This transformer drops the provided column from the input.
     """
-    def __init__(self, col: str):
+    def __init__(self, col: str, *, label: Optional[str] = None):
         """
         Instantiates a DropColumnTransformer.
 
         Arguments:
             col: The column to drop
+            label: Optional label for the schematic representation of this transformer
         """
         self.col = col
+        self.label = label
+
+    def schematic(self, *, input_columns: Optional[List[str]] = None) -> Dict[str, Any]:
+        return {'label': self.label if self.label is not None else f'drop({self.col})'}
 
     def transform(self, inp: pd.DataFrame) -> pd.DataFrame:
         """
@@ -29,7 +34,7 @@ class DropColumnTransformer(pt.Transformer):
         Returns:
             The input DataFrame with the column dropped.
         """
-        pt.validate.columns(inp, includes=[self.col])
+        pt.validate.columns(inp, includes=[self.col], context=self)
         return inp.drop(columns=[self.col])
 
     def transform_iter(self, inp: pt.model.IterDict) -> pt.model.IterDict:
@@ -43,7 +48,7 @@ class DropColumnTransformer(pt.Transformer):
             The input with the column dropped.
         """
         inp = pt.utils.peekable(inp)
-        pt.validate.columns_iter(inp, includes=[self.col])
+        pt.validate.columns_iter(inp, includes=[self.col], context=self)
         for rec in inp:
             new_rec = rec.copy()
             new_rec.pop(self.col, None) # None ensures no error if key doesn't exist
@@ -57,13 +62,19 @@ class RenameColumnsTransformer(pt.Transformer):
     """
     This transformer renames the provided columns, akin to pandas.DataFrame.rename
     """
-    def __init__(self, columns: Dict[str, str], *, errors: Literal['raise', 'ignore'] = 'raise'):
+    def __init__(self, columns: Dict[str, str], *, errors: Literal['raise', 'ignore'] = 'raise', label: Optional[str] = None):
         """
         Arguments:
             columns: A dictionary mapping old column names to new column names
+            errors: Maps to df.rename() errors kwarg
+            label: Optional label for the schematic representation of this transformer
         """
         self.columns = columns
         self.errors = errors
+        self.label = label
+
+    def schematic(self, *, input_columns: Optional[List[str]] = None) -> Dict[str, Any]:
+        return {'label': self.label if self.label is not None else 'rename'}
 
     def transform(self, inp: pd.DataFrame) -> pd.DataFrame:
         """
@@ -76,7 +87,7 @@ class RenameColumnsTransformer(pt.Transformer):
             The input DataFrame with the column dropped.
         """
         if self.errors == 'raise':
-            pt.validate.columns(inp, includes=list(self.columns.keys()))
+            pt.validate.columns(inp, includes=list(self.columns.keys()), context=self)
         return inp.rename(columns=self.columns, errors=self.errors)
 
     def __repr__(self):
@@ -93,7 +104,8 @@ class ApplyByRowTransformer(pt.Transformer):
         *,
         batch_size: Optional[int] = None,
         required_columns: Optional[List[str]] = None,
-        verbose: bool = False
+        verbose: bool = False,
+        label: Optional[str] = None
     ):
         """
         Instantiates a ApplyByRowTransformer.
@@ -105,12 +117,17 @@ class ApplyByRowTransformer(pt.Transformer):
                 when processing DataFrames.
             required_columns: A list of columns that must be present in the input DataFrame, or None to disable validation.
             verbose: Whether to display a progress bar when processing in batch mode.
+            label: Optional label for the schematic representation of this transformer
         """
         self.col = col
         self.fn = fn
         self.batch_size = batch_size
         self.required_columns = required_columns
         self.verbose = verbose
+        self.label = label
+
+    def schematic(self, *, input_columns: Optional[List[str]] = None) -> Dict[str, Any]:
+        return {'label': self.label if self.label is not None else f'apply.{self.col}'}
 
     def transform(self, inp: pd.DataFrame) -> pd.DataFrame:
         """
@@ -123,7 +140,7 @@ class ApplyByRowTransformer(pt.Transformer):
             The input DataFrame with the new values assign to ``col``
         """
         if self.required_columns is not None:
-            pt.validate.columns(inp, includes=self.required_columns)
+            pt.validate.columns(inp, includes=self.required_columns, context=self)
 
         if self.batch_size is None:
             return self._apply_df(inp)
@@ -162,7 +179,8 @@ class ApplyForEachQuery(pt.Transformer):
         add_ranks: bool = True,
         batch_size: Optional[int] = None,
         required_columns: Optional[List[str]] = None,
-        verbose: bool = False
+        verbose: bool = False,
+        label: Optional[str] = None
     ):
         """
         Instantiates a ApplyForEachQuery.
@@ -173,19 +191,24 @@ class ApplyForEachQuery(pt.Transformer):
             batch_size: The number of results per query to process at once. If None, processes in one batch per query.
             required_columns: A list of columns that must be present in the input DataFrame, or None to disable validation.
             verbose: Whether to display a progress bar
+            label: Optional label for the schematic representation of this transformer
         """
         self.fn = fn
         self.add_ranks = add_ranks
         self.batch_size = batch_size
         self.required_columns = required_columns
         self.verbose = verbose
+        self.label = label
+
+    def schematic(self, *, input_columns: Optional[List[str]] = None) -> Dict[str, Any]:
+        return {'label': self.label if self.label is not None else 'by_query'}
 
     def __repr__(self):
         return "pt.apply.by_query()"
 
     def transform(self, res: pd.DataFrame) -> pd.DataFrame:
         if self.required_columns is not None:
-            pt.validate.columns(res, includes=self.required_columns)
+            pt.validate.columns(res, includes=self.required_columns, context=self)
 
         if len(res) == 0:
             return self.fn(res)
@@ -228,7 +251,8 @@ class ApplyIterForEachQuery(pt.Transformer):
         *,
         batch_size=None,
         required_columns: Optional[List[str]] = None,
-        verbose=False):
+        verbose=False,
+        label: Optional[str] = None):
         """
         Instantiates a ApplyIterForEachQuery.
 
@@ -237,11 +261,16 @@ class ApplyIterForEachQuery(pt.Transformer):
             batch_size: The number of results per query to process at once. If None, processes in one batch per query.
             required_columns: A list of columns that must be present in the input, or None to disable validation.
             verbose: Whether to display a progress bar
+            label: Optional label for the schematic representation of this transformer
         """
         self.fn = fn
         self.batch_size = batch_size
         self.required_columns = required_columns
         self.verbose = verbose
+        self.label = label
+
+    def schematic(self, *, input_columns: Optional[List[str]] = None) -> Dict[str, Any]:
+        return {'label': self.label if self.label is not None else 'by_query'}
 
     def __repr__(self):
         return "pt.apply.by_query()"
@@ -249,7 +278,7 @@ class ApplyIterForEachQuery(pt.Transformer):
     def transform_iter(self, inp: pt.model.IterDict) -> pt.model.IterDict:
         if self.required_columns is not None:
             inp = pt.utils.peekable(inp)
-            pt.validate.columns_iter(inp, includes=self.required_columns)
+            pt.validate.columns_iter(inp, includes=self.required_columns, context=self)
 
         if self.verbose:
             inp = pt.tqdm(inp, desc="pt.apply.by_query()")
@@ -292,6 +321,7 @@ class ApplyDocumentScoringTransformer(pt.Transformer):
         batch_size: Optional[int] = None,
         required_columns: Optional[List[str]] = None,
         verbose: bool = False,
+        label: Optional[str] = None,
     ):
         """
         Arguments:
@@ -301,11 +331,16 @@ class ApplyDocumentScoringTransformer(pt.Transformer):
             batch_size: How many documents to operate on at once. If None, operates row-wise.
             required_columns: A list of columns that must be present in the input DataFrame, or None to disable validation.
             verbose: Whether to display a progress bar
+            label: Optional label for the schematic representation of this transformer
         """
         self.fn = fn
         self.batch_size = batch_size
         self.required_columns = required_columns
         self.verbose = verbose
+        self.label = label
+
+    def schematic(self, *, input_columns: Optional[List[str]] = None) -> Dict[str, Any]:
+        return {'label': self.label if self.label is not None else 'doc_score'}
 
     def __repr__(self):
         return "pt.apply.doc_score()"
@@ -326,7 +361,7 @@ class ApplyDocumentScoringTransformer(pt.Transformer):
 
     def transform(self, inp: pd.DataFrame) -> pd.DataFrame:
         if self.required_columns is not None:
-            pt.validate.columns(inp, includes=self.required_columns)
+            pt.validate.columns(inp, includes=self.required_columns, context=self)
 
         outputRes = inp.copy()
         if len(outputRes) == 0:
@@ -360,17 +395,23 @@ class ApplyDocFeatureTransformer(pt.Transformer):
         fn: Callable[[Union[pd.Series, pt.model.IterDictRecord]], npt.NDArray],
         *,
         required_columns: Optional[List[str]] = None,
-        verbose: bool = False
+        verbose: bool = False,
+        label: Optional[str] = None
     ):
         """
         Arguments:
             fn: Takes as input a panda Series for a row representing that document, and returns a new numpy array representing the features of that document
             required_columns: A list of columns that must be present in the input DataFrame, or None to disable validation.
             verbose: Whether to display a progress bar
+            label: Optional label for the schematic representation of this transformer
         """
         self.fn = fn
         self.required_columns = required_columns
         self.verbose = verbose
+        self.label = label
+
+    def schematic(self, *, input_columns: Optional[List[str]] = None) -> Dict[str, Any]:
+        return {'label': self.label if self.label is not None else 'doc_features'}
 
     def __repr__(self):
         return "pt.apply.doc_features()"
@@ -381,7 +422,7 @@ class ApplyDocFeatureTransformer(pt.Transformer):
     def transform_iter(self, inp: pt.model.IterDict) -> pt.model.IterDict:
         if self.required_columns is not None:
             inp = pt.utils.peekable(inp)
-            pt.validate.columns_iter(inp, includes=self.required_columns)
+            pt.validate.columns_iter(inp, includes=self.required_columns, context=self)
 
         # we assume that the function can take a dictionary as well as a pandas.Series. As long as [""] notation is used
         # to access fields, both should work
@@ -393,7 +434,7 @@ class ApplyDocFeatureTransformer(pt.Transformer):
 
     def transform(self, inp: pd.DataFrame) -> pd.DataFrame:
         if self.required_columns is not None:
-            pt.validate.columns(inp, includes=self.required_columns)
+            pt.validate.columns(inp, includes=self.required_columns, context=self)
 
         fn = self.fn
         outputRes = inp.copy()
@@ -428,17 +469,23 @@ class ApplyQueryTransformer(pt.Transformer):
         fn: Callable[[Union[pd.Series, pt.model.IterDictRecord]], str],
         *,
         required_columns: Optional[List[str]] = None,
-        verbose: bool = False
+        verbose: bool = False,
+        label: Optional[str] = None
     ):
         """
         Arguments:
             fn: Takes as input a panda Series for a row representing a query, and returns the new string query 
             required_columns: A list of columns that must be present in the input DataFrame, or None to disable validation.
             verbose: Display a tqdm progress bar for this transformer
+            label: Optional label for the schematic representation of this transformer
         """
         self.fn = fn
         self.required_columns = required_columns
         self.verbose = verbose
+        self.label = label
+
+    def schematic(self, *, input_columns: Optional[List[str]] = None) -> Dict[str, Any]:
+        return {'label': self.label if self.label is not None else 'query'}
 
     def __repr__(self):
         return "pt.apply.query()"
@@ -446,7 +493,7 @@ class ApplyQueryTransformer(pt.Transformer):
     def transform_iter(self, inp: pt.model.IterDict) -> pt.model.IterDict:
         if self.required_columns is not None:
             inp = pt.utils.peekable(inp)
-            pt.validate.columns_iter(inp, includes=self.required_columns)
+            pt.validate.columns_iter(inp, includes=self.required_columns, context=self)
 
         # we assume that the function can take a dictionary as well as a pandas.Series. As long as [""] notation is used
         # to access fields, both should work
@@ -461,7 +508,7 @@ class ApplyQueryTransformer(pt.Transformer):
 
     def transform(self, inp: pd.DataFrame) -> pd.DataFrame:  
         if self.required_columns is not None:
-            pt.validate.columns(inp, includes=self.required_columns)
+            pt.validate.columns(inp, includes=self.required_columns, context=self)
 
         if "query" in inp.columns:
             # we only push if a query already exists
@@ -515,24 +562,30 @@ class ApplyGenericTransformer(pt.Transformer):
         batch_size: Optional[int] = None,
         required_columns: Optional[List[str]] = None,
         verbose: bool = False,
+        label: Optional[str] = None,
     ):
         """
         Arguments:
             fn: Takes as input a panda DataFrame, and returns a new Pandas DataFrame
             batch_size: The number of rows to process at once. If None, processes in one batch.
             verbose: When in batch model, display a tqdm progress bar
+            label: Optional label for the schematic representation of this transformer
         """
         self.fn = fn
         self.batch_size = batch_size
         self.required_columns = required_columns
         self.verbose = verbose
+        self.label = label
+
+    def schematic(self, *, input_columns: Optional[List[str]] = None) -> Dict[str, Any]:
+        return {'label': self.label if self.label is not None else 'generic'}
 
     def __repr__(self):
         return "pt.apply.generic()"
 
     def transform(self, inp: pd.DataFrame) -> pd.DataFrame:
         if self.required_columns is not None:
-            pt.validate.columns(inp, includes=self.required_columns)
+            pt.validate.columns(inp, includes=self.required_columns, context=self)
 
         # no batching
         if self.batch_size is None:
@@ -563,16 +616,22 @@ class ApplyGenericIterTransformer(pt.Transformer):
         *,
         batch_size: Optional[int] = None,
         required_columns: Optional[List[str]] = None,
+        label: Optional[str] = None,
     ):
         """
         Arguments:
             fn: Takes as input a panda DataFrame, and returns a new Pandas DataFrame
             batch_size: The number of rows to process at once. If None, processes in one batch.
             required_columns: A list of columns that must be present in the input, or None to disable validation.
+            label: Optional label for the schematic representation of this transformer
         """
         self.fn = fn
         self.batch_size = batch_size
         self.required_columns = required_columns
+        self.label = label
+
+    def schematic(self, *, input_columns: Optional[List[str]] = None) -> Dict[str, Any]:
+        return {'label': self.label if self.label is not None else 'generic'}
 
     def __repr__(self):
         return "pt.apply.generic(, iter=True)"
@@ -580,7 +639,7 @@ class ApplyGenericIterTransformer(pt.Transformer):
     def transform_iter(self, inp: pt.model.IterDict) -> pt.model.IterDict:
         if self.required_columns is not None:
             inp = pt.utils.peekable(inp)
-            pt.validate.columns_iter(inp, includes=self.required_columns)
+            pt.validate.columns_iter(inp, includes=self.required_columns, context=self)
 
         if self.batch_size is None:
             # no batching
@@ -595,9 +654,13 @@ class ApplyIndexer(pt.Indexer):
     Allows arbitrary indexer pipelines components to be written as functions.
     """
     
-    def __init__(self, fn: Callable[[pt.model.IterDict], Any], required_columns : Optional[List[str]] = None):
+    def __init__(self, fn: Callable[[pt.model.IterDict], Any], *, required_columns: Optional[List[str]] = None, label: Optional[str] = None):
         self.fn = fn
         self.required_columns = required_columns
+        self.label = label
+
+    def schematic(self, *, input_columns: Optional[List[str]] = None) -> Dict[str, Any]:
+        return {'label': self.label if self.label is not None else 'indexer'}
 
     def index(self, iter_dict):
         return self.fn(iter_dict)

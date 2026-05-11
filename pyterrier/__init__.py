@@ -1,11 +1,12 @@
-__version__ = '0.13.1'
+__version__ = '1.0.4'
 # NB: version number must be the first line and must use single quotes for the sed expression in .github/workflows/publish-to-pypi.yml
 
 from typing import Any
 from deprecated import deprecated
 
-from pyterrier import model, utils, validate, testing
+from pyterrier import model, utils, testing
 from pyterrier.transformer import Transformer, Estimator, Indexer
+from pyterrier import validate
 from pyterrier._ops import RankCutoff, Compose
 from pyterrier._artifact import Artifact
 
@@ -82,9 +83,19 @@ def _():
     from packaging.version import Version
 
     # check python version
-    if Version(platform.python_version()) < Version('3.7.0'):
-        raise RuntimeError("From PyTerrier 0.8, Python 3.7 minimum is required, you currently have %s" % platform.python_version())
-
+    if Version(platform.python_version()) < Version('3.9.0'):
+        raise RuntimeError("From PyTerrier 1.0, Python 3.9 minimum is required, you currently have %s" % platform.python_version())
+    
+    # check for both pyterrier and python-terrier installed
+    import importlib.metadata
+    try:
+        old_pkg_version = importlib.metadata.distribution('python-terrier').version
+        if Version(old_pkg_version) < Version('1.0'):
+            raise RuntimeError(f"Both 'pyterrier' and 'python-terrier' packages are installed with mismatched versions ({__version__} and {old_pkg_version}). "
+                                "This may lead to unexpected behaviour. Remove python-terrier, or upgrade to python-terrier>=1.0'")
+    except importlib.metadata.PackageNotFoundError:
+        pass
+    
     globs = globals()
 
     # Load the _apply object as pt.apply so that the dynamic __getattr__ methods work

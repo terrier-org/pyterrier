@@ -11,7 +11,7 @@ For example, here is a schematic of a complex pipeline that uses multiple retrie
 
 .. schematic::
     import pyterrier_alpha as pta
-    index = pt.Artifact.from_hf('pyterrier/vaswani.terrier')
+    index = pt.terrier.TerrierIndex.example()
     dataset = pt.get_dataset('irds:vaswani')
     pta.fusion.RRFusion(
         index.bm25(),
@@ -80,7 +80,7 @@ protocol.
 Here is an example BM25 retrieval transformer schematic:
 
 .. schematic::
-    pt.Artifact.from_hf('pyterrier/vaswani.terrier').bm25()
+    pt.terrier.TerrierIndex.example().bm25()
 
 Its underlying ``SchematicDict`` representation looks like this:
 
@@ -150,7 +150,7 @@ which conditionally applies its ``retriever`` based on whether the query is in t
 
 .. schematic::
     import pyterrier_caching
-    retr = pt.Artifact.from_hf('pyterrier/vaswani.terrier').bm25()
+    retr = pt.terrier.TerrierIndex.example().bm25()
     pyterrier_caching.RetrieverCache("/tmp/cache", retriever=retr)
 
 This format is in all cases where a transformer has subtransformers (which is why it is the default). However, it may not
@@ -162,7 +162,7 @@ inputs (potentially modified by the transformer first) and that the outputs of t
 An example of this kind of pipeline is :class:`~pyterrier._ops.FeatureUnion`:
 
 .. schematic::
-    index = pt.Artifact.from_hf('pyterrier/vaswani.terrier')
+    index = pt.terrier.TerrierIndex.example()
     index.bm25() ** index.dph()
 
 **combine**. This is a special case of ``linked`` mode where the transformer runs all of its inner
@@ -171,7 +171,7 @@ which runs multiple retrieval methods and combines their outputs into a single r
 
 .. schematic::
     import pyterrier_alpha as pta
-    index = pt.Artifact.from_hf('pyterrier/vaswani.terrier')
+    index = pt.terrier.TerrierIndex.example()
     dataset = pt.get_dataset('irds:vaswani')
     pta.fusion.RRFusion(
         index.bm25(),
@@ -207,11 +207,11 @@ PyTerrier is imported by default, so you can use the ``pt`` shorthand.
     :caption: Rendering a BM25 transformer schematic in RST-formatted documentation.
 
     .. schematic::
-        pt.Artifact.from_hf('pyterrier/vaswani.terrier').bm25()
+        pt.terrier.TerrierIndex.example().bm25()
 
 
 .. schematic::
-    pt.Artifact.from_hf('pyterrier/vaswani.terrier').bm25()
+    pt.terrier.TerrierIndex.example().bm25()
 
 
 .. code-block:: text

@@ -315,7 +315,7 @@ class DePassager(pt.Transformer):
         self.agg = agg
 
     def transform(self, topics_and_res):
-        pt.validate.columns(topics_and_res, includes=['qid', 'docno'] + (['score'] if self.agg != 'first' else []))
+        pt.validate.columns(topics_and_res, includes=['qid', 'docno'] + (['score'] if self.agg != 'first' else []), context=self)
         topics_and_res = topics_and_res.copy()
         topics_and_res[["olddocno", "pid"]] = topics_and_res.docno.str.split("%p", expand=True) if len(topics_and_res) > 0 else pd.DataFrame(columns=["olddocno", "pid"])
         if self.agg == 'max':
@@ -400,7 +400,7 @@ class SlidingWindowPassager(pt.Transformer):
             self.detokenize = ' '.join
 
     def transform(self, topics_and_res):
-        with pt.validate.any(topics_and_res) as v:
+        with pt.validate.any(topics_and_res, context=self) as v:
             cols = [self.text_attr] + ([self.title_attr] if self.prepend_title else [])
             v.result_frame(cols)
             v.document_frame(cols)

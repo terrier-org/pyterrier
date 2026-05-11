@@ -60,8 +60,11 @@ __all__ = [
     # java stuff
     'java', 'configure', 'set_version', 'set_helper_version', 'extend_classpath', 'J', 'version', 'check_version', 'check_helper_version',
 
+    # High-level API
+    'TerrierIndex', 'TerrierModel', 'TerrierStemmer', 'TerrierStopwords', 'TerrierTokeniser',
+
     # retrieval
-    'BatchRetrieveBase', 'Retriever', 'RetrieverBase', 'BatchRetrieve', 'TerrierRetrieve', 'FeaturesRetriever', 'FeaturesBatchRetrieve', 'TerrierRetrieve', 'TextScorer',
+    'BatchRetrieveBase', 'Retriever', 'RetrieverBase', 'BatchRetrieve', 'TerrierRetrieve', 'FeaturesRetriever', 'FeaturesBatchRetrieve', 'TextScorer',
 
     # indexing
     'index', 'TerrierIndexer', 'FilesIndexer', 'TRECCollectionIndexer', 'DFIndexer', 'DFIndexUtils', 'IterDictIndexer', 'IndexingType', 'treccollection2textgen',
@@ -70,10 +73,6 @@ __all__ = [
     'rewrite',
 
     # misc
-    'TerrierStemmer', 'TerrierStopwords', 'TerrierTokeniser',
     'IndexFactory', 'set_property', 'set_properties', 'run', 
     'TerrierTextLoader', 'terrier_text_loader',
-
-    # Beta High-level API
-    'TerrierIndex', 'TerrierModel',
 ]

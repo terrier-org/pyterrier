@@ -153,7 +153,7 @@ def latest_version_num(orgName, packageName):
             if version is None:
                 raise # version not found, re-raise the URLError error
             else:
-                warn(f'Attempted to get latest version of {packageName} from maven, but was offline ({url_str} {ue.code} {ue.reason}). Using latest cached version: {version}')
+                warn(f'Attempted to get latest version of {packageName} from maven, but was offline ({url_str} {ue.reason}). Using latest cached version: {version}')
                 return version
         else: # mode == OnlineMode.ONLINE
             raise

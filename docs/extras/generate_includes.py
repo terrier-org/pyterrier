@@ -1,3 +1,7 @@
+import os
+import tempfile 
+import pyterrier as pt
+
 
 def _wrap(text, width):
     return text
@@ -15,8 +19,6 @@ def fix_width(df, name, width=20):
     df[name] = df.apply(lambda row: _get_text(row, name, width), axis=1)
     return df
 
-
-import pyterrier as pt
 
 def setup():
     import os
@@ -43,7 +45,6 @@ def experiment_includes():
     try:
         indexref = dataset.get_index()
     except ValueError:
-        import os, tempfile 
         # if data.terrier.org is down, build the index
         indexref = pt.IterDictIndexer(
                 os.path.join(tempfile.gettempdir(), "vaswani_index")
@@ -138,3 +139,30 @@ def experiment_includes():
     ).head().to_markdown(tablefmt="rst")
     with open("_includes/experiment-perq.rst", "wt") as f:
         f.write(table)
+
+
+def artifact_list_include():
+    table = []
+    for ep in pt.utils.entry_points('pyterrier.artifact'):
+        table.append({
+            'class' : ep.value.replace(':', '.'),
+            'package': ep.value.replace(':', '.').split('.')[0],
+            'type' : ep.name.split('.')[0],
+            'format' : ep.name.split('.')[1],
+        })
+    table = sorted(table, key=lambda x: (x['package'] != 'pyterrier', 'index' not in x['type'], x['type'], x['format']))
+    with open("_includes/artifact_list.rst", "wt") as f:
+        f.write('''
+.. list-table::
+   :header-rows: 1
+
+   * - Class (Package)
+     - Type/Format
+     - Artifacts on...
+''')
+        for rec in table:
+            f.write('''
+   * - :class:`~{class}` (``{package}``)
+     - ``{type}/{format}``
+     - `HuggingFace <https://huggingface.co/datasets?other=pyterrier-artifact.{type}.{format}>`__ | `Zenodo <https://zenodo.org/search?q=metadata.subjects.subject%3A%22pyterrier-artifact.{type}.{format}%22>`__
+'''.format(**rec))

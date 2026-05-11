@@ -78,13 +78,13 @@ One pipeline could be retrieve documents, get their text, and then re-score them
 .. schematic::
     :input_columns: qid,query
 
-    pt.terrier.TerrierIndex.from_hf('pyterrier/vaswani.terrier').bm25() >> pt.text.get_text(pt.get_dataset('irds:vaswani')) >> pt.text.scorer(body_attr="text")
+    pt.terrier.TerrierIndex.example().bm25() >> pt.text.get_text(pt.get_dataset('irds:vaswani')) >> pt.text.scorer(body_attr="text")
 
 .. schematic::
     :input_columns: qid,query
 
     from pyterrier_t5 import MonoT5ReRanker
-    pt.terrier.TerrierIndex.from_hf('pyterrier/vaswani.terrier').bm25() % 100 >> pt.text.get_text(pt.get_dataset('irds:vaswani')) >> MonoT5ReRanker()
+    pt.terrier.TerrierIndex.example().bm25() % 100 >> pt.text.get_text(pt.get_dataset('irds:vaswani')) >> MonoT5ReRanker()
 
 Other text scorers are available in the form of neural re-rankers - separate to PyTerrier, see :ref:`neural`.
 
@@ -275,7 +275,7 @@ Here we demonstrate the use of `pt.apply.doc_score( , batch_size=128)` to allow 
         names=["BM25", "BM25 >> BiEncoder", "BM25 >> CrossEncoder"]
     )
 
-You can `browse the whole notebook <https://github.com/terrier-org/pyterrier/blob/master/examples/notebooks/sentence_transformers.ipynb>`_ or `try it yourself it on Colab <https://colab.research.google.com/terrier-org/pyterrier/blob/master/examples/notebooks/sentence_transformers.ipynb>`_
+You can `browse the whole notebook <https://github.com/terrier-org/pyterrier/blob/master/examples/notebooks/sentence_transformers.ipynb>`_ or `try it yourself it on Colab <https://colab.research.google.com/github/terrier-org/pyterrier/blob/master/examples/notebooks/sentence_transformers.ipynb>`_
 
 References
 ==========

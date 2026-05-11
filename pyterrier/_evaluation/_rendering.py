@@ -59,7 +59,7 @@ def _mean_of_measures(result, measures=None, num_q = None):
     for m in measures_remove:
         if m in measures:
             measures.remove(m)
-    measures_no_mean = set(["num_q", "num_rel", "num_ret", "num_rel_ret"])
+    measures_no_mean = set(["num_q", "num_rel", "num_ret", "num_rel_ret", "NumQ", "NumRel", "NumRet", "NumRelRet"])
     for val in result.values():
         for measure in measures:
             measure_val = val[measure]

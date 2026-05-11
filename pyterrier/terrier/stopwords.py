@@ -4,8 +4,9 @@ import pyterrier as pt
 
 
 class TerrierStopwords(Enum):
-    """
-        This enum provides an API for the stopword configuration used during indexing with Terrier
+    """The stopword configuration to use for Terrier.
+
+    This enum is primarily used with :class:`~pyterrier.terrier.TerrierIndexer.indexer`.
     """
 
     none = 'none' #: No Stopwords

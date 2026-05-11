@@ -309,25 +309,77 @@ def read_topics(filename : str, format :Literal['trec', 'trecxml', 'singleline']
         raise ValueError("Format %s not known, supported types are %s" % (format, str(SUPPORTED_TOPICS_FORMATS.keys())))
     return SUPPORTED_TOPICS_FORMATS[format](filename, **kwargs)
 
-@pt.java.required
-def _read_topics_trec(file_path, doc_tag="TOP", id_tag="NUM", whitelist=["TITLE"], blacklist=["DESC","NARR"]) -> pd.DataFrame:
-    assert pt.terrier.check_version("5.3")
-    trecquerysource = pt.java.autoclass('org.terrier.applications.batchquerying.TRECQuery')
-    tqs = trecquerysource(
-        [file_path], doc_tag, id_tag, whitelist, blacklist,
-        # help jnius select the correct constructor
-        signature="([Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;)V")
-    topics_lst=[]
-    while(tqs.hasNext()):
-        topic = tqs.next()
-        qid = tqs.getQueryId()
-        topics_lst.append([qid,topic])
-    topics_dt = pd.DataFrame(topics_lst,columns=['qid','query'])
-    return topics_dt
+def _read_topics_trec(file_path, doc_tag="top", id_tag="num", whitelist=["title"], blacklist=["desc","narr"], tokenise=False) -> pd.DataFrame:
+    assert not tokenise, "Tokenisation is not supported for SGML-formatted topics; use pt.terrier.rewrite.tokenise() in your pipeline if needed" 
+    def _open(filename):
+        if filename.startswith('http://') or filename.startswith('https://'):
+            return pt.io.download_stream(filename)
+        return pt.io.autoopen(filename, 'rt')
+    
+    with _open(file_path) as f:
+        data = f.read()
+
+    # Ensure line breaks before each tag (helps regex clarity)
+    data = re.sub(r'(?=<\w+>)', '\n', data)
+
+    # List of tags we want to auto-close when a new one starts
+    auto_close_tags = ["num", "title", "desc", "narr", "smry", "con", "fac", "def", "dom", "head"]
+
+    # obtained by inspection of TREC-1 topics
+    prefix_words = {
+        "num": "Number:",
+        "desc": "Description:",
+        "narr": "Narrative:",
+        "smry": "Summary:",
+        "con": "Concept(s):",
+        "fac": "Factor(s):",
+        "def": "Definition(s):",
+        "dom": "Domain:",
+        "title": "Topic:",
+    }
+
+    # For each tag, if it doesn’t have a closing tag, and a new tag starts,
+    # we insert an implicit </tag>
+    for tag in auto_close_tags:
+        # Matches: <tag> ... <other_tag>
+        pattern = rf'(<{tag}>.*?)(?=<(?:{"|".join(auto_close_tags + ["top", "/top"])}|$))'
+        data = re.sub(pattern, rf'\1</{tag}>', data, flags=re.S | re.I)
+
+    from bs4 import BeautifulSoup
+    soup = BeautifulSoup(data, "html.parser")
+
+    topics = []
+    for top in soup.find_all(doc_tag):
+        
+        num = top.find(id_tag).get_text(strip=True)
+        # replace Number: prefix if present
+        if id_tag in prefix_words and num.startswith(prefix_words[id_tag]):
+            num = num.replace(prefix_words[id_tag], "", 1).strip()
+
+        # e.g. TREC-1 has num as "051" in the topics, but "51" in the qrels
+        if num.startswith("0"):
+            num = num.replace("0", "", 1)
+
+        query = ""
+        for tag in whitelist:
+            tag_content = top.find(tag)
+            if not tag_content:
+                continue
+            text = tag_content.get_text(strip=True)
+            text = text.replace("\n", " ").replace("\r", " ")
+            if tag in prefix_words and text.startswith(prefix_words[tag]):
+                text = text.replace(prefix_words[tag], "", 1).strip()
+            query += text + " "
+
+        topics.append({
+            "qid": num.strip(),
+            "query": query.strip(),
+        })
+    df = pd.DataFrame(topics)
+    return df[["qid", "query"]]
 
 @typing.no_type_check
-@pt.java.required
-def _read_topics_trecxml(filename : str, tags : List[str] = ["query", "question", "narrative"], tokenise=True) -> pd.DataFrame:
+def _read_topics_trecxml(filename : str, tags : List[str] = ["query", "question", "narrative"], tokenise=False) -> pd.DataFrame:
     """
     Parse a file containing topics in TREC-like XML format
 
@@ -337,11 +389,11 @@ def _read_topics_trecxml(filename : str, tags : List[str] = ["query", "question"
     Returns:
         pandas.Dataframe with columns=['qid','query']
     """
+    assert not tokenise, "Tokenisation is not supported for XML-formatted topics; use pt.terrier.rewrite.tokenise() in your pipeline if needed" 
     _tags=set(tags)
     topics=[]
     tree = ET.parse(filename)
     root = tree.getroot()
-    tokeniser = pt.java.autoclass("org.terrier.indexing.tokenisation.Tokeniser").getTokeniser()
     for child in root.iter('topic'):
         try:
             qid = child.attrib["number"]
@@ -350,17 +402,14 @@ def _read_topics_trecxml(filename : str, tags : List[str] = ["query", "question"
         query = ""
         for tag in child:
             if tag.tag in _tags:
-                query_text = tag.text
-                if tokenise:
-                    query_text = " ".join(tokeniser.getTokens(query_text))
-                query += " " + query_text
+                query += " " + tag.text
         topics.append((str(qid), query.strip()))
     return pd.DataFrame(topics, columns=["qid", "query"])
 
-@pt.java.required
-def _read_topics_singleline(filepath, tokenise=True) -> pd.DataFrame:
+def _read_topics_singleline(filepath, contains_qid=True, tokenise=False) -> pd.DataFrame:
     """
-    Parse a file containing topics, one per line. This function uses Terrier, so supports reading direct from URLs.
+    Parse a file containing topics, one per line. Supports reading direct from URLs.
+    Uses Terrier's parser if tokenise=True.
 
     Args:
         file_path(str): The path to the topics file
@@ -370,12 +419,32 @@ def _read_topics_singleline(filepath, tokenise=True) -> pd.DataFrame:
     Returns:
         pandas.Dataframe with columns=['qid','query']
     """
-    rows = []
-    assert pt.terrier.check_version("5.3")
-    slqIter = pt.java.autoclass("org.terrier.applications.batchquerying.SingleLineTRECQuery")(filepath, tokenise)
-    for q in slqIter:
-        rows.append([slqIter.getQueryId(), q])
-    return pd.DataFrame(rows, columns=["qid", "query"])
+    assert not tokenise, "Tokenisation is not supported for XML-formatted topics; use pt.terrier.rewrite.tokenise() in your pipeline if needed" 
+    qid_counter = 0
+    
+    def _open(filepath):
+        if filepath.startswith('http://') or filepath.startswith('https://'):
+            return pt.io.download_stream(filepath)
+        return pt.io.autoopen(filepath, 'rt')
+    
+    with _open(filepath) as f:
+        rows = []
+        for line in f:
+            line = line.strip()
+            if line.startswith("#"):
+                continue
+            if len(line) == 0:
+                continue
+            if contains_qid:
+                m = re.match(r'^([^:\s]+)[\s:]+(.*)$', line)
+                if m:
+                    qid = m.group(1)
+                    query = m.group(2)
+            else:
+                qid_counter += 1
+                qid = str(qid_counter)
+            rows.append([qid, query])
+        return pd.DataFrame(rows, columns=["qid", "query"]) 
 
 def read_qrels(file_path : str) -> pd.DataFrame:
     """
