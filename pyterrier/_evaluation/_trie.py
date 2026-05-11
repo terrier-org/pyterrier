@@ -1,4 +1,6 @@
-from typing import List, Tuple, Union, Optional, Callable, TypeVar, Generic
+from typing import List, Tuple, Union, Optional, Callable, TypeVar, Generic, Protocol, overload
+from collections.abc import Sequence
+
 from time import perf_counter as timer
 import pandas as pd
 import pyterrier as pt
@@ -6,9 +8,19 @@ from pyterrier._ops import Compose
 from IPython.display import Javascript, display
 import uuid
 
-T = TypeVar('T')  # Generic type for values stored in the tree
-K = TypeVar('K')  # Generic type for keys (tuples of transformers)
 
+T = TypeVar('T')  # Generic type for values stored in the tree
+K = TypeVar('K', bound="Sliceable")  # Generic type for keys (tuples of transformers)
+E = TypeVar("E", covariant=True)
+
+class Sliceable(Protocol[E]):
+    def __len__(self : K) -> int: ...
+
+    @overload
+    def __getitem__(self : K, index: int) -> E: ...
+
+    @overload
+    def __getitem__(self: K, index: slice) -> K: ...
 
 def emit_js(node_id, state):
     display(Javascript(f"""
@@ -35,7 +47,8 @@ class RadixNode(Generic[K, T]):
 
         # Invoke callback if this is a terminal node
         if self.value is not None:
-            callback(res, self.value, total_time)
+            if callback is not None:
+                callback(res, self.value, total_time)
 
         # Recurse into children, adding current node to parents stack
         if self.children:
@@ -129,7 +142,7 @@ class RadixTree(Generic[K, T]):
                     
                     if common_len == len(edge_label) == len(remaining):
                         # Exact match - pipeline already exists or is being re-inserted
-                        child.is_end_of_pipeline = True
+                        #child.is_end_of_pipeline = True
                         child.value = value  
                         return
                     elif common_len == len(edge_label):
@@ -139,7 +152,7 @@ class RadixTree(Generic[K, T]):
                     else:
                         # Need to split the edge (common_len < len(edge_label))
                         # Create new intermediate node
-                        new_node = RadixNode()
+                        new_node : RadixNode[K, T] = RadixNode()
                         # Old edge becomes: common_prefix -> new_node -> rest_of_edge -> old_child
                         rest_of_edge = edge_label[common_len:]
                         new_node.children[rest_of_edge] = child
@@ -154,7 +167,7 @@ class RadixTree(Generic[K, T]):
             
             if not found:
                 # No matching edge, create new child with remaining string
-                new_child = RadixNode()
+                new_child : RadixNode[K, T] = RadixNode()
                 new_child.value = value  
                 node.children[remaining] = new_child
                 return

@@ -18,13 +18,13 @@ logging.basicConfig(level=logging.INFO)
 
 from ._trie import RadixTree, decompose_pipelines
 import types
-from typing import Optional, Sequence, Tuple, Dict
+from typing import Optional, Sequence, Tuple
 
 def linear_execution(renderer,retr_systems, 
                      topics : pd.DataFrame, 
                      qrels: pd.DataFrame,
                      eval_metrics : MEASURES_TYPE,
-                     names: Optional[Sequence[str]] = None, 
+                     names: Sequence[str], 
                      precompute_prefix: bool = True, 
                      verbose=False, 
                      save_dir=None, 
@@ -84,7 +84,7 @@ def tree_execution(renderer,retr_systems,
                      topics : pd.DataFrame, 
                      qrels: pd.DataFrame,
                      eval_metrics : MEASURES_TYPE,
-                     names: Optional[Sequence[str]] = None,
+                     names: Sequence[str],
                      precompute_prefix: bool = True,  
                      verbose=False, 
                      save_dir=None, 
@@ -97,7 +97,7 @@ def tree_execution(renderer,retr_systems,
 
     print("Using tree execution for pt.Experiment : ")
     # keys: tuple of Transformer objects; values: system id (int)
-    tree: RadixTree[Tuple[Transformer], int] = RadixTree()
+    tree: RadixTree[Tuple[Transformer, ...], int] = RadixTree()
 
     for sysid, system in enumerate(decompose_pipelines(retr_systems)):
         key = tuple(system)
@@ -105,7 +105,7 @@ def tree_execution(renderer,retr_systems,
     
     if verbose:
         print("\nPipeline structure:")
-        tree.print_live(names=names, clear_previous=False)
+        tree.print_live(names=list(names), clear_previous=False)
         print()
 
     if render_html:
@@ -128,7 +128,7 @@ def tree_execution(renderer,retr_systems,
             
             # Update live tree visualization if verbose
             if verbose:
-                tree.print_live(names=names, clear_previous=True)
+                tree.print_live(names=list(names), clear_previous=True)
             
             # Print timing for each pipeline
             # pipeline_name = names[sysid] if names and sysid < len(names) else f"Pipeline {sysid}"
