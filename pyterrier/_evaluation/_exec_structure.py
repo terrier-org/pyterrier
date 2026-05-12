@@ -2,18 +2,15 @@ import pyterrier as pt
 
 from ._rendering import _convert_measures
 from . import MEASURES_TYPE
-
 from .. import Transformer
-
 from ._execution import _precomputation, _run_and_evaluate, _ir_measures_to_dict
-from pyterrier.model import coerce_dataframe_types
+from ._trie import RadixTree, decompose_pipelines
 
 import ir_measures
 import pandas as pd
 import os
-from ._trie import RadixTree, decompose_pipelines
 import types
-from typing import Optional, Sequence, Tuple
+from typing import Sequence, Tuple
 
 def linear_execution(renderer,retr_systems, 
                      topics : pd.DataFrame, 
