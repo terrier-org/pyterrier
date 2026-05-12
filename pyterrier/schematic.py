@@ -9,7 +9,6 @@ import numpy as np
 import pyterrier as pt
 import re
 from pyterrier._ops import Compose
-import pprint
 
 
 def radix_tree_schematic(tree, input_columns=None):
@@ -40,11 +39,7 @@ def radix_tree_schematic(tree, input_columns=None):
         node_dict = {
             "type": "node",
             "children": children,
-            # "evaluation_index": node.value,
-            # "status": node.execution_state,
-            # "label": format_transformers(edge_label),
             "self": self_schem,
-            # "is_last": node.is_end_of_pipeline,
         }
         if children and node.value is None:
             node_dict["mode"] = "branch"
@@ -464,7 +459,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
         elif mode == 'inner_labeled':
             result += f'<div class="pts-hline pts-arr pts-arr-input">{_draw_df_html(schematic["input_columns"])}</div>'
         columns = schematic["input_columns"]
-        # print(columns)
+
         for i, record in enumerate(schematic['transformers']):
             assert record['type'] == 'transformer' or record['type'] == 'indexer', record
             assert record['input_columns'] == columns
