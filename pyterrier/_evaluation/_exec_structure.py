@@ -11,11 +11,6 @@ from pyterrier.model import coerce_dataframe_types
 import ir_measures
 import pandas as pd
 import os
-from IPython.display import HTML, display
-import time
-import logging
-logging.basicConfig(level=logging.INFO)
-
 from ._trie import RadixTree, decompose_pipelines
 import types
 from typing import Optional, Sequence, Tuple
@@ -85,7 +80,6 @@ def tree_execution(renderer,retr_systems,
                      qrels: pd.DataFrame,
                      eval_metrics : MEASURES_TYPE,
                      names: Sequence[str],
-                     precompute_prefix: bool = True,  
                      verbose=False, 
                      save_dir=None, 
                      save_mode=None, 
@@ -109,9 +103,9 @@ def tree_execution(renderer,retr_systems,
         print()
 
     if render_html:
+        from IPython.display import HTML, display
         schematic = pt.schematic.radix_tree_schematic(tree, input_columns=["qid", "query"])
         display(HTML(pt.schematic.draw_html_schematic(schematic)))
-        time.sleep(1.5)  # Allow time for display to render
     
     metrics, rev_mapping = _convert_measures(eval_metrics)
     qrels = pt.model.to_ir_measures(qrels)
@@ -129,10 +123,6 @@ def tree_execution(renderer,retr_systems,
             # Update live tree visualization if verbose
             if verbose:
                 tree.print_live(names=list(names), clear_previous=True)
-            
-            # Print timing for each pipeline
-            # pipeline_name = names[sysid] if names and sysid < len(names) else f"Pipeline {sysid}"
-            # print(f"{pipeline_name}: {cum_time:.2f}ms")
             
             # Always use perquery=True here - renderer will handle aggregation if needed
             evalMeasuresDict = _ir_measures_to_dict(
@@ -166,12 +156,4 @@ def tree_execution(renderer,retr_systems,
             batch_qrels = qrels[qrels.query_id.isin(batch_qids)]
             batch_backfill = [qid for qid in all_topic_qids if qid in batch_qids] if perquery else None
 
-            
             tree.root.traverse(topic_batch, make_callback(batch_qrels, batch_backfill), 0.0)
-        
-        
-        # Print final timing for each pipeline
-        for sysid in range(len(retr_systems)):
-            pipeline_name = names[sysid] if names and sysid < len(names) else f"Pipeline {sysid}"
-            total_time = sum(renderer.mrts[sysid]) if isinstance(renderer.mrts[sysid], list) else renderer.mrts[sysid]
-            print(f"{pipeline_name}: {total_time:.2f}ms")

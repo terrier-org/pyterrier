@@ -298,7 +298,7 @@ def Experiment(
     if plan == 'tree':
         if save_dir is not None:
             assert False
-        tree_execution(renderer, retr_systems, topics, qrels, eval_metrics, names, precompute_prefix, verbose, save_dir, save_mode, save_format, batch_size, perquery, render_html)
+        tree_execution(renderer, retr_systems, topics, qrels, eval_metrics, names, verbose, save_dir, save_mode, save_format, batch_size, perquery, render_html)
     else:
         linear_execution(renderer, retr_systems, topics, qrels, eval_metrics, names, precompute_prefix, verbose, save_dir, save_mode, save_format, batch_size, perquery)
 

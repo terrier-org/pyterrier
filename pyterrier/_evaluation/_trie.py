@@ -5,7 +5,6 @@ from time import perf_counter as timer
 import pandas as pd
 import pyterrier as pt
 from pyterrier._ops import Compose
-from IPython.display import Javascript, display
 import uuid
 
 
@@ -23,6 +22,7 @@ class Sliceable(Protocol[E]):
     def __getitem__(self: K, index: slice) -> K: ...
 
 def emit_js(node_id, state):
+    from IPython.display import Javascript, display
     display(Javascript(f"""
         
         setNodeState("{node_id}", "{state}");
