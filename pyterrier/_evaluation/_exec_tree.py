@@ -362,4 +362,4 @@ def tree_execution(renderer,retr_systems,
                 pre_exec_callback = pre_exec_callback,
                 post_exec_callback = post_exec_callback,
                 eval_callback = make_eval_callback(batch_qrels, batch_backfill), 
-                0.)
+                cum_time = 0.)
