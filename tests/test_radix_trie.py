@@ -7,10 +7,6 @@ import pyterrier as pt
 from pyterrier._evaluation._trie import RadixTree, RadixNode, decompose_pipelines
 from pyterrier._ops import Compose
 
-import os
-# Set JAVA_HOME for pyTerrier (required for Apache Terrier components)
-os.environ['JAVA_HOME'] = r"C:\Program Files\Java\jdk-21"
-
 
 
 class TestRadixTreeWithTransformers(unittest.TestCase):
