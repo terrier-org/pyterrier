@@ -3,17 +3,13 @@ from pyterrier.model import coerce_dataframe_types
 from ._rendering import _convert_measures
 from . import MEASURES_TYPE, SYSTEM_OR_RESULTS_TYPE, SAVEMODE_TYPE, SAVEFORMAT_TYPE
 
-from .. import Transformer
-from .._ops import Compose
-
 import ir_measures
 import pandas as pd
 import tqdm as tqdm_module
 from ir_measures import Measure, Metric
 import os
-import sys
 import types
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Iterator, Optional, Sequence, Union
 from warnings import warn
 
 #list(iter_calc([ir_measures.AP], qrels, run))

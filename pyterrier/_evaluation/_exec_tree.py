@@ -4,17 +4,13 @@ from ._rendering import _convert_measures
 from . import MEASURES_TYPE
 from ._execution import _ir_measures_to_dict
 from ._trie import RadixNode, RadixTree
-
-from typing import List, Tuple, Optional, Callable, overload
-from time import perf_counter as timer
-import pandas as pd
-import pyterrier as pt
 from pyterrier._ops import Compose
-import uuid
 
 import ir_measures
 import pandas as pd
-from typing import List, Union, Sequence, Tuple
+from typing import List, Optional, Union, Sequence, Tuple, Callable, cast, Literal
+from time import perf_counter as timer
+import uuid
 
 def emit_js(node_id, state):
     from IPython.display import Javascript, display # type: ignore
@@ -53,10 +49,14 @@ TREE_KEY_TYPE = Tuple[pt.Transformer, ...]
 class TransformerRadixNode(RadixNode[TREE_KEY_TYPE, int]):
     def __init__(self):
         super().__init__()
-        self.execution_state: str = 'pending'  # 'pending', 'running', 'done'
+        self.execution_state: Literal['pending', 'running', 'done'] = 'pending'  # 'pending', 'running', 'done'
         self.node_id = str(uuid.uuid4())
 
-    def traverse(self, inp: pd.DataFrame, callback: Optional[Callable] = None, cum_time: float = 0.0, parents: Optional[List['RadixNode[K, T]']] = None):
+    def traverse(self, 
+                 inp: pd.DataFrame, 
+                 callback: Optional[Callable] = None, 
+                 cum_time: float = 0.0, 
+                 parents: Optional[List['TransformerRadixNode']] = None):
         if parents is None:
             parents = []
         
@@ -72,7 +72,7 @@ class TransformerRadixNode(RadixNode[TREE_KEY_TYPE, int]):
         # Recurse into children, adding current node to parents stack
         if self.children:
             parents.append(self) 
-            for child in self.children.values():
+            for child in cast(List['TransformerRadixNode'], self.children.values()):
                 child.traverse(res, callback, total_time, parents)
             parents.pop()
 
@@ -140,6 +140,13 @@ class TransformerRadixTree(RadixTree[TREE_KEY_TYPE, int]):
     def __init__(self):
         super().__init__(node_clz=TransformerRadixNode)
 
+    def traverse(self, 
+                 inp: pd.DataFrame, 
+                 callback: Optional[Callable] = None, 
+                 cum_time: float = 0.0, 
+                 parents: Optional[List['TransformerRadixNode']] = None):
+        cast(TransformerRadixNode, self.root).traverse(inp, callback, cum_time, parents)
+
     def describe_tree_structure(self) -> List:
         """Return a structured representation of the radix tree for debugging.
         
@@ -150,7 +157,7 @@ class TransformerRadixTree(RadixTree[TREE_KEY_TYPE, int]):
         def dfs(node: TransformerRadixNode) -> List:
             children_repr: List = []
             for edge_label, child in sorted(node.children.items(), key=lambda x: str(x[0])):
-                child_struct = dfs(child)
+                child_struct = dfs(cast(TransformerRadixNode, child))
                 children_repr.append([
                     edge_label,
                     child.value,
@@ -161,7 +168,7 @@ class TransformerRadixTree(RadixTree[TREE_KEY_TYPE, int]):
         # Build the top-level structure from root's children
         result: List = []
         for edge_label, child in sorted(self.root.children.items(), key=lambda x: str(x[0])):
-            child_struct = dfs(child)
+            child_struct = dfs(cast(TransformerRadixNode, child))
             result.append([
                 edge_label,
                 child.value,
@@ -202,7 +209,8 @@ class TransformerRadixTree(RadixTree[TREE_KEY_TYPE, int]):
         def traverse_node(node: TransformerRadixNode, prefix: str):
             children_list = sorted(node.children.items(), key=lambda x: str(x[0]))
             
-            for i, (edge_label, child) in enumerate(children_list):
+            for i, (edge_label, _child) in enumerate(children_list):
+                child = cast(TransformerRadixNode, _child)
                 is_last_child = (i == len(children_list) - 1)
                 
                 # Draw the connector
@@ -216,10 +224,10 @@ class TransformerRadixTree(RadixTree[TREE_KEY_TYPE, int]):
                 
                 # Recurse with updated prefix
                 extension = "   " if is_last_child else "│  "
-                traverse_node(child, prefix + extension, is_last_child)
+                traverse_node(child, prefix + extension)
         
         # Start traversal from root
-        traverse_node(self.root, "", True)
+        traverse_node(cast(TransformerRadixNode, self.root), "")
         return "\n".join(lines)
     
     def print_live(self, names: Optional[List[str]] = None, clear_previous: bool = True):
@@ -230,10 +238,10 @@ class TransformerRadixTree(RadixTree[TREE_KEY_TYPE, int]):
             def count_lines(node: TransformerRadixNode) -> int:
                 count = len(node.children)
                 for child in node.children.values():
-                    count += count_lines(child)
+                    count += count_lines(cast(TransformerRadixNode, child))
                 return count
             
-            num_lines = count_lines(self.root) + 1  
+            num_lines = count_lines(cast(TransformerRadixNode, self.root)) + 1  
             sys.stdout.write(f'\033[{num_lines}A')  
             sys.stdout.write('\033[J')  
         
@@ -302,7 +310,7 @@ def tree_execution(renderer,retr_systems,
 
     if batch_size is None:
         # No batching - execute all queries at once   
-        tree.root.traverse(topics, make_callback(qrels, all_topic_qids if perquery else None), 0.0)
+        tree.traverse(topics, make_callback(qrels, all_topic_qids if perquery else None), 0.0)
     #not fully functional
     else:
         # Batch processing - evaluate queries in batches
@@ -321,4 +329,4 @@ def tree_execution(renderer,retr_systems,
             batch_qrels = qrels[qrels.query_id.isin(batch_qids)]
             batch_backfill = [qid for qid in all_topic_qids if qid in batch_qids] if perquery else None
 
-            tree.root.traverse(topic_batch, make_callback(batch_qrels, batch_backfill), 0.0)
+            tree.traverse(topic_batch, make_callback(batch_qrels, batch_backfill), 0.0)

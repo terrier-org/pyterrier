@@ -303,8 +303,7 @@ def draw_radix_html_schematic(radix_schematic, outer_class='outer') -> str:
         return result
     result = ''
     mode = radix_schematic.get('mode','')
-    if radix_schematic['type'] == 'tree':        
-        num_nodes = len(radix_schematic['nodes'])
+    if radix_schematic['type'] == 'tree':
         result = '<div class="pts-pipeline">'
         clz = 'pts-arr' if mode == 'linear' else ''
         if outer_class == 'outer':
