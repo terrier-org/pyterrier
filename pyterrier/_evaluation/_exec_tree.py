@@ -8,7 +8,7 @@ from pyterrier._ops import Compose
 
 import ir_measures
 import pandas as pd
-from typing import List, Optional, Union, Sequence, Tuple, Callable, cast, Literal
+from typing import List, Optional, Union, Sequence, Tuple, Callable, cast as tcast, Literal
 from time import perf_counter as timer
 import uuid
 
@@ -72,7 +72,7 @@ class TransformerRadixNode(RadixNode[TREE_KEY_TYPE, int]):
         # Recurse into children, adding current node to parents stack
         if self.children:
             parents.append(self) 
-            for child in cast(List['TransformerRadixNode'], self.children.values()):
+            for child in tcast(List['TransformerRadixNode'], self.children.values()):
                 child.traverse(res, callback, total_time, parents)
             parents.pop()
 
@@ -145,7 +145,7 @@ class TransformerRadixTree(RadixTree[TREE_KEY_TYPE, int]):
                  callback: Optional[Callable] = None, 
                  cum_time: float = 0.0, 
                  parents: Optional[List['TransformerRadixNode']] = None):
-        cast(TransformerRadixNode, self.root).traverse(inp, callback, cum_time, parents)
+        tcast(TransformerRadixNode, self.root).traverse(inp, callback, cum_time, parents)
 
     def describe_tree_structure(self) -> List:
         """Return a structured representation of the radix tree for debugging.
@@ -157,7 +157,7 @@ class TransformerRadixTree(RadixTree[TREE_KEY_TYPE, int]):
         def dfs(node: TransformerRadixNode) -> List:
             children_repr: List = []
             for edge_label, child in sorted(node.children.items(), key=lambda x: str(x[0])):
-                child_struct = dfs(cast(TransformerRadixNode, child))
+                child_struct = dfs(tcast(TransformerRadixNode, child))
                 children_repr.append([
                     edge_label,
                     child.value,
@@ -168,7 +168,7 @@ class TransformerRadixTree(RadixTree[TREE_KEY_TYPE, int]):
         # Build the top-level structure from root's children
         result: List = []
         for edge_label, child in sorted(self.root.children.items(), key=lambda x: str(x[0])):
-            child_struct = dfs(cast(TransformerRadixNode, child))
+            child_struct = dfs(tcast(TransformerRadixNode, child))
             result.append([
                 edge_label,
                 child.value,
@@ -210,7 +210,7 @@ class TransformerRadixTree(RadixTree[TREE_KEY_TYPE, int]):
             children_list = sorted(node.children.items(), key=lambda x: str(x[0]))
             
             for i, (edge_label, _child) in enumerate(children_list):
-                child = cast(TransformerRadixNode, _child)
+                child = tcast(TransformerRadixNode, _child)
                 is_last_child = (i == len(children_list) - 1)
                 
                 # Draw the connector
@@ -238,10 +238,10 @@ class TransformerRadixTree(RadixTree[TREE_KEY_TYPE, int]):
             def count_lines(node: TransformerRadixNode) -> int:
                 count = len(node.children)
                 for child in node.children.values():
-                    count += count_lines(cast(TransformerRadixNode, child))
+                    count += count_lines(tcast(TransformerRadixNode, child))
                 return count
             
-            num_lines = count_lines(cast(TransformerRadixNode, self.root)) + 1  
+            num_lines = count_lines(tcast(TransformerRadixNode, self.root)) + 1  
             sys.stdout.write(f'\033[{num_lines}A')  
             sys.stdout.write('\033[J')  
         
