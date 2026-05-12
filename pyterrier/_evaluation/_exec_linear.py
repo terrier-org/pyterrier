@@ -1,8 +1,7 @@
 import pyterrier as pt
 
-from ._rendering import _convert_measures
 from . import MEASURES_TYPE, SYSTEM_OR_RESULTS_TYPE
-from ._execution import _precomputation, _run_and_evaluate, _ir_measures_to_dict
+from ._execution import _run_and_evaluate
 from .. import Transformer
 from .._ops import Compose
 import pandas as pd
