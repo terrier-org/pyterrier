@@ -100,7 +100,7 @@ def tree_execution(renderer,retr_systems,
         print()
 
     if render_html:
-        from IPython.display import HTML, display
+        from IPython.display import HTML, display # type: ignore
         schematic = pt.schematic.radix_tree_schematic(tree, input_columns=["qid", "query"])
         display(HTML(pt.schematic.draw_html_schematic(schematic)))
     

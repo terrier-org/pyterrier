@@ -1,5 +1,4 @@
 from typing import List, Tuple, Union, Optional, Callable, TypeVar, Generic, Protocol, overload
-from collections.abc import Sequence
 
 from time import perf_counter as timer
 import pandas as pd
@@ -22,7 +21,7 @@ class Sliceable(Protocol[E]):
     def __getitem__(self: K, index: slice) -> K: ...
 
 def emit_js(node_id, state):
-    from IPython.display import Javascript, display
+    from IPython.display import Javascript, display # type: ignore
     display(Javascript(f"""
         
         setNodeState("{node_id}", "{state}");
