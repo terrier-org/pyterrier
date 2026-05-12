@@ -54,7 +54,9 @@ class TransformerRadixNode(RadixNode[TREE_KEY_TYPE, int]):
 
     def traverse(self, 
                  inp: pd.DataFrame, 
-                 callback: Optional[Callable] = None, 
+                 pre_exec_callback: Optional[Callable] = None,
+                 post_exec_callback: Optional[Callable] = None,
+                 eval_callback: Optional[Callable] = None, 
                  cum_time: float = 0.0, 
                  parents: Optional[List['TransformerRadixNode']] = None):
         if parents is None:
@@ -66,17 +68,17 @@ class TransformerRadixNode(RadixNode[TREE_KEY_TYPE, int]):
 
         # Invoke callback if this is a terminal node
         if self.value is not None:
-            if callback is not None:
-                callback(res, self.value, total_time)
+            if eval_callback is not None:
+                eval_callback(res, self.value, total_time)
 
         # Recurse into children, adding current node to parents stack
         if self.children:
             parents.append(self) 
             for child in tcast(List['TransformerRadixNode'], self.children.values()):
-                child.traverse(res, callback, total_time, parents)
+                child.traverse(res, eval_callback, total_time, parents)
             parents.pop()
 
-    def visit(self, inp: pd.DataFrame, parents: List['TransformerRadixNode']) -> Tuple[pd.DataFrame, float]:        
+    def visit(self, inp: pd.DataFrame, parents: List['TransformerRadixNode'], pre_exec_callback: Optional[Callable] = None, post_exec_callback: Optional[Callable] = None) -> Tuple[pd.DataFrame, float]:        
         if not parents:
             return inp, 0.0  # Root node - no transformation
         
@@ -142,10 +144,10 @@ class TransformerRadixTree(RadixTree[TREE_KEY_TYPE, int]):
 
     def traverse(self, 
                  inp: pd.DataFrame, 
-                 callback: Optional[Callable] = None, 
+                 eval_callback: Optional[Callable] = None, 
                  cum_time: float = 0.0, 
                  parents: Optional[List['TransformerRadixNode']] = None):
-        tcast(TransformerRadixNode, self.root).traverse(inp, callback, cum_time, parents)
+        tcast(TransformerRadixNode, self.root).traverse(inp, eval_callback, cum_time, parents)
 
     def describe_tree_structure(self) -> List:
         """Return a structured representation of the radix tree for debugging.
@@ -227,7 +229,7 @@ class TransformerRadixTree(RadixTree[TREE_KEY_TYPE, int]):
                 traverse_node(child, prefix + extension)
         
         # Start traversal from root
-        traverse_node(cast(TransformerRadixNode, self.root), "")
+        traverse_node(tcast(TransformerRadixNode, self.root), "")
         return "\n".join(lines)
     
     def print_live(self, names: Optional[List[str]] = None, clear_previous: bool = True):
@@ -286,7 +288,7 @@ def tree_execution(renderer,retr_systems,
     all_topic_qids = topics["qid"].values
 
     assert topics is not None, "topics must be specified"
-    def make_callback(batch_qrels: pd.DataFrame, backfill_qids):
+    def make_eval_callback(batch_qrels: pd.DataFrame, backfill_qids):
     
         def callback(res: pd.DataFrame, sysid: int, cum_time: float):
             # Validate results
@@ -310,7 +312,7 @@ def tree_execution(renderer,retr_systems,
 
     if batch_size is None:
         # No batching - execute all queries at once   
-        tree.traverse(topics, make_callback(qrels, all_topic_qids if perquery else None), 0.0)
+        tree.traverse(topics, make_eval_callback(qrels, all_topic_qids if perquery else None), 0.0)
     #not fully functional
     else:
         # Batch processing - evaluate queries in batches
@@ -329,4 +331,4 @@ def tree_execution(renderer,retr_systems,
             batch_qrels = qrels[qrels.query_id.isin(batch_qids)]
             batch_backfill = [qid for qid in all_topic_qids if qid in batch_qids] if perquery else None
 
-            tree.traverse(topic_batch, make_callback(batch_qrels, batch_backfill), 0.0)
+            tree.traverse(topic_batch, make_eval_callback(batch_qrels, batch_backfill), 0.0)
