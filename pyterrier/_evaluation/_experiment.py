@@ -1,9 +1,9 @@
 import os
 import pandas as pd
 from typing import Union, Dict, Tuple, Sequence, Literal, Optional, overload, Any
-import types
 
-from ._exec_structure import linear_execution, tree_execution
+from ._exec_linear import linear_execution
+from ._exec_tree import tree_execution
 from ._rendering import EvaluationDataTuple, RenderFromPerQuery
 from ._validation import _validate
 from . import SYSTEM_OR_RESULTS_TYPE, MEASURES_TYPE, TEST_FN_TYPE, SAVEFORMAT_TYPE, SAVEMODE_TYPE, VALIDATE_TYPE
@@ -290,10 +290,6 @@ def Experiment(
                                   correction_alpha=correction_alpha, 
                                   round=round, 
                                   precompute_time=0)
-    
-    # Tree execution doesn't support save_dir yet - fallback to linear
-    # if plan == 'tree' and save_dir is not None:
-    #     plan = 'linear'
     
     if plan == 'tree':
         if save_dir is not None:

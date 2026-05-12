@@ -4,14 +4,15 @@ import pandas as pd
 
 
 import pyterrier as pt
-from pyterrier._evaluation._trie import RadixTree, RadixNode, decompose_pipelines
+from pyterrier._evaluation._exec_tree import TransformerRadixNode, TransformerRadixTree, decompose_pipelines
+from pyterrier._evaluation._trie import RadixTree
 from pyterrier._ops import Compose
 
 
 
 class TestRadixTreeWithTransformers(unittest.TestCase):
     def test_tree1(self):
-        radix_tree = RadixTree()
+        radix_tree = TransformerRadixTree()
         pipeline = [["A"]]
         for sysid, p in enumerate(pipeline):
             radix_tree.insert(tuple(p), sysid)
@@ -22,7 +23,7 @@ class TestRadixTreeWithTransformers(unittest.TestCase):
         assert children == []  # No children for single node
 
     def test_tree2(self):
-        radix_tree = RadixTree()
+        radix_tree = TransformerRadixTree()
         pipeline = ["AB", "AC"]
         for sysid, p in enumerate(pipeline):
             radix_tree.insert(tuple(p), sysid)
@@ -37,7 +38,7 @@ class TestRadixTreeWithTransformers(unittest.TestCase):
         assert children[1][1] ==  1
 
     def test_tree3(self):
-        radix_tree = RadixTree()
+        radix_tree = TransformerRadixTree()
         pipeline = ["ABC", "ABD"]
         for sysid,p in enumerate(pipeline):
             radix_tree.insert(tuple(p), sysid)
@@ -55,7 +56,7 @@ class TestRadixTreeWithTransformers(unittest.TestCase):
         assert children[1][1] == 1
 
     def test_tree4(self):
-        radix_tree = RadixTree()
+        radix_tree = TransformerRadixTree()
         pipeline = ["AB", "ABC", "D"]
         for sysid, p in enumerate(pipeline):
             radix_tree.insert(tuple(p), sysid)
@@ -76,11 +77,11 @@ class TestRadixTreeWithTransformers(unittest.TestCase):
  
 
     def test_empty_tree(self):
-        tree = RadixTree()
+        tree = TransformerRadixTree()
         self.assertEqual(tree.describe_tree_structure(), [])
 
     def test_single_transformer_insertion(self):
-        tree = RadixTree()
+        tree = TransformerRadixTree()
         vaswani = pt.datasets.get_dataset("vaswani")
         index = vaswani.get_index()
         TF_IDF = pt.terrier.Retriever(index, wmodel="TF_IDF")
@@ -94,7 +95,7 @@ class TestRadixTreeWithTransformers(unittest.TestCase):
         self.assertEqual(children, [])
     
     def test_all_nodes_are_radix_node(self):
-            radix_tree = RadixTree()
+            radix_tree = TransformerRadixTree()
             vaswani = pt.datasets.get_dataset("vaswani")
             index = vaswani.get_index()
             TF_IDF = pt.terrier.Retriever(index, wmodel="TF_IDF")
@@ -105,14 +106,14 @@ class TestRadixTreeWithTransformers(unittest.TestCase):
                 radix_tree.insert(tuple(p), sysid)
 
             def check_nodes(node):
-                self.assertIsInstance(node, RadixNode)
+                self.assertIsInstance(node, TransformerRadixNode)
                 for child in node.children.values():
                     check_nodes(child)
 
             check_nodes(radix_tree.root)
 
     def test_two_pipelines_no_common_prefix(self):
-        tree = RadixTree()
+        tree = TransformerRadixTree()
         vaswani = pt.datasets.get_dataset("vaswani")
         index = vaswani.get_index()
         TF_IDF = pt.terrier.Retriever(index, wmodel="TF_IDF")
@@ -131,7 +132,7 @@ class TestRadixTreeWithTransformers(unittest.TestCase):
         assert eval_1 == 1
 
     def test_pipelines_with_common_prefix(self):
-        tree = RadixTree()
+        tree = TransformerRadixTree()
         vaswani = pt.datasets.get_dataset("vaswani")
         index = vaswani.get_index()
         TF_IDF = pt.terrier.Retriever(index, wmodel="TF_IDF")
@@ -149,7 +150,7 @@ class TestRadixTreeWithTransformers(unittest.TestCase):
         self.assertEqual(len(children), 1)
 
     def test_prefix_pipeline_is_terminal(self):
-        tree = RadixTree()
+        tree = TransformerRadixTree()
         vaswani = pt.datasets.get_dataset("vaswani")
         index = vaswani.get_index()
         TF_IDF = pt.terrier.Retriever(index, wmodel="TF_IDF")
@@ -167,7 +168,7 @@ class TestRadixTreeWithTransformers(unittest.TestCase):
 
 
     def test_traverse_single_transformer(self):
-        tree = RadixTree()
+        tree = TransformerRadixTree()
         vaswani = pt.datasets.get_dataset("vaswani")
         index = vaswani.get_index()
         TF_IDF = pt.terrier.Retriever(index, wmodel="TF_IDF")
@@ -187,7 +188,7 @@ class TestRadixTreeWithTransformers(unittest.TestCase):
         self.assertEqual(sysid, 0)
 
     def test_traverse_shared_prefix(self):
-        tree = RadixTree()
+        tree = TransformerRadixTree()
         vaswani = pt.datasets.get_dataset("vaswani")
         index = vaswani.get_index()
         TF_IDF = pt.terrier.Retriever(index, wmodel="TF_IDF")
@@ -211,7 +212,7 @@ class TestRadixTreeWithTransformers(unittest.TestCase):
         assert sysids[1] ==1
 
     def test_traverse_timing(self):
-        tree = RadixTree()
+        tree = TransformerRadixTree()
         vaswani = pt.datasets.get_dataset("vaswani")
         index = vaswani.get_index()
         TF_IDF = pt.terrier.Retriever(index, wmodel="TF_IDF")
@@ -261,7 +262,7 @@ class TestRadixTreeWithTransformers(unittest.TestCase):
         self.assertIsInstance(result[0][0], pt.Transformer)
 
     def test_complex_pipeline_tree(self):
-        tree = RadixTree()
+        tree = TransformerRadixTree()
         vaswani = pt.datasets.get_dataset("vaswani")
         index = vaswani.get_index()
         TF_IDF = pt.terrier.Retriever(index, wmodel="TF_IDF")
@@ -280,7 +281,7 @@ class TestRadixTreeWithTransformers(unittest.TestCase):
 
 
     def test_empty_pipeline_handling(self):
-        tree = RadixTree()
+        tree = TransformerRadixTree()
         tree.insert([])
         self.assertEqual(tree.describe_tree_structure(), [])
 
