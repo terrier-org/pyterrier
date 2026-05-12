@@ -1,17 +1,3 @@
-from typing import List, Optional, Callable
-
-class Node:
-    def __init__(self, me, children: Optional[List['Node']] = None, evaluation_index: Optional[int] = None):
-        self.me = me  # Transformer object
-        self.children = children if children is not None else []
-        self.evaluation_index = evaluation_index
-
-    def traverse(self, inp, callback: Optional[Callable] = None):
-        res = self.me.transform(inp)
-        if self.evaluation_index is not None and callback is not None:
-            callback(res, self.evaluation_index)
-        for child in self.children:
-            child.traverse(res, callback)
 import os
 import warnings
 import traceback
