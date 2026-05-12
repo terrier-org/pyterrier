@@ -48,9 +48,9 @@ def decompose_pipelines(pipes: List[Union[pd.DataFrame, pt.Transformer]]) -> Lis
     return pipe_lists
 
 
-
+TREE_KEY_TYPE = Tuple[pt.Transformer, ...]
   
-class TransformerRadixNode(RadixNode[Tuple[pt.Transformer, ...], int]):
+class TransformerRadixNode(RadixNode[TREE_KEY_TYPE, int]):
     def __init__(self):
         super().__init__()
         self.execution_state: str = 'pending'  # 'pending', 'running', 'done'
@@ -135,10 +135,39 @@ class TransformerRadixNode(RadixNode[Tuple[pt.Transformer, ...], int]):
 
 
 
-class TransformerRadixTree(RadixTree[Tuple[pt.Transformer, ...], int]):
+class TransformerRadixTree(RadixTree[TREE_KEY_TYPE, int]):
 
     def __init__(self):
         super().__init__(node_clz=TransformerRadixNode)
+
+    def describe_tree_structure(self) -> List:
+        """Return a structured representation of the radix tree for debugging.
+        
+        Returns a list of [edge_label, eval_index, children] for each top-level child.
+        - eval_index is None for non-terminal nodes, or the index for terminal nodes
+        - children is [] for leaf nodes, or a list of [edge_label, eval_index, children] for internal nodes
+        """
+        def dfs(node: TransformerRadixNode) -> List:
+            children_repr: List = []
+            for edge_label, child in sorted(node.children.items(), key=lambda x: str(x[0])):
+                child_struct = dfs(child)
+                children_repr.append([
+                    edge_label,
+                    child.value,
+                    child_struct if child_struct else []
+                ])
+            return children_repr
+
+        # Build the top-level structure from root's children
+        result: List = []
+        for edge_label, child in sorted(self.root.children.items(), key=lambda x: str(x[0])):
+            child_struct = dfs(child)
+            result.append([
+                edge_label,
+                child.value,
+                child_struct if child_struct else []
+            ])
+        return result  
 
     def pretty_print(self, names: Optional[List[str]] = None, colored: bool = False) -> str:
         
@@ -150,7 +179,7 @@ class TransformerRadixTree(RadixTree[Tuple[pt.Transformer, ...], int]):
         
         lines = ["Root"]
         
-        def format_transformers(edge_label: K) -> str:
+        def format_transformers(edge_label: Tuple[pt.Transformer, ...]) -> str:
             if isinstance(edge_label, tuple):
                 if len(edge_label) == 1:
                     return f"{str(edge_label[0])}"
