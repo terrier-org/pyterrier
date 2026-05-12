@@ -315,7 +315,6 @@ def draw_radix_html_schematic(radix_schematic, outer_class='outer') -> str:
             result += render_branch_node()
             for  i, node in enumerate(radix_schematic['nodes']):
                 # Handle pipeline nodes in branch mode
-                is_last = (i == num_nodes - 1)
                 new = {}
                 record = node['self']
                 if node.get('mode','') == 'branch':
