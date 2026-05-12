@@ -19,13 +19,15 @@ from typing import List, Union, Sequence, Tuple
 def emit_js(node_id, state):
     from IPython.display import Javascript, display # type: ignore
     display(Javascript(f"""
-        
         setNodeState("{node_id}", "{state}");
     """))
 
 
-
 def decompose_pipelines(pipes: List[Union[pd.DataFrame, pt.Transformer]]) -> List[List[pt.Transformer]]:
+    """
+    Decomposes a list of pipelines (which can be DataFrames, Transformers, or Composes) into a list of lists of Transformers.
+    Each inner list represents a sequence of Transformers that should be applied in order.
+    """
     pipe_lists: List[List[pt.Transformer]] = []
     for p in pipes:
         # Convert DataFrames to Transformers
@@ -41,7 +43,7 @@ def decompose_pipelines(pipes: List[Union[pd.DataFrame, pt.Transformer]]) -> Lis
             pipe_lists.append(transformers)
         else:
             if not isinstance(p, pt.Transformer):
-                raise ValueError("pt.Experiment has systems that are not either DataFrames or Transformers")
+                raise ValueError("pt.Experiment has systems that are not either DataFrames or Transformers, found: %s" % type(p))
             pipe_lists.append([p])
     return pipe_lists
 
@@ -74,7 +76,7 @@ class TransformerRadixNode(RadixNode[Tuple[pt.Transformer, ...], int]):
                 child.traverse(res, callback, total_time, parents)
             parents.pop()
 
-    def visit(self, inp: pd.DataFrame, parents: List['RadixNode[K, T]']) -> Tuple[pd.DataFrame, float]:        
+    def visit(self, inp: pd.DataFrame, parents: List['TransformerRadixNode']) -> Tuple[pd.DataFrame, float]:        
         if not parents:
             return inp, 0.0  # Root node - no transformation
         
@@ -168,7 +170,7 @@ class TransformerRadixTree(RadixTree[Tuple[pt.Transformer, ...], int]):
             return ""
         
         # Recursion to traverse the tree and build lines with connectors
-        def traverse_node(node: RadixNode[K, T], prefix: str, is_last: bool):
+        def traverse_node(node: TransformerRadixNode, prefix: str):
             children_list = sorted(node.children.items(), key=lambda x: str(x[0]))
             
             for i, (edge_label, child) in enumerate(children_list):
@@ -196,7 +198,7 @@ class TransformerRadixTree(RadixTree[Tuple[pt.Transformer, ...], int]):
         import sys
         
         if clear_previous:
-            def count_lines(node: RadixNode[K, T]) -> int:
+            def count_lines(node: TransformerRadixNode) -> int:
                 count = len(node.children)
                 for child in node.children.values():
                     count += count_lines(child)
