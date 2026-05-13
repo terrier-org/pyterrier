@@ -296,7 +296,7 @@ def tree_execution(renderer,retr_systems,
         from IPython.display import HTML, display # type: ignore
         schematic = pt.schematic.radix_tree_schematic(tree, input_columns=["qid", "query"])
         display(HTML(pt.schematic.draw_html_schematic(schematic)))
-        exec_cb = lambda node_id, node: emit_js(node_id, node.execution_state)
+        exec_cb = lambda node_id, node: emit_js(node_id, node.execution_state) # noqa: E731
     else:
         exec_cb = None
         
