@@ -54,8 +54,7 @@ class TransformerRadixNode(RadixNode[TREE_KEY_TYPE, int]):
 
     def traverse(self, 
                  inp: pd.DataFrame, 
-                 pre_exec_callback: Optional[Callable] = None,
-                 post_exec_callback: Optional[Callable] = None,
+                 exec_callback: Optional[Callable] = None,
                  eval_callback: Optional[Callable] = None, 
                  cum_time: float = 0.0, 
                  parents: Optional[List['TransformerRadixNode']] = None):
@@ -65,8 +64,7 @@ class TransformerRadixNode(RadixNode[TREE_KEY_TYPE, int]):
         # Apply transformation and get time from visit
         res, transform_time = self.visit(inp, 
             parents, 
-            pre_exec_callback = pre_exec_callback, 
-            post_exec_callback = post_exec_callback
+            exec_callback = exec_callback, 
         )
         total_time = cum_time + transform_time
 
@@ -80,14 +78,13 @@ class TransformerRadixNode(RadixNode[TREE_KEY_TYPE, int]):
             parents.append(self) 
             for child in tcast(List['TransformerRadixNode'], self.children.values()):
                 child.traverse(res, 
-                    pre_exec_callback = pre_exec_callback, 
-                    post_exec_callback = post_exec_callback, 
+                    exec_callback = exec_callback, 
                     eval_callback = eval_callback, 
                     cum_time = total_time, 
                     parents = parents)
             parents.pop()
 
-    def visit(self, inp: pd.DataFrame, parents: List['TransformerRadixNode'], pre_exec_callback: Optional[Callable] = None, post_exec_callback: Optional[Callable] = None) -> Tuple[pd.DataFrame, float]:        
+    def visit(self, inp: pd.DataFrame, parents: List['TransformerRadixNode'], exec_callback: Optional[Callable] = None) -> Tuple[pd.DataFrame, float]:        
         if not parents:
             return inp, 0.0  # Root node - no transformation
         
@@ -108,9 +105,10 @@ class TransformerRadixNode(RadixNode[TREE_KEY_TYPE, int]):
             # this is for a single node, so we can update self.execution_state directly
             if len(transformers) ==1:
                 # Can remove execution_states? 
+                
                 self.execution_state = 'running'
-                if pre_exec_callback is not None:
-                    pre_exec_callback(self)
+                if exec_callback is not None:
+                    exec_callback(self)
                 start = timer()
                 result = transformers[0].transform(inp)
                 end = timer()
@@ -118,8 +116,8 @@ class TransformerRadixNode(RadixNode[TREE_KEY_TYPE, int]):
                 print(f"{transformers[0]}: {transform_time:.2f} s")
                 # Mark as completed after execution
                 self.execution_state = 'done'
-                if post_exec_callback is not None:
-                    post_exec_callback(self)
+                if exec_callback is not None:
+                    exec_callback(self)
                 
                 return result, transform_time
             
@@ -155,15 +153,13 @@ class TransformerRadixTree(RadixTree[TREE_KEY_TYPE, int]):
 
     def traverse(self, 
                  inp: pd.DataFrame, 
-                 pre_exec_callback: Optional[Callable] = None,
-                 post_exec_callback: Optional[Callable] = None,
+                 exec_callback: Optional[Callable] = None,
                  eval_callback: Optional[Callable] = None, 
                  cum_time: float = 0.0, 
                  parents: Optional[List['TransformerRadixNode']] = None):
         tcast(TransformerRadixNode, self.root).traverse(
             inp, 
-            pre_exec_callback = pre_exec_callback,
-            post_exec_callback = post_exec_callback,
+            exec_callback = exec_callback,
             eval_callback = eval_callback,
             cum_time = cum_time, 
             parents = parents)
@@ -300,7 +296,7 @@ def tree_execution(renderer,retr_systems,
         from IPython.display import HTML, display # type: ignore
         schematic = pt.schematic.radix_tree_schematic(tree, input_columns=["qid", "query"])
         display(HTML(pt.schematic.draw_html_schematic(schematic)))
-        exec_cb = lambda node: emit_js(node.node_id, self.execution_state)
+        exec_cb = lambda node: emit_js(node.node_id, node.execution_state)
     else:
         exec_cb = None
         
@@ -335,8 +331,7 @@ def tree_execution(renderer,retr_systems,
     if batch_size is None:
         # No batching - execute all queries at once   
         tree.traverse(topics, 
-            pre_exec_callback = pre_exec_callback,
-            post_exec_callback = post_exec_callback,
+            exec_callback = exec_cb,
             eval_callback = make_eval_callback(qrels, all_topic_qids if perquery else None),
             cum_time = 0.)
     #not fully functional
@@ -359,7 +354,6 @@ def tree_execution(renderer,retr_systems,
 
             tree.traverse(
                 topic_batch, 
-                pre_exec_callback = pre_exec_callback,
-                post_exec_callback = post_exec_callback,
+                exec_callback = exec_cb,
                 eval_callback = make_eval_callback(batch_qrels, batch_backfill), 
                 cum_time = 0.)

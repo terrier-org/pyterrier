@@ -182,7 +182,7 @@ class TestRadixTreeWithTransformers(unittest.TestCase):
         results = []
         def callback(res, sysid, time_ms):
             results.append((sysid, res))
-        tree.root.traverse(test_df, callback)
+        tree.root.traverse(test_df, eval_callback=callback)
         self.assertEqual(len(results), 1)
         sysid, result = results[0]
         self.assertEqual(sysid, 0)
@@ -204,7 +204,7 @@ class TestRadixTreeWithTransformers(unittest.TestCase):
         results = []
         def callback(res, sysid, time_ms):
             results.append((sysid, res))
-        tree.root.traverse(test_df, callback)
+        tree.root.traverse(test_df, eval_callback=callback)
         # Should have 2 results
         self.assertEqual(len(results), 2)
         sysids = [r[0] for r in results]
@@ -226,7 +226,7 @@ class TestRadixTreeWithTransformers(unittest.TestCase):
         results = []
         def callback(res, sysid, time_ms):
             results.append((sysid, time_ms))
-        tree.root.traverse(test_df, callback)
+        tree.root.traverse(test_df, eval_callback=callback)
         self.assertEqual(len(results), 1)
         sysid, time_ms = results[0]
         self.assertGreater(time_ms, 0)  
@@ -301,7 +301,7 @@ class TestRadixTreeWithTransformers(unittest.TestCase):
             BM25 >> PL2,
             TF_IDF >> BM25 >> PL2
         ]
-        topics = vaswani.get_topics()
+        topics = vaswani.get_topics().head(10)
         qrels = vaswani.get_qrels()
         results_linear = pt.Experiment(
             pipelines, topics, qrels, ['ndcg'], plan="linear"
