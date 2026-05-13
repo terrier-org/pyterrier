@@ -103,17 +103,17 @@ class TransformerRadixNode(RadixNode[TREE_KEY_TYPE, int]):
         if transformers:
             # Mark as running before execution
             # this is for a single node, so we can update self.execution_state directly
-            if len(transformers) ==1:
-                # Can remove execution_states? 
+            if len(transformers) == 1:
                 
                 self.execution_state = 'running'
                 if exec_callback is not None:
                     exec_callback(self)
+
                 start = timer()
                 result = transformers[0].transform(inp)
                 end = timer()
                 transform_time = (end - start)*1000.0
-                print(f"{transformers[0]}: {transform_time:.2f} s")
+                
                 # Mark as completed after execution
                 self.execution_state = 'done'
                 if exec_callback is not None:
@@ -122,9 +122,9 @@ class TransformerRadixNode(RadixNode[TREE_KEY_TYPE, int]):
                 return result, transform_time
             
             for i in range(len(transformers)):
-                new_id = f"{self.node_id}:{i}"
                 self.execution_state = 'running'
-                emit_js(new_id, self.execution_state)
+                if exec_callback is not None:
+                    exec_callback(f"{self.node_id}:{i}", self)
             
             start = timer()
             if len(transformers) == 1:
@@ -133,12 +133,12 @@ class TransformerRadixNode(RadixNode[TREE_KEY_TYPE, int]):
                 result = Compose(*transformers).transform(inp)
             end = timer()
             transform_time = (end - start) * 1000.0
-            print('Transformer time:', transform_time)                        
+
             for i in range(len(transformers)):
-                new_id = f"{self.node_id}:{i}"
-            # Mark as completed after execution
+                # Mark as completed after execution
                 self.execution_state = 'done'
-                emit_js(new_id, self.execution_state)
+                if exec_callback is not None:
+                    exec_callback(f"{self.node_id}:{i}", self)
             
             return result, transform_time
         else:
@@ -296,7 +296,7 @@ def tree_execution(renderer,retr_systems,
         from IPython.display import HTML, display # type: ignore
         schematic = pt.schematic.radix_tree_schematic(tree, input_columns=["qid", "query"])
         display(HTML(pt.schematic.draw_html_schematic(schematic)))
-        exec_cb = lambda node: emit_js(node.node_id, node.execution_state)
+        exec_cb = lambda node_id, node: emit_js(node_id, node.execution_state)
     else:
         exec_cb = None
         
