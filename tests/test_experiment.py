@@ -45,7 +45,7 @@ class TestExperiment(TempDirTestCase):
         self.assertIsInstance(suffices[1], pt.RankCutoff)
         self.assertEqual(10, suffices[1].k)
 
-        common, suffices = pyterrier._evaluation._execution._identifyCommon([bm25, pipeB])
+        common, suffices = pyterrier._evaluation._exec_linear._identifyCommon([bm25, pipeB])
         self.assertEqual(bm25, common)
         self.assertIsInstance(suffices[0], pt.transformer.IdentityTransformer)
         self.assertIsInstance(suffices[1], pt.RankCutoff)
