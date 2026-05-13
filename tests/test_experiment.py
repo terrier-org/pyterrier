@@ -38,7 +38,7 @@ class TestExperiment(TempDirTestCase):
         pipeA = bm25 %3
         pipeB = bm25 %10
         import pyterrier._evaluation._execution
-        common, suffices = pyterrier._evaluation._execution._identifyCommon([pipeA, pipeB])
+        common, suffices = pyterrier._evaluation._exec_linear._identifyCommon([pipeA, pipeB])
         self.assertEqual(bm25, common)
         self.assertIsInstance(suffices[0], pt.RankCutoff)
         self.assertEqual(3, suffices[0].k)
