@@ -273,6 +273,7 @@ def render_transformer_infobox(record: Dict[str, Any]) :
     return infobox, infobox_attr, error_cls
 
 def draw_radix_html_schematic(radix_schematic, outer_class='outer') -> str:
+    
     def render_node(record, is_last):
         node_id = record.get('node_id')#this is diff
         dom_id = f"pts-node-{node_id}" if node_id is not None else '' #this is diff
@@ -295,6 +296,7 @@ def draw_radix_html_schematic(radix_schematic, outer_class='outer') -> str:
                 else:
                     html_block += f'<div class="pts-hline pts-arr pts-arr-inner">{_draw_df_html(output_columns, input_columns)}</div>'
         return html_block
+    
     def render_branch_node():
         result = '''<div class="pts-parallel-scaffold pts-inner">
             <div class="pts-hline"></div>
