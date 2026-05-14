@@ -510,7 +510,7 @@ artifact = pt.Artifact.from_hf({repo!r})
         with tempfile.TemporaryDirectory() as d:
             r = requests.post(f'{base_url}/deposit/depositions', params=params, json={})
             r.raise_for_status()
-            deposit_data = r.json()
+            deposit_data : Any = r.json()
             sys.stderr.write("Created {}\n".format(deposit_data['links']['html']))
             try:
                 metadata: Dict[str, Any] = {}
