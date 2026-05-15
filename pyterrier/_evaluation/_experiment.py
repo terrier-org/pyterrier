@@ -1,4 +1,5 @@
 import os
+import warnings
 import pandas as pd
 from typing import Union, Dict, Tuple, Sequence, Literal, Optional, overload, Any
 import types
@@ -349,6 +350,16 @@ def Experiment(
         # preserve rows for runs that exist in save_dir but are not part of the current experiment
         if os.path.exists(aggregated_path):
             old_agg = pd.read_csv(aggregated_path)
+            old_cols = set(old_agg.columns)
+            new_cols = set(new_agg.columns)
+            if old_cols != new_cols:
+                warnings.warn(
+                    f"Evaluation measures differ between the existing '{aggregated_path}' "
+                    f"(columns: {', '.join(sorted(old_cols))}) and the current run "
+                    f"(columns: {', '.join(sorted(new_cols))}). "
+                    "Missing values will be filled with NaN.",
+                    stacklevel=2,
+                )
             old_agg = old_agg[~old_agg["name"].isin(current_names_set)]
             if not old_agg.empty:
                 new_agg = pd.concat([new_agg, old_agg], ignore_index=True)
