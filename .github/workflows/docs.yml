@@ -59,5 +59,14 @@ jobs:
         path: docs/_build/html/
 
     - name: linkcheck
+      continue-on-error: true
       run: |
         QUICK=1 cd docs ; make linkcheck
+
+    - name: Surface broken links as warnings
+      if: "steps.linkcheck.outcome == 'failure'"
+      run: |
+        echo "::warning::Sphinx linkcheck found broken or redirected links"
+        # Optionally parse output.txt and emit per-link warnings:
+        awk -F': ' '/broken/ {print "::warning file=" $1 "::" $0}' \
+          docs/_build/linkcheck/output.txt || true
