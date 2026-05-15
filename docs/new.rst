@@ -92,5 +92,33 @@ merged frame will appear before any new columns.
     If this is not the case, you can manually provide an ``_index`` field each time you call ``extend``,
     where ``_index`` is the integer index of the row in the original frame.
 
+Alternatively, if the results already include a ``qid`` column you can use ``merge_on_qid`` instead of
+``merge_on_index``. This performs a standard join on the ``qid`` column and does not require ``_index``
+to be tracked at all.
+
+.. code-block:: python
+    :caption: Merging by qid with :class:`~pyterrier.new.DataFrameBuilder`
+
+    class MyTransformer(pt.Transformer):
+        def transform(self, inp: pd.DataFrame):
+            result = pt.new.DataFrameBuilder(['qid', 'docno', 'score'])
+            for row in inp.itertuples():
+                docnos, scores = self.some_function(row.qid, row.query)
+                result.extend({
+                    'qid': row.qid,  # used as the join key
+                    'docno': docnos,
+                    'score': scores,
+                })
+            return result.to_df(merge_on_qid=inp)
+
+.. note::
+
+    ``merge_on_index`` and ``merge_on_qid`` are mutually exclusive — pass only one.
+
+    ``merge_on_index`` is generally faster because it uses integer positional alignment rather than
+    a full column join, and it does not require the result rows to carry a ``qid`` value.
+    Use ``merge_on_qid`` when result rows already carry ``qid`` (e.g. results come back in arbitrary
+    order from a concurrent backend) or when tracking ``_index`` is inconvenient.
+
 .. autoclass:: pyterrier.new.DataFrameBuilder
     :members:
