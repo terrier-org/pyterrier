@@ -764,6 +764,8 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
 
     def __len__(self):
         """Returns the number of documents in this index."""
+        if not self.built():
+            return 0
         return self.collection_statistics().getNumberOfDocuments()
 
     def __repr__(self):
