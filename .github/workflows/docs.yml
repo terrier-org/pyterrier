@@ -45,9 +45,14 @@ jobs:
     
     - name: Install Dependencies
       run: |
-        pip install --upgrade '.[all]' 'python-terrier>=1.0' -r docs/requirements.txt -r docs/extensions.txt 
+        pip install --upgrade -vvv pipdeptree '.[all]' 'python-terrier>=1.0' -r docs/requirements.txt -r docs/extensions.txt --report report.json
 
-    - run: df -h
+    - name: Node Status
+      run: |
+        df -h
+        pip list
+        cat report.json
+        pipdeptree --reverse
 
     - name: html
       run: |
