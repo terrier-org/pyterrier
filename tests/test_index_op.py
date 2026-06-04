@@ -137,3 +137,16 @@ class TestIndexOp(TempDirTestCase):
         new_disk_index = pt.IndexFactory.of(new_disk_index_loc)
 
         self.assertEqual(len(index1) + len(index2), len(new_disk_index))
+
+    def test_terrierindex_len_before_and_after_index(self):
+        index = pt.terrier.TerrierIndex(self.test_dir)
+        self.assertFalse(index.built())
+        self.assertEqual(0, len(index))
+
+        index.index([
+            {'docno': 'd1', 'text': 'alpha beta'},
+            {'docno': 'd2', 'text': 'beta gamma'},
+        ])
+
+        self.assertTrue(index.built())
+        self.assertEqual(2, len(index))
