@@ -18,7 +18,7 @@ class TestArtifact(BaseTestCase):
             except urllib.error.HTTPError as ex:
                 if ex.code != 429: 
                     raise
-                self.skipTest() # 429: too many requests ... can just ignore
+                self.skipTest("HGF HTTP 429") # 429: too many requests ... can just ignore
             retr = index.bm25(num_results=10)
             self.assertEqual(10, len(retr.search('chemical reactions')))
         with tempfile.TemporaryDirectory() as d:

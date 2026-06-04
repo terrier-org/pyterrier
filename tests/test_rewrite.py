@@ -1,5 +1,7 @@
 import pandas as pd
 import unittest
+
+import urllib
 import pyterrier as pt
 import os
 import shutil
@@ -387,8 +389,13 @@ class TestRewrite(TempDirTestCase):
         try:
             from transformers import AutoTokenizer
         except:
-            self.skipTest()
-        tok = AutoTokenizer.from_pretrained("bert-base-uncased")
+            self.skipTest("transformers not installed")
+        try:
+            tok = AutoTokenizer.from_pretrained("bert-base-uncased")
+        except urllib.error.HTTPError as ex:
+            if ex.code != 429: 
+                raise
+            self.skipTest("HGF HTTP 429") # 429: too many requests ... can just ignore
         query_toks = pt.rewrite.tokenise(tok.tokenize, matchop=True)
         self.assertEqual('a b', query_toks.search("a b").iloc[0].query)
 
