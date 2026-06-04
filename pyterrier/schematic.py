@@ -12,15 +12,16 @@ from pyterrier._ops import Compose
 
 
 def radix_tree_schematic(tree, input_columns=None):
-    def node_to_schematic(edge_label, node):
+    def node_to_schematic(edge_label, node, _input_columns=None):
         # Efficiently determine transformer for schematic
         if isinstance(edge_label, (tuple, list)):
             transformer = edge_label[0] if len(edge_label) == 1 else Compose(*list(edge_label))
         else:
             transformer = edge_label
 
-        children = [node_to_schematic(child_label, child) for child_label, child in node.children.items()]
-        self_schem = pt.schematic.transformer_schematic(transformer) if transformer is not None else {}
+        self_schem = pt.schematic.transformer_schematic(transformer, input_columns=_input_columns) if transformer is not None else {}
+
+        children = [node_to_schematic(child_label, child, _input_columns=self_schem.get('output_columns')) for child_label, child in node.children.items()]
         if self_schem['type'] == 'pipeline':
         
             transformers = self_schem.get('transformers', [])
@@ -45,7 +46,7 @@ def radix_tree_schematic(tree, input_columns=None):
             node_dict["mode"] = "branch"
         return node_dict
 
-    nodes = [node_to_schematic(edge_label, child) for edge_label, child in tree.root.children.items()]
+    nodes = [node_to_schematic(edge_label, child, _input_columns=input_columns) for edge_label, child in tree.root.children.items()]
     mode = "branch" if len(nodes) > 1 else "linear"
     return {
         "type": "tree",
