@@ -107,7 +107,7 @@ class TransformerRadixNode(RadixNode[TREE_KEY_TYPE, int]):
                 
                 self.execution_state = 'running'
                 if exec_callback is not None:
-                    exec_callback(self)
+                    exec_callback(self.node_id, self)
 
                 start = timer()
                 result = transformers[0].transform(inp)
@@ -117,7 +117,7 @@ class TransformerRadixNode(RadixNode[TREE_KEY_TYPE, int]):
                 # Mark as completed after execution
                 self.execution_state = 'done'
                 if exec_callback is not None:
-                    exec_callback(self)
+                    exec_callback(self.node_id, self)
                 
                 return result, transform_time
             
