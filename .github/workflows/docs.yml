@@ -45,7 +45,7 @@ jobs:
     
     - name: Install Dependencies
       run: |
-        pip install --upgrade -vv pipdeptree '.[all]' 'python-terrier>=1.0' 'pyserini>=0.36.0,<2.1.0' -r docs/requirements.txt -r docs/extensions.txt --report report.json
+        pip install --upgrade -vv pipdeptree '.[all]' 'python-terrier>=1.0' 'pyserini>=0.36.0,<2.0.0' -r docs/requirements.txt -r docs/extensions.txt --report report.json
 
     - name: Node Status
       run: |
