@@ -16,8 +16,9 @@ class TestArtifact(BaseTestCase):
             try:
                 index = pt.Artifact.from_hf('pyterrier/vaswani.terrier', memory=mem)
             except urllib.error.HTTPError as ex:
-                if ex.code != 429: # too many requests ... can just ignore
+                if ex.code != 429: 
                     raise
+                self.skipTest() # 429: too many requests ... can just ignore
             retr = index.bm25(num_results=10)
             self.assertEqual(10, len(retr.search('chemical reactions')))
         with tempfile.TemporaryDirectory() as d:
