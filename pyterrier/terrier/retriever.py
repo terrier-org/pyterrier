@@ -500,6 +500,28 @@ class Retriever(pt.Transformer):
             str(self.controls),
             str(self.properties)
             ]) + ")"
+    
+    def __eq__(self, other):
+        if not isinstance(other, Retriever):
+            return NotImplemented
+        return (
+            self.indexref == other.indexref and
+            self.controls == other.controls and
+            self.properties == other.properties and
+            self.metadata == other.metadata and
+            self.threads == other.threads and
+            self.verbose == other.verbose
+        )
+
+    def __hash__(self):
+        return hash((
+            'Retriever',
+            str(self.indexref),
+            tuple(sorted(self.controls.items())),
+            tuple(sorted(self.properties.items())),
+            tuple(sorted(self.metadata)),
+            self.threads,
+        ))
 
     def __str__(self):
         return "TerrierRetr(" + self.controls["wmodel"] + ")"
