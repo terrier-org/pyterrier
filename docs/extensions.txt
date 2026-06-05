@@ -1,6 +1,6 @@
 pyterrier_adaptive # Adaptive Retrieval <https://github.com/terrierteam/pyterrier_adaptive>
 pyterrier_alpha # Alpha Features <https://github.com/seanmacavaney/pyterrier-alpha>
-pyterrier_anserini # Anserini <https://github.com/seanmacavaney/pyterrier-anserini>
+# Anserini <https://github.com/seanmacavaney/pyterrier-anserini>
 pyterrier_services # API Services <https://github.com/seanmacavaney/pyterrier-services>
 # AutoQrels <https://github.com/seanmacavaney/autoqrels>
 bmp # BMP <https://github.com/pisa-engine/bmp>
