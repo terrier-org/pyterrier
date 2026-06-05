@@ -176,10 +176,9 @@ class TestText(BaseTestCase):
         
         try:
             tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-        except urllib.error.HTTPError as ex:
-            if ex.code != 429: 
-                raise
-            self.skipTest("HGF HTTP 429") # 429: too many requests ... can just ignore
+        except OSError as ex:
+            if "https://huggingface.co" in str(ex):
+                self.skipTest("HGF connection error") # can just ignore if we can't connect to HGF
         dfinput = pd.DataFrame([["q1", "a query", "doc1", "it's a sample document!"]], columns=["qid", "query", "docno", "body"])
         passager = pt.text.sliding(length=4, stride=3, prepend_attr=None, tokenizer=tokenizer)
         dfoutput = passager(dfinput)
