@@ -164,6 +164,13 @@ class TransformerRadixTree(RadixTree[TREE_KEY_TYPE, int]):
             cum_time = cum_time, 
             parents = parents)
 
+    def reset_status(self):
+        def _recurse_set_status(node: TransformerRadixNode):
+            node.execution_state = 'pending'
+            for child in tcast(List[TransformerRadixNode], node.children.values()):
+                _recurse_set_status(child)
+        _recurse_set_status(tcast(TransformerRadixNode, self.root))
+    
     def describe_tree_structure(self) -> List:
         """Return a structured representation of the radix tree for debugging.
         
@@ -306,7 +313,7 @@ def tree_execution(renderer,retr_systems,
     all_topic_qids = topics["qid"].values
 
     assert topics is not None, "topics must be specified"
-    def make_eval_callback(batch_qrels: pd.DataFrame, backfill_qids):
+    def make_eval_callback(batch_qrels: pd.DataFrame, backfill_qids: pd.DataFrame) -> Callable:
     
         def callback(res: pd.DataFrame, sysid: int, cum_time: float):
             # Validate results
@@ -343,10 +350,16 @@ def tree_execution(renderer,retr_systems,
         # Track which qrels haven't been processed yet (for queries not in topics)
         # system_remaining_qrels = {sysid: set(qrels.query_id) for sysid in range(len(retr_systems))}
         
-        for batch_idx, topic_batch in enumerate(topic_batches):
-            if verbose:
-                print(f"Processing batch {batch_idx + 1}/{len(topic_batches)}")
+        iter_batch = enumerate(topic_batches)
+        
+        # display batch progress with tqdm if verbose
+        if verbose:
+            iter_batch = pt.tqdm(iter_batch, total=len(topic_batches), desc="Processing batches", unit="batch")
+        
+        for batch_idx, topic_batch in iter_batch:
             
+            tree.reset_status()  # Reset the visible execution state before each batch
+
             # Get the query IDs in this batch for backfilling
             batch_qids = set(topic_batch.qid)
             batch_qrels = qrels[qrels.query_id.isin(batch_qids)]
