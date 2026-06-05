@@ -2,6 +2,7 @@ import os
 import warnings
 import pandas as pd
 from typing import Union, Dict, Tuple, Sequence, Literal, Optional, overload, Any
+from warnings import warn
 
 from ._exec_linear import linear_execution
 from ._exec_tree import tree_execution
@@ -35,6 +36,7 @@ def Experiment(
         save_mode : SAVEMODE_TYPE = 'warn',
         save_format : SAVEFORMAT_TYPE = 'trec',
         precompute_prefix : bool = False,
+        plan : Literal['linear', 'tree'] = 'linear',
         **kwargs) -> pd.DataFrame:
     ...
 
@@ -63,6 +65,7 @@ def Experiment(
         save_mode : SAVEMODE_TYPE = 'warn',
         save_format : SAVEFORMAT_TYPE = 'trec',
         precompute_prefix : bool = False,
+        plan : Literal['linear', 'tree'] = 'linear',
         **kwargs) -> Dict[str,Any]:
     ...
 
@@ -91,6 +94,7 @@ def Experiment(
         save_mode : SAVEMODE_TYPE = 'warn',
         save_format : SAVEFORMAT_TYPE = 'trec',
         precompute_prefix : bool = False,
+        plan : Literal['linear', 'tree'] = 'linear',
         **kwargs) -> Tuple[pd.DataFrame,pd.DataFrame]:
     ...
 
@@ -119,6 +123,7 @@ def Experiment(
         save_mode : SAVEMODE_TYPE = 'warn',
         save_format : SAVEFORMAT_TYPE = 'trec',
         precompute_prefix : bool = False,
+        plan : Literal['linear', 'tree'] = 'linear',
         **kwargs) -> Tuple[Dict[str,Any], Dict[str,Any]]:
     ...
 
@@ -145,7 +150,7 @@ def Experiment(
         save_mode : SAVEMODE_TYPE = 'warn',
         save_format : SAVEFORMAT_TYPE = 'trec',
         precompute_prefix : bool = False,
-        plan : Union[Literal['linear'], Literal['tree']] = 'linear',
+        plan : Literal['linear', 'tree'] = 'linear',
         render_html : bool = False,
         **kwargs):
     """
@@ -199,8 +204,9 @@ def Experiment(
         if `highlight="color"` or `"colour"`, then the cell with the highest metric value will have a green background.
     :param round: How many decimal places to round each measure value to. This can also be a dictionary mapping measure name to number of decimal places.
         Default is None, which is no rounding.
-    :param precompute_prefix: If set to True, then pt.Experiment will look for a common prefix on all input pipelines, and execute that common prefix pipeline only once. 
-        This functionality assumes that the intermidiate results of the common prefix can fit in memory. Set to False by default.
+    :param plan: Whether to execute the experiment using a 'linear' or 'tree' execution plan. The linear plan executes each system sequentially, 
+        but does not allow for reuse of execution results between different systems. The tree plan identifies common prefixes between pipelines, 
+        and executes each unique prefix only once, allowing for more faster experiments. Default is 'linear'.
     :param verbose: If True, a tqdm progress bar is shown as systems (or systems*batches if batch_size is set) are executed. Default=False.
     :param validate: If set to value other than 'ignore', each transformer is validated against the topics dataframe, to ensure that it produces the expected output columns.
         ``pt.inspect.transformer_outputs()`` is used to determine the output columns. If 'warn', then transformers whose output columns don't match the columns required 
@@ -220,6 +226,10 @@ def Experiment(
         raise TypeError("Expected list or dict of transformers for retr_systems, instead received %s" % str(type(retr_systems)))
     elif isinstance(baseline, str):
         raise TypeError("baseline should be an int when retr_systems is a list")
+    
+    if precompute_prefix:
+        warn(
+            "precompute_prefix is deprecated. Use plan='tree' instead", DeprecationWarning, stacklevel=2)
 
     if len(kwargs):
         raise TypeError("Unknown kwargs: %s" % (str(list(kwargs.keys()))))
