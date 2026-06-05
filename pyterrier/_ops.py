@@ -188,6 +188,14 @@ class ScalarProduct(Transformer):
     def __repr__(self):
         return f'ScalarProduct({self.scalar!r})'
 
+    def __eq__(self, other):
+        if not isinstance(other, ScalarProduct):
+            return NotImplemented
+        return self.scalar == other.scalar
+
+    def __hash__(self):
+        return hash(('ScalarProduct', self.scalar))
+
 class RankCutoff(Transformer):
     """
         Filters the input by rank<k for each query in the input
@@ -203,14 +211,14 @@ class RankCutoff(Transformer):
 
     def __repr__(self):
         return f'RankCutoff({self.k!r})'
-    
+
     def __eq__(self, other):
         if not isinstance(other, RankCutoff):
             return NotImplemented
         return self.k == other.k
 
     def __hash__(self):
-        return hash((RankCutoff, self.k))
+        return hash(('RankCutoff', self.k))
 
     def schematic(self, *, input_columns = None): 
         return {'label': f'% {self.k}'}
@@ -348,6 +356,14 @@ class FeatureUnion(NAryTransformerBase):
     def __repr__(self):
         return '(' + ' ** '.join([str(t) for t in self._transformers]) + ')'
 
+    def __eq__(self, other):
+        if not isinstance(other, FeatureUnion):
+            return NotImplemented
+        return self._transformers == other._transformers
+
+    def __hash__(self):
+        return hash(('FeatureUnion', self._transformers))
+
 class Compose(NAryTransformerBase):
     """ 
         This class allows pipeline components to be chained together using the "then" operator.
@@ -414,6 +430,14 @@ class Compose(NAryTransformerBase):
 
     def __repr__(self):
         return '(' + ' >> '.join([str(t) for t in self._transformers]) + ')'
+
+    def __eq__(self, other):
+        if not isinstance(other, Compose):
+            return NotImplemented
+        return self._transformers == other._transformers
+
+    def __hash__(self):
+        return hash(('Compose', self._transformers))
 
     def compile(self, verbose: bool = False) -> Transformer:
         """Returns a new transformer that iteratively fuses adjacent transformers to form a more efficient pipeline."""

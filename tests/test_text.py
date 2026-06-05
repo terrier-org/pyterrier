@@ -1,4 +1,5 @@
 import pandas as pd
+import urllib
 import pyterrier as pt
 from .base import BaseTestCase
 import re
@@ -173,7 +174,12 @@ class TestText(BaseTestCase):
         except:
             self.skipTest("`transformers` not installed")
         
-        tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+        try:
+            tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+        except urllib.error.HTTPError as ex:
+            if ex.code != 429: 
+                raise
+            self.skipTest("HGF HTTP 429") # 429: too many requests ... can just ignore
         dfinput = pd.DataFrame([["q1", "a query", "doc1", "it's a sample document!"]], columns=["qid", "query", "docno", "body"])
         passager = pt.text.sliding(length=4, stride=3, prepend_attr=None, tokenizer=tokenizer)
         dfoutput = passager(dfinput)

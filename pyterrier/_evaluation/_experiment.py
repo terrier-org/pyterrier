@@ -1,4 +1,5 @@
 import os
+import warnings
 import pandas as pd
 from typing import Union, Dict, Tuple, Sequence, Literal, Optional, overload, Any
 
@@ -12,7 +13,7 @@ import pyterrier as pt
 # perquery: bool, dataframe:true
 @overload
 def Experiment(
-        retr_systems : Sequence[SYSTEM_OR_RESULTS_TYPE],
+        retr_systems : Union[Sequence[SYSTEM_OR_RESULTS_TYPE], Dict[str, SYSTEM_OR_RESULTS_TYPE]],
         topics : pd.DataFrame,
         qrels : pd.DataFrame,
         eval_metrics : MEASURES_TYPE,
@@ -22,7 +23,7 @@ def Experiment(
         batch_size : Optional[int] = None,
         filter_by_qrels : bool = False,
         filter_by_topics : bool = True,
-        baseline : Optional[int] = None,
+        baseline : Optional[Union[int, str]] = None,
         test : Union[str,TEST_FN_TYPE] = "t",
         correction : Optional[str] = None,
         correction_alpha : float = 0.05,
@@ -40,7 +41,7 @@ def Experiment(
 # perquery: bool, dataframe:False
 @overload
 def Experiment(
-        retr_systems : Sequence[SYSTEM_OR_RESULTS_TYPE],
+        retr_systems : Union[Sequence[SYSTEM_OR_RESULTS_TYPE], Dict[str, SYSTEM_OR_RESULTS_TYPE]],
         topics : pd.DataFrame,
         qrels : pd.DataFrame,
         eval_metrics : MEASURES_TYPE,
@@ -50,7 +51,7 @@ def Experiment(
         batch_size : Optional[int] = None,
         filter_by_qrels : bool = False,
         filter_by_topics : bool = True,
-        baseline : Optional[int] = None,
+        baseline : Optional[Union[int, str]] = None,
         test : Union[str,TEST_FN_TYPE] = "t",
         correction : Optional[str] = None,
         correction_alpha : float = 0.05,
@@ -68,7 +69,7 @@ def Experiment(
 # perquery: 'both', dataframe:True
 @overload
 def Experiment(
-        retr_systems : Sequence[SYSTEM_OR_RESULTS_TYPE],
+        retr_systems : Union[Sequence[SYSTEM_OR_RESULTS_TYPE], Dict[str, SYSTEM_OR_RESULTS_TYPE]],
         topics : pd.DataFrame,
         qrels : pd.DataFrame,
         eval_metrics : MEASURES_TYPE,
@@ -78,7 +79,7 @@ def Experiment(
         batch_size : Optional[int] = None,
         filter_by_qrels : bool = False,
         filter_by_topics : bool = True,
-        baseline : Optional[int] = None,
+        baseline : Optional[Union[int, str]] = None,
         test : Union[str,TEST_FN_TYPE] = "t",
         correction : Optional[str] = None,
         correction_alpha : float = 0.05,
@@ -96,7 +97,7 @@ def Experiment(
 # perquery: 'both', dataframe:False
 @overload
 def Experiment(
-        retr_systems : Sequence[SYSTEM_OR_RESULTS_TYPE],
+        retr_systems : Union[Sequence[SYSTEM_OR_RESULTS_TYPE], Dict[str, SYSTEM_OR_RESULTS_TYPE]],
         topics : pd.DataFrame,
         qrels : pd.DataFrame,
         eval_metrics : MEASURES_TYPE,
@@ -106,7 +107,7 @@ def Experiment(
         batch_size : Optional[int] = None,
         filter_by_qrels : bool = False,
         filter_by_topics : bool = True,
-        baseline : Optional[int] = None,
+        baseline : Optional[Union[int, str]] = None,
         test : Union[str,TEST_FN_TYPE] = "t",
         correction : Optional[str] = None,
         correction_alpha : float = 0.05,
@@ -122,7 +123,7 @@ def Experiment(
     ...
 
 def Experiment(
-        retr_systems : Sequence[SYSTEM_OR_RESULTS_TYPE],
+        retr_systems : Union[Sequence[SYSTEM_OR_RESULTS_TYPE], Dict[str, SYSTEM_OR_RESULTS_TYPE]],
         topics : pd.DataFrame,
         qrels : pd.DataFrame,
         eval_metrics : MEASURES_TYPE,
@@ -132,7 +133,7 @@ def Experiment(
         batch_size : Optional[int] = None,
         filter_by_qrels : bool = False,
         filter_by_topics : bool = True,
-        baseline : Optional[int] = None,
+        baseline : Optional[Union[int, str]] = None,
         test : Union[str,TEST_FN_TYPE] = "t",
         correction : Optional[str] = None,
         correction_alpha : float = 0.05,
@@ -154,12 +155,14 @@ def Experiment(
 
     :param retr_systems: A list of transformers to evaluate. If you already have the results for one 
         (or more) of your systems, a results dataframe can also be used here. Results produced by 
-        the transformers must have "qid", "docno", "score", "rank" columns.
+        the transformers must have "qid", "docno", "score", "rank" columns. A dict can also be provided,
+        in which case keys are used as system names and values are the systems/results.
     :param topics: Either a path to a topics file or a pandas.Dataframe with columns=['qid', 'query']
     :param qrels: Either a path to a qrels file or a pandas.Dataframe with columns=['qid','docno', 'label']   
     :param eval_metrics: Which evaluation metrics to use. E.g. ['map']
     :param names: List of names for each retrieval system when presenting the results.
         Default=None. If None: Obtains the `str()` representation of each transformer as its name.
+        Ignored when ``retr_systems`` is a dict.
     :param batch_size: If not None, evaluation is conducted in batches of batch_size topics. Default=None, which evaluates all topics at once. 
         Applying a batch_size is useful if you have large numbers of topics, and/or if your pipeline requires large amounts of temporary memory
         during a run.
@@ -169,6 +172,10 @@ def Experiment(
     :param save_dir: If set to the name of a directory, the results of each transformer will be saved in TREC-formatted results file, whose 
         filename is based on the systems names (as specified by ``names`` kwarg). If the file exists and ``save_mode`` is set to "reuse", then the file
         will be used for evaluation rather than the transformer. Default is None, such that saving and loading from files is disabled.
+        In addition, two CSV summary files are written to ``save_dir`` on every call: ``aggregated.csv`` (one row per system, one column per measure)
+        and ``perquery.csv`` (long-format table with columns ``name``, ``qid``, ``measure``, ``value``).
+        If either CSV already exists, rows for systems not in the current experiment are preserved, allowing results to accumulate
+        across multiple calls to ``pt.Experiment`` that each evaluate different subsets of systems.
     :param save_mode: Defines how existing files are used when ``save_dir`` is set. If set to "reuse", then files will be preferred
         over transformers for evaluation. If set to "overwrite", existing files will be replaced. If set to "warn" or "error", the presence of any 
         existing file will cause a warning or error, respectively. Default is "warn".
@@ -178,6 +185,7 @@ def Experiment(
     :param dataframe: If True return results as a dataframe, else as a dictionary of dictionaries. Default=True.
     :param baseline: If set to the index of an item of the retr_system list, will calculate the number of queries 
         improved, degraded and the statistical significance (paired t-test p value) for each measure.
+        When ``retr_systems`` is a dict, baseline can also be a system name (dict key).
         Default=None: If None, no additional columns will be added for each measure.
     :param test: Which significance testing approach to apply. Defaults to "t". Alternatives are "wilcoxon" - not typically used for IR experiments. A Callable can also be passed - it should
         follow the specification of `scipy.stats.ttest_rel() <https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.ttest_rel.html>`_, 
@@ -201,8 +209,17 @@ def Experiment(
     :return: A Dataframe/dict with each retrieval system with each metric evaluated, or alternatively a tuple with averages and perquery results. 
     """
     
-    if not isinstance(retr_systems, list):
-        raise TypeError("Expected list of transformers for retr_systems, instead received %s" % str(type(retr_systems)))
+    if isinstance(retr_systems, dict):
+        names = list(retr_systems.keys())
+        retr_systems = list(retr_systems.values())
+        if isinstance(baseline, str):
+            if baseline not in names:
+                raise ValueError(f"Unknown baseline '{baseline}'. Valid options are: {', '.join(names)}")
+            baseline = names.index(baseline)
+    elif not isinstance(retr_systems, list):
+        raise TypeError("Expected list or dict of transformers for retr_systems, instead received %s" % str(type(retr_systems)))
+    elif isinstance(baseline, str):
+        raise TypeError("baseline should be an int when retr_systems is a list")
 
     if len(kwargs):
         raise TypeError("Unknown kwargs: %s" % (str(list(kwargs.keys()))))
@@ -298,6 +315,41 @@ def Experiment(
     else:
         linear_execution(renderer, retr_systems, topics, qrels, eval_metrics, names, precompute_prefix, verbose, save_dir, save_mode, save_format, batch_size, perquery)
 
+
+    if save_dir is not None:
+        # always save aggregated and per-query results as CSV files regardless of perquery setting
+        current_names_set = set(names)
+        aggregated_path = os.path.join(save_dir, "aggregated.csv")
+        perquery_path = os.path.join(save_dir, "perquery.csv")
+
+        new_agg = renderer.averages(dataframe=True, mrt_needed=mrt_needed)
+        new_pq = renderer.perquery(dataframe=True)
+
+        # preserve rows for runs that exist in save_dir but are not part of the current experiment
+        if os.path.exists(aggregated_path):
+            old_agg = pd.read_csv(aggregated_path)
+            old_cols = set(old_agg.columns)
+            new_cols = set(new_agg.columns)
+            if old_cols != new_cols:
+                warnings.warn(
+                    f"Evaluation measures differ between the existing '{aggregated_path}' "
+                    f"(columns: {', '.join(sorted(old_cols))}) and the current run "
+                    f"(columns: {', '.join(sorted(new_cols))}). "
+                    "Missing values will be filled with NaN.",
+                    stacklevel=2,
+                )
+            old_agg = old_agg[~old_agg["name"].isin(current_names_set)]
+            if not old_agg.empty:
+                new_agg = pd.concat([new_agg, old_agg], ignore_index=True)
+
+        if os.path.exists(perquery_path):
+            old_pq = pd.read_csv(perquery_path)
+            old_pq = old_pq[~old_pq["name"].isin(current_names_set)]
+            if not old_pq.empty:
+                new_pq = pd.concat([new_pq, old_pq], ignore_index=True)
+
+        new_agg.to_csv(aggregated_path, index=False)
+        new_pq.to_csv(perquery_path, index=False)
 
     if not perquery:
         return renderer.averages(dataframe=dataframe, highlight=highlight, mrt_needed=mrt_needed)

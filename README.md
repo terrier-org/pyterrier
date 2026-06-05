@@ -85,7 +85,7 @@ By downloading and using PyTerrier, you agree to cite at the undernoted paper de
 ```bibtex
 @inproceedings{pyterrier2020ictir,
     author = {Craig Macdonald and Nicola Tonellotto},
-    title = {Declarative Experimentation inInformation Retrieval using PyTerrier},
+    title = {Declarative Experimentation in Information Retrieval using PyTerrier},
     booktitle = {Proceedings of ICTIR 2020},
     year = {2020}
 }

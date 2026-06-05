@@ -289,6 +289,58 @@ class TestExperiment(TempDirTestCase):
                 # a successful experiment using save_dir should be faster
                 self.assertTrue(df2.iloc[0]["mrt"] < df1.iloc[0]["mrt"])
         
+    def test_save_csv(self):
+        index = self._vaswani_index()
+        brs = [
+            pt.terrier.Retriever(index, wmodel="DPH"),
+            pt.terrier.Retriever(index, wmodel="BM25")
+        ]
+        topics = pt.datasets.get_dataset("vaswani").get_topics().head(10)
+        qrels = pt.datasets.get_dataset("vaswani").get_qrels()
+
+        pt.Experiment(brs, topics, qrels, eval_metrics=["map"], save_dir=self.test_dir, names=["DPH", "BM25"])
+
+        aggregated_path = os.path.join(self.test_dir, "aggregated.csv")
+        perquery_path = os.path.join(self.test_dir, "perquery.csv")
+
+        self.assertTrue(os.path.exists(aggregated_path), "aggregated.csv not found")
+        self.assertTrue(os.path.exists(perquery_path), "perquery.csv not found")
+
+        agg_df = pd.read_csv(aggregated_path)
+        self.assertEqual(2, len(agg_df), "aggregated.csv should have one row per system")
+        self.assertIn("name", agg_df.columns)
+        self.assertIn("map", agg_df.columns)
+        self.assertEqual({"DPH", "BM25"}, set(agg_df["name"].tolist()))
+
+        pq_df = pd.read_csv(perquery_path)
+        self.assertIn("name", pq_df.columns)
+        self.assertIn("qid", pq_df.columns)
+        self.assertIn("measure", pq_df.columns)
+        self.assertIn("value", pq_df.columns)
+        # 2 systems × 10 topics × 1 measure = 20 rows
+        self.assertEqual(20, len(pq_df))
+
+        # Run a second experiment with only PL2; DPH and BM25 rows from the first run must be preserved
+        pl2 = pt.terrier.Retriever(index, wmodel="PL2")
+        pt.Experiment([pl2], topics, qrels, eval_metrics=["map"], save_dir=self.test_dir, names=["PL2"])
+
+        agg_df2 = pd.read_csv(aggregated_path)
+        # all three systems should now appear
+        self.assertEqual(3, len(agg_df2), "aggregated.csv should retain rows from previous runs")
+        self.assertEqual({"DPH", "BM25", "PL2"}, set(agg_df2["name"].tolist()))
+
+        pq_df2 = pd.read_csv(perquery_path)
+        # 3 systems × 10 topics × 1 measure = 30 rows
+        self.assertEqual(30, len(pq_df2))
+        self.assertEqual({"DPH", "BM25", "PL2"}, set(pq_df2["name"].tolist()))
+
+        # Running BM25 again should update its row, not duplicate it
+        pt.Experiment([brs[1]], topics, qrels, eval_metrics=["map"], save_dir=self.test_dir, names=["BM25"], save_mode="overwrite")
+
+        agg_df3 = pd.read_csv(aggregated_path)
+        self.assertEqual(3, len(agg_df3), "re-running BM25 must not create duplicate rows")
+        self.assertEqual({"DPH", "BM25", "PL2"}, set(agg_df3["name"].tolist()))
+
     def test_empty(self):
         df1 = pt.new.ranked_documents([[1]]).head(0)
         t1 = pt.Transformer.from_df(df1)
@@ -358,6 +410,26 @@ class TestExperiment(TempDirTestCase):
         self.assertEqual(measures.iloc[1]["map"], 0.5)
         self.assertEqual(measures.iloc[1]["map +"], 0)
         self.assertEqual(measures.iloc[1]["map -"], 0)
+
+    def test_dict_retr_systems(self):
+        topics = pd.DataFrame([["q1", "q1"], ["q2", "q1"]], columns=["qid", "query"])
+        res1 = pd.DataFrame([["q2", "d1", 2.0], ["q1", "d1", 1.0]], columns=["qid", "docno", "score"])
+        res2 = pd.DataFrame([["q1", "d1", 1.0], ["q2", "d1", 2.0]], columns=["qid", "docno", "score"])
+        qrels = pd.DataFrame([["q1", "d1", 1], ["q2", "d3", 1]], columns=["qid", "docno", "label"])
+        runs = {
+            "bm25": pt.Transformer.from_df(res1, uniform=True),
+            "dph": pt.Transformer.from_df(res2, uniform=True),
+        }
+
+        measures = pt.Experiment(runs, topics, qrels, ["map"], baseline="bm25", names=["ignored"])
+        self.assertEqual(["bm25", "dph"], measures["name"].tolist())
+        self.assertEqual(measures.iloc[0]["map"], 0.5)
+        self.assertEqual(measures.iloc[1]["map"], 0.5)
+        self.assertEqual(measures.iloc[1]["map +"], 0)
+        self.assertEqual(measures.iloc[1]["map -"], 0)
+
+        with self.assertRaises(ValueError):
+            pt.Experiment(runs, topics, qrels, ["map"], baseline="unknown")
 
     def test_one_row(self):
         from pyterrier.measures import NumQ
