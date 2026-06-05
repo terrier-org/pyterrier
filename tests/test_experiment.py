@@ -411,6 +411,26 @@ class TestExperiment(TempDirTestCase):
         self.assertEqual(measures.iloc[1]["map +"], 0)
         self.assertEqual(measures.iloc[1]["map -"], 0)
 
+    def test_dict_retr_systems(self):
+        topics = pd.DataFrame([["q1", "q1"], ["q2", "q1"]], columns=["qid", "query"])
+        res1 = pd.DataFrame([["q2", "d1", 2.0], ["q1", "d1", 1.0]], columns=["qid", "docno", "score"])
+        res2 = pd.DataFrame([["q1", "d1", 1.0], ["q2", "d1", 2.0]], columns=["qid", "docno", "score"])
+        qrels = pd.DataFrame([["q1", "d1", 1], ["q2", "d3", 1]], columns=["qid", "docno", "label"])
+        runs = {
+            "bm25": pt.Transformer.from_df(res1, uniform=True),
+            "dph": pt.Transformer.from_df(res2, uniform=True),
+        }
+
+        measures = pt.Experiment(runs, topics, qrels, ["map"], baseline="bm25", names=["ignored"])
+        self.assertEqual(["bm25", "dph"], measures["name"].tolist())
+        self.assertEqual(measures.iloc[0]["map"], 0.5)
+        self.assertEqual(measures.iloc[1]["map"], 0.5)
+        self.assertEqual(measures.iloc[1]["map +"], 0)
+        self.assertEqual(measures.iloc[1]["map -"], 0)
+
+        with self.assertRaises(ValueError):
+            pt.Experiment(runs, topics, qrels, ["map"], baseline="unknown")
+
     def test_one_row(self):
         from pyterrier.measures import NumQ
         vaswani = pt.datasets.get_dataset("vaswani")

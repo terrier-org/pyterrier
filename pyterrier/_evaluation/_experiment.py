@@ -13,7 +13,7 @@ import pyterrier as pt
 # perquery: bool, dataframe:true
 @overload
 def Experiment(
-        retr_systems : Sequence[SYSTEM_OR_RESULTS_TYPE],
+        retr_systems : Union[Sequence[SYSTEM_OR_RESULTS_TYPE], Dict[str, SYSTEM_OR_RESULTS_TYPE]],
         topics : pd.DataFrame,
         qrels : pd.DataFrame,
         eval_metrics : MEASURES_TYPE,
@@ -23,7 +23,7 @@ def Experiment(
         batch_size : Optional[int] = None,
         filter_by_qrels : bool = False,
         filter_by_topics : bool = True,
-        baseline : Optional[int] = None,
+        baseline : Optional[Union[int, str]] = None,
         test : Union[str,TEST_FN_TYPE] = "t",
         correction : Optional[str] = None,
         correction_alpha : float = 0.05,
@@ -41,7 +41,7 @@ def Experiment(
 # perquery: bool, dataframe:False
 @overload
 def Experiment(
-        retr_systems : Sequence[SYSTEM_OR_RESULTS_TYPE],
+        retr_systems : Union[Sequence[SYSTEM_OR_RESULTS_TYPE], Dict[str, SYSTEM_OR_RESULTS_TYPE]],
         topics : pd.DataFrame,
         qrels : pd.DataFrame,
         eval_metrics : MEASURES_TYPE,
@@ -51,7 +51,7 @@ def Experiment(
         batch_size : Optional[int] = None,
         filter_by_qrels : bool = False,
         filter_by_topics : bool = True,
-        baseline : Optional[int] = None,
+        baseline : Optional[Union[int, str]] = None,
         test : Union[str,TEST_FN_TYPE] = "t",
         correction : Optional[str] = None,
         correction_alpha : float = 0.05,
@@ -69,7 +69,7 @@ def Experiment(
 # perquery: 'both', dataframe:True
 @overload
 def Experiment(
-        retr_systems : Sequence[SYSTEM_OR_RESULTS_TYPE],
+        retr_systems : Union[Sequence[SYSTEM_OR_RESULTS_TYPE], Dict[str, SYSTEM_OR_RESULTS_TYPE]],
         topics : pd.DataFrame,
         qrels : pd.DataFrame,
         eval_metrics : MEASURES_TYPE,
@@ -79,7 +79,7 @@ def Experiment(
         batch_size : Optional[int] = None,
         filter_by_qrels : bool = False,
         filter_by_topics : bool = True,
-        baseline : Optional[int] = None,
+        baseline : Optional[Union[int, str]] = None,
         test : Union[str,TEST_FN_TYPE] = "t",
         correction : Optional[str] = None,
         correction_alpha : float = 0.05,
@@ -97,7 +97,7 @@ def Experiment(
 # perquery: 'both', dataframe:False
 @overload
 def Experiment(
-        retr_systems : Sequence[SYSTEM_OR_RESULTS_TYPE],
+        retr_systems : Union[Sequence[SYSTEM_OR_RESULTS_TYPE], Dict[str, SYSTEM_OR_RESULTS_TYPE]],
         topics : pd.DataFrame,
         qrels : pd.DataFrame,
         eval_metrics : MEASURES_TYPE,
@@ -107,7 +107,7 @@ def Experiment(
         batch_size : Optional[int] = None,
         filter_by_qrels : bool = False,
         filter_by_topics : bool = True,
-        baseline : Optional[int] = None,
+        baseline : Optional[Union[int, str]] = None,
         test : Union[str,TEST_FN_TYPE] = "t",
         correction : Optional[str] = None,
         correction_alpha : float = 0.05,
@@ -123,7 +123,7 @@ def Experiment(
     ...
 
 def Experiment(
-        retr_systems : Sequence[SYSTEM_OR_RESULTS_TYPE],
+        retr_systems : Union[Sequence[SYSTEM_OR_RESULTS_TYPE], Dict[str, SYSTEM_OR_RESULTS_TYPE]],
         topics : pd.DataFrame,
         qrels : pd.DataFrame,
         eval_metrics : MEASURES_TYPE,
@@ -133,7 +133,7 @@ def Experiment(
         batch_size : Optional[int] = None,
         filter_by_qrels : bool = False,
         filter_by_topics : bool = True,
-        baseline : Optional[int] = None,
+        baseline : Optional[Union[int, str]] = None,
         test : Union[str,TEST_FN_TYPE] = "t",
         correction : Optional[str] = None,
         correction_alpha : float = 0.05,
@@ -153,12 +153,14 @@ def Experiment(
 
     :param retr_systems: A list of transformers to evaluate. If you already have the results for one 
         (or more) of your systems, a results dataframe can also be used here. Results produced by 
-        the transformers must have "qid", "docno", "score", "rank" columns.
+        the transformers must have "qid", "docno", "score", "rank" columns. A dict can also be provided,
+        in which case keys are used as system names and values are the systems/results.
     :param topics: Either a path to a topics file or a pandas.Dataframe with columns=['qid', 'query']
     :param qrels: Either a path to a qrels file or a pandas.Dataframe with columns=['qid','docno', 'label']   
     :param eval_metrics: Which evaluation metrics to use. E.g. ['map']
     :param names: List of names for each retrieval system when presenting the results.
         Default=None. If None: Obtains the `str()` representation of each transformer as its name.
+        Ignored when ``retr_systems`` is a dict.
     :param batch_size: If not None, evaluation is conducted in batches of batch_size topics. Default=None, which evaluates all topics at once. 
         Applying a batch_size is useful if you have large numbers of topics, and/or if your pipeline requires large amounts of temporary memory
         during a run.
@@ -181,6 +183,7 @@ def Experiment(
     :param dataframe: If True return results as a dataframe, else as a dictionary of dictionaries. Default=True.
     :param baseline: If set to the index of an item of the retr_system list, will calculate the number of queries 
         improved, degraded and the statistical significance (paired t-test p value) for each measure.
+        When ``retr_systems`` is a dict, baseline can also be a system name (dict key).
         Default=None: If None, no additional columns will be added for each measure.
     :param test: Which significance testing approach to apply. Defaults to "t". Alternatives are "wilcoxon" - not typically used for IR experiments. A Callable can also be passed - it should
         follow the specification of `scipy.stats.ttest_rel() <https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.ttest_rel.html>`_, 
@@ -204,8 +207,17 @@ def Experiment(
     :return: A Dataframe/dict with each retrieval system with each metric evaluated, or alternatively a tuple with averages and perquery results. 
     """
     
-    if not isinstance(retr_systems, list):
-        raise TypeError("Expected list of transformers for retr_systems, instead received %s" % str(type(retr_systems)))
+    if isinstance(retr_systems, dict):
+        names = list(retr_systems.keys())
+        retr_systems = list(retr_systems.values())
+        if isinstance(baseline, str):
+            if baseline not in names:
+                raise ValueError(f"Unknown baseline '{baseline}'. Valid options are: {', '.join(names)}")
+            baseline = names.index(baseline)
+    elif not isinstance(retr_systems, list):
+        raise TypeError("Expected list or dict of transformers for retr_systems, instead received %s" % str(type(retr_systems)))
+    elif isinstance(baseline, str):
+        raise TypeError("baseline should be an int when retr_systems is a list")
 
     if len(kwargs):
         raise TypeError("Unknown kwargs: %s" % (str(list(kwargs.keys()))))

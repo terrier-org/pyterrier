@@ -61,6 +61,16 @@ This produces dataframes that are more easily interpretable.
 
 .. include:: ./_includes/experiment-names.rst
 
+You can also provide systems as a dictionary, where keys are used as system names and can be referenced directly as the baseline::
+
+    pt.Experiment(
+        {"TF_IDF": tfidf, "BM25": bm25},
+        dataset.get_topics(),
+        dataset.get_qrels(),
+        eval_metrics=["map", "recip_rank"],
+        baseline="TF_IDF",
+    )
+
 We can also reduce the number of decimal places reported using the `round=` kwarg, as follows::
 
     pt.Experiment(
@@ -92,6 +102,16 @@ e.g. `baseline=0`::
         eval_metrics=["map", "recip_rank"],
         names=["TF_IDF", "BM25"],
         baseline=0
+    )
+
+If the systems are provided as a dictionary, the keys are used as system names and the baseline can be specified by key::
+
+    pt.Experiment(
+        {"TF_IDF": tfidf, "BM25": bm25},
+        dataset.get_topics(),
+        dataset.get_qrels(),
+        eval_metrics=["map", "recip_rank"],
+        baseline="TF_IDF",
     )
 
 In this case, additional columns are returned for each measure, indicating 
