@@ -144,7 +144,7 @@ def Experiment(
         save_dir : Optional[str] = None,
         save_mode : SAVEMODE_TYPE = 'warn',
         save_format : SAVEFORMAT_TYPE = 'trec',
-        precompute_prefix : bool = True,
+        precompute_prefix : bool = False,
         plan : Union[Literal['linear'], Literal['tree']] = 'linear',
         render_html : bool = False,
         **kwargs):

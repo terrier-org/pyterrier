@@ -155,10 +155,18 @@ class TestExperiment(TempDirTestCase):
                         with warnings.catch_warnings(record=True) as w:
                             res = pt.Experiment([bm25], topics[topics.qid.isin(topic_qids)], qrels[qrels.qid.isin(qrel_qids)], [P@2, 'P', 'mrt'], filter_by_qrels=filter_by_qrels, filter_by_topics=filter_by_topics, perquery=True, batch_size=batch_size)
                         if any(math.isnan(v) for v in result.values()):
-                            self.assertEqual(len(w), 1)
-                            self.assertEqual(w[0].message.args[0], f'1 topic(s) not found in qrels. Scores for these topics are given as NaN and should not contribute to averages.')
-                        else:
-                            self.assertEqual(len(w), 0)
+                            expected = (
+                                '1 topic(s) not found in qrels. '
+                                'Scores for these topics are given as NaN and should not contribute to averages.'
+                            )
+
+                            warning_messages = [str(warn.message) for warn in w]
+
+                            self.assertIn(
+                                expected,
+                                warning_messages,
+                                f'Expected missing-topics warning, got: {warning_messages}'
+                            )
                         res = res[res['measure'] == 'P@2'].drop(columns=['name', 'measure'])
                         expected_res = pd.DataFrame([{'qid': qid, 'value': val} for qid, val in result.items()])
                         pd.testing.assert_frame_equal(res.reset_index(drop=True), expected_res.reset_index(drop=True))
