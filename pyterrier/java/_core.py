@@ -5,7 +5,7 @@ from pyterrier.java import required_raise, required, before_init, started, maven
 from typing import Optional
 import pyterrier as pt
 
-_min_colab_jdk_version = 11
+_min_jdk_version = 11
 _stdout_ref = None
 _stderr_ref = None
 
@@ -32,10 +32,10 @@ class ColabJavaInit(JavaInitializer):
         
         import shutil
         # detect java on the PATH
-        pkg = _java_version_to_package(_min_colab_jdk_version)
+        pkg = _java_version_to_package(_min_jdk_version)
         if shutil.which("java") is not None:
             java_version = get_java_version()
-            if Version(java_version) >= Version(str(_min_colab_jdk_version)):
+            if Version(java_version) >= Version(str(_min_jdk_version)):
                 # java is present and of a new enough version, no need to install
                 return
             print(f"This Colab has old Java ({java_version}) - installing {pkg}, please wait")
@@ -114,6 +114,10 @@ class CoreJavaInit(JavaInitializer):
         java_version = pt.java.J.System.getProperty("java.version")
         if java_version.startswith("1.") or java_version.startswith("9."):
             raise RuntimeError(f"Pyterrier requires Java 11 or newer, we only found Java version {java_version};"
+                + " install a more recent Java, or change os.environ['JAVA_HOME'] to point to the proper Java installation")
+        
+        if Version(java_version) < Version(str(_min_jdk_version)):
+            raise RuntimeError(f"Pyterrier requires Java {_min_jdk_version} or newer, we only found Java version {java_version};"
                 + " install a more recent Java, or change os.environ['JAVA_HOME'] to point to the proper Java installation")
 
         jnius.protocol_map['java.util.Map$Entry'] = {
@@ -281,6 +285,17 @@ def set_java_home(java_home: str):
     Note that you can achieve the same outcome by setting the `JAVA_HOME` environment variable.
     """
     configure['java_home'] = java_home
+
+@before_init
+def set_min_java_version(version: int):
+    """
+    Sets the minimum Java version required to run PyTerrier. 
+
+    On Colab, if the detected Java version is lower than this, an attempt will be made to install a more recent Java using apt-get. On other platforms, an error will be raised if the detected Java version is lower than this.
+    The default minimum version is 11.
+    """
+    global _min_jdk_version
+    _min_jdk_version = version
 
 def set_log_level(level):
     """
