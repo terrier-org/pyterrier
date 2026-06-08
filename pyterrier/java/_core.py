@@ -23,7 +23,7 @@ class ColabJavaInit(JavaInitializer):
     def pre_init(self, jnius_config):
 
         def _java_version_to_package(ver : int) -> str:
-            return "openjdk-{ver}-jdk-headless"
+            return f"openjdk-{ver}-jdk-headless"
 
         import sys
         # detect colab
@@ -38,7 +38,7 @@ class ColabJavaInit(JavaInitializer):
             if Version(java_version) >= Version(str(_min_colab_jdk_version)):
                 # java is present and of a new enough version, no need to install
                 return
-            print(f"This Colab has old Java - installing {pkg}, please wait")
+            print(f"This Colab has old Java ({java_version}) - installing {pkg}, please wait")
         else:
             print(f"This Colab is missing Java - installing {pkg}, please wait")
         
