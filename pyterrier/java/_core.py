@@ -321,6 +321,7 @@ J = JavaClasses(
 # Helper methods
 # ----------------------------------------------------------
 def get_java_version():
+    import subprocess
     try:
         result = subprocess.run(
             ["java", "-version"],
