@@ -38,9 +38,9 @@ class ColabJavaInit(JavaInitializer):
             if Version(java_version) >= Version(str(_min_jdk_version)):
                 # java is present and of a new enough version, no need to install
                 return
-            print(f"This Colab has old Java ({java_version}) - installing {pkg}, please wait")
+            print(f"⚠️ This Colab has old Java ({java_version}) - installing {pkg}, please wait")
         else:
-            print(f"This Colab is missing Java - installing {pkg}, please wait")
+            print(f"⚠️ This Colab is missing Java - installing {pkg}, please wait")
         
         import subprocess
         import os
