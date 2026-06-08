@@ -1,10 +1,11 @@
 import os
 import sys
+from packaging.version import Version
 from pyterrier.java import required_raise, required, before_init, started, mavenresolver, JavaClasses, JavaInitializer, register_config
 from typing import Optional
 import pyterrier as pt
 
-_min_colab_jdk = "openjdk-11-jdk-headless"
+_min_colab_jdk_version = 11
 _stdout_ref = None
 _stderr_ref = None
 
@@ -20,23 +21,34 @@ class ColabJavaInit(JavaInitializer):
         return -101 # run this initializer before CoreJavaInit
     
     def pre_init(self, jnius_config):
+
+        def _java_version_to_package(ver : int) -> str:
+            return "openjdk-{ver}-jdk-headless"
+
         import sys
         # detect colab
         if 'google.colab' not in sys.modules:
             return
+        
         import shutil
         # detect java on the PATH
+        pkg = _java_version_to_package(_min_colab_jdk_version)
         if shutil.which("java") is not None:
-            return
-        print(f"This Colab is missing Java - installing {_min_colab_jdk}, please wait")
+            java_version = get_java_version()
+            if Version(java_version) >= Version(str(_min_colab_jdk_version)):
+                # java is present and of a new enough version, no need to install
+                return
+            print(f"This Colab has old Java - installing {pkg}, please wait")
+        else:
+            print(f"This Colab is missing Java - installing {pkg}, please wait")
+        
         import subprocess
         import os
-
         cmd = [
             "apt-get", 
             "install", 
             "-y", 
-            _min_colab_jdk,
+            pkg,
             "--option=Dpkg::Progress-Fancy=1",
             "--option=APT::Color=1"
         ]
@@ -57,9 +69,9 @@ class ColabJavaInit(JavaInitializer):
         process.wait()
         # ✅ Check exit status
         if process.returncode == 0:
-            print(f"\n✅ apt-get install of {_min_colab_jdk} completed successfully.")
+            print(f"\n✅ apt-get install of {pkg} completed successfully.")
         else:
-            print(f"\n❌ apt-get install of {_min_colab_jdk} failed with exit code {process.returncode}.")
+            print(f"\n❌ apt-get install of {pkg} failed with exit code {process.returncode}.")
 
 class CoreJavaInit(JavaInitializer):
     def priority(self) -> int:
@@ -304,3 +316,26 @@ J = JavaClasses(
     String = 'java.lang.String',
     List = 'java.util.List',
 )
+
+# ----------------------------------------------------------
+# Helper methods
+# ----------------------------------------------------------
+def get_java_version():
+    try:
+        result = subprocess.run(
+            ["java", "-version"],
+            capture_output=True,
+            text=True
+        )
+
+        # Java prints version info to stderr
+        output = result.stderr
+
+        match = re.search(r'"([^"]+)"', output)
+        if match:
+            return match.group(1)
+
+        return "Version not found"
+
+    except FileNotFoundError:
+        return "Java is not installed or not in PATH"
