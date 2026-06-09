@@ -237,7 +237,7 @@ def _run_and_evaluate(
                     s_metric = rev_mapping.get(metric, str(metric))
                     aggregators[s_metric].add(evalMeasuresDict[q][s_metric]) #type: ignore
             evalMeasuresDict = {m: agg.result() for m, agg in aggregators.items()}
-    return (runtime, evalMeasuresDict)
+    return (runtime / num_q if num_q > 0 else 0., evalMeasuresDict)
 
 
 def _identifyCommon(pipes : List[Union[pt.Transformer, pd.DataFrame]]) -> Tuple[Optional[pt.Transformer], List[Union[pt.Transformer,pd.DataFrame]]]:
