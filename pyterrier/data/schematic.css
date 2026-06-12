@@ -208,7 +208,7 @@
     align-items: center;
     align-content: stretch;
     overflow-x: auto;
-    min-height: 29px;
+    min-height: 50px;
 }
 #ID .pts-pipeline > * {
     flex-shrink: 0;
@@ -219,7 +219,8 @@
     display: inline-block;
     position: relative;
     color: var(--pts-fg);
-    background: rgba(66, 153, 225, 0.3);
+    /* background: rgba(66, 153, 225, 0.3); */
+    background: var(--pts-node-bg, rgba(66, 153, 225, 0.3));
     box-sizing: border-box;
     padding: 4px 18px;
     clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 0 100%, 16px 50%);
@@ -334,4 +335,19 @@
     /* links don't work in vscode, so pretend they don't exist */
     color: inherit;
     text-decoration: none;
+}
+
+
+/* change colors acc to status */
+#ID .pts-transformer.pts-pending {
+    --pts-node-bg: rgba(220, 38, 38, 0.6); /* red */
+}
+
+#ID .pts-transformer.pts-running {
+    --pts-node-bg: rgba(250, 204, 21, 0.7); /* yellow */
+    color: #000;
+}
+
+#ID .pts-transformer.pts-done {
+    --pts-node-bg: rgba(22, 163, 74, 0.6); /* green */
 }
