@@ -117,6 +117,7 @@ class CoreJavaInit(JavaInitializer):
         if java_version.startswith("1.") or java_version.startswith("9."):
             raise RuntimeError(f"Pyterrier requires Java 11 or newer, we only found Java version {java_version};"
                 + " install a more recent Java, or change os.environ['JAVA_HOME'] to point to the proper Java installation")
+        import re
         java_version = re.sub(r'[-_].*$', '', java_version)
         
         if Version(java_version) < Version(str(_min_jdk_version)):
