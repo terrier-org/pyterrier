@@ -31,6 +31,7 @@ class ColabJavaInit(JavaInitializer):
             return
         
         import shutil
+        import re
         # detect java on the PATH
         pkg = _java_version_to_package(_min_jdk_version)
         if shutil.which("java") is not None:
