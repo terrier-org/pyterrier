@@ -35,6 +35,7 @@ class ColabJavaInit(JavaInitializer):
         pkg = _java_version_to_package(_min_jdk_version)
         if shutil.which("java") is not None:
             java_version = get_java_version()
+            java_version = re.sub(r'[-_].*$', '', java_version)
             if Version(java_version) >= Version(str(_min_jdk_version)):
                 # java is present and of a new enough version, no need to install
                 return
@@ -115,6 +116,7 @@ class CoreJavaInit(JavaInitializer):
         if java_version.startswith("1.") or java_version.startswith("9."):
             raise RuntimeError(f"Pyterrier requires Java 11 or newer, we only found Java version {java_version};"
                 + " install a more recent Java, or change os.environ['JAVA_HOME'] to point to the proper Java installation")
+        java_version = re.sub(r'[-_].*$', '', java_version)
         
         if Version(java_version) < Version(str(_min_jdk_version)):
             raise RuntimeError(f"Pyterrier requires Java {_min_jdk_version} or newer, we only found Java version {java_version};"
