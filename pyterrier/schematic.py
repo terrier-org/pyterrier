@@ -1,6 +1,7 @@
 
 from copy import copy
 import html
+from pprint import pprint
 import uuid
 from importlib import resources
 from typing import Any, Dict, List, Optional, Protocol, Union, cast, runtime_checkable
@@ -35,6 +36,8 @@ def radix_tree_schematic(tree, input_columns=None):
             self_schem['node_id'] = node.node_id
             # node.value -> evaluation index, node.children -> whether it's a leaf node or not
             self_schem['is_last'] = node.value is not None and not bool(node.children)
+            # if self_schem['type'] == 'transformer' and node.value is not None and self_schem.get('mode') != 'branch' :
+            #     self_schem['outer_class'] = 'inner-pipeline'  # Mark as inner pipeline if it has a value (evaluation index)
             # self_schem['is_last'] = bool(node.is_end_of_pipeline) and not bool(node.children)
 
         node_dict = {
@@ -42,7 +45,10 @@ def radix_tree_schematic(tree, input_columns=None):
             "children": children,
             "self": self_schem,
         }
-        if children and node.value is None:
+        # Mark as a branch only when there is more than one child. Single-child
+        # paths should remain linear so shared prefixes render as a straight
+        # pipeline (e.g. BM25%10 -> PL2 -> ...).
+        if len(children) > 1:
             node_dict["mode"] = "branch"
         return node_dict
 
@@ -344,9 +350,11 @@ def draw_radix_html_schematic(radix_schematic, outer_class='outer') -> str:
         else:
             # Linear or single node: render as before (no short hline after vline)
             for i, node in enumerate(radix_schematic['nodes']):
+
                 new = {}
                 # pprint(node)
                 record = node['self']
+                # print(node.get('mode','hello'))
                 if node.get('mode','') == 'branch':
                     if record['type'] == 'pipeline':
 
@@ -358,31 +366,39 @@ def draw_radix_html_schematic(radix_schematic, outer_class='outer') -> str:
                         # outer_class can be anything except 'outer' 
                         result += draw_radix_html_schematic(pipe_tree, outer_class='inner')
                     else:
-                        result+= draw_radix_html_schematic(record, outer_class='')
-
+                        # Transformer node with branches - mark as last node before branching
+                        result += render_node(record, is_last=False)
+                    
                     new['nodes'] = node['children']
                     new['type'] = 'tree'
                     new['mode'] = 'branch'
-                    result += draw_radix_html_schematic(new, outer_class='inner')
+                    result += draw_radix_html_schematic(new, outer_class='inner-pipeline')
                     result += '</div>'
                     continue
 
                               
                 if record['type'] == 'pipeline':
-
+                    # Render the pipeline transformers (works with or without children)
                     pipe_tree = {
                         'type': 'tree',
                         'input_columns': record.get('input_columns', []),
                         'nodes': [{'self': t, 'type' : 'node'} for t in record.get('transformers', [])]
                     }
-                    # outer_class can be anything except 'outer' 
                     result += draw_radix_html_schematic(pipe_tree, outer_class='inner')
+                    # If this pipeline has children, render them as branches
+                    if node.get('children', []) != []:
+                        new = {}
+                        new['nodes'] = node['children']
+                        new['type'] = 'tree'
+                        new['mode'] = 'linear'
+                        result += draw_radix_html_schematic(new, outer_class='inner')
+                        result += '</div>'
                 elif node.get('children', []) != []:
                     result+= render_node(record, is_last = record['is_last'])
                     new['nodes'] = node['children']
                     new['type'] = 'tree'
                     new['mode'] = 'linear'
-                    result += draw_radix_html_schematic(new, outer_class='inner')
+                    result += draw_radix_html_schematic(new, outer_class='inner-pipeline')
                     result += '</div>'
                 
                 else:
