@@ -38,6 +38,9 @@
         if (top + infRect.height > contRect.height) {
             top = contRect.height - infRect.height - 4;
         }
+        if (top < 0) {
+            top = 4;
+        }
         infobox.style.top = top + 'px';
         infobox_source_el = el;
         el.classList.add('pts-infobox-source');

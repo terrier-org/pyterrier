@@ -57,7 +57,7 @@
 
 #ID .pts-infobox {
     position: absolute;
-    max-height: 300px;
+    max-height: calc(100% - 8px);
     top: 0;
     left: 0;
     border: 1px solid rgb(66, 153, 225);
