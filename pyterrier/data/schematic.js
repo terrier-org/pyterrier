@@ -8,15 +8,26 @@
     const infobox_hint =  document.querySelectorAll('#ID .pts-infobox-hint')[0];
     const container = document.querySelectorAll('#ID')[0];
     function replace_infobox(el) {
+        console.log('DEBUG: replace_infobox called with element:', el);
+        console.log('DEBUG: el.dataset.ptsInfobox =', el.dataset.ptsInfobox);
         if (infobox_source_el !== null) {
             infobox_source_el.classList.remove('pts-infobox-source');
             infobox_source_el = null;
         }
         infobox_body.innerHTML = '';
+        const infobox_key = el.dataset.ptsInfobox;
+        console.log('DEBUG: Looking for infobox_items[' + infobox_key + ']');
+        const infobox_item = infobox_items[infobox_key];
+        console.log('DEBUG: infobox_item found:', infobox_item);
+        if (!infobox_item) {
+            console.error('ERROR: Infobox item not found for key:', infobox_key);
+            console.error('DEBUG: Available keys in infobox_items:', Object.keys(infobox_items));
+            return;
+        }
         // use camelcase to access dataset attributes with - in the name 
-        infobox_title.textContent = infobox_items[el.dataset.ptsInfobox].dataset.title || '';
+        infobox_title.textContent = infobox_item.dataset.title || '';
         infobox.style.display = 'block';
-        infobox_body.appendChild(infobox_items[el.dataset.ptsInfobox]);
+        infobox_body.appendChild(infobox_item);
         if (infobox_body.querySelectorAll('.pts-infobox-error').length > 0) {
             infobox.classList.add('pts-infobox-outer-error');
         } else {
@@ -44,6 +55,7 @@
         infobox.style.top = top + 'px';
         infobox_source_el = el;
         el.classList.add('pts-infobox-source');
+        console.log('DEBUG: replace_infobox completed successfully');
     }
     function hide_infobox() {
         if (infobox_source_el !== null) {
@@ -54,18 +66,29 @@
         infobox.style.display = 'none';
         infobox.style.opacity = '';
     }
+    
     container.addEventListener('click', () => {
         if (infobox_stick) {
             hide_infobox();
         }
     });
-    document.querySelectorAll('#ID .pts-infobox-item').forEach(el => {
+    
+    const infobox_elements = document.querySelectorAll('#ID .pts-infobox-item');
+    console.log('DEBUG: Found ' + infobox_elements.length + ' .pts-infobox-item elements');
+    infobox_elements.forEach(el => {
+        console.log('DEBUG: Processing infobox item with id:', el.id);
         el.remove();
         el.style.display = 'block';
         infobox_items[el.id] = el;
     });
-    document.querySelectorAll('#ID [data-pts-infobox]').forEach(el => {
+    console.log('DEBUG: infobox_items dictionary:', Object.keys(infobox_items));
+    
+    const data_pts_elements = document.querySelectorAll('#ID [data-pts-infobox]');
+    console.log('DEBUG: Found ' + data_pts_elements.length + ' [data-pts-infobox] elements');
+    data_pts_elements.forEach(el => {
+        console.log('DEBUG: Attaching event listeners to [data-pts-infobox] element:', el.dataset.ptsInfobox);
         el.addEventListener('mouseenter', () => {
+            console.log('DEBUG: mouseenter event on element:', el.dataset.ptsInfobox);
             if (!infobox_stick) {
                 replace_infobox(el);
                 if (infobox.scrollHeight > infobox.clientHeight || infobox_body.scrollWidth > infobox_body.clientWidth) {
@@ -76,11 +99,13 @@
             }
         });
         el.addEventListener('mouseleave', () => {
+            console.log('DEBUG: mouseleave event on element:', el.dataset.ptsInfobox);
             if (!infobox_stick) {
                 hide_infobox();
             }
         });
         el.addEventListener('click', (e) => {
+            console.log('DEBUG: click event on element:', el.dataset.ptsInfobox);
             if (!infobox_stick) {
                 infobox_stick = el.dataset.ptsInfobox;
                 infobox.style.opacity = 1;

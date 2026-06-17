@@ -65,11 +65,12 @@
     display: none;
     background: var(--pts-bg);
     box-shadow: 0 0 4px var(--pts-fg);
-    opacity: 0.9;
+    opacity: 1;
     margin: 4px;
     font-size: 0.8em;
     max-width: 360px;
     min-width: 128px;
+    z-index: 9999;
 }
 #ID.repr_html .pts-infobox {
     max-height: calc(100% - 8px);
