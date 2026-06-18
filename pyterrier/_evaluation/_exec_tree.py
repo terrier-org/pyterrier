@@ -49,21 +49,19 @@ TREE_KEY_TYPE = Tuple[pt.Transformer, ...]
 class TransformerRadixNode(RadixNode[TREE_KEY_TYPE, int]):
     def __init__(self):
         super().__init__()
-        self.execution_state: Literal['pending', 'running', 'done'] = 'pending'  # 'pending', 'running', 'done'
+        self.execution_state: Literal['pending', 'running', 'done'] = 'pending'
         self.node_id = str(uuid.uuid4())
 
     def traverse(self, 
                  inp: pd.DataFrame, 
+                 key: Union[TREE_KEY_TYPE, None],
                  exec_callback: Optional[Callable] = None,
                  eval_callback: Optional[Callable] = None, 
-                 cum_time: float = 0.0, 
-                 parents: Optional[List['TransformerRadixNode']] = None):
-        if parents is None:
-            parents = []
+                 cum_time: float = 0.0):
         
         # Apply transformation and get time from visit
         res, transform_time = self.visit(inp, 
-            parents, 
+            key,
             exec_callback = exec_callback, 
         )
         total_time = cum_time + transform_time
@@ -74,53 +72,39 @@ class TransformerRadixNode(RadixNode[TREE_KEY_TYPE, int]):
                 eval_callback(res, self.value, total_time)
 
         # Recurse into children, adding current node to parents stack
-        if self.children:
-            parents.append(self) 
-            for child in tcast(List['TransformerRadixNode'], self.children.values()):
-                child.traverse(res, 
-                    exec_callback = exec_callback, 
-                    eval_callback = eval_callback, 
-                    cum_time = total_time, 
-                    parents = parents)
-            parents.pop()
+        for childkey, childnode in tcast(List[Tuple[TREE_KEY_TYPE, 'TransformerRadixNode']], self.children.items()):
+            childnode.traverse(res, key = childkey,
+                exec_callback = exec_callback, 
+                eval_callback = eval_callback, 
+                cum_time = total_time, 
+                )
 
-    def visit(self, inp: pd.DataFrame, parents: List['TransformerRadixNode'], exec_callback: Optional[Callable] = None) -> Tuple[pd.DataFrame, float]:        
-        if not parents:
+    def visit(self, inp: pd.DataFrame, key: Union[TREE_KEY_TYPE, None], exec_callback: Optional[Callable] = None) -> Tuple[pd.DataFrame, float]:        
+        if key is None:
+            assert len(self.children) > 0, "Root node should have children"
             return inp, 0.0  # Root node - no transformation
         
-        # Search for key in parent's children
-        transformers = []
-        last_parent = parents[-1]
-        for key, child in last_parent.children.items():
-            if child is self:
-                if isinstance(key, tuple):
-                    transformers = list(key)
-                else:
-                    transformers = [key]
-                break
-        
-        # Apply transformers and measure time only during execution
-        if transformers:
-            # Mark as running before execution
-            # this is for a single node, so we can update self.execution_state directly
-            if len(transformers) == 1:
-                
-                self.execution_state = 'running'
-                if exec_callback is not None:
-                    exec_callback(self.node_id, self)
-
-                start = timer()
-                result = transformers[0].transform(inp)
-                end = timer()
-                transform_time = (end - start)*1000.0
-                
-                # Mark as completed after execution
-                self.execution_state = 'done'
-                if exec_callback is not None:
-                    exec_callback(self.node_id, self)
-                
-                return result, transform_time
+        if isinstance(key, tuple):
+            transformers = list(key)
+        else:
+            transformers = [key]
             
+        if len(transformers) == 1:
+            self.execution_state = 'running'
+            if exec_callback is not None:
+                exec_callback(self.node_id, self)
+
+            start = timer()
+            result = transformers[0].transform(inp)
+            end = timer()
+            transform_time = (end - start)*1000.0
+            
+            # Mark as completed after execution
+            self.execution_state = 'done'
+            if exec_callback is not None:
+                exec_callback(self.node_id, self)
+        
+        elif len(transformers) > 1:
             for i in range(len(transformers)):
                 self.execution_state = 'running'
                 if exec_callback is not None:
@@ -139,10 +123,11 @@ class TransformerRadixNode(RadixNode[TREE_KEY_TYPE, int]):
                 self.execution_state = 'done'
                 if exec_callback is not None:
                     exec_callback(f"{self.node_id}:{i}", self)
-            
-            return result, transform_time
+
         else:
-            return inp, 0.0
+            assert False, "No transformers found for this node"
+
+        return result, transform_time
 
 
 
@@ -156,13 +141,13 @@ class TransformerRadixTree(RadixTree[TREE_KEY_TYPE, int]):
                  exec_callback: Optional[Callable] = None,
                  eval_callback: Optional[Callable] = None, 
                  cum_time: float = 0.0, 
-                 parents: Optional[List['TransformerRadixNode']] = None):
+                 ):
         tcast(TransformerRadixNode, self.root).traverse(
             inp, 
+            None, # root node has no key
             exec_callback = exec_callback,
             eval_callback = eval_callback,
-            cum_time = cum_time, 
-            parents = parents)
+            cum_time = cum_time)
 
     def reset_status(self):
         def _recurse_set_status(node: TransformerRadixNode):
