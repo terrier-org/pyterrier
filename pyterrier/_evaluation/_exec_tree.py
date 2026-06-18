@@ -313,60 +313,107 @@ def tree_execution(renderer,retr_systems,
     all_topic_qids = topics["qid"].values
 
     assert topics is not None, "topics must be specified"
-    def make_eval_callback(batch_qrels: pd.DataFrame, backfill_qids: pd.DataFrame) -> Callable:
-    
+
+    def _evaluate_results(
+        res: pd.DataFrame,
+        eval_qrels: pd.DataFrame,
+        backfill_qids: Optional[Sequence[str]],
+        error_message: str
+    ) -> dict:
+        if len(res) == 0:
+            raise ValueError(error_message)
+
+        if verbose:
+            tree.print_live(names=list(names), clear_previous=True)
+
+        return _ir_measures_to_dict(
+            ir_measures.iter_calc(metrics, eval_qrels, pt.model.to_ir_measures(res)),
+            metrics,
+            rev_mapping,
+            num_q,
+            perquery=True,
+            backfill_qids=backfill_qids)
+
+    def make_eval_callback(
+        eval_qrels: pd.DataFrame,
+        backfill_qids: Optional[Sequence[str]],
+        error_message: str,
+        accumulated_metrics: Optional[dict[int, dict]] = None,
+        system_times: Optional[dict[int, float]] = None,
+    ) -> Callable:
         def callback(res: pd.DataFrame, sysid: int, cum_time: float):
-            # Validate results
-            if len(res) == 0:
-                raise ValueError("%d topics, but no results received from system %d" % (len(topics), sysid))
-            
-            # Update live tree visualization if verbose
-            if verbose:
-                tree.print_live(names=list(names), clear_previous=True)
-            
-            # Always use perquery=True here - renderer will handle aggregation if needed
-            evalMeasuresDict = _ir_measures_to_dict(
-                ir_measures.iter_calc(metrics, batch_qrels, pt.model.to_ir_measures(res)),
-                metrics,
-                rev_mapping,
-                num_q,
-                perquery=True,
-                backfill_qids=backfill_qids)            
-            renderer.add_metrics(sysid, evalMeasuresDict, cum_time)
+            eval_measures = _evaluate_results(
+                res,
+                eval_qrels,
+                backfill_qids,
+                error_message % sysid)
+
+            if accumulated_metrics is None or system_times is None:
+                renderer.add_metrics(sysid, eval_measures, cum_time)
+            else:
+                if sysid not in accumulated_metrics:
+                    accumulated_metrics[sysid] = {}
+                accumulated_metrics[sysid].update(eval_measures)
+                system_times[sysid] = cum_time
+
         return callback
 
     if batch_size is None:
-        # No batching - execute all queries at once   
-        tree.traverse(topics, 
-            exec_callback = exec_cb,
-            eval_callback = make_eval_callback(qrels, all_topic_qids if perquery else None),
-            cum_time = 0.)
-    #not fully functional
+        # No batching - execute all queries at once
+
+        tree.traverse(
+            topics,
+            exec_callback=exec_cb,
+            eval_callback=make_eval_callback(
+                qrels,
+                all_topic_qids if perquery else None,
+                f"{len(topics)} topics, but no results received from system %d"),
+            cum_time=0.)
     else:
-        # Batch processing - evaluate queries in batches
+        # Batch processing - evaluate queries in batches and accumulate per-system results
         assert batch_size > 0
         topic_batches = pt.model.split_df(topics, batch_size=batch_size)
-        
-        # Track which qrels haven't been processed yet (for queries not in topics)
-        # system_remaining_qrels = {sysid: set(qrels.query_id) for sysid in range(len(retr_systems))}
-        
+
+        accumulated_metrics: dict[int, dict] = {}
+        system_times: dict[int, float] = {}
+        processed_qids = set()
+
         iter_batch = enumerate(topic_batches)
-        
-        # display batch progress with tqdm if verbose
         if verbose:
             iter_batch = pt.tqdm(iter_batch, total=len(topic_batches), desc="Processing batches", unit="batch")
-        
-        for batch_idx, topic_batch in iter_batch:
-            
-            tree.reset_status()  # Reset the visible execution state before each batch
 
-            # Get the query IDs in this batch for backfilling
+        for batch_idx, topic_batch in iter_batch:
+            tree.reset_status()
+
             batch_qids = set(topic_batch.qid)
+            processed_qids.update(batch_qids)
             batch_qrels = qrels[qrels.query_id.isin(batch_qids)]
             batch_backfill = [qid for qid in all_topic_qids if qid in batch_qids] if perquery else None
 
             tree.traverse(
-                topic_batch, 
-                exec_callback = exec_cb,
-                eval_callback = make_eval_callback(batch_qrels, batch_backfill), 
-                cum_time = 0.)
+                topic_batch,
+                exec_callback=exec_cb,
+                eval_callback=make_eval_callback(
+                    batch_qrels,
+                    batch_backfill,
+                    "batch of %d topics, but no results received in batch %d from system %%d" % (len(topic_batch), batch_idx),
+                    accumulated_metrics=accumulated_metrics,
+                    system_times=system_times),
+                cum_time=0.)
+
+        # Handle qids in qrels that were not in topics (same behavior as linear execution)
+        remaining_qids = set(qrels.query_id) - processed_qids
+        if remaining_qids and accumulated_metrics:
+            remaining_qrels = qrels[qrels.query_id.isin(remaining_qids)]
+            empty_res = pd.DataFrame([], columns=['query_id', 'doc_id', 'score'])
+            missing_metrics = _ir_measures_to_dict(
+                ir_measures.iter_calc(metrics, remaining_qrels, empty_res),
+                metrics,
+                rev_mapping,
+                num_q,
+                perquery=True)
+            for sysid in accumulated_metrics:
+                accumulated_metrics[sysid].update(missing_metrics)
+
+        for sysid, eval_measures in accumulated_metrics.items():
+            renderer.add_metrics(sysid, eval_measures, system_times[sysid])
