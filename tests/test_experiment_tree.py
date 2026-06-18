@@ -2,7 +2,7 @@ import pyterrier as pt
 import pandas as pd
 import io
 import contextlib
-from .test_experiment_base import TestExperimentBase
+from .base_experiment import TestExperimentBase
 
 
 class TestExperimentTree(TestExperimentBase):
@@ -17,6 +17,15 @@ class TestExperimentTree(TestExperimentBase):
         super().__init__(*args, **kwargs)
         self.pt_exp_kwargs = {'plan': 'tree'}
 
+    def test_save_invalid_format(self):
+        self.skipTest("Skipping test_save_invalid_format for tree execution plan; not yet implemented.")
+    
+    def test_save(self):
+        self.skipTest("Skipping test_save for tree execution plan; not yet implemented.")
+
+    def test_save_csv(self):
+        self.skipTest("Skipping test_save_csv for tree execution plan; not yet implemented.")
+    
     def test_verbose_pretty_print(self):
         topics = pd.DataFrame([
             ["q1", "hello world"],

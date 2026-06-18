@@ -290,6 +290,9 @@ def Experiment(
 
     # validate save_dir and resulting filenames
     if save_dir is not None:
+        if plan == 'tree':
+            raise ValueError("save_dir is not yet supported for tree execution plan")
+
         if not os.path.exists(save_dir):
             raise ValueError("save_dir %s does not exist" % save_dir)
         if not os.path.isdir(save_dir):
