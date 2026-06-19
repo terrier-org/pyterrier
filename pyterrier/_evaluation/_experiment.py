@@ -323,9 +323,13 @@ def Experiment(
     if plan == 'tree':
         if save_dir is not None:
             assert False
+        tverbose : Literal['terminal', 'notebook', False]
         if verbose == 'auto' or verbose is True:
-            verbose = 'notebook' if pt.utils._get_notebook() is not None else 'terminal'
-        tree_execution(renderer, retr_systems, topics, qrels, eval_metrics, names, verbose, save_dir, save_mode, save_format, batch_size, perquery)
+            tverbose = 'notebook' if pt.utils._get_notebook() is not None else 'terminal'
+        else:
+            assert verbose is False
+            tverbose = verbose
+        tree_execution(renderer, retr_systems, topics, qrels, eval_metrics, names, tverbose, save_dir, save_mode, save_format, batch_size, perquery)
     else:
         linear_execution(renderer, retr_systems, topics, qrels, eval_metrics, names, precompute_prefix, verbose, save_dir, save_mode, save_format, batch_size, perquery)
 
