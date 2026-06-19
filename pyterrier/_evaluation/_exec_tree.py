@@ -269,12 +269,12 @@ def tree_execution(renderer,retr_systems,
                      batch_size=None, 
                      perquery=False,
                      render_html = False):
-    # build radix tree from retr_systems
+    
 
-    print("Using tree execution for pt.Experiment : ")
     # keys: tuple of Transformer objects; values: system id (int)
     tree: TransformerRadixTree = TransformerRadixTree()
 
+    # build radix tree from retr_systems
     for sysid, system in enumerate(decompose_pipelines(retr_systems)):
         key = tuple(system)
         tree.insert(key, sysid)
