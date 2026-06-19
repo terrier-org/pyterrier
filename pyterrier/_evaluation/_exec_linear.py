@@ -68,6 +68,9 @@ def _precomputation(
         execution_topics = topics
 
     else: # precomputation not requested
+        if common_pipe is not None:
+            warn(
+                "There are shared pipeline components among %d pipelines. Consider setting plan='tree' for faster experiment." % len(retr_systems))
         execution_retr_systems = retr_systems
         execution_topics = topics
 
@@ -141,15 +144,6 @@ def linear_execution(renderer,retr_systems,
                      save_format='trec',
                      batch_size=None, 
                      perquery=False):
-    print("Using linear execution for pt.Experiment : ")
-    
-    # Warn if precomputation is turned off
-    if not precompute_prefix:
-        import warnings
-        warnings.warn("Precomputation is turned off (precompute_prefix=False). "
-                     "This may result in slower execution if pipelines share common prefixes. "
-                     "Consider using precompute_prefix=True for better performance.", 
-                     UserWarning)
     
     # split the transformers into a common prefix and individual suffixes, improved efficiency
     precompute_time, execution_topics, execution_retr_systems = _precomputation(retr_systems, topics, precompute_prefix, verbose, batch_size)
@@ -186,4 +180,4 @@ def linear_execution(renderer,retr_systems,
                 save_mode=save_mode,
                 save_format=save_format,
                 pbar=pbar)
-            renderer.add_metrics(sysid, evalMeasuresDict, time)
+            renderer.add_metrics(sysid, evalMeasuresDict, precompute_time + time)

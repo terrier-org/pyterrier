@@ -220,7 +220,7 @@
     display: inline-block;
     position: relative;
     color: var(--pts-fg);
-    /* background: rgba(66, 153, 225, 0.3); */
+    /* background can be overridden by pts-node-bg, e.g. pt.Experiment progress */
     background: var(--pts-node-bg, rgba(66, 153, 225, 0.3));
     box-sizing: border-box;
     padding: 4px 18px;
