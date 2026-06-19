@@ -3,6 +3,7 @@ import pyterrier as pt
 from ._rendering import _convert_measures
 from . import MEASURES_TYPE
 from ._execution import _ir_measures_to_dict
+from ._rendering import RenderFromPerQuery
 from ._trie import RadixNode, RadixTree
 from pyterrier._ops import Compose
 
@@ -257,18 +258,19 @@ class TransformerRadixTree(RadixTree[TREE_KEY_TYPE, int]):
         print(self.pretty_print(names=names, colored=True))
         sys.stdout.flush()
 
-def tree_execution(renderer,retr_systems, 
-                     topics : pd.DataFrame, 
-                     qrels: pd.DataFrame,
-                     eval_metrics : MEASURES_TYPE,
-                     names: Sequence[str],
-                     verbose=False, 
-                     save_dir=None, 
-                     save_mode=None, 
-                     save_format='trec',
-                     batch_size=None, 
-                     perquery=False,
-                     render_html = False):
+def tree_execution(renderer : RenderFromPerQuery, 
+                    retr_systems, 
+                    topics : pd.DataFrame, 
+                    qrels: pd.DataFrame,
+                    eval_metrics : MEASURES_TYPE,
+                    names: Sequence[str],
+                    verbose : Literal['notebook', 'terminal', False], 
+                    save_dir=None, 
+                    save_mode=None, 
+                    save_format='trec',
+                    batch_size=None, 
+                    perquery=False,
+                    render_html = False):
     
 
     # keys: tuple of Transformer objects; values: system id (int)
@@ -279,18 +281,20 @@ def tree_execution(renderer,retr_systems,
         key = tuple(system)
         tree.insert(key, sysid)
     
-    if verbose:
+    exec_cb = None
+    if verbose == 'terminal':
         print("\nPipeline structure:")
         tree.print_live(names=list(names), clear_previous=False)
         print()
-
-    if render_html:
+    elif verbose == 'notebook':
         from IPython.display import HTML, display # type: ignore
         schematic = pt.schematic.radix_tree_schematic(tree, input_columns=["qid", "query"])
         display(HTML(pt.schematic.draw_html_schematic(schematic)))
         exec_cb = lambda node_id, node: emit_js(node_id, node.execution_state) # noqa: E731
+    elif verbose is False:
+        pass
     else:
-        exec_cb = None
+        assert False, "verbose must be either False, 'notebook' or 'terminal', found %s" % str(verbose)
         
     metrics, rev_mapping = _convert_measures(eval_metrics)
     qrels = pt.model.to_ir_measures(qrels)
@@ -308,7 +312,7 @@ def tree_execution(renderer,retr_systems,
         if len(res) == 0:
             raise ValueError(error_message)
 
-        if verbose:
+        if verbose == 'terminal':
             tree.print_live(names=list(names), clear_previous=True)
 
         return _ir_measures_to_dict(
@@ -364,7 +368,7 @@ def tree_execution(renderer,retr_systems,
         processed_qids = set()
 
         iter_batch = enumerate(topic_batches)
-        if verbose:
+        if verbose == 'terminal':
             iter_batch = pt.tqdm(iter_batch, total=len(topic_batches), desc="Processing batches", unit="batch")
 
         for batch_idx, topic_batch in iter_batch:

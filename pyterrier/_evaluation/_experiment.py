@@ -144,14 +144,13 @@ def Experiment(
         correction_alpha : float = 0.05,
         highlight : Optional[str] = None,
         round : Optional[Union[int,Dict[str,int]]] = None,
-        verbose : bool = False,
+        verbose : Literal['auto', True, False] = 'auto',
         validate : VALIDATE_TYPE = 'warn',
         save_dir : Optional[str] = None,
         save_mode : SAVEMODE_TYPE = 'warn',
         save_format : SAVEFORMAT_TYPE = 'trec',
         precompute_prefix : bool = False,
         plan : Literal['linear', 'tree'] = 'linear',
-        render_html : bool = False,
         **kwargs):
     """
     Allows easy comparison of multiple retrieval transformer pipelines using a common set of topics, and
@@ -207,7 +206,7 @@ def Experiment(
     :param plan: Whether to execute the experiment using a 'linear' or 'tree' execution plan. The linear plan executes each system sequentially, 
         but does not allow for reuse of execution results between different systems. The tree plan identifies common prefixes between pipelines, 
         and executes each unique prefix only once, allowing for more faster experiments. Default is 'linear'.
-    :param verbose: If True, a tqdm progress bar is shown as systems (or systems*batches if batch_size is set) are executed. Default=False.
+    :param verbose: If True, progress is shown as systems (or systems*batches if batch_size is set) are executed. Default is False, except when ``plan='tree'`` in a notebook, in which case a the tree-execution plan is shown by default.
     :param validate: If set to value other than 'ignore', each transformer is validated against the topics dataframe, to ensure that it produces the expected output columns.
         ``pt.inspect.transformer_outputs()`` is used to determine the output columns. If 'warn', then transformers whose output columns don't match the columns required 
         by the specified evaluation measures will product warnings; If 'error', then an error is produced. If a transformer cannot be inspected, a warning is produced.
@@ -324,7 +323,9 @@ def Experiment(
     if plan == 'tree':
         if save_dir is not None:
             assert False
-        tree_execution(renderer, retr_systems, topics, qrels, eval_metrics, names, verbose, save_dir, save_mode, save_format, batch_size, perquery, render_html)
+        if verbose == 'auto' or verbose is True:
+            verbose = 'notebook' if pt.utils._get_notebook() is not None else 'terminal'
+        tree_execution(renderer, retr_systems, topics, qrels, eval_metrics, names, verbose, save_dir, save_mode, save_format, batch_size, perquery)
     else:
         linear_execution(renderer, retr_systems, topics, qrels, eval_metrics, names, precompute_prefix, verbose, save_dir, save_mode, save_format, batch_size, perquery)
 
