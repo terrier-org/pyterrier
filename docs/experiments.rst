@@ -395,26 +395,67 @@ Most transformers can be validated automatically, particularly if they respond c
 If a pipeline fails validation, the user is informed of the problem, and, if `validate="error"` is set, the experiment does not proceed.
 On the other hand, if a pipeline cannot be validated (because a transformer cannot be inspected), a warning is issued, and the experiment proceeds.
 
-Precomputation of Common Pipeline Prefixes
+Experiment Planning for Shared Computation
 ==========================================
 
-Often we wish to evaluate multiple pipelines that have exactly the same initial stages. ``pt.Experiment`` exposes a `precompute_prefix` kwarg, will precompute the results of the common initial stages, and then use these results to call the subsequent remainder of each pipelines.
+In many IR pipeline experiment settings, several pipelines share substantial computation. ``pt.Experiment`` supports experiment planning via the ``plan`` kwarg, which provides options to detect how shared computation is detected and reused.
 
-Consider the following example::
+Users can choose between two planning strategies:
 
-    from pyterrier_t5 import MonoT5ReRanker
+- ``plan="linear"``: Uses linear execution with precompute-prefix reuse. This corresponds to precomputing shared initial stages (previously exposed via ``precompute_prefix=True``), and is the default behaviour.
+- ``plan="tree"``: Uses tree execution, which can detect and reuse shared subsequences beyond the initial common prefix.
+
+For a simple pair of pipelines, precompute-prefix reuse avoids repeated execution of the same initial retriever::
+
+    from pyterrier_t5 import MonoT5ReRanker, DuoT5ReRanker
     bm25 = pt.terrier.Retriever.from_dataset('vaswani', 'terrier_stemmed_text', wmodel='BM25', num_results=100)
     monoT5 = MonoT5ReRanker()
+    duoT5 = DuoT5ReRanker()
 
-    monoT5 = bm25 >> monoT5
     pt.Experiment(
-        [bm25, monoT5], 
-        pt.get_dataset('vaswani').get_topics(), 
-        pt.get_dataset('vaswani').get_qrels(), 
-        eval_metrics=['map'], 
-        precompute_prefix=True
+        [bm25, bm25 >> monoT5],
+        pt.get_dataset('vaswani').get_topics(),
+        pt.get_dataset('vaswani').get_qrels(),
+        eval_metrics=['map'],
+        plan='linear',
     )
 
-Normally, BM25 retriever would be invoked twice during this experiment - once for each pipeline, resulting in a slower executation time compared to an imperative workflow (get BM25 results, evaluate, apply monoT5, evaluate). By setting `precompute_prefix=True`, ``pt.Experiment`` will execute the `bm25` transformer only once on the input topics, and then reuse those results as input to monoT5.
+Without reuse, ``bm25`` would be executed once per pipeline. Under ``plan="linear"``, the shared prefix is executed once and reused by downstream stages.
 
-NB: This is experimental functionality, but should initial usage be successful, it may be turned on by default in future versions of PyTerrier.
+The benefit of ``plan="tree"`` is clearer when pipelines share deeper subsequences::
+
+    pt.Experiment(
+        [
+            bm25 % 100,
+            bm25 % 100 >> monoT5,
+            bm25 % 100 >> monoT5 % 10 >> duoT5,
+            bm25 % 100 >> monoT5 % 20 >> duoT5,
+        ],
+        dataset.get_topics(),
+        dataset.get_qrels(),
+        [NDCG@10],
+        plan='tree',
+    )
+
+In this example, both plans identify ``bm25 % 100`` as a shared prefix. However, ``plan="tree"`` can additionally identify the shared ``monoT5`` subsequence and reuse it across branches, reducing redundant computation relative to ``plan="linear"``. The following progress visualization illustrates the execution of the above experiment under ``plan="tree"``. Each transformer is represented as a node in the tree, with color indicating its execution status: red for not yet executed, yellow for currently executing, and green for completed. This visualisation is shown unless ``verbose=False`` is set.
+
+.. figure:: /_static/tree_pipe1.png
+   :alt: Before execution: all transformers are red.
+   :width: 80%
+   :align: center
+
+   Before execution: all transformers are red.
+
+.. figure:: /_static/tree_pipe2.png
+   :alt: During execution: completed transformers in green, those currently being executed are in yellow.
+   :width: 80%
+   :align: center
+
+   During execution: completed transformers in green, those currently being executed are in yellow.
+
+.. figure:: /_static/tree_pipe3.png
+   :alt: After execution: all transformers are green.
+   :width: 80%
+   :align: center
+
+   After execution: all transformers are green.
