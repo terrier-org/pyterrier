@@ -2,6 +2,12 @@ h1 {
     font-size: 2em;
 }
 
+figure.no-border img {
+    border: none;
+    box-shadow: none;
+    outline: none;
+}
+
 h2 {
     font-size: 1.75em;
 }

@@ -443,6 +443,7 @@ In this example, both plans identify ``bm25 % 100`` as a shared prefix. However,
    :alt: Before execution: all transformers are red.
    :width: 80%
    :align: center
+   :class: no-border
 
    Before execution: all transformers are red.
 
@@ -450,6 +451,7 @@ In this example, both plans identify ``bm25 % 100`` as a shared prefix. However,
    :alt: During execution: completed transformers in green, those currently being executed are in yellow.
    :width: 80%
    :align: center
+   :class: no-border
 
    During execution: completed transformers in green, those currently being executed are in yellow.
 
@@ -457,5 +459,6 @@ In this example, both plans identify ``bm25 % 100`` as a shared prefix. However,
    :alt: After execution: all transformers are green.
    :width: 80%
    :align: center
+   :class: no-border
 
    After execution: all transformers are green.
