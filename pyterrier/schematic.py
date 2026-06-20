@@ -203,7 +203,7 @@ def draw_html_schematic(schematic: dict, *, outer_class: Optional[str] = None) -
     css, js = _get_schematic_css_js(f'id-{uid}')
     if schematic.get('type') == 'tree':
         # Use the custom tree/radix renderer for tree schematics
-        inner_html = draw_radix_html_schematic(schematic, outer_class='outer')
+        inner_html = f'<div class="pts-tree-scroll">{draw_radix_html_schematic(schematic, outer_class="outer")}</div>'
     else:
         inner_html = _draw_html_schematic(schematic)
     return f'''

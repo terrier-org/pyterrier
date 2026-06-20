@@ -208,8 +208,14 @@
     display: flex;
     align-items: center;
     align-content: stretch;
-    overflow-x: visible;
     min-height: 50px;
+}
+#ID .pts-tree-scroll {
+    width: 100%;
+    overflow-x: auto;
+}
+#ID .pts-tree-scroll > .pts-pipeline {
+    width: max-content;
 }
 #ID .pts-pipeline > * {
     flex-shrink: 0;
