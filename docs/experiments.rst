@@ -439,31 +439,6 @@ The benefit of ``plan="tree"`` is clearer when pipelines share deeper subsequenc
 
 In this example, both plans identify ``bm25 % 100`` as a shared prefix. However, ``plan="tree"`` can additionally identify the shared ``monoT5`` subsequence and reuse it across branches, reducing redundant computation relative to ``plan="linear"``. The following progress visualization illustrates the execution of the above experiment under ``plan="tree"``. Each transformer is represented as a node in the tree, with color indicating its execution status: red for not yet executed, yellow for currently executing, and green for completed. This visualisation is shown unless ``verbose=False`` is set.
 
-.. .. figure:: /_static/tree_pipe1.png
-..    :alt: Before execution: all transformers are red.
-..    :width: 80%
-..    :align: center
-..    :class: no-border
-
-..    Before execution: all transformers are red.
-
-.. .. figure:: /_static/tree_pipe2.png
-..    :alt: During execution: completed transformers in green, those currently being executed are in yellow.
-..    :width: 80%
-..    :align: center
-..    :class: no-border
-
-..    During execution: completed transformers in green, those currently being executed are in yellow.
-
-.. .. figure:: /_static/tree_pipe3.png
-..    :alt: After execution: all transformers are green.
-..    :width: 80%
-..    :align: center
-..    :class: no-border
-
-..    After execution: all transformers are green.
-
-
 .. figure:: /_static/tree.gif
    :alt: Progress visualization of the execution of the above experiment under ``plan="tree"``. 
    :width: 90%
