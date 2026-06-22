@@ -2,9 +2,10 @@ import os
 import warnings
 import pandas as pd
 from typing import Union, Dict, Tuple, Sequence, Literal, Optional, overload, Any
-import types
+from warnings import warn
 
-from ._execution import _run_and_evaluate, _precomputation
+from ._exec_linear import linear_execution
+from ._exec_tree import tree_execution
 from ._rendering import EvaluationDataTuple, RenderFromPerQuery
 from ._validation import _validate
 from . import SYSTEM_OR_RESULTS_TYPE, MEASURES_TYPE, TEST_FN_TYPE, SAVEFORMAT_TYPE, SAVEMODE_TYPE, VALIDATE_TYPE
@@ -29,12 +30,13 @@ def Experiment(
         correction_alpha : float = 0.05,
         highlight : Optional[str] = None,
         round : Optional[Union[int,Dict[str,int]]] = None,
-        verbose : bool = False,
+        verbose : Literal['auto', True, False] = 'auto',
         validate : VALIDATE_TYPE = 'warn',
         save_dir : Optional[str] = None,
         save_mode : SAVEMODE_TYPE = 'warn',
         save_format : SAVEFORMAT_TYPE = 'trec',
         precompute_prefix : bool = False,
+        plan : Literal['linear', 'tree'] = 'linear',
         **kwargs) -> pd.DataFrame:
     ...
 
@@ -57,12 +59,13 @@ def Experiment(
         correction_alpha : float = 0.05,
         highlight : Optional[str] = None,
         round : Optional[Union[int,Dict[str,int]]] = None,
-        verbose : bool = False,
+        verbose : Literal['auto', True, False] = 'auto',
         validate : VALIDATE_TYPE = 'warn',
         save_dir : Optional[str] = None,
         save_mode : SAVEMODE_TYPE = 'warn',
         save_format : SAVEFORMAT_TYPE = 'trec',
         precompute_prefix : bool = False,
+        plan : Literal['linear', 'tree'] = 'linear',
         **kwargs) -> Dict[str,Any]:
     ...
 
@@ -85,12 +88,13 @@ def Experiment(
         correction_alpha : float = 0.05,
         highlight : Optional[str] = None,
         round : Optional[Union[int,Dict[str,int]]] = None,
-        verbose : bool = False,
+        verbose : Literal['auto', True, False] = 'auto',
         validate : VALIDATE_TYPE = 'warn',
         save_dir : Optional[str] = None,
         save_mode : SAVEMODE_TYPE = 'warn',
         save_format : SAVEFORMAT_TYPE = 'trec',
         precompute_prefix : bool = False,
+        plan : Literal['linear', 'tree'] = 'linear',
         **kwargs) -> Tuple[pd.DataFrame,pd.DataFrame]:
     ...
 
@@ -113,12 +117,13 @@ def Experiment(
         correction_alpha : float = 0.05,
         highlight : Optional[str] = None,
         round : Optional[Union[int,Dict[str,int]]] = None,
-        verbose : bool = False,
+        verbose : Literal['auto', True, False] = 'auto',
         validate : VALIDATE_TYPE = 'warn',
         save_dir : Optional[str] = None,
         save_mode : SAVEMODE_TYPE = 'warn',
         save_format : SAVEFORMAT_TYPE = 'trec',
         precompute_prefix : bool = False,
+        plan : Literal['linear', 'tree'] = 'linear',
         **kwargs) -> Tuple[Dict[str,Any], Dict[str,Any]]:
     ...
 
@@ -139,12 +144,13 @@ def Experiment(
         correction_alpha : float = 0.05,
         highlight : Optional[str] = None,
         round : Optional[Union[int,Dict[str,int]]] = None,
-        verbose : bool = False,
+        verbose : Literal['auto', True, False] = 'auto',
         validate : VALIDATE_TYPE = 'warn',
         save_dir : Optional[str] = None,
         save_mode : SAVEMODE_TYPE = 'warn',
         save_format : SAVEFORMAT_TYPE = 'trec',
         precompute_prefix : bool = False,
+        plan : Literal['linear', 'tree'] = 'linear',
         **kwargs):
     """
     Allows easy comparison of multiple retrieval transformer pipelines using a common set of topics, and
@@ -197,9 +203,10 @@ def Experiment(
         if `highlight="color"` or `"colour"`, then the cell with the highest metric value will have a green background.
     :param round: How many decimal places to round each measure value to. This can also be a dictionary mapping measure name to number of decimal places.
         Default is None, which is no rounding.
-    :param precompute_prefix: If set to True, then pt.Experiment will look for a common prefix on all input pipelines, and execute that common prefix pipeline only once. 
-        This functionality assumes that the intermidiate results of the common prefix can fit in memory. Set to False by default.
-    :param verbose: If True, a tqdm progress bar is shown as systems (or systems*batches if batch_size is set) are executed. Default=False.
+    :param plan: Whether to execute the experiment using a 'linear' or 'tree' execution plan. The linear plan executes each system sequentially, 
+        but does not allow for reuse of execution results between different systems. The tree plan identifies common prefixes between pipelines, 
+        and executes each unique prefix only once, allowing for more faster experiments. Default is 'linear'.
+    :param verbose: If True, progress is shown as systems (or systems*batches if batch_size is set) are executed. Default is False, except when ``plan='tree'`` in a notebook, in which case a the tree-execution plan is shown by default.
     :param validate: If set to value other than 'ignore', each transformer is validated against the topics dataframe, to ensure that it produces the expected output columns.
         ``pt.inspect.transformer_outputs()`` is used to determine the output columns. If 'warn', then transformers whose output columns don't match the columns required 
         by the specified evaluation measures will product warnings; If 'error', then an error is produced. If a transformer cannot be inspected, a warning is produced.
@@ -218,6 +225,10 @@ def Experiment(
         raise TypeError("Expected list or dict of transformers for retr_systems, instead received %s" % str(type(retr_systems)))
     elif isinstance(baseline, str):
         raise TypeError("baseline should be an int when retr_systems is a list")
+    
+    if precompute_prefix:
+        warn(
+            "precompute_prefix is deprecated. Use plan='tree' instead", DeprecationWarning, stacklevel=2)
 
     if len(kwargs):
         raise TypeError("Unknown kwargs: %s" % (str(list(kwargs.keys()))))
@@ -278,6 +289,9 @@ def Experiment(
 
     # validate save_dir and resulting filenames
     if save_dir is not None:
+        if plan == 'tree':
+            raise ValueError("save_dir is not yet supported for tree execution plan")
+
         if not os.path.exists(save_dir):
             raise ValueError("save_dir %s does not exist" % save_dir)
         if not os.path.isdir(save_dir):
@@ -289,8 +303,6 @@ def Experiment(
         if len(set(names)) < len(names):
             raise ValueError("save_dir is set, but names are not unique. Use names= to set unique names")
 
-    all_topic_qids = topics["qid"].values
-
     mrt_needed = False
     if "mrt" in eval_metrics:
         mrt_needed = True
@@ -299,56 +311,41 @@ def Experiment(
 
     # validate the transformers produce the expected columns
     _validate(retr_systems, topics, eval_metrics, names, validate)
-
-    # split the transformers into a common prefix and individual suffixes, improved efficiency
-    precompute_time, execution_topics, execution_retr_systems = _precomputation(retr_systems, topics, precompute_prefix, verbose, batch_size)
-
-    # progress bar construction
-    tqdm_args={
-        'disable' : not verbose,
-        'unit' : 'system',
-        'total' : len(retr_systems),
-        'desc' : 'pt.Experiment'
-    }
-
-    if batch_size is not None:
-        import math
-        tqdm_args['unit'] = 'batches'
-        # round number of batches up for each system
-        tqdm_args['total'] = math.ceil((len(topics) / batch_size)) * len(retr_systems)
-
+    
     renderer = RenderFromPerQuery(names, 
                                   baseline=baseline, 
                                   test_fn=test_fn, 
                                   correction=correction, 
                                   correction_alpha=correction_alpha, 
                                   round=round, 
-                                  precompute_time=precompute_time)
-    with pt.tqdm(**tqdm_args) as pbar:
-        # run and evaluate each system
-        for sysid, (name, system) in enumerate(zip(names, execution_retr_systems)):
-            save_file = None
-            if save_dir is not None:
-                if save_format == 'trec':
-                    save_ext = 'res.gz'
-                elif isinstance(save_format, types.ModuleType):
-                    save_ext = 'mod'
-                elif isinstance(save_format, tuple):
-                    save_ext = 'custom'
-                else:
-                    raise ValueError("Unrecognised save_format %s, expected 'trec', module or tuple." % str(save_format)) 
-                save_file = os.path.join(save_dir, "%s.%s" % (name, save_ext))
+                                  precompute_time=0)
+    
+    def _is_notebook() -> bool:
+        import sys 
+        return 'google.colab' in sys.modules or pt.utils._get_notebook() is not None
+    
+    if plan == 'tree':
+        if save_dir is not None:
+            assert False
+        
+        # for tree execution, default verbose to 'notebook' when in a notebook, else 'terminal'
+        tverbose : Literal['terminal', 'notebook', False]
+        if verbose == 'auto' or verbose is True:
+            tverbose = 'notebook' if _is_notebook() else 'terminal'
+        else:
+            assert verbose is False
+            tverbose = verbose
+        
+        tree_execution(renderer, retr_systems, topics, qrels, eval_metrics, names, tverbose, save_dir, save_mode, save_format, batch_size, perquery is not False)
+    else:
+        # default verbose to False for linear execution
+        lverbose : bool
+        if verbose == 'auto':
+            lverbose = False
+        else:
+            lverbose = verbose
+        linear_execution(renderer, retr_systems, topics, qrels, eval_metrics, names, precompute_prefix, lverbose, save_dir, save_mode, save_format, batch_size, perquery is not False)
 
-            time, evalMeasuresDict = _run_and_evaluate(
-                system, execution_topics, qrels, eval_metrics, 
-                perquery=True, 
-                batch_size=batch_size, 
-                backfill_qids=all_topic_qids if perquery else None,
-                save_file=save_file,
-                save_mode=save_mode,
-                save_format=save_format,
-                pbar=pbar)
-            renderer.add_metrics(sysid, evalMeasuresDict, time)
 
     if save_dir is not None:
         # always save aggregated and per-query results as CSV files regardless of perquery setting

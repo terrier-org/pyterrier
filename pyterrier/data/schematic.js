@@ -13,10 +13,16 @@
             infobox_source_el = null;
         }
         infobox_body.innerHTML = '';
+        const infobox_key = el.dataset.ptsInfobox;
+        const infobox_item = infobox_items[infobox_key];
+        if (!infobox_item) {
+            console.error('ERROR: Infobox item not found for key:', infobox_key);
+            return;
+        }
         // use camelcase to access dataset attributes with - in the name 
-        infobox_title.textContent = infobox_items[el.dataset.ptsInfobox].dataset.title || '';
+        infobox_title.textContent = infobox_item.dataset.title || '';
         infobox.style.display = 'block';
-        infobox_body.appendChild(infobox_items[el.dataset.ptsInfobox]);
+        infobox_body.appendChild(infobox_item);
         if (infobox_body.querySelectorAll('.pts-infobox-error').length > 0) {
             infobox.classList.add('pts-infobox-outer-error');
         } else {
@@ -38,6 +44,9 @@
         if (top + infRect.height > contRect.height) {
             top = contRect.height - infRect.height - 4;
         }
+        if (top < 0) {
+            top = 4;
+        }
         infobox.style.top = top + 'px';
         infobox_source_el = el;
         el.classList.add('pts-infobox-source');
@@ -51,17 +60,22 @@
         infobox.style.display = 'none';
         infobox.style.opacity = '';
     }
+    
     container.addEventListener('click', () => {
         if (infobox_stick) {
             hide_infobox();
         }
     });
-    document.querySelectorAll('#ID .pts-infobox-item').forEach(el => {
+    
+    const infobox_elements = document.querySelectorAll('#ID .pts-infobox-item');
+    infobox_elements.forEach(el => {
         el.remove();
         el.style.display = 'block';
         infobox_items[el.id] = el;
     });
-    document.querySelectorAll('#ID [data-pts-infobox]').forEach(el => {
+    
+    const data_pts_elements = document.querySelectorAll('#ID [data-pts-infobox]');
+    data_pts_elements.forEach(el => {
         el.addEventListener('mouseenter', () => {
             if (!infobox_stick) {
                 replace_infobox(el);
@@ -122,3 +136,16 @@
         }
     }
 })();
+
+function setNodeState(nodeId, state) {
+  const el = document.querySelector(
+    `[data-node-id="${nodeId}"]`
+  );
+  if (!el) {
+    console.warn("Node not found:", nodeId);
+    return;
+  }
+
+  el.classList.remove("pts-pending", "pts-running", "pts-done");
+  el.classList.add(`pts-${state}`);
+}
