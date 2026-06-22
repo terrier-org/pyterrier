@@ -320,12 +320,16 @@ def Experiment(
                                   round=round, 
                                   precompute_time=0)
     
+    def _is_notebook() -> bool:
+        import sys 
+        return 'google.colab' in sys.modules or pt.utils._get_notebook() is not None
+    
     if plan == 'tree':
         if save_dir is not None:
             assert False
         tverbose : Literal['terminal', 'notebook', False]
         if verbose == 'auto' or verbose is True:
-            tverbose = 'notebook' if pt.utils._get_notebook() is not None else 'terminal'
+            tverbose = 'notebook' if _is_notebook() else 'terminal'
         else:
             assert verbose is False
             tverbose = verbose
