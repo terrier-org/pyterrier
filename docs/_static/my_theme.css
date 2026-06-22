@@ -2,14 +2,6 @@ h1 {
     font-size: 2em;
 }
 
-.no-border img,
-figure.no-border img,
-div.figure.no-border img,
-div.no-border img {
-    border: none !important;
-    box-shadow: none !important;
-    outline: none !important;
-}
 
 h2 {
     font-size: 1.75em;

@@ -464,10 +464,9 @@ In this example, both plans identify ``bm25 % 100`` as a shared prefix. However,
 ..    After execution: all transformers are green.
 
 
-.. figure:: /_static/tree_exec.gif
+.. figure:: /_static/tree.gif
    :alt: Progress visualization of the execution of the above experiment under ``plan="tree"``. 
-   :width: 80%
+   :width: 90%
    :align: center
-   :class: no-border
-   
+
    Progress visualization of the execution of the above experiment under ``plan="tree"``.
