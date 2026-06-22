@@ -1,7 +1,7 @@
 import pyterrier as pt
 
 from ._rendering import _convert_measures
-from . import MEASURES_TYPE
+from . import MEASURES_TYPE, SAVEFORMAT_TYPE, SAVEMODE_TYPE
 from ._execution import _ir_measures_to_dict
 from ._rendering import RenderFromPerQuery
 from ._trie import RadixNode, RadixTree
@@ -265,12 +265,11 @@ def tree_execution(renderer : RenderFromPerQuery,
                     eval_metrics : MEASURES_TYPE,
                     names: Sequence[str],
                     verbose : Literal['notebook', 'terminal', False], 
-                    save_dir=None, 
-                    save_mode=None, 
-                    save_format='trec',
-                    batch_size=None, 
-                    perquery=False,
-                    render_html = False):
+                    save_dir : Optional[str] = None, 
+                    save_mode : Optional[SAVEMODE_TYPE] = None, 
+                    save_format : SAVEFORMAT_TYPE = 'trec',
+                    batch_size : Optional[int]=None, 
+                    perquery : bool = False):
     
 
     # keys: tuple of Transformer objects; values: system id (int)

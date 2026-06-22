@@ -30,7 +30,7 @@ def Experiment(
         correction_alpha : float = 0.05,
         highlight : Optional[str] = None,
         round : Optional[Union[int,Dict[str,int]]] = None,
-        verbose : bool = False,
+        verbose : Literal['auto', True, False] = 'auto',
         validate : VALIDATE_TYPE = 'warn',
         save_dir : Optional[str] = None,
         save_mode : SAVEMODE_TYPE = 'warn',
@@ -59,7 +59,7 @@ def Experiment(
         correction_alpha : float = 0.05,
         highlight : Optional[str] = None,
         round : Optional[Union[int,Dict[str,int]]] = None,
-        verbose : bool = False,
+        verbose : Literal['auto', True, False] = 'auto',
         validate : VALIDATE_TYPE = 'warn',
         save_dir : Optional[str] = None,
         save_mode : SAVEMODE_TYPE = 'warn',
@@ -88,7 +88,7 @@ def Experiment(
         correction_alpha : float = 0.05,
         highlight : Optional[str] = None,
         round : Optional[Union[int,Dict[str,int]]] = None,
-        verbose : bool = False,
+        verbose : Literal['auto', True, False] = 'auto',
         validate : VALIDATE_TYPE = 'warn',
         save_dir : Optional[str] = None,
         save_mode : SAVEMODE_TYPE = 'warn',
@@ -117,7 +117,7 @@ def Experiment(
         correction_alpha : float = 0.05,
         highlight : Optional[str] = None,
         round : Optional[Union[int,Dict[str,int]]] = None,
-        verbose : bool = False,
+        verbose : Literal['auto', True, False] = 'auto',
         validate : VALIDATE_TYPE = 'warn',
         save_dir : Optional[str] = None,
         save_mode : SAVEMODE_TYPE = 'warn',
@@ -327,15 +327,24 @@ def Experiment(
     if plan == 'tree':
         if save_dir is not None:
             assert False
+        
+        # for tree execution, default verbose to 'notebook' when in a notebook, else 'terminal'
         tverbose : Literal['terminal', 'notebook', False]
         if verbose == 'auto' or verbose is True:
             tverbose = 'notebook' if _is_notebook() else 'terminal'
         else:
             assert verbose is False
             tverbose = verbose
-        tree_execution(renderer, retr_systems, topics, qrels, eval_metrics, names, tverbose, save_dir, save_mode, save_format, batch_size, perquery)
+        
+        tree_execution(renderer, retr_systems, topics, qrels, eval_metrics, names, tverbose, save_dir, save_mode, save_format, batch_size, perquery is not False)
     else:
-        linear_execution(renderer, retr_systems, topics, qrels, eval_metrics, names, precompute_prefix, verbose, save_dir, save_mode, save_format, batch_size, perquery)
+        # default verbose to False for linear execution
+        lverbose : bool
+        if verbose == 'auto':
+            lverbose = False
+        else:
+            lverbose = verbose
+        linear_execution(renderer, retr_systems, topics, qrels, eval_metrics, names, precompute_prefix, lverbose, save_dir, save_mode, save_format, batch_size, perquery is not False)
 
 
     if save_dir is not None:

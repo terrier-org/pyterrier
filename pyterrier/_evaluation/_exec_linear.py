@@ -1,6 +1,6 @@
 import pyterrier as pt
 
-from . import MEASURES_TYPE, SYSTEM_OR_RESULTS_TYPE
+from . import MEASURES_TYPE, SYSTEM_OR_RESULTS_TYPE, SAVEFORMAT_TYPE, SAVEMODE_TYPE
 from ._execution import _run_and_evaluate
 from .. import Transformer
 from .._ops import Compose
@@ -8,7 +8,7 @@ import pandas as pd
 import os
 import sys
 import types
-from typing import Sequence, List, Optional, Tuple, Dict, Any, Union
+from typing import Sequence, List, Optional, Tuple, Dict, Any, Union, Literal
 from warnings import warn
 
 
@@ -138,12 +138,12 @@ def linear_execution(renderer,retr_systems,
                      eval_metrics : MEASURES_TYPE,
                      names: Sequence[str], 
                      precompute_prefix: bool = True, 
-                     verbose=False, 
-                     save_dir=None, 
-                     save_mode=None, 
-                     save_format='trec',
-                     batch_size=None, 
-                     perquery=False):
+                     verbose : bool = False,
+                     save_dir : Optional[str] = None,
+                     save_mode : Optional[SAVEMODE_TYPE] = None,
+                     save_format : SAVEFORMAT_TYPE ='trec',
+                     batch_size : Optional[int]=None, 
+                     perquery : bool = False):
     
     # split the transformers into a common prefix and individual suffixes, improved efficiency
     precompute_time, execution_topics, execution_retr_systems = _precomputation(retr_systems, topics, precompute_prefix, verbose, batch_size)
