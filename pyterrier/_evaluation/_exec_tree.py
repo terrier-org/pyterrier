@@ -10,7 +10,7 @@ from pyterrier._ops import Compose
 import ir_measures
 import pandas as pd
 from typing import List, Optional, Union, Sequence, Tuple, Callable, cast as tcast, Literal
-from time import perf_counter as timer
+from time import perf_counter as timer, sleep
 import uuid
 
 def emit_js(node_id, state):
@@ -290,6 +290,7 @@ def tree_execution(renderer : RenderFromPerQuery,
         from IPython.display import HTML, display # type: ignore
         schematic = pt.schematic.radix_tree_schematic(tree, input_columns=["qid", "query"])
         display(HTML(pt.schematic.draw_html_schematic(schematic)))
+        sleep(1.5)
         exec_cb = lambda node_id, node: emit_js(node_id, node.execution_state) # noqa: E731
     elif verbose is False:
         pass
