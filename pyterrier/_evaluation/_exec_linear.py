@@ -8,7 +8,7 @@ import pandas as pd
 import os
 import sys
 import types
-from typing import Sequence, List, Optional, Tuple, Dict, Any, Union, Literal
+from typing import Sequence, List, Optional, Tuple, Dict, Any, Union
 from warnings import warn
 
 
