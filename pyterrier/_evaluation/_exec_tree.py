@@ -336,13 +336,19 @@ def tree_execution(renderer : RenderFromPerQuery,
                 backfill_qids,
                 error_message % sysid)
 
+            # accumulated_metrics and system_times are used for batch processing to accumulate results across batches
             if accumulated_metrics is None or system_times is None:
-                renderer.add_metrics(sysid, eval_measures, cum_time)
+                # If not in batch mode, add metrics directly to the renderer.
+                # eval_measures should have one entry for each num_q; 
+                # cum_time is the total time for all queries, so we divide by num_q to get the average time per query.
+                renderer.add_metrics(sysid, eval_measures, cum_time / num_q)
             else:
+                # In batch mode, accumulate metrics and times for each system across batches
                 if sysid not in accumulated_metrics:
                     accumulated_metrics[sysid] = {}
+                    system_times[sysid] = 0
                 accumulated_metrics[sysid].update(eval_measures)
-                system_times[sysid] = cum_time
+                system_times[sysid] += cum_time
 
         return callback
 
@@ -403,5 +409,6 @@ def tree_execution(renderer : RenderFromPerQuery,
             for sysid in accumulated_metrics:
                 accumulated_metrics[sysid].update(missing_metrics)
 
+        # only once all batches have been processed, add the accumulated metrics to the renderer
         for sysid, eval_measures in accumulated_metrics.items():
-            renderer.add_metrics(sysid, eval_measures, system_times[sysid])
+            renderer.add_metrics(sysid, eval_measures, system_times[sysid] / num_q)

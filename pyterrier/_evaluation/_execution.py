@@ -233,5 +233,5 @@ def _run_and_evaluate(
                     s_metric = rev_mapping.get(metric, str(metric))
                     aggregators[s_metric].add(evalMeasuresDict[q][s_metric]) #type: ignore
             evalMeasuresDict = {m: agg.result() for m, agg in aggregators.items()}
-    return (runtime, evalMeasuresDict)
+    return (runtime / num_q, evalMeasuresDict)
 

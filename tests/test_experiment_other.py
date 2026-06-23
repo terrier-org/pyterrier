@@ -9,6 +9,14 @@ import ir_measures
 
 class TestExperimentOther(BaseTestCase):
 
+    def test_mrt_is_average(self):
+        from pyterrier._evaluation._rendering import RenderFromPerQuery
+        # 2 queries, mrt passed in as 500ms (already averaged)
+        r = RenderFromPerQuery(['bm25'])
+        r.add_metrics(0, {'q1': {'AP': 1.0}, 'q2': {'AP': 0.8}}, 500.0)
+        df = r.averages(mrt_needed=True)
+        self.assertEqual(500.0, df['mrt'].iloc[0])
+
     def test_experiment_render(self):
         from pyterrier._evaluation._rendering import RenderFromPerQuery
         r = RenderFromPerQuery(['bm25'])
