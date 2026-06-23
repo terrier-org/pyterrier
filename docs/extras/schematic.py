@@ -35,8 +35,8 @@ def run_and_return_last(code: str, globals_dict=None, locals_dict=None, source=N
             return None
     except Exception as e:
         if source is None:
-            raise RuntimeError(f"Error executing code: {code} because {e.args}") from e
-        raise RuntimeError(f"Error executing code: {code} from {source} because {e.args}") from e
+            raise RuntimeError(f"Error executing code: {code} because {str(e)}") from e
+        raise RuntimeError(f"Error executing code: {code} from {source} because {str(e)}") from e
 
 
 class SchematicDirective(Directive):

@@ -170,8 +170,8 @@ class RenderFromPerQuery():
                     for m in per_q_metrics:
                         # we iterate through queries based on the baseline, in case run has different order
                         perQuery = np.array( [ self.systemEvalDictsPerQ[i][q][m] for q in self.systemEvalDictsPerQ[baseline] ])
-                        delta_plus = (perQuery > baselinePerQuery[m]).sum()
-                        delta_minus = (perQuery < baselinePerQuery[m]).sum()
+                        delta_plus = int((perQuery > baselinePerQuery[m]).sum())
+                        delta_minus = int((perQuery < baselinePerQuery[m]).sum())
                         p = self.test_fn(perQuery, baselinePerQuery[m])[1] # type: ignore[arg-type]
                         additionals.extend([delta_plus, delta_minus, p])
                 evalsRows[i].extend(additionals)

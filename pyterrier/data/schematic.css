@@ -57,7 +57,7 @@
 
 #ID .pts-infobox {
     position: absolute;
-    max-height: 300px;
+    max-height: calc(100% - 8px);
     top: 0;
     left: 0;
     border: 1px solid rgb(66, 153, 225);
@@ -65,11 +65,12 @@
     display: none;
     background: var(--pts-bg);
     box-shadow: 0 0 4px var(--pts-fg);
-    opacity: 0.9;
+    opacity: 1;
     margin: 4px;
     font-size: 0.8em;
     max-width: 360px;
     min-width: 128px;
+    z-index: 9999;
 }
 #ID.repr_html .pts-infobox {
     max-height: calc(100% - 8px);
@@ -207,8 +208,14 @@
     display: flex;
     align-items: center;
     align-content: stretch;
+    min-height: 50px;
+}
+#ID .pts-tree-scroll {
+    width: 100%;
     overflow-x: auto;
-    min-height: 29px;
+}
+#ID .pts-tree-scroll > .pts-pipeline {
+    width: max-content;
 }
 #ID .pts-pipeline > * {
     flex-shrink: 0;
@@ -219,7 +226,8 @@
     display: inline-block;
     position: relative;
     color: var(--pts-fg);
-    background: rgba(66, 153, 225, 0.3);
+    /* background can be overridden by pts-node-bg, e.g. pt.Experiment progress */
+    background: var(--pts-node-bg, rgba(66, 153, 225, 0.3));
     box-sizing: border-box;
     padding: 4px 18px;
     clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 0 100%, 16px 50%);
@@ -334,4 +342,19 @@
     /* links don't work in vscode, so pretend they don't exist */
     color: inherit;
     text-decoration: none;
+}
+
+
+/* change colors acc to status */
+#ID .pts-transformer.pts-pending {
+    --pts-node-bg: rgba(220, 38, 38, 0.6); /* red */
+}
+
+#ID .pts-transformer.pts-running {
+    --pts-node-bg: rgba(250, 204, 21, 0.7); /* yellow */
+    color: #000;
+}
+
+#ID .pts-transformer.pts-done {
+    --pts-node-bg: rgba(22, 163, 74, 0.6); /* green */
 }

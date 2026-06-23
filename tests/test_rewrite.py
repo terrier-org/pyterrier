@@ -1,5 +1,7 @@
 import pandas as pd
 import unittest
+
+import urllib
 import pyterrier as pt
 import os
 import shutil
@@ -387,8 +389,12 @@ class TestRewrite(TempDirTestCase):
         try:
             from transformers import AutoTokenizer
         except:
-            self.skipTest()
-        tok = AutoTokenizer.from_pretrained("bert-base-uncased")
+            self.skipTest("transformers not installed")
+        try:
+            tok = AutoTokenizer.from_pretrained("bert-base-uncased")
+        except OSError as ex:
+            if "https://huggingface.co" in str(ex):
+                self.skipTest("HGF connection error") # can just ignore if we can't connect to HGF
         query_toks = pt.rewrite.tokenise(tok.tokenize, matchop=True)
         self.assertEqual('a b', query_toks.search("a b").iloc[0].query)
 

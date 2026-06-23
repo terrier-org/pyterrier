@@ -351,7 +351,7 @@ def _read_topics_trec(file_path, doc_tag="top", id_tag="num", whitelist=["title"
     topics = []
     for top in soup.find_all(doc_tag):
         
-        num = top.find(id_tag).get_text(strip=True)
+        num = top.find(id_tag).get_text(strip=True) # type: ignore[union-attr]
         # replace Number: prefix if present
         if id_tag in prefix_words and num.startswith(prefix_words[id_tag]):
             num = num.replace(prefix_words[id_tag], "", 1).strip()
