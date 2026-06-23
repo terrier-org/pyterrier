@@ -117,7 +117,9 @@ class RenderFromPerQuery():
 
     def add_metrics(self, sysid : int, evalRows : Dict[str, Dict[str, float]], mrt : float):
         if sysid >= len(self.systems):
-            raise KeyError()
+            raise KeyError("sysid %d is not valid, only %d systems were provided" % (sysid, len(self.systems)))
+        if sysid in self.systemEvalDictsPerQ:
+            raise KeyError("sysid %d has already been added" % sysid)
         self.systemEvalDictsPerQ[sysid] = evalRows
         self.mrts[sysid] = mrt
     
