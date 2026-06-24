@@ -19,7 +19,7 @@ def radix_tree_schematic(tree, input_columns=None):
                 "input_columns": parent_schem.get('output_columns'),
                 "output_columns": parent_schem.get('output_columns'),
                 "is_last": True,
-                "type": "output"   #ouput is added as a type even though it is not a type of element, to make life easier
+                "type": "output"   # output is added as a type even though it is not a type of element, to make life easier
             },
         }
 
