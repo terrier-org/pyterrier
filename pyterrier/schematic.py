@@ -1,4 +1,3 @@
-
 from copy import copy
 import html
 import uuid
@@ -12,6 +11,18 @@ from pyterrier._ops import Compose
 
 
 def radix_tree_schematic(tree, input_columns=None):
+    def terminal_output_node(parent_schem):
+        return {
+            "type": "node",
+            "children": [],
+            "self": {
+                "input_columns": parent_schem.get('output_columns'),
+                "output_columns": parent_schem.get('output_columns'),
+                "is_last": True,
+                "type": "output"   # output is added as a type even though it is not a type of element, to make life easier
+            },
+        }
+
     def node_to_schematic(edge_label, node, _input_columns=None):
         # Efficiently determine transformer for schematic
         if isinstance(edge_label, (tuple, list)):
@@ -22,19 +33,25 @@ def radix_tree_schematic(tree, input_columns=None):
         self_schem = pt.schematic.transformer_schematic(transformer, input_columns=_input_columns) if transformer is not None else {}
 
         children = [node_to_schematic(child_label, child, _input_columns=self_schem.get('output_columns')) for child_label, child in node.children.items()]
+        is_terminal = node.value is not None
+        self_schem['is_terminal'] = is_terminal
         if self_schem['type'] == 'pipeline':
-        
+
             transformers = self_schem.get('transformers', [])
-            n = len(transformers)
+            n = len(transformers)-1
             has_children = bool(node.children)
+            
             for idx, t in enumerate(transformers):
                 t['node_id'] = f"{node.node_id}:{idx}"
-                t['is_last'] = (idx == n - 1) and not has_children
-                
+                t['is_last'] = (idx == n) and not has_children
+
         else:
             self_schem['node_id'] = node.node_id
             # node.value -> evaluation index, node.children -> whether it's a leaf node or not
-            self_schem['is_last'] = node.value is not None and not bool(node.children)
+            self_schem['is_last'] = is_terminal and not bool(node.children)
+
+        if is_terminal and children:
+            children = [terminal_output_node(self_schem), *children]
 
         node_dict = {
             "type": "node",
@@ -290,14 +307,14 @@ def draw_radix_html_schematic(radix_schematic, outer_class='outer') -> str:
         if output_columns is not None:
             if is_last:
                 html_block += f'<div class="pts-hline pts-arr pts-arr-output">{_draw_df_html(output_columns, input_columns)}</div>'
-                html_block += '<div class="pts-io-label">Output</div>'
+                html_block += '<div class="pts-io-label">Evaluate</div>'
             else:
                 if outer_class == 'inner-pipeline':
                     html_block += f'<div class="pts-hline pts-arr-inner">{_draw_df_html(output_columns, input_columns)}</div>'
                 else:
                     html_block += f'<div class="pts-hline pts-arr pts-arr-inner">{_draw_df_html(output_columns, input_columns)}</div>'
         return html_block
-    
+
     def render_branch_node():
         result = '''<div class="pts-parallel-scaffold pts-inner">
             <div class="pts-hline"></div>
@@ -413,6 +430,21 @@ def draw_radix_html_schematic(radix_schematic, outer_class='outer') -> str:
             for transformer in radix_schematic['nodes']:
                 record = transformer['self']
                 result += draw_radix_html_schematic(record, outer_class='inner-pipeline')
+        result += '</div>'
+        return result
+
+
+    elif radix_schematic['type'] == "output":
+        result = ''
+        if outer_class == 'inner':
+            result += '<div class="pts-parallel-item"><div class="pts-vline"></div>'
+            result += '<div class="pts-pipeline">'
+            result += '<div class="pts-hline" style="width: 10px;"></div>'
+        else:
+            result += '<div class="pts-pipeline">'
+
+        result += f'<div class="pts-hline pts-arr pts-arr-output">{_draw_df_html(radix_schematic.get("output_columns"), radix_schematic.get("input_columns"))}</div>'
+        result += '<div class="pts-io-label">Evaluate</div>'
         result += '</div>'
         return result
 

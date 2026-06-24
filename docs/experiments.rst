@@ -402,10 +402,10 @@ In many IR pipeline experiment settings, several pipelines share substantial com
 
 Users can choose between two planning strategies:
 
-- ``plan="linear"``: Uses linear execution with precompute-prefix reuse. This corresponds to precomputing shared initial stages (previously exposed via ``precompute_prefix=True``), and is the default behaviour.
+- ``plan="linear"``: Uses linear execution. This corresponds to computing each stage sequentially, and is the default behaviour.
 - ``plan="tree"``: Uses tree execution, which can detect and reuse shared subsequences beyond the initial common prefix.
 
-For a simple pair of pipelines, precompute-prefix reuse avoids repeated execution of the same initial retriever::
+For a simple pair of pipelines, the tree excecution plan avoids repeated execution of the same initial retriever::
 
     from pyterrier_t5 import MonoT5ReRanker, DuoT5ReRanker
     bm25 = pt.terrier.Retriever.from_dataset('vaswani', 'terrier_stemmed_text', wmodel='BM25', num_results=100)
@@ -422,7 +422,7 @@ For a simple pair of pipelines, precompute-prefix reuse avoids repeated executio
 
 Without reuse, ``bm25`` would be executed once per pipeline. Under ``plan="linear"``, the shared prefix is executed once and reused by downstream stages.
 
-The benefit of ``plan="tree"`` is clearer when pipelines share deeper subsequences::
+The benefit of ``plan="tree"`` is more pronounced when pipelines share deeper subsequences::
 
     pt.Experiment(
         [
@@ -440,8 +440,8 @@ The benefit of ``plan="tree"`` is clearer when pipelines share deeper subsequenc
 In this example, both plans identify ``bm25 % 100`` as a shared prefix. However, ``plan="tree"`` can additionally identify the shared ``monoT5`` subsequence and reuse it across branches, reducing redundant computation relative to ``plan="linear"``. The following progress visualization illustrates the execution of the above experiment under ``plan="tree"``. Each transformer is represented as a node in the tree, with color indicating its execution status: red for not yet executed, yellow for currently executing, and green for completed. This visualisation is shown unless ``verbose=False`` is set.
 
 .. figure:: /_static/tree.gif
-   :alt: Progress visualization of the execution of the above experiment under ``plan="tree"``. 
+   :alt: Progress visualisation of the execution of the above experiment under ``plan="tree"``. 
    :width: 90%
    :align: center
 
-   Progress visualization of the execution of the above experiment under ``plan="tree"``.
+   Progress visualisation of the execution of the above experiment under ``plan="tree"``.

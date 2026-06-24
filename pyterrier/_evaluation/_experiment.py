@@ -206,11 +206,14 @@ def Experiment(
     :param plan: Whether to execute the experiment using a 'linear' or 'tree' execution plan. The linear plan executes each system sequentially, 
         but does not allow for reuse of execution results between different systems. The tree plan identifies common prefixes between pipelines, 
         and executes each unique prefix only once, allowing for more faster experiments. Default is 'linear'.
-    :param verbose: If True, progress is shown as systems (or systems*batches if batch_size is set) are executed. Default is False, except when ``plan='tree'`` in a notebook, in which case a the tree-execution plan is shown by default.
+    :param verbose: If True, progress is shown as systems (or systems*batches if batch_size is set) are executed. Default is False, except when ``plan='tree'`` in a notebook, 
+        in which case a the tree-execution plan is shown by default.
     :param validate: If set to value other than 'ignore', each transformer is validated against the topics dataframe, to ensure that it produces the expected output columns.
         ``pt.inspect.transformer_outputs()`` is used to determine the output columns. If 'warn', then transformers whose output columns don't match the columns required 
         by the specified evaluation measures will product warnings; If 'error', then an error is produced. If a transformer cannot be inspected, a warning is produced.
-
+    :param precompute_prefix:  Deprecated, use plan='tree' instead. If True, will precompute the common prefix of all retrieval systems, and use this to speed up evaluation. 
+        Default is False. A tree execution plan is more efficient, as prefixes of different lengths can be reused, and is recommended for experiments with many systems.
+        
     :return: A Dataframe/dict with each retrieval system with each metric evaluated, or alternatively a tuple with averages and perquery results. 
     """
     
