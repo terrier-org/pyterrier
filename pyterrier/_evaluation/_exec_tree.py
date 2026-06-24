@@ -7,7 +7,6 @@ from ._rendering import RenderFromPerQuery
 from ._trie import RadixNode, RadixTree
 from pyterrier._ops import Compose
 
-
 import ir_measures
 import pandas as pd
 from typing import List, Optional, Union, Sequence, Tuple, Callable, cast as tcast, Literal
