@@ -5,7 +5,7 @@
 
 # PyTerrier
 
-PyTerrier - v1.0
+PyTerrier - v1.1
 
 <p align="center">
   🔍 <b>Retrieve.</b> 🧠 <b>Rerank.</b> 💬 <b>Answer.</b> ⚙️ <b>Experiment.</b>
