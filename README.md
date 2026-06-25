@@ -98,6 +98,7 @@ By downloading and using PyTerrier, you agree to cite at the undernoted paper de
  - Sean MacAvaney, University of Glasgow
  - Nicola Tonellotto, University of Pisa
  - Alex Tsolov, University of Glasgow
+ - Irene Anu, University of Glasgow
  - Arthur Câmara, TU Delft
  - Alberto Ueda, Federal University of Minas Gerais
  - Sean MacAvaney, University of Glasgow
