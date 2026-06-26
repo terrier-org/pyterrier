@@ -38,7 +38,7 @@ all = [
 exclude = ["tests"]
 
 [tool.setuptools.package-data]
-mypkg = ["README.md", "LICENSE.txt"]
+pyterrier = ["README.md", "LICENSE.txt"]
 
 [project.urls]
 Repository = "https://github.com/terrier-org/pyterrier"
