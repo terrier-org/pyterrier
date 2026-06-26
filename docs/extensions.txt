@@ -18,6 +18,6 @@ pyterrier_doc2query # Doc2Query <https://github.com/terrierteam/pyterrier_doc2qu
 pyterrier_pisa # PISA <https://github.com/terrierteam/pyterrier_pisa>
 pyterrier_rag # RAG <https://github.com/terrierteam/pyterrier_rag>
 # Sentence Transformers <https://github.com/soldni/pyterrier_sentence_transformers>
-# SPLADE <https://github.com/cmacdonald/pyt_splade>
+pyterrier_splade # SPLADE <https://github.com/cmacdonald/pyt_splade>
 suiteeval # SuiteEval <https://github.com/Parry-Parry/suiteeval>
 pyterrier_t5 # T5 <https://github.com/terrierteam/pyterrier_t5>
