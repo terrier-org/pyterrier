@@ -53,7 +53,10 @@ class SchematicDirective(Directive):
 
         code = "\n".join(self.content)
         local_dict = {}
-        result = run_and_return_last(code, {'pt': pt}, local_dict, source=source, lineno=lineno)
+        try:
+            result = run_and_return_last(code, {'pt': pt}, local_dict, source=source, lineno=lineno)
+        except Exception as e:
+            return [self.state_machine.reporter.warning(str(e), line=self.lineno)]
         if result is None:
             for local_var in ['pipeline', 'transformer']:
                 if local_var in local_dict:
