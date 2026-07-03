@@ -404,8 +404,7 @@ class SlidingWindowPassager(pt.Transformer):
             cols = [self.text_attr] + ([self.title_attr] if self.prepend_title else [])
             v.result_frame(cols)
             v.document_frame(cols)
-        print("calling sliding on df of %d rows" % len(topics_and_res))
-
+        
         # now apply the passaging
         if "qid" in topics_and_res.columns: 
             return self.applyPassaging(topics_and_res, labels="label" in topics_and_res.columns)
