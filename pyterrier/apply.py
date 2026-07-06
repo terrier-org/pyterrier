@@ -33,6 +33,7 @@ def query(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], str], *args,
         :param required_columns: The list of columns that must be present in the input dataframe. Defaults to ['qid', 'query'].
         :param verbose: if set to True, a TQDM progress bar will be displayed
         :param label: Optional label for the schematic representation of this transformer
+        :param eq: Optional custom equality function taking ``(self, other)``
 
         Examples::
 
@@ -75,6 +76,7 @@ def doc_score(fn : Union[Callable[[Union[pd.Series,pt.model.IterDictRecord]], fl
         :param required_columns: If provided, should be a list of columns that must be present in the input dataframe. Defaults to ['qid', 'query', 'docno'].
         :param verbose: if set to True, a TQDM progress bar will be displayed
         :param label: Optional label for the schematic representation of this transformer
+        :param eq: Optional custom equality function taking ``(self, other)``
 
         Example (Row-wise)::
 
@@ -111,6 +113,7 @@ def doc_features(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], npt.N
         :param required_columns: The list of columns that must be present in the input dataframe.
         :param verbose: if set to True, a TQDM progress bar will be displayed
         :param label: Optional label for the schematic representation of this transformer
+        :param eq: Optional custom equality function taking ``(self, other)``
         
         Example::
 
@@ -144,6 +147,7 @@ def indexer(fn : Callable[[pt.model.IterDict], Any], required_columns: Optional[
         :param fn: the function that consumes documents as IterDicts.
         :param required_columns: If provided, should be a list of columns that must be present in the input IterDicts.
         :param label: Optional label for the schematic representation of this transformer
+        :param eq: Optional custom equality function taking ``(self, other)``
 
         Example::
 
@@ -165,6 +169,7 @@ def rename(columns: Dict[str,str], *, errors: Literal['raise', 'ignore'] = 'rais
         :param columns: A dictionary mapping from old column name to new column name
         :param errors: Maps to df.rename() errors kwarg - default to 'raise', alternatively can be 'ignore'
         :param label: Optional label for the schematic representation of this transformer
+        :param eq: Optional custom equality function taking ``(self, other)``
 
         Example::
             
@@ -198,6 +203,7 @@ def generic(
             This need only be set if you need inspectability and iter=True, or your transformer doesn't respond well to 
             being inspected by empty dataframes.
         :param label: Optional label for the schematic representation of this transformer
+        :param eq: Optional custom equality function taking ``(self, other)``
 
         Example (dataframe)::
 
@@ -255,6 +261,7 @@ def by_query(
             This need only be set if you need inspectability and iter=True, or your transformer doesn't respond well to 
             being inspected by empty dataframes.
         :param label: Optional label for the schematic representation of this transformer
+        :param eq: Optional custom equality function taking ``(self, other)``
     """
     rtr : pt.Transformer
     if iter:
