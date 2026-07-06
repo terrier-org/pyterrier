@@ -6,11 +6,23 @@ import pandas as pd
 import pyterrier as pt
 
 
-class DropColumnTransformer(pt.Transformer):
+class ApplyBase:
+    def __init__(self, *, eq: Optional[Callable[[Any, Any], bool]] = None):
+        self._eq = eq
+
+    def __eq__(self, other):
+        if self._eq is None:
+            return super().__eq__(other)
+        return self._eq(self, other)
+
+    __hash__ = object.__hash__
+
+
+class DropColumnTransformer(ApplyBase, pt.Transformer):
     """
     This transformer drops the provided column from the input.
     """
-    def __init__(self, col: str, *, label: Optional[str] = None):
+    def __init__(self, col: str, *, label: Optional[str] = None, eq: Optional[Callable[[Any, Any], bool]] = None):
         """
         Instantiates a DropColumnTransformer.
 
@@ -18,6 +30,7 @@ class DropColumnTransformer(pt.Transformer):
             col: The column to drop
             label: Optional label for the schematic representation of this transformer
         """
+        super().__init__(eq=eq)
         self.col = col
         self.label = label
 
@@ -58,17 +71,18 @@ class DropColumnTransformer(pt.Transformer):
         return f"pt.apply.{self.col}(drop=True)"
 
 
-class RenameColumnsTransformer(pt.Transformer):
+class RenameColumnsTransformer(ApplyBase, pt.Transformer):
     """
     This transformer renames the provided columns, akin to pandas.DataFrame.rename
     """
-    def __init__(self, columns: Dict[str, str], *, errors: Literal['raise', 'ignore'] = 'raise', label: Optional[str] = None):
+    def __init__(self, columns: Dict[str, str], *, errors: Literal['raise', 'ignore'] = 'raise', label: Optional[str] = None, eq: Optional[Callable[[Any, Any], bool]] = None):
         """
         Arguments:
             columns: A dictionary mapping old column names to new column names
             errors: Maps to df.rename() errors kwarg
             label: Optional label for the schematic representation of this transformer
         """
+        super().__init__(eq=eq)
         self.columns = columns
         self.errors = errors
         self.label = label
@@ -94,7 +108,7 @@ class RenameColumnsTransformer(pt.Transformer):
         return "pt.apply.rename()"
 
 
-class ApplyByRowTransformer(pt.Transformer):
+class ApplyByRowTransformer(ApplyBase, pt.Transformer):
     """
     This transformer applies a function to each row in the input and assigns the result to a new column.
     """
@@ -105,7 +119,8 @@ class ApplyByRowTransformer(pt.Transformer):
         batch_size: Optional[int] = None,
         required_columns: Optional[List[str]] = None,
         verbose: bool = False,
-        label: Optional[str] = None
+        label: Optional[str] = None,
+        eq: Optional[Callable[[Any, Any], bool]] = None
     ):
         """
         Instantiates a ApplyByRowTransformer.
@@ -119,6 +134,7 @@ class ApplyByRowTransformer(pt.Transformer):
             verbose: Whether to display a progress bar when processing in batch mode.
             label: Optional label for the schematic representation of this transformer
         """
+        super().__init__(eq=eq)
         self.col = col
         self.fn = fn
         self.batch_size = batch_size
@@ -172,7 +188,7 @@ class ApplyByRowTransformer(pt.Transformer):
         return f"pt.apply.{self.col}()"
 
 
-class ApplyForEachQuery(pt.Transformer):
+class ApplyForEachQuery(ApplyBase, pt.Transformer):
     def __init__(self,
         fn: Callable[[pd.DataFrame], pd.DataFrame],
         *,
@@ -180,7 +196,8 @@ class ApplyForEachQuery(pt.Transformer):
         batch_size: Optional[int] = None,
         required_columns: Optional[List[str]] = None,
         verbose: bool = False,
-        label: Optional[str] = None
+        label: Optional[str] = None,
+        eq: Optional[Callable[[Any, Any], bool]] = None
     ):
         """
         Instantiates a ApplyForEachQuery.
@@ -193,6 +210,7 @@ class ApplyForEachQuery(pt.Transformer):
             verbose: Whether to display a progress bar
             label: Optional label for the schematic representation of this transformer
         """
+        super().__init__(eq=eq)
         self.fn = fn
         self.add_ranks = add_ranks
         self.batch_size = batch_size
@@ -245,14 +263,15 @@ class ApplyForEachQuery(pt.Transformer):
         return rtr
 
 
-class ApplyIterForEachQuery(pt.Transformer):
+class ApplyIterForEachQuery(ApplyBase, pt.Transformer):
     def __init__(self,
         fn: Callable[[pt.model.IterDict], pt.model.IterDict],
         *,
         batch_size=None,
         required_columns: Optional[List[str]] = None,
         verbose=False,
-        label: Optional[str] = None):
+        label: Optional[str] = None,
+        eq: Optional[Callable[[Any, Any], bool]] = None):
         """
         Instantiates a ApplyIterForEachQuery.
 
@@ -263,6 +282,7 @@ class ApplyIterForEachQuery(pt.Transformer):
             verbose: Whether to display a progress bar
             label: Optional label for the schematic representation of this transformer
         """
+        super().__init__(eq=eq)
         self.fn = fn
         self.batch_size = batch_size
         self.required_columns = required_columns
@@ -291,7 +311,7 @@ class ApplyIterForEachQuery(pt.Transformer):
                 yield from self.fn(group)
 
 
-class ApplyDocumentScoringTransformer(pt.Transformer):
+class ApplyDocumentScoringTransformer(ApplyBase, pt.Transformer):
     """
         Implements a transformer that can apply a function to perform document scoring. The supplied function 
         should take as input one row, and return a float for the score of the document.
@@ -322,6 +342,7 @@ class ApplyDocumentScoringTransformer(pt.Transformer):
         required_columns: Optional[List[str]] = None,
         verbose: bool = False,
         label: Optional[str] = None,
+        eq: Optional[Callable[[Any, Any], bool]] = None,
     ):
         """
         Arguments:
@@ -333,6 +354,7 @@ class ApplyDocumentScoringTransformer(pt.Transformer):
             verbose: Whether to display a progress bar
             label: Optional label for the schematic representation of this transformer
         """
+        super().__init__(eq=eq)
         self.fn = fn
         self.batch_size = batch_size
         self.required_columns = required_columns
@@ -379,7 +401,7 @@ class ApplyDocumentScoringTransformer(pt.Transformer):
         return rtr
 
 
-class ApplyDocFeatureTransformer(pt.Transformer):
+class ApplyDocFeatureTransformer(ApplyBase, pt.Transformer):
     """
         Implements a transformer that can apply a function to perform feature scoring. The supplied function 
         should take as input one row, and return a numpy array for the features of the document.
@@ -396,7 +418,8 @@ class ApplyDocFeatureTransformer(pt.Transformer):
         *,
         required_columns: Optional[List[str]] = None,
         verbose: bool = False,
-        label: Optional[str] = None
+        label: Optional[str] = None,
+        eq: Optional[Callable[[Any, Any], bool]] = None
     ):
         """
         Arguments:
@@ -405,6 +428,7 @@ class ApplyDocFeatureTransformer(pt.Transformer):
             verbose: Whether to display a progress bar
             label: Optional label for the schematic representation of this transformer
         """
+        super().__init__(eq=eq)
         self.fn = fn
         self.required_columns = required_columns
         self.verbose = verbose
@@ -446,7 +470,7 @@ class ApplyDocFeatureTransformer(pt.Transformer):
         return outputRes
 
 
-class ApplyQueryTransformer(pt.Transformer):
+class ApplyQueryTransformer(ApplyBase, pt.Transformer):
     """
         Implements a query rewriting transformer by passing a function to perform the rewriting. The function should take
         as input one row, and return the string form of the new query.
@@ -470,7 +494,8 @@ class ApplyQueryTransformer(pt.Transformer):
         *,
         required_columns: Optional[List[str]] = None,
         verbose: bool = False,
-        label: Optional[str] = None
+        label: Optional[str] = None,
+        eq: Optional[Callable[[Any, Any], bool]] = None
     ):
         """
         Arguments:
@@ -479,6 +504,7 @@ class ApplyQueryTransformer(pt.Transformer):
             verbose: Display a tqdm progress bar for this transformer
             label: Optional label for the schematic representation of this transformer
         """
+        super().__init__(eq=eq)
         self.fn = fn
         self.required_columns = required_columns
         self.verbose = verbose
@@ -536,7 +562,7 @@ class ApplyQueryTransformer(pt.Transformer):
         return outputRes
 
 
-class ApplyGenericTransformer(pt.Transformer):
+class ApplyGenericTransformer(ApplyBase, pt.Transformer):
     """
     Allows arbitrary pipelines components to be written as functions. The function should take as input
     a dataframe, and return a new dataframe. The function should abide by the main contracual obligations,
@@ -563,6 +589,7 @@ class ApplyGenericTransformer(pt.Transformer):
         required_columns: Optional[List[str]] = None,
         verbose: bool = False,
         label: Optional[str] = None,
+        eq: Optional[Callable[[Any, Any], bool]] = None,
     ):
         """
         Arguments:
@@ -571,6 +598,7 @@ class ApplyGenericTransformer(pt.Transformer):
             verbose: When in batch model, display a tqdm progress bar
             label: Optional label for the schematic representation of this transformer
         """
+        super().__init__(eq=eq)
         self.fn = fn
         self.batch_size = batch_size
         self.required_columns = required_columns
@@ -599,7 +627,7 @@ class ApplyGenericTransformer(pt.Transformer):
         return rtr
 
 
-class ApplyGenericIterTransformer(pt.Transformer): 
+class ApplyGenericIterTransformer(ApplyBase, pt.Transformer): 
     """
 
     As per ApplyGenericTransformer, but implements transform_iter(), not transform(). The supplied function
@@ -617,6 +645,7 @@ class ApplyGenericIterTransformer(pt.Transformer):
         batch_size: Optional[int] = None,
         required_columns: Optional[List[str]] = None,
         label: Optional[str] = None,
+        eq: Optional[Callable[[Any, Any], bool]] = None,
     ):
         """
         Arguments:
@@ -625,6 +654,7 @@ class ApplyGenericIterTransformer(pt.Transformer):
             required_columns: A list of columns that must be present in the input, or None to disable validation.
             label: Optional label for the schematic representation of this transformer
         """
+        super().__init__(eq=eq)
         self.fn = fn
         self.batch_size = batch_size
         self.required_columns = required_columns
@@ -649,12 +679,13 @@ class ApplyGenericIterTransformer(pt.Transformer):
                 yield from self.fn(batch)
 
 
-class ApplyIndexer(pt.Indexer):
+class ApplyIndexer(ApplyBase, pt.Indexer):
     """
     Allows arbitrary indexer pipelines components to be written as functions.
     """
     
-    def __init__(self, fn: Callable[[pt.model.IterDict], Any], *, required_columns: Optional[List[str]] = None, label: Optional[str] = None):
+    def __init__(self, fn: Callable[[pt.model.IterDict], Any], *, required_columns: Optional[List[str]] = None, label: Optional[str] = None, eq: Optional[Callable[[Any, Any], bool]] = None):
+        super().__init__(eq=eq)
         self.fn = fn
         self.required_columns = required_columns
         self.label = label

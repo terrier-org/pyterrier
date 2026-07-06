@@ -262,6 +262,33 @@ class TestApply(BaseTestCase):
             rtr = pd.DataFrame(list(rtr)) if not isinstance(rtr, pd.DataFrame) else rtr # recover DF for easier testing
             self.assertTrue(np.array_equal(rtr.iloc[0]["features"], np.array([0,1])))
 
+    def test_eq_default_and_custom_override(self):
+        t1 = pt.apply.query(lambda q: q["query"])
+        t2 = pt.apply.query(lambda q: q["query"])
+        self.assertFalse(t1 == t2)
+        self.assertTrue(t1 == t1)
+
+        eq_fn = lambda self, other: isinstance(other, self.__class__)
+
+        constructors = [
+            lambda: pt.apply.query(lambda q: q.get("query", ""), eq=eq_fn),
+            lambda: pt.apply.doc_score(lambda row: 1.0, eq=eq_fn),
+            lambda: pt.apply.doc_features(lambda row: np.array([1.0]), eq=eq_fn),
+            lambda: pt.apply.indexer(lambda it: None, eq=eq_fn),
+            lambda: pt.apply.rename({'a': 'b'}, errors='ignore', eq=eq_fn),
+            lambda: pt.apply.generic(lambda df: df, eq=eq_fn),
+            lambda: pt.apply.generic(lambda it: it, iter=True, eq=eq_fn),
+            lambda: pt.apply.by_query(lambda df: df, add_ranks=False, eq=eq_fn),
+            lambda: pt.apply.by_query(lambda it: it, iter=True, eq=eq_fn),
+            lambda: pt.apply.score(lambda row: 1.0, eq=eq_fn),
+            lambda: pt.apply.score(drop=True, eq=eq_fn),
+        ]
+
+        for ctor in constructors:
+            left = ctor()
+            right = ctor()
+            self.assertTrue(left == right)
+
 
 
 @pt.testing.transformer_test_class
