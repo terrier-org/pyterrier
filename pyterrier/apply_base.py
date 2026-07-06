@@ -6,11 +6,14 @@ import pandas as pd
 import pyterrier as pt
 
 
+EqFn = Callable[['ApplyBase', Any], bool]
+
+
 class ApplyBase:
     """
     Shared base for apply components that supports optional custom equality.
     """
-    def __init__(self, *, eq: Optional[Callable[[Any, Any], bool]] = None):
+    def __init__(self, *, eq: Optional[EqFn] = None):
         """
         Arguments:
             eq: Optional equality function that takes two arguments (the current instance and ``other``)
@@ -31,7 +34,7 @@ class DropColumnTransformer(ApplyBase, pt.Transformer):
     """
     This transformer drops the provided column from the input.
     """
-    def __init__(self, col: str, *, label: Optional[str] = None, eq: Optional[Callable[[Any, Any], bool]] = None):
+    def __init__(self, col: str, *, label: Optional[str] = None, eq: Optional[EqFn] = None):
         """
         Instantiates a DropColumnTransformer.
 
@@ -84,7 +87,7 @@ class RenameColumnsTransformer(ApplyBase, pt.Transformer):
     """
     This transformer renames the provided columns, akin to pandas.DataFrame.rename
     """
-    def __init__(self, columns: Dict[str, str], *, errors: Literal['raise', 'ignore'] = 'raise', label: Optional[str] = None, eq: Optional[Callable[[Any, Any], bool]] = None):
+    def __init__(self, columns: Dict[str, str], *, errors: Literal['raise', 'ignore'] = 'raise', label: Optional[str] = None, eq: Optional[EqFn] = None):
         """
         Arguments:
             columns: A dictionary mapping old column names to new column names
@@ -129,7 +132,7 @@ class ApplyByRowTransformer(ApplyBase, pt.Transformer):
         required_columns: Optional[List[str]] = None,
         verbose: bool = False,
         label: Optional[str] = None,
-        eq: Optional[Callable[[Any, Any], bool]] = None
+        eq: Optional[EqFn] = None
     ):
         """
         Instantiates a ApplyByRowTransformer.
@@ -206,7 +209,7 @@ class ApplyForEachQuery(ApplyBase, pt.Transformer):
         required_columns: Optional[List[str]] = None,
         verbose: bool = False,
         label: Optional[str] = None,
-        eq: Optional[Callable[[Any, Any], bool]] = None
+        eq: Optional[EqFn] = None
     ):
         """
         Instantiates a ApplyForEachQuery.
@@ -280,7 +283,7 @@ class ApplyIterForEachQuery(ApplyBase, pt.Transformer):
         required_columns: Optional[List[str]] = None,
         verbose=False,
         label: Optional[str] = None,
-        eq: Optional[Callable[[Any, Any], bool]] = None):
+        eq: Optional[EqFn] = None):
         """
         Instantiates a ApplyIterForEachQuery.
 
@@ -351,7 +354,7 @@ class ApplyDocumentScoringTransformer(ApplyBase, pt.Transformer):
         required_columns: Optional[List[str]] = None,
         verbose: bool = False,
         label: Optional[str] = None,
-        eq: Optional[Callable[[Any, Any], bool]] = None,
+        eq: Optional[EqFn] = None,
     ):
         """
         Arguments:
@@ -428,7 +431,7 @@ class ApplyDocFeatureTransformer(ApplyBase, pt.Transformer):
         required_columns: Optional[List[str]] = None,
         verbose: bool = False,
         label: Optional[str] = None,
-        eq: Optional[Callable[[Any, Any], bool]] = None
+        eq: Optional[EqFn] = None
     ):
         """
         Arguments:
@@ -504,7 +507,7 @@ class ApplyQueryTransformer(ApplyBase, pt.Transformer):
         required_columns: Optional[List[str]] = None,
         verbose: bool = False,
         label: Optional[str] = None,
-        eq: Optional[Callable[[Any, Any], bool]] = None
+        eq: Optional[EqFn] = None
     ):
         """
         Arguments:
@@ -598,7 +601,7 @@ class ApplyGenericTransformer(ApplyBase, pt.Transformer):
         required_columns: Optional[List[str]] = None,
         verbose: bool = False,
         label: Optional[str] = None,
-        eq: Optional[Callable[[Any, Any], bool]] = None,
+        eq: Optional[EqFn] = None,
     ):
         """
         Arguments:
@@ -654,7 +657,7 @@ class ApplyGenericIterTransformer(ApplyBase, pt.Transformer):
         batch_size: Optional[int] = None,
         required_columns: Optional[List[str]] = None,
         label: Optional[str] = None,
-        eq: Optional[Callable[[Any, Any], bool]] = None,
+        eq: Optional[EqFn] = None,
     ):
         """
         Arguments:
@@ -693,7 +696,7 @@ class ApplyIndexer(ApplyBase, pt.Indexer):
     Allows arbitrary indexer pipelines components to be written as functions.
     """
     
-    def __init__(self, fn: Callable[[pt.model.IterDict], Any], *, required_columns: Optional[List[str]] = None, label: Optional[str] = None, eq: Optional[Callable[[Any, Any], bool]] = None):
+    def __init__(self, fn: Callable[[pt.model.IterDict], Any], *, required_columns: Optional[List[str]] = None, label: Optional[str] = None, eq: Optional[EqFn] = None):
         super().__init__(eq=eq)
         self.fn = fn
         self.required_columns = required_columns
