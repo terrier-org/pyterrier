@@ -268,7 +268,7 @@ class TestApply(BaseTestCase):
         self.assertFalse(t1 == t2)
         self.assertTrue(t1 == t1)
 
-        eq_fn = lambda self, other: isinstance(other, self.__class__)
+        eq_fn = lambda left, other: isinstance(other, left.__class__)
 
         constructors = [
             lambda: pt.apply.query(lambda q: q.get("query", ""), eq=eq_fn),

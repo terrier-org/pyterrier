@@ -7,7 +7,15 @@ import pyterrier as pt
 
 
 class ApplyBase:
+    """
+    Shared base for apply components that supports optional custom equality.
+    """
     def __init__(self, *, eq: Optional[Callable[[Any, Any], bool]] = None):
+        """
+        Arguments:
+            eq: Optional equality function that takes ``self`` and ``other`` and returns whether they are equal.
+                When not provided, default object equality behavior is used.
+        """
         self._eq = eq
 
     def __eq__(self, other):
