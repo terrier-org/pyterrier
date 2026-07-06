@@ -27,7 +27,10 @@ class ApplyBase:
             return super().__eq__(other)
         return self._eq(self, other)
 
-    __hash__ = object.__hash__
+    def __hash__(self):
+        if self._eq is None:
+            return super().__hash__()
+        raise TypeError("unhashable type: custom equality override configured")
 
 
 class DropColumnTransformer(ApplyBase, pt.Transformer):
