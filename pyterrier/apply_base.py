@@ -13,7 +13,8 @@ class ApplyBase:
     def __init__(self, *, eq: Optional[Callable[[Any, Any], bool]] = None):
         """
         Arguments:
-            eq: Optional equality function that takes ``self`` and ``other`` and returns whether they are equal.
+            eq: Optional equality function that takes two arguments (the current instance and ``other``)
+                and returns whether they are equal.
                 When not provided, default object equality behavior is used.
         """
         self._eq = eq
