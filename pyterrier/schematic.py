@@ -540,8 +540,6 @@ def draw_radix_html_schematic(radix_schematic, outer_class='outer') -> str:
 
 
 def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
-    if mode == 'inner_labelled':
-        mode = 'inner_labeled'
     if schematic['type'] == 'transformer':
         return _draw_html_schematic({
             'type': 'pipeline',
