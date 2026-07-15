@@ -577,20 +577,19 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
             dom_id = f"pts-node-{node_id}" if node_id is not None else ''
             node_attr = f'id="{dom_id}" data-node-id="{node_id}"' if node_id is not None else ''
             pending_cls = 'pts-pending' if node_id is not None else ''
+            
             if 'inner_pipelines' in record:
                 result += _render_inner_pipelines(record, infobox, infobox_attr, error_cls, node_id=node_id, dom_id=dom_id)
             elif record['type'] == 'indexer':
                 result += f'''
-                <div class="pts-transformer {pending_cls} {error_cls}" {node_attr} {infobox_attr}>
-                    {infobox}
+                <div class="pts-transformer {pending_cls} {error_cls}" {node_attr} {infobox_attr}>{infobox}
                     <div class="pts-transformer-title">{html.escape(record["label"])}</div>
                 </div>
                 '''
             else:
                 assert record['type'] == 'transformer'
                 result += f'''
-                <div class="pts-transformer {pending_cls} {error_cls}" {node_attr} {infobox_attr}>
-                    {infobox}
+                <div class="pts-transformer {pending_cls} {error_cls}" {node_attr} {infobox_attr}>{infobox}
                     <div class="pts-transformer-title">{html.escape(record["label"])}</div>
                 </div>
                 '''
