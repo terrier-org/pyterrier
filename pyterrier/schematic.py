@@ -291,6 +291,17 @@ def render_transformer_infobox(record: Dict[str, Any]) :
     return infobox, infobox_attr, error_cls
 
 
+def _pipeline_node_id(pipeline: Dict[str, Any], node_id: str):
+    # Recursively assign node_id to all transformers in pipeline, mainly for combine and linked inner pipelines
+    if pipeline.get('type') in ('transformer', 'indexer'):
+        pipeline['node_id'] = node_id
+    elif pipeline.get('type') == 'pipeline':
+        for t in pipeline.get('transformers', []):
+            _pipeline_node_id(t, node_id)
+    else:
+        pipeline['node_id'] = node_id
+
+
 def _render_inner_pipelines(record: Dict[str, Any], infobox: str, infobox_attr: str, error_cls: str, node_id: Optional[str] = None, dom_id: Optional[str] = None,
 ) -> str:
     # new method common for both linear and tree modes, combine, linked mode use cases
@@ -301,7 +312,7 @@ def _render_inner_pipelines(record: Dict[str, Any], infobox: str, infobox_attr: 
         pipelines = ''
         for pipeline in record['inner_pipelines']:
             if node_id is not None:
-                pipeline['node_id'] = node_id
+                _pipeline_node_id(pipeline, node_id)
             pipelines += '<div class="pts-parallel-item"><div class="pts-vline"></div>' + _draw_html_schematic(pipeline, mode='inner_linked') + '<div class="pts-vline"></div></div>'
         return f'''
         <div class="pts-transformer pts-inner pts-parallel-scaffold {pending_cls} {error_cls}" {node_attr} {infobox_attr}>
@@ -316,7 +327,7 @@ def _render_inner_pipelines(record: Dict[str, Any], infobox: str, infobox_attr: 
         pipelines = ''
         for pipeline in record['inner_pipelines']:
             if node_id is not None:
-                pipeline['node_id'] = node_id
+                _pipeline_node_id(pipeline, node_id)
             pipelines += '<div class="pts-parallel-item"><div class="pts-vline"></div>' + _draw_html_schematic(pipeline, mode='inner_linked') + '<div class="pts-vline"></div></div>'
         return f'''
         <div class="pts-combine-box">
@@ -336,7 +347,7 @@ def _render_inner_pipelines(record: Dict[str, Any], infobox: str, infobox_attr: 
         if len(record['inner_pipelines_labels']) == len(record['inner_pipelines']):
             for label, pipeline in zip(record['inner_pipelines_labels'], record['inner_pipelines']):
                 if node_id is not None:
-                    pipeline['node_id'] = node_id
+                    _pipeline_node_id(pipeline, node_id)
                 pipelines += f'''
                 <div class="pts-transformer-title">{html.escape(label)}</div>
                 <div class="pts-inner-schematic pts-inner-labeled">{_draw_html_schematic(pipeline, mode='inner_labeled')}</div>
@@ -344,7 +355,7 @@ def _render_inner_pipelines(record: Dict[str, Any], infobox: str, infobox_attr: 
         else:
             for pipeline in record['inner_pipelines']:
                 if node_id is not None:
-                    pipeline['node_id'] = node_id
+                    _pipeline_node_id(pipeline, node_id)
                 pipelines += _draw_html_schematic(pipeline, mode='inner_labeled')
         return f'''
         <div class="pts-transformer pts-inner {pending_cls} {error_cls}" {node_attr} {infobox_attr}>
