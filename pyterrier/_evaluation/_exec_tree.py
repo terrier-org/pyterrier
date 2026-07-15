@@ -120,7 +120,7 @@ class TransformerRadixNode(RadixNode[TREE_KEY_TYPE, int]):
                 # Mark as completed after execution
                 self.execution_state = 'done'
                 if exec_callback is not None:
-                    exec_callback(f"{self.node_id}:{i}", self)        
+                    exec_callback(f"{self.node_id}:{i}", self)
 
         else:
             assert False, "No transformers found for this node"
