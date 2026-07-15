@@ -38,20 +38,13 @@ def dataset_include():
 
 def experiment_includes():
     print("Regenerating experiments includes - to skip, use QUICK=1 make html")
-    dataset = pt.get_dataset("vaswani")
-    # vaswani dataset provides an index, topics and qrels
+    dataset = pt.get_dataset("irds:vaswani")
 
-    # lets generate two BRs to compare
-    try:
-        indexref = dataset.get_index()
-    except ValueError:
-        # if data.terrier.org is down, build the index
-        indexref = pt.IterDictIndexer(
-                os.path.join(tempfile.gettempdir(), "vaswani_index")
-            ).index(pt.get_dataset('vaswani').get_corpus_iter())
-
-    tfidf = pt.terrier.Retriever(indexref, wmodel="TF_IDF")
-    bm25 = pt.terrier.Retriever(indexref, wmodel="BM25")
+    # this is the vaswani index
+    index = pt.terrier.TerrierIndex.example()
+    
+    tfidf = index.tf_idf()
+    bm25 = index.bm25()
 
     table = pt.Experiment(
         [tfidf, bm25],
