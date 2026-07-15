@@ -291,7 +291,7 @@ def render_transformer_infobox(record: Dict[str, Any]) :
     return infobox, infobox_attr, error_cls
 
 
-def _render_transformer_inner_pipelines(record: Dict[str, Any], infobox: str, infobox_attr: str, error_cls: str, node_id: Optional[str] = None, dom_id: Optional[str] = None,
+def _render_inner_pipelines(record: Dict[str, Any], infobox: str, infobox_attr: str, error_cls: str, node_id: Optional[str] = None, dom_id: Optional[str] = None,
 ) -> str:
     # new method common for both linear and tree modes, combine, linked mode use cases
     node_attr = f'id="{dom_id}" data-node-id="{node_id}"' if node_id is not None else ''
@@ -362,7 +362,7 @@ def draw_radix_html_schematic(radix_schematic, outer_class='outer') -> str:
         dom_id = f"pts-node-{node_id}" if node_id is not None else '' #this is diff
         infobox, infobox_attr, error_cls = render_transformer_infobox(record)
         if 'inner_pipelines' in record:
-            html_block = _render_transformer_inner_pipelines(record,infobox,infobox_attr,error_cls,node_id,dom_id,)
+            html_block = _render_inner_pipelines(record,infobox,infobox_attr,error_cls,node_id,dom_id,)
         else:
             html_block = f'''
             <div class="pts-transformer pts-pending {error_cls}" id="{dom_id}" data-node-id="{node_id}" {infobox_attr}>
@@ -580,7 +580,7 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
             node_attr = f'id="{dom_id}" data-node-id="{node_id}"' if node_id is not None else ''
             pending_cls = 'pts-pending' if node_id is not None else ''
             if 'inner_pipelines' in record:
-                result += _render_transformer_inner_pipelines(record, infobox, infobox_attr, error_cls, node_id=node_id, dom_id=dom_id)
+                result += _render_inner_pipelines(record, infobox, infobox_attr, error_cls, node_id=node_id, dom_id=dom_id)
             elif record['type'] == 'indexer':
                 result += f'''
                 <div class="pts-transformer {pending_cls} {error_cls}" {node_attr} {infobox_attr}>
