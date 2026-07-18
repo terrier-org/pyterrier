@@ -292,12 +292,12 @@ def render_transformer_infobox(record: Dict[str, Any]) :
 
 
 def _pipeline_node_id(pipeline: Dict[str, Any], node_id: str):
-    # Recursively assign node_id to all transformers in pipeline, mainly for combine and linked inner pipelines
+    # Assign node_id to all transformers in pipeline, mainly for combine and linked inner pipelines
     if pipeline.get('type') in ('transformer', 'indexer'):
         pipeline['node_id'] = node_id
     elif pipeline.get('type') == 'pipeline':
         for t in pipeline.get('transformers', []):
-            _pipeline_node_id(t, node_id)
+            t['node_id'] = node_id
     else:
         pipeline['node_id'] = node_id
 
