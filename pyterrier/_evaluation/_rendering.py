@@ -152,6 +152,8 @@ class RenderFromPerQuery():
         del(evalMeasuresDicts)
 
         highlight_cols = { m : "+"  for m in actual_metric_names }
+        if mrt_needed:
+            highlight_cols["mrt"] = "-"
         p_col_names : List[str] = []
         
         if baseline is not None:
