@@ -106,10 +106,7 @@ class TransformerRadixNode(RadixNode[TREE_KEY_TYPE, int]):
                 exec_callback(self.node_id, self)
         
         elif len(transformers) > 1:
-            result = inp
-            transform_time = 0.0
-
-            for i, transformer in enumerate(transformers):
+            for i in range(len(transformers)):
                 self.execution_state = 'running'
                 if exec_callback is not None:
                     exec_callback(f"{self.node_id}:{i}", self)
