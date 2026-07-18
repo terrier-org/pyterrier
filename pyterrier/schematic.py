@@ -290,18 +290,86 @@ def render_transformer_infobox(record: Dict[str, Any]) :
         infobox_attr = f'data-pts-infobox="id-{uid}"'
     return infobox, infobox_attr, error_cls
 
+
+def _render_inner_pipelines(record: Dict[str, Any], infobox: str, infobox_attr: str, error_cls: str, node_id: Optional[str] = None, dom_id: Optional[str] = None,
+) -> str:
+    # new method common for both linear and tree modes, combine, linked mode use cases
+    node_attr = f'id="{dom_id}" data-node-id="{node_id}"' if node_id is not None else ''
+    pending_cls = 'pts-pending' if node_id is not None else ''
+
+    if record['inner_pipelines_mode'] == 'linked':
+        pipelines = ''
+        for pipeline in record['inner_pipelines']:
+            if node_id is not None:
+                pipeline['node_id'] = node_id
+            pipelines += '<div class="pts-parallel-item"><div class="pts-vline"></div>' + _draw_html_schematic(pipeline, mode='inner_linked') + '<div class="pts-vline"></div></div>'
+        return f'''
+        <div class="pts-transformer pts-inner pts-parallel-scaffold {pending_cls} {error_cls}" {node_attr} {infobox_attr}>
+            {infobox}
+            <div class="pts-hline"></div>
+            <div class="pts-transformer-title">{html.escape(record["label"])}</div>
+            <div class="pts-inner-schematic pts-inner-linked">{pipelines}</div>
+            <div class="pts-hline pts-arr"></div> <!-- TODO this is unusual - an arrow AFTER something -->
+        </div>
+        '''
+    if record['inner_pipelines_mode'] == 'combine':
+        pipelines = ''
+        for pipeline in record['inner_pipelines']:
+            if node_id is not None:
+                pipeline['node_id'] = node_id
+            pipelines += '<div class="pts-parallel-item"><div class="pts-vline"></div>' + _draw_html_schematic(pipeline, mode='inner_linked') + '<div class="pts-vline"></div></div>'
+        return f'''
+        <div class="pts-combine-box">
+            <div class="pts-parallel-scaffold pts-inner">
+                <div class="pts-hline"></div>
+                <div class="pts-inner-schematic pts-inner-linked">{pipelines}</div>
+                <div class="pts-hline pts-arr"></div>
+            </div>
+            <div class="pts-transformer {pending_cls} {error_cls}" {node_attr} {infobox_attr}>
+                {infobox}
+                <div class="pts-transformer-title">{html.escape(record["label"])}</div>
+            </div>
+        </div>
+        '''
+    if record['inner_pipelines_mode'] == 'unlinked':
+        pipelines = ''
+        if len(record['inner_pipelines_labels']) == len(record['inner_pipelines']):
+            for label, pipeline in zip(record['inner_pipelines_labels'], record['inner_pipelines']):
+                if node_id is not None:
+                    pipeline['node_id'] = node_id
+                pipelines += f'''
+                <div class="pts-transformer-title">{html.escape(label)}</div>
+                <div class="pts-inner-schematic pts-inner-labeled">{_draw_html_schematic(pipeline, mode='inner_labeled')}</div>
+                '''
+        else:
+            for pipeline in record['inner_pipelines']:
+                if node_id is not None:
+                    pipeline['node_id'] = node_id
+                pipelines += _draw_html_schematic(pipeline, mode='inner_labeled')
+        return f'''
+        <div class="pts-transformer pts-inner {pending_cls} {error_cls}" {node_attr} {infobox_attr}>
+            {infobox}
+            <div class="pts-transformer-title">{html.escape(record["label"])}</div>
+            <div class="pts-inner-schematic pts-inner-labeled">{pipelines}</div>
+        </div>
+        '''
+    raise ValueError(f"Unknown inner_pipelines_mode {record['inner_pipelines_mode']}")
+
 def draw_radix_html_schematic(radix_schematic, outer_class='outer') -> str:
     
     def render_node(record, is_last):
         node_id = record.get('node_id')#this is diff
         dom_id = f"pts-node-{node_id}" if node_id is not None else '' #this is diff
         infobox, infobox_attr, error_cls = render_transformer_infobox(record)
-        html_block = f'''
-        <div class="pts-transformer pts-pending {error_cls}" id="{dom_id}" data-node-id="{node_id}" {infobox_attr}>
-        {infobox}
-        <div class="pts-transformer-title">{html.escape(record["label"])}</div>
-        </div>
-        '''
+        if 'inner_pipelines' in record:
+            html_block = _render_inner_pipelines(record,infobox,infobox_attr,error_cls,node_id,dom_id,)
+        else:
+            html_block = f'''
+            <div class="pts-transformer pts-pending {error_cls}" id="{dom_id}" data-node-id="{node_id}" {infobox_attr}>
+            {infobox}
+            <div class="pts-transformer-title">{html.escape(record["label"])}</div>
+            </div>
+            '''
         output_columns = record.get("output_columns")
         input_columns = record.get("input_columns")
         if output_columns is not None:
@@ -505,68 +573,23 @@ def _draw_html_schematic(schematic: dict, *, mode: str = 'outer') -> str:
             assert record['input_columns'] == columns
             #calll the render function here
             infobox, infobox_attr, error_cls = render_transformer_infobox(record)
+            node_id = record.get('node_id')
+            dom_id = f"pts-node-{node_id}" if node_id is not None else ''
+            node_attr = f'id="{dom_id}" data-node-id="{node_id}"' if node_id is not None else ''
+            pending_cls = 'pts-pending' if node_id is not None else ''
+            
             if 'inner_pipelines' in record:
-                if record['inner_pipelines_mode'] == 'linked':
-                    pipelines = ''
-                    for pipeline in record['inner_pipelines']:
-                        pipelines += '<div class="pts-parallel-item"><div class="pts-vline"></div>' + _draw_html_schematic(pipeline, mode='inner_linked') + '<div class="pts-vline"></div></div>'
-                    result += f'''
-                    <div class="pts-transformer pts-inner pts-parallel-scaffold {error_cls}" {infobox_attr}>
-                        {infobox}
-                        <div class="pts-hline"></div>
-                        <div class="pts-transformer-title">{html.escape(record["label"])}</div>
-                        <div class="pts-inner-schematic pts-inner-linked">{pipelines}</div>
-                        <div class="pts-hline pts-arr"></div> <!-- TODO this is unusual - an arrow AFTER something -->
-                    </div>
-                    '''
-                elif record['inner_pipelines_mode'] == 'combine':
-                    pipelines = ''
-                    for pipeline in record['inner_pipelines']:
-                        pipelines += '<div class="pts-parallel-item"><div class="pts-vline"></div>' + _draw_html_schematic(pipeline, mode='inner_linked') + '<div class="pts-vline"></div></div>'
-                    result += f'''
-                    <div class="pts-combine-box">
-                        <div class="pts-parallel-scaffold pts-inner">
-                            <div class="pts-hline"></div>
-                            <div class="pts-inner-schematic pts-inner-linked">{pipelines}</div>
-                            <div class="pts-hline pts-arr"></div>
-                        </div>
-                        <!-- this is for the RRFusion part of the pipeline -->
-                        <div class="pts-transformer {error_cls}" {infobox_attr}>
-                            {infobox}
-                            <div class="pts-transformer-title">{html.escape(record["label"])}</div>
-                        </div>
-                    </div>
-                    '''
-                elif record['inner_pipelines_mode'] == 'unlinked':
-                    pipelines = ''
-                    if len(record['inner_pipelines_labels']) == len(record['inner_pipelines']):
-                        for label, pipeline in zip(record['inner_pipelines_labels'], record['inner_pipelines']):
-                            pipelines += f'''
-                            <div class="pts-transformer-title">{html.escape(label)}</div>
-                            <div class="pts-inner-schematic pts-inner-labeled">{_draw_html_schematic(pipeline, mode='inner_labeled')}</div>
-                            '''
-                    else:
-                        for pipeline in record['inner_pipelines']:
-                            pipelines += _draw_html_schematic(pipeline, mode='inner_labeled')
-                    result += f'''
-                    <div class="pts-transformer pts-inner {error_cls}" {infobox_attr}>
-                        {infobox}
-                        <div class="pts-transformer-title">{html.escape(record["label"])}</div>
-                        <div class="pts-inner-schematic pts-inner-labeled">{pipelines}</div>
-                    </div>
-                    '''
+                result += _render_inner_pipelines(record, infobox, infobox_attr, error_cls, node_id=node_id, dom_id=dom_id)
             elif record['type'] == 'indexer':
                 result += f'''
-                <div class="pts-transformer {error_cls}" {infobox_attr}>
-                    {infobox}
+                <div class="pts-transformer {pending_cls} {error_cls}" {node_attr} {infobox_attr}>{infobox}
                     <div class="pts-transformer-title">{html.escape(record["label"])}</div>
                 </div>
                 '''
             else:
                 assert record['type'] == 'transformer'
                 result += f'''
-                <div class="pts-transformer {error_cls}" {infobox_attr}>
-                    {infobox}
+                <div class="pts-transformer {pending_cls} {error_cls}" {node_attr} {infobox_attr}>{infobox}
                     <div class="pts-transformer-title">{html.escape(record["label"])}</div>
                 </div>
                 '''

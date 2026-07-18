@@ -138,14 +138,14 @@
 })();
 
 function setNodeState(nodeId, state) {
-  const el = document.querySelector(
-    `[data-node-id="${nodeId}"]`
-  );
-  if (!el) {
-    console.warn("Node not found:", nodeId);
-    return;
-  }
+    const els = document.querySelectorAll(`[data-node-id="${nodeId}"]`);
+    if (els.length === 0) {
+        console.warn("Node not found:", nodeId);
+        return;
+    }
 
-  el.classList.remove("pts-pending", "pts-running", "pts-done");
-  el.classList.add(`pts-${state}`);
+    els.forEach((el) => {
+        el.classList.remove("pts-pending", "pts-running", "pts-done");
+        el.classList.add(`pts-${state}`);
+    });
 }

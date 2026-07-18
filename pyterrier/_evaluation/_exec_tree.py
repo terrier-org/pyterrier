@@ -112,10 +112,7 @@ class TransformerRadixNode(RadixNode[TREE_KEY_TYPE, int]):
                     exec_callback(f"{self.node_id}:{i}", self)
             
             start = timer()
-            if len(transformers) == 1:
-                result = transformers[0].transform(inp)
-            else:
-                result = Compose(*transformers).transform(inp)
+            result = Compose(*transformers).transform(inp)
             end = timer()
             transform_time = (end - start) * 1000.0
 
