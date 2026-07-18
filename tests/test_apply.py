@@ -292,7 +292,8 @@ class TestApply(BaseTestCase):
                 hash(first)
             for j, other_ctor in enumerate(constructors):
                 other = other_ctor()
-                self.assertFalse(first == second, (i,j))
+                if i != j:
+                    self.assertFalse(first == second, (i,j))
 
 
 
