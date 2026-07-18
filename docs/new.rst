@@ -10,7 +10,7 @@ and ranked documents.
 
         
 DataFrameBuilder
---------------------------------------------------
+=======================================
 
 :class:`~pyterrier.new.DataFrameBuilder` provides a simple way to progressively build a DataFrame in a
 :class:`~pyterrier.Transformer`.
