@@ -284,12 +284,15 @@ class TestApply(BaseTestCase):
             lambda: pt.apply.score(drop=True, eq=type_equality_fn),
         ]
 
-        for ctor in constructors:
+        for i, ctor in enumerate(constructors):
             first = ctor()
             second = ctor()
-            self.assertTrue(first == second)
+            self.assertTrue(first == second, i)
             with self.assertRaises(TypeError):
                 hash(first)
+            for j, other_ctor in enumerate(constructors):
+                other = other_ctor()
+                self.assertFalse(first == second, (i,j))
 
 
 
