@@ -262,6 +262,39 @@ class TestApply(BaseTestCase):
             rtr = pd.DataFrame(list(rtr)) if not isinstance(rtr, pd.DataFrame) else rtr # recover DF for easier testing
             self.assertTrue(np.array_equal(rtr.iloc[0]["features"], np.array([0,1])))
 
+    def test_eq_default_and_custom_override(self):
+        t1 = pt.apply.query(lambda q: q["query"])
+        t2 = pt.apply.query(lambda q: q["query"])
+        self.assertFalse(t1 == t2)
+        self.assertTrue(t1 == t1)
+
+        type_equality_fn = lambda instance, other: isinstance(other, instance.__class__)
+
+        constructors = [
+            lambda: pt.apply.query(lambda q: q.get("query", ""), eq=type_equality_fn),
+            lambda: pt.apply.doc_score(lambda row: 1.0, eq=type_equality_fn),
+            lambda: pt.apply.doc_features(lambda row: np.array([1.0]), eq=type_equality_fn),
+            lambda: pt.apply.indexer(lambda it: None, eq=type_equality_fn),
+            lambda: pt.apply.rename({'a': 'b'}, errors='ignore', eq=type_equality_fn),
+            lambda: pt.apply.generic(lambda df: df, eq=type_equality_fn),
+            lambda: pt.apply.generic(lambda it: it, iter=True, eq=type_equality_fn),
+            lambda: pt.apply.by_query(lambda df: df, add_ranks=False, eq=type_equality_fn),
+            lambda: pt.apply.by_query(lambda it: it, iter=True, eq=type_equality_fn),
+            lambda: pt.apply.score(lambda row: 1.0, eq=type_equality_fn),
+            lambda: pt.apply.score(drop=True, eq=type_equality_fn),
+        ]
+
+        for i, ctor in enumerate(constructors):
+            first = ctor()
+            second = ctor()
+            self.assertTrue(first == second, i)
+            with self.assertRaises(TypeError):
+                hash(first)
+            for j, other_ctor in enumerate(constructors):
+                other = other_ctor()
+                if i != j:
+                    self.assertFalse(first == second, (i,j))
+
 
 
 @pt.testing.transformer_test_class
