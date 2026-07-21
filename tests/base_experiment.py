@@ -563,8 +563,7 @@ class TestExperimentBase(TempDirTestCase):
 
     def test_withheld_docs_filter(self):
         """Test that documents with label==-100 in qrels are filtered from system outputs before evaluation."""
-        # Build a small, self-contained experiment without requiring the Vaswani index.
-        topics = pd.DataFrame({'qid': ['q1', 'q1', 'q2', 'q2'], 'query': ['a', 'a', 'b', 'b']}).drop_duplicates('qid').reset_index(drop=True)
+        topics = pd.DataFrame({'qid': ['q1', 'q2'], 'query': ['a', 'b']})
 
         # d1 is a normal relevant doc for q1; d2 is withheld (label==-100) for q1
         qrels = pd.DataFrame({
@@ -582,6 +581,9 @@ class TestExperimentBase(TempDirTestCase):
             'rank':  [0,    1,    0],
         })
 
+        def _withheld_warnings(w):
+            return [x for x in w if 'withheld' in str(x.message).lower() or '-100' in str(x.message)]
+
         transformer_system = pt.Transformer.from_df(results, uniform=False)
 
         # Test with transformer system: warning issued, withheld doc filtered, evaluation still works
@@ -595,8 +597,7 @@ class TestExperimentBase(TempDirTestCase):
                 **self.pt_exp_kwargs,
             )
         # A warning should be issued about withheld documents
-        withheld_warnings = [x for x in w if 'withheld' in str(x.message).lower() or '-100' in str(x.message)]
-        self.assertEqual(1, len(withheld_warnings), "Expected exactly one withheld-docs warning")
+        self.assertEqual(1, len(_withheld_warnings(w)), "Expected exactly one withheld-docs warning")
         # Experiment should return valid results (map should be 1.0 since d1 is retrieved for q1 and d3 for q2)
         self.assertAlmostEqual(1.0, df.iloc[0]['map'])
 
@@ -610,8 +611,7 @@ class TestExperimentBase(TempDirTestCase):
                 eval_metrics=['map'],
                 **self.pt_exp_kwargs,
             )
-        withheld_warnings2 = [x for x in w if 'withheld' in str(x.message).lower() or '-100' in str(x.message)]
-        self.assertEqual(1, len(withheld_warnings2), "Expected exactly one withheld-docs warning for DataFrame system")
+        self.assertEqual(1, len(_withheld_warnings(w)), "Expected exactly one withheld-docs warning for DataFrame system")
         self.assertAlmostEqual(1.0, df2.iloc[0]['map'])
 
     def test_no_withheld_docs_no_warning(self):

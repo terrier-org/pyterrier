@@ -289,19 +289,16 @@ def Experiment(
             "These documents will be removed from system outputs before evaluation.",
             stacklevel=2,
         )
-        # build a set of (qid, docno) pairs to exclude, for fast lookup
-        withheld_set = set(zip(withheld["qid"], withheld["docno"]))
+        # build a MultiIndex of (qid, docno) pairs to exclude for fast vectorised lookup
+        excluded_idx = pd.MultiIndex.from_frame(withheld)
 
-        def _make_withheld_filter(excluded: set) -> pt.Transformer:
+        def _make_withheld_filter(excluded: pd.MultiIndex) -> pt.Transformer:
             def _filter(res: pd.DataFrame) -> pd.DataFrame:
-                mask = [
-                    (qid, docno) not in excluded
-                    for qid, docno in zip(res["qid"], res["docno"])
-                ]
-                return res[mask]
+                res_idx = pd.MultiIndex.from_arrays([res["qid"], res["docno"]])
+                return res[~res_idx.isin(excluded)]
             return pt.apply.generic(_filter, label="WithheldDocsFilter")
 
-        withheld_filter = _make_withheld_filter(withheld_set)
+        withheld_filter = _make_withheld_filter(excluded_idx)
         retr_systems = [
             (pt.Transformer.from_df(system) >> withheld_filter)
             if isinstance(system, pd.DataFrame)
