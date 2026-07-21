@@ -560,3 +560,67 @@ class TestExperimentBase(TempDirTestCase):
             self.assertTrue("map p-value corrected" in df.columns)
             self.assertTrue("map reject" in df.columns)
             self.assertFalse(any(df["map p-value corrected"].drop(df.index[baseline]).isna()))
+
+    def test_withheld_docs_filter(self):
+        """Test that documents with label==-100 in qrels are filtered from system outputs before evaluation."""
+        topics = pd.DataFrame({'qid': ['q1', 'q2'], 'query': ['a', 'b']})
+
+        # d1 is a normal relevant doc for q1; d2 is withheld (label==-100) for q1
+        qrels = pd.DataFrame({
+            'qid':   ['q1', 'q1', 'q2'],
+            'docno': ['d1', 'd2', 'd3'],
+            'label': [1,    -100,  1],
+        })
+
+        # Both systems return d1 and d2 for q1, and d3 for q2.
+        # After filtering, d2 should be removed from results for q1.
+        results = pd.DataFrame({
+            'qid':   ['q1', 'q1', 'q2'],
+            'docno': ['d1', 'd2', 'd3'],
+            'score': [2.0,  1.0,  3.0],
+            'rank':  [0,    1,    0],
+        })
+
+        def _withheld_warnings(w):
+            return [x for x in w if 'withheld' in str(x.message).lower() or '-100' in str(x.message)]
+
+        transformer_system = pt.Transformer.from_df(results, uniform=False)
+
+        # Test with transformer system: warning issued, withheld doc filtered, evaluation still works
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            df = pt.Experiment(
+                [transformer_system],
+                topics,
+                qrels.copy(),
+                eval_metrics=['map'],
+                **self.pt_exp_kwargs,
+            )
+        # A warning should be issued about withheld documents
+        self.assertEqual(1, len(_withheld_warnings(w)), "Expected exactly one withheld-docs warning")
+        # Experiment should return valid results (map should be 1.0 since d1 is retrieved for q1 and d3 for q2)
+        self.assertAlmostEqual(1.0, df.iloc[0]['map'])
+
+        # Test with DataFrame system: same filtering behaviour
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            df2 = pt.Experiment(
+                [results.copy()],
+                topics,
+                qrels.copy(),
+                eval_metrics=['map'],
+                **self.pt_exp_kwargs,
+            )
+        self.assertEqual(1, len(_withheld_warnings(w)), "Expected exactly one withheld-docs warning for DataFrame system")
+        self.assertAlmostEqual(1.0, df2.iloc[0]['map'])
+
+    def test_no_withheld_docs_no_warning(self):
+        """Test that no warning is issued when qrels contain no label==-100 entries."""
+        topics = pd.DataFrame({'qid': ['q1'], 'query': ['a']})
+        qrels = pd.DataFrame({'qid': ['q1'], 'docno': ['d1'], 'label': [1]})
+        results = pd.DataFrame({'qid': ['q1'], 'docno': ['d1'], 'score': [1.0], 'rank': [0]})
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            pt.Experiment([results], topics, qrels, eval_metrics=['map'], **self.pt_exp_kwargs)
+        withheld_warnings = [x for x in w if 'withheld' in str(x.message).lower() or '-100' in str(x.message)]
+        self.assertEqual(0, len(withheld_warnings), "No withheld-docs warning expected when qrels have no label==-100")

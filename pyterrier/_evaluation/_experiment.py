@@ -274,6 +274,40 @@ def Experiment(
         if len(qrels) == 0:
             raise ValueError('There is no overlap between the qids found in the topics and qrels. If this is intentional, set filter_by_topics=False and filter_by_qrels=False.')
 
+    # obtain system names before any pipeline modification so str(system) reflects the original pipeline
+    if names is None:
+        names = [str(system) for system in retr_systems]
+
+    # detect withheld documents (label == -100) and append a filter transformer to each pipeline
+    withheld_mask = qrels["label"] == -100
+    if withheld_mask.any():
+        withheld = qrels.loc[withheld_mask, ["qid", "docno"]].drop_duplicates()
+        num_withheld = len(withheld)
+        num_qids = withheld["qid"].nunique()
+        warn(
+            f"Found {num_withheld} withheld document(s) (label==-100) across {num_qids} query/queries in qrels. "
+            "These documents will be removed from system outputs before evaluation.",
+            stacklevel=2,
+        )
+        # build a MultiIndex of (qid, docno) pairs to exclude for fast vectorised lookup
+        excluded_idx = pd.MultiIndex.from_frame(withheld)
+
+        def _make_withheld_filter(excluded: pd.MultiIndex) -> pt.Transformer:
+            def _filter(res: pd.DataFrame) -> pd.DataFrame:
+                res_idx = pd.MultiIndex.from_arrays([res["qid"], res["docno"]])
+                return res[~res_idx.isin(excluded)]
+            return pt.apply.generic(_filter, label="WithheldDocsFilter")
+
+        withheld_filter = _make_withheld_filter(excluded_idx)
+        retr_systems = [
+            (pt.Transformer.from_df(system) >> withheld_filter)
+            if isinstance(system, pd.DataFrame)
+            else (system >> withheld_filter)
+            for system in retr_systems
+        ]
+        # remove withheld entries from qrels so evaluation metrics are not affected
+        qrels = qrels[~withheld_mask].reset_index(drop=True)
+
     from scipy import stats
     test_fn : TEST_FN_TYPE
     if test == "t":
@@ -284,10 +318,8 @@ def Experiment(
         assert not isinstance(test, str), "Unknown test function name %s" % test
         test_fn = test
     
-    # obtain system names if not specified
-    if names is None:
-        names = [str(system) for system in retr_systems]
-    elif len(names) != len(retr_systems):
+    # validate provided names length (names=None case already handled above)
+    if names is not None and len(names) != len(retr_systems):
         raise ValueError("names should be the same length as retr_systems")
 
     # validate save_dir and resulting filenames
