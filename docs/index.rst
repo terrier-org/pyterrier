@@ -29,6 +29,13 @@ PyTerrier is a Python framework for Information Retrieval (IR) research and expe
 
 .. toctree::
    :maxdepth: 1
+   :caption: Tutorial
+
+   SIGIR 2026 Tutorial: Hands-On IR Research with PyTerrier <https://pyterrier-tutorial.github.io/>
+
+
+.. toctree::
+   :maxdepth: 1
    :caption: Guides
 
    installation
