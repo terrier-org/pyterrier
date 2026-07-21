@@ -293,6 +293,45 @@ Note that in all cases, if a requested topic that appears in the qrels returns n
 a score of 0 for evaluation.
 
 
+Withheld Documents
+~~~~~~~~~~~~~~~~~~
+
+Some datasets include documents in their qrels that should **not** be retrieved — for example, documents that are
+considered distractors or that fall outside the scope of the topic. In `ir_datasets <https://ir-datasets.com/>`_,
+such documents are marked with a special relevance label of ``-100``.
+
+A prominent example is the `BRIGHT <https://brightbenchmark.github.io/>`_ benchmark (Beyond Retrieval: Is your
+model Genuinely Hard?), a challenging retrieval benchmark for reasoning-intensive queries. BRIGHT qrels contain
+documents labelled ``-100`` to indicate documents that must be withheld from system outputs before evaluation;
+including them would lead to inflated retrieval scores.
+
+``pt.Experiment()`` automatically handles these withheld documents. When any ``label == -100`` rows are found in
+the qrels, it:
+
+1. Emits a ``UserWarning`` reporting the number of withheld documents and affected queries.
+2. Appends a filter to every pipeline that removes the withheld ``(qid, docno)`` pairs from system outputs **before** evaluation.
+3. Drops the withheld rows from the qrels used for metric computation.
+
+This means no special handling is required from the user — simply pass the raw qrels from the dataset and
+``pt.Experiment()`` will take care of the rest::
+
+    import pyterrier as pt
+
+    dataset = pt.get_dataset("irds:bright/biology")
+    bm25 = pt.terrier.Retriever.from_dataset(dataset, wmodel="BM25")
+
+    pt.Experiment(
+        [bm25],
+        dataset.get_topics(),
+        dataset.get_qrels(),   # qrels may contain label==-100 withheld docs
+        eval_metrics=["map", "ndcg_cut_10"],
+    )
+    # UserWarning: Found N withheld document(s) (label==-100) across M query/queries in qrels.
+    #              These documents will be removed from system outputs before evaluation.
+
+The warning is informational — it confirms that the withheld-document filtering is active. No action is required
+from the user.
+
 
 Available Evaluation Measures
 =============================
