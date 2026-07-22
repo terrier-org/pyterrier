@@ -61,7 +61,7 @@ PyTerrier has additional plugins for everything from dense retrieval to RAG:
 
  - Pyterrier_DR: [[Github](https://github.com/terrierteam/pyterrier_colbert)] - single-representation dense retrieval
  - Pyterrier_RAG: [[Github](https://github.com/terrierteam/pyterrier_rag)] - retrieval augmented generation and LLM access
- - PyTerrier_ColBERT: [[Github](https://github.com/terrierteam/pyterrier_colbert)] - mulitple-representation dense retrieval and/or neural reranking
+ - PyTerrier_ColBERT2: [[Github](https://github.com/cmacdonald/pyterrier_colbert2)] - mulitple-representation dense retrieval and/or neural reranking
  - PyTerrier_PISA: [[Github](https://github.com/terrierteam/pyterrier_pisa)] - fast in-memory indexing and retrieval using [PISA](https://github.com/pisa-engine/pisa)
  - PyTerrier_T5: [[Github](https://github.com/terrierteam/pyterrier_t5)] - neural reranking: monoT5, duoT5
  - PyTerrier_GenRank [[Github](https://github.com/emory-irlab/pyterrier_genrank)] - generative listwise reranking: RankVicuna, RankZephyr
@@ -101,7 +101,6 @@ By downloading and using PyTerrier, you agree to cite at the undernoted paper de
  - Irene Anu, University of Glasgow
  - Arthur Câmara, TU Delft
  - Alberto Ueda, Federal University of Minas Gerais
- - Sean MacAvaney, University of Glasgow
  - Chentao Xu, University of Glasgow
  - Sarawoot Kongyoung, University of Glasgow
  - Zhan Su, Copenhagen University
