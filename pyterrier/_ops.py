@@ -238,17 +238,39 @@ class _TrajectoryStoppingRule(Transformer):
     def _stop_position_for_results(self, ranked, labels):
         return self._stop_position(labels)
 
-    def transform(self, inp):
+    def _stopping_decisions(self, inp):
         pt.validate.columns(inp, includes=['qid', 'rank', 'label'], context=self)
-        if len(inp) == 0:
-            return inp.copy()
-        output = []
-        for _, query_results in inp.groupby('qid', sort=False):
+        for qid, query_results in inp.groupby('qid', sort=False):
             ranked = query_results.sort_values('rank', kind='stable')
             labels = pd.to_numeric(ranked['label'], errors='raise').fillna(0).to_numpy()
-            stop = self._stop_position_for_results(ranked, labels)
-            output.append(ranked if stop is None else ranked.iloc[:stop])
+            yield qid, ranked, self._stop_position_for_results(ranked, labels)
+
+    def transform(self, inp):
+        if len(inp) == 0:
+            pt.validate.columns(inp, includes=['qid', 'rank', 'label'], context=self)
+            return inp.copy()
+        output = [ranked if stop is None else ranked.iloc[:stop] for _, ranked, stop in self._stopping_decisions(inp)]
         return pd.concat(output, ignore_index=True)
+
+    def stop_report(self, inp):
+        """Return one row per query with the stopping decision and its full-review cost.
+
+        ``stop`` is the number of ranked documents retained. ``fired``
+        distinguishes a rule which stopped at the final document from one that
+        never certified a stop. ``control_cost`` records separately screened
+        documents for control-set rules and is zero otherwise.
+        """
+        rows = []
+        control_cost = getattr(self, 'control_cost', None)
+        for qid, ranked, stop in self._stopping_decisions(inp):
+            rows.append({
+                'qid': qid,
+                'stop': len(ranked) if stop is None else int(stop),
+                'fired': stop is not None,
+                'n_ranked': len(ranked),
+                'control_cost': 0 if control_cost is None else int(control_cost(qid)),
+            })
+        return pd.DataFrame(rows, columns=['qid', 'stop', 'fired', 'n_ranked', 'control_cost'])
 
 
 def _batch_positions(size, batch_size, initial_documents):

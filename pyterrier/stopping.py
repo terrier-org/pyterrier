@@ -1,12 +1,72 @@
-"""Trainable stopping rules with optional learning dependencies."""
+"""Stopping metrics and a trainable rule with optional learning dependencies."""
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, Optional, Sequence
+from numbers import Integral
+from typing import Any, Optional, Sequence, Union
 
 import numpy as np
 import pandas as pd
 
 from .transformer import Estimator
+
+
+def reliability(target_recall: float):
+    """Return an ir-measures metric for the fraction of topics meeting recall.
+
+    The metric is a per-topic recall indicator, so its mean in
+    :func:`pyterrier.Experiment` is stopping reliability rather than mean
+    recall. Topics with no relevant documents count as reliable.
+    """
+    if not 0 < target_recall <= 1:
+        raise ValueError("target_recall must be in (0, 1]")
+    import ir_measures
+
+    def measure(qrels, run):
+        relevant = set(qrels.loc[qrels['relevance'] > 0, 'doc_id'])
+        if not relevant:
+            return 1.0
+        found = relevant.intersection(run['doc_id'])
+        return float(len(found) / len(relevant) >= target_recall)
+
+    return ir_measures.define_byquery(
+        measure,
+        name=f'Reliability@{target_recall:g}',
+        support_cutoff=False,
+        run_inputs=['query_id', 'doc_id'],
+        qrel_inputs=['query_id', 'doc_id', 'relevance'],
+    )
+
+
+def review_fraction(collection_size: Union[int, Mapping[Any, int]]):
+    """Return an ir-measures metric for review cost divided by collection size.
+
+    ``collection_size`` is either one positive size shared by every topic or a
+    mapping from query ID to its positive collection size.
+    """
+    if not isinstance(collection_size, Mapping) and (not isinstance(collection_size, Integral) or collection_size < 1):
+        raise ValueError("collection_size must be a positive integer or query-ID mapping")
+    import ir_measures
+
+    def measure(qrels, run):
+        if isinstance(collection_size, Mapping):
+            qids = pd.concat((qrels['query_id'], run['query_id']), ignore_index=True).drop_duplicates()
+            if len(qids) != 1 or qids.iloc[0] not in collection_size:
+                raise ValueError("collection_size mapping must contain exactly one size for each query")
+            size = collection_size[qids.iloc[0]]
+        else:
+            size = collection_size
+        if not isinstance(size, Integral) or size < 1:
+            raise ValueError("collection sizes must be positive integers")
+        return len(run) / size
+
+    return ir_measures.define_byquery(
+        measure,
+        name='ReviewFraction',
+        support_cutoff=False,
+        run_inputs=['query_id', 'doc_id'],
+        qrel_inputs=['query_id', 'doc_id', 'relevance'],
+    )
 
 
 def _grlstop_dependencies():
@@ -255,18 +315,35 @@ class GRLStop(Estimator):
         return self
 
     def transform(self, inp):
+        output = []
+        for group, stop in self._stopping_decisions(inp):
+            output.append(group if stop is None else group.iloc[:stop])
+        return pd.concat(output, ignore_index=True) if output else inp.copy()
+
+    def _stopping_decisions(self, inp):
         if self.policy_ is None:
             raise ValueError("GRLStop.fit() must be called before transform()")
-        output = []
         for group, trajectory in self._trajectories(inp):
-            stop = len(group)
+            stop = None
             for position, batch in enumerate(trajectory.bins):
                 action, _ = self.policy_.predict(self._state(trajectory, position, self.target_recall), deterministic=self.deterministic)
                 if int(np.asarray(action).item()) == 1:
                     stop = batch[-1] + 1
                     break
-            output.append(group.iloc[:stop])
-        return pd.concat(output, ignore_index=True) if output else inp.copy()
+            yield group, stop
+
+    def stop_report(self, inp):
+        """Return one row per query with the learned policy's stop decision."""
+        rows = []
+        for group, stop in self._stopping_decisions(inp):
+            rows.append({
+                'qid': group['qid'].iloc[0],
+                'stop': len(group) if stop is None else int(stop),
+                'fired': stop is not None,
+                'n_ranked': len(group),
+                'control_cost': 0,
+            })
+        return pd.DataFrame(rows, columns=['qid', 'stop', 'fired', 'n_ranked', 'control_cost'])
 
     def save(self, path):
         if self.policy_ is None:

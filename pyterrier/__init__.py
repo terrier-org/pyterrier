@@ -8,7 +8,7 @@ from pyterrier import model, utils, testing
 from pyterrier.transformer import Transformer, Estimator, Indexer
 from pyterrier import validate
 from pyterrier._ops import RankCutoff, Kneedle, FixedRound, BatchPrecision, Rule2399, ReviewHalf, Budget, CMHHeuristic, PoissonPoint, TargetRecapture, QBCB, Compose
-from pyterrier.stopping import GRLStop
+from pyterrier.stopping import GRLStop, reliability, review_fraction
 from pyterrier._artifact import Artifact
 
 from pyterrier import java
@@ -63,7 +63,7 @@ __all__ = [
     'text', 'transformer', 'datasets', 'validate', 'testing', 'get_dataset', 'find_datasets', 'list_datasets', 'Experiment', 'GridScan',
     'GridSearch', 'KFoldGridSearch', 'Evaluate',
     'utils', 'Utils', 'Transformer', 'Estimator', 'Indexer', 'Artifact',
-    'RankCutoff', 'Kneedle', 'FixedRound', 'BatchPrecision', 'Rule2399', 'ReviewHalf', 'Budget', 'CMHHeuristic', 'PoissonPoint', 'TargetRecapture', 'QBCB', 'GRLStop', 'Compose',
+    'RankCutoff', 'Kneedle', 'FixedRound', 'BatchPrecision', 'Rule2399', 'ReviewHalf', 'Budget', 'CMHHeuristic', 'PoissonPoint', 'TargetRecapture', 'QBCB', 'GRLStop', 'reliability', 'review_fraction', 'Compose',
     'BatchRetrieve', 'TerrierRetrieve', 'FeaturesBatchRetrieve', 'IndexFactory',
     'run', 'rewrite', 'index', 'FilesIndexer', 'TRECCollectionIndexer', 'DFIndexer', 'DFIndexUtils', 'IterDictIndexer',
     'IndexingType', 'TerrierStemmer', 'TerrierStopwords', 'TerrierTokeniser',

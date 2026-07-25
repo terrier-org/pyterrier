@@ -85,6 +85,23 @@ reviewed = rule.transform(ranked)
 separate_control_documents = rule.control_cost()
 ```
 
+`transform()` always returns a normal ranking prefix, so standard
+`pt.measures.NumRet` is total review cost (use `perquery=True` for per-topic
+cost) and normal recall measures evaluate the returned documents against
+complete qrels. Use `reliability()` for the fraction of topics meeting a recall
+target, and `review_fraction()` when the known collection size matters:
+
+```python
+reviewed = rule.transform(ranked)
+collection_sizes = ranked.groupby('qid').size().to_dict()
+metrics = [pt.reliability(0.8), pt.measures.NumRet, pt.review_fraction(collection_sizes)]
+scores = pt.Experiment([reviewed], topics, qrels, metrics, names=['QBCB'])
+
+# Fired distinguishes a true final-rank stop from no certificate. NumRet does
+# not include separately screened control documents; this report does.
+report = rule.stop_report(ranked)
+```
+
 `GRLStop` is trainable with PPO and needs the optional learning stack:
 
 ```bash

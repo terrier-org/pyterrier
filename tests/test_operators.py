@@ -368,6 +368,42 @@ class TestOperators(BaseTestCase):
         self.assertEqual(28, qbcb._required_control_rank(30))
         self.assertEqual(28, len(qbcb(results)))
         self.assertEqual(28, len(qbcb(results.assign(label=1))))
+        self.assertEqual(
+            {'qid': 'q1', 'stop': 28, 'fired': True, 'n_ranked': 60, 'control_cost': 30},
+            qbcb.stop_report(results).iloc[0].to_dict(),
+        )
+
+    def test_stopping_report_and_metrics(self):
+        ranked = pd.DataFrame({
+            'qid': ['q1'] * 4 + ['q2'] * 4,
+            'docno': [f'd{i}' for i in range(4)] * 2,
+            'rank': list(range(4)) * 2,
+            'score': list(range(4, 0, -1)) * 2,
+            'label': [1, 0, 0, 0, 0, 0, 1, 0],
+        })
+        rule = pt.FixedRound(0)
+        reviewed = rule.transform(ranked)
+        report = rule.stop_report(ranked)
+        self.assertEqual([1, 1], report.stop.tolist())
+        self.assertEqual([True, True], report.fired.tolist())
+        self.assertEqual([4, 4], report.n_ranked.tolist())
+        self.assertEqual([0, 0], report.control_cost.tolist())
+        never = pt.ReviewHalf(10).stop_report(ranked)
+        self.assertEqual([4, 4], never.stop.tolist())
+        self.assertEqual([False, False], never.fired.tolist())
+
+        topics = pd.DataFrame({'qid': ['q1', 'q2'], 'query': ['one', 'two']})
+        qrels = ranked[ranked.label > 0][['qid', 'docno', 'label']]
+        reliability = pt.reliability(.8)
+        fraction = pt.review_fraction({'q1': 4, 'q2': 4})
+        scores = pt.Experiment([reviewed], topics, qrels, [reliability, pt.measures.NumRet, fraction], names=['fixed'])
+        self.assertEqual(.5, scores.loc[0, str(reliability)])
+        self.assertEqual(2, scores.loc[0, 'NumRet'])
+        self.assertEqual(.25, scores.loc[0, str(fraction)])
+        with self.assertRaises(ValueError):
+            pt.reliability(0)
+        with self.assertRaises(ValueError):
+            pt.review_fraction(0)
 
     def test_grlstop_reward(self):
         rule = pt.GRLStop(.8, n_windows=4, total_timesteps=1)
@@ -400,6 +436,9 @@ class TestOperators(BaseTestCase):
         self.assertEqual({'q1'}, set(replay['qid']))
         self.assertLessEqual(len(replay), len(testing))
         self.assertGreater(len(replay), 0)
+        report = rule.stop_report(testing)
+        self.assertEqual(['qid', 'stop', 'fired', 'n_ranked', 'control_cost'], report.columns.tolist())
+        self.assertTrue(1 <= report.stop.item() <= len(testing))
         
     def test_concatenate(self):
         import numpy as np
