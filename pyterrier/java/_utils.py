@@ -389,7 +389,7 @@ class JavaClasses:
     @required_raise
     def __getattr__(self, key: str) -> Any:
         if key not in self._mapping:
-            return AttributeError(f'{self} has no attribute {key!r}')
+            raise AttributeError(f'{self} has no attribute {key!r}')
         if key not in self._cache:
             clz = self._mapping[key]
             if callable(clz):

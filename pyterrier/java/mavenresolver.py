@@ -4,7 +4,6 @@ from packaging.version import Version
 from pathlib import Path
 from enum import Enum
 from warnings import warn
-import requests
 import os
 import re
 import pyterrier as pt
@@ -110,7 +109,7 @@ def get_package_jar(orgName, packageName, version, file_path=None, artifact="jar
 
     try:
         pt.io.download(mvnUrl, target_file, verbose=True, headers={"User-Agent": USER_AGENT})
-    except requests.exceptions.ConnectionError as he:
+    except urllib.error.URLError as he: # what pt.io.download raises on network failure; a local disk error must propagate instead
         if mode == OnlineMode.UNSET:
             offline() # now we're in offline mode
         if file_exists:

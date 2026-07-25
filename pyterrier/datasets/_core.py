@@ -8,7 +8,6 @@ import zipfile
 import tarfile
 import types
 import requests
-import urllib
 import functools
 from warnings import warn
 import pyterrier as pt
@@ -268,7 +267,7 @@ class RemoteDataset(Dataset):
                 if self.user is not None:
                     kwargs["auth"]=(self.user, self.password)
                 RemoteDataset.download(URL, local, **kwargs)
-            except urllib.error.HTTPError as he:
+            except requests.exceptions.RequestException as he:
                 raise ValueError("Could not fetch " + URL) from he
         return (local, filetype)
 
@@ -353,7 +352,7 @@ class RemoteDataset(Dataset):
                 else:
                     try:
                         RemoteDataset.download(URL, local, **kwargs)
-                    except urllib.error.HTTPError as he:
+                    except requests.exceptions.RequestException as he:
                         raise ValueError("Could not fetch " + URL) from he
 
                     # verify file if exists

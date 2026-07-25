@@ -390,7 +390,7 @@ This validation is controlled by the `validate=` kwarg, which can take the follo
 - ``"ignore"``: No validation is performed, and the experiment proceeds. This is useful for pipelines that are known to be valid, but cannot be validated due to transformer objects that cannot be inspected to determing their input and output columns.
 
 Validation uses ``pt.inspect.transformer_outputs()`` to determine the output columns of each transformer in the pipeline, and whether they match the expected input columns of the next transformer, and that the overall result of the pipeline has the expected columns for the evaluation measures requested. 
-Most transformers can be validated automatically, particularly if they respond correctly to an empty DataFrame input. Other transformers may require a `transform_output` method to be implemented, which returns the expected output columns of the transformer.
+Most transformers can be validated automatically, particularly if they respond correctly to an empty DataFrame input. Other transformers may require a `transform_outputs` method to be implemented, which returns the expected output columns of the transformer.
 
 If a pipeline fails validation, the user is informed of the problem, and, if `validate="error"` is set, the experiment does not proceed.
 On the other hand, if a pipeline cannot be validated (because a transformer cannot be inspected), a warning is issued, and the experiment proceeds.

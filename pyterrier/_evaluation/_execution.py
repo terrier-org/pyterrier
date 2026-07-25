@@ -141,7 +141,8 @@ def _run_and_evaluate(
         #transformer, evaluate all queries at once
 
         starttime = timer()
-        res = system.transform(topics)
+        # .copy() so that a transformer that mutates its input cannot corrupt the frame used by the other systems
+        res = system.transform(topics.copy())
         endtime = timer()
         runtime =  float(endtime - starttime) * 1000.
 

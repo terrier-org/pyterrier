@@ -96,7 +96,7 @@ def doc_score(fn : Union[Callable[[Union[pd.Series,pt.model.IterDictRecord]], fl
             pipeline = bm25 >> ( some_features ** pt.apply.doc_score(_doclen) )
 
     """
-    return ApplyDocumentScoringTransformer(fn, *args, batch_size=batch_size, label=label, **kwargs)
+    return ApplyDocumentScoringTransformer(fn, *args, required_columns=required_columns, batch_size=batch_size, label=label, **kwargs)
 
 def doc_features(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], npt.NDArray[Any]], *args, required_columns : Optional[List[str]] = ['qid', 'query', 'docno'], label: Optional[str] = None, **kwargs) -> pt.Transformer:
     """

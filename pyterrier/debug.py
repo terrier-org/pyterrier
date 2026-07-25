@@ -33,7 +33,7 @@ def print_columns(by_query : bool = False, message : Optional[str] = None) -> Tr
             print(message)
         print(df.columns)
         return df
-    return pt.apply.by_query(_do_print) if by_query else pt.apply.generic(_do_print) 
+    return pt.apply.by_query(_do_print, add_ranks=False) if by_query else pt.apply.generic(_do_print)
 
 def print_num_rows(
         by_query : bool = True, 
@@ -75,7 +75,7 @@ def print_num_rows(
     if by_query:
         return pt.apply.by_query(_print_qid, add_ranks=False)
     else:
-        return pt.apply.generic(_print, add_ranks=False)
+        return pt.apply.generic(_print)
 
 def print_rows(
         by_query : bool = True, 
@@ -117,7 +117,7 @@ def print_rows(
         else:
             print(render)
         return df
-    return pt.apply.by_query(_do_print) if by_query else pt.apply.generic(_do_print) 
+    return pt.apply.by_query(_do_print, add_ranks=False) if by_query else pt.apply.generic(_do_print)
 
 class pdb(Transformer):
     """Returns a transformer that starts an interactive `pdb <https://docs.python.org/3/library/pdb.html>`__

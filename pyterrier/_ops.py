@@ -42,6 +42,10 @@ def _flatten(transformers: Iterable[Transformer], cls: type) -> Tuple[Transforme
         for t in transformers
     ))
 
+def _copy_if_frame(inp):
+    # operands may legitimately receive None (e.g. when all sources ignore their input)
+    return inp.copy() if inp is not None else None
+
 class SetUnion(Transformer):
     """      
         This operator makes a retrieval set that includes documents that occur in the union (either) of both retrieval sets. 
@@ -58,8 +62,9 @@ class SetUnion(Transformer):
     schematic = {'label': 'SetUnion |', 'inner_pipelines_mode': 'linked'}
 
     def transform(self, topics):
-        res1 = self.left.transform(topics)
-        res2 = self.right.transform(topics)
+        # copy so that an operand transformer that mutates its input cannot corrupt the frame seen by the other operand
+        res1 = self.left.transform(_copy_if_frame(topics))
+        res2 = self.right.transform(_copy_if_frame(topics))
         import pandas as pd
         assert isinstance(res1, pd.DataFrame)
         assert isinstance(res2, pd.DataFrame)
@@ -87,9 +92,10 @@ class SetIntersection(Transformer):
     schematic = {'label': 'SetIntersection &', 'inner_pipelines_mode': 'linked'}
 
     def transform(self, topics):
-        res1 = self.left.transform(topics)
-        res2 = self.right.transform(topics)  
-        
+        # copy so that an operand transformer that mutates its input cannot corrupt the frame seen by the other operand
+        res1 = self.left.transform(_copy_if_frame(topics))
+        res2 = self.right.transform(_copy_if_frame(topics))
+
         on_cols = ["qid", "docno"]
         rtr = res1.merge(res2, on=on_cols, suffixes=('','_y'))
         rtr.drop(columns=["score", "rank", "score_y", "rank_y", "query_y"], inplace=True, errors='ignore')
@@ -118,8 +124,9 @@ class Sum(Transformer):
     schematic = {'label': 'Sum +', 'inner_pipelines_mode': 'linked'}
 
     def transform(self, topics_and_res):
-        res1 = self.left.transform(topics_and_res)
-        res2 = self.right.transform(topics_and_res)
+        # copy so that an operand transformer that mutates its input cannot corrupt the frame seen by the other operand
+        res1 = self.left.transform(_copy_if_frame(topics_and_res))
+        res2 = self.right.transform(_copy_if_frame(topics_and_res))
         both_cols = set(res1.columns) & set(res2.columns)
         both_cols.remove("qid")
         both_cols.remove("docno")
@@ -139,12 +146,13 @@ class Concatenate(Transformer):
     def transform(self, topics_and_res):
         import pandas as pd
         # take the first set as the top of the ranking
-        res1 = self.left.transform(topics_and_res)
+        # copy so that an operand transformer that mutates its input cannot corrupt the frame seen by the other operand
+        res1 = self.left.transform(_copy_if_frame(topics_and_res))
         # identify the lowest score for each query
         last_scores = res1[['qid', 'score']].groupby('qid').min().rename(columns={"score" : "_lastscore"})
 
-        # the right hand side will provide the rest of the ranking        
-        res2 = self.right.transform(topics_and_res)
+        # the right hand side will provide the rest of the ranking
+        res2 = self.right.transform(_copy_if_frame(topics_and_res))
 
         
         intersection = pd.merge(res1[["qid", "docno"]], res2[["qid", "docno"]].reset_index())
