@@ -58,12 +58,32 @@ The easiest way to get started with PyTerrier is to use one of our Colab noteboo
 # Technology-assisted review stopping
 
 This fork adds labelled-trajectory stopping transformers for evaluation and
-replay. They consume fixed ranked results with `qid`, `docno`, `rank`, and
-`label`, then return the reviewed prefix for each query; they are not live
-screening controllers. `Kneedle`, `FixedRound`, `BatchPrecision`, `Rule2399`,
+replay. They consume fixed ranked results with `qid`, `rank`, and `label`, then
+return the reviewed prefix for each query; they are not live screening
+controllers. `Kneedle`, `FixedRound`, `BatchPrecision`, `Rule2399`,
 `ReviewHalf`, `Budget`, `CMHHeuristic`, and `PoissonPoint` need no new runtime
-dependency. `TargetRecapture` and `QBCB` require an independently screened
-control set and expose its separate cost with `control_cost()`.
+dependency. `TargetRecapture` and `QBCB` also require `docno` and an
+independently screened control set; `control_cost()` exposes that separate
+cost.
+
+Use a simple trajectory rule on an offline labelled ranking:
+
+```python
+import pyterrier as pt
+
+# ranked has qid, rank, and label columns.
+reviewed = pt.BatchPrecision(precision_cutoff=0.025, patience=1).transform(ranked)
+```
+
+For a control-set method, supply every independently screened control document
+with its label. The returned ranking prefix does not hide the control cost:
+
+```python
+# ranked and control have qid and docno; control also has label.
+rule = pt.QBCB(control, target_recall=0.8, confidence=0.95)
+reviewed = rule.transform(ranked)
+separate_control_documents = rule.control_cost()
+```
 
 `GRLStop` is trainable with PPO and needs the optional learning stack:
 
@@ -76,6 +96,17 @@ reward trade-off; provide a `features` column or a `score` fallback. The port
 has passed train/replay checks and a small held-out CLEF-2017 screen, but is not
 a reproduction of the published GRLStop table: the released training ranking,
 exact split, TF-IDF artifacts, and much of the local document text are absent.
+Both train and evaluation frames need `qid`, `docno`, `rank`, and `label`;
+`features` should contain one vector per row (or use `score`).
+
+```python
+rule = pt.GRLStop(target_recall=0.9, random_state=0)
+rule.fit(train_ranked)
+reviewed = rule.transform(test_ranked)
+```
+
+The default PPO budget is 20 million steps, so use a smaller explicit budget
+only for a smoke test, not for a paper-comparison result.
 
 # PyTerrier Extensions
 
