@@ -36,6 +36,7 @@ Utils = utils
 
 # will be set in terrier.terrier.java once java is loaded
 IndexRef = None
+ApplicationSetup = None
 
 # these will be set once _() runs, but we need to define them here to get type checking to work properly
 tqdm: Any
@@ -66,7 +67,7 @@ __all__ = [
     'BatchRetrieve', 'TerrierRetrieve', 'FeaturesBatchRetrieve', 'IndexFactory',
     'run', 'rewrite', 'index', 'FilesIndexer', 'TRECCollectionIndexer', 'DFIndexer', 'DFIndexUtils', 'IterDictIndexer',
     'IndexingType', 'TerrierStemmer', 'TerrierStopwords', 'TerrierTokeniser',
-    'IndexRef', 'ApplicationSetup', 'properties',
+    'IndexRef', 'ApplicationSetup',
 
     # Deprecated:
     'init', 'started', 'logging', 'version', 'check_version', 'extend_classpath', 'set_tqdm', 'set_property', 'set_properties',

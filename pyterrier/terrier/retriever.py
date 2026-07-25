@@ -720,9 +720,16 @@ class TextIndexProcessor(pt.Transformer):
                 inner_res = topics_and_res[ topics_columns ].merge(inner_res, on=["qid", "docno"])
         elif self.returns == "queries":
             if len(inner_res) < len(topics):
-                inner_res = topics.merge(on=["qid"], how="left")
+                # some queries produced no output; backfill them with their original form from topics
+                inner_res = topics.merge(inner_res, on=["qid"], how="left", suffixes=("_orig", ""))
+                if "query_orig" in inner_res.columns:
+                    # backfilled rows keep the original query, including any query_N history columns pushed by the inner transformer
+                    for col in inner_res.columns:
+                        if col == "query" or re.match(r"^query_\d+$", col):
+                            inner_res[col] = inner_res[col].fillna(inner_res["query_orig"])
+                    inner_res = inner_res.drop(columns=["query_orig"])
         else:
-            raise ValueError("returns attribute should be docs of queries")
+            raise ValueError("returns attribute should be docs or queries")
         return inner_res
 
 
@@ -952,7 +959,7 @@ class FeaturesRetriever(Retriever):
                 if len(row.query_toks) == 0:
                     warn(
                         "Skipping empty query_toks for qid %s" % qid)
-                    return []
+                    continue
                 srq.setControl("terrierql", "off")
                 srq.setControl("parsecontrols", "off")
                 srq.setControl("parseql", "off")

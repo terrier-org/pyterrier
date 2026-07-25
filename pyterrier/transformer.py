@@ -376,7 +376,7 @@ class Indexer(Transformer):
 
             :param iter: An iterable of dictionaries, each representing a document.
         """
-        pass
+        raise NotImplementedError('You need to implement .index() in %s' % str(type(self)))
 
     def transform(self, inp: pd.DataFrame) -> pd.DataFrame:
         raise NotImplementedError('You called `transform()` on an indexer. Did you mean to call `index()`?')
@@ -397,7 +397,7 @@ class Estimator(Transformer):
             :param topics_or_res_va: validation topics (usually with documents)
             :param qrels_va: validation qrels
         """
-        pass
+        raise NotImplementedError('You need to implement .fit() in %s' % str(type(self)))
 
 class IdentityTransformer(Transformer):
     """

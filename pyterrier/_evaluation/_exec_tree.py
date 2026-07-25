@@ -73,11 +73,14 @@ class TransformerRadixNode(RadixNode[TREE_KEY_TYPE, int]):
                 eval_callback(res, self.value, total_time)
 
         # Recurse into children, adding current node to parents stack
-        for childkey, childnode in tcast(List[Tuple[TREE_KEY_TYPE, 'TransformerRadixNode']], self.children.items()):
-            childnode.traverse(res, key = childkey,
-                exec_callback = exec_callback, 
-                eval_callback = eval_callback, 
-                cum_time = total_time, 
+        children = tcast(List[Tuple[TREE_KEY_TYPE, 'TransformerRadixNode']], list(self.children.items()))
+        for i, (childkey, childnode) in enumerate(children):
+            # sibling branches receive a copy, so a transformer that mutates its input
+            # cannot corrupt the frame seen by later branches; the last child can take res itself
+            childnode.traverse(res if i == len(children) - 1 else res.copy(), key = childkey,
+                exec_callback = exec_callback,
+                eval_callback = eval_callback,
+                cum_time = total_time,
                 )
 
     def visit(self, inp: pd.DataFrame, key: Union[TREE_KEY_TYPE, None], exec_callback: Optional[Callable] = None) -> Tuple[pd.DataFrame, float]:        
@@ -141,7 +144,7 @@ class TransformerRadixTree(RadixTree[TREE_KEY_TYPE, int]):
                  cum_time: float = 0.0, 
                  ):
         tcast(TransformerRadixNode, self.root).traverse(
-            inp, 
+            inp.copy(), # protect the caller's frame from in-place mutation by any transformer in the tree
             None, # root node has no key
             exec_callback = exec_callback,
             eval_callback = eval_callback,

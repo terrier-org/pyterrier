@@ -360,7 +360,8 @@ class ApplyDocumentScoringTransformer(pt.Transformer):
         return outputRes
 
     def transform(self, inp: pd.DataFrame) -> pd.DataFrame:
-        if self.required_columns is not None:
+        # an entirely column-less frame arises from empty iterable input (e.g. transform_iter([])); nothing to validate
+        if self.required_columns is not None and len(inp.columns) > 0:
             pt.validate.columns(inp, includes=self.required_columns, context=self)
 
         outputRes = inp.copy()
@@ -416,7 +417,7 @@ class ApplyDocFeatureTransformer(pt.Transformer):
     def __repr__(self):
         return "pt.apply.doc_features()"
     
-    def transform_output(self, cols: List[str]) -> List[str]:
+    def transform_outputs(self, cols: List[str]) -> List[str]:
         return cols + ["features"]
 
     def transform_iter(self, inp: pt.model.IterDict) -> pt.model.IterDict:
