@@ -30,6 +30,10 @@ dependencies = {file = ["requirements.txt"]}
 java = [
   'pyjnius>=1.4.2', # used by pt.java to execute Java code, such as Terrier
 ]
+stopping = [
+  'gymnasium>=0.29',
+  'stable-baselines3>=2.3',
+]
 all = [
   'pyjnius>=1.4.2', # used by pt.java to execute Java code, such as Terrier
 ]

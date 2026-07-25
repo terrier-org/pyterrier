@@ -229,6 +229,397 @@ class RankCutoff(Transformer):
             return left.fuse_rank_cutoff(self.k)
         return None
 
+class _TrajectoryStoppingRule(Transformer):
+    """Applies a stopping rule to each ranked, labelled review trajectory."""
+
+    def _stop_position(self, labels):
+        raise NotImplementedError
+
+    def _stop_position_for_results(self, ranked, labels):
+        return self._stop_position(labels)
+
+    def transform(self, inp):
+        pt.validate.columns(inp, includes=['qid', 'rank', 'label'], context=self)
+        if len(inp) == 0:
+            return inp.copy()
+        output = []
+        for _, query_results in inp.groupby('qid', sort=False):
+            ranked = query_results.sort_values('rank', kind='stable')
+            labels = pd.to_numeric(ranked['label'], errors='raise').fillna(0).to_numpy()
+            stop = self._stop_position_for_results(ranked, labels)
+            output.append(ranked if stop is None else ranked.iloc[:stop])
+        return pd.concat(output, ignore_index=True)
+
+
+def _batch_positions(size, batch_size, initial_documents):
+    if size < initial_documents:
+        return ()
+    return range(initial_documents, size + 1, batch_size)
+
+
+def _knee_slope_ratio(cumulative):
+    import numpy as np
+
+    stop = len(cumulative)
+    if stop < 2 or cumulative[-1] == 0:
+        return 0.0
+    positions = np.arange(1, stop)
+    knee = np.argmax(stop * cumulative[:-1] - positions * cumulative[-1]) + 1
+    return (cumulative[knee - 1] / knee) / ((cumulative[-1] - cumulative[knee - 1] + 1) / (stop - knee))
+
+
+def _validate_collection_size(labels, collection_size):
+    if len(labels) > collection_size:
+        raise ValueError("collection_size cannot be smaller than the review trajectory")
+
+
+class Kneedle(_TrajectoryStoppingRule):
+    """Filters each query's ranking at the first TAR Knee-method stopping point.
+
+    The input must contain ``qid``, ``rank``, and ``label`` columns. It uses only
+    labels at or above each candidate rank, so a complete labelled ranking can
+    be used to reproduce an offline priority-screening evaluation. If the rule
+    does not stop, the complete ranking is retained.
+    """
+    def __init__(self, min_documents: int = 1000, batch_size: int = 200, initial_documents: int = 1):
+        if min_documents < 2:
+            raise ValueError("min_documents must be at least 2")
+        if batch_size < 1 or initial_documents < 1:
+            raise ValueError("batch_size and initial_documents must be positive")
+        self.min_documents = min_documents
+        self.batch_size = batch_size
+        self.initial_documents = initial_documents
+
+    def _check_positions(self, size):
+        from math import ceil
+
+        bmi_batch = bmi_size = self.initial_documents
+        positions = set()
+        while bmi_size < size:
+            bmi_batch += ceil(bmi_batch / 10)
+            bmi_size += bmi_batch
+            if bmi_size >= self.min_documents:
+                fixed = self.initial_documents + ceil((bmi_size - self.initial_documents) / self.batch_size) * self.batch_size
+                if fixed <= size:
+                    positions.add(fixed)
+        return sorted(positions)
+
+    def _stop_position(self, labels):
+        cumulative = (labels > 0).cumsum()
+        for stop in self._check_positions(len(cumulative)):
+            found = cumulative[stop - 1]
+            if _knee_slope_ratio(cumulative[:stop]) >= 156 - min(found, 150):
+                return stop
+        return None
+
+    def __repr__(self):
+        return f'Kneedle(min_documents={self.min_documents!r}, batch_size={self.batch_size!r}, initial_documents={self.initial_documents!r})'
+
+    def __eq__(self, other):
+        if not isinstance(other, Kneedle):
+            return NotImplemented
+        return (self.min_documents, self.batch_size, self.initial_documents) == (other.min_documents, other.batch_size, other.initial_documents)
+
+    def __hash__(self):
+        return hash(('Kneedle', self.min_documents, self.batch_size, self.initial_documents))
+
+    def schematic(self, *, input_columns = None):
+        return {'label': 'Kneedle'}
+
+
+class FixedRound(_TrajectoryStoppingRule):
+    """Stops after a fixed number of review rounds."""
+
+    def __init__(self, max_round: int, batch_size: int = 200, initial_documents: int = 1):
+        if max_round < 0 or batch_size < 1 or initial_documents < 1:
+            raise ValueError("max_round must be non-negative and batch sizes must be positive")
+        self.max_round = max_round
+        self.batch_size = batch_size
+        self.initial_documents = initial_documents
+
+    def _stop_position(self, labels):
+        stop = self.initial_documents + self.max_round * self.batch_size
+        return stop if stop <= len(labels) else None
+
+
+class BatchPrecision(_TrajectoryStoppingRule):
+    """Stops after ``patience`` low-precision review batches."""
+
+    def __init__(self, precision_cutoff: float = 5 / 200, patience: int = 1, batch_size: int = 200, initial_documents: int = 1):
+        if not 0 <= precision_cutoff <= 1 or patience < 1 or batch_size < 1 or initial_documents < 1:
+            raise ValueError("precision_cutoff must be in [0, 1] and counts must be positive")
+        self.precision_cutoff = precision_cutoff
+        self.patience = patience
+        self.batch_size = batch_size
+        self.initial_documents = initial_documents
+
+    def _stop_position(self, labels):
+        start = low_precision_batches = 0
+        for stop in _batch_positions(len(labels), self.batch_size, self.initial_documents):
+            precision = (labels[start:stop] > 0).mean()
+            low_precision_batches = low_precision_batches + 1 if precision <= self.precision_cutoff else 0
+            if low_precision_batches >= self.patience:
+                return stop
+            start = stop
+        return None
+
+
+class Rule2399(_TrajectoryStoppingRule):
+    """Stops when reviewed documents reach ``2399 + 1.2 * positives``."""
+
+    def __init__(self, batch_size: int = 200, initial_documents: int = 1):
+        if batch_size < 1 or initial_documents < 1:
+            raise ValueError("batch_size and initial_documents must be positive")
+        self.batch_size = batch_size
+        self.initial_documents = initial_documents
+
+    def _stop_position(self, labels):
+        cumulative = (labels > 0).cumsum()
+        for stop in _batch_positions(len(labels), self.batch_size, self.initial_documents):
+            if stop >= 2399 + 1.2 * cumulative[stop - 1]:
+                return stop
+        return None
+
+
+class ReviewHalf(_TrajectoryStoppingRule):
+    """Stops after reviewing half of a known collection."""
+
+    def __init__(self, collection_size: int, batch_size: int = 200, initial_documents: int = 1):
+        if collection_size < 1 or batch_size < 1 or initial_documents < 1:
+            raise ValueError("collection_size and batch sizes must be positive")
+        self.collection_size = collection_size
+        self.batch_size = batch_size
+        self.initial_documents = initial_documents
+
+    def _stop_position(self, labels):
+        _validate_collection_size(labels, self.collection_size)
+        for stop in _batch_positions(len(labels), self.batch_size, self.initial_documents):
+            if stop >= self.collection_size // 2:
+                return stop
+        return None
+
+
+class Budget(_TrajectoryStoppingRule):
+    """Cormack and Grossman's budget stopping rule for a known collection."""
+
+    def __init__(self, collection_size: int, batch_size: int = 200, initial_documents: int = 1):
+        if collection_size < 1 or batch_size < 1 or initial_documents < 1:
+            raise ValueError("collection_size and batch sizes must be positive")
+        self.collection_size = collection_size
+        self.batch_size = batch_size
+        self.initial_documents = initial_documents
+
+    def _stop_position(self, labels):
+        _validate_collection_size(labels, self.collection_size)
+        cumulative = (labels > 0).cumsum()
+        for stop in _batch_positions(len(labels), self.batch_size, self.initial_documents):
+            if stop >= .75 * self.collection_size:
+                return stop
+            found = cumulative[stop - 1]
+            if found and stop >= 10 * self.collection_size / found and _knee_slope_ratio(cumulative[:stop]) >= 6:
+                return stop
+        return None
+
+
+class CMHHeuristic(_TrajectoryStoppingRule):
+    """Callaghan and Müller-Hansen's one-phase CMH stopping heuristic."""
+
+    def __init__(self, target_recall: float, collection_size: int, alpha: float = .05, batch_size: int = 200, initial_documents: int = 1):
+        if not 0 < target_recall <= 1 or not 0 < alpha < 1 or collection_size < 1 or batch_size < 1 or initial_documents < 1:
+            raise ValueError("target_recall and alpha must be in (0, 1), and sizes must be positive")
+        self.target_recall = target_recall
+        self.collection_size = collection_size
+        self.alpha = alpha
+        self.batch_size = batch_size
+        self.initial_documents = initial_documents
+
+    def _stop_position(self, labels):
+        from scipy.stats import hypergeom
+
+        _validate_collection_size(labels, self.collection_size)
+        batch_ends = list(_batch_positions(len(labels), self.batch_size, self.initial_documents))
+        previous = 0
+        positives = []
+        for stop in batch_ends:
+            positives.append((labels[previous:stop] > 0).sum())
+            previous = stop
+            if len(positives) < 3:
+                continue
+            positive_total = sum(positives)
+            for split in range(1, len(positives) - 1):
+                positive_before = sum(positives[:split + 1])
+                reviewed_before = batch_ends[split]
+                p_value = hypergeom.cdf(
+                    positive_total - positive_before,
+                    self.collection_size - reviewed_before,
+                    int(positive_total / self.target_recall - positive_before + 1),
+                    stop - reviewed_before,
+                )
+                if p_value < self.alpha:
+                    return stop
+        return None
+
+
+class PoissonPoint(_TrajectoryStoppingRule):
+    """Inhomogeneous Poisson power-law stopping from Bin-Hezam and Stevenson.
+
+    The defaults reproduce the released IP-P configuration: ten windows, 2.5%
+    checkpoints, a dynamic 20-positive gate, and a 0.1 fit-error cutoff.
+    """
+
+    def __init__(self, collection_size: int, target_recall: float = .8, confidence: float = .95,
+                 initial_fraction: float = .025, check_fraction: float = .025,
+                 n_windows: int = 10, fit_error_threshold: float = .1,
+                 initial_min_relevant: int = 20):
+        if (collection_size < 1 or not 0 < target_recall <= 1 or not 0 < confidence < 1
+                or not 0 < initial_fraction <= 1 or not 0 < check_fraction <= 1
+                or n_windows < 2 or fit_error_threshold < 0 or initial_min_relevant < 0):
+            raise ValueError("invalid Poisson point-process parameter")
+        self.collection_size = collection_size
+        self.target_recall = target_recall
+        self.confidence = confidence
+        self.initial_fraction = initial_fraction
+        self.check_fraction = check_fraction
+        self.n_windows = n_windows
+        self.fit_error_threshold = fit_error_threshold
+        self.initial_min_relevant = initial_min_relevant
+
+    def _sample_sizes(self):
+        import numpy as np
+
+        proportions = np.arange(self.initial_fraction, 1 + self.check_fraction, self.check_fraction).round(3)
+        return [int(round(self.collection_size * proportion)) for proportion in proportions]
+
+    @staticmethod
+    def _power_law(x, a, k):
+        return a * x ** k
+
+    @staticmethod
+    def _poisson_upper_bound(mean, confidence, maximum):
+        from scipy.stats import poisson
+
+        if mean < 0 or not maximum:
+            return None
+        bound = poisson.ppf(confidence, mean)
+        return None if not pd.notna(bound) else min(int(bound), maximum)
+
+    def _stop_position(self, labels):
+        import numpy as np
+        from scipy.optimize import curve_fit
+
+        _validate_collection_size(labels, self.collection_size)
+        minimum_relevant = self.initial_min_relevant
+        for sample_size in self._sample_sizes():
+            if sample_size > len(labels):
+                break
+            if sample_size < self.n_windows:
+                continue
+            observed = labels[:sample_size] > 0
+            found = int(observed.sum())
+            if found >= minimum_relevant:
+                windows = np.array_split(np.arange(sample_size), self.n_windows)
+                window_size = len(windows[0]) - 1
+                if window_size > 0:
+                    x = np.array([window[0] + 1 for window in windows])
+                    y = np.array([observed[window[0]:window[-1]].sum() / window_size for window in windows])
+                    if y[5:].sum() == 0:
+                        return sample_size
+                    try:
+                        parameters, _ = curve_fit(self._power_law, x, y, p0=[.1, .001])
+                        predicted = self._power_law(x, *parameters)
+                        scale = y.max() - y.min()
+                        error = np.square(y - predicted).sum() / scale if scale else np.inf
+                        if np.isfinite(error) and error < self.fit_error_threshold:
+                            a, k = parameters
+                            residual_mean = a / (k + 1) * (
+                                self.collection_size ** (k + 1) - sample_size ** (k + 1)
+                            )
+                            residual = self._poisson_upper_bound(residual_mean, self.confidence, self.collection_size - sample_size)
+                            if residual is not None and found >= self.target_recall * (found + residual):
+                                return sample_size
+                    except (FloatingPointError, RuntimeError, ValueError, ZeroDivisionError):
+                        pass
+            if minimum_relevant:
+                minimum_relevant = int(minimum_relevant - sample_size / self.collection_size * minimum_relevant)
+        return None
+
+
+class _ControlSetStoppingRule(_TrajectoryStoppingRule):
+    """Base for stopping rules certified by a separately screened control set."""
+
+    def __init__(self, control: pd.DataFrame):
+        required = ['qid', 'docno', 'label']
+        if not isinstance(control, pd.DataFrame) or any(column not in control.columns for column in required):
+            raise ValueError("control must be a DataFrame with qid, docno, and label columns")
+        if control[required[:2]].isna().any().any() or control.duplicated(required[:2]).any():
+            raise ValueError("control qid/docno pairs must be present and unique")
+        self.control = control.loc[:, required].copy()
+        self.control['label'] = pd.to_numeric(self.control['label'], errors='raise').fillna(0)
+
+    def control_cost(self, qid=None):
+        """Number of separately screened control documents, optionally for one query."""
+        return len(self.control) if qid is None else int((self.control['qid'] == qid).sum())
+
+    def _positive_control_positions(self, ranked):
+        if ranked['docno'].duplicated().any():
+            raise ValueError("ranked results must not duplicate docno within a query")
+        positives = self.control.loc[(self.control['qid'] == ranked['qid'].iloc[0]) & (self.control['label'] > 0), 'docno']
+        if len(positives) == 0:
+            return ()
+        positions = pd.Series(range(1, len(ranked) + 1), index=ranked['docno']).reindex(positives)
+        return None if positions.isna().any() else tuple(sorted(positions.astype(int)))
+
+
+class TargetRecapture(_ControlSetStoppingRule):
+    """Target-set recapture stopping with an explicit independently screened control set.
+
+    ``control`` must contain every separately screened document, including its
+    labels. Its screening cost is available through :meth:`control_cost` and is
+    intentionally not hidden in the ranked-review output.
+    """
+
+    def __init__(self, control: pd.DataFrame, target_recall: float = .7, confidence: float = .95):
+        from math import ceil, log
+
+        if not 0 < target_recall < 1 or not 0 < confidence < 1:
+            raise ValueError("target_recall and confidence must be in (0, 1)")
+        super().__init__(control)
+        self.target_recall = target_recall
+        self.confidence = confidence
+        self.target_size = ceil(-log(1 - confidence) / (1 - target_recall))
+
+    def _stop_position_for_results(self, ranked, labels):
+        positions = self._positive_control_positions(ranked)
+        if positions is None or len(positions) < self.target_size:
+            return None
+        return positions[-1]
+
+
+class QBCB(_ControlSetStoppingRule):
+    """Quantile Binomial Confidence Bound with an explicit control set."""
+
+    def __init__(self, control: pd.DataFrame, target_recall: float = .8, confidence: float = .95):
+        if not 0 < target_recall < 1 or not 0 < confidence < 1:
+            raise ValueError("target_recall and confidence must be in (0, 1)")
+        super().__init__(control)
+        self.target_recall = target_recall
+        self.confidence = confidence
+
+    def _required_control_rank(self, positive_control_count):
+        from scipy.stats import binom
+
+        for rank in range(1, positive_control_count + 1):
+            if binom.cdf(rank - 1, positive_control_count, self.target_recall) >= self.confidence:
+                return rank
+        return positive_control_count + 1
+
+    def _stop_position_for_results(self, ranked, labels):
+        positions = self._positive_control_positions(ranked)
+        if positions is None:
+            return None
+        required_rank = self._required_control_rank(len(positions))
+        return positions[required_rank - 1] if required_rank <= len(positions) else None
+
 class FeatureUnion(NAryTransformerBase):
     """
         Implements the feature union operator.
