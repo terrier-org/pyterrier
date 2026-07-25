@@ -295,6 +295,111 @@ class TestOperators(BaseTestCase):
         cutpipe = mock1 % 1
         rtr = cutpipe.transform(None)
         self.assertEqual(1, len(rtr))
+
+    def test_kneedle(self):
+        import numpy as np
+
+        self.assertEqual(
+            [1201, 1401, 1601, 1801, 2001, 2201, 2401, 2601, 3001],
+            pt.Kneedle()._check_positions(3001),
+        )
+        results = pd.DataFrame({
+            'qid': ['q1'] * 1401,
+            'docno': [f'd{i}' for i in range(1401)],
+            'rank': range(1401),
+            'label': [1] * 150 + [0] * 1251,
+        })
+        output = pt.Kneedle()(results)
+        self.assertEqual(1201, len(output))
+        self.assertEqual(1200, output['rank'].max())
+        self.assertEqual(150, output['label'].sum())
+
+        labels = np.r_[np.ones(150), np.zeros(1251)]
+        self.assertEqual(1201, pt.Kneedle()._stop_position(labels))
+        self.assertEqual(1201, pt.Kneedle()._stop_position(np.r_[labels, np.ones(400)]))
+
+    def test_tar_stopping_rules(self):
+        import numpy as np
+
+        labels = np.r_[np.ones(101), np.zeros(700)]
+        self.assertEqual(401, pt.FixedRound(2)._stop_position(labels))
+        self.assertEqual(201, pt.BatchPrecision()._stop_position(np.r_[1, np.zeros(200)]))
+        self.assertEqual(2401, pt.Rule2399()._stop_position(np.zeros(2401)))
+        self.assertEqual(601, pt.ReviewHalf(1000)._stop_position(labels))
+        self.assertEqual(201, pt.Budget(1000)._stop_position(np.r_[np.ones(150), np.zeros(51)]))
+        self.assertEqual(801, pt.Budget(1000)._stop_position(np.zeros(801)))
+        self.assertEqual(401, pt.CMHHeuristic(.8, 1000)._stop_position(np.r_[1, np.ones(100), np.zeros(300)]))
+
+    def test_poisson_point_stopping(self):
+        import numpy as np
+
+        rule = pt.PoissonPoint(100, initial_fraction=.2, check_fraction=.2, initial_min_relevant=1)
+        self.assertEqual([20, 40, 60, 80, 100], rule._sample_sizes())
+        labels = np.r_[np.ones(10), np.zeros(90)]
+        self.assertEqual(20, rule._stop_position(labels))
+        self.assertEqual(20, rule._stop_position(np.r_[labels[:20], np.ones(80)]))
+        self.assertEqual(6, rule._poisson_upper_bound(3, .95, 100))
+
+    def test_control_set_stopping_rules(self):
+        results = pd.DataFrame({
+            'qid': ['q1'] * 60,
+            'docno': [f'd{i}' for i in range(60)],
+            'rank': range(60),
+            'label': [0] * 60,
+        })
+        target_control = pd.DataFrame({
+            'qid': ['q1'] * 10,
+            'docno': [f'd{i}' for i in range(4, 50, 5)],
+            'label': [1] * 10,
+        })
+        target = pt.TargetRecapture(target_control)
+        self.assertEqual(10, target.target_size)
+        self.assertEqual(10, target.control_cost('q1'))
+        self.assertEqual(50, len(target(results)))
+
+        qbcb_control = pd.DataFrame({
+            'qid': ['q1'] * 30,
+            'docno': [f'd{i}' for i in range(30)],
+            'label': [1] * 30,
+        })
+        qbcb = pt.QBCB(qbcb_control)
+        self.assertEqual(14, qbcb._required_control_rank(14))
+        self.assertEqual(21, qbcb._required_control_rank(22))
+        self.assertEqual(28, qbcb._required_control_rank(30))
+        self.assertEqual(28, len(qbcb(results)))
+        self.assertEqual(28, len(qbcb(results.assign(label=1))))
+
+    def test_grlstop_reward(self):
+        rule = pt.GRLStop(.8, n_windows=4, total_timesteps=1)
+        self.assertEqual(.5, rule._reward(0, 1))
+        self.assertEqual(-.5, rule._reward(2, 1))
+
+    def test_grlstop_train_and_replay(self):
+        try:
+            import gymnasium  # noqa: F401
+            import stable_baselines3  # noqa: F401
+        except ImportError:
+            self.skipTest('GRLStop optional dependencies are not installed')
+        import numpy as np
+
+        training = pd.DataFrame({
+            'qid': ['q1'] * 8,
+            'docno': [f'd{i}' for i in range(8)],
+            'rank': range(8),
+            'features': [np.array([i, 1.]) for i in range(8)],
+            'label': [1, 0, 0, 1, 0, 0, 1, 0],
+        })
+        testing = training.assign(features=[np.array([i, 1., 0.]) for i in range(8)])
+        rule = pt.GRLStop(.8, n_windows=4, total_timesteps=16, n_steps=4, n_epochs=1)
+        trajectory = rule._trajectories(training)[0][1]
+        environment = rule._environment(trajectory, .8)()
+        environment.reset()
+        _, reward, _, _, _ = environment.step(0)
+        self.assertEqual(rule._reward(0, rule._target_position(trajectory, .8)), reward)
+        replay = rule.fit(training)(testing)
+        self.assertEqual({'q1'}, set(replay['qid']))
+        self.assertLessEqual(len(replay), len(testing))
+        self.assertGreater(len(replay), 0)
         
     def test_concatenate(self):
         import numpy as np

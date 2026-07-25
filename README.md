@@ -55,6 +55,28 @@ The easiest way to get started with PyTerrier is to use one of our Colab noteboo
 1. `pip install 'pyterrier[all]'`
 2. You may need to set JAVA_HOME environment variable if Pyjnius cannot find your Java installation.
 
+# Technology-assisted review stopping
+
+This fork adds labelled-trajectory stopping transformers for evaluation and
+replay. They consume fixed ranked results with `qid`, `docno`, `rank`, and
+`label`, then return the reviewed prefix for each query; they are not live
+screening controllers. `Kneedle`, `FixedRound`, `BatchPrecision`, `Rule2399`,
+`ReviewHalf`, `Budget`, `CMHHeuristic`, and `PoissonPoint` need no new runtime
+dependency. `TargetRecapture` and `QBCB` require an independently screened
+control set and expose its separate cost with `control_cost()`.
+
+`GRLStop` is trainable with PPO and needs the optional learning stack:
+
+```bash
+pip install 'pyterrier[stopping]'
+```
+
+It uses a 100-batch state, prefix-only logistic classifier, and the released
+reward trade-off; provide a `features` column or a `score` fallback. The port
+has passed train/replay checks and a small held-out CLEF-2017 screen, but is not
+a reproduction of the published GRLStop table: the released training ranking,
+exact split, TF-IDF artifacts, and much of the local document text are absent.
+
 # PyTerrier Extensions
 
 PyTerrier has additional plugins for everything from dense retrieval to RAG:
