@@ -4,7 +4,7 @@ torch
 lz4
 transformers
 scikit-learn
-ruff
+ruff<0.16
 mypy==1.14.1
 magic-wormhole
 pytest
