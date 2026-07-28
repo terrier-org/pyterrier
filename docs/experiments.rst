@@ -297,12 +297,9 @@ Withheld Documents
 ~~~~~~~~~~~~~~~~~~
 
 Some datasets include documents in their qrels that should **not** be retrieved — for example, documents that are
-considered distractors or that fall outside the scope of the topic. In `ir_datasets <https://ir-datasets.com/>`_,
-such documents are marked with a special relevance label of ``-100``.
-
-A prominent example is the `BRIGHT <https://brightbenchmark.github.io/>`_ benchmark (Beyond Retrieval: Is your
-model Genuinely Hard?), a challenging retrieval benchmark for reasoning-intensive queries. BRIGHT qrels contain
-documents labelled ``-100`` to indicate documents that must be withheld from system outputs before evaluation;
+considered distractors or that fall outside the scope of the topic. A noteable example is the `BRIGHT <https://brightbenchmark.github.io/>`_ benchmark (Beyond Retrieval: Is your
+model Genuinely Hard?), which is intended to be a challenging retrieval benchmark for reasoning-intensive queries. In IR Datasets,
+the BRIGHT qrels contain douments labelled ``-100`` to indicate documents that must be withheld from system outputs before evaluation;
 including them would lead to inflated retrieval scores.
 
 ``pt.Experiment()`` automatically handles these withheld documents. When any ``label == -100`` rows are found in
