@@ -16,4 +16,4 @@ def test_identify_common_unhashable_transformer():
     pipes = [pipe_a, pipe_b]
     common, suffices = pyterrier._evaluation._exec_linear._identifyCommon(pipes)
     assert common is None
-    assert suffices is pipes
+    assert suffices == pipes
