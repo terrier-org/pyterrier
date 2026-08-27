@@ -98,8 +98,10 @@ def _identifyCommon(pipes : List[Union[pt.Transformer, pd.DataFrame]]) -> Tuple[
 
     try:
         common_prefix, suffices  = _common_prefix(pipe_lists)
-    except TypeError:
-        return None, pipes
+    except TypeError as e:
+        if "unhashable type" in str(e):
+            return None, pipes
+        raise
 
     if len(common_prefix) == 0:
         # no common prefix, return existing pipelines as-is

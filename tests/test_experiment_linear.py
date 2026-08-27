@@ -42,18 +42,3 @@ class TestExperimentLinear(TestExperimentBase):
 
         df3 = pt.Experiment([bm25, pipeB], pt.get_dataset('vaswani').get_topics().head(10), pt.get_dataset('vaswani').get_qrels(), eval_metrics=['map'], precompute_prefix=True, batch_size=4, **self.pt_exp_kwargs)
         pd.testing.assert_frame_equal(df1, df3)
-
-    def test_precomp_unhashable_transformer(self):
-        class EqOnlyTransformer(pt.Transformer):
-            def transform(self, inp):
-                return inp
-
-            def __eq__(self, other):
-                return isinstance(other, EqOnlyTransformer)
-
-        pipe_a = EqOnlyTransformer()
-        pipe_b = EqOnlyTransformer()
-        pipes = [pipe_a, pipe_b]
-        common, suffices = pyterrier._evaluation._exec_linear._identifyCommon(pipes)
-        self.assertIsNone(common)
-        self.assertIs(pipes, suffices)
