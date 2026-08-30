@@ -396,6 +396,50 @@ class TestExperimentBase(TempDirTestCase):
         with self.assertRaises(ValueError):
             pt.Experiment(runs, topics, qrels, ["map"], baseline="unknown", **self.pt_exp_kwargs)
 
+    def test_experiment_single_baseline_legacy_columns(self):
+        from .test_experiment_baselines import _synthetic_baseline_frames
+        topics, qrels, runs = _synthetic_baseline_frames()
+        df = pt.Experiment(
+            runs, topics, qrels, ["map"], names=["system_0", "system_1", "system_2"],
+            baseline=0, **self.pt_exp_kwargs)
+        self.assertIn("map +", df.columns)
+        self.assertIn("map p-value", df.columns)
+        self.assertNotIn("map + (vs system_0)", df.columns)
+        self.assertEqual(0, df.iloc[1]["map +"])
+        self.assertEqual(2, df.iloc[1]["map -"])
+
+    def test_experiment_multiple_baselines_int(self):
+        from .test_experiment_baselines import _synthetic_baseline_frames
+        topics, qrels, runs = _synthetic_baseline_frames()
+        df = pt.Experiment(
+            runs, topics, qrels, ["map"], names=["system_0", "system_1", "system_2"],
+            baseline=[0, 1], **self.pt_exp_kwargs)
+        self.assertIn("map p-value (vs system_0)", df.columns)
+        self.assertIn("map p-value (vs system_1)", df.columns)
+        self.assertNotIn("map +", df.columns)
+        self.assertEqual(0, df.iloc[1]["map + (vs system_0)"])
+        self.assertEqual(2, df.iloc[1]["map - (vs system_0)"])
+
+    def test_experiment_multiple_baselines_named(self):
+        from .test_experiment_baselines import _synthetic_baseline_frames
+        topics, qrels, runs = _synthetic_baseline_frames()
+        systems = {"system_0": runs[0], "system_1": runs[1], "system_2": runs[2]}
+        df = pt.Experiment(
+            systems, topics, qrels, ["map"],
+            baseline=["system_0", "system_1"], **self.pt_exp_kwargs)
+        self.assertIn("map p-value (vs system_0)", df.columns)
+        self.assertIn("map p-value (vs system_1)", df.columns)
+
+    def test_experiment_multiple_baselines_correction(self):
+        from .test_experiment_baselines import _synthetic_baseline_frames
+        topics, qrels, runs = _synthetic_baseline_frames()
+        df = pt.Experiment(
+            runs, topics, qrels, ["map"], names=["system_0", "system_1", "system_2"],
+            baseline=[0, 1], correction="bonferroni", **self.pt_exp_kwargs)
+        self.assertIn("map reject (vs system_0)", df.columns)
+        self.assertIn("map p-value (vs system_0) corrected", df.columns)
+        self.assertIn("map reject (vs system_1)", df.columns)
+
     def test_one_row(self):
         from pyterrier.measures import NumQ
         vaswani = pt.datasets.get_dataset("vaswani")

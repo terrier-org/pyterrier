@@ -104,7 +104,14 @@ class RenderFromPerQuery():
 
     def __init__(self, systems, baseline=None, test_fn=None, correction=None, correction_alpha : float = 0.05, round=None, precompute_time=0):
         self.systems = systems
-        self.baseline = baseline
+        if baseline is None:
+            self.baselines = None
+        elif isinstance(baseline, (list, tuple)):
+            self.baselines = list(baseline)
+        else:
+            self.baselines = [baseline]
+        # retained for callers/tests that still read the single-baseline attribute
+        self.baseline = self.baselines[0] if self.baselines is not None and len(self.baselines) == 1 else baseline
         self.test_fn = test_fn
         self.correction = correction
         self.correction_alpha = correction_alpha
@@ -131,7 +138,6 @@ class RenderFromPerQuery():
     def averages(self, dataframe : Union[Literal[True], Literal[False]] = True, highlight : Optional[str] = None, mrt_needed : bool = False) -> Union[Dict[str,Any], pd.DataFrame]:
 
         assert len(self.systemEvalDictsPerQ) == len(self.systems), "evaluation has not finished"
-        baseline = self.baseline
         
         # this is needed for dataframe return
         evalMeasuresDicts = {}
@@ -155,59 +161,91 @@ class RenderFromPerQuery():
         if mrt_needed:
             highlight_cols["mrt"] = "-"
         p_col_names : List[str] = []
+        baselines = self.baselines
+        legacy_single = baselines is not None and len(baselines) == 1
         
-        if baseline is not None:
-            baselinePerQuery={}
-            
+        if baselines is not None:
             per_q_metrics = actual_metric_names.copy()
             if mrt_needed:
                 per_q_metrics.remove("mrt")
 
-            for m in per_q_metrics:
-                baselinePerQuery[m] = np.array([ self.systemEvalDictsPerQ[baseline][q][m] for q in self.systemEvalDictsPerQ[baseline] ])
+            baseline_per_query : Dict[int, Dict[str, np.ndarray]] = {}
+            for b in baselines:
+                baseline_per_query[b] = {
+                    m: np.array([ self.systemEvalDictsPerQ[b][q][m] for q in self.systemEvalDictsPerQ[b] ])
+                    for m in per_q_metrics
+                }
 
             for i in range(len(self.systems)):
                 additionals: List[Optional[Union[float, int, complex]]] = []
-                if i == baseline:
-                    additionals = [None] * (3*len(per_q_metrics))
-                else:
-                    for m in per_q_metrics:
-                        # we iterate through queries based on the baseline, in case run has different order
-                        perQuery = np.array( [ self.systemEvalDictsPerQ[i][q][m] for q in self.systemEvalDictsPerQ[baseline] ])
-                        delta_plus = int((perQuery > baselinePerQuery[m]).sum())
-                        delta_minus = int((perQuery < baselinePerQuery[m]).sum())
-                        p = self.test_fn(perQuery, baselinePerQuery[m])[1] # type: ignore[arg-type]
-                        additionals.extend([delta_plus, delta_minus, p])
+                for b in baselines:
+                    if i == b:
+                        additionals.extend([None] * (3 * len(per_q_metrics)))
+                    else:
+                        for m in per_q_metrics:
+                            # iterate queries in baseline order, in case run has different order
+                            perQuery = np.array([ self.systemEvalDictsPerQ[i][q][m] for q in self.systemEvalDictsPerQ[b] ])
+                            delta_plus = int((perQuery > baseline_per_query[b][m]).sum())
+                            delta_minus = int((perQuery < baseline_per_query[b][m]).sum())
+                            p = self.test_fn(perQuery, baseline_per_query[b][m])[1] # type: ignore[arg-type]
+                            additionals.extend([delta_plus, delta_minus, p])
                 evalsRows[i].extend(additionals)
 
             additional_col_names=[]
-            for m in per_q_metrics:
-                additional_col_names.append("%s +" % m)
-                highlight_cols["%s +" % m] = "+"
-                additional_col_names.append("%s -" % m)
-                highlight_cols["%s -" % m] = "-"
-                pcol = "%s p-value" % m
-                additional_col_names.append(pcol)
-                p_col_names.append(pcol)
+            for b in baselines:
+                suffix = "" if legacy_single else " (vs %s)" % self.systems[b]
+                for m in per_q_metrics:
+                    plus_col = "%s +%s" % (m, suffix)
+                    minus_col = "%s -%s" % (m, suffix)
+                    pcol = "%s p-value%s" % (m, suffix)
+                    additional_col_names.extend([plus_col, minus_col, pcol])
+                    highlight_cols[plus_col] = "+"
+                    highlight_cols[minus_col] = "-"
+                    p_col_names.append(pcol)
             actual_metric_names.extend(additional_col_names)
 
         # its easier to build the dataframe, then apply the correction
         df = pd.DataFrame(evalsRows, columns=["name"] + actual_metric_names)
         
         # multiple testing correction. This adds two new columns for each measure experiencing statistical significance testing        
-        if self.baseline is not None and self.correction is not None:
+        if baselines is not None and self.correction is not None:
             import statsmodels.stats.multitest # type: ignore
-            for pcol in p_col_names:
-                pcol_reject = pcol.replace("p-value", "reject")
-                pcol_corrected = pcol + " corrected"                
-                reject, corrected, _, _ = statsmodels.stats.multitest.multipletests(df[pcol].drop(df.index[baseline]), alpha=self.correction_alpha, method=self.correction)
-                insert_pos : int = df.columns.get_loc(pcol)
-                # add reject/corrected values for the baseline
-                reject = np.insert(reject, baseline, False)
-                corrected = np.insert(corrected, baseline, np.nan)
-                # add extra columns, put place directly after the p-value column
-                df.insert(insert_pos+1, pcol_reject, reject)
-                df.insert(insert_pos+2, pcol_corrected, corrected)
+            if legacy_single:
+                baseline = baselines[0]
+                for pcol in p_col_names:
+                    pcol_reject = pcol.replace("p-value", "reject")
+                    pcol_corrected = pcol + " corrected"
+                    reject, corrected, _, _ = statsmodels.stats.multitest.multipletests(df[pcol].drop(df.index[baseline]), alpha=self.correction_alpha, method=self.correction)
+                    insert_pos : int = df.columns.get_loc(pcol)
+                    # add reject/corrected values for the baseline
+                    reject = np.insert(reject, baseline, False)
+                    corrected = np.insert(corrected, baseline, np.nan)
+                    # add extra columns, put place directly after the p-value column
+                    df.insert(insert_pos+1, pcol_reject, reject)
+                    df.insert(insert_pos+2, pcol_corrected, corrected)
+            else:
+                # one family: flatten all (system, baseline, measure) p-values
+                p_values : List[float] = []
+                locations : List[Tuple[int, str]] = []
+                for pcol in p_col_names:
+                    for i, val in enumerate(df[pcol]):
+                        if pd.isna(val):
+                            continue
+                        p_values.append(float(val))
+                        locations.append((i, pcol))
+                n = len(self.systems)
+                reject_cols = {pcol: [False] * n for pcol in p_col_names}
+                corrected_cols = {pcol: [np.nan] * n for pcol in p_col_names}
+                if p_values:
+                    reject, corrected, _, _ = statsmodels.stats.multitest.multipletests(
+                        p_values, alpha=self.correction_alpha, method=self.correction)
+                    for (i, pcol), rej, corr in zip(locations, reject, corrected):
+                        reject_cols[pcol][i] = bool(rej)
+                        corrected_cols[pcol][i] = corr
+                for pcol in reversed(p_col_names):
+                    insert_pos = int(df.columns.get_loc(pcol))
+                    df.insert(insert_pos+1, pcol.replace("p-value", "reject"), reject_cols[pcol])
+                    df.insert(insert_pos+2, pcol + " corrected", corrected_cols[pcol])
 
         if highlight == "color" or highlight == "colour" :
             df = df.style.apply(_color_cols, axis=0, col_type=highlight_cols) # type: ignore

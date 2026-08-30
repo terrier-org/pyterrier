@@ -114,6 +114,21 @@ If the systems are provided as a dictionary, the keys are used as system names a
         baseline="TF_IDF",
     )
 
+Multiple baselines can be provided as a list of indices or names. A single baseline keeps the
+legacy column names (``map +``, ``map p-value``, …). Multiple baselines suffix comparative
+columns with the baseline name, e.g. ``map p-value (vs TF_IDF)``. When ``correction=`` is also
+set, correction is applied across the flattened vector of all ``(system, baseline, measure)``
+p-values::
+
+    pt.Experiment(
+        {"TF_IDF": tfidf, "BM25": bm25, "PL2": pl2},
+        dataset.get_topics(),
+        dataset.get_qrels(),
+        eval_metrics=["map", "recip_rank"],
+        baseline=["TF_IDF", "BM25"],
+        correction="bonferroni",
+    )
+
 In this case, additional columns are returned for each measure, indicating 
 the number of queries improved compared to the baseline, the number of queries
 degraded, as well as the paired t-test p-value in the difference between each
