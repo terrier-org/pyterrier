@@ -104,12 +104,10 @@ class RenderFromPerQuery():
 
     def __init__(self, systems, baseline=None, test_fn=None, correction=None, correction_alpha : float = 0.05, round=None, precompute_time=0):
         self.systems = systems
-        if baseline is None:
-            self.baselines = None
-        elif isinstance(baseline, (list, tuple)):
+        if isinstance(baseline, (list, tuple)):
             self.baselines = list(baseline)
         else:
-            self.baselines = [baseline]
+            self.baselines = [baseline] if baseline is not None else None
         # retained for callers/tests that still read the single-baseline attribute
         self.baseline = self.baselines[0] if self.baselines is not None and len(self.baselines) == 1 else baseline
         self.test_fn = test_fn
@@ -162,7 +160,7 @@ class RenderFromPerQuery():
             highlight_cols["mrt"] = "-"
         p_col_names : List[str] = []
         baselines = self.baselines
-        legacy_single = baselines is not None and len(baselines) == 1
+        single = baselines is not None and len(baselines) == 1
         
         if baselines is not None:
             per_q_metrics = actual_metric_names.copy()
@@ -193,7 +191,7 @@ class RenderFromPerQuery():
 
             additional_col_names=[]
             for b in baselines:
-                suffix = "" if legacy_single else " (vs %s)" % self.systems[b]
+                suffix = "" if single else " (vs %s)" % self.systems[b]
                 for m in per_q_metrics:
                     plus_col = "%s +%s" % (m, suffix)
                     minus_col = "%s -%s" % (m, suffix)
@@ -210,7 +208,7 @@ class RenderFromPerQuery():
         # multiple testing correction. This adds two new columns for each measure experiencing statistical significance testing        
         if baselines is not None and self.correction is not None:
             import statsmodels.stats.multitest # type: ignore
-            if legacy_single:
+            if single:
                 baseline = baselines[0]
                 for pcol in p_col_names:
                     pcol_reject = pcol.replace("p-value", "reject")

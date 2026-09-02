@@ -115,10 +115,10 @@ If the systems are provided as a dictionary, the keys are used as system names a
     )
 
 Multiple baselines can be provided as a list of indices or names. A single baseline keeps the
-legacy column names (``map +``, ``map p-value``, …). Multiple baselines suffix comparative
+existing column names (``map +``, ``map p-value``, …). Multiple baselines suffix comparative
 columns with the baseline name, e.g. ``map p-value (vs TF_IDF)``. When ``correction=`` is also
-set, correction is applied across the flattened vector of all ``(system, baseline, measure)``
-p-values::
+set, a single baseline corrects per measurement across systems, while multiple baselines apply
+correction across baseline comparisons::
 
     pt.Experiment(
         {"TF_IDF": tfidf, "BM25": bm25, "PL2": pl2},

@@ -33,19 +33,16 @@ def _resolve_baselines(
 
     resolved: List[int] = []
     for item in items:
-        if isinstance(item, bool):
-            raise TypeError("baseline items must be int or str, not bool")
         if isinstance(item, str):
             if item not in names:
                 raise ValueError(f"Unknown baseline '{item}'. Valid options are: {', '.join(names)}")
             resolved.append(names.index(item))
-            continue
-        if not isinstance(item, int):
+        elif type(item) is int:
+            if item < 0 or item >= n_systems:
+                raise ValueError("baseline index %s is out of range for %d systems" % (item, n_systems))
+            resolved.append(item)
+        else:
             raise TypeError("baseline items must be int or str, not %s" % type(item).__name__)
-        idx = item
-        if idx < 0 or idx >= n_systems:
-            raise ValueError("baseline index %s is out of range for %d systems" % (idx, n_systems))
-        resolved.append(idx)
 
     if len(set(resolved)) != len(resolved):
         raise ValueError("baseline list contains duplicate systems")
@@ -232,7 +229,7 @@ def Experiment(
         significance (paired t-test p value) for each measure against the specified system(s).
         Accepts an index, a system name, or a list of either. When ``retr_systems`` is a dict,
         names are the dict keys; otherwise they are the ``names=`` values (or ``str(system)``).
-        A single baseline keeps the legacy column names (``map +``, ``map p-value``, …).
+        A single baseline keeps the existing column names (``map +``, ``map p-value``, …).
         Multiple baselines suffix comparative columns with `` (vs <name>)``.
         Default=None: If None, no additional columns will be added for each measure.
     :param test: Which significance testing approach to apply. Defaults to "t". Alternatives are "wilcoxon" - not typically used for IR experiments. A Callable can also be passed - it should
@@ -240,8 +237,7 @@ def Experiment(
         i.e. it expect two arrays of numbers, and return an array or tuple, of which the second value will be placed in the p-value column.
     :param correction: Whether any multiple testing correction should be applied. E.g. 'bonferroni', 'holm', 'hs' aka 'holm-sidak'. Default is None.
         Additional columns are added denoting whether the null hypothesis can be rejected, and the corrected p value.
-        A single baseline applies correction per measure (legacy). Multiple baselines apply ``multipletests``
-        across the flattened vector of all ``(system, baseline, measure)`` p-values.
+        A single baseline corrects per measurement across systems. Multiple baselines apply correction across baseline comparisons.
         See `statsmodels.stats.multitest.multipletests() <https://www.statsmodels.org/dev/generated/statsmodels.stats.multitest.multipletests.html#statsmodels.stats.multitest.multipletests>`_
         for more information about available testing correction.
     :param correction_alpha: What alpha value for multiple testing correction. Default is 0.05.
