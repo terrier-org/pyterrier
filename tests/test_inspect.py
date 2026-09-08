@@ -1,9 +1,14 @@
-import pandas as pd
-import unittest
-import pyterrier as pt
 import inspect
-from .base import BaseTestCase
+import unittest
 from functools import partial
+from pathlib import Path
+
+import pandas as pd
+
+import pyterrier as pt
+
+from .base import BaseTestCase
+
 
 class TestInspect(BaseTestCase):
 
@@ -139,7 +144,7 @@ class TestInspect(BaseTestCase):
 
         from sklearn.ensemble import RandomForestClassifier
         rf = RandomForestClassifier()
-        
+
 
         pipelines = [
             pt.ltr.apply_learned_model(rf),
@@ -376,6 +381,59 @@ class TestInspect(BaseTestCase):
         self.assertEqual(pt.inspect.TransformerAttribute.MISSING, attrs[0].value)
 
         self.assertEqual(0, len(pt.inspect.subtransformers(A(1))))
+
+    def test_subtransformers_artifact_transformer_context(self):
+        class ArtifactTransformer(pt.Transformer, pt.Artifact):
+            ARTIFACT_SCHEMATIC_SHOW_AS_TRANSFORMER = True
+
+            def __init__(self):
+                pt.Artifact.__init__(self, Path('.'))
+
+            def transform(self, inp):
+                return inp
+
+        
+        class UsesArtifactTransformer(pt.Transformer):
+            def __init__(
+                self,
+                scorer: pt.Transformer,
+                index: pt.Artifact,
+                rerankers: list[pt.Transformer],
+                artifacts: list[pt.Artifact],
+                legacy,
+            ):
+                self.scorer = scorer
+                self.index = index
+                self.rerankers = rerankers
+                self.artifacts = artifacts
+                self.legacy = legacy
+
+            def transform(self, inp):
+                return inp
+
+        hybrid = ArtifactTransformer()
+        transformer = UsesArtifactTransformer(
+            scorer=hybrid,
+            index=hybrid,
+            rerankers=[hybrid],
+            artifacts=[hybrid],
+            legacy=hybrid,
+        )
+        attributes = {
+            attr.name: attr for attr in pt.inspect.transformer_attributes(transformer)
+        }
+
+        self.assertIs(attributes['scorer'].init_parameter_annotation, pt.Transformer)
+        self.assertIs(attributes['index'].init_parameter_annotation, pt.Artifact)
+
+        self.assertEqual(
+            {
+                'scorer': hybrid,
+                'rerankers': [hybrid],
+                'legacy': hybrid,
+            },
+            pt.inspect.subtransformers(transformer),
+        )
 
     def test_transformer_type(self):
         class A(pt.Transformer):
