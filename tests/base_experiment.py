@@ -396,7 +396,7 @@ class TestExperimentBase(TempDirTestCase):
         with self.assertRaises(ValueError):
             pt.Experiment(runs, topics, qrels, ["map"], baseline="unknown", **self.pt_exp_kwargs)
 
-    def test_experiment_single_baseline_legacy_columns(self):
+    def test_experiment_single_baseline_default_columns(self):
         from .test_experiment_baselines import _synthetic_baseline_frames
         topics, qrels, runs = _synthetic_baseline_frames()
         df = pt.Experiment(

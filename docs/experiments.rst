@@ -120,7 +120,8 @@ columns with the baseline name, e.g. ``map p-value (vs TF_IDF)``. When ``correct
 set, a single baseline corrects per measurement across systems, while multiple baselines apply
 correction across baseline comparisons::
 
-    pt.Experiment(
+    pl2 = pt.terrier.Retriever(dataset.get_index(), wmodel="PL2")
+    results = pt.Experiment(
         {"TF_IDF": tfidf, "BM25": bm25, "PL2": pl2},
         dataset.get_topics(),
         dataset.get_qrels(),
@@ -128,6 +129,24 @@ correction across baseline comparisons::
         baseline=["TF_IDF", "BM25"],
         correction="bonferroni",
     )
+
+For example, selecting the measure and raw p-value columns from ``results``::
+
+    results[[
+        "name",
+        "map",
+        "map p-value (vs TF_IDF)",
+        "map p-value (vs BM25)",
+    ]].round(4)
+
+produces a DataFrame with a distinct p-value column for each baseline:
+
+.. code-block:: text
+
+         name     map  map p-value (vs TF_IDF)  map p-value (vs BM25)
+    0  TF_IDF  0.2909                       NaN                   0.2373
+    1    BM25  0.2965                    0.2373                      NaN
+    2     PL2  0.2763                    0.0088                   0.0000
 
 In this case, additional columns are returned for each measure, indicating 
 the number of queries improved compared to the baseline, the number of queries

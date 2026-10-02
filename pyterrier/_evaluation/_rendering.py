@@ -104,6 +104,7 @@ class RenderFromPerQuery():
 
     def __init__(self, systems, baseline=None, test_fn=None, correction=None, correction_alpha : float = 0.05, round=None, precompute_time=0):
         self.systems = systems
+        self.baselines: Optional[List[int]]
         if isinstance(baseline, (list, tuple)):
             self.baselines = list(baseline)
         else:

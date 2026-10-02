@@ -39,7 +39,7 @@ def _synthetic_baseline_frames():
 
 class TestExperimentBaselines(unittest.TestCase):
 
-    def test_experiment_single_baseline_legacy_columns(self):
+    def test_experiment_single_baseline_default_columns(self):
         topics, qrels, runs = _synthetic_baseline_frames()
         df = pt.Experiment(
             runs, topics, qrels, ["map"], names=["system_0", "system_1", "system_2"],
