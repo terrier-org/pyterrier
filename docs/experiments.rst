@@ -114,6 +114,36 @@ If the systems are provided as a dictionary, the keys are used as system names a
         baseline="TF_IDF",
     )
 
+Multiple baselines can be provided as a list of indices or names. A single baseline keeps the
+existing column names (``map +``, ``map p-value``, …). Multiple baselines suffix comparative
+columns with the baseline name, e.g. ``map p-value (vs TF_IDF)``. When ``correction=`` is also
+set, a single baseline corrects per measurement across systems, while multiple baselines apply
+correction across baseline comparisons::
+
+    pl2 = pt.terrier.Retriever(dataset.get_index(), wmodel="PL2")
+    results = pt.Experiment(
+        {"TF_IDF": tfidf, "BM25": bm25, "PL2": pl2},
+        dataset.get_topics(),
+        dataset.get_qrels(),
+        eval_metrics=["map", "recip_rank"],
+        baseline=["TF_IDF", "BM25"],
+        correction="bonferroni",
+        round=4
+    )
+
+For example, selecting the measure and raw p-value columns from ``results``::
+
+    results[[
+        "name",
+        "map",
+        "map p-value (vs TF_IDF)",
+        "map p-value (vs BM25)",
+    ]]
+
+produces a DataFrame with a distinct p-value column for each baseline:
+
+.. include:: ./_includes/experiment-multiple-baselines.rst
+
 In this case, additional columns are returned for each measure, indicating 
 the number of queries improved compared to the baseline, the number of queries
 degraded, as well as the paired t-test p-value in the difference between each

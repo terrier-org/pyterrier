@@ -1,7 +1,7 @@
 import os
 import warnings
 import pandas as pd
-from typing import Union, Dict, Tuple, Sequence, Literal, Optional, overload, Any
+from typing import Union, Dict, Tuple, Sequence, Literal, Optional, List, overload, Any
 from warnings import warn
 
 from ._exec_linear import linear_execution
@@ -10,6 +10,44 @@ from ._rendering import EvaluationDataTuple, RenderFromPerQuery
 from ._validation import _validate
 from . import SYSTEM_OR_RESULTS_TYPE, MEASURES_TYPE, TEST_FN_TYPE, SAVEFORMAT_TYPE, SAVEMODE_TYPE, VALIDATE_TYPE
 import pyterrier as pt
+
+BaselineSpec = Union[int, str, Sequence[Union[int, str]]]
+
+
+def _resolve_baselines(
+        baseline: Optional[BaselineSpec],
+        names: Sequence[str],
+        n_systems: int,
+) -> Optional[List[int]]:
+    """Normalize ``baseline`` to a list of system indices, or ``None``."""
+    if baseline is None:
+        return None
+
+    if isinstance(baseline, str) or not isinstance(baseline, (list, tuple)):
+        items: Sequence[Union[int, str]] = [baseline]  # type: ignore[list-item]
+    else:
+        items = baseline
+
+    if len(items) == 0:
+        raise ValueError("baseline list must not be empty")
+
+    resolved: List[int] = []
+    for item in items:
+        if isinstance(item, str):
+            if item not in names:
+                raise ValueError(f"Unknown baseline '{item}'. Valid options are: {', '.join(names)}")
+            resolved.append(names.index(item))
+        elif type(item) is int:
+            if item < 0 or item >= n_systems:
+                raise ValueError("baseline index %s is out of range for %d systems" % (item, n_systems))
+            resolved.append(item)
+        else:
+            raise TypeError("baseline items must be int or str, not %s" % type(item).__name__)
+
+    if len(set(resolved)) != len(resolved):
+        raise ValueError("baseline list contains duplicate systems")
+    return resolved
+
 
 # perquery: bool, dataframe:true
 @overload
@@ -24,7 +62,7 @@ def Experiment(
         batch_size : Optional[int] = None,
         filter_by_qrels : bool = False,
         filter_by_topics : bool = True,
-        baseline : Optional[Union[int, str]] = None,
+        baseline : Optional[BaselineSpec] = None,
         test : Union[str,TEST_FN_TYPE] = "t",
         correction : Optional[str] = None,
         correction_alpha : float = 0.05,
@@ -53,7 +91,7 @@ def Experiment(
         batch_size : Optional[int] = None,
         filter_by_qrels : bool = False,
         filter_by_topics : bool = True,
-        baseline : Optional[Union[int, str]] = None,
+        baseline : Optional[BaselineSpec] = None,
         test : Union[str,TEST_FN_TYPE] = "t",
         correction : Optional[str] = None,
         correction_alpha : float = 0.05,
@@ -82,7 +120,7 @@ def Experiment(
         batch_size : Optional[int] = None,
         filter_by_qrels : bool = False,
         filter_by_topics : bool = True,
-        baseline : Optional[Union[int, str]] = None,
+        baseline : Optional[BaselineSpec] = None,
         test : Union[str,TEST_FN_TYPE] = "t",
         correction : Optional[str] = None,
         correction_alpha : float = 0.05,
@@ -111,7 +149,7 @@ def Experiment(
         batch_size : Optional[int] = None,
         filter_by_qrels : bool = False,
         filter_by_topics : bool = True,
-        baseline : Optional[Union[int, str]] = None,
+        baseline : Optional[BaselineSpec] = None,
         test : Union[str,TEST_FN_TYPE] = "t",
         correction : Optional[str] = None,
         correction_alpha : float = 0.05,
@@ -138,7 +176,7 @@ def Experiment(
         batch_size : Optional[int] = None,
         filter_by_qrels : bool = False,
         filter_by_topics : bool = True,
-        baseline : Optional[Union[int, str]] = None,
+        baseline : Optional[BaselineSpec] = None,
         test : Union[str,TEST_FN_TYPE] = "t",
         correction : Optional[str] = None,
         correction_alpha : float = 0.05,
@@ -187,15 +225,19 @@ def Experiment(
         If TREC results format is insufficient, set ``save_format=pickle``. Alternatively, a tuple of read and write function can be specified, for instance, 
         ``save_format=(pandas.from_csv, pandas.DataFrame.to_csv)``, or even ``save_format=(pandas.from_parquet, pandas.DataFrame.to_parquet)``.
     :param dataframe: If True return results as a dataframe, else as a dictionary of dictionaries. Default=True.
-    :param baseline: If set to the index of an item of the retr_system list, will calculate the number of queries 
-        improved, degraded and the statistical significance (paired t-test p value) for each measure.
-        When ``retr_systems`` is a dict, baseline can also be a system name (dict key).
+    :param baseline: If set, calculate the number of queries improved, degraded and the statistical
+        significance (paired t-test p value) for each measure against the specified system(s).
+        Accepts an index, a system name, or a list of either. When ``retr_systems`` is a dict,
+        names are the dict keys; otherwise they are the ``names=`` values (or ``str(system)``).
+        A single baseline keeps the existing column names (``map +``, ``map p-value``, …).
+        Multiple baselines suffix comparative columns with `` (vs <name>)``.
         Default=None: If None, no additional columns will be added for each measure.
     :param test: Which significance testing approach to apply. Defaults to "t". Alternatives are "wilcoxon" - not typically used for IR experiments. A Callable can also be passed - it should
         follow the specification of `scipy.stats.ttest_rel() <https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.ttest_rel.html>`_, 
         i.e. it expect two arrays of numbers, and return an array or tuple, of which the second value will be placed in the p-value column.
     :param correction: Whether any multiple testing correction should be applied. E.g. 'bonferroni', 'holm', 'hs' aka 'holm-sidak'. Default is None.
-        Additional columns are added denoting whether the null hypothesis can be rejected, and the corrected p value. 
+        Additional columns are added denoting whether the null hypothesis can be rejected, and the corrected p value.
+        A single baseline corrects per measurement across systems. Multiple baselines apply correction across baseline comparisons.
         See `statsmodels.stats.multitest.multipletests() <https://www.statsmodels.org/dev/generated/statsmodels.stats.multitest.multipletests.html#statsmodels.stats.multitest.multipletests>`_
         for more information about available testing correction.
     :param correction_alpha: What alpha value for multiple testing correction. Default is 0.05.
@@ -220,14 +262,8 @@ def Experiment(
     if isinstance(retr_systems, dict):
         names = list(retr_systems.keys())
         retr_systems = list(retr_systems.values())
-        if isinstance(baseline, str):
-            if baseline not in names:
-                raise ValueError(f"Unknown baseline '{baseline}'. Valid options are: {', '.join(names)}")
-            baseline = names.index(baseline)
     elif not isinstance(retr_systems, list):
         raise TypeError("Expected list or dict of transformers for retr_systems, instead received %s" % str(type(retr_systems)))
-    elif isinstance(baseline, str):
-        raise TypeError("baseline should be an int when retr_systems is a list")
     
     if precompute_prefix:
         warn(
@@ -237,7 +273,6 @@ def Experiment(
         raise TypeError("Unknown kwargs: %s" % (str(list(kwargs.keys()))))
 
     if baseline is not None:
-        assert int(baseline) >= 0 and int(baseline) < len(retr_systems)
         assert not perquery
 
     if isinstance(topics, str):
@@ -289,6 +324,8 @@ def Experiment(
         names = [str(system) for system in retr_systems]
     elif len(names) != len(retr_systems):
         raise ValueError("names should be the same length as retr_systems")
+
+    baseline = _resolve_baselines(baseline, names, len(retr_systems))
 
     # validate save_dir and resulting filenames
     if save_dir is not None:
