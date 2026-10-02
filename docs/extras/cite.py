@@ -92,7 +92,7 @@ class CiteDirective(Directive):
         return None
 
 
-_dblp_hosts = ['https://dblp.org', 'https://dblp.uni-trier.de']
+_dblp_hosts = ['http://dblp.macavaney.us/', 'https://dblp.org', 'https://dblp.uni-trier.de']
 
 
 def _dblp_request(url: str):
