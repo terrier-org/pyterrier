@@ -178,6 +178,11 @@ class CiteDblpDirective(CiteDirective):
         link = super().get_link()
         if link is not None:
             return link
+        try:
+            res = bibtexparser.loads(self.bibtex_entry_full).entries[0]
+        except (KeyError, IndexError):
+            warn("Failed to extract citation information from DBLP entry for ID: " + self.arguments[0])
+            return None
         res = bibtexparser.loads(self.bibtex_entry_full).entries[0]
         return latex_converter.latex_to_text(res.get('url', ''))
 
