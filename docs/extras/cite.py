@@ -9,6 +9,7 @@ from docutils import nodes
 from docutils.parsers.rst import Directive
 from sphinx.domains.std import StandardDomain
 from sphinx.util import logging
+from warnings import warn
 
 logger = logging.getLogger(__name__)
 
@@ -144,8 +145,13 @@ class CiteDblpDirective(CiteDirective):
         citation = super().get_citation()
         if citation is not None:
             return citation
-        res = bibtexparser.loads(self.bibtex_entry_short).entries[0]
+        try:
+            res = bibtexparser.loads(self.bibtex_entry_short).entries[0]
+        except (KeyError, IndexError):
+            warn("Failed to extract citation information from DBLP entry for ID: " + self.arguments[0])
+            return None
         authors = latex_converter.latex_to_text(res.get('author', ''))
+
         if authors:
             authors = authors.split(' and\n')
             if len(authors) > 2:
