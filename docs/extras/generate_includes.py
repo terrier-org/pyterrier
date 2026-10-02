@@ -112,6 +112,24 @@ def experiment_includes():
     with open("_includes/experiment-sig-corr.rst", "wt") as f:
         f.write(table)
 
+    pl2 = index.pl2()
+    results = pt.Experiment(
+        {"TF_IDF": tfidf, "BM25": bm25, "PL2": pl2},
+        dataset.get_topics(),
+        dataset.get_qrels(),
+        eval_metrics=["map", "recip_rank"],
+        baseline=["TF_IDF", "BM25"],
+        correction="bonferroni",
+        round=4
+    )
+    with open("_includes/experiment-multiple-baselines.rst", "wt") as f:
+            f.write(results[[
+            "name",
+            "map",
+            "map p-value (vs TF_IDF)",
+            "map p-value (vs BM25)",
+        ]].to_markdown(tablefmt="rst"))
+
     import statsmodels.stats.multitest
     import pandas as pd
     rows=[]

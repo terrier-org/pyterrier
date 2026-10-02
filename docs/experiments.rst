@@ -128,6 +128,7 @@ correction across baseline comparisons::
         eval_metrics=["map", "recip_rank"],
         baseline=["TF_IDF", "BM25"],
         correction="bonferroni",
+        round=4
     )
 
 For example, selecting the measure and raw p-value columns from ``results``::
@@ -137,16 +138,11 @@ For example, selecting the measure and raw p-value columns from ``results``::
         "map",
         "map p-value (vs TF_IDF)",
         "map p-value (vs BM25)",
-    ]].round(4)
+    ]]
 
 produces a DataFrame with a distinct p-value column for each baseline:
 
-.. code-block:: text
-
-         name     map  map p-value (vs TF_IDF)  map p-value (vs BM25)
-    0  TF_IDF  0.2909                       NaN                   0.2373
-    1    BM25  0.2965                    0.2373                      NaN
-    2     PL2  0.2763                    0.0088                   0.0000
+.. include:: ./_includes/experiment-multiple-baselines.rst
 
 In this case, additional columns are returned for each measure, indicating 
 the number of queries improved compared to the baseline, the number of queries
