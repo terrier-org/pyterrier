@@ -467,7 +467,7 @@ class SlidingWindowPassager(pt.Transformer):
                     newRow['docno'] = row['docno'] + "%p0"
                     newRow[self.text_attr] = self.detokenize(toks)
                     if self.prepend_title:
-                        newRow.drop(labels=[self.title_attr], inplace=True)
+                        del newRow[self.title_attr]
                         newRow[self.text_attr] = str(row[self.title_attr]) + self.join + newRow[self.text_attr]
                     if labels:
                         labelCount[row['label']] += 1
@@ -481,7 +481,6 @@ class SlidingWindowPassager(pt.Transformer):
                         newRow['docno'] = row['docno'] + "%p" + str(i)
                         newRow[self.text_attr] = self.detokenize(passage)
                         if self.prepend_title:
-                            #newRow.drop(labels=[self.title_attr], inplace=True)
                             del newRow[self.title_attr]
                             newRow[self.text_attr] = str(row[self.title_attr]) + self.join + newRow[self.text_attr]
                         for col in copy_columns:

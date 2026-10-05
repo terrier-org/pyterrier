@@ -14,7 +14,7 @@ class PerQueryMaxMinScoreTransformer(pt.Transformer):
         return topics_and_res
 
 Experiment = deprecated(version='1.0.0', reason="use pt.Experiment() instead")(pt.Experiment)
-Evaluate = deprecated(version='1.0.0', reason="use pt.Evaluate() instead")(pt.Experiment)
+Evaluate = deprecated(version='1.0.0', reason="use pt.Evaluate() instead")(pt.Evaluate)
 GridScan = deprecated(version='1.0.0', reason="use pt.GridScan() instead")(pt.GridScan)
-GridSearch = deprecated(version='1.0.0', reason="use pt.GridSearch() instead")(pt.GridScan)
+GridSearch = deprecated(version='1.0.0', reason="use pt.GridSearch() instead")(pt.GridSearch)
 KFoldGridSearch = deprecated(version='1.0.0', reason="use pt.KFoldGridSearch() instead")(pt.KFoldGridSearch)

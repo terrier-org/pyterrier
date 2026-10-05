@@ -29,6 +29,8 @@ class TestDatasets(BaseTestCase):
             self.skipTest("NIST not reachable")
         except urllib.error.URLError:
             self.skipTest("NIST not reachable")
+        except ValueError: # RemoteDataset wraps fetch failures in ValueError("Could not fetch ...")
+            self.skipTest("NIST not reachable")
 
     def test_webtrack_cw09(self):
         import pyterrier as pt
@@ -47,6 +49,8 @@ class TestDatasets(BaseTestCase):
         except urllib.error.URLError:
             self.skipTest("NIST not reachable")
         except requests.exceptions.HTTPError:
+            self.skipTest("NIST not reachable")
+        except ValueError: # RemoteDataset wraps fetch failures in ValueError("Could not fetch ...")
             self.skipTest("NIST not reachable")
     
     def test_vaswani_corpus_iter(self):

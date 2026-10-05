@@ -281,7 +281,7 @@ def _write_results_minimal(res, filename, run_name="pyterrier", append=False):
 def _write_results_letor(res, filename, qrels=None, default_label=0, append=False):
     if qrels is not None:
         res = res.merge(qrels, on=['qid', 'docno'], how='left').fillna(default_label)
-    mode='wa' if append else 'wt'
+    mode='at' if append else 'wt'
     with autoopen(filename, mode) as f:
         for row in res.itertuples():
             values = row.features
@@ -311,11 +311,20 @@ def read_topics(filename : str, format :Literal['trec', 'trecxml', 'singleline']
 
 def _read_topics_trec(file_path, doc_tag="top", id_tag="num", whitelist=["title"], blacklist=["desc","narr"], tokenise=False) -> pd.DataFrame:
     assert not tokenise, "Tokenisation is not supported for SGML-formatted topics; use pt.terrier.rewrite.tokenise() in your pipeline if needed" 
+    @contextmanager
     def _open(filename):
         if filename.startswith('http://') or filename.startswith('https://'):
-            return pt.io.download_stream(filename)
-        return pt.io.autoopen(filename, 'rt')
-    
+            # download_stream yields a binary stream; wrap it so the parsing below always sees text
+            with pt.io.download_stream(filename) as fin:
+                wrapper = io.TextIOWrapper(fin, encoding='utf-8')
+                try:
+                    yield wrapper
+                finally:
+                    wrapper.detach() # unhook fin so the wrapper's finalizer does not flush an already-closed stream
+        else:
+            with pt.io.autoopen(filename, 'rt') as fin:
+                yield fin
+
     with _open(file_path) as f:
         data = f.read()
 
@@ -422,11 +431,20 @@ def _read_topics_singleline(filepath, contains_qid=True, tokenise=False) -> pd.D
     assert not tokenise, "Tokenisation is not supported for XML-formatted topics; use pt.terrier.rewrite.tokenise() in your pipeline if needed" 
     qid_counter = 0
     
+    @contextmanager
     def _open(filepath):
         if filepath.startswith('http://') or filepath.startswith('https://'):
-            return pt.io.download_stream(filepath)
-        return pt.io.autoopen(filepath, 'rt')
-    
+            # download_stream yields a binary stream; wrap it so the parsing below always sees text
+            with pt.io.download_stream(filepath) as fin:
+                wrapper = io.TextIOWrapper(fin, encoding='utf-8')
+                try:
+                    yield wrapper
+                finally:
+                    wrapper.detach() # unhook fin so the wrapper's finalizer does not flush an already-closed stream
+        else:
+            with pt.io.autoopen(filepath, 'rt') as fin:
+                yield fin
+
     with _open(filepath) as f:
         rows = []
         for line in f:
@@ -437,12 +455,14 @@ def _read_topics_singleline(filepath, contains_qid=True, tokenise=False) -> pd.D
                 continue
             if contains_qid:
                 m = re.match(r'^([^:\s]+)[\s:]+(.*)$', line)
-                if m:
-                    qid = m.group(1)
-                    query = m.group(2)
+                if not m:
+                    raise ValueError("Could not parse line %r in singleline topics file %s" % (line, filepath))
+                qid = m.group(1)
+                query = m.group(2)
             else:
                 qid_counter += 1
                 qid = str(qid_counter)
+                query = line
             rows.append([qid, query])
         return pd.DataFrame(rows, columns=["qid", "query"]) 
 
@@ -594,8 +614,13 @@ class _NosyReader(io.BufferedIOBase, ABC):
         return chunk
 
     def read(self, size: Optional[int] = None) -> bytes:
-        if size is None:
-            size = io.DEFAULT_BUFFER_SIZE
+        if size is None or size < 0:
+            # contract of io.BufferedIOBase.read: no size (or a negative one) means read to EOF
+            chunks = []
+            while (chunk := self.reader.read(io.DEFAULT_BUFFER_SIZE)):
+                self.on_data(chunk)
+                chunks.append(chunk)
+            return b''.join(chunks)
         chunk = self.reader.read(size)
         self.on_data(chunk)
         return chunk
