@@ -14,6 +14,7 @@ pyterrier_dr # Dense Retrieval <https://github.com/terrierteam/pyterrier_dr>
 pyterrier_doc2query # Doc2Query <https://github.com/terrierteam/pyterrier_doc2query>
 # Document Quality <https://github.com/terrierteam/pyterrier-quality>
 # GenRank <https://github.com/emory-irlab/pyterrier_genrank>
+# ir_axioms <https://ir-axioms.webis.de/getting-started/integrations/#pyterrier>
 # OpenNIR <https://opennir.net/>
 pyterrier_pisa # PISA <https://github.com/terrierteam/pyterrier_pisa>
 pyterrier_rag # RAG <https://github.com/terrierteam/pyterrier_rag>
