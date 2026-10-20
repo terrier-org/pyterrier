@@ -10,10 +10,10 @@ jobs:
   sphinx:
     runs-on: 'ubuntu-latest'
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Install Python
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: '3.12'
 
@@ -34,7 +34,7 @@ jobs:
     - run: df -h
 
     - name: Cache Dependencies
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ${{ env.pythonLocation }}
         key: docs-${{ hashFiles('requirements.txt') }}-${{ hashFiles('docs/requirements.txt') }}-${{ hashFiles('docs/extensions.txt') }}
@@ -59,7 +59,7 @@ jobs:
         cd docs ; make html || cat /tmp/sphinx-err-*.log
 
     - name: Upload Documentation
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         path: docs/_build/html/
 
