@@ -21,12 +21,12 @@ jobs:
     - name: Display phase
       run: echo "Deploying "${{github.event.inputs.releasetype}}" $INPUT_RELEASETYPE to PyPI"
 
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Set up Python
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
-        python-version: 3.9
+        python-version: 3.10
 
     - name: Install build tool
       run: pip install build

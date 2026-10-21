@@ -30,14 +30,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.9', '3.14']
+        python-version: ['3.10', '3.14']
 
     runs-on: 'ubuntu-latest'
     steps:
     - uses: actions/checkout@v6
 
     - name: Set up Python
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -60,17 +60,17 @@ jobs:
   ruff:
     runs-on: 'ubuntu-latest'
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Set up Python
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: '3.10'
 
     # follows https://medium.com/ai2-blog/python-caching-in-github-actions-e9452698e98d
     - name: Loading Python & dependencies from cache
       if: matrix.os != 'self-hosted'
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ${{ env.pythonLocation }}
         key: ${{ runner.os }}-${{ env.pythonLocation }}-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements-test.txt') }}
