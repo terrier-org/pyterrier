@@ -98,8 +98,6 @@ class TestOperators(BaseTestCase):
         self.assertIsInstance(test3_c, C)
 
     def test_compile_fuse_left(self):
-        from typing import Optional
-
         class B(pt.Transformer):
             def transform(self, df):
                 pass
