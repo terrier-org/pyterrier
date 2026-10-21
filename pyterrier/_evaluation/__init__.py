@@ -1,6 +1,6 @@
 import pandas as pd
 from ir_measures import Measure
-from typing import Literal, Sequence, Callable, Tuple, IO, Dict, Any
+from typing import Literal, Sequence, Callable, Tuple, IO, Dict, Any, TypeAlias
 from .. import Transformer
 import types
 
@@ -9,7 +9,7 @@ MEASURES_TYPE=Sequence[MEASURE_TYPE]
 SAVEMODE_TYPE=Literal['reuse', 'overwrite', 'error', 'warn']
 VALIDATE_TYPE = Literal['warn', 'error', 'ignore']
 
-SYSTEM_OR_RESULTS_TYPE = Transformer | pd.DataFrame
+SYSTEM_OR_RESULTS_TYPE: TypeAlias = Transformer | pd.DataFrame
 SAVEFORMAT_TYPE = Literal['trec'] | types.ModuleType | Tuple[Callable[[IO], pd.DataFrame], Callable[[pd.DataFrame, IO], None]]
 
 
