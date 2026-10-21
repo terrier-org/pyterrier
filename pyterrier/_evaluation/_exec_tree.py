@@ -9,7 +9,7 @@ from pyterrier._ops import Compose
 
 import ir_measures
 import pandas as pd
-from typing import List, Optional, Union, Sequence, Tuple, Callable, cast as tcast, Literal
+from typing import List, Sequence, Tuple, Callable, cast as tcast, Literal
 from time import perf_counter as timer
 import uuid
 
@@ -20,7 +20,7 @@ def emit_js(node_id, state):
     """))
 
 
-def decompose_pipelines(pipes: List[Union[pd.DataFrame, pt.Transformer]]) -> List[List[pt.Transformer]]:
+def decompose_pipelines(pipes: List[pd.DataFrame | pt.Transformer]) -> List[List[pt.Transformer]]:
     """
     Decomposes a list of pipelines (which can be DataFrames, Transformers, or Composes) into a list of lists of Transformers.
     Each inner list represents a sequence of Transformers that should be applied in order.
@@ -55,9 +55,9 @@ class TransformerRadixNode(RadixNode[TREE_KEY_TYPE, int]):
 
     def traverse(self, 
                  inp: pd.DataFrame, 
-                 key: Union[TREE_KEY_TYPE, None],
-                 exec_callback: Optional[Callable] = None,
-                 eval_callback: Optional[Callable] = None, 
+                 key: TREE_KEY_TYPE | None,
+                 exec_callback: Callable | None = None,
+                 eval_callback: Callable | None = None, 
                  cum_time: float = 0.0):
         
         # Apply transformation and get time from visit
@@ -80,7 +80,7 @@ class TransformerRadixNode(RadixNode[TREE_KEY_TYPE, int]):
                 cum_time = total_time, 
                 )
 
-    def visit(self, inp: pd.DataFrame, key: Union[TREE_KEY_TYPE, None], exec_callback: Optional[Callable] = None) -> Tuple[pd.DataFrame, float]:        
+    def visit(self, inp: pd.DataFrame, key: TREE_KEY_TYPE | None, exec_callback: Callable | None = None) -> Tuple[pd.DataFrame, float]:        
         if key is None:
             assert len(self.children) > 0, "Root node should have children"
             return inp, 0.0  # Root node - no transformation
@@ -136,8 +136,8 @@ class TransformerRadixTree(RadixTree[TREE_KEY_TYPE, int]):
 
     def traverse(self, 
                  inp: pd.DataFrame, 
-                 exec_callback: Optional[Callable] = None,
-                 eval_callback: Optional[Callable] = None, 
+                 exec_callback: Callable | None = None,
+                 eval_callback: Callable | None = None, 
                  cum_time: float = 0.0, 
                  ):
         tcast(TransformerRadixNode, self.root).traverse(
@@ -183,7 +183,7 @@ class TransformerRadixTree(RadixTree[TREE_KEY_TYPE, int]):
             ])
         return result  
 
-    def pretty_print(self, names: Optional[List[str]] = None, colored: bool = False) -> str:
+    def pretty_print(self, names: List[str] | None = None, colored: bool = False) -> str:
         
         # ANSI color codes
         RED = '\033[91m'      # Pending (not yet executed)
@@ -237,7 +237,7 @@ class TransformerRadixTree(RadixTree[TREE_KEY_TYPE, int]):
         traverse_node(tcast(TransformerRadixNode, self.root), "")
         return "\n".join(lines)
     
-    def print_live(self, names: Optional[List[str]] = None, clear_previous: bool = True):
+    def print_live(self, names: List[str] | None = None, clear_previous: bool = True):
 
         import sys
         
@@ -262,10 +262,10 @@ def tree_execution(renderer : RenderFromPerQuery,
                     eval_metrics : MEASURES_TYPE,
                     names: Sequence[str],
                     verbose : Literal['notebook', 'terminal', False], 
-                    save_dir : Optional[str] = None, 
-                    save_mode : Optional[SAVEMODE_TYPE] = None, 
+                    save_dir : str | None = None, 
+                    save_mode : SAVEMODE_TYPE | None = None, 
                     save_format : SAVEFORMAT_TYPE = 'trec',
-                    batch_size : Optional[int]=None, 
+                    batch_size : int | None=None, 
                     perquery : bool = False):
     
 
@@ -302,7 +302,7 @@ def tree_execution(renderer : RenderFromPerQuery,
     def _evaluate_results(
         res: pd.DataFrame,
         eval_qrels: pd.DataFrame,
-        backfill_qids: Optional[Sequence[str]],
+        backfill_qids: Sequence[str] | None,
         error_message: str
     ) -> dict:
         if len(res) == 0:
@@ -321,10 +321,10 @@ def tree_execution(renderer : RenderFromPerQuery,
 
     def make_eval_callback(
         eval_qrels: pd.DataFrame,
-        backfill_qids: Optional[Sequence[str]],
+        backfill_qids: Sequence[str] | None,
         error_message: str,
-        accumulated_metrics: Optional[dict[int, dict]] = None,
-        system_times: Optional[dict[int, float]] = None,
+        accumulated_metrics: dict[int, dict] | None = None,
+        system_times: dict[int, float] | None = None,
     ) -> Callable:
         def callback(res: pd.DataFrame, sysid: int, cum_time: float):
             eval_measures = _evaluate_results(

@@ -2,7 +2,7 @@ import sys
 import warnings
 from functools import wraps
 import typing
-from typing import Dict, Any, Tuple, Callable, Optional, Union, TypeVar
+from typing import Dict, Any, Tuple, Callable, TypeVar
 from copy import deepcopy
 import pyterrier as pt
 
@@ -287,7 +287,7 @@ class JavaInitializer:
         """
         pass
 
-    def message(self) -> Optional[str]:
+    def message(self) -> str | None:
         """
         Returns a message to be displayed after the JVM has started alongside the name of the entry point. If None,
         only the entry point name will be displayed.
@@ -379,7 +379,7 @@ def register_config(name, config: Dict[str, Any]):
 # ----------------------------------------------------------
 
 class JavaClasses:
-    def __init__(self, **mapping: Union[str, Callable[[], str]]):
+    def __init__(self, **mapping: str | Callable[[], str]):
         self._mapping = mapping
         self._cache : Dict[str, Callable]= {}
 

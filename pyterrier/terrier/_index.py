@@ -1,6 +1,6 @@
 import os
 from enum import Enum
-from typing import List, Dict, Any, Optional, Union, Literal
+from typing import List, Dict, Any, Literal
 from pathlib import Path
 import pyterrier as pt
 
@@ -32,7 +32,7 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
 
     def __init__(
         self,
-        path: Union[str, Path],
+        path: str | Path,
         *,
         memory: bool = False,
         _index_ref: object = None, 
@@ -61,11 +61,11 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
 
     def retriever(
         self,
-        model: Union[TerrierModel, str],
-        model_args: Optional[Dict[str, Any]] = None,
+        model: TerrierModel | str,
+        model_args: Dict[str, Any] | None = None,
         *,
         num_results: int = 1000,
-        include_fields: Optional[List[str]] = None,
+        include_fields: List[str] | None = None,
         threads: int = 1,
         verbose: bool = False,
     ) -> pt.Transformer:
@@ -124,7 +124,7 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
         k1: float = 1.2,
         b: float = 0.75,
         num_results: int = 1000,
-        include_fields: Optional[List[str]] = None,
+        include_fields: List[str] | None = None,
         threads: int = 1,
         verbose: bool = False,
     ) -> pt.Transformer:
@@ -162,7 +162,7 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
         self,
         *,
         num_results: int = 1000,
-        include_fields: Optional[List[str]] = None,
+        include_fields: List[str] | None = None,
         threads: int = 1,
         verbose: bool = False,
     ) -> pt.Transformer:
@@ -198,7 +198,7 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
         *,
         c: float = 1.0,
         num_results: int = 1000,
-        include_fields: Optional[List[str]] = None,
+        include_fields: List[str] | None = None,
         threads: int = 1,
         verbose: bool = False,
     ) -> pt.Transformer:
@@ -236,7 +236,7 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
         *,
         mu: float = 2500.0,
         num_results: int = 1000,
-        include_fields: Optional[List[str]] = None,
+        include_fields: List[str] | None = None,
         threads: int = 1,
         verbose: bool = False,
     ) -> pt.Transformer:
@@ -274,7 +274,7 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
         *,
         Lambda: float = 0.15,
         num_results: int = 1000,
-        include_fields: Optional[List[str]] = None,
+        include_fields: List[str] | None = None,
         threads: int = 1,
         verbose: bool = False,
     ) -> pt.Transformer:
@@ -311,7 +311,7 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
         self,
         *,
         num_results: int = 1000,
-        include_fields: Optional[List[str]] = None,
+        include_fields: List[str] | None = None,
         threads: int = 1,
         verbose: bool = False,
     ) -> pt.Transformer:
@@ -348,7 +348,7 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
         k1: float = 1.2,
         b: float = 0.75,
         num_results: int = 1000,
-        include_fields: Optional[List[str]] = None,
+        include_fields: List[str] | None = None,
         threads: int = 1,
         verbose: bool = False,
     ) -> pt.Transformer:
@@ -513,7 +513,7 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
 
     def text_loader(
         self,
-        fields: Union[List[str], str, Literal['*']] = '*',
+        fields: List[str] | str | Literal['*'] = '*',
         *,
         verbose=False,
     ) -> pt.Transformer:
@@ -544,9 +544,9 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
         *,
         meta: Dict = {'docno': 20},
         text_attrs: List[str] = ['text'],
-        tokeniser: Union[str, 'pt.terrier.TerrierTokeniser'] = 'english',
-        stemmer: Union[None, str, 'pt.terrier.TerrierStemmer'] = 'porter',
-        stopwords: Union[None, 'pt.terrier.TerrierStopwords', str, List[str]] = 'terrier',
+        tokeniser: 'str | pt.terrier.TerrierTokeniser' = 'english',
+        stemmer: 'None | str | pt.terrier.TerrierStemmer' = 'porter',
+        stopwords: 'None | pt.terrier.TerrierStopwords | str | List[str]' = 'terrier',
         store_separate_fields: bool = False,
         store_positions: bool = False,
         threads: int = 1,
@@ -777,7 +777,7 @@ class TerrierIndex(pt.Artifact, pt.Indexer):
 
     @classmethod
     @pt.java.required
-    def coerce(cls, index_like: Union[str, Path, 'TerrierIndex']) -> 'TerrierIndex':
+    def coerce(cls, index_like: 'str | Path | TerrierIndex') -> 'TerrierIndex':
         """Attempts to build a :class:`TerrierIndex` from the given object.
 
         Args:
@@ -823,7 +823,7 @@ _WMODEL_MAP: Dict[TerrierModel, str] = {
     TerrierModel.tf_idf: 'TF_IDF',
 }
 
-def _map_wmodel(model: Union[TerrierModel, str]) -> str:
+def _map_wmodel(model: TerrierModel | str) -> str:
     if isinstance(model, str):
         return model
     return _WMODEL_MAP[model]

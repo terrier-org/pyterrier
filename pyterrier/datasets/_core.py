@@ -2,7 +2,7 @@ import os
 import json
 import pandas as pd
 from abc import ABC, abstractmethod
-from typing import Tuple, Iterable, List, Optional, Union, Protocol, runtime_checkable, Dict, Any
+from typing import Tuple, Iterable, List, Protocol, runtime_checkable, Dict, Any
 from collections import defaultdict
 import zipfile
 import tarfile
@@ -50,7 +50,7 @@ class Dataset:
         """
         raise NotImplementedError(f'{self!r} does not support get_corpus_iter')
 
-    def get_corpus_lang(self) -> Optional[str]:
+    def get_corpus_lang(self) -> str | None:
         """Returns the ISO 639-1 language code for the corpus, or None for multiple/other/unknown."""
         return None
 
@@ -62,7 +62,7 @@ class Dataset:
         """
         raise NotImplementedError(f'{self!r} does not support get_index')
 
-    def get_topics(self, variant: Optional[str] = None) -> pd.DataFrame:
+    def get_topics(self, variant: str | None = None) -> pd.DataFrame:
         """Returns the topics (if available), as a dataframe, ready for retrieval. 
 
         Args:
@@ -73,11 +73,11 @@ class Dataset:
         """
         raise NotImplementedError(f'{self!r} does not support get_topics')
 
-    def get_topics_lang(self) -> Optional[str]:
+    def get_topics_lang(self) -> str | None:
         """Returns the ISO 639-1 language code for the topics, or None for multiple/other/unknown."""
         return None
 
-    def get_qrels(self, variant: Optional[str] = None) -> pd.DataFrame:
+    def get_qrels(self, variant: str | None = None) -> pd.DataFrame:
         """Returns the qrels, as a dataframe, for evaluation (if available).
 
         Args:
@@ -88,7 +88,7 @@ class Dataset:
         """
         raise NotImplementedError(f'{self!r} does not support get_qrels')
 
-    def get_topicsqrels(self, variant: Optional[str] = None) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    def get_topicsqrels(self, variant: str | None = None) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """Returns both the topics and qrels in a tuple. This is useful for pt.Experiment().
 
         Args:
@@ -102,11 +102,11 @@ class Dataset:
             self.get_qrels(variant=variant)
         )
 
-    def info_url(self) -> Optional[str]:
+    def info_url(self) -> str | None:
         """Returns a url that provides more information about this dataset, or None if URL is unknown."""
         return None
 
-    def get_results(self, variant: Optional[str] = None) -> pd.DataFrame:
+    def get_results(self, variant: str | None = None) -> pd.DataFrame:
         """Returns a standard result set provided by the dataset (if available). This is useful for re-ranking experiments.
 
         Args:
@@ -117,7 +117,7 @@ class Dataset:
         """
         raise NotImplementedError(f'{self!r} does not support get_results')
 
-    def _describe_component(self, component: str) -> Optional[Union[bool, List[str]]]:
+    def _describe_component(self, component: str) -> bool | List[str] | None:
         return None
 
 
@@ -169,7 +169,7 @@ class RemoteDataset(Dataset):
         self.user = None
         self.password = None
 
-    def _configure(self, user: Optional[str] = None, password: Optional[str] = None):
+    def _configure(self, user: str | None = None, password: str | None = None):
         self.corpus_home = os.path.join(pt.io.pyterrier_home(), "corpora", self.name)
         if user is not None:
             self.user = user
@@ -177,7 +177,7 @@ class RemoteDataset(Dataset):
             self.password = password
 
     @staticmethod
-    def download(URLs : Union[str,List[str]], filename : str, **kwargs):
+    def download(URLs : str | List[str], filename : str, **kwargs):
         basename = os.path.basename(filename)
 
         if isinstance(URLs, str):
@@ -437,7 +437,7 @@ class HasConfigure(Protocol):
 
 def add_tokenize_query_arg(fn):
     @functools.wraps(fn)
-    def _wrapper(variant: Optional[str] = None, tokenise_query: Optional[bool] = None):
+    def _wrapper(variant: str | None = None, tokenise_query: bool | None = None):
         topics = fn(variant)
         if topics is not None and tokenise_query is not None and 'query' in topics:
             raise ValueError("get_topics(tokenise_query:bool) has been removed. All datasets queries are now untokenised by default, and terrier.Retriever will handle them as needed.")
@@ -451,7 +451,7 @@ def _load_all_providers():
         _loaded_providers[ep.name] = ep.load()()
 
 
-def _load_provider(name: str) -> Optional[DatasetProvider]:
+def _load_provider(name: str) -> DatasetProvider | None:
     if name not in _loaded_providers:
         for ep in pt.utils.entry_points('pyterrier.dataset_provider'):
             if ep.name == name:
@@ -562,9 +562,9 @@ def list_datasets(en_only=True):
 
 
 def transformer_from_dataset(
-    dataset : Union[str, Dataset],
+    dataset : str | Dataset,
     clz,
-    variant: Optional[str] = None,
+    variant: str | None = None,
     version: str = 'latest',        
     **kwargs
 ) -> pt.Transformer:

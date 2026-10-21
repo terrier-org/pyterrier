@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Union, List, Dict
+from typing import List, Dict
 import pyterrier as pt
 
 
@@ -25,7 +25,7 @@ class TerrierStopwords(Enum):
         
     @staticmethod
     @pt.java.required
-    def _indexing_config(this, stopword_list : Union[List[str], None], termpipelines : List[str], properties : Dict[str,str], hooks : List):
+    def _indexing_config(this, stopword_list : List[str] | None, termpipelines : List[str], properties : Dict[str,str], hooks : List):
         if this is None or this == TerrierStopwords.none:
             pass
         if this == TerrierStopwords.terrier:

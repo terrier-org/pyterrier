@@ -13,7 +13,7 @@ import math
 from warnings import warn
 from deprecated import deprecated
 from collections import deque
-from typing import List, Dict, Union, Any, Callable, Type
+from typing import List, Dict, Any, Callable, Type
 import more_itertools
 import pyterrier as pt
 from pyterrier.terrier.stemmer import TerrierStemmer
@@ -168,7 +168,7 @@ def _FileDocumentSetup(
 
 
 @pt.java.required
-def createAsList(files_path : Union[str, List[str]]):
+def createAsList(files_path : str | List[str]):
     """
     Helper method to be used by child indexers to add files to Java List
     Returns:
@@ -218,9 +218,9 @@ class TerrierIndexer:
             overwrite: bool = False,
             verbose : bool = False,
             meta_reverse : List[str] = ["docno"],
-            stemmer : Union[None, str, TerrierStemmer] = TerrierStemmer.porter,
-            stopwords : Union[None, TerrierStopwords, List[str]] = TerrierStopwords.terrier,
-            tokeniser : Union[str,TerrierTokeniser] = TerrierTokeniser.english,
+            stemmer : None | str | TerrierStemmer = TerrierStemmer.porter,
+            stopwords : None | TerrierStopwords | List[str] = TerrierStopwords.terrier,
+            tokeniser : str | TerrierTokeniser = TerrierTokeniser.english,
             type=IndexingType.CLASSIC,
             properties : Dict[str,str] = {}
     ):
@@ -817,7 +817,7 @@ class _IterDictIndexer_fifo(_BaseIterDictIndexer):
 
 # Windows doesn't support fifos -- so we have 2 versions.
 # Choose which one to expose based on whether os.mkfifo exists.
-IterDictIndexer: Type[Union[_IterDictIndexer_fifo, _IterDictIndexer_nofifo]]
+IterDictIndexer: Type[_IterDictIndexer_fifo | _IterDictIndexer_nofifo]
 if hasattr(os, 'mkfifo'):
     #IterDictIndexer = _IterDictIndexer_nofifo
     IterDictIndexer = _IterDictIndexer_fifo
@@ -866,7 +866,7 @@ class TRECCollectionIndexer(TerrierIndexer):
         self.meta_tags = meta_tags
     
     @pt.java.required
-    def index(self, files_path : Union[str,List[str]]):
+    def index(self, files_path : str | List[str]):
         """
         Index the specified TREC formatted files
 
@@ -922,7 +922,7 @@ class FilesIndexer(TerrierIndexer):
         self.meta_tags = meta_tags
 
     @pt.java.required
-    def index(self, files_path : Union[str,List[str]]):
+    def index(self, files_path : str | List[str]):
         """
         Index the specified files.
 

@@ -5,7 +5,7 @@ from typing import Sequence, Union, Tuple
 import numpy as np
 import pandas as pd
 
-FeatureList = Union[Sequence[int], int]
+FeatureList = Sequence[int] | int
 
 
 class AblateFeatures(Transformer):

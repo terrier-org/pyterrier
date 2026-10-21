@@ -1,4 +1,4 @@
-from typing import Optional, Callable, TypeVar, Generic, Protocol, overload
+from typing import Callable, TypeVar, Generic, Protocol, overload
 T = TypeVar('T')  # Generic type for values stored in the tree
 K = TypeVar('K', bound="Sliceable")  # Generic type for keys (tuples of transformers)
 E = TypeVar("E", covariant=True)
@@ -17,7 +17,7 @@ class Sliceable(Protocol[E]):
 class RadixNode(Generic[K, T]):
     def __init__(self):
         self.children: dict[K, 'RadixNode[K, T]'] = {}  # key -> RadixNode
-        self.value: Optional[T] = None  # (e.g., sysid) -> evaluation_index
+        self.value: T | None = None  # (e.g., sysid) -> evaluation_index
 
 class RadixTree(Generic[K, T]):
     def __init__(self, node_clz: Callable[[], RadixNode[K, T]] = RadixNode):
@@ -25,7 +25,7 @@ class RadixTree(Generic[K, T]):
         self.root: RadixNode[K, T] = node_clz()
 
 
-    def insert(self, pipeline: K, value: Optional[T] = None) -> None:
+    def insert(self, pipeline: K, value: T | None = None) -> None:
         node = self.root
         remaining = pipeline
         while remaining:
@@ -76,4 +76,3 @@ class RadixTree(Generic[K, T]):
         
         # If we've consumed all of remaining, mark current node as end
         node.value = value  
-

@@ -2,7 +2,7 @@ from .transformer import Transformer, Estimator, get_transformer, SupportsFuseFe
 from .model import add_ranks
 from collections import deque
 from warnings import warn
-from typing import Optional, Iterable, Tuple, Iterator, List
+from typing import Iterable, Tuple, Iterator, List
 from itertools import chain
 import pandas as pd
 import pyterrier as pt
@@ -223,7 +223,7 @@ class RankCutoff(Transformer):
     def schematic(self, *, input_columns = None): 
         return {'label': f'% {self.k}'}
 
-    def fuse_left(self, left: Transformer) -> Optional[Transformer]:
+    def fuse_left(self, left: Transformer) -> Transformer | None:
         # If the preceding component supports a native rank cutoff (via fuse_rank_cutoff), apply it.
         if isinstance(left, SupportsFuseRankCutoff):
             return left.fuse_rank_cutoff(self.k)
@@ -241,8 +241,8 @@ class FeatureUnion(NAryTransformerBase):
     """
     schematic = {'inner_pipelines_mode': 'linked', 'label': 'FeatureUnion **'}
 
-    def transform_inputs(self) -> Optional[List[List[str]]]:
-        this_minimum : List[Optional[List[List[str]]]] = [[['qid', 'docno']]]
+    def transform_inputs(self) -> List[List[str]] | None:
+        this_minimum : List[List[List[str]] | None] = [[['qid', 'docno']]]
         return pt.inspect._minimal_inputs(this_minimum + [ 
             pt.inspect.transformer_inputs(t) for t in self._transformers
         ])

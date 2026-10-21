@@ -1,5 +1,5 @@
 import ast
-from typing import Generator, Tuple, Type, Any, List, Optional
+from typing import Generator, Tuple, Type, Any, List
 import pyterrier_flake8_ext
 
 
@@ -81,7 +81,7 @@ class JavaCheck:
                     return True, False
         return False, False
 
-    def _required_order_error(self, function: ast.FunctionDef) -> Optional[Tuple[int, int, str, Type[Any]]]:
+    def _required_order_error(self, function: ast.FunctionDef) -> Tuple[int, int, str, Type[Any]] | None:
         for i, decorator in enumerate(function.decorator_list):
             is_last = i == len(function.decorator_list) - 1
             if isinstance(decorator, ast.Name):
@@ -94,7 +94,7 @@ class JavaCheck:
                     return decorator.lineno, decorator.col_offset, text, type(self)
         return None
 
-    def _uses_java(self, node: ast.AST) -> Optional[ast.AST]:
+    def _uses_java(self, node: ast.AST) -> ast.AST | None:
         if isinstance(node, ast.Name):
             if node.id in ('autoclass', 'cast', 'J'):
                 return node

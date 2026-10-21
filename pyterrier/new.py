@@ -1,5 +1,5 @@
 
-from typing import Sequence, Union, Optional, cast, Iterable, Any, Dict, List
+from typing import Sequence, cast, Iterable, Any, Dict, List
 from itertools import chain
 import numpy as np
 import pandas as pd
@@ -11,7 +11,7 @@ def empty_Q() -> pd.DataFrame:
     """
     return pd.DataFrame(columns=["qid", "query"])
 
-def queries(queries : Union[str, Sequence[str]], qid : Optional[Union[str, Iterable[str]]] = None, **others) -> pd.DataFrame:
+def queries(queries : str | Sequence[str], qid : str | Iterable[str] | None = None, **others) -> pd.DataFrame:
     """
         Creates a new queries dataframe. Will return a dataframe with the columns `["qid", "query"]`. 
         Any further lists in others will also be added.
@@ -55,8 +55,8 @@ def empty_R() -> pd.DataFrame:
 
 def ranked_documents(
         scores : Sequence[Sequence[float]], 
-        qid : Optional[Sequence[str]] = None, 
-        docno : Optional[Sequence[Sequence[str]]] = None, 
+        qid : Sequence[str] | None = None, 
+        docno : Sequence[Sequence[str]] | None = None, 
         **others) -> pd.DataFrame:
     """
         Creates a new ranked documents dataframe. Will return a dataframe with the columns `["qid", "docno", "score", "rank"]`. 
@@ -205,7 +205,7 @@ class DataFrameBuilder:
             else:
                 self._data[k].append(v)
 
-    def to_df(self, merge_on_index: Optional[pd.DataFrame] = None, merge_on_qid: Optional[pd.DataFrame] = None) -> pd.DataFrame:
+    def to_df(self, merge_on_index: pd.DataFrame | None = None, merge_on_qid: pd.DataFrame | None = None) -> pd.DataFrame:
         """Convert the DataFrameBuilder to a DataFrame.
 
         Args:
