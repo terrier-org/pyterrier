@@ -9,7 +9,7 @@ import tqdm as tqdm_module
 from ir_measures import Measure, Metric
 import os
 import types
-from typing import Any, Dict, Iterator, Optional, Sequence, Union
+from typing import Any, Dict, Iterator, Sequence
 from warnings import warn
 
 #list(iter_calc([ir_measures.AP], qrels, run))
@@ -20,7 +20,7 @@ def _ir_measures_to_dict(
         rev_mapping : Dict[Measure,str], 
         num_q : int,
         perquery : bool = True,
-        backfill_qids : Optional[Sequence[str]] = None) -> Union[ Dict[str, Dict[str, float]], Dict[str, float]]:
+        backfill_qids : Sequence[str] | None = None) -> Dict[str, Dict[str, float]] | Dict[str, float]:
     from collections import defaultdict
     if perquery:
         # qid -> measure -> value
@@ -70,16 +70,16 @@ def _validate_R_is_res(df : pd.DataFrame):
 
 def _run_and_evaluate(
         system : SYSTEM_OR_RESULTS_TYPE,
-        topics : Optional[pd.DataFrame],
+        topics : pd.DataFrame | None,
         qrels: pd.DataFrame,
         metrics : MEASURES_TYPE,
-        pbar : Optional[tqdm_module.tqdm] = None,
-        save_mode : Optional[SAVEMODE_TYPE] = None,
-        save_file : Optional[str] = None,
+        pbar : tqdm_module.tqdm | None = None,
+        save_mode : SAVEMODE_TYPE | None = None,
+        save_file : str | None = None,
         save_format : SAVEFORMAT_TYPE = 'trec',
         perquery : bool = False,
-        batch_size : Optional[int] = None,
-        backfill_qids : Optional[Sequence[str]] = None):
+        batch_size : int | None = None,
+        backfill_qids : Sequence[str] | None = None):
 
     from ..io import read_results, write_results
 
@@ -234,4 +234,3 @@ def _run_and_evaluate(
                     aggregators[s_metric].add(evalMeasuresDict[q][s_metric]) #type: ignore
             evalMeasuresDict = {m: agg.result() for m, agg in aggregators.items()}
     return (runtime / num_q, evalMeasuresDict)
-

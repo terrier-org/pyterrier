@@ -1,4 +1,4 @@
-from typing import Union, List
+from typing import List
 import pyterrier as pt
 
 
@@ -110,7 +110,7 @@ class IndexFactory:
         return pt.terrier.J.IndexFactory.isLocal(indexref)
 
     @staticmethod 
-    def of(indexlike, memory : Union[bool, List[str]] = False):
+    def of(indexlike, memory : bool | List[str] = False):
         """
         Loads an index. Returns a Terrier `Index <http://terrier.org/docs/current/javadoc/org/terrier/structures/Index.html>`_ object.
 

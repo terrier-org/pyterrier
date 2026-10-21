@@ -2,7 +2,7 @@ from copy import copy
 import html
 import uuid
 from importlib import resources
-from typing import Any, Dict, List, Optional, Protocol, Union, cast, runtime_checkable
+from typing import Any, Dict, List, Protocol, cast, runtime_checkable
 
 import numpy as np
 import pyterrier as pt
@@ -72,7 +72,7 @@ def radix_tree_schematic(tree, input_columns=None):
         "mode": mode
     }
 
-def _apply_default_schematic(schematic: Dict[str, Any], transformer: pt.Transformer, *, input_columns: Optional[List[str]] = None):
+def _apply_default_schematic(schematic: Dict[str, Any], transformer: pt.Transformer, *, input_columns: List[str] | None = None):
     schematic.setdefault('type', 'indexer' if pt.inspect.transformer_type(transformer) == pt.inspect.TransformerType.indexer else 'transformer')
     assert schematic['type'] in ('transformer', 'indexer')
     if 'label' not in schematic:
@@ -146,7 +146,7 @@ _INFER = object()
 def transformer_schematic(
     transformer: pt.Transformer,
     *,
-    input_columns: Optional[Union[List[str],object]] = _INFER,
+    input_columns: List[str] | object | None = _INFER,
     default: bool = False,
 ) -> dict:
     """Builds a structured schematic of the transformer."""
@@ -161,7 +161,7 @@ def transformer_schematic(
         else:
             input_columns = None
     # input_columns can no longer be _INFER
-    input_columns = cast(Optional[List[str]], input_columns) # noqa: PT100 (this is typing.cast, not jinus.cast)
+    input_columns = cast(List[str] | None, input_columns) # noqa: PT100 (this is typing.cast, not jinus.cast)
     if not default and isinstance(transformer, HasSchematic):
         if callable(transformer.schematic):
             schematic = transformer.schematic(input_columns=input_columns)
@@ -189,9 +189,9 @@ def _get_schematic_css_js(container_id):
     return css, js
 
 
-def draw(transformer: Union[pt.Transformer, dict], *, 
-         outer_class: Optional[str] = None, 
-         input_columns: Optional[List[str]] = None) -> str:
+def draw(transformer: pt.Transformer | dict, *, 
+         outer_class: str | None = None, 
+         input_columns: List[str] | None = None) -> str:
     """Draws a transformer as an HTML schematic.
 
     If the transformer is already a ``SchematicDict``, it will be drawn directly.
@@ -214,7 +214,7 @@ def draw(transformer: Union[pt.Transformer, dict], *,
     return draw_html_schematic(schematic, outer_class=outer_class)
 
 
-def draw_html_schematic(schematic: dict, *, outer_class: Optional[str] = None) -> str:
+def draw_html_schematic(schematic: dict, *, outer_class: str | None = None) -> str:
     """Draws a structured schematic as an HTML representation."""
     uid = str(uuid.uuid4())
     css, js = _get_schematic_css_js(f'id-{uid}')
@@ -302,7 +302,7 @@ def _pipeline_node_id(pipeline: Dict[str, Any], node_id: str):
         pipeline['node_id'] = node_id
 
 
-def _render_inner_pipelines(record: Dict[str, Any], infobox: str, infobox_attr: str, error_cls: str, node_id: Optional[str] = None, dom_id: Optional[str] = None,
+def _render_inner_pipelines(record: Dict[str, Any], infobox: str, infobox_attr: str, error_cls: str, node_id: str | None = None, dom_id: str | None = None,
 ) -> str:
     # new method common for both linear and tree modes, combine, linked mode use cases
     node_attr = f'id="{dom_id}" data-node-id="{node_id}"' if node_id is not None else ''
@@ -687,7 +687,7 @@ class HasSchematic(Protocol):
     This is an optional extension interface to :class:`pyterrier.Transformer` that allows
     transformers to provide customizations to their schematics.
     """
-    def schematic(self, *, input_columns: Optional[List[str]]) -> Dict[str, Any]:
+    def schematic(self, *, input_columns: List[str] | None) -> Dict[str, Any]:
         """Returns a structured schematic representation of the transformer.
 
         The schematic should be a dictionary that follows the structure defined in :ref:`pt.schematic <pyterrier.schematic>`.

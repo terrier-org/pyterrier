@@ -35,7 +35,7 @@ method if your transformer can benefit from being combined with a :class:`~pyter
 
     class MyRetriever(pt.Transformer):
         ...
-        def fuse_rank_cutoff(self, k: int) -> Optional[pt.Transformer]:
+        def fuse_rank_cutoff(self, k: int) -> pt.Transformer | None:
             if self.num_results > k:
                 return pt.inspect.transformer_apply_attributes(self, num_results=k)
 

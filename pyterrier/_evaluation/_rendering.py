@@ -3,7 +3,7 @@ import pandas as pd
 from collections import namedtuple
 from . import MEASURES_TYPE
 from ir_measures import Measure
-from typing import Sequence, Tuple, Dict, Union, List, Optional, overload, Literal, Any
+from typing import Sequence, Tuple, Dict, List, overload, Literal, Any
 
 class EvaluationDataTuple(namedtuple('EvaluationDataTuple', ['averages', 'perquery'])):
     averages : pd.DataFrame
@@ -104,7 +104,7 @@ class RenderFromPerQuery():
 
     def __init__(self, systems, baseline=None, test_fn=None, correction=None, correction_alpha : float = 0.05, round=None, precompute_time=0):
         self.systems = systems
-        self.baselines: Optional[List[int]]
+        self.baselines: List[int] | None
         if isinstance(baseline, (list, tuple)):
             self.baselines = list(baseline)
         else:
@@ -130,11 +130,11 @@ class RenderFromPerQuery():
         self.mrts[sysid] = mrt
     
     @overload
-    def averages(self, dataframe : Literal[True] = True, highlight : Optional[str] = None, mrt_needed : bool = False) -> pd.DataFrame: ...
+    def averages(self, dataframe : Literal[True] = True, highlight : str | None = None, mrt_needed : bool = False) -> pd.DataFrame: ...
     @overload
-    def averages(self, dataframe : Literal[False], highlight : Optional[str] = None, mrt_needed : bool = False) -> Dict[str,Any]: ...
+    def averages(self, dataframe : Literal[False], highlight : str | None = None, mrt_needed : bool = False) -> Dict[str,Any]: ...
 
-    def averages(self, dataframe : Union[Literal[True], Literal[False]] = True, highlight : Optional[str] = None, mrt_needed : bool = False) -> Union[Dict[str,Any], pd.DataFrame]:
+    def averages(self, dataframe : Literal[True] | Literal[False] = True, highlight : str | None = None, mrt_needed : bool = False) -> Dict[str, Any] | pd.DataFrame:
 
         assert len(self.systemEvalDictsPerQ) == len(self.systems), "evaluation has not finished"
         
@@ -176,7 +176,7 @@ class RenderFromPerQuery():
                 }
 
             for i in range(len(self.systems)):
-                additionals: List[Optional[Union[float, int, complex]]] = []
+                additionals: List[float | int | complex | None] = []
                 for b in baselines:
                     if i == b:
                         additionals.extend([None] * (3 * len(per_q_metrics)))
@@ -267,7 +267,7 @@ class RenderFromPerQuery():
     @overload
     def perquery(self, dataframe: Literal[False]) -> Dict[int,Dict[str, Dict[str,float]]]: ...
 
-    def perquery(self, dataframe : Union[Literal[True], Literal[False]] = True) -> Union[Dict[int,Dict[str, Dict[str,float]]], pd.DataFrame]:
+    def perquery(self, dataframe : Literal[True] | Literal[False] = True) -> Dict[int, Dict[str, Dict[str, float]]] | pd.DataFrame:
         """
         Return per-query results.
         DF has columns ``["name", "qid", "measure", "value"]``.
@@ -294,4 +294,3 @@ class RenderFromPerQuery():
         if self.round is not None and isinstance(self.round, int):
             perquery_df["value"] = perquery_df["value"].round(self.round)
         return perquery_df
-

@@ -1,7 +1,7 @@
 import os
 import warnings
 import pandas as pd
-from typing import Union, Dict, Tuple, Sequence, Literal, Optional, List, overload, Any
+from typing import Dict, Tuple, Sequence, Literal, List, overload, Any
 from warnings import warn
 
 from ._exec_linear import linear_execution
@@ -11,20 +11,20 @@ from ._validation import _validate
 from . import SYSTEM_OR_RESULTS_TYPE, MEASURES_TYPE, TEST_FN_TYPE, SAVEFORMAT_TYPE, SAVEMODE_TYPE, VALIDATE_TYPE
 import pyterrier as pt
 
-BaselineSpec = Union[int, str, Sequence[Union[int, str]]]
+BaselineSpec = int | str | Sequence[int | str]
 
 
 def _resolve_baselines(
-        baseline: Optional[BaselineSpec],
+        baseline: BaselineSpec | None,
         names: Sequence[str],
         n_systems: int,
-) -> Optional[List[int]]:
+) -> List[int] | None:
     """Normalize ``baseline`` to a list of system indices, or ``None``."""
     if baseline is None:
         return None
 
     if isinstance(baseline, str) or not isinstance(baseline, (list, tuple)):
-        items: Sequence[Union[int, str]] = [baseline]  # type: ignore[list-item]
+        items: Sequence[int | str] = [baseline]  # type: ignore[list-item]
     else:
         items = baseline
 
@@ -52,25 +52,25 @@ def _resolve_baselines(
 # perquery: bool, dataframe:true
 @overload
 def Experiment(
-        retr_systems : Union[Sequence[SYSTEM_OR_RESULTS_TYPE], Dict[str, SYSTEM_OR_RESULTS_TYPE]],
+        retr_systems : Sequence[SYSTEM_OR_RESULTS_TYPE] | Dict[str, SYSTEM_OR_RESULTS_TYPE],
         topics : pd.DataFrame,
         qrels : pd.DataFrame,
         eval_metrics : MEASURES_TYPE,
-        names : Optional[Sequence[str]] = None,
-        perquery : Union[Literal[False],Literal[True]] = False,
+        names : Sequence[str] | None = None,
+        perquery : Literal[False] | Literal[True] = False,
         dataframe : Literal[True] = True,
-        batch_size : Optional[int] = None,
+        batch_size : int | None = None,
         filter_by_qrels : bool = False,
         filter_by_topics : bool = True,
-        baseline : Optional[BaselineSpec] = None,
-        test : Union[str,TEST_FN_TYPE] = "t",
-        correction : Optional[str] = None,
+        baseline : BaselineSpec | None = None,
+        test : str | TEST_FN_TYPE = "t",
+        correction : str | None = None,
         correction_alpha : float = 0.05,
-        highlight : Optional[str] = None,
-        round : Optional[Union[int,Dict[str,int]]] = None,
+        highlight : str | None = None,
+        round : int | Dict[str, int] | None = None,
         verbose : Literal['auto', True, False] = 'auto',
         validate : VALIDATE_TYPE = 'warn',
-        save_dir : Optional[str] = None,
+        save_dir : str | None = None,
         save_mode : SAVEMODE_TYPE = 'warn',
         save_format : SAVEFORMAT_TYPE = 'trec',
         precompute_prefix : bool = False,
@@ -81,25 +81,25 @@ def Experiment(
 # perquery: bool, dataframe:False
 @overload
 def Experiment(
-        retr_systems : Union[Sequence[SYSTEM_OR_RESULTS_TYPE], Dict[str, SYSTEM_OR_RESULTS_TYPE]],
+        retr_systems : Sequence[SYSTEM_OR_RESULTS_TYPE] | Dict[str, SYSTEM_OR_RESULTS_TYPE],
         topics : pd.DataFrame,
         qrels : pd.DataFrame,
         eval_metrics : MEASURES_TYPE,
-        names : Optional[Sequence[str]] = None,
-        perquery : Union[Literal[False],Literal[True]] = False,
+        names : Sequence[str] | None = None,
+        perquery : Literal[False] | Literal[True] = False,
         dataframe : Literal[False] = False,
-        batch_size : Optional[int] = None,
+        batch_size : int | None = None,
         filter_by_qrels : bool = False,
         filter_by_topics : bool = True,
-        baseline : Optional[BaselineSpec] = None,
-        test : Union[str,TEST_FN_TYPE] = "t",
-        correction : Optional[str] = None,
+        baseline : BaselineSpec | None = None,
+        test : str | TEST_FN_TYPE = "t",
+        correction : str | None = None,
         correction_alpha : float = 0.05,
-        highlight : Optional[str] = None,
-        round : Optional[Union[int,Dict[str,int]]] = None,
+        highlight : str | None = None,
+        round : int | Dict[str, int] | None = None,
         verbose : Literal['auto', True, False] = 'auto',
         validate : VALIDATE_TYPE = 'warn',
-        save_dir : Optional[str] = None,
+        save_dir : str | None = None,
         save_mode : SAVEMODE_TYPE = 'warn',
         save_format : SAVEFORMAT_TYPE = 'trec',
         precompute_prefix : bool = False,
@@ -110,25 +110,25 @@ def Experiment(
 # perquery: 'both', dataframe:True
 @overload
 def Experiment(
-        retr_systems : Union[Sequence[SYSTEM_OR_RESULTS_TYPE], Dict[str, SYSTEM_OR_RESULTS_TYPE]],
+        retr_systems : Sequence[SYSTEM_OR_RESULTS_TYPE] | Dict[str, SYSTEM_OR_RESULTS_TYPE],
         topics : pd.DataFrame,
         qrels : pd.DataFrame,
         eval_metrics : MEASURES_TYPE,
-        names : Optional[Sequence[str]] = None,
+        names : Sequence[str] | None = None,
         perquery : Literal['both'] = 'both',
         dataframe : Literal[True] = True,
-        batch_size : Optional[int] = None,
+        batch_size : int | None = None,
         filter_by_qrels : bool = False,
         filter_by_topics : bool = True,
-        baseline : Optional[BaselineSpec] = None,
-        test : Union[str,TEST_FN_TYPE] = "t",
-        correction : Optional[str] = None,
+        baseline : BaselineSpec | None = None,
+        test : str | TEST_FN_TYPE = "t",
+        correction : str | None = None,
         correction_alpha : float = 0.05,
-        highlight : Optional[str] = None,
-        round : Optional[Union[int,Dict[str,int]]] = None,
+        highlight : str | None = None,
+        round : int | Dict[str, int] | None = None,
         verbose : Literal['auto', True, False] = 'auto',
         validate : VALIDATE_TYPE = 'warn',
-        save_dir : Optional[str] = None,
+        save_dir : str | None = None,
         save_mode : SAVEMODE_TYPE = 'warn',
         save_format : SAVEFORMAT_TYPE = 'trec',
         precompute_prefix : bool = False,
@@ -139,25 +139,25 @@ def Experiment(
 # perquery: 'both', dataframe:False
 @overload
 def Experiment(
-        retr_systems : Union[Sequence[SYSTEM_OR_RESULTS_TYPE], Dict[str, SYSTEM_OR_RESULTS_TYPE]],
+        retr_systems : Sequence[SYSTEM_OR_RESULTS_TYPE] | Dict[str, SYSTEM_OR_RESULTS_TYPE],
         topics : pd.DataFrame,
         qrels : pd.DataFrame,
         eval_metrics : MEASURES_TYPE,
-        names : Optional[Sequence[str]] = None,
+        names : Sequence[str] | None = None,
         perquery : Literal['both'] = 'both',
         dataframe : Literal[False] = False,
-        batch_size : Optional[int] = None,
+        batch_size : int | None = None,
         filter_by_qrels : bool = False,
         filter_by_topics : bool = True,
-        baseline : Optional[BaselineSpec] = None,
-        test : Union[str,TEST_FN_TYPE] = "t",
-        correction : Optional[str] = None,
+        baseline : BaselineSpec | None = None,
+        test : str | TEST_FN_TYPE = "t",
+        correction : str | None = None,
         correction_alpha : float = 0.05,
-        highlight : Optional[str] = None,
-        round : Optional[Union[int,Dict[str,int]]] = None,
+        highlight : str | None = None,
+        round : int | Dict[str, int] | None = None,
         verbose : Literal['auto', True, False] = 'auto',
         validate : VALIDATE_TYPE = 'warn',
-        save_dir : Optional[str] = None,
+        save_dir : str | None = None,
         save_mode : SAVEMODE_TYPE = 'warn',
         save_format : SAVEFORMAT_TYPE = 'trec',
         precompute_prefix : bool = False,
@@ -166,25 +166,25 @@ def Experiment(
     ...
 
 def Experiment(
-        retr_systems : Union[Sequence[SYSTEM_OR_RESULTS_TYPE], Dict[str, SYSTEM_OR_RESULTS_TYPE]],
+        retr_systems : Sequence[SYSTEM_OR_RESULTS_TYPE] | Dict[str, SYSTEM_OR_RESULTS_TYPE],
         topics : pd.DataFrame,
         qrels : pd.DataFrame,
         eval_metrics : MEASURES_TYPE,
-        names : Optional[Sequence[str]] = None,
-        perquery : Union[bool, Literal['both']] = False,
-        dataframe : Union[Literal[False], Literal[True]] = True,
-        batch_size : Optional[int] = None,
+        names : Sequence[str] | None = None,
+        perquery : bool | Literal['both'] = False,
+        dataframe : Literal[False] | Literal[True] = True,
+        batch_size : int | None = None,
         filter_by_qrels : bool = False,
         filter_by_topics : bool = True,
-        baseline : Optional[BaselineSpec] = None,
-        test : Union[str,TEST_FN_TYPE] = "t",
-        correction : Optional[str] = None,
+        baseline : BaselineSpec | None = None,
+        test : str | TEST_FN_TYPE = "t",
+        correction : str | None = None,
         correction_alpha : float = 0.05,
-        highlight : Optional[str] = None,
-        round : Optional[Union[int,Dict[str,int]]] = None,
+        highlight : str | None = None,
+        round : int | Dict[str, int] | None = None,
         verbose : Literal['auto', True, False] = 'auto',
         validate : VALIDATE_TYPE = 'warn',
-        save_dir : Optional[str] = None,
+        save_dir : str | None = None,
         save_mode : SAVEMODE_TYPE = 'warn',
         save_format : SAVEFORMAT_TYPE = 'trec',
         precompute_prefix : bool = False,

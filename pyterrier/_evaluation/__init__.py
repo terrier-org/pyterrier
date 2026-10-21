@@ -1,19 +1,19 @@
 import pandas as pd
 from ir_measures import Measure
-from typing import Literal, Union, Sequence, Callable, Tuple, IO, Dict, Any
+from typing import Literal, Sequence, Callable, Tuple, IO, Dict, Any, TypeAlias
 from .. import Transformer
 import types
 
-MEASURE_TYPE=Union[str,Measure]
+MEASURE_TYPE = str | Measure
 MEASURES_TYPE=Sequence[MEASURE_TYPE]
 SAVEMODE_TYPE=Literal['reuse', 'overwrite', 'error', 'warn']
 VALIDATE_TYPE = Literal['warn', 'error', 'ignore']
 
-SYSTEM_OR_RESULTS_TYPE = Union[Transformer, pd.DataFrame]
-SAVEFORMAT_TYPE = Union[Literal['trec'], types.ModuleType, Tuple[Callable[[IO], pd.DataFrame], Callable[[pd.DataFrame, IO], None]]]
+SYSTEM_OR_RESULTS_TYPE: TypeAlias = Transformer | pd.DataFrame
+SAVEFORMAT_TYPE = Literal['trec'] | types.ModuleType | Tuple[Callable[[IO], pd.DataFrame], Callable[[pd.DataFrame, IO], None]]
 
 
-NUMERIC_TYPE = Union[float,int,complex]
+NUMERIC_TYPE = float | int | complex
 TEST_FN_TYPE = Callable[ [Sequence[NUMERIC_TYPE],Sequence[NUMERIC_TYPE]], Tuple[Any,NUMERIC_TYPE] ]
 
 # we need types before imports relying on those types

@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Callable, Any, Dict, Union, Optional, Sequence, Literal, List, cast
+from typing import Callable, Any, Dict, Sequence, Literal, List, cast
 import numpy.typing as npt
 import pandas as pd
 import pyterrier as pt
@@ -17,7 +17,7 @@ def _bind(instance, func, as_name=None):
     setattr(instance, as_name, bound_method)
     return bound_method
 
-def query(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], str], *args, required_columns : Optional[List[str]] = ['qid', 'query'], label: Optional[str] = None, **kwargs) -> pt.Transformer:
+def query(fn : Callable[[pd.Series | pt.model.IterDictRecord], str], *args, required_columns : List[str] | None = ['qid', 'query'], label: str | None = None, **kwargs) -> pt.Transformer:
     """
         Create a transformer that takes as input a query, and applies a supplied function to compute a new query formulation.
 
@@ -62,7 +62,7 @@ def query(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], str], *args,
     """
     return ApplyQueryTransformer(fn, *args, required_columns=required_columns, label=label, **kwargs)
 
-def doc_score(fn : Union[Callable[[Union[pd.Series,pt.model.IterDictRecord]], float], Callable[[pd.DataFrame], Sequence[float]]], *args, required_columns : Optional[List[str]] = ['qid', 'query', 'docno'], batch_size=None, label: Optional[str] = None, **kwargs) -> pt.Transformer:
+def doc_score(fn : Callable[[pd.Series | pt.model.IterDictRecord], float] | Callable[[pd.DataFrame], Sequence[float]], *args, required_columns : List[str] | None = ['qid', 'query', 'docno'], batch_size=None, label: str | None = None, **kwargs) -> pt.Transformer:
     """
         Create a transformer that takes as input a ranked documents dataframe, and applies a supplied function to compute a new score.
         Ranks are automatically computed. doc_score() can operate row-wise, or batch-wise, depending on whether batch_size is set.
@@ -98,7 +98,7 @@ def doc_score(fn : Union[Callable[[Union[pd.Series,pt.model.IterDictRecord]], fl
     """
     return ApplyDocumentScoringTransformer(fn, *args, batch_size=batch_size, label=label, **kwargs)
 
-def doc_features(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], npt.NDArray[Any]], *args, required_columns : Optional[List[str]] = ['qid', 'query', 'docno'], label: Optional[str] = None, **kwargs) -> pt.Transformer:
+def doc_features(fn : Callable[[pd.Series | pt.model.IterDictRecord], npt.NDArray[Any]], *args, required_columns : List[str] | None = ['qid', 'query', 'docno'], label: str | None = None, **kwargs) -> pt.Transformer:
     """
         Create a transformer that takes as input a ranked documents dataframe, and applies the supplied function to each document to compute feature scores. 
 
@@ -135,7 +135,7 @@ def doc_features(fn : Callable[[Union[pd.Series,pt.model.IterDictRecord]], npt.N
     """
     return ApplyDocFeatureTransformer(fn, *args, required_columns = required_columns, label=label, **kwargs)
 
-def indexer(fn : Callable[[pt.model.IterDict], Any], required_columns: Optional[List[str]] = None, *, label: Optional[str] = None, **kwargs) -> pt.Indexer:
+def indexer(fn : Callable[[pt.model.IterDict], Any], required_columns: List[str] | None = None, *, label: str | None = None, **kwargs) -> pt.Indexer:
     """
         Create an instance of pt.Indexer using a function that takes as input an interable dictionary.
 
@@ -158,7 +158,7 @@ def indexer(fn : Callable[[pt.model.IterDict], Any], required_columns: Optional[
     """
     return ApplyIndexer(fn, required_columns = required_columns, label=label, **kwargs)
 
-def rename(columns: Dict[str,str], *, errors: Literal['raise', 'ignore'] = 'raise', label: Optional[str] = None) -> pt.Transformer:
+def rename(columns: Dict[str,str], *, errors: Literal['raise', 'ignore'] = 'raise', label: str | None = None) -> pt.Transformer:
     """
         Creates a transformer that renames columns in a dataframe. 
 
@@ -173,12 +173,12 @@ def rename(columns: Dict[str,str], *, errors: Literal['raise', 'ignore'] = 'rais
     return RenameColumnsTransformer(columns, errors=errors, label=label)
 
 def generic(
-        fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.model.IterDict], pt.model.IterDict]], 
+        fn : Callable[[pd.DataFrame], pd.DataFrame] | Callable[[pt.model.IterDict], pt.model.IterDict], 
         *args, 
-        batch_size : Optional[int] = None, 
+        batch_size : int | None = None, 
         iter : bool = False, 
-        transform_outputs : Optional[Callable[[List[str]], List[str]]] = None,
-        label: Optional[str] = None,
+        transform_outputs : Callable[[List[str]], List[str]] | None = None,
+        label: str | None = None,
         **kwargs) -> pt.Transformer:
     """
         Create a transformer that changes the input dataframe to another dataframe in an unspecified way.
@@ -230,13 +230,13 @@ def generic(
     return rtr
 
 def by_query(
-        fn : Union[Callable[[pd.DataFrame], pd.DataFrame], Callable[[pt.model.IterDict], pt.model.IterDict]], 
+        fn : Callable[[pd.DataFrame], pd.DataFrame] | Callable[[pt.model.IterDict], pt.model.IterDict], 
         *args, 
-        batch_size : Optional[int] = None, 
+        batch_size : int | None = None, 
         iter : bool = False, 
         verbose : bool = False,
-        transform_outputs : Optional[Callable[[List[str]], List[str]]] = None,
-        label: Optional[str] = None,
+        transform_outputs : Callable[[List[str]], List[str]] | None = None,
+        label: str | None = None,
         **kwargs) -> pt.Transformer:
     """
         As `pt.apply.generic()` except that fn receives a dataframe (or iter-dict) for one query at at time, rather than all results at once.
@@ -286,10 +286,10 @@ def generic_apply(
     fn=None,
     *,
     drop: bool = False,
-    batch_size: Optional[int] = None,
-    required_columns: Optional[List[str]] = None,
+    batch_size: int | None = None,
+    required_columns: List[str] | None = None,
     verbose=False,
-    label: Optional[str] = None
+    label: str | None = None
 ) -> pt.Transformer:
     if drop:
         assert fn is None, "cannot provide both fn and drop=True"

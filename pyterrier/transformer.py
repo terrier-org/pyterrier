@@ -3,7 +3,7 @@ import warnings
 import traceback
 import types
 import pandas as pd
-from typing import Iterator, List, Union, Tuple, Protocol, runtime_checkable, Optional, Any
+from typing import Iterator, List, Tuple, Protocol, runtime_checkable, Any
 import pyterrier as pt
 
 LAMBDA = lambda:0  # noqa: E731 LAMBDA is used for the is_lambda method below, so the type is important
@@ -135,7 +135,7 @@ class Transformer:
         # We should have no recursive transform <-> transform_iter problem, due to the __new__ check.
         return self.transform(pd.DataFrame(list(inp))).to_dict(orient='records')
     
-    def __call__(self, inp: Union[pd.DataFrame, pt.model.IterDict, List[pt.model.IterDictRecord]]) -> Union[pd.DataFrame, pt.model.IterDict, List[pt.model.IterDictRecord]]:
+    def __call__(self, inp: pd.DataFrame | pt.model.IterDict | List[pt.model.IterDictRecord]) -> pd.DataFrame | pt.model.IterDict | List[pt.model.IterDictRecord]:
         """
             Runs the transformer for the given input and returns its output as the same type as the input.
 
@@ -156,7 +156,7 @@ class Transformer:
             return list(out)
         return out
 
-    def transform_gen(self, input : pd.DataFrame, batch_size=1, output_topics=False) -> Union[Iterator[pd.DataFrame], Iterator[Tuple[pd.DataFrame, pd.DataFrame]]]:
+    def transform_gen(self, input : pd.DataFrame, batch_size=1, output_topics=False) -> Iterator[pd.DataFrame] | Iterator[Tuple[pd.DataFrame, pd.DataFrame]]:
         """
             Method for executing a transformer pipeline on smaller batches of queries.
             The input dataframe is grouped into batches of batch_size queries, and a generator
@@ -292,12 +292,12 @@ class Transformer:
         from ._ops import FeatureUnion
         return FeatureUnion(self, right)
 
-    def __mul__(self, rhs : Union[float,int]) -> 'Transformer':
+    def __mul__(self, rhs : float | int) -> 'Transformer':
         assert isinstance(rhs, int) or isinstance(rhs, float)
         from ._ops import ScalarProduct
         return self >> ScalarProduct(rhs)
 
-    def __rmul__(self, lhs : Union[float,int]) -> 'Transformer':
+    def __rmul__(self, lhs : float | int) -> 'Transformer':
         assert isinstance(lhs, int) or isinstance(lhs, float)
         from ._ops import ScalarProduct
         return self >> ScalarProduct(lhs)
@@ -359,7 +359,7 @@ class Indexer(Transformer):
             instance.transform = types.MethodType(Transformer.transform, instance)
         return instance
     
-    def index_inputs(self) -> Optional[List[List[str]]]:
+    def index_inputs(self) -> List[List[str]] | None:
         """
             Returns a list of column configurations that index() is expects. 
             This default implementation returns None, and should be 
@@ -455,7 +455,7 @@ class UniformTransformer(Transformer):
 
 @runtime_checkable
 class SupportsFuseRankCutoff(Protocol):
-    def fuse_rank_cutoff(self, k: int) -> Optional[Transformer]:
+    def fuse_rank_cutoff(self, k: int) -> Transformer | None:
         """Fuses this transformer with a following RankCutoff transformer.
 
         This method should return a new transformer that applies the new rank cutoff value `k`.
@@ -471,7 +471,7 @@ class SupportsFuseRankCutoff(Protocol):
 
 @runtime_checkable
 class SupportsFuseFeatureUnion(Protocol):
-    def fuse_feature_union(self, other: Transformer, is_left: bool) -> Optional[Transformer]:
+    def fuse_feature_union(self, other: Transformer, is_left: bool) -> Transformer | None:
         """Fuses this transformer with another one that provides features.
 
         This method should return a new transformer that is equivalent to performing self ** other, or `None`
@@ -484,7 +484,7 @@ class SupportsFuseFeatureUnion(Protocol):
 
 @runtime_checkable
 class SupportsFuseLeft(Protocol):
-    def fuse_left(self, left: Transformer) -> Optional[Transformer]:
+    def fuse_left(self, left: Transformer) -> Transformer | None:
         """Fuses this transformer with a transformer that immediately precedes this one in a composed (`>>`) pipeline.
 
         The new transformer should have the same effect as performing the two transformers in sequence, i.e.,
@@ -506,7 +506,7 @@ class SupportsFuseLeft(Protocol):
 
 @runtime_checkable
 class SupportsFuseRight(Protocol):
-    def fuse_right(self, right: Transformer) -> Optional[Transformer]:
+    def fuse_right(self, right: Transformer) -> Transformer | None:
         """Fuses this transformer with a transformer that immediately follows this one in a composed (`>>`) pipeline.
 
         The new transformer should have the same effect as performing the two transformers in sequence, i.e.,
@@ -524,5 +524,4 @@ class SupportsFuseRight(Protocol):
         :return: A new transformer that is the result of merging this transformer with the right transformer,
             or None if a merge is not possible.
         """
-
 

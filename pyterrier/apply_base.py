@@ -1,4 +1,4 @@
-from typing import Callable, Any, Union, Optional, Iterable, List, Dict, Literal
+from typing import Callable, Any, Iterable, List, Dict, Literal
 import itertools
 import more_itertools
 import numpy.typing as npt
@@ -10,7 +10,7 @@ class DropColumnTransformer(pt.Transformer):
     """
     This transformer drops the provided column from the input.
     """
-    def __init__(self, col: str, *, label: Optional[str] = None):
+    def __init__(self, col: str, *, label: str | None = None):
         """
         Instantiates a DropColumnTransformer.
 
@@ -21,7 +21,7 @@ class DropColumnTransformer(pt.Transformer):
         self.col = col
         self.label = label
 
-    def schematic(self, *, input_columns: Optional[List[str]] = None) -> Dict[str, Any]:
+    def schematic(self, *, input_columns: List[str] | None = None) -> Dict[str, Any]:
         return {'label': self.label if self.label is not None else f'drop({self.col})'}
 
     def transform(self, inp: pd.DataFrame) -> pd.DataFrame:
@@ -62,7 +62,7 @@ class RenameColumnsTransformer(pt.Transformer):
     """
     This transformer renames the provided columns, akin to pandas.DataFrame.rename
     """
-    def __init__(self, columns: Dict[str, str], *, errors: Literal['raise', 'ignore'] = 'raise', label: Optional[str] = None):
+    def __init__(self, columns: Dict[str, str], *, errors: Literal['raise', 'ignore'] = 'raise', label: str | None = None):
         """
         Arguments:
             columns: A dictionary mapping old column names to new column names
@@ -73,7 +73,7 @@ class RenameColumnsTransformer(pt.Transformer):
         self.errors = errors
         self.label = label
 
-    def schematic(self, *, input_columns: Optional[List[str]] = None) -> Dict[str, Any]:
+    def schematic(self, *, input_columns: List[str] | None = None) -> Dict[str, Any]:
         return {'label': self.label if self.label is not None else 'rename'}
 
     def transform(self, inp: pd.DataFrame) -> pd.DataFrame:
@@ -100,12 +100,12 @@ class ApplyByRowTransformer(pt.Transformer):
     """
     def __init__(self,
         col: str,
-        fn: Callable[[Union[pt.model.IterDictRecord, pd.Series]], Any],
+        fn: Callable[[pt.model.IterDictRecord | pd.Series], Any],
         *,
-        batch_size: Optional[int] = None,
-        required_columns: Optional[List[str]] = None,
+        batch_size: int | None = None,
+        required_columns: List[str] | None = None,
         verbose: bool = False,
-        label: Optional[str] = None
+        label: str | None = None
     ):
         """
         Instantiates a ApplyByRowTransformer.
@@ -126,7 +126,7 @@ class ApplyByRowTransformer(pt.Transformer):
         self.verbose = verbose
         self.label = label
 
-    def schematic(self, *, input_columns: Optional[List[str]] = None) -> Dict[str, Any]:
+    def schematic(self, *, input_columns: List[str] | None = None) -> Dict[str, Any]:
         return {'label': self.label if self.label is not None else f'apply.{self.col}'}
 
     def transform(self, inp: pd.DataFrame) -> pd.DataFrame:
@@ -177,10 +177,10 @@ class ApplyForEachQuery(pt.Transformer):
         fn: Callable[[pd.DataFrame], pd.DataFrame],
         *,
         add_ranks: bool = True,
-        batch_size: Optional[int] = None,
-        required_columns: Optional[List[str]] = None,
+        batch_size: int | None = None,
+        required_columns: List[str] | None = None,
         verbose: bool = False,
-        label: Optional[str] = None
+        label: str | None = None
     ):
         """
         Instantiates a ApplyForEachQuery.
@@ -200,7 +200,7 @@ class ApplyForEachQuery(pt.Transformer):
         self.verbose = verbose
         self.label = label
 
-    def schematic(self, *, input_columns: Optional[List[str]] = None) -> Dict[str, Any]:
+    def schematic(self, *, input_columns: List[str] | None = None) -> Dict[str, Any]:
         return {'label': self.label if self.label is not None else 'by_query'}
 
     def __repr__(self):
@@ -250,9 +250,9 @@ class ApplyIterForEachQuery(pt.Transformer):
         fn: Callable[[pt.model.IterDict], pt.model.IterDict],
         *,
         batch_size=None,
-        required_columns: Optional[List[str]] = None,
+        required_columns: List[str] | None = None,
         verbose=False,
-        label: Optional[str] = None):
+        label: str | None = None):
         """
         Instantiates a ApplyIterForEachQuery.
 
@@ -269,7 +269,7 @@ class ApplyIterForEachQuery(pt.Transformer):
         self.verbose = verbose
         self.label = label
 
-    def schematic(self, *, input_columns: Optional[List[str]] = None) -> Dict[str, Any]:
+    def schematic(self, *, input_columns: List[str] | None = None) -> Dict[str, Any]:
         return {'label': self.label if self.label is not None else 'by_query'}
 
     def __repr__(self):
@@ -313,15 +313,12 @@ class ApplyDocumentScoringTransformer(pt.Transformer):
 
     """
     def __init__(self,
-        fn: Union[
-            Callable[[pd.Series], float],
-            Callable[[pd.DataFrame], Iterable[float]],
-        ],
+        fn: Callable[[pd.Series], float] | Callable[[pd.DataFrame], Iterable[float]],
         *,
-        batch_size: Optional[int] = None,
-        required_columns: Optional[List[str]] = None,
+        batch_size: int | None = None,
+        required_columns: List[str] | None = None,
         verbose: bool = False,
-        label: Optional[str] = None,
+        label: str | None = None,
     ):
         """
         Arguments:
@@ -339,7 +336,7 @@ class ApplyDocumentScoringTransformer(pt.Transformer):
         self.verbose = verbose
         self.label = label
 
-    def schematic(self, *, input_columns: Optional[List[str]] = None) -> Dict[str, Any]:
+    def schematic(self, *, input_columns: List[str] | None = None) -> Dict[str, Any]:
         return {'label': self.label if self.label is not None else 'doc_score'}
 
     def __repr__(self):
@@ -392,11 +389,11 @@ class ApplyDocFeatureTransformer(pt.Transformer):
             pipe = pt.terrier.Retriever(index) >> pt.apply.doc_features(_feature_fn) >> pt.LTRpipeline(xgBoost())
     """
     def __init__(self,
-        fn: Callable[[Union[pd.Series, pt.model.IterDictRecord]], npt.NDArray],
+        fn: Callable[[pd.Series | pt.model.IterDictRecord], npt.NDArray],
         *,
-        required_columns: Optional[List[str]] = None,
+        required_columns: List[str] | None = None,
         verbose: bool = False,
-        label: Optional[str] = None
+        label: str | None = None
     ):
         """
         Arguments:
@@ -410,7 +407,7 @@ class ApplyDocFeatureTransformer(pt.Transformer):
         self.verbose = verbose
         self.label = label
 
-    def schematic(self, *, input_columns: Optional[List[str]] = None) -> Dict[str, Any]:
+    def schematic(self, *, input_columns: List[str] | None = None) -> Dict[str, Any]:
         return {'label': self.label if self.label is not None else 'doc_features'}
 
     def __repr__(self):
@@ -466,11 +463,11 @@ class ApplyQueryTransformer(pt.Transformer):
 
     """
     def __init__(self,
-        fn: Callable[[Union[pd.Series, pt.model.IterDictRecord]], str],
+        fn: Callable[[pd.Series | pt.model.IterDictRecord], str],
         *,
-        required_columns: Optional[List[str]] = None,
+        required_columns: List[str] | None = None,
         verbose: bool = False,
-        label: Optional[str] = None
+        label: str | None = None
     ):
         """
         Arguments:
@@ -484,7 +481,7 @@ class ApplyQueryTransformer(pt.Transformer):
         self.verbose = verbose
         self.label = label
 
-    def schematic(self, *, input_columns: Optional[List[str]] = None) -> Dict[str, Any]:
+    def schematic(self, *, input_columns: List[str] | None = None) -> Dict[str, Any]:
         return {'label': self.label if self.label is not None else 'query'}
 
     def __repr__(self):
@@ -559,10 +556,10 @@ class ApplyGenericTransformer(pt.Transformer):
     def __init__(self,
         fn: Callable[[pd.DataFrame], pd.DataFrame],
         *,
-        batch_size: Optional[int] = None,
-        required_columns: Optional[List[str]] = None,
+        batch_size: int | None = None,
+        required_columns: List[str] | None = None,
         verbose: bool = False,
-        label: Optional[str] = None,
+        label: str | None = None,
     ):
         """
         Arguments:
@@ -577,7 +574,7 @@ class ApplyGenericTransformer(pt.Transformer):
         self.verbose = verbose
         self.label = label
 
-    def schematic(self, *, input_columns: Optional[List[str]] = None) -> Dict[str, Any]:
+    def schematic(self, *, input_columns: List[str] | None = None) -> Dict[str, Any]:
         return {'label': self.label if self.label is not None else 'generic'}
 
     def __repr__(self):
@@ -614,9 +611,9 @@ class ApplyGenericIterTransformer(pt.Transformer):
     def __init__(self,
         fn: Callable[[pt.model.IterDict], pt.model.IterDict],
         *,
-        batch_size: Optional[int] = None,
-        required_columns: Optional[List[str]] = None,
-        label: Optional[str] = None,
+        batch_size: int | None = None,
+        required_columns: List[str] | None = None,
+        label: str | None = None,
     ):
         """
         Arguments:
@@ -630,7 +627,7 @@ class ApplyGenericIterTransformer(pt.Transformer):
         self.required_columns = required_columns
         self.label = label
 
-    def schematic(self, *, input_columns: Optional[List[str]] = None) -> Dict[str, Any]:
+    def schematic(self, *, input_columns: List[str] | None = None) -> Dict[str, Any]:
         return {'label': self.label if self.label is not None else 'generic'}
 
     def __repr__(self):
@@ -654,18 +651,18 @@ class ApplyIndexer(pt.Indexer):
     Allows arbitrary indexer pipelines components to be written as functions.
     """
     
-    def __init__(self, fn: Callable[[pt.model.IterDict], Any], *, required_columns: Optional[List[str]] = None, label: Optional[str] = None):
+    def __init__(self, fn: Callable[[pt.model.IterDict], Any], *, required_columns: List[str] | None = None, label: str | None = None):
         self.fn = fn
         self.required_columns = required_columns
         self.label = label
 
-    def schematic(self, *, input_columns: Optional[List[str]] = None) -> Dict[str, Any]:
+    def schematic(self, *, input_columns: List[str] | None = None) -> Dict[str, Any]:
         return {'label': self.label if self.label is not None else 'indexer'}
 
     def index(self, iter_dict):
         return self.fn(iter_dict)
     
-    def index_inputs(self) -> Optional[List[List[str]]]:
+    def index_inputs(self) -> List[List[str]] | None:
         if self.required_columns is not None:
             return [self.required_columns]
         return self.required_columns

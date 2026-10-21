@@ -11,7 +11,7 @@ from datetime import datetime
 from hashlib import sha256
 from pathlib import Path
 import typing
-from typing import Any, Dict, Iterator, Optional, Tuple, Union, NamedTuple
+from typing import Any, Dict, Iterator, Tuple, NamedTuple
 from urllib.parse import ParseResult, urlparse
 
 from lz4.frame import LZ4FrameFile
@@ -36,9 +36,9 @@ class Artifact:
     # expose NO_PATH sentinel
     NO_PATH = _NO_PATH
 
-    def __init__(self, path: Union[Path, str, _NoPath]):
+    def __init__(self, path: Path | str | _NoPath):
         """Initialize the artifact at the provided URL."""
-        self.path: Union[Path, _NoPath] = path if isinstance(path, _NoPath) else Path(path)
+        self.path: Path | _NoPath = path if isinstance(path, _NoPath) else Path(path)
 
     @classmethod
     def load(cls, path: str, **kwargs : Any) -> 'Artifact':
@@ -67,7 +67,7 @@ class Artifact:
             return cls(path, **kwargs)
 
     @classmethod
-    def from_url(cls, url: str, *, expected_sha256: Optional[str] = None, **kwargs : Any) -> 'Artifact':
+    def from_url(cls, url: str, *, expected_sha256: str | None = None, **kwargs : Any) -> 'Artifact':
         """Load the artifact from the specified URL.
 
         The artifact at the specified URL will be downloaded and stored in PyTerrier's artifact cache.
@@ -168,7 +168,7 @@ class Artifact:
 
         return cls.load(path, **kwargs)
 
-    def _package_files(self) -> Iterator[Tuple[str, Union[str, io.BytesIO]]]:
+    def _package_files(self) -> Iterator[Tuple[str, str | io.BytesIO]]:
         assert not isinstance(self.path, _NoPath), "package cannot be built for artifacts without a path"
         has_pt_meta_file = False
         for root, dirs, files in os.walk(self.path):
@@ -184,7 +184,7 @@ class Artifact:
             if metadata is not None:
                 yield 'pt_meta.json', io.BytesIO(json.dumps(metadata).encode())
 
-    def _build_metadata(self) -> Optional[Dict[str, Any]]:
+    def _build_metadata(self) -> Dict[str, Any] | None:
         metadata = {}
 
         try:
@@ -201,10 +201,10 @@ class Artifact:
 
     def build_package(
         self,
-        package_path: Optional[str] = None,
+        package_path: str | None = None,
         *,
-        max_file_size: Optional[float] = None,
-        metadata_out: Optional[Dict[str, Any]] = None,
+        max_file_size: float | None = None,
+        metadata_out: Dict[str, Any] | None = None,
         verbose: bool = True,
     ) -> str:
         """Builds a package for this artifact.
@@ -234,7 +234,7 @@ class Artifact:
 
         chunk_num = 0
         chunk_start_offset = 0
-        raw_fout: Optional[io.BufferedIOBase] = None
+        raw_fout: io.BufferedIOBase | None = None
         def manage_maxsize(_: None):
             nonlocal raw_fout
             nonlocal chunk_num
@@ -312,7 +312,7 @@ class Artifact:
         return package_path
 
     @classmethod
-    def from_dataset(cls, dataset: str, variant: str, *, expected_sha256: Optional[str] = None,  **kwargs) -> 'Artifact':
+    def from_dataset(cls, dataset: str, variant: str, *, expected_sha256: str | None = None,  **kwargs) -> 'Artifact':
         """Load an artifact from a PyTerrier dataset.
 
         Args:
@@ -336,7 +336,7 @@ class Artifact:
     # -------------------------------------------------
 
     @classmethod
-    def from_hf(cls, repo: str, branch: Optional[str] = None, *, expected_sha256: Optional[str] = None, **kwargs : Any) -> 'Artifact':
+    def from_hf(cls, repo: str, branch: str | None = None, *, expected_sha256: str | None = None, **kwargs : Any) -> 'Artifact':
         """Load an artifact from Hugging Face Hub.
 
         Args:
@@ -356,9 +356,9 @@ class Artifact:
     def to_hf(self,
         repo: str,
         *,
-        branch: Optional[str] = None,
-        pretty_name: Optional[str] = None,
-        private: Optional[bool] = None,
+        branch: str | None = None,
+        pretty_name: str | None = None,
+        private: bool | None = None,
     ) -> None:
         """Upload this artifact to Hugging Face Hub.
 
@@ -417,10 +417,10 @@ class Artifact:
     def _hf_readme(self,
         *,
         repo: str,
-        branch: Optional[str] = 'main',
-        pretty_name: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> Optional[str]:
+        branch: str | None = 'main',
+        pretty_name: str | None = None,
+        metadata: Dict[str, Any] | None = None
+    ) -> str | None:
         if pretty_name is None:
             title = repo.split('/')[-1]
             pretty_name = '# pretty_name: "" # Example: "MS MARCO Terrier Index"'
@@ -484,7 +484,7 @@ artifact = pt.Artifact.from_hf({repo!r})
     # -------------------------------------------------
 
     @classmethod
-    def from_zenodo(cls, zenodo_id: str, *, expected_sha256: Optional[str] = None, **kwargs : Any) -> 'Artifact':
+    def from_zenodo(cls, zenodo_id: str, *, expected_sha256: str | None = None, **kwargs : Any) -> 'Artifact':
         """Load an artifact from Zenodo.
 
         Args:
@@ -495,7 +495,7 @@ artifact = pt.Artifact.from_hf({repo!r})
         """
         return cls.from_url(f'zenodo:{zenodo_id}', expected_sha256=expected_sha256, **kwargs)
 
-    def to_zenodo(self, *, pretty_name: Optional[str] = None, sandbox: bool = False) -> None:
+    def to_zenodo(self, *, pretty_name: str | None = None, sandbox: bool = False) -> None:
         """Upload this artifact to Zenodo.
 
         Args:
@@ -545,7 +545,7 @@ artifact = pt.Artifact.from_hf({repo!r})
             sys.stderr.write("Upload complete. Please complete the form at {} to publish this artifact. (Note that "
                 "publishing to Zenodo cannot be undone.)\n".format(deposit_data['links']['html']))
 
-    def _zenodo_metadata(self, *, zenodo_id: str, pretty_name: Optional[str] = None, metadata: Dict) -> Dict[str, Any]:
+    def _zenodo_metadata(self, *, zenodo_id: str, pretty_name: str | None = None, metadata: Dict) -> Dict[str, Any]:
         description = f'''
 <h2>Description</h2>
 
@@ -603,7 +603,7 @@ artifact = pt.Artifact.from_zenodo({str(zenodo_id)!r})
     # -------------------------------------------------
 
     @classmethod
-    def from_p2p(cls, code: str, path: str, *, expected_sha256: Optional[str] = None, **kwargs : Any) -> 'Artifact':
+    def from_p2p(cls, code: str, path: str, *, expected_sha256: str | None = None, **kwargs : Any) -> 'Artifact':
         """Load an artifact from a peer using a Magic Wormhole code.
 
         Args:
@@ -750,7 +750,7 @@ class UrlResolverResult(NamedTuple):
     headers: Dict[str, str] = {}
 
 
-def _hf_url_resolver(parsed_url: ParseResult) -> Optional[UrlResolverResult]:
+def _hf_url_resolver(parsed_url: ParseResult) -> UrlResolverResult | None:
     # paths like: hf:macavaney/msmarco-passage.terrier
     org_repo = parsed_url.path
     # default to ref=main, but allow user to specify another branch, hash, etc, with abc/xyz@branch

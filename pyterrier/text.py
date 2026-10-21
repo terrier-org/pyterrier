@@ -2,7 +2,7 @@ import more_itertools
 from collections import defaultdict
 import re
 import pandas as pd
-from typing import Any, List, Union, Literal, Protocol, runtime_checkable
+from typing import Any, List, Literal, Protocol, runtime_checkable
 from warnings import warn
 import types
 import pyterrier as pt
@@ -11,7 +11,7 @@ import pyterrier as pt
 class HasTextLoader(Protocol):
     def text_loader(
         self,
-        fields: Union[List[str], str, Literal['*']] = '*',
+        fields: List[str] | str | Literal['*'] = '*',
         *,
         verbose: bool = False,
     ) -> pt.Transformer:
@@ -27,8 +27,8 @@ class HasTextLoader(Protocol):
 
 
 def get_text(
-        indexlike: Union[HasTextLoader, str],
-        metadata : Union[str,List[str], Literal['*']] = '*',
+        indexlike: HasTextLoader | str,
+        metadata : str | List[str] | Literal['*'] = '*',
         by_query : bool = False,
         verbose : bool = False,
         **kwargs: Any) -> pt.Transformer:

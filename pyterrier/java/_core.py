@@ -2,7 +2,6 @@ import os
 import sys
 from packaging.version import Version
 from pyterrier.java import required_raise, required, before_init, started, mavenresolver, JavaClasses, JavaInitializer, register_config
-from typing import Optional
 import pyterrier as pt
 
 _min_jdk_version = 11
@@ -259,7 +258,7 @@ def add_jar(jar_path):
 
 
 @before_init
-def add_package(org_name : str, package_name : str, version : Optional[str] = None, file_type : str = 'jar'):
+def add_package(org_name : str, package_name : str, version : str | None = None, file_type : str = 'jar'):
     if version is None or version == 'snapshot':
         version = mavenresolver.latest_version_num(org_name, package_name)
     file_name = mavenresolver.get_package_jar(org_name, package_name, version, artifact=file_type)
@@ -267,7 +266,7 @@ def add_package(org_name : str, package_name : str, version : Optional[str] = No
 
 
 @before_init
-def set_memory_limit(mem: Optional[float]):
+def set_memory_limit(mem: float | None):
     configure['mem'] = mem
 
 
