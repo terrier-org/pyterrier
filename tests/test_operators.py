@@ -67,7 +67,6 @@ class TestOperators(BaseTestCase):
             self.assertEqual("hello test test", output.iloc[0]["query"])
 
     def test_compile_fuse_right(self):
-        from typing import Optional
 
         class B(pt.Transformer):
             def transform(self, df):
@@ -80,7 +79,7 @@ class TestOperators(BaseTestCase):
         class A(pt.Transformer):
             def transform(self, df):
                 pass
-            def fuse_right(self, right: pt.Transformer) -> Optional[pt.Transformer]:
+            def fuse_right(self, right: pt.Transformer) -> pt.Transformer | None:
                 if isinstance(right, B):
                     return C()
                 return None
@@ -99,13 +98,11 @@ class TestOperators(BaseTestCase):
         self.assertIsInstance(test3_c, C)
 
     def test_compile_fuse_left(self):
-        from typing import Optional
-
         class B(pt.Transformer):
             def transform(self, df):
                 pass
 
-            def fuse_left(self, left: pt.Transformer) -> Optional[pt.Transformer]:
+            def fuse_left(self, left: pt.Transformer) -> pt.Transformer | None:
                 if isinstance(left, A):
                     return C()
                 return None

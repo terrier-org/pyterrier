@@ -1,7 +1,7 @@
 import os
 import inspect
 import sys
-from typing import Tuple, List, Callable, Set, Sequence, Union, Iterator, Iterable, Any, Optional
+from typing import Tuple, List, Callable, Set, Sequence, Iterator, Iterable, Any
 from contextlib import contextmanager
 import platform
 from functools import wraps
@@ -185,7 +185,7 @@ _NO_BUFFER = object()
 
 class PeekableIter:
     """An iterator that allows peeking at the next element."""
-    def __init__(self, base: Union[Iterator, Iterable]):
+    def __init__(self, base: Iterator | Iterable):
         """Create a PeekableIter from an iterator or iterable."""
         self.base = iter(base)
         self._buffer = _NO_BUFFER
@@ -210,11 +210,11 @@ class PeekableIter:
         return self._buffer
 
 
-def peekable(it: Union[Iterator, Iterable]) -> PeekableIter:
+def peekable(it: Iterator | Iterable) -> PeekableIter:
     """Create a PeekableIter from an iterator or iterable."""
     return PeekableIter(it)
 
-def _get_notebook() -> Optional[str]:
+def _get_notebook() -> str | None:
     """
     Returns the process name if running in a notebook, else None.
     """

@@ -1,5 +1,5 @@
 from pyterrier import Transformer
-from typing import Dict, List, Literal, Optional, Tuple, Union, overload
+from typing import Dict, List, Literal, Tuple, overload
 from ._execution import _run_and_evaluate
 from ._utils import _restore_state, _save_state
 from . import MEASURE_TYPE, MEASURES_TYPE
@@ -7,7 +7,7 @@ from ir_measures import Measure
 import pandas as pd
 import pyterrier as pt
 
-TRANSFORMER_PARAMETER_VALUE_TYPE = Union[str,float,int,str]
+TRANSFORMER_PARAMETER_VALUE_TYPE = str | float | int
 GRID_SCAN_PARAM_SETTING = Tuple[
             Transformer, 
             str, 
@@ -35,7 +35,7 @@ def GridSearch(
         jobs : int,
         backend: str,
         verbose: bool ,
-        batch_size : Optional[int],
+        batch_size : int | None,
         return_type : Literal['opt_pipeline'],
     ) -> Transformer: ...
 
@@ -49,7 +49,7 @@ def GridSearch(
         jobs : int,
         backend: str,
         verbose: bool ,
-        batch_size : Optional[int],
+        batch_size : int | None,
         return_type : Literal['best_setting'],
     ) -> GRID_SEARCH_RETURN_TYPE_SETTING: ...
 
@@ -63,7 +63,7 @@ def GridSearch(
         jobs : int,
         backend: str,
         verbose: bool ,
-        batch_size : Optional[int],
+        batch_size : int | None,
         return_type : Literal['both'],
     ) -> GRID_SEARCH_RETURN_TYPE_BOTH: ...
 
@@ -76,9 +76,9 @@ def GridSearch(
         jobs : int = 1,
         backend='joblib',
         verbose: bool = False,
-        batch_size : Optional[int] = None,
+        batch_size : int | None = None,
         return_type : Literal['opt_pipeline', 'best_setting', 'both'] = "opt_pipeline"
-    ) -> Union[Transformer,GRID_SEARCH_RETURN_TYPE_SETTING,GRID_SEARCH_RETURN_TYPE_BOTH]:
+    ) -> Transformer | GRID_SEARCH_RETURN_TYPE_SETTING | GRID_SEARCH_RETURN_TYPE_BOTH:
     """
     GridSearch is essentially, an argmax GridScan(), i.e. it returns an instance of the pipeline to tune
     with the best parameter settings among params, that were found that were obtained using the specified
@@ -145,13 +145,13 @@ def GridScan(
         params : Dict[Transformer,Dict[str,List[TRANSFORMER_PARAMETER_VALUE_TYPE]]],
         topics : pd.DataFrame,
         qrels : pd.DataFrame,
-        metrics : Union[MEASURE_TYPE,MEASURES_TYPE] = ["map"],
+        metrics : MEASURE_TYPE | MEASURES_TYPE = ["map"],
         jobs : int = 1,
         backend='joblib',
         verbose: bool = False,
         batch_size = None,
         dataframe = True,
-    ) -> Union[pd.DataFrame, List [ Tuple [ List[ GRID_SCAN_PARAM_SETTING ], Dict[Union[str, Measure] ,float]  ]  ] ]:
+    ) -> pd.DataFrame | List[Tuple[List[GRID_SCAN_PARAM_SETTING], Dict[str | Measure, float]]]:
     """
     GridScan applies a set of named parameters on a given pipeline and evaluates the outcome. The topics and qrels 
     must be specified. The trec_eval measure names can be optionally specified.
@@ -291,12 +291,12 @@ def KFoldGridSearch(
         pipeline : Transformer,
         params : Dict[Transformer,Dict[str,List[TRANSFORMER_PARAMETER_VALUE_TYPE]]],
         topics_list : List[pd.DataFrame],
-        qrels : Union[pd.DataFrame,List[pd.DataFrame]],
+        qrels : pd.DataFrame | List[pd.DataFrame],
         metric : MEASURE_TYPE = "map",
         jobs : int = 1,
         backend='joblib',
         verbose: bool = False,
-        batch_size : Optional[int] = None) -> Tuple[pd.DataFrame, List[List[GRID_SCAN_PARAM_SETTING]]]:
+        batch_size : int | None = None) -> Tuple[pd.DataFrame, List[List[GRID_SCAN_PARAM_SETTING]]]:
     """
     Applies a GridSearch using different folds. It returns the *results* of the 
     tuned transformer pipeline on the test topics. The number of topics dataframes passed

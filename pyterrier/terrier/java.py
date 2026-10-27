@@ -1,7 +1,7 @@
 import os
 import json
 from packaging.version import Version
-from typing import Optional, Union, List, Dict, Any
+from typing import List, Dict, Any
 import pyterrier as pt
 
 TERRIER_PKG = "org.terrier"
@@ -18,12 +18,12 @@ configure = pt.java.register_config('pt.terrier.java', {
 })
 
 @pt.java.before_init
-def set_version(version: Optional[str] = None):
+def set_version(version: str | None = None):
     configure['terrier_version'] = version
 
 
 @pt.java.before_init
-def set_helper_version(version: Optional[str] = None):
+def set_helper_version(version: str | None = None):
     configure['helper_version'] = version
 
 
@@ -477,7 +477,7 @@ def _index_corpusiter(self, return_toks=True):
 
 
 @pt.java.required
-def extend_classpath(packages: Union[str, List[str]]):
+def extend_classpath(packages: str | List[str]):
     """
         Allows to add packages to Terrier's classpath after the JVM has started.
     """

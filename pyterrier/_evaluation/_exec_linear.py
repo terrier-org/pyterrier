@@ -8,7 +8,7 @@ import pandas as pd
 import os
 import sys
 import types
-from typing import Sequence, List, Optional, Tuple, Dict, Any, Union
+from typing import Sequence, List, Tuple, Dict, Any
 from warnings import warn
 
 
@@ -17,7 +17,7 @@ def _precomputation(
         topics : pd.DataFrame,
         precompute_prefix : bool,
         verbose : bool,
-        batch_size : Optional[int] = None
+        batch_size : int | None = None
         ) -> Tuple[float, pd.DataFrame, List[SYSTEM_OR_RESULTS_TYPE]]:
 
     # this method identifies any common prefix to the pipelines in retr_systems,
@@ -77,7 +77,7 @@ def _precomputation(
     return precompute_time, execution_topics, execution_retr_systems
 
 
-def _identifyCommon(pipes : List[Union[pt.Transformer, pd.DataFrame]]) -> Tuple[Optional[pt.Transformer], List[Union[pt.Transformer,pd.DataFrame]]]:
+def _identifyCommon(pipes : List[pt.Transformer | pd.DataFrame]) -> Tuple[pt.Transformer | None, List[pt.Transformer | pd.DataFrame]]:
     # constructs a common prefix pipeline across a list of pipelines, along with various suffices. 
     # pt.Transformer.identity() is used for a no-op suffix
 
@@ -139,10 +139,10 @@ def linear_execution(renderer,retr_systems,
                      names: Sequence[str], 
                      precompute_prefix: bool = True, 
                      verbose : bool = False,
-                     save_dir : Optional[str] = None,
-                     save_mode : Optional[SAVEMODE_TYPE] = None,
+                     save_dir : str | None = None,
+                     save_mode : SAVEMODE_TYPE | None = None,
                      save_format : SAVEFORMAT_TYPE ='trec',
-                     batch_size : Optional[int]=None, 
+                     batch_size : int | None=None, 
                      perquery : bool = False):
     
     # split the transformers into a common prefix and individual suffixes, improved efficiency

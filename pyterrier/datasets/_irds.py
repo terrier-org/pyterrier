@@ -1,5 +1,5 @@
 import pandas as pd
-from typing import Union, List, Literal
+from typing import List, Literal
 from typing import Iterable
 import pyterrier as pt
 
@@ -171,7 +171,7 @@ class IRDSDataset(pt.datasets.Dataset):
 
     def text_loader(
         self,
-        fields: Union[List[str], str, Literal['*']] = '*',
+        fields: List[str] | str | Literal['*'] = '*',
         *,
         verbose: bool = False,
     ) -> pt.Transformer:
@@ -190,7 +190,7 @@ class IRDSTextLoader(pt.Transformer):
     def __init__(
         self,
         dataset: IRDSDataset,
-        fields: Union[List[str], str, Literal['*']] = '*',
+        fields: List[str] | str | Literal['*'] = '*',
         *,
         verbose=False
     ):

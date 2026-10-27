@@ -3,7 +3,7 @@ import math
 import itertools
 import numpy as np
 import pandas as pd
-from typing import Any, Dict, Iterable, List, Sequence, Set, Optional, Union, overload
+from typing import Any, Dict, Iterable, List, Sequence, Set, overload
 
 IterDictRecord = Dict[str, Any]
 IterDict = Iterable[IterDictRecord]
@@ -231,7 +231,7 @@ def coerce_dataframe_types(dataframe):
     return dataframe
 
 
-def split_df(df : pd.DataFrame, N: Optional[int] = None, *, batch_size: Optional[int] = None) -> List[pd.DataFrame]:
+def split_df(df : pd.DataFrame, N: int | None = None, *, batch_size: int | None = None) -> List[pd.DataFrame]:
     """
     Splits a dataframe into N different chunks. Splitting will be sensitive to the primary datatype
     of the dataframe (Q,R,D).
@@ -295,8 +295,8 @@ def from_ir_measures(inp: Set[str]) -> List[str]: ...
 @overload
 def from_ir_measures(inp: pd.DataFrame) -> pd.DataFrame: ...
 def from_ir_measures(
-    inp: Union[str, pd.DataFrame, Dict[str, Any], List[str], Set[str]],
-) -> Union[str, pd.DataFrame, Dict[str, Any], List[str]]:
+    inp: str | pd.DataFrame | Dict[str, Any] | List[str] | Set[str],
+) -> str | pd.DataFrame | Dict[str, Any] | List[str]:
     """This function maps ir-measues column names to PyTerrier column names.
 
     It's useful when converting between PyTerrier and ir-measures data formats.
@@ -329,8 +329,8 @@ def to_ir_measures(inp: List[str]) -> List[str]: ...
 @overload
 def to_ir_measures(inp: pd.DataFrame) -> pd.DataFrame: ...
 def to_ir_measures(
-    inp: Union[str, pd.DataFrame, Dict[str, Any], List[str]],
-) -> Union[str, pd.DataFrame, Dict[str, Any], List[str]]:
+    inp: str | pd.DataFrame | Dict[str, Any] | List[str],
+) -> str | pd.DataFrame | Dict[str, Any] | List[str]:
     """This function maps PyTerrier column names to ir-measures column names.
 
     It's useful when converting between PyTerrier and ir-measures data formats.
@@ -347,7 +347,7 @@ def to_ir_measures(
     return [_pyterrier_to_ir_measures.get(x, x) for x in inp]
 
 
-def frame_info(columns : List[str]) -> Optional[Dict[str, str]]:
+def frame_info(columns : List[str]) -> Dict[str, str] | None:
     """Returns a dict containing a short label and a short description for given set of columns."""
     if 'qid' in columns and 'docno' in columns and 'features' in columns:
         return {
@@ -381,7 +381,7 @@ def frame_info(columns : List[str]) -> Optional[Dict[str, str]]:
         }
     return None
 
-def column_info(column: str) -> Optional[dict]:
+def column_info(column: str) -> dict | None:
     """Returns a dictionary with information about the specified column name."""
     if column == 'qid':
         return {

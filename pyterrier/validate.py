@@ -1,13 +1,13 @@
 """Validation utilities for checking the inputs of transformers."""
 import warnings
 from types import TracebackType
-from typing import List, Optional, Type, Union, Set
+from typing import List, Type, Set
 import pandas as pd
 import pyterrier as pt
 
 
 class _TransformerMode:
-    def __init__(self, missing_columns: List[str], extra_columns: List[str], mode_name: Optional[str] = None):
+    def __init__(self, missing_columns: List[str], extra_columns: List[str], mode_name: str | None = None):
         self.missing_columns = missing_columns
         self.extra_columns = extra_columns
         self.mode_name = mode_name
@@ -49,12 +49,12 @@ class InputValidationWarning(Warning):
 
 
 def columns(
-    inp: Union[pd.DataFrame, List[str]],
+    inp: pd.DataFrame | List[str],
     *,
-    includes: Optional[List[str]] = None,
-    excludes: Optional[List[str]] = None,
+    includes: List[str] | None = None,
+    excludes: List[str] | None = None,
     warn: bool = False, 
-    context : Optional[pt.Transformer] = None
+    context : pt.Transformer | None = None
 ) -> None:
     """Check that the input frame has the expected columns.
 
@@ -76,7 +76,7 @@ def columns(
         v.columns(includes=includes, excludes=excludes)
 
 
-def query_frame(inp: Union[pd.DataFrame, List[str]], extra_columns: Optional[List[str]] = None, warn: bool = False, context : Optional[pt.Transformer] = None) -> None:
+def query_frame(inp: pd.DataFrame | List[str], extra_columns: List[str] | None = None, warn: bool = False, context : pt.Transformer | None = None) -> None:
     """Check that the input frame is a valid query frame.
 
     Args:
@@ -96,7 +96,7 @@ def query_frame(inp: Union[pd.DataFrame, List[str]], extra_columns: Optional[Lis
         v.query_frame(extra_columns)
 
 
-def result_frame(inp: Union[pd.DataFrame, List[str]], extra_columns: Optional[List[str]] = None, warn: bool = False, context : Optional[pt.Transformer] = None) -> None:
+def result_frame(inp: pd.DataFrame | List[str], extra_columns: List[str] | None = None, warn: bool = False, context : pt.Transformer | None = None) -> None:
     """Check that the input frame is a valid result frame.
 
     Args:
@@ -116,7 +116,7 @@ def result_frame(inp: Union[pd.DataFrame, List[str]], extra_columns: Optional[Li
         v.result_frame(extra_columns)
 
 
-def document_frame(inp: Union[pd.DataFrame, List[str]], extra_columns: Optional[List[str]] = None, warn: bool = False, context : Optional[pt.Transformer] = None) -> None:
+def document_frame(inp: pd.DataFrame | List[str], extra_columns: List[str] | None = None, warn: bool = False, context : pt.Transformer | None = None) -> None:
     """Check that the input frame is a valid document frame.
 
     Args:
@@ -139,10 +139,10 @@ def document_frame(inp: Union[pd.DataFrame, List[str]], extra_columns: Optional[
 def columns_iter(
     inp: 'pt.utils.PeekableIter',
     *,
-    includes: Optional[List[str]] = None,
-    excludes: Optional[List[str]] = None,
+    includes: List[str] | None = None,
+    excludes: List[str] | None = None,
     warn: bool = False,
-    context : Optional[pt.Transformer] = None
+    context : pt.Transformer | None = None
 ) -> None:
     """Check that the input frame has the expected columns.
 
@@ -161,7 +161,7 @@ def columns_iter(
         v.columns(includes=includes, excludes=excludes)
 
 
-def query_iter(inp: 'pt.utils.PeekableIter', extra_columns: Optional[List[str]] = None, warn: bool = False, context : Optional[pt.Transformer] = None) -> None:
+def query_iter(inp: 'pt.utils.PeekableIter', extra_columns: List[str] | None = None, warn: bool = False, context : pt.Transformer | None = None) -> None:
     """Check that the input iterator is a valid query iterator.
 
     Args:
@@ -177,7 +177,7 @@ def query_iter(inp: 'pt.utils.PeekableIter', extra_columns: Optional[List[str]] 
         v.query_iter(extra_columns)
 
 
-def result_iter(inp: 'pt.utils.PeekableIter', extra_columns: Optional[List[str]] = None, warn: bool = False, context : Optional[pt.Transformer] = None) -> None:
+def result_iter(inp: 'pt.utils.PeekableIter', extra_columns: List[str] | None = None, warn: bool = False, context : pt.Transformer | None = None) -> None:
     """Check that the input iterator is a valid result iterator.
 
     Args:
@@ -193,7 +193,7 @@ def result_iter(inp: 'pt.utils.PeekableIter', extra_columns: Optional[List[str]]
         v.result_iter(extra_columns)
 
 
-def document_iter(inp: 'pt.utils.PeekableIter', extra_columns: Optional[List[str]] = None, warn: bool = False, context : Optional[pt.Transformer] = None) -> None:
+def document_iter(inp: 'pt.utils.PeekableIter', extra_columns: List[str] | None = None, warn: bool = False, context : pt.Transformer | None = None) -> None:
     """Check that the input iterator is a valid document iterator.
 
     Args:
@@ -209,7 +209,7 @@ def document_iter(inp: 'pt.utils.PeekableIter', extra_columns: Optional[List[str
         v.document_iter(extra_columns)
 
 
-def any(inp: Union[pd.DataFrame, List[str]], warn: bool = False, context : Optional[pt.Transformer] = None) -> '_ValidationContextManager':
+def any(inp: pd.DataFrame | List[str], warn: bool = False, context : pt.Transformer | None = None) -> '_ValidationContextManager':
     """Create a validation context manager for a DataFrame or list of columns to test multiple possible modes.
 
     Args:
@@ -220,7 +220,7 @@ def any(inp: Union[pd.DataFrame, List[str]], warn: bool = False, context : Optio
     return _ValidationContextManager(inp, warn=warn, context=context)
 
 
-def any_iter(inp: 'pt.utils.PeekableIter', warn: bool = False, context : Optional[pt.Transformer] = None) -> '_IterValidationContextManager':
+def any_iter(inp: 'pt.utils.PeekableIter', warn: bool = False, context : pt.Transformer | None = None) -> '_IterValidationContextManager':
     """Create a validation context manager for an iterator to test multiple possible modes.
 
     Args:
@@ -237,14 +237,14 @@ def any_iter(inp: 'pt.utils.PeekableIter', warn: bool = False, context : Optiona
 
 class _ValidationContextManager:
     """Context manager for validating the input to transformers."""
-    def __init__(self, inp: Union[pd.DataFrame, List[str]], warn: bool = False, context: Optional[pt.Transformer] = None):
+    def __init__(self, inp: pd.DataFrame | List[str], warn: bool = False, context: pt.Transformer | None = None):
         """Create a ValidationContextManager for the given DataFrame."""
         if isinstance(inp, pd.DataFrame):
             self.inp_columns = list(inp.columns)
         else:
             self.inp_columns = inp
         self.context = context
-        self.mode: Optional[str] = None
+        self.mode: str | None = None
         self.attempts = 0
         self.errors: List[_TransformerMode] = []
         self.warn = warn
@@ -254,10 +254,10 @@ class _ValidationContextManager:
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc: Optional[BaseException],
-        traceback: Optional[TracebackType]
-    ) -> Optional[bool]:
+        exc_type: Type[BaseException] | None,
+        exc: BaseException | None,
+        traceback: TracebackType | None
+    ) -> bool | None:
 
         if exc_type is not None:
             return False # the captured exception takes priority
@@ -273,9 +273,9 @@ class _ValidationContextManager:
 
     def columns(self,
                 *,
-                includes: Optional[List[str]] = None,
-                excludes: Optional[List[str]] = None,
-                mode: Optional[str] = None) -> bool:
+                includes: List[str] | None = None,
+                excludes: List[str] | None = None,
+                mode: str | None = None) -> bool:
         """Check that the input frame has the ``includes`` columns and doesn't have the ``excludes`` columns."""
         includes = includes if includes is not None else []
         excludes = excludes if excludes is not None else []
@@ -296,17 +296,17 @@ class _ValidationContextManager:
 
         return True
 
-    def query_frame(self, extra_columns: Optional[List[str]] = None, mode: Optional[str] = None) -> bool:
+    def query_frame(self, extra_columns: List[str] | None = None, mode: str | None = None) -> bool:
         """Check that the input frame is a valid query frame, with optional extra columns."""
         extra_columns = list(extra_columns) if extra_columns is not None else []
         return self.columns(includes=['qid'] + extra_columns, excludes=['docno'], mode=mode)
 
-    def result_frame(self, extra_columns: Optional[List[str]] = None, mode: Optional[str] = None) -> bool:
+    def result_frame(self, extra_columns: List[str] | None = None, mode: str | None = None) -> bool:
         """Check that the input frame is a valid result frame, with optional extra columns."""
         extra_columns = list(extra_columns) if extra_columns is not None else []
         return self.columns(includes=['qid', 'docno'] + extra_columns, mode=mode)
 
-    def document_frame(self, extra_columns: Optional[List[str]] = None, mode: Optional[str] = None) -> bool:
+    def document_frame(self, extra_columns: List[str] | None = None, mode: str | None = None) -> bool:
         """Check that the input frame is a valid document frame, with optional extra columns."""
         extra_columns = list(extra_columns) if extra_columns is not None else []
         return self.columns(includes=['docno'] + extra_columns, excludes=['qid'], mode=mode)
@@ -315,14 +315,14 @@ class _ValidationContextManager:
 _EMPTY_ITER = object()
 
 class _IterValidationContextManager:
-    def __init__(self, inp: 'pt.utils.PeekableIter', warn: bool = False, context: Optional[pt.Transformer] = None):
-        self.sample_cols: Union[Set[str], object]
+    def __init__(self, inp: 'pt.utils.PeekableIter', warn: bool = False, context: pt.Transformer | None = None):
+        self.sample_cols: Set[str] | object
         try:
             self.sample_cols = set(inp.peek().keys())
         except StopIteration:
             self.sample_cols = _EMPTY_ITER
         self.context = context
-        self.mode: Optional[str] = None
+        self.mode: str | None = None
         self.attempts = 0
         self.errors: List[_TransformerMode] = []
         self.warn = warn
@@ -332,10 +332,10 @@ class _IterValidationContextManager:
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc: Optional[BaseException],
-        traceback: Optional[TracebackType]
-    ) -> Optional[bool]:
+        exc_type: Type[BaseException] | None,
+        exc: BaseException | None,
+        traceback: TracebackType | None
+    ) -> bool | None:
 
         if exc_type is not None:
             return False # the captured exception takes priority
@@ -351,9 +351,9 @@ class _IterValidationContextManager:
 
     def columns(self,
                 *,
-                includes: Optional[List[str]] = None,
-                excludes: Optional[List[str]] = None,
-                mode: Optional[str] = None) -> bool:
+                includes: List[str] | None = None,
+                excludes: List[str] | None = None,
+                mode: str | None = None) -> bool:
         self.attempts += 1
         includes = includes if includes is not None else []
         excludes = excludes if excludes is not None else []
@@ -381,22 +381,22 @@ class _IterValidationContextManager:
 
         return True
 
-    def query_iter(self, extra_columns: Optional[List[str]] = None, mode: Optional[str] = None) -> bool:
+    def query_iter(self, extra_columns: List[str] | None = None, mode: str | None = None) -> bool:
         """Check that the input iterator is a valid query iterator, with optional extra columns."""
         extra_columns = list(extra_columns) if extra_columns is not None else []
         return self.columns(includes=['qid'] + extra_columns, excludes=['docno'], mode=mode)
 
-    def result_iter(self, extra_columns: Optional[List[str]] = None, mode: Optional[str] = None) -> bool:
+    def result_iter(self, extra_columns: List[str] | None = None, mode: str | None = None) -> bool:
         """Check that the input iterator is a valid result iterator, with optional extra columns."""
         extra_columns = list(extra_columns) if extra_columns is not None else []
         return self.columns(includes=['qid', 'docno'] + extra_columns, mode=mode)
 
-    def document_iter(self, extra_columns: Optional[List[str]] = None, mode: Optional[str] = None) -> bool:
+    def document_iter(self, extra_columns: List[str] | None = None, mode: str | None = None) -> bool:
         """Check that the input iterator is a valid document iterator, with optional extra columns."""
         extra_columns = list(extra_columns) if extra_columns is not None else []
         return self.columns(includes=['docno'] + extra_columns, excludes=['qid'], mode=mode)
 
-    def empty(self, *, mode: Optional[str] = 'empty'):
+    def empty(self, *, mode: str | None = 'empty'):
         self.attempts += 1
         if self.sample_cols != _EMPTY_ITER:
             self.errors.append(_TransformerMode(

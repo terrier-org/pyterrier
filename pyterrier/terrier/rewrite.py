@@ -1,19 +1,19 @@
 import pandas as pd
 from warnings import warn
-from typing import List, Union, Callable
+from typing import List, Callable
 from types import FunctionType
 import pyterrier as pt
 from pyterrier.terrier.index import TerrierTokeniser
 
 @pt.java.required
-def tokenise(tokeniser : Union[str,TerrierTokeniser,FunctionType] = 'english', matchop=False) -> pt.Transformer:
+def tokenise(tokeniser : str | TerrierTokeniser | FunctionType = 'english', matchop=False) -> pt.Transformer:
     """
 
     Applies tokenisation to the query. 
     Until PyTerrier 1.0, queries obtained from ``pt.get_dataset().get_topics()`` were generally tokenised.
 
     Args:
-        tokeniser(Union[str,TerrierTokeniser,FunctionType]): Defines what tokeniser should be used - either a Java tokeniser name in Terrier, a TerrierTokeniser instance, or a function that takes a str as input and returns a list of str.
+        tokeniser (str | TerrierTokeniser | FunctionType): Defines what tokeniser should be used - either a Java tokeniser name in Terrier, a TerrierTokeniser instance, or a function that takes a str as input and returns a list of str.
         matchop(bool): Whether query terms should be wrapped in matchops, to ensure they can be parsed by a Terrier Retriever transformer.
     
     Example - use default tokeniser::
@@ -50,7 +50,7 @@ def tokenise(tokeniser : Union[str,TerrierTokeniser,FunctionType] = 'english', m
         tokenobj = pt.java.autoclass(tokeniser)()
         _query_fn = tokenobj.getTokens
 
-    def _join_str(input : Union[str,List[str]]):
+    def _join_str(input : str | List[str]):
         if isinstance(input, str):
             return input
         return ' '.join(input)
@@ -101,7 +101,7 @@ class SDM(pt.Transformer):
     '''
 
     def __init__(self, verbose = 0, remove_stopwords = True, prox_model = None, 
-                 tokeniser : Union[str,TerrierTokeniser] = TerrierTokeniser.english, 
+                 tokeniser : str | TerrierTokeniser = TerrierTokeniser.english, 
                  **kwargs):
         super().__init__(**kwargs)
         self.verbose = 0
@@ -194,7 +194,7 @@ class QueryExpansion(pt.Transformer):
                  verbose=0, 
                  properties={}, 
                  requires_scores=False, 
-                 tokeniser : Union[str,TerrierTokeniser] = TerrierTokeniser.english,
+                 tokeniser : str | TerrierTokeniser = TerrierTokeniser.english,
                  **kwargs):
         super().__init__(**kwargs)
         self.verbose = verbose

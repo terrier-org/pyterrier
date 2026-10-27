@@ -5,7 +5,7 @@ import shutil
 import tempfile
 import urllib
 import typing
-from typing import Callable, Iterable, Optional, Generator, ContextManager, Union, Dict, Literal, Tuple, List
+from typing import Callable, Iterable, Generator, ContextManager, Dict, Literal, Tuple, List
 from types import GeneratorType
 from contextlib import ExitStack, contextmanager
 from abc import ABC, abstractmethod
@@ -18,7 +18,7 @@ import pyterrier as pt
 if typing.TYPE_CHECKING:
     from collections.abc import Buffer # type: ignore[attr-defined]
 else:
-    Buffer = Union[bytes, bytearray, memoryview]
+    Buffer = bytes | bytearray | memoryview
 
 
 def coerce_dataframe(obj):
@@ -154,7 +154,7 @@ def touch(fname : str, mode=0o666, dir_fd=None, **kwargs):
             dir_fd=None if os.supports_fd else dir_fd, **kwargs)
 
 
-def read_results(filename : str, format="trec", topics : Optional[pd.DataFrame] = None, dataset : Optional[pt.datasets.Dataset] =None, **kwargs) -> pd.DataFrame:
+def read_results(filename : str, format="trec", topics : pd.DataFrame | None = None, dataset : pt.datasets.Dataset | None =None, **kwargs) -> pd.DataFrame:
     """
     Reads a file into a results dataframe.
 
@@ -468,7 +468,7 @@ SUPPORTED_TOPICS_FORMATS = {
     "singleline": _read_topics_singleline
 }
 
-SUPPORTED_RESULTS_FORMATS : Dict[str, Tuple[Optional[Callable[..., pd.DataFrame]], Optional[Callable[..., None]]]] = {
+SUPPORTED_RESULTS_FORMATS : Dict[str, Tuple[Callable[..., pd.DataFrame] | None, Callable[..., None] | None]] = {
     "trec" : (_read_results_trec, _write_results_trec),
     "letor" : (_read_results_letor, _write_results_letor),
     "minimal" : (None, _write_results_minimal)
@@ -510,7 +510,7 @@ def finalized_directory(path: str) -> Generator[str, None, None]:
     os.replace(path_tmp, path)
 
 
-def download(url: str, path: str, *, expected_sha256: Optional[str] = None, verbose: bool = True, headers={}) -> None:
+def download(url: str, path: str, *, expected_sha256: str | None = None, verbose: bool = True, headers={}) -> None:
     """Downloads a file from a URL to a local path."""
     with finalized_open(path, 'b') as fout, \
          download_stream(url, expected_sha256=expected_sha256, verbose=verbose, headers = headers) as fin:
@@ -522,8 +522,8 @@ def download(url: str, path: str, *, expected_sha256: Optional[str] = None, verb
 def download_stream(
     url: str,
     *,
-    expected_sha256: Optional[str] = None,
-    headers: Optional[Dict[str, str]] = None,
+    expected_sha256: str | None = None,
+    headers: Dict[str, str] | None = None,
     verbose: bool = True
 ) -> Generator[io.BufferedIOBase, None, None]:
     """Downloads a file from a URL to a stream."""
@@ -547,8 +547,8 @@ def download_stream(
 def open_or_download_stream(
     path_or_url: str,
     *,
-    expected_sha256: Optional[str] = None,
-    headers: Optional[Dict[str, str]] = None,
+    expected_sha256: str | None = None,
+    headers: Dict[str, str] | None = None,
     verbose: bool = True
 ) -> Generator[io.BufferedIOBase, None, None]:
     """Opens a file or downloads a file from a URL to a stream."""
@@ -586,14 +586,14 @@ class _NosyReader(io.BufferedIOBase, ABC):
     def on_data(self, data: bytes) -> None:
         pass
 
-    def read1(self, size: Optional[int] = None) -> bytes:
+    def read1(self, size: int | None = None) -> bytes:
         if size is None:
             size = io.DEFAULT_BUFFER_SIZE
         chunk = self.reader.read1(size)
         self.on_data(chunk)
         return chunk
 
-    def read(self, size: Optional[int] = None) -> bytes:
+    def read(self, size: int | None = None) -> bytes:
         if size is None:
             size = io.DEFAULT_BUFFER_SIZE
         chunk = self.reader.read(size)
@@ -640,7 +640,7 @@ class _NosyWriter(io.BufferedIOBase, ABC):
 
 class HashReader(_NosyReader):
     """A reader that computes the sha256 hash of the data read."""
-    def __init__(self, reader: io.BufferedIOBase, *, hashfn: Callable = sha256, expected: Optional[str] = None):
+    def __init__(self, reader: io.BufferedIOBase, *, hashfn: Callable = sha256, expected: str | None = None):
         """Create a HashReader."""
         super().__init__(reader)
         self.hash = hashfn()
@@ -680,7 +680,7 @@ class HashWriter(_NosyWriter):
 
 class TqdmReader(_NosyReader):
     """A reader that displays a progress bar."""
-    def __init__(self, reader: io.BufferedIOBase, *, total: Optional[int] = None, desc: Optional[str] = None, disable: bool = False):
+    def __init__(self, reader: io.BufferedIOBase, *, total: int | None = None, desc: str | None = None, disable: bool = False):
         """Create a TqdmReader."""
         super().__init__(reader)
         self.pbar = pt.tqdm(total=total, desc=desc, unit="B", unit_scale=True, unit_divisor=1024, disable=disable) # type: ignore[misc]
@@ -713,8 +713,8 @@ class MultiReader(io.BufferedIOBase):
     def __init__(self, readers: Iterable[io.BufferedIOBase]):
         """Create a MultiReader."""
         self.readers = iter(readers)
-        self._reader: Optional[io.BufferedIOBase] = next(self.readers)
-        self.reader: Optional[io.BufferedIOBase] = self._reader.__enter__()
+        self._reader: io.BufferedIOBase | None = next(self.readers)
+        self.reader: io.BufferedIOBase | None = self._reader.__enter__()
         self.seek = self.reader.seek # type: ignore[method-assign]
         self.tell = self.reader.tell # type: ignore[method-assign]
         self.seekable = self.reader.seekable # type: ignore[method-assign]
@@ -724,7 +724,7 @@ class MultiReader(io.BufferedIOBase):
         self.isatty = self.reader.isatty # type: ignore[method-assign]
         self.close = self.reader.close # type: ignore[method-assign]
 
-    def read1(self, size: Optional[int] = None) -> bytes:
+    def read1(self, size: int | None = None) -> bytes:
         """Read a single chunk of data."""
         if self.reader is None:
             raise RuntimeError('reader is closed')
@@ -753,7 +753,7 @@ class MultiReader(io.BufferedIOBase):
             chunk = self.reader.read1(min(size, io.DEFAULT_BUFFER_SIZE))
         return chunk
 
-    def read(self, size: Optional[int] = None) -> bytes:
+    def read(self, size: int | None = None) -> bytes:
         """Read data."""
         chunk = b''
         if size is None:

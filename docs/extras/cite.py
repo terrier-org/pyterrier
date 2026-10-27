@@ -1,4 +1,3 @@
-from typing import Optional
 import os
 import json
 import requests
@@ -80,13 +79,13 @@ class CiteDirective(Directive):
     def get_citation_id(self) -> str:
         return self.arguments[0]
 
-    def get_citation(self) -> Optional[str]:
+    def get_citation(self) -> str | None:
         return self.options.get('citation')
 
-    def get_link(self) -> Optional[str]:
+    def get_link(self) -> str | None:
         return self.options.get('link')
 
-    def get_bibtex(self) -> Optional[str]:
+    def get_bibtex(self) -> str | None:
         if self.content:
             return '\n'.join(self.content)
         return None
@@ -141,7 +140,7 @@ class CiteDblpDirective(CiteDirective):
     def get_citation_id(self) -> str:
         return 'dblp:' + self.arguments[0]
 
-    def get_citation(self) -> Optional[str]:
+    def get_citation(self) -> str | None:
         citation = super().get_citation()
         if citation is not None:
             return citation
@@ -174,7 +173,7 @@ class CiteDblpDirective(CiteDirective):
             citation = f'{authors}. {title}. {year}.'
         return citation
 
-    def get_link(self) -> Optional[str]:
+    def get_link(self) -> str | None:
         link = super().get_link()
         if link is not None:
             return link
@@ -186,7 +185,7 @@ class CiteDblpDirective(CiteDirective):
         res = bibtexparser.loads(self.bibtex_entry_full).entries[0]
         return latex_converter.latex_to_text(res.get('url', ''))
 
-    def get_bibtex(self) -> Optional[str]:
+    def get_bibtex(self) -> str | None:
         bibtex = super().get_bibtex()
         if bibtex is not None:
             return bibtex

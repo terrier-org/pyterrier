@@ -6,7 +6,7 @@
 import enum
 import inspect
 import dataclasses
-from typing import Any, Dict, List, Literal, Optional, Protocol, Type, Tuple, Union, cast, overload, runtime_checkable
+from typing import Any, Dict, List, Literal, Protocol, Type, Tuple, cast, overload, runtime_checkable
 
 import pandas as pd
 
@@ -35,10 +35,10 @@ class InspectError(TypeError):
 
 
 def artifact_type_format(
-    artifact: Union[Type, 'pt.Artifact'],
+    artifact: 'Type | pt.Artifact',
     *,
     strict: bool = True,
-) -> Optional[Tuple[str, str]]:
+) -> Tuple[str, str] | None:
     """Returns the type and format of the specified artifact.
 
     These values are sourced by either the ``ARTIFACT_TYPE`` and ``ARTIFACT_FORMAT`` constants of the artifact, or (if these
@@ -83,7 +83,7 @@ def indexer_inputs(
     indexer : pt.Indexer,
     *,
     strict : bool = True
-) -> Optional[List[List[str]]]:
+) -> List[List[str]] | None:
     """
     Infers supported input column configurations (a ``List[List[str]]``) for a pt.Indexer instance.
     Orthogonal to ``transformer_inputs``. This implementation inspects the ``index_inputs()``
@@ -112,7 +112,7 @@ def transformer_inputs(
     transformer: pt.Transformer,
     *,
     strict: bool = True,
-) -> Optional[List[List[str]]]:
+) -> List[List[str]] | None:
     """Infers supported input column configurations (a ``List[List[str]]``) for a transformer.
 
     The method tries to infer the input columns that the transformer accepts by calling it with an empty DataFrame and inspecting
@@ -142,7 +142,7 @@ def transformer_inputs(
     result : List[List[str]] = []
     received = None
     if isinstance(transformer, HasTransformInputs) and transformer.transform_inputs is not None:
-        ext_result : Union[List[str], List[List[str]]]
+        ext_result : List[str] | List[List[str]]
         if not callable(transformer.transform_inputs):
             ext_result = transformer.transform_inputs
             received = "transformer.transform_inputs attribute"
@@ -210,14 +210,14 @@ def transformer_outputs(
     input_columns: List[str],
     *,
     strict: Literal[False] = ...,
-) -> Optional[List[str]]: ...
+) -> List[str] | None: ...
 
 def transformer_outputs(
     transformer: pt.Transformer,
     input_columns: List[str],
     *,
     strict: bool = True,
-) -> Optional[List[str]]:
+) -> List[str] | None:
     """Infers the output columns for a transformer based on the provided input columns.
 
     If the transformer implements the :class:`~pyterrier.inspect.HasTransformOutputs` protocol,
@@ -284,7 +284,7 @@ class TransformerAttribute:
         name: str,
         value: Any,
         init_default_value: Any = inspect.Parameter.empty,
-        init_parameter_kind: Optional[inspect._ParameterKind] = None,
+        init_parameter_kind: inspect._ParameterKind | None = None,
     ):
         # we need to define __init__ directly to avoid issues with sphinx thinking that self.init_parameter_kind is an alias to inspect.Parameter.empty
         self.name = name
@@ -295,7 +295,7 @@ class TransformerAttribute:
     name: str
     value: Any
     init_default_value: Any
-    init_parameter_kind: Optional[inspect._ParameterKind]
+    init_parameter_kind: inspect._ParameterKind | None
 
     MISSING = object()
 
@@ -398,7 +398,7 @@ def transformer_apply_attributes(transformer: pt.Transformer, **kwargs: Any) -> 
     return transformer.__class__(*init_args, **init_kwargs)
 
 
-def subtransformers(transformer: pt.Transformer) -> Dict[str, Union[pt.Transformer, List[pt.Transformer]]]:
+def subtransformers(transformer: pt.Transformer) -> Dict[str, pt.Transformer | List[pt.Transformer]]:
     """Infers a dictionary of subtransformers for the given transformer.
 
     A subtransformer is a transformer that is used by another transformer to complete its task. Examples
@@ -423,7 +423,7 @@ def subtransformers(transformer: pt.Transformer) -> Dict[str, Union[pt.Transform
     """
     if isinstance(transformer, HasSubtransformers):
         return transformer.subtransformers()
-    result: Dict[str, Union[pt.Transformer, List[pt.Transformer]]] = {}
+    result: Dict[str, pt.Transformer | List[pt.Transformer]] = {}
     def _inspectable_artifact(attr_value: Any) -> bool:
         if isinstance(attr_value, pt.Artifact):
             # if an artifact is marked with ARTIFACT_SCHEMATIC_SHOW_AS_TRANSFORMER = True, 
@@ -439,7 +439,7 @@ def subtransformers(transformer: pt.Transformer) -> Dict[str, Union[pt.Transform
             result[attr.name] = list(attr.value)
     return result
 
-def _minimal_inputs(all_configs : List[Optional[List[List[str]]]]) -> Optional[List[List[str]]]:
+def _minimal_inputs(all_configs : List[List[List[str]] | None]) -> List[List[str]] | None:
     """
     Among all input configurations, find the minimal common subset(s) of attributes needed
     for success invocation.
@@ -530,13 +530,13 @@ class HasTransformInputs(Protocol):
                 # ... perform retrieval ...
                 # return the same columns as inp plus docno, score, and rank. E.g., using DataFrameBuilder.
 
-            def transform_inputs(self) -> Union[List[str], List[List[str]]]:
+            def transform_inputs(self) -> List[str] | List[List[str]]:
                 # NOTE: This method isn't required in this case, since inspect will be able to infer required
                 # columns from pt.validate. It's just a demonstration.
                 return ['qid', 'query']
 
     """
-    def transform_inputs(self) -> Union[List[List[str]], List[str]]:
+    def transform_inputs(self) -> List[List[str]] | List[str]:
         """Returns a list of input columns accepted by the transformer.
 
         Returns:
@@ -641,7 +641,7 @@ class HasSubtransformers(Protocol):
     This method need not be present in a Transformer class - it is an optional extension. See :meth:`pyterrier.inspect.subtransformers`
     for the default implementation.
     """
-    def subtransformers(self) -> Dict[str, Union[pt.Transformer, List[pt.Transformer]]]:
+    def subtransformers(self) -> Dict[str, pt.Transformer | List[pt.Transformer]]:
         """Returns a dictionary of subtransformers for the transformer.
 
         The method must return a dictionary where the keys are the names of the subtransformers and the values are

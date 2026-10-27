@@ -1,4 +1,4 @@
-from typing import Union, Optional, Callable, List, Any
+from typing import Callable, List, Any
 import pandas as pd
 import numpy as np
 import re
@@ -87,7 +87,7 @@ def _function2wmodel(function):
     wmodel = pt.java.autoclass("org.terrier.python.CallableWeightingModel")( callback )
     return callback, wmodel
 
-def _mergeDicts(defaults : Dict[str,str], settings : Optional[Dict[str,str]] = None) -> Dict[str,str]:
+def _mergeDicts(defaults : Dict[str,str], settings : Dict[str, str] | None = None) -> Dict[str,str]:
     KV = defaults.copy()
     if settings is not None and len(settings) > 0:
         KV.update(settings)
@@ -149,8 +149,8 @@ class Retriever(pt.Transformer):
 
 
     @staticmethod
-    def from_dataset(dataset : Union[str,Dataset], 
-            variant : Optional[str] = None, 
+    def from_dataset(dataset : str | Dataset, 
+            variant : str | None = None, 
             version='latest',            
             **kwargs):
         """
@@ -202,13 +202,13 @@ class Retriever(pt.Transformer):
     }
 
     def __init__(self, 
-                 index_location : Union[str,Any], 
-                 controls : Optional[Dict[str,str]] = None, 
-                 properties : Optional[Dict[str,str]]= None, 
+                 index_location : str | Any, 
+                 controls : Dict[str, str] | None = None, 
+                 properties : Dict[str, str] | None= None, 
                  metadata : List[str] = ["docno"], 
-                 num_results : Optional[int] = None, 
-                 wmodel : Optional[Union[str, Callable]] = None, 
-                 tokeniser : Union[str,TerrierTokeniser] = TerrierTokeniser.english,
+                 num_results : int | None = None, 
+                 wmodel : str | Callable | None = None, 
+                 tokeniser : str | TerrierTokeniser = TerrierTokeniser.english,
                  threads : int = 1, 
                  verbose : bool = False):
         """
@@ -536,7 +536,7 @@ class Retriever(pt.Transformer):
     def schematic(self, *, input_columns = None): 
         return {'label': self.controls['wmodel']}
 
-    def fuse_rank_cutoff(self, k: int) -> Optional[pt.Transformer]:
+    def fuse_rank_cutoff(self, k: int) -> pt.Transformer | None:
         """
         Support fusing with RankCutoffTransformer.
         """
@@ -547,7 +547,7 @@ class Retriever(pt.Transformer):
         # apply the new k as num_results
         return pt.inspect.transformer_apply_attributes(self, num_results=k)
 
-    def fuse_feature_union(self, other: pt.Transformer, is_left: bool) -> Optional[pt.Transformer]:
+    def fuse_feature_union(self, other: pt.Transformer, is_left: bool) -> pt.Transformer | None:
         if isinstance(other, Retriever) and \
            self.indexref == other.indexref and \
            self.controls.get('context_wmodel') != 'on' and \
@@ -615,9 +615,9 @@ class TextIndexProcessor(pt.Transformer):
                  returns="docs", 
                  body_attr="body", 
                  background_index=None, 
-                 stemmer : Union[None, str, TerrierStemmer] = TerrierStemmer.porter,
-                 stopwords : Union[None, TerrierStopwords, List[str]] = TerrierStopwords.terrier,
-                 tokeniser : Union[str,TerrierTokeniser] = TerrierTokeniser.english,
+                 stemmer : None | str | TerrierStemmer = TerrierStemmer.porter,
+                 stopwords : None | TerrierStopwords | List[str] = TerrierStopwords.terrier,
+                 tokeniser : str | TerrierTokeniser = TerrierTokeniser.english,
                  verbose=False, 
                  **kwargs):
         #super().__init__(**kwargs)
@@ -781,10 +781,10 @@ class FeaturesRetriever(Retriever):
     FBR_default_properties = Retriever.default_properties.copy()
 
     def __init__(self, 
-                 index_location : Union[str,Any], 
+                 index_location : str | Any, 
                  features : List[str], 
-                 controls : Optional[Dict[str,str]] = None, 
-                 properties : Optional[Dict[str,str]] = None, 
+                 controls : Dict[str, str] | None = None, 
+                 properties : Dict[str, str] | None = None, 
                  threads : int = 1, 
                  **kwargs):
         """
@@ -854,8 +854,8 @@ class FeaturesRetriever(Retriever):
         #TODO consider the context state?
 
     @staticmethod 
-    def from_dataset(dataset : Union[str,Dataset], 
-            variant : Optional[str] = None, 
+    def from_dataset(dataset : str | Dataset, 
+            variant : str | None = None, 
             version='latest',            
             **kwargs):
         return pt.datasets.transformer_from_dataset(dataset, variant=variant, version=version, clz=FeaturesRetriever, **kwargs)
@@ -1018,7 +1018,7 @@ class FeaturesRetriever(Retriever):
             return "TerrierFeatRetr(" + str(len(self.features)) + " features)"
         return "TerrierFeatRetr(" + self.controls["wmodel"] + " and " + str(len(self.features)) + " features)"
 
-    def fuse_left(self, left: pt.Transformer) -> Optional[pt.Transformer]:
+    def fuse_left(self, left: pt.Transformer) -> pt.Transformer | None:
         # Can merge Retriever >> FeaturesRetriever into a single FeaturesRetriever that also retrieves
         # if the indexref matches and the current FeaturesRetriever isn't already reranking.
         if isinstance(left, Retriever) and \
@@ -1035,7 +1035,7 @@ class FeaturesRetriever(Retriever):
             )
         return None
 
-    def fuse_rank_cutoff(self, k: int) -> Optional[pt.Transformer]:
+    def fuse_rank_cutoff(self, k: int) -> pt.Transformer | None:
         """
         Support fusing with RankCutoffTransformer.
         """
@@ -1047,7 +1047,7 @@ class FeaturesRetriever(Retriever):
         return FeaturesRetriever(self.indexref, self.features, controls=self.controls, properties=self.properties,
             threads=self.threads, wmodel=self.wmodel, verbose=self.verbose, num_results=k)
 
-    def fuse_feature_union(self, other: pt.Transformer, is_left: bool) -> Optional[pt.Transformer]:
+    def fuse_feature_union(self, other: pt.Transformer, is_left: bool) -> pt.Transformer | None:
         if isinstance(other, FeaturesRetriever) and \
            self.indexref == other.indexref and \
            self.wmodel is None and \

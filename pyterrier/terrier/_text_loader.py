@@ -1,4 +1,4 @@
-from typing import List, Union, Literal
+from typing import List, Literal
 
 import pandas as pd
 import pyterrier as pt
@@ -11,7 +11,7 @@ class TerrierTextLoader(pt.Transformer):
     def __init__(
         self,
         index: TerrierIndex,
-        fields: Union[List[str], str, Literal['*']] = '*',
+        fields: List[str] | str | Literal['*'] = '*',
         *,
         verbose=False
     ):
@@ -78,7 +78,7 @@ class TerrierTextLoader(pt.Transformer):
 
 def terrier_text_loader(
     index,
-    fields: Union[List[str], str, Literal['*']] = '*',
+    fields: List[str] | str | Literal['*'] = '*',
     *,
     verbose=False
 ) -> TerrierTextLoader:
