@@ -80,7 +80,7 @@ jobs:
       env:
         TERRIER_VERSION: ${{ matrix.terrier }}
       run: |
-        pytest --durations=20 -p no:faulthandler --json-report --json-report-file ${{ env.runtag }}.results.json --cov ir_measures --cov-report json:${{ env.runtag }}.coverage.json
+        pytest --durations=20 -p no:faulthandler --json-report --json-report-file ${{ env.runtag }}.results.json --cov pyterrier --cov-report json:${{ env.runtag }}.coverage.json
 
     - name: Report Test Results
       if: always()
