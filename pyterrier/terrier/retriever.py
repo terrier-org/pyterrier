@@ -710,7 +710,7 @@ class TextIndexProcessor(pt.Transformer):
 
         if self.returns == "docs":
             # as this is a new index, docids are not meaningful externally, so lets drop them
-            inner_res.drop(columns=['docid'], inplace=True)
+            inner_res = inner_res.drop(columns=['docid'])
 
             topics_columns = topics_and_res.columns[(topics_and_res.columns.isin(["qid", "docno"])) | (~topics_and_res.columns.isin(inner_res.columns))]
             if len(inner_res) < len(topics_and_res):

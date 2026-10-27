@@ -21,7 +21,7 @@ def add_ranks(df : pd.DataFrame, single_query=False) -> pd.DataFrame:
     """
         Canonical method for adding a rank column which is calculated based on the score attribute
         for each query. Note that the dataframe is NOT sorted by this operation (this is defined by STRICT_SORT).
-        The dataframe is modified, i.e. inplace.
+        A new dataframe is returned.
 
         Arguments
             df: dataframe to create rank attribute for
@@ -29,7 +29,7 @@ def add_ranks(df : pd.DataFrame, single_query=False) -> pd.DataFrame:
     """
     if "score" not in df.columns:
         raise KeyError("Must have score column to add ranks to dataframe. Found columns were %s" % str(df.columns.values.tolist()))
-    df.drop(columns=["rank"], errors="ignore", inplace=True)
+    df = df.drop(columns=["rank"], errors="ignore")
     if len(df) == 0:
         df["rank"] = pd.Series(index=df.index, dtype='int64')
         return df
@@ -39,13 +39,13 @@ def add_ranks(df : pd.DataFrame, single_query=False) -> pd.DataFrame:
         # -1 assures that first rank will be FIRST_RANK
         df["rank"] = df["score"].rank(ascending=False, method="first").astype(int) -1 + FIRST_RANK
         if STRICT_SORT:
-            df.sort_values(["rank"], ascending=True, inplace=True)
+            df = df.sort_values(["rank"], ascending=True)
         return df
 
     # -1 assures that first rank will be FIRST_RANK
     df["rank"] = df.groupby("qid", sort=False)["score"].rank(ascending=False, method="first").astype(int) -1 + FIRST_RANK
     if STRICT_SORT:
-        df.sort_values(["qid", "rank"], ascending=[True,True], inplace=True)
+        df = df.sort_values(["qid", "rank"], ascending=[True,True])
     return df
 
 def document_columns(df : pd.DataFrame) -> Sequence[str]:
@@ -156,7 +156,7 @@ def pop_queries(df: pd.DataFrame, *, inplace: bool = False) -> pd.DataFrame:
         raise KeyError(f"Expected a query_0 column, but found {list(cols)}")
     if not inplace:
         df = df.copy()
-    df.drop(columns=["query"], inplace=True)
+    df = df.drop(columns=["query"])
     prev_col = 'query'
     rename_cols = {}
     for query_idx in itertools.count():

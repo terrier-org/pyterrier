@@ -522,7 +522,7 @@ class _ResetResults(pt.Transformer):
             docsdf = pd.DataFrame.from_records(row.stashed_results_0)
             docsdf["qid"] = row.qid
             querydf = pd.DataFrame(data=[row])
-            querydf.drop("stashed_results_0", axis=1, inplace=True)
+            querydf = querydf.drop("stashed_results_0", axis=1)
             finaldf = querydf.merge(docsdf, on="qid")
             rtr.append(finaldf)
         return pd.concat(rtr)

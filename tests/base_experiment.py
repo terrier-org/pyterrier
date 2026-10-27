@@ -468,8 +468,8 @@ class TestExperimentBase(TempDirTestCase):
         rtr2 = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg", "num_q", "mrt"], batch_size=2, **self.pt_exp_kwargs)
         self.assertTrue("mrt" in rtr1.columns)
         self.assertTrue("mrt" in rtr2.columns)
-        rtr1.drop(columns=["mrt"], inplace=True)
-        rtr2.drop(columns=["mrt"], inplace=True)
+        rtr1 = rtr1.drop(columns=["mrt"])
+        rtr2 = rtr2.drop(columns=["mrt"])
         pd.testing.assert_frame_equal(rtr1, rtr2)
         
         rtr1 = pt.Experiment([br], vaswani.get_topics().head(10), vaswani.get_qrels(), ["map", "ndcg", "num_q"], perquery=True, **self.pt_exp_kwargs)
