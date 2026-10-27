@@ -467,7 +467,7 @@ class SlidingWindowPassager(pt.Transformer):
                     newRow['docno'] = row['docno'] + "%p0"
                     newRow[self.text_attr] = self.detokenize(toks)
                     if self.prepend_title:
-                        newRow.drop(labels=[self.title_attr], inplace=True)
+                        newRow = newRow.drop(labels=[self.title_attr])
                         newRow[self.text_attr] = str(row[self.title_attr]) + self.join + newRow[self.text_attr]
                     if labels:
                         labelCount[row['label']] += 1
@@ -494,5 +494,5 @@ class SlidingWindowPassager(pt.Transformer):
         newDF['query'] = newDF['query'].fillna('')
         newDF[self.text_attr] = newDF[self.text_attr].fillna('')
         newDF['qid'] = newDF['qid'].fillna('')
-        newDF.reset_index(inplace=True,drop=True)
+        newDF = newDF.reset_index(drop=True)
         return newDF
