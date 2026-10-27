@@ -19,6 +19,8 @@ jobs:
         terrier: [''] # blank indicates latest
 
     runs-on: ${{ matrix.os }}
+    env:
+      runtag: ${{ matrix.os }}-Py${{ matrix.python-version }}-JDK${{ matrix.java }}
     steps:
 
     - name: Setup dependencies for xgBoost on macOs-latest
@@ -78,4 +80,12 @@ jobs:
       env:
         TERRIER_VERSION: ${{ matrix.terrier }}
       run: |
-        pytest --durations=20 -p no:faulthandler
+        pytest --durations=20 -p no:faulthandler --json-report --json-report-file ${{ env.runtag }}.results.json --cov ir_measures --cov-report json:${{ env.runtag }}.coverage.json
+
+    - name: Report Test Results
+      if: always()
+      run: |
+        printf "**Test Results**\n\n" >> $GITHUB_STEP_SUMMARY
+        jq '.summary' ${{ env.runtag }}.results.json >> $GITHUB_STEP_SUMMARY
+        printf "\n\n**Test Coverage**\n\n" >> $GITHUB_STEP_SUMMARY
+        jq '.files | to_entries[] | " - `" + .key + "`: **" + .value.summary.percent_covered_display + "%**"' -r ${{ env.runtag }}.coverage.json >> $GITHUB_STEP_SUMMARY
