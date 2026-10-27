@@ -265,7 +265,7 @@ def filter_on_qid_type(self, component, variant):
     rtr = data.merge(qid2type[qid2type["type"] == variant], on=["qid"])
     if len(rtr) == 0:
         raise ValueError("No such topic type '%s'" % variant)
-    rtr.drop(columns=['type'], inplace=True)
+    rtr = rtr.drop(columns=['type'])
     return (rtr, "direct")
 
 TREC_WT_2004_FILES = {

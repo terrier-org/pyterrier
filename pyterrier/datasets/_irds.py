@@ -70,19 +70,19 @@ class IRDSDataset(pt.datasets.Dataset):
         assert variant is None or variant in qcls._fields[1:], f"{self._irds_id} only supports the following topic variants {qcls._fields[1:]}"
         df = pd.DataFrame(ds.queries_iter())
 
-        df.rename(columns={"query_id": "qid"}, inplace=True) # pyterrier uses "qid"
+        df = df.rename(columns={"query_id": "qid"}) # pyterrier uses "qid"
 
         if variant is not None:
             # Some datasets have a query field called "query". We need to remove it or
             # we'll end up with multiple "query" columns, which will cause problems
             # because many components are written assuming no columns have the same name.
             if variant != 'query' and 'query' in df.columns:
-                df.drop(columns=['query'], inplace=True)
-            df.rename(columns={variant: "query"}, inplace=True) # user specified which version of the query they want
-            df.drop(columns=df.columns.difference(['qid','query']), inplace=True)
+                df = df.drop(columns=['query'])
+            df = df.rename(columns={variant: "query"}) # user specified which version of the query they want
+            df = df.drop(columns=df.columns.difference(['qid','query']))
         elif len(qcls._fields) == 2:
             # auto-rename single query field to "query" if there's only query_id and that field
-            df.rename(columns={qcls._fields[1]: "query"}, inplace=True)
+            df = df.rename(columns={qcls._fields[1]: "query"})
         else:
             print(f'There are multiple query fields available: {qcls._fields[1:]}. To use with pyterrier, provide variant or modify dataframe to add query column.')
         return df
@@ -106,19 +106,19 @@ class IRDSDataset(pt.datasets.Dataset):
         df = pd.DataFrame(ds.qrels_iter())
 
         # pyterrier uses "qid" and "docno"
-        df.rename(columns={
+        df = df.rename(columns={
             "query_id": "qid",
-            "doc_id": "docno"}, inplace=True)
+            "doc_id": "docno"})
 
         # pyterrier uses "label"
         if variant is not None:
-            df.rename(columns={variant: "label"}, inplace=True)
+            df = df.rename(columns={variant: "label"})
         if len(qrel_fields) == 1:
             # usually "relevance"
-            df.rename(columns={qrel_fields[0]: "label"}, inplace=True)
+            df = df.rename(columns={qrel_fields[0]: "label"})
         elif 'relevance' in qrel_fields:
             print(f'There are multiple qrel fields available: {qrel_fields}. Defaulting to "relevance", but to use a different one, supply variant')
-            df.rename(columns={'relevance': "label"}, inplace=True)
+            df = df.rename(columns={'relevance': "label"})
         else:
             print(f'There are multiple qrel fields available: {qrel_fields}. To use with pyterrier, provide variant or modify dataframe to add query column.')
 
@@ -133,7 +133,7 @@ class IRDSDataset(pt.datasets.Dataset):
             raise NotImplementedError(f"{self._irds_id} doesn't support get_results")
         result = pd.DataFrame(ds.scoreddocs)
         result = result.rename(columns={'query_id': 'qid', 'doc_id': 'docno'}) # convert irds field names to pyterrier names
-        result.sort_values(by=['qid', 'score', 'docno'], ascending=[True, False, True], inplace=True) # ensure data is sorted by qid, -score, did
+        result = result.sort_values(by=['qid', 'score', 'docno'], ascending=[True, False, True]) # ensure data is sorted by qid, -score, did
         # result doesn't yet contain queries (only qids) so load and merge them in
         topics = self.get_topics(variant)
         result = pd.merge(result, topics, how='left', on='qid')

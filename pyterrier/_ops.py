@@ -68,7 +68,7 @@ class SetUnion(Transformer):
         on_cols = ["qid", "docno"]     
         rtr = rtr.drop_duplicates(subset=on_cols)
         rtr = rtr.sort_values(by=on_cols)
-        rtr.drop(columns=["score", "rank"], inplace=True, errors='ignore')
+        rtr = rtr.drop(columns=["score", "rank"], errors='ignore')
         return rtr
 
 class SetIntersection(Transformer):
@@ -92,17 +92,17 @@ class SetIntersection(Transformer):
         
         on_cols = ["qid", "docno"]
         rtr = res1.merge(res2, on=on_cols, suffixes=('','_y'))
-        rtr.drop(columns=["score", "rank", "score_y", "rank_y", "query_y"], inplace=True, errors='ignore')
+        rtr = rtr.drop(columns=["score", "rank", "score_y", "rank_y", "query_y"], errors='ignore')
         for col in rtr.columns:
             if '_y' not in col:
                 continue
             new_name = col.replace('_y', '')
             if new_name in rtr.columns:
                 # duplicated column, drop
-                rtr.drop(columns=[col], inplace=True)
+                rtr = rtr.drop(columns=[col])
                 continue
             # column only from RHS, keep, but rename by removing '_y' suffix
-            rtr.rename(columns={col:new_name}, inplace=True)
+            rtr = rtr.rename(columns={col:new_name})
 
         return rtr
 
@@ -287,7 +287,7 @@ class FeatureUnion(NAryTransformerBase):
                     res["features"] = pd.Series([], dtype='float64')
                 else:
                     res["features"] = res.apply(lambda row : np.array([row["score"]]), axis=1)
-                res.drop(columns=["score"], inplace=True)
+                all_results[i] = res = res.drop(columns=["score"])
             assert "features" in res.columns
             #print("%d got %d features from operand %d" % ( id(self) ,   len(results.iloc[0]["features"]), i))
 
@@ -307,8 +307,8 @@ class FeatureUnion(NAryTransformerBase):
             both_cols.remove("features")
             rtr = pd.merge(left, right, on=["qid", "docno"])
             rtr["features"] = rtr.apply(_concat_features, axis=1, result_type='reduce')
-            rtr.rename(columns={"%s_x" % col : col for col in both_cols}, inplace=True)
-            rtr.drop(columns=["features_x", "features_y"] + ["%s_y" % col for col in both_cols], inplace=True)
+            rtr = rtr.rename(columns={"%s_x" % col : col for col in both_cols})
+            rtr = rtr.drop(columns=["features_x", "features_y"] + ["%s_y" % col for col in both_cols])
             return rtr
         
         from functools import reduce
@@ -325,8 +325,8 @@ class FeatureUnion(NAryTransformerBase):
         both_cols.remove("qid")
         both_cols.remove("docno")
         final_DF = inputRes.merge(final_DF, on=["qid", "docno"])
-        final_DF.rename(columns={"%s_x" % col : col for col in both_cols}, inplace=True)
-        final_DF.drop(columns=["%s_y" % col for col in both_cols], inplace=True)
+        final_DF = final_DF.rename(columns={"%s_x" % col : col for col in both_cols})
+        final_DF = final_DF.drop(columns=["%s_y" % col for col in both_cols])
         # remove the duplicated columns
         #final_DF = final_DF.loc[:,~final_DF.columns.duplicated()]
         assert "features_x" not in final_DF.columns 
