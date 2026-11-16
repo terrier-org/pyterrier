@@ -6,6 +6,8 @@
 import enum
 import inspect
 import dataclasses
+import types
+import typing
 from typing import Any, Dict, List, Literal, Protocol, Type, Tuple, cast, overload, runtime_checkable
 
 import pandas as pd
@@ -278,6 +280,7 @@ class TransformerAttribute:
         value: The value of the attribute.
         init_default_value: The default value of the attribute for the ``__init__`` method (if available) or ``inspect.Parameter.empty`` if not available.
         init_parameter_kind: The kind of the parameter in the ``__init__`` method (if available) or ``None`` if not available.
+        data_type: The constructor annotation for the attribute, or ``inspect.Parameter.empty`` when it is not available.
     """
     def __init__(
         self,
@@ -285,17 +288,20 @@ class TransformerAttribute:
         value: Any,
         init_default_value: Any = inspect.Parameter.empty,
         init_parameter_kind: inspect._ParameterKind | None = None,
+        data_type: Any = inspect.Parameter.empty,
     ):
         # we need to define __init__ directly to avoid issues with sphinx thinking that self.init_parameter_kind is an alias to inspect.Parameter.empty
         self.name = name
         self.value = value
         self.init_default_value = init_default_value
         self.init_parameter_kind = init_parameter_kind
+        self.data_type = data_type
 
     name: str
     value: Any
     init_default_value: Any
     init_parameter_kind: inspect._ParameterKind | None
+    data_type: Any
 
     MISSING = object()
 
@@ -326,6 +332,12 @@ def transformer_attributes(transformer: pt.Transformer, *, strict: bool = True) 
         return transformer.attributes()
     result = []
     signature = inspect.signature(transformer.__class__.__init__)
+    try:
+        resolved_types = typing.get_type_hints(transformer.__class__.__init__)
+    except (NameError, TypeError):
+        # Optional third-party dependencies may be unavailable while an object
+        # is being inspected. Keep raw annotations in that case.
+        resolved_types = {}
     for p in list(signature.parameters.values())[1:]: # [1:] to skip first arg ("self") which is bound to the instance.
         if p.name.startswith('_'):
             continue # Skip private constructor parameters
@@ -343,6 +355,7 @@ def transformer_attributes(transformer: pt.Transformer, *, strict: bool = True) 
             value=val,
             init_default_value=p.default,
             init_parameter_kind=p.kind,
+            data_type=resolved_types.get(p.name, p.annotation),
         ))
     return result
 
@@ -424,18 +437,51 @@ def subtransformers(transformer: pt.Transformer) -> Dict[str, pt.Transformer | L
     if isinstance(transformer, HasSubtransformers):
         return transformer.subtransformers()
     result: Dict[str, pt.Transformer | List[pt.Transformer]] = {}
-    def _inspectable_artifact(attr_value: Any) -> bool:
+    def _annotation_is_transformer(annotation: Any) -> bool | None:
+        """Return whether a constructor annotation describes a transformer.
+
+        An object can implement both ``Artifact`` and ``Transformer``.  In that
+        case the constructor annotation is the only reliable indication of how
+        the attribute is used.  ``None`` means that no usable annotation was
+        available, so callers can retain the runtime compatibility fallback.
+        """
+        if annotation is inspect.Parameter.empty or annotation is None:
+            return None
+        if isinstance(annotation, str):
+            return None
+        origin = typing.get_origin(annotation)
+        if origin in (typing.Union, types.UnionType):
+            decisions = [_annotation_is_transformer(a) for a in typing.get_args(annotation)]
+            known = [decision for decision in decisions if decision is not None]
+            return any(known) if known else None
+        if origin in (list, tuple, set, frozenset):
+            args = [arg for arg in typing.get_args(annotation) if arg is not Ellipsis]
+            if not args:
+                return None
+            decisions = [_annotation_is_transformer(arg) for arg in args]
+            known = [decision for decision in decisions if decision is not None]
+            return all(known) if len(known) == len(decisions) else None
+        try:
+            return issubclass(annotation, pt.Transformer)
+        except TypeError:
+            return None
+
+    def _is_subtransformer(attr: TransformerAttribute, attr_value: Any) -> bool:
+        annotated = _annotation_is_transformer(attr.data_type)
+        if annotated is not None:
+            return annotated
         if isinstance(attr_value, pt.Artifact):
-            # if an artifact is marked with ARTIFACT_SCHEMATIC_SHOW_AS_TRANSFORMER = True, 
-            # we treat it as a transformer for the purposes of subtransformer inspection, 
-            # e.g., to show the subtransformer inside a cache (which is an artifact) in the schematic.
+            # Preserve the opt-in behavior for third-party classes that do not
+            # annotate their constructor parameters yet.
             return getattr(attr_value, 'ARTIFACT_SCHEMATIC_SHOW_AS_TRANSFORMER', False)
-        return True
+        return isinstance(attr_value, pt.Transformer)
 
     for attr in transformer_attributes(transformer, strict=False):
-        if isinstance(attr.value, pt.Transformer) and _inspectable_artifact(attr.value):
+        if isinstance(attr.value, pt.Transformer) and _is_subtransformer(attr, attr.value):
             result[attr.name] = attr.value
-        elif isinstance(attr.value, (list, tuple)) and all(isinstance(v, pt.Transformer) and _inspectable_artifact(v) for v in attr.value):
+        elif isinstance(attr.value, (list, tuple)) and all(
+            isinstance(v, pt.Transformer) and _is_subtransformer(attr, v) for v in attr.value
+        ):
             result[attr.name] = list(attr.value)
     return result
 
