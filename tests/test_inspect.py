@@ -395,6 +395,29 @@ class TestInspect(BaseTestCase):
         self.assertEqual(pt.inspect.transformer_type(C()), pt.inspect.TransformerType.transformer | pt.inspect.TransformerType.indexer)
         self.assertEqual(pt.inspect.transformer_type(object()), pt.inspect.TransformerType(0))
 
+    def test_subtransformers_use_constructor_annotation_for_artifact_transformers(self):
+        class ArtifactTransformer(pt.Artifact, pt.Transformer):
+            def __init__(self, path):
+                pt.Artifact.__init__(self, path)
+
+            def transform(self, inp):
+                return inp
+
+        class ContextualCache(pt.Transformer):
+            def __init__(self, artifact: pt.Artifact, scorer: pt.Transformer):
+                self.artifact = artifact
+                self.scorer = scorer
+
+            def transform(self, inp):
+                return self.scorer.transform(inp)
+
+        child = ArtifactTransformer(self.here)
+        cache = ContextualCache(child, child)
+        attrs = pt.inspect.transformer_attributes(cache)
+        self.assertEqual(pt.Artifact, attrs[0].data_type)
+        self.assertEqual(pt.Transformer, attrs[1].data_type)
+        self.assertEqual({'scorer': child}, pt.inspect.subtransformers(cache))
+
 if __name__ == "__main__":
     unittest.main()
         
