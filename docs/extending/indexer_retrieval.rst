@@ -79,7 +79,7 @@ typically at pre-tokenised, as follows:
 
    [
      { 'docno' : 'd1', 'toks' : {'hello' : 1, 'there' : 1 }],
-     { 'docno' : 'd2', 'toks' : {'nice' : 1, 'to; : 1, 'meet' : 1, 'you' : 1 }
+     { 'docno' : 'd2', 'toks' : {'nice' : 1, 'to' : 1, 'meet' : 1, 'you' : 1 }
    ]
 
 For such “pre-tokenised” settings at retrieval time, the query
@@ -90,7 +90,7 @@ float query weights are typically supported here):
 .. code:: python
 
    [
-     { 'qid' : 'q1', 'query' : 'hello hello there'  'query_toks' : {'hello' : 2.0, 'there' : 1.0 }],
+     { 'qid' : 'q1', 'query' : 'hello hello there',  'query_toks' : {'hello' : 2.0, 'there' : 1.0 }],
    ]
 
 Examples of learned sparse integrations are available at
